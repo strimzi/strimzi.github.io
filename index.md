@@ -11,6 +11,8 @@ layout: default
 
 Strimzi provides a way to run an [Apache Kafka](https://kafka.apache.org/) cluster on [OpenShift](https://www.openshift.org/) and [Kubernetes](https://kubernetes.io/) in various deployment configurations.
 
+See our [GitHub](http://github.com/strimzi) repository for more info.
+
 # Contributing
 
 * Follow the [mailing list](https://www.redhat.com/mailman/listinfo/strimzi)
