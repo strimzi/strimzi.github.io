@@ -11,6 +11,14 @@ Strimzi provides a way to run an [Apache Kafka](https://kafka.apache.org/) clust
 
 See our [GitHub](http://github.com/strimzi) repository for more info.
 
+# Releases
+
+* [0.1.0](https://github.com/strimzi/strimzi/releases/tag/0.1.0)
+
+# Documentation
+
+* [0.1.0](/docs/0.1.0.md)
+
 # Contributing
 
 * Follow the [mailing list](https://www.redhat.com/mailman/listinfo/strimzi)
