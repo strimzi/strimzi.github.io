@@ -17,7 +17,7 @@ See our [GitHub](http://github.com/strimzi) repository for more info.
 
 # Documentation
 
-* [0.1.0](/docs/0.1.0.md)
+* [0.1.0](/docs/0.1.0/README.md)
 
 # Contributing
 
