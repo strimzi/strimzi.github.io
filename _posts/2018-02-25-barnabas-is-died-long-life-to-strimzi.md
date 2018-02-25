@@ -7,6 +7,8 @@ title:  "Apache Kafka on Kubernetes and OpenShift: Barnabas is died ... long lif
 
 Almost one year and half ago, I started my journey about running [Apache Kafka](https://kafka.apache.org/) on [Kubernetes](https://kubernetes.io/) and [OpenShift](https://www.openshift.org/). At that time, these containers orchestration platforms were focused on “stateless” (micro)services so there wasn’t a real support for a technology like Apache Kafka which is “stateful” by definition.
 
+<!--more-->
+
 I wrote this [blog post](https://paolopatierno.wordpress.com/2017/03/25/a-new-kafka-novel-the-openshift-kubernetes-deployment/) about my “investigation”, highlighting the problems to address in order to have Apache Kafka running on such a platforms. The solution was trying to “mimic” something that would have been added in the following months : the PetSets (then renamed in StatefulSets).
 
 I created a new project named “Barnabas” (the name came from a character in a Franz Kafka novel; he was a messenger) with the objective to help developers on having resources (i.e. all needed YAML files) for deploying Apache Kafka on Kubernetes and OpenShift.
