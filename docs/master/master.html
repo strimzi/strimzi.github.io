@@ -31,6 +31,13 @@ This guide describes how to install and use Strimzi.</p>
 <li><a href="#_using_kafka_connect_with_additional_plugins">2.4.3. Using Kafka Connect with additional plugins</a></li>
 </ul>
 </li>
+<li><a href="#_topic_controller">2.5. Topic Controller</a>
+<ul class="sectlevel3">
+<li><a href="#_deploying_through_the_cluster_controller">2.5.1. Deploying through the Cluster Controller</a></li>
+<li><a href="#_deploying_standalone_topic_controller">2.5.2. Deploying standalone Topic Controller</a></li>
+<li><a href="#_topic_configmap">2.5.3. Topic ConfigMap</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#_cluster_controller_2">3. Cluster Controller</a>
@@ -45,11 +52,11 @@ This guide describes how to install and use Strimzi.</p>
 <li><a href="#_controller_configuration">3.3. Controller configuration</a></li>
 </ul>
 </li>
-<li><a href="#_topic_controller">4. Topic Controller</a>
+<li><a href="#_topic_controller_2">4. Topic Controller</a>
 <ul class="sectlevel2">
 <li><a href="#_reconciliation_2">4.1. Reconciliation</a></li>
 <li><a href="#_usage_recommendations">4.2. Usage Recommendations</a></li>
-<li><a href="#_format_of_the_configmap">4.3. Format of the ConfigMap</a></li>
+<li><a href="#topic_config_map_details">4.3. Format of the ConfigMap</a></li>
 <li><a href="#_example">4.4. Example</a></li>
 <li><a href="#_unsupported_operations">4.5. Unsupported operations</a></li>
 <li><a href="#_controller_environment">4.6. Controller environment</a></li>
@@ -79,7 +86,7 @@ Apache Kafka on Kubernetes and OpenShift.</p>
 <dl>
 <dt class="hdlist1">Cluster Controller</dt>
 <dd>
-<p>Responsible for deploying and managing Apache Kafka clusters within a Kuberentes or OpenShift
+<p>Responsible for deploying and managing Apache Kafka clusters within a Kubernetes or OpenShift
 cluster</p>
 </dd>
 <dt class="hdlist1">Topic Controller</dt>
@@ -447,15 +454,110 @@ be run:</p>
 </div>
 </div>
 </div>
+<div class="sect2">
+<h3 id="_topic_controller">2.5. Topic Controller</h3>
+<div class="paragraph">
+<p>Strimzi uses a component called the Topic Controller to manage topics in the Kafka cluster. The Topic Controller
+is deployed as a process running inside a Kubernetes/OpenShift cluster. To create a new Kafka topic, a ConfigMap
+with the related configuration (name, partitions, replication factor, &#8230;&#8203;) has to be created. Based on the information
+in that ConfigMap, the Topic Controller will create a corresponding Kafka topic in the cluster.</p>
+</div>
+<div class="paragraph">
+<p>Deleting a topic ConfigMap raises the deletion of the corresponding Kafka topic as well.</p>
+</div>
+<div class="paragraph">
+<p>The Cluster Controller is able to deploy a Topic Controller, which can be configured in the cluster ConfigMap.
+Alternatively, it is possible to deploy a Topic Controller manually, rather than having it deployed
+by the Cluster Controller.</p>
+</div>
+<div class="sect3">
+<h4 id="_deploying_through_the_cluster_controller">2.5.1. Deploying through the Cluster Controller</h4>
+<div class="paragraph">
+<p>To deploy the Topic Controller through the Cluster Controller, its configuration needs to be provided in the cluster
+ConfigMap in the <code>topic-controller-config</code> field as a JSON string.</p>
+</div>
+<div class="paragraph">
+<p>For more information on the JSON configuration format see <a href="#topic_controller_json_config">Section 3.2.1.3, &#8220;Topic controller&#8221;</a>.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_deploying_standalone_topic_controller">2.5.2. Deploying standalone Topic Controller</h4>
+<div class="paragraph">
+<p>If you are not going to deploy the Kafka cluster using the Cluster Controller but you already have a Kafka cluster deployed
+on Kubernetes or OpenShift, it could be useful to deploy the Topic Controller using the provided YAML files.
+In that case you can still leverage on the Topic Controller features of managing Kafka topics through related ConfigMaps.</p>
+</div>
+<div class="sect4">
+<h5 id="_deploying_to_kubernetes_4">Deploying to Kubernetes</h5>
+<div class="paragraph">
+<p>To deploy the Topic Controller on Kubernetes (not through the Cluster Controller), the following command should be executed:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>kubectl create -f resources/kubernetes/topic-controller.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To verify whether the Topic Controller has been deployed successfully, the Kubernetes Dashboard or the following
+command can be used:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>kubectl describe all</code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_deploying_to_openshift_4">Deploying to OpenShift</h5>
+<div class="paragraph">
+<p>To deploy the Topic Controller on OpenShift (not through the Cluster Controller), the following command should be executed:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc create -f resources/openshift/topic-controller-with-template.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To verify whether the Topic Controller has been deployed successfully, the OpenShift console or the following command
+can be used:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc describe all</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_topic_configmap">2.5.3. Topic ConfigMap</h4>
+<div class="paragraph">
+<p>When the Topic Controller is deployed by the Cluster Controller it will be configured to watch
+for "topic ConfigMaps" which are those with the following labels:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-yaml" data-lang="yaml">strimzi.io/cluster: &lt;cluster-name&gt;
+strimzi.io/kind: topic</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When the Topic Controller is deployed manually the <code>strimzi.io/cluster</code> label is not necessary.</p>
+</div>
+<div class="paragraph">
+<p>The topic ConfigMap contains the topic configuration in a specific format. The ConfigMap format is described in <a href="#topic_config_map_details">Section 4.3, &#8220;Format of the ConfigMap&#8221;</a>.</p>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
 <h2 id="_cluster_controller_2">3. Cluster Controller</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>The cluster controller is in charge of deploying a Kafka cluster alongside a Zookeeper ensemble. It&#8217;s also able to deploy a
-Kafka Connect cluster which connects to an existing Kafka cluster. Such a cluster can be deployed using the Source2Image OpenShift
-feature as well in order to include more connectors plugins.</p>
+<p>The cluster controller is in charge of deploying a Kafka cluster alongside a Zookeeper ensemble. As part of the Kafka cluster,
+it can also deploy the topic controller which provides operator-style topic management via ConfigMaps.
+The cluster controller is also able to deploy a Kafka Connect cluster which connects to an existing Kafka cluster.
+On OpenShift such a cluster can be deployed using the Source2Image feature, providing an easy way of including more connectors.</p>
 </div>
 <div class="paragraph">
 <p>When the cluster controller is up, it starts to "watch" for ConfigMaps containing the Kafka or Kafka Connect
@@ -576,6 +678,10 @@ Removing this field means having no metrics exposed.</p>
 <li>
 <p><code>zookeeper-metrics-config</code>: a JSON string representing the JMX exporter configuration for exposing metrics from Zookeeper nodes.
 Removing this field means having no metrics exposed.</p>
+</li>
+<li>
+<p><code>topic-controller-config</code>: a JSON string representing the topic controller configuration. See the <a href="#topic_controller_json_config">Section 3.2.1.3, &#8220;Topic controller&#8221;</a>
+documentation for further details. More info about the topic controller in the related <a href="#_topic_controller">Section 2.5, &#8220;Topic Controller&#8221;</a> documentation page.</p>
 </li>
 </ul>
 </div>
@@ -788,6 +894,49 @@ configuration file. For this reason, you can find more information on how to use
 <p>For more information on how metrics work, the related documentation is available <a href="../../metrics/METRICS.md">here</a></p>
 </div>
 </div>
+<div class="sect4">
+<h5 id="topic_controller_json_config">Topic controller</h5>
+<div class="paragraph">
+<p>Alongside the Kafka cluster and the Zookeeper ensemble, the cluster controller can also deploy the topic controller.
+In order to do that, the 'topic-controller-config` field has to be put into the data section of the cluster ConfigMap.
+This field is a JSON string containing the topic controller configuration.
+Without this field, the cluster controller doesn&#8217;t deploy the topic controller. It is still possible to deploy the topic
+controller by creating appropriate Kubernates/OpenShift resources.</p>
+</div>
+<div class="paragraph">
+<p>The JSON representation of the 'topic-controller-config` has no mandatory fields and if the value is an empty object
+(just "{ }"), the cluster controller will deploy the topic controller with a default configuration.</p>
+</div>
+<div class="paragraph">
+<p>The configurable fields are the following :</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>image</code>: Docker image to use for the topic controller. Default is <code>strimzi/topic-controller:latest</code></p>
+</li>
+<li>
+<p><code>namespace</code>: the Kubernetes namespace (OpenShift project) in which the topic controller watches for topic ConfigMaps.
+Default is the namespace where the topic controller is running</p>
+</li>
+<li>
+<p><code>reconciliationInterval</code>: the interval between periodic reconciliations. Default is "15 minutes"</p>
+</li>
+<li>
+<p><code>zookeeperSessionTimeout</code>: the Zookeeper session timeout. Default is "20 seconds"</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">Example Topic Controller JSON configuration</div>
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{ "reconciliationInterval": "10 minutes", "zookeeperSessionTimeout": "10 seconds" }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>More information about these configuration parameters in the related <a href="#_topic_controller">Section 2.5, &#8220;Topic Controller&#8221;</a> documentation page.</p>
+</div>
+</div>
 </div>
 <div class="sect3">
 <h4 id="kafka_connect_config_map_details">3.2.2. Kafka Connect</h4>
@@ -922,11 +1071,16 @@ Default: 120000 ms</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_topic_controller">4. Topic Controller</h2>
+<h2 id="_topic_controller_2">4. Topic Controller</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>The role of the topic controller is to keep in-sync a set of K8s ConfigMaps describing Kafka topics,
-and those Kafka topics.</p>
+<p>The Topic Controller is in charge of managing topics in a Kafka cluster. The Topic Controller is deployed as a process
+running inside a Kubernetes/OpenShift cluster.
+It can be deployed through the Cluster Controller or "manually" through provided YAML files.</p>
+</div>
+<div class="paragraph">
+<p>The role of the topic controller is to keep a set of Kubernetes ConfigMaps describing Kafka topics in-sync with
+corresponding Kafka topics.</p>
 </div>
 <div class="paragraph">
 <p>Specifically:</p>
@@ -1054,7 +1208,7 @@ the corresponding ConfigMap.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_format_of_the_configmap">4.3. Format of the ConfigMap</h3>
+<h3 id="topic_config_map_details">4.3. Format of the ConfigMap</h3>
 <div class="paragraph">
 <p>By default, the controller only considers ConfigMaps having the label <code>strimzi.io/kind=topic</code>,
 but this is configurable via the <code>STRIMZI_CONFIGMAP_LABELS</code> environment variable.</p>
