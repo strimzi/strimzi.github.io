@@ -62,10 +62,19 @@ This guide describes how to install and use Strimzi.</p>
 <li><a href="#_controller_environment">4.6. Controller environment</a></li>
 </ul>
 </li>
-<li><a href="#_installing_kubernetes_and_openshift_cluster">Appendix A: Installing Kubernetes and OpenShift cluster</a>
+<li><a href="#_frequently_asked_questions">Appendix A: Frequently Asked Questions</a>
 <ul class="sectlevel2">
-<li><a href="#_kubernetes">A.1. Kubernetes</a></li>
-<li><a href="#_openshift">A.2. OpenShift</a></li>
+<li><a href="#_cluster_controller_3">A.1. Cluster Controller</a>
+<ul class="sectlevel3">
+<li><a href="#_log_contains_warnings_about_failing_to_acquire_lock">A.1.1. Log contains warnings about failing to acquire lock</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#_installing_kubernetes_and_openshift_cluster">Appendix B: Installing Kubernetes and OpenShift cluster</a>
+<ul class="sectlevel2">
+<li><a href="#_kubernetes">B.1. Kubernetes</a></li>
+<li><a href="#_openshift">B.2. OpenShift</a></li>
 </ul>
 </li>
 </ul>
@@ -110,7 +119,7 @@ to the running cluster.</p>
 </div>
 <div class="paragraph">
 <p>When no existing Kubernetes or OpenShift cluster is available, <code>Minikube</code> or <code>Minishift</code> can be used to create a local
-cluster. More details can be found in <a href="#_installing_kubernetes_and_openshift_cluster">Appendix A, <em>Installing Kubernetes and OpenShift cluster</em></a></p>
+cluster. More details can be found in <a href="#_installing_kubernetes_and_openshift_cluster">Appendix B, <em>Installing Kubernetes and OpenShift cluster</em></a></p>
 </div>
 </div>
 <div class="sect2">
@@ -1371,7 +1380,52 @@ by deleting the pod.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_installing_kubernetes_and_openshift_cluster">Appendix A: Installing Kubernetes and OpenShift cluster</h2>
+<h2 id="_frequently_asked_questions">Appendix A: Frequently Asked Questions</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_cluster_controller_3">A.1. Cluster Controller</h3>
+<div class="sect3">
+<h4 id="_log_contains_warnings_about_failing_to_acquire_lock">A.1.1. Log contains warnings about failing to acquire lock</h4>
+<div class="paragraph">
+<p>For each cluster, the Cluster Controller always executes only one operation at a time. The Cluster Controller uses locks
+to make sure that there are never two parallel operations running for the same cluster. In case an operation requires
+more time to complete, other operations will wait until it is completed and the lock is released.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">INFO</dt>
+<dd>
+<p>Examples of cluster operations are <em>cluster creation</em>, <em>rolling update</em>, <em>scale down</em> or <em>scale up</em> etc.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>If the wait for the lock takes too long, the operation times out and the following warning message will be printed to
+the log:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>---
+2018-03-04 17:09:24 WARNING AbstractClusterOperations:290 - Failed to acquire lock for kafka cluster lock::kafka::myproject::my-cluster
+---</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Depending on the exact configuration of <code>STRIMZI_FULL_RECONCILIATION_INTERVAL</code> and <code>STRIMZI_OPERATION_TIMEOUT</code>, this
+warning message may appear regularly without indicating any problems. The operations which time out will be picked up by
+the next periodic reconciliation. It will try to acquire the lock again and execute.</p>
+</div>
+<div class="paragraph">
+<p>Should this message appear periodically even in situations when there should be no other operations running for a given
+cluster, it might indicate that due to some error the lock was not properly released. In such cases it is recommended to
+restart the cluster controller.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_installing_kubernetes_and_openshift_cluster">Appendix B: Installing Kubernetes and OpenShift cluster</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>The easiest way to get started with Kubernetes or OpenShift is using the <code>Minikube</code>, <code>Minishift</code> or <code>oc cluster up</code>
@@ -1379,7 +1433,7 @@ utilities. This section provides basic guidance on how to use them. More details
 the tools themselves.</p>
 </div>
 <div class="sect2">
-<h3 id="_kubernetes">A.1. Kubernetes</h3>
+<h3 id="_kubernetes">B.1. Kubernetes</h3>
 <div class="paragraph">
 <p>In order to interact with a Kubernetes cluster the <a href="https://kubernetes.io/docs/tasks/tools/install-kubectl/"><code>kubectl</code></a>
 utility needs to be installed.</p>
@@ -1396,7 +1450,7 @@ using:</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_openshift">A.2. OpenShift</h3>
+<h3 id="_openshift">B.2. OpenShift</h3>
 <div class="paragraph">
 <p>In order to interact with an OpenShift cluster, the <a href="https://github.com/openshift/origin/releases"><code>oc</code></a> utility is needed.</p>
 </div>
