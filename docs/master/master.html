@@ -49,7 +49,18 @@ This guide describes how to install and use Strimzi.</p>
 <li><a href="#kafka_connect_config_map_details">3.2.2. Kafka Connect</a></li>
 </ul>
 </li>
-<li><a href="#_controller_configuration">3.3. Controller configuration</a></li>
+<li><a href="#_provisioning_role_based_access_control_rbac_for_the_controller">3.3. Provisioning Role-Based Access Control (RBAC) for the controller</a>
+<ul class="sectlevel3">
+<li><a href="#_using_a_serviceaccount">3.3.1. Using a ServiceAccount</a></li>
+<li><a href="#_defining_a_role">3.3.2. Defining a Role</a></li>
+<li><a href="#_defining_a_rolebinding">3.3.3. Defining a RoleBinding</a></li>
+</ul>
+</li>
+<li><a href="#_controller_configuration">3.4. Controller configuration</a>
+<ul class="sectlevel3">
+<li><a href="#multi-namespace">3.4.1. Watching multiple namespaces</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#_topic_controller_2">4. Topic Controller</a>
@@ -1066,7 +1077,236 @@ data:
 </div>
 </div>
 <div class="sect2">
-<h3 id="_controller_configuration">3.3. Controller configuration</h3>
+<h3 id="_provisioning_role_based_access_control_rbac_for_the_controller">3.3. Provisioning Role-Based Access Control (RBAC) for the controller</h3>
+<div class="paragraph">
+<p>For the controller to function it needs permission within the Kubernetes/OpenShift cluster to interact with
+the resources it manages (ConfigMaps, Pods, Deployments, StatefulSets, Services etc).
+Such permission is described in terms of Kubernetes/OpenShift role-based access controls.</p>
+</div>
+<div class="sect3">
+<h4 id="_using_a_serviceaccount">3.3.1. Using a ServiceAccount</h4>
+<div class="paragraph">
+<p>The controller is best run using a ServiceAccount:</p>
+</div>
+<div class="listingblock">
+<div class="title">Example ServiceAccount for the Cluster Controller</div>
+<div class="content">
+<pre class="highlight nowrap"><code class="language-yaml" data-lang="yaml">apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: strimzi-cluster-controller
+  labels:
+    app: strimzi</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The Deployment of the controller then needs to specify this in the <code>serviceAccountName</code> of its <code>template</code>´s
+ <code>spec</code>:</p>
+</div>
+<div class="listingblock">
+<div class="title">Partial example Deployment for the Cluster Controller</div>
+<div class="content">
+<pre class="highlight nowrap"><code class="language-yaml" data-lang="yaml">apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: strimzi-cluster-controller
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: strimzi-cluster-controller
+    spec:
+      serviceAccountName: strimzi-cluster-controller
+      containers:
+# etc ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Note line 12, where the the <code>strimzi-cluster-controller</code> ServiceAccount is specified as the <code>serviceAccountName</code>.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_defining_a_role">3.3.2. Defining a Role</h4>
+<div class="paragraph">
+<p>The controller needs to operate using a Role that gives it access to the necessary resources</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Role for the Cluster Controller</div>
+<div class="content">
+<pre class="highlight nowrap"><code class="language-yaml" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: Role
+metadata:
+  name: strimzi-cluster-controller-role
+  labels:
+    app: strimzi
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - "extensions"
+  resources:
+  - deployments
+  - deployments/scale
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - "apps"
+  resources:
+  - deployments
+  - deployments/scale
+  - deployments/status
+  - statefulsets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+# OpenShift S2I requirements
+- apiGroups:
+  - "extensions"
+  resources:
+  - replicationcontrollers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - apps.openshift.io
+  resources:
+  - deploymentconfigs
+  - deploymentconfigs/scale
+  - deploymentconfigs/status
+  - deploymentconfigs/finalizers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - build.openshift.io
+  resources:
+  - buildconfigs
+  - builds
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - watch
+  - update
+- apiGroups:
+  - image.openshift.io
+  resources:
+  - imagestreams
+  - imagestreams/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - watch
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - replicationcontrollers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_defining_a_rolebinding">3.3.3. Defining a RoleBinding</h4>
+<div class="paragraph">
+<p>Finally, the controller needs a RoleBinding which associates its Role with its ServiceAccount</p>
+</div>
+<div class="listingblock">
+<div class="title">Example RoleBinding for the Cluster Controller</div>
+<div class="content">
+<pre class="highlight nowrap"><code class="language-yaml" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: strimzi-cluster-controller-binding
+  labels:
+    app: strimzi
+subjects:
+  - kind: ServiceAccount
+    name: strimzi-cluster-controller
+roleRef:
+  kind: Role
+  name: strimzi-cluster-controller-role
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_controller_configuration">3.4. Controller configuration</h3>
 <div class="paragraph">
 <p>The controller itself can be configured through the following environment variables.</p>
 </div>
@@ -1080,7 +1320,49 @@ Default: <code>strimzi.io/kind=cluster</code>.</p>
 <p><code>STRIMZI_FULL_RECONCILIATION_INTERVAL</code> : the interval between periodic reconciliations.
 Default: 120000 ms</p>
 </li>
+<li>
+<p><code>STRIMZI_NAMESPACE</code>: A comma-separated list of namespaces that the controller
+should operate in. This is a required environment variable, but the example YAML resources
+supplied with Strimzi use the namespace in which the controller itself is deployed as a
+default value. See the following section.</p>
+</li>
 </ul>
+</div>
+<div class="sect3">
+<h4 id="multi-namespace">3.4.1. Watching multiple namespaces</h4>
+<div class="paragraph">
+<p>The <code>STRIMZI_NAMESPACE</code> environment variable can be used to configure a single controller instance
+to operate in multiple namespaces. For each namespace given, the controller will watch for cluster ConfigMaps
+and perform periodic reconciliation. To be able to do this, the controller&#8217;s ServiceAccount needs
+access to the necessary resources in those other namespaces. This can be done by creating an additional
+RoleBinding in each of those namespaces, associating the controller&#8217;s ServiceAccount
+(<code>strimzi-cluster-controller</code> in the examples) with the controller&#8217;s
+Role (<code>strimzi-controller-role</code> in the examples).</p>
+</div>
+<div class="paragraph">
+<p>Suppose, for example, that a controller deployed in namespace <code>foo</code> needs to operate in namespace <code>bar</code>.
+The following RoleBinding would grant the necessary permissions:</p>
+</div>
+<div class="listingblock">
+<div class="title">Example RoleBinding for a controller to operate in namespace <code>bar</code></div>
+<div class="content">
+<pre class="highlight nowrap"><code class="language-yaml" data-lang="yaml">apiVersion: v1
+kind: RoleBinding
+metadata:
+  name: strimzi-cluster-controller-binding-bar
+  namespace: bar
+  labels:
+    app: strimzi
+subjects:
+  - kind: ServiceAccount
+    name: strimzi-cluster-controller
+    namespace: foo
+roleRef:
+  kind: Role
+  name: strimzi-cluster-controller-role
+  apiGroup: v1</code></pre>
+</div>
+</div>
 </div>
 </div>
 </div>
