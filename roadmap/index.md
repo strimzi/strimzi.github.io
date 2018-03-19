@@ -1,7 +1,3 @@
----
-layout: default
----
-
 # Roadmap
 
 ## Improve configuration possibilities for Kafka and Kafka Connect
