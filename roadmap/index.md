@@ -37,7 +37,7 @@ component.
 ## Add support for Kubernetes node selectors
 
 In order to achieve good performnce, it might be needed to schedule Kafka pods to specific nodes. For example because 
-they contain special storage hardware or just to run them on dedicated nodes to make sure that KAfka doesn't interfere 
+they contain special storage hardware or just to run them on dedicated nodes to make sure that Kafka doesn't interfere 
 with any other applications. To achiave this, it should be possible to configure node selectors for the Strimzi 
 deployments.
 
@@ -45,7 +45,7 @@ deployments.
 
 Cluster and Topic Controllers should have support for [Custom Resource Definitions (CRDs)](https://kubernetes.io/docs/concepts/api-extension/custom-resources/).
 
-## Service broker suport
+## Service broker support
 
 Cluster Controller should be able to work as a [Service Broker](https://www.openservicebrokerapi.org/).
 
