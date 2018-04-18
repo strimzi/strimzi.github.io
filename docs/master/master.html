@@ -88,6 +88,23 @@ This guide describes how to install and use Strimzi.</p>
 <li><a href="#_openshift">B.2. OpenShift</a></li>
 </ul>
 </li>
+<li><a href="#_metrics_2">Appendix C: Metrics</a>
+<ul class="sectlevel2">
+<li><a href="#_deploying_on_openshift">C.1. Deploying on OpenShift</a>
+<ul class="sectlevel3">
+<li><a href="#_prometheus">C.1.1. Prometheus</a></li>
+<li><a href="#_grafana">C.1.2. Grafana</a></li>
+</ul>
+</li>
+<li><a href="#_deploying_on_kubernetes">C.2. Deploying on Kubernetes</a>
+<ul class="sectlevel3">
+<li><a href="#_prometheus_2">C.2.1. Prometheus</a></li>
+<li><a href="#_grafana_2">C.2.2. Grafana</a></li>
+</ul>
+</li>
+<li><a href="#_grafana_dashboard">C.3. Grafana dashboard</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -667,7 +684,10 @@ the related ConfigMap :</p>
 <p><code>kafka-nodes</code>: number of Kafka broker nodes. Default is 3</p>
 </li>
 <li>
-<p><code>kafka-image</code>: the Docker image to use for the Kafka brokers. Default is <code>strimzi/kafka:latest</code></p>
+<p><code>kafka-image</code>: the Docker image to use for the Kafka brokers.
+Default is determined by the value of the
+<code><a href="#STRIMZI_DEFAULT_KAFKA_IMAGE">STRIMZI_DEFAULT_KAFKA_IMAGE</a></code>
+environment variable of the Cluster Controller.</p>
 </li>
 <li>
 <p><code>kafka-healthcheck-delay</code>: the initial delay for the liveness and readiness probes for each Kafka broker node. Default is 15</p>
@@ -679,7 +699,10 @@ the related ConfigMap :</p>
 <p><code>zookeeper-nodes</code>: number of Zookeeper nodes</p>
 </li>
 <li>
-<p><code>zookeeper-image</code>: the Docker image to use for the Zookeeper nodes. Default is <code>strimzi/zookeeper:latest</code></p>
+<p><code>zookeeper-image</code>: the Docker image to use for the Zookeeper nodes.
+Default is determined by the value of the
+<code><a href="#STRIMZI_DEFAULT_ZOOKEEPER_IMAGE">STRIMZI_DEFAULT_ZOOKEEPER_IMAGE</a></code>
+environment variable of the Cluster Controller.</p>
 </li>
 <li>
 <p><code>zookeeper-healthcheck-delay</code>: the initial delay for the liveness and readiness probes for each Zookeeper node. Default is 15</p>
@@ -840,6 +863,19 @@ The <code>kafka-storage</code> and <code>zookeeper-storage</code> fields can&#82
 <pre class="highlight"><code class="language-json" data-lang="json">{ "type": "ephemeral" }</code></pre>
 </div>
 </div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+If the Zookeeper cluster is deployed using "ephemeral" storage, the Kafka brokers can have problems dealing with
+Zookeeper node restarts which could happen via updates in the cluster ConfigMap.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>In case of "persistent-claim" type the following fields can be provided as well :</p>
 </div>
@@ -925,14 +961,14 @@ on each node, the JSON string used for metrics configuration in the cluster Conf
 configuration file. For this reason, you can find more information on how to use it in the corresponding GitHub repo.</p>
 </div>
 <div class="paragraph">
-<p>For more information on how metrics work, the related documentation is available <a href="../../metrics/METRICS.md">here</a></p>
+<p>For more information about using the metrics with Prometheus and Grafana, see <a href="#_metrics">Section 3.2.1.2, &#8220;Metrics&#8221;</a></p>
 </div>
 </div>
 <div class="sect4">
 <h5 id="topic_controller_json_config">Topic controller</h5>
 <div class="paragraph">
 <p>Alongside the Kafka cluster and the Zookeeper ensemble, the cluster controller can also deploy the topic controller.
-In order to do that, the 'topic-controller-config` field has to be put into the data section of the cluster ConfigMap.
+In order to do that, the <code>topic-controller-config</code> field has to be put into the data section of the cluster ConfigMap.
 This field is a JSON string containing the topic controller configuration.
 Without this field, the cluster controller doesn&#8217;t deploy the topic controller. It is still possible to deploy the topic
 controller by creating appropriate Kubernetes/OpenShift resources.</p>
@@ -948,7 +984,10 @@ controller by creating appropriate Kubernetes/OpenShift resources.</p>
 <dl>
 <dt class="hdlist1"><code>image</code></dt>
 <dd>
-<p>Docker image to use for the topic controller. Default is <code>strimzi/topic-controller:latest</code></p>
+<p>Docker image to use for the topic controller.
+Default is determined by the value of the
+<code><a href="#STRIMZI_DEFAULT_TOPIC_CONTROLLER_IMAGE">STRIMZI_DEFAULT_TOPIC_CONTROLLER_IMAGE</a></code>
+environment variable of the Cluster Controller.</p>
 </dd>
 <dt class="hdlist1"><code>watchedNamespace</code></dt>
 <dd>
@@ -994,8 +1033,11 @@ the related ConfigMap:</p>
 <p><code>nodes</code>: number of Kafka Connect worker nodes. Default is 1</p>
 </li>
 <li>
-<p><code>image</code>: the Docker image to use for the Kafka Connect workers. Default is <code>strimzi/kafka-connect:latest</code>. If S2I is used
-(only on OpenShift), then it should be the related S2I image.</p>
+<p><code>image</code>: the Docker image to use for the Kafka Connect workers.
+Default is determined by the value of the
+<code><a href="#STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE">STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</a></code>
+environment variable of the Cluster Controller.
+If S2I is used (only on OpenShift), then it should be the related S2I image.</p>
 </li>
 <li>
 <p><code>healthcheck-delay</code>: the initial delay for the liveness and readiness probes for each Kafka Connect worker node. Default is 60</p>
@@ -1336,7 +1378,7 @@ roleRef:
 </div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1"><code>STRIMZI_NAMESPACE</code></dt>
+<dt class="hdlist1"><a id="STRIMZI_NAMESPACE"></a> <code>STRIMZI_NAMESPACE</code></dt>
 <dd>
 <p>Required. A comma-separated list of namespaces that the controller should operate in. The Cluster Controller deployment might use the <a href="https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/#the-downward-api">Kubernetes Downward API</a>
 to set this automatically to the namespace the Cluster Controller is deployed in. See the example below:</p>
@@ -1350,14 +1392,46 @@ to set this automatically to the namespace the Cluster Controller is deployed in
 </div>
 </div>
 </dd>
-<dt class="hdlist1"><code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code></dt>
+<dt class="hdlist1"><a id="STRIMZI_FULL_RECONCILIATION_INTERVAL_MS"></a> <code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code></dt>
 <dd>
 <p>Optional, default: 120000 ms. The interval between periodic reconciliations, in milliseconds.</p>
 </dd>
-<dt class="hdlist1"><code>STRIMZI_OPERATION_TIMEOUT_MS</code></dt>
+<dt class="hdlist1"><a id="STRIMZI_OPERATION_TIMEOUT_MS"></a> <code>STRIMZI_OPERATION_TIMEOUT_MS</code></dt>
 <dd>
 <p>Optional, default: 60000 ms. The timeout for internal operations, in milliseconds. This value should be
 increased when using Strimzi on clusters where regular Kubernetes operations take longer than usual (because of slow downloading of Docker images, for example).</p>
+</dd>
+<dt class="hdlist1"><a id="STRIMZI_DEFAULT_KAFKA_IMAGE"></a> <code>STRIMZI_DEFAULT_KAFKA_IMAGE</code></dt>
+<dd>
+<p>Optional, default <code>strimzi/kafka:latest</code>.
+The image name to use as a default when deploying Kafka, if
+no image is specified as the <code>kafka-image</code> in the <a href="#kafka_config_map_details">Kafka cluster ConfigMap</a>.</p>
+</dd>
+<dt class="hdlist1"><a id="STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE"></a> <code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code></dt>
+<dd>
+<p>Optional, default <code>strimzi/kafka-connect:latest</code>.
+The image name to use as a default when deploying Kafka Connect, if
+no image is specified as the <code>image</code> in the
+<a href="#kafka_connect_config_map_details">Kafka Connect cluster ConfigMap</a>.</p>
+</dd>
+<dt class="hdlist1"><a id="STRIMZI_DEFAULT_KAFKA_CONNECT_S2I_IMAGE"></a> <code>STRIMZI_DEFAULT_KAFKA_CONNECT_S2I_IMAGE</code></dt>
+<dd>
+<p>Optional, default <code>strimzi/kafka-connect-s2i:latest</code>.
+The image name to use as a default when deploying Kafka Connect S2I, if
+no image is specified as the <code>image</code> in the cluster ConfigMap.</p>
+</dd>
+<dt class="hdlist1"><a id="STRIMZI_DEFAULT_TOPIC_CONTROLLER_IMAGE"></a> <code>STRIMZI_DEFAULT_TOPIC_CONTROLLER_IMAGE</code></dt>
+<dd>
+<p>Optional, default <code>strimzi/topic-controller:latest</code>.
+The image name to use as a default when deploying the topic controller, if
+no image is specified as the <code>image</code> in the <a href="#topic_controller_json_config">topic controller config</a>
+of the Kafka cluster ConfigMap.</p>
+</dd>
+<dt class="hdlist1"><a id="STRIMZI_DEFAULT_ZOOKEEPER_IMAGE"></a> <code>STRIMZI_DEFAULT_ZOOKEEPER_IMAGE</code></dt>
+<dd>
+<p>Optional, default <code>strimzi/zookeeper:latest</code>.
+The image name to use as a default when deploying Zookeeper, if
+no image is specified as the <code>zookeeper-image</code> in the <a href="#kafka_config_map_details">Kafka cluster ConfigMap</a>.</p>
 </dd>
 </dl>
 </div>
@@ -1801,6 +1875,167 @@ Once installed, <code>Minishift</code> can be started using the following comman
 <div class="content">
 <pre class="highlight"><code>minishift start --memory 4GB</code></pre>
 </div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_metrics_2">Appendix C: Metrics</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This section describes how to deploy a Prometheus server for scraping metrics from the Kafka cluster and showing them using a Grafana dashboard. The resources provided are examples to show how Kafka metrics can be stored in Prometheus: They are not a recommended configuration, and further support should be available from the Prometheus and Grafana communities.</p>
+</div>
+<div class="paragraph">
+<p>When adding Prometheus and Grafana servers to an Apache Kafka deployment using <code>minikube</code> or <code>minishift</code>, the memory available to the virtual machine should be increased (to 4 GB of RAM, for example, instead of the default 2 GB). Information on how to increase the default amount of memory can be found in the following section <a href="#_installing_kubernetes_and_openshift_cluster">Appendix B, <em>Installing Kubernetes and OpenShift cluster</em></a>.</p>
+</div>
+<div class="sect2">
+<h3 id="_deploying_on_openshift">C.1. Deploying on OpenShift</h3>
+<div class="sect3">
+<h4 id="_prometheus">C.1.1. Prometheus</h4>
+<div class="paragraph">
+<p>The Prometheus server configuration uses a service discovery feature in order to discover the pods in the cluster from which it gets metrics.
+In order to have this feature working, it&#8217;s necessary for the service account used for running the Prometheus service pod to have access to the API server to get the pod list. By default the service account <code>prometheus-server</code> is used.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>export NAMESPACE=[namespace]
+oc login -u system:admin
+oc create sa prometheus-server
+oc adm policy add-cluster-role-to-user cluster-reader system:serviceaccount:${NAMESPACE}:prometheus-server
+oc login -u developer</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>where <code>[namespace]</code> is the namespace/project where the Apache Kafka cluster was deployed.</p>
+</div>
+<div class="paragraph">
+<p>Finally, create the Prometheus service by running</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc create -f https://raw.githubusercontent.com/strimzi/strimzi/master/metrics/examples/prometheus/kubernetes.yaml</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_grafana">C.1.2. Grafana</h4>
+<div class="paragraph">
+<p>A Grafana server is necessary only to get a visualisation of the Prometheus metrics.</p>
+</div>
+<div class="paragraph">
+<p>To deploy Grafana on OpenShift, the following commands should be executed:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc create -f https://raw.githubusercontent.com/strimzi/strimzi/master/metrics/examples/grafana/kubernetes.yaml</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_deploying_on_kubernetes">C.2. Deploying on Kubernetes</h3>
+<div class="sect3">
+<h4 id="_prometheus_2">C.2.1. Prometheus</h4>
+<div class="paragraph">
+<p>The Prometheus server configuration uses a service discovery feature in order to discover the pods in the cluster from which it gets metrics.
+If the RBAC is enabled in your Kubernetes deployment then in order to have this feature working, it&#8217;s necessary for the service account used for running the Prometheus service pod to have access to the API server to get the pod list. By default the service account <code>prometheus-server</code> is used.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>export NAMESPACE=[namespace]
+kubectl create sa prometheus-server
+kubectl create -f https://raw.githubusercontent.com/strimzi/strimzi/master/metrics/examples/prometheus/cluster-reader.yaml
+kubectl create clusterrolebinding read-pods-binding --clusterrole=cluster-reader --serviceaccount=${NAMESPACE}:prometheus-server</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>where <code>[namespace]</code> is the namespace/project where the Apache Kafka cluster was deployed.</p>
+</div>
+<div class="paragraph">
+<p>Finally, create the Prometheus service by running</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi/master/metrics/examples/prometheus/kubernetes.yaml</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_grafana_2">C.2.2. Grafana</h4>
+<div class="paragraph">
+<p>A Grafana server is necessary only to get a visualisation of Prometheus metrics.</p>
+</div>
+<div class="paragraph">
+<p>To deploy Grafana on Kubernetes, the following commands should be executed:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi/master/metrics/examples/grafana/kubernetes.yaml</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_grafana_dashboard">C.3. Grafana dashboard</h3>
+<div class="paragraph">
+<p>As an example, and in order to visualize the exported metrics in Grafana, the simple dashboard <a href="https://github.com/strimzi/strimzi/blob/master/metrics/examples/grafana/kafka-dashboard.json"><code>kafka-dashboard.json</code></a> file is provided.
+The Prometheus data source, and the above dashboard, can be set up in Grafana by following these steps.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If your cluster is running using <code>minikube</code> or <code>minishift</code>, you can use the <code>port-forward</code> command for forwarding traffic from the Grafana pod to the host. For example, you can access the Grafana UI by running <code>oc port-forward grafana-1-fbl7s 3000:3000</code> (or using <code>kubectl</code> instead of <code>oc</code>) and then pointing a browser to <code><a href="http://localhost:3000" class="bare">http://localhost:3000</a></code>.
+</td>
+</tr>
+</table>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Access to the Grafana UI using <code>admin/admin</code> credentials.</p>
+<div class="imageblock">
+<div class="content">
+<img src="./images/grafana_login.png" alt="Grafana login">
+</div>
+</div>
+</li>
+<li>
+<p>Click on the "Add data source" button from the Grafana home in order to add Prometheus as data source.</p>
+<div class="imageblock">
+<div class="content">
+<img src="./images/grafana_home.png" alt="Grafana home">
+</div>
+</div>
+</li>
+<li>
+<p>Fill in the information about the Prometheus data source, specifying a name and "Prometheus" as type. In the URL field, the connection string to the Prometheus server (i.e. <code><a href="http://prometheus:9090" class="bare">http://prometheus:9090</a></code>) should be specified. After "Add" is clicked, Grafana will test the connection to the data source.</p>
+<div class="imageblock">
+<div class="content">
+<img src="./images/grafana_prometheus_data_source.png" alt="Add Prometheus data source">
+</div>
+</div>
+</li>
+<li>
+<p>From the top left menu, click on "Dashboards" and then "Import" to open the "Import Dashboard" window where the provided <a href="https://github.com/strimzi/strimzi/blob/master/metrics/examples/grafana/kafka-dashboard.json"><code>kafka-dashboard.json</code></a> file can be imported or its content pasted.</p>
+<div class="imageblock">
+<div class="content">
+<img src="./images/grafana_import_dashboard.png" alt="Add Grafana dashboard">
+</div>
+</div>
+</li>
+<li>
+<p>After importing the dashboard, the Grafana home should show with some initial metrics about CPU and JVM memory usage. When the Kafka cluster is used (creating topics and exchanging messages) the other metrics, like messages in and bytes in/out per topic, will be shown.</p>
+<div class="imageblock">
+<div class="content">
+<img src="./images/grafana_kafka_dashboard.png" alt="Kafka dashboard">
+</div>
+</div>
+</li>
+</ol>
 </div>
 </div>
 </div>
