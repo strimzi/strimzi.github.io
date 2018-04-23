@@ -13,7 +13,7 @@ See our [GitHub](http://github.com/strimzi) repository for more info.
 
 # Downloads / Releases
 
-Strimzi releases are available for download on our [GitHub](https://github.com/strimzi/strimzi). The release artifcats
+Strimzi releases are available for download on our [GitHub](https://github.com/strimzi/strimzi). The release artifacts
 contain documentation and example YAML files for deployment on OpenShift and Kubernetes. The Docker images are
 available on [Docker Hub](https://hub.docker.com/u/strimzi/).
 
