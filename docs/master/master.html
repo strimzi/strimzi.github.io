@@ -519,7 +519,7 @@ by the Cluster Controller.</p>
 ConfigMap in the <code>topic-controller-config</code> field as a JSON string.</p>
 </div>
 <div class="paragraph">
-<p>For more information on the JSON configuration format see <a href="#topic_controller_json_config">Section 3.2.1.3, &#8220;Topic controller&#8221;</a>.</p>
+<p>For more information on the JSON configuration format see <a href="#topic_controller_json_config">Section 3.2.1.4, &#8220;Topic controller&#8221;</a>.</p>
 </div>
 </div>
 <div class="sect3">
@@ -696,6 +696,17 @@ environment variable of the Cluster Controller.</p>
 <p><code>kafka-healthcheck-timeout</code>: the timeout on the liveness and readiness probes for each Kafka broker node. Default is 5</p>
 </li>
 <li>
+<p><code>kafka-config</code>: a JSON string with Kafka configuration. See section <a href="#kafka_configuration_json_config">Section 3.2.1.1, &#8220;Kafka Configuration&#8221;</a> for more details.</p>
+</li>
+<li>
+<p><code>kafka-storage</code>: a JSON string representing the storage configuration for the Kafka broker nodes. See section
+<a href="#storage_configuration_json_config">Section 3.2.1.2, &#8220;Storage&#8221;</a> for more details.</p>
+</li>
+<li>
+<p><code>kafka-metrics-config</code>: a JSON string representing the JMX exporter configuration for exposing metrics from Kafka broker nodes.
+Removing this field means having no metrics exposed.</p>
+</li>
+<li>
 <p><code>zookeeper-nodes</code>: number of Zookeeper nodes</p>
 </li>
 <li>
@@ -711,33 +722,15 @@ environment variable of the Cluster Controller.</p>
 <p><code>zookeeper-healthcheck-timeout</code>: the timeout on the liveness and readiness probes for each Zookeeper node. Default is 5</p>
 </li>
 <li>
-<p><code>KAFKA_DEFAULT_REPLICATION_FACTOR</code>: the default replication factors for automatically created topics. It sets the
-<code>default.replication.factor</code> property in the properties configuration file used by Kafka broker nodes on startup. Default is 3</p>
-</li>
-<li>
-<p><code>KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR</code>: the replication factor for the offsets topic. It sets the
-<code>offsets.topic.replication.factor</code> property in the properties configuration file used by Kafka broker nodes on startup. Default is 3</p>
-</li>
-<li>
-<p><code>KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR</code>: the replication factor for the transaction topic. It sets the
-<code>transaction.state.log.replication.factor</code> property in the properties configuration file used by Kafka broker nodes on startup. Default is 3</p>
-</li>
-<li>
-<p><code>kafka-storage</code>: a JSON string representing the storage configuration for the Kafka broker nodes. See related section</p>
-</li>
-<li>
-<p><code>zookeeper-storage</code>: a JSON string representing the storage configuration for the Zookeeper nodes. See related section</p>
-</li>
-<li>
-<p><code>kafka-metrics-config</code>: a JSON string representing the JMX exporter configuration for exposing metrics from Kafka broker nodes.
-Removing this field means having no metrics exposed.</p>
+<p><code>zookeeper-storage</code>: a JSON string representing the storage configuration for the Zookeeper nodes. See section
+<a href="#storage_configuration_json_config">Section 3.2.1.2, &#8220;Storage&#8221;</a> for more details.</p>
 </li>
 <li>
 <p><code>zookeeper-metrics-config</code>: a JSON string representing the JMX exporter configuration for exposing metrics from Zookeeper nodes.
 Removing this field means having no metrics exposed.</p>
 </li>
 <li>
-<p><code>topic-controller-config</code>: a JSON string representing the topic controller configuration. See the <a href="#topic_controller_json_config">Section 3.2.1.3, &#8220;Topic controller&#8221;</a>
+<p><code>topic-controller-config</code>: a JSON string representing the topic controller configuration. See the <a href="#topic_controller_json_config">Section 3.2.1.4, &#8220;Topic controller&#8221;</a>
 documentation for further details. More info about the topic controller in the related <a href="#_topic_controller">Section 2.5, &#8220;Topic Controller&#8221;</a> documentation page.</p>
 </li>
 </ul>
@@ -764,9 +757,24 @@ data:
   zookeeper-image: "strimzi/zookeeper:latest"
   zookeeper-healthcheck-delay: "15"
   zookeeper-healthcheck-timeout: "5"
-  KAFKA_DEFAULT_REPLICATION_FACTOR: "3"
-  KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "3"
-  KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "3"
+  kafka-config: |-
+    {
+      "num.partitions": 1,
+      "num.recovery.threads.per.data.dir": 1,
+      "default.replication.factor": 3,
+      "offsets.topic.replication.factor": 3,
+      "transaction.state.log.replication.factor": 3,
+      "transaction.state.log.min.isr": 1,
+      "log.retention.hours": 168,
+      "log.segment.bytes": 1073741824,
+      "log.retention.check.interval.ms": 300000,
+      "num.network.threads": 3,
+      "num.io.threads": 8,
+      "socket.send.buffer.bytes": 102400,
+      "socket.receive.buffer.bytes": 102400,
+      "socket.request.max.bytes": 104857600,
+      "group.initial.rebalance.delay.ms": 0
+    }
   kafka-storage: |-
     { "type": "ephemeral" }
   zookeeper-storage: |-
@@ -829,7 +837,156 @@ a volume by the Kafka broker pods</p>
 </ul>
 </div>
 <div class="sect4">
-<h5 id="_storage">Storage</h5>
+<h5 id="kafka_configuration_json_config">Kafka Configuration</h5>
+<div class="paragraph">
+<p><code>kafka-config</code> field allows detailed configuration of Apache Kafka. This field should contain a JSON object with Kafka
+configuration options as keys. The values could be in one of the following types:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>String</p>
+</li>
+<li>
+<p>Integer</p>
+</li>
+<li>
+<p>Long</p>
+</li>
+<li>
+<p>Double</p>
+</li>
+<li>
+<p>Float</p>
+</li>
+<li>
+<p>Boolean</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>kafka-config</code> field supports all Kafka configuration options with the exception of options related to:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Security (Encryption, Authentication and Authorization)</p>
+</li>
+<li>
+<p>Listener configuration</p>
+</li>
+<li>
+<p>Broker ID configuration</p>
+</li>
+<li>
+<p>Configuration of log data directories</p>
+</li>
+<li>
+<p>Inter-broker communication</p>
+</li>
+<li>
+<p>Zookeeper connectivity</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Specifically, all configuration options with keys starting with one of the following strings will be ignored:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>listeners</code></p>
+</li>
+<li>
+<p><code>advertised.</code></p>
+</li>
+<li>
+<p><code>broker.</code></p>
+</li>
+<li>
+<p><code>listener.</code></p>
+</li>
+<li>
+<p><code>host.name</code></p>
+</li>
+<li>
+<p><code>port</code></p>
+</li>
+<li>
+<p><code>inter.broker.listener.name</code></p>
+</li>
+<li>
+<p><code>sasl.</code></p>
+</li>
+<li>
+<p><code>ssl.</code></p>
+</li>
+<li>
+<p><code>security.</code></p>
+</li>
+<li>
+<p><code>password.</code></p>
+</li>
+<li>
+<p><code>principal.builder.class</code></p>
+</li>
+<li>
+<p><code>log.dir</code></p>
+</li>
+<li>
+<p><code>zookeeper.connect</code></p>
+</li>
+<li>
+<p><code>zookeeper.set.acl</code></p>
+</li>
+<li>
+<p><code>authorizer.</code></p>
+</li>
+<li>
+<p><code>super.user</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>All other options will be passed to Kafka. List of all available options can be found on the
+<a href="http://kafka.apache.org/documentation/#brokerconfigs">Kafka website</a>. An example of <code>kafka-config</code> field is provided
+below.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Kafka configuration</div>
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "num.partitions": 1,
+  "num.recovery.threads.per.data.dir": 1,
+  "default.replication.factor": 3,
+  "offsets.topic.replication.factor": 3,
+  "transaction.state.log.replication.factor": 3,
+  "transaction.state.log.min.isr": 1,
+  "log.retention.hours": 168,
+  "log.segment.bytes": 1073741824,
+  "log.retention.check.interval.ms": 300000,
+  "num.network.threads": 3,
+  "num.io.threads": 8,
+  "socket.send.buffer.bytes": 102400,
+  "socket.receive.buffer.bytes": 102400,
+  "socket.request.max.bytes": 104857600,
+  "group.initial.rebalance.delay.ms": 0
+}</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">NOTE</dt>
+<dd>
+<p>The cluster controller doesn&#8217;t validate the configuration provided by the user. When invalid configuration is provided, the
+Kafka cluster might not start or might become unstable. In such cases, the configuration in the <code>kafka-config</code> field
+should be fixed and the cluster controller will roll out the new configuration to all Kafka brokers.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="storage_configuration_json_config">Storage</h5>
 <div class="paragraph">
 <p>Both Kafka and Zookeeper save data to files.</p>
 </div>
@@ -961,7 +1118,7 @@ on each node, the JSON string used for metrics configuration in the cluster Conf
 configuration file. For this reason, you can find more information on how to use it in the corresponding GitHub repo.</p>
 </div>
 <div class="paragraph">
-<p>For more information about using the metrics with Prometheus and Grafana, see <a href="#_metrics">Section 3.2.1.2, &#8220;Metrics&#8221;</a></p>
+<p>For more information about using the metrics with Prometheus and Grafana, see <a href="#_metrics">Section 3.2.1.3, &#8220;Metrics&#8221;</a></p>
 </div>
 </div>
 <div class="sect4">
