@@ -88,7 +88,7 @@ This guide describes how to install and use Strimzi.</p>
 <li><a href="#_openshift">B.2. OpenShift</a></li>
 </ul>
 </li>
-<li><a href="#_metrics_2">Appendix C: Metrics</a>
+<li><a href="#_metrics">Appendix C: Metrics</a>
 <ul class="sectlevel2">
 <li><a href="#_deploying_on_openshift">C.1. Deploying on OpenShift</a>
 <ul class="sectlevel3">
@@ -519,7 +519,7 @@ by the Cluster Controller.</p>
 ConfigMap in the <code>topic-controller-config</code> field as a JSON string.</p>
 </div>
 <div class="paragraph">
-<p>For more information on the JSON configuration format see <a href="#topic_controller_json_config">Section 3.2.1.4, &#8220;Topic controller&#8221;</a>.</p>
+<p>For more information on the JSON configuration format see <a href="#topic_controller_json_config">Section 3.2.1.6, &#8220;Topic controller&#8221;</a>.</p>
 </div>
 </div>
 <div class="sect3">
@@ -707,6 +707,16 @@ environment variable of the Cluster Controller.</p>
 Removing this field means having no metrics exposed.</p>
 </li>
 <li>
+<p><code>kafka-resources</code>:
+a JSON string configuring the resource limits and requests for Kafka broker containers.
+The accepted JSON format is described in the <a href="#resources_json_config">Section 3.2.1.4, &#8220;Resource limits and requests&#8221;</a> section.</p>
+</li>
+<li>
+<p><code>kafka-jvmOptions</code>:
+a JSON string allowing the JVM running Kafka to be configured.
+ The accepted JSON format is described in the <a href="#jvm_json_config">Section 3.2.1.5, &#8220;JVM Options&#8221;</a> section.</p>
+</li>
+<li>
 <p><code>zookeeper-nodes</code>: number of Zookeeper nodes</p>
 </li>
 <li>
@@ -730,7 +740,17 @@ environment variable of the Cluster Controller.</p>
 Removing this field means having no metrics exposed.</p>
 </li>
 <li>
-<p><code>topic-controller-config</code>: a JSON string representing the topic controller configuration. See the <a href="#topic_controller_json_config">Section 3.2.1.4, &#8220;Topic controller&#8221;</a>
+<p><code>zookeeper-resources</code>:
+a JSON string configuring the resource limits and requests for Zookeeper broker containers.
+The accepted JSON format is described in the <a href="#resources_json_config">Section 3.2.1.4, &#8220;Resource limits and requests&#8221;</a> section.</p>
+</li>
+<li>
+<p><code>zookeeper-jvmOptions</code>:
+a JSON string allowing the JVM running Zookeeper to be configured.
+ The accepted JSON format is described in the <a href="#jvm_json_config">Section 3.2.1.5, &#8220;JVM Options&#8221;</a> section.</p>
+</li>
+<li>
+<p><code>topic-controller-config</code>: a JSON string representing the topic controller configuration. See the <a href="#topic_controller_json_config">Section 3.2.1.6, &#8220;Topic controller&#8221;</a>
 documentation for further details. More info about the topic controller in the related <a href="#_topic_controller">Section 2.5, &#8220;Topic Controller&#8221;</a> documentation page.</p>
 </li>
 </ul>
@@ -1111,14 +1131,177 @@ Zookeeper node pod <code>[idx]</code></p>
 </div>
 </div>
 <div class="sect4">
-<h5 id="_metrics">Metrics</h5>
+<h5 id="metrics_json_config">Metrics</h5>
 <div class="paragraph">
 <p>Because Strimzi uses the [JMX exporter](<a href="https://github.com/prometheus/jmx_exporter" class="bare">https://github.com/prometheus/jmx_exporter</a>) in order to expose metrics
 on each node, the JSON string used for metrics configuration in the cluster ConfigMap reflects the related JMX exporter
 configuration file. For this reason, you can find more information on how to use it in the corresponding GitHub repo.</p>
 </div>
 <div class="paragraph">
-<p>For more information about using the metrics with Prometheus and Grafana, see <a href="#_metrics">Section 3.2.1.3, &#8220;Metrics&#8221;</a></p>
+<p>For more information about using the metrics with Prometheus and Grafana, see <a href="#_metrics">Appendix C, <em>Metrics</em></a></p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="resources_json_config">Resource limits and requests</h5>
+<div class="paragraph">
+<p>It is possible to configure <a href="https://v1-7.docs.kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/">Kubernetes resource limits and requests</a> on several containers using a JSON object.
+The object may have a <code>requests</code> and a <code>limits</code> property, each having the same schema, consisting of  <code>cpu</code> and <code>memory</code> properties.
+The same syntax as Kubernetes' is used for the values of <code>cpu</code> and <code>memory</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Resource limits and requests JSON configuration</div>
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "requests": {
+    "cpu": "1",
+    "memory": "2Gi"
+  },
+  "limits": {
+    "cpu": "1",
+    "memory": "2Gi"
+  }
+}</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>requests/memory</code></dt>
+<dd>
+<p>the memory request for the container, corresponding directly to Kubernetes' <a href="https://v1-7.docs.kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/"><code>spec.containers[].resources.requests.memory</code></a> setting.
+Optional with no default.</p>
+</dd>
+<dt class="hdlist1"><code>requests/cpu</code></dt>
+<dd>
+<p>the cpu request for the container, corresponding directly to Kubernetes' <a href="https://v1-7.docs.kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/"><code>spec.containers[].resources.requests.cpu</code></a> setting.
+Optional with no default.</p>
+</dd>
+<dt class="hdlist1"><code>limits/memory</code></dt>
+<dd>
+<p>the memory request for the container, corresponding directly to Kubernetes' <a href="https://v1-7.docs.kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/"><code>spec.containers[].resources.limits.memory</code></a> setting.
+Optional with no default.</p>
+</dd>
+<dt class="hdlist1"><code>limits/cpu</code></dt>
+<dd>
+<p>the cpu request for the container, corresponding directly to Kubernetes' <a href="https://v1-7.docs.kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/"><code>spec.containers[].resources.limits.cpu</code></a> setting.
+Optional with no default.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="jvm_json_config">JVM Options</h5>
+<div class="paragraph">
+<p>It is possible to configure a subset of available JVM options on Kafka, Zookeeper and Kafka Connect containers using a JSON object.
+The object has a property for each JVM (<code>java</code>) option which can be configured:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>-Xmx</code></dt>
+<dd>
+<p>The maximum heap size. See the <a href="#setting_xmx">Section 3.2.1.5.1, &#8220;Setting <code>-Xmx</code>&#8221;</a> section for further details.</p>
+</dd>
+<dt class="hdlist1"><code>-Xms</code></dt>
+<dd>
+<p>The initial heap size.
+Setting the same value for initial and maximum (<code>-Xmx</code>) heap sizes avoids the JVM having to allocate memory after startup, at the cost of possibly allocating more heap than is really needed.
+For Kafka and Zookeeper pods such allocation could cause unwanted latency.
+For Kafka Connect avoiding over allocation may be the more important concern, especially in distributed mode where the effects of over-allocation will be multiplied by the number of consumers.</p>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The units accepted by JVM settings such as <code>-Xmx</code> and <code>-Xms</code> are those accepted by the OpenJDK <code>java</code> binary in the corresponding image.
+Accordingly, <code>1g</code> or <code>1G</code> means 1,073,741,824 bytes.
+This is in contrast to the units used for <a href="#resources_json_config">memory limits and requests</a>, which follow the Kubernetes convention where <code>1G</code> means 1,000,000,000 bytes, and <code>1Gi</code> means 1,073,741,824 bytes
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">Example Resource limits and requests JSON configuration</div>
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "-Xmx": "2g",
+  "-Xms": "2g"
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In the above example, the JVM will use 2 GiB (=2,147,483,648 bytes) for its heap.
+Its total memory usage will be approximately 8GiB.</p>
+</div>
+<div class="sect5">
+<h6 id="setting_xmx">Setting <code>-Xmx</code></h6>
+<div class="paragraph">
+<p>The default value used for <code>-Xmx</code> depends on whether there is a <a href="#resources_json_config">memory limit</a> for the container:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If there is a memory limit, the JVM&#8217;s maximum memory will be limited according to the kind of pod (Kafka, Zookeeper, TopicController) to an appropriate value less than the limit.</p>
+</li>
+<li>
+<p>Otherwise, when there is no memory limit, the JVM&#8217;s maximum memory will be set according to the kind of pod and the RAM available to the container.</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Setting <code>-Xmx</code> explicitly is requires some care:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The JVM&#8217;s overall memory usage will be approximately 4 × the maximum heap, as configured by <code>-Xmx</code>.</p>
+</li>
+<li>
+<p>If <code>-Xmx</code> is set without also setting an appropriate Kubernetes
+memory limit, it is possible that the container will be killed should the Kubernetes node
+experience memory pressure (from other Pods running on it).</p>
+</li>
+<li>
+<p>If <code>-Xmx</code> is set without also setting an appropriate Kubernetes
+memory request, it is possible that the container will scheduled to a node with insufficient memory.
+In this case the container will start but crash (immediately if <code>-Xms</code> is set to <code>-Xmx</code>, or some later time if not).</p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>When setting <code>-Xmx</code> explicitly, it is recommended to:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>set the memory request and the memory limit to the same value,</p>
+</li>
+<li>
+<p>use a memory request that is at least 4.5 × the <code>-Xmx</code>,</p>
+</li>
+<li>
+<p>consider setting <code>-Xms</code> to the same value as <code>-Xms</code>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Furthermore, containers doing lots of disk I/O (such as Kafka broker containers) will need to leave some memory available for use as operating system page cache.
+On such containers, the request memory should be substantially more than the memory used by the JVM.</p>
+</div>
 </div>
 </div>
 <div class="sect4">
@@ -1165,6 +1348,11 @@ Default is the namespace where the topic controller is running</p>
 is defined as an exponential back-off. You might want to increase this value when topic creation could take more time due
 to its larger size (i.e. many partitions/replicas). Default <code>6</code>.</p>
 </dd>
+<dt class="hdlist1"><code>resources</code></dt>
+<dd>
+<p>an object configuring the resource limits and requests for the topic controller container.
+The accepted JSON format is described in the <a href="#resources_json_config">Section 3.2.1.4, &#8220;Resource limits and requests&#8221;</a> section.</p>
+</dd>
 </dl>
 </div>
 <div class="listingblock">
@@ -1201,6 +1389,16 @@ If S2I is used (only on OpenShift), then it should be the related S2I image.</p>
 </li>
 <li>
 <p><code>healthcheck-timeout</code>: the timeout on the liveness and readiness probes for each Kafka Connect worker node. Default is 5</p>
+</li>
+<li>
+<p><code>resources</code>:
+a JSON string configuring the resource limits and requests for Kafka Connect containers.
+The accepted JSON format is described in the <a href="#resources_json_config">Section 3.2.1.4, &#8220;Resource limits and requests&#8221;</a> section.</p>
+</li>
+<li>
+<p><code>jvmOptions</code>:
+a JSON string allowing the JVM running Kafka Connect to be configured.
+The accepted JSON format is described in the <a href="#jvm_json_config">Section 3.2.1.5, &#8220;JVM Options&#8221;</a> section.</p>
 </li>
 <li>
 <p><code>KAFKA_CONNECT_BOOTSTRAP_SERVERS</code>: a list of host/port pairs to use for establishing the initial connection to the Kafka cluster.
@@ -2037,7 +2235,7 @@ Once installed, <code>Minishift</code> can be started using the following comman
 </div>
 </div>
 <div class="sect1">
-<h2 id="_metrics_2">Appendix C: Metrics</h2>
+<h2 id="_metrics">Appendix C: Metrics</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>This section describes how to deploy a Prometheus server for scraping metrics from the Kafka cluster and showing them using a Grafana dashboard. The resources provided are examples to show how Kafka metrics can be stored in Prometheus: They are not a recommended configuration, and further support should be available from the Prometheus and Grafana communities.</p>
