@@ -17,6 +17,7 @@ Strimzi releases are available for download on our [GitHub](https://github.com/s
 contain documentation and example YAML files for deployment on OpenShift and Kubernetes. The Docker images are
 available on [Docker Hub](https://hub.docker.com/u/strimzi/).
 
+* [0.3.1](https://github.com/strimzi/strimzi/releases/tag/0.3.1)
 * [0.3.0](https://github.com/strimzi/strimzi/releases/tag/0.3.0)
 * [0.2.0](https://github.com/strimzi/strimzi/releases/tag/0.2.0)
 * [0.1.0](https://github.com/strimzi/strimzi/releases/tag/0.1.0)
@@ -24,6 +25,7 @@ available on [Docker Hub](https://hub.docker.com/u/strimzi/).
 # Documentation
 
 * [Master](/docs/master/)
+* [0.3.1](/docs/0.3.1/)
 * [0.3.0](/docs/0.3.0/)
 * [0.2.0](/docs/0.2.0/)
 * [0.1.0](/docs/0.1.0/README.md)
