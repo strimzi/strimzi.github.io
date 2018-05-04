@@ -11,24 +11,22 @@ Strimzi provides a way to run an [Apache Kafka](https://kafka.apache.org/) clust
 
 See our [GitHub](http://github.com/strimzi) repository for more info.
 
-# Downloads / Releases
+# Downloads
 
 Strimzi releases are available for download on our [GitHub](https://github.com/strimzi/strimzi). The release artifacts
 contain documentation and example YAML files for deployment on OpenShift and Kubernetes. The Docker images are
 available on [Docker Hub](https://hub.docker.com/u/strimzi/).
 
 * [0.3.1](https://github.com/strimzi/strimzi/releases/tag/0.3.1)
-* [0.3.0](https://github.com/strimzi/strimzi/releases/tag/0.3.0)
-* [0.2.0](https://github.com/strimzi/strimzi/releases/tag/0.2.0)
-* [0.1.0](https://github.com/strimzi/strimzi/releases/tag/0.1.0)
+
+Older releases can be found in the [Downloads](/downloads) page
 
 # Documentation
 
 * [Master](/docs/master/)
 * [0.3.1](/docs/0.3.1/)
-* [0.3.0](/docs/0.3.0/)
-* [0.2.0](/docs/0.2.0/)
-* [0.1.0](/docs/0.1.0/README.md)
+
+Documentation for older releases can be found in the [Documentation](/documentation) page
 
 # Getting help
 
