@@ -19,14 +19,14 @@ available on [Docker Hub](https://hub.docker.com/u/strimzi/).
 
 * [0.3.1](https://github.com/strimzi/strimzi/releases/tag/0.3.1)
 
-Older releases can found in the [Downloads](/downloads) page
+Older releases can be found in the [Downloads](/downloads) page
 
 # Documentation
 
 * [Master](/docs/master/)
 * [0.3.1](/docs/0.3.1/)
 
-Documentation for older releases can found in the [Documentation](/documentation) page
+Documentation for older releases can be found in the [Documentation](/documentation) page
 
 # Getting help
 
