@@ -55,7 +55,7 @@ test your changes before submitting a patch or opening a PR.
 If you want to get in touch with us first before contributing, you can use:
 
 * [Strimzi mailing list](https://www.redhat.com/mailman/listinfo/strimzi)
-* [#strimzi IRC channel](https://webchat.freenode.net/?randomnick=1&channels=strimzi&uio=d4) on Freenode
+* [Strimzi Slack workspace](https://join.slack.com/t/strimzi/shared_invite/enQtMzU2Mjk3NTgxMzE5LTYyMTUwMGNlMDQwMzBhOGI4YmY4MjhiMDgyNjA5OTk2MTFiYjc4M2Q3NGU1YTFjOWRiMzM2NGMwNDUwMjBlNDY)
 
 # License
 
