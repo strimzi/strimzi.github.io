@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Apache Kafka on Kubernetes and OpenShift: Barnabas is died ... long life to Strimzi !"
+title:  "Apache Kafka on Kubernetes and OpenShift: Barnabas is dead ... long live Strimzi!"
 date: 2018-02-25
 ---
 
@@ -16,13 +16,13 @@ I created a new project named “Barnabas” (the name came from a character in 
 
 I got few people using “Barnabas” for their demos and proofs of concept receiving feedback and improvements; for example the [Debezium](http://debezium.io/) team started to use it for deploying Apache Kafka with their supported Kafka Connect connectors; some people from the [Aerogear](https://aerogear.org/) project used it for some POCs as well.
 
-# Barnabas is died … long life to Strimzi !
+# Barnabas is dead … long live Strimzi!
 
 Today … “Barnabas” isn’t here anymore.
 
-It’s sad but it’s not so true ! It just has a new name which is **Strimzi** !
+It’s sad but it’s not so true! It just has a new name which is **Strimzi**!
 
-The objective here is always the same : providing a way to run an Apache Kafka cluster on Kubernetes and OpenShift. Of course, the project is open source and I hope that a new community can be born and grow around it : today I’m not the only one contributor and that’s great !
+The objective here is always the same : providing a way to run an Apache Kafka cluster on Kubernetes and OpenShift. Of course, the project is open source and I hope that a new community can be born and grow around it : today I’m not the only one contributor and that’s great!
 
 The current first early release (the [0.1.0](https://github.com/strimzi/strimzi/releases/tag/0.1.0)) provides all the YAML resources needed for deploying the Apache Kafka cluster in terms of StatefulSets (used for the broker and Zookeeper nodes), Services (for having the nodes able to communicate each other and reachable by the clients), Persistent Volume Claims (for storing Kafka logs other then supporting “ephemeral” storage with emptyDir) and finally metrics support in order to get metrics data from the cluster through [Prometheus](https://prometheus.io/) and showing them in a [Grafana](https://grafana.com/) dashboard.
 
@@ -46,7 +46,7 @@ The **topic controller**, always running on Kubernetes (OpenShift), provides a w
 
 Having these two components will be the next step for Strimzi in the short term but more improvements will come related to security, authentication/authorization and automatic cluster balancing where, thanks to the metrics, a cluster balancer will be able to balance the load across the different nodes in the cluster re-assign partitions when needed.
 
-If you want to know more about the Strimzi project, you can engage with us in different ways, from [IRC](https://webchat.freenode.net/?randomnick=1&channels=strimzi&uio=d4) to the [mailing list](https://www.redhat.com/mailman/listinfo/strimzi) and starting following the official [Twitter](https://twitter.com/strimziio) account. Thanks to its open source nature you can easily jump into the project providing feedback or opening issues and/or PRs … becoming a new contributor !
+If you want to know more about the Strimzi project, you can engage with us in different ways, from a [Slack workspace](https://join.slack.com/t/strimzi/shared_invite/enQtMzU2Mjk3NTgxMzE5LTYyMTUwMGNlMDQwMzBhOGI4YmY4MjhiMDgyNjA5OTk2MTFiYjc4M2Q3NGU1YTFjOWRiMzM2NGMwNDUwMjBlNDY) to the [mailing list](https://www.redhat.com/mailman/listinfo/strimzi) and starting following the official [Twitter](https://twitter.com/strimziio) account. Thanks to its open source nature you can easily jump into the project providing feedback or opening issues and/or PRs … becoming a new contributor!
 
-Looking forward to hear from you !
+Looking forward to hear from you!
 
