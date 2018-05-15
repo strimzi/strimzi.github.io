@@ -1,0 +1,2665 @@
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>Strimzi provides a way to run an Apache Kafka cluster on Kubernetes or OpenShift in various deployment configurations.
+This guide describes how to install and use Strimzi.</p>
+</div>
+</div>
+<div id="toc" class="toc">
+<div id="toctitle">Content</div>
+<ul class="sectlevel1">
+<li><a href="#_overview">1. Overview</a></li>
+<li><a href="#_getting_started">2. Getting started</a>
+<ul class="sectlevel2">
+<li><a href="#_prerequisites">2.1. Prerequisites</a></li>
+<li><a href="#_cluster_operator">2.2. Cluster Operator</a>
+<ul class="sectlevel3">
+<li><a href="#_deploying_to_kubernetes">2.2.1. Deploying to Kubernetes</a></li>
+<li><a href="#_deploying_to_openshift">2.2.2. Deploying to OpenShift</a></li>
+</ul>
+</li>
+<li><a href="#_kafka_broker">2.3. Kafka broker</a>
+<ul class="sectlevel3">
+<li><a href="#_deploying_to_kubernetes_2">2.3.1. Deploying to Kubernetes</a></li>
+<li><a href="#_deploying_to_openshift_2">2.3.2. Deploying to OpenShift</a></li>
+</ul>
+</li>
+<li><a href="#_kafka_connect">2.4. Kafka Connect</a>
+<ul class="sectlevel3">
+<li><a href="#_deploying_to_kubernetes_3">2.4.1. Deploying to Kubernetes</a></li>
+<li><a href="#_deploying_to_openshift_3">2.4.2. Deploying to OpenShift</a></li>
+<li><a href="#_using_kafka_connect_with_additional_plugins">2.4.3. Using Kafka Connect with additional plugins</a></li>
+</ul>
+</li>
+<li><a href="#_topic_operator">2.5. Topic Operator</a>
+<ul class="sectlevel3">
+<li><a href="#_deploying_through_the_cluster_operator">2.5.1. Deploying through the Cluster Operator</a></li>
+<li><a href="#_deploying_standalone_topic_operator">2.5.2. Deploying standalone Topic Operator</a></li>
+<li><a href="#_topic_configmap">2.5.3. Topic ConfigMap</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#_cluster_operator_2">3. Cluster Operator</a>
+<ul class="sectlevel2">
+<li><a href="#_reconciliation">3.1. Reconciliation</a></li>
+<li><a href="#config_map_details">3.2. Format of the cluster ConfigMap</a>
+<ul class="sectlevel3">
+<li><a href="#kafka_config_map_details">3.2.1. Kafka</a></li>
+<li><a href="#kafka_connect_config_map_details">3.2.2. Kafka Connect</a></li>
+</ul>
+</li>
+<li><a href="#_provisioning_role_based_access_control_rbac_for_the_operator">3.3. Provisioning Role-Based Access Control (RBAC) for the operator</a>
+<ul class="sectlevel3">
+<li><a href="#_using_a_serviceaccount">3.3.1. Using a ServiceAccount</a></li>
+<li><a href="#_defining_a_role">3.3.2. Defining a Role</a></li>
+<li><a href="#_defining_a_rolebinding">3.3.3. Defining a RoleBinding</a></li>
+</ul>
+</li>
+<li><a href="#_operator_configuration">3.4. Operator configuration</a>
+<ul class="sectlevel3">
+<li><a href="#multi-namespace">3.4.1. Watching multiple namespaces</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#_topic_operator_2">4. Topic Operator</a>
+<ul class="sectlevel2">
+<li><a href="#_reconciliation_2">4.1. Reconciliation</a></li>
+<li><a href="#_usage_recommendations">4.2. Usage Recommendations</a></li>
+<li><a href="#topic_config_map_details">4.3. Format of the ConfigMap</a></li>
+<li><a href="#_example">4.4. Example</a></li>
+<li><a href="#_unsupported_operations">4.5. Unsupported operations</a></li>
+<li><a href="#_operator_environment">4.6. Operator environment</a></li>
+<li><a href="#_resource_limits_and_requests">4.7. Resource limits and requests</a>
+<ul class="sectlevel3">
+<li><a href="#_minimum_resource_requirements_2">4.7.1. Minimum Resource Requirements</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#_frequently_asked_questions">Appendix A: Frequently Asked Questions</a>
+<ul class="sectlevel2">
+<li><a href="#_cluster_operator_3">A.1. Cluster Operator</a>
+<ul class="sectlevel3">
+<li><a href="#_log_contains_warnings_about_failing_to_acquire_lock">A.1.1. Log contains warnings about failing to acquire lock</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#_installing_kubernetes_and_openshift_cluster">Appendix B: Installing Kubernetes and OpenShift cluster</a>
+<ul class="sectlevel2">
+<li><a href="#_kubernetes">B.1. Kubernetes</a></li>
+<li><a href="#_openshift">B.2. OpenShift</a></li>
+</ul>
+</li>
+<li><a href="#_metrics">Appendix C: Metrics</a>
+<ul class="sectlevel2">
+<li><a href="#_deploying_on_openshift">C.1. Deploying on OpenShift</a>
+<ul class="sectlevel3">
+<li><a href="#_prometheus">C.1.1. Prometheus</a></li>
+<li><a href="#_grafana">C.1.2. Grafana</a></li>
+</ul>
+</li>
+<li><a href="#_deploying_on_kubernetes">C.2. Deploying on Kubernetes</a>
+<ul class="sectlevel3">
+<li><a href="#_prometheus_2">C.2.1. Prometheus</a></li>
+<li><a href="#_grafana_2">C.2.2. Grafana</a></li>
+</ul>
+</li>
+<li><a href="#_grafana_dashboard">C.3. Grafana dashboard</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_overview">1. Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Apache Kafka is a popular platform for streaming data delivery and processing. For more details about Apache Kafka
+itself visit <a href="http://kafka.apache.org">Apache Kafka website</a>. The aim of Strimzi is to make it easy to run
+Apache Kafka on Kubernetes and OpenShift.</p>
+</div>
+<div class="paragraph">
+<p>Strimzi consists of two main components:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Cluster Operator</dt>
+<dd>
+<p>Responsible for deploying and managing Apache Kafka clusters within a Kubernetes or OpenShift
+cluster</p>
+</dd>
+<dt class="hdlist1">Topic Operator</dt>
+<dd>
+<p>Responsible for managing Kafka topics within a Kafka cluster running within Kubernetes or OpenShift</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_getting_started">2. Getting started</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_prerequisites">2.1. Prerequisites</h3>
+<div class="paragraph">
+<p>A Kubernetes or OpenShift cluster is required to deploy Strimzi. Strimzi supports all kinds of clusters - from public and
+private clouds down to local deployments intended for development purposes. This guide expects that a Kubernetes or
+OpenShift cluster is available and the <code>kubectl</code> or <code>oc</code> command line tools are installed and configured to connect
+to the running cluster.</p>
+</div>
+<div class="paragraph">
+<p>When no existing Kubernetes or OpenShift cluster is available, <code>Minikube</code> or <code>Minishift</code> can be used to create a local
+cluster. More details can be found in <a href="#_installing_kubernetes_and_openshift_cluster">Appendix B, <em>Installing Kubernetes and OpenShift cluster</em></a></p>
+</div>
+<div class="paragraph">
+<p>In order to execute the commands in this guide, your Kubernetes/OpenShift user needs to have the rights to create and
+manage RBAC resources (Roles and Role Bindings).</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_cluster_operator">2.2. Cluster Operator</h3>
+<div class="paragraph">
+<p>Strimzi uses a component called the Cluster Operator to deploy and manage Kafka (including Zookeeper) and Kafka Connect
+clusters. The Cluster Operator is deployed as a process running inside your Kubernetes or OpenShift cluster. To deploy a
+Kafka cluster, a ConfigMap with the cluster configuration has to be created. Based on the information in that ConfigMap,
+the Cluster Operator will deploy a corresponding Kafka cluster. By default, the ConfigMap needs to be labeled with
+following labels:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-yaml" data-lang="yaml">strimzi.io/type: kafka
+strimzi.io/kind: cluster</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>and contain the cluster configuration in a specific format. The ConfigMap format is described in <a href="#config_map_details">Section 3.2, &#8220;Format of the cluster ConfigMap&#8221;</a>.</p>
+</div>
+<div class="paragraph">
+<p>Strimzi contains example YAML files which make deploying a Cluster Operator easier.</p>
+</div>
+<div class="sect3">
+<h4 id="_deploying_to_kubernetes">2.2.1. Deploying to Kubernetes</h4>
+<div class="paragraph">
+<p>To deploy the Cluster Operator on Kubernetes, the following command should be executed:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>kubectl create -f examples/install/cluster-operator</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To verify whether the Cluster Operator has been deployed successfully, the Kubernetes Dashboard or the following
+command can be used:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>kubectl describe all</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_deploying_to_openshift">2.2.2. Deploying to OpenShift</h4>
+<div class="paragraph">
+<p>To deploy the Cluster Operator on OpenShift, the following commands should be executed:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc create -f examples/install/cluster-operator
+oc create -f examples/templates/cluster-operator</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To verify whether the Cluster Operator has been deployed successfully, the OpenShift console or the following command
+can be used:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc describe all</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_kafka_broker">2.3. Kafka broker</h3>
+<div class="paragraph">
+<p>Strimzi uses the StatefulSets feature of Kubernetes/OpenShift to deploy Kafka brokers.
+With StatefulSets, the pods receive a unique name and network identity and that makes it easier to identify the
+individual Kafka broker pods and set their identity (broker ID). The deployment uses <strong>regular</strong> and <strong>headless</strong>
+services:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>regular services can be used as bootstrap servers for Kafka clients</p>
+</li>
+<li>
+<p>headless services are needed to have DNS resolve the pods IP addresses directly</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>As well as Kafka, Strimzi also installs a Zookeeper cluster and configures the Kafka brokers to connect to it. The
+Zookeeper cluster also uses StatefulSets.</p>
+</div>
+<div class="paragraph">
+<p>Strimzi provides two flavors of Kafka broker deployment: <strong>ephemeral</strong> and <strong>persistent</strong>.</p>
+</div>
+<div class="paragraph">
+<p>The <strong>ephemeral</strong> flavour is suitable only for development and testing purposes and not for production. The
+ephemeral flavour uses <code>emptyDir</code> volumes for storing broker information (Zookeeper) and topics/partitions
+(Kafka). Using <code>emptyDir</code> volume means that its content is strictly related to the pod life cycle (it is
+deleted when the pod goes down). This makes the in-memory deployment well-suited to development and testing because
+you don&#8217;t have to provide persistent volumes.</p>
+</div>
+<div class="paragraph">
+<p>The <strong>persistent</strong> flavour uses PersistentVolumes to store Zookeeper and Kafka data. The PersistentVolume is
+acquired using a PersistentVolumeClaim – that makes it independent of the actual type of the PersistentVolume. For
+example, it can use HostPath volumes on Minikube or Amazon EBS volumes in Amazon AWS deployments without any
+changes in the YAML files. The PersistentVolumeClaim can use a StorageClass to trigger automatic volume provisioning.</p>
+</div>
+<div class="paragraph">
+<p>To deploy a Kafka cluster, a ConfigMap with the cluster configuration has to be created. The ConfigMap
+should have the following labels:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-yaml" data-lang="yaml">strimzi.io/type: kafka
+strimzi.io/kind: cluster</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Example ConfigMaps and the details about the ConfigMap format are in <a href="#kafka_config_map_details">Section 3.2.1, &#8220;Kafka&#8221;</a>.</p>
+</div>
+<div class="sect3">
+<h4 id="_deploying_to_kubernetes_2">2.3.1. Deploying to Kubernetes</h4>
+<div class="paragraph">
+<p>To deploy a Kafka broker on Kubernetes, the corresponding ConfigMap has to be created. To create the ephemeral
+cluster using the provided example ConfigMap, the following command should be executed:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>kubectl apply -f examples/configmaps/cluster-operator/kafka-ephemeral.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Another example ConfigMap is provided for persistent Kafka cluster. To deploy it, the following command should be run:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>kubectl apply -f examples/configmaps/cluster-operator/kafka-persistent.yaml</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_deploying_to_openshift_2">2.3.2. Deploying to OpenShift</h4>
+<div class="paragraph">
+<p>For OpenShift, the Kafka broker is provided in the form of a template. The cluster can be deployed from the template either
+using the command line or using the OpenShift console. To create the ephemeral cluster, the following command should be
+executed:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc new-app strimzi-ephemeral</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Similarly, to deploy a persistent Kafka cluster the following command should be run:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc new-app strimzi-persistent</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_kafka_connect">2.4. Kafka Connect</h3>
+<div class="paragraph">
+<p>The Cluster Operator can also deploy a <a href="https://kafka.apache.org/documentation/#connect">Kafka Connect</a> cluster which
+can be used with either of the Kafka broker deployments described above. It is implemented as a Deployment with a
+configurable number of workers. The default image currently contains only the Connectors distributed with Apache Kafka
+Connect: <code>FileStreamSinkConnector</code> and <code>FileStreamSourceConnector</code>. The REST interface for managing the Kafka Connect
+cluster is exposed internally within the Kubernetes/OpenShift cluster as <code>kafka-connect</code> service on port <code>8083</code>.</p>
+</div>
+<div class="paragraph">
+<p>Example ConfigMaps and the details about the ConfigMap format for deploying Kafka Connect can be found in
+<a href="#kafka_connect_config_map_details">Section 3.2.2, &#8220;Kafka Connect&#8221;</a>.</p>
+</div>
+<div class="sect3">
+<h4 id="_deploying_to_kubernetes_3">2.4.1. Deploying to Kubernetes</h4>
+<div class="paragraph">
+<p>To deploy Kafka Connect on Kubernetes, the corresponding ConfigMap has to be created. An example ConfigMap can be
+created using the following command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>kubectl apply -f examples/configmaps/cluster-operator/kafka-connect.yaml</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_deploying_to_openshift_3">2.4.2. Deploying to OpenShift</h4>
+<div class="paragraph">
+<p>On OpenShift, Kafka Connect is provided in the form of a template. It can be deployed from the template either
+using the command line or using the OpenShift console. To create a Kafka Connect cluster from the command line, the following
+command should be run:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc new-app strimzi-connect</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_using_kafka_connect_with_additional_plugins">2.4.3. Using Kafka Connect with additional plugins</h4>
+<div class="paragraph">
+<p>Strimzi Docker images for Kafka Connect contain, by default, only the <code>FileStreamSinkConnector</code> and
+<code>FileStreamSourceConnector</code> connectors which are part of Apache Kafka.</p>
+</div>
+<div class="paragraph">
+<p>To facilitate deployment with 3rd party connectors, Kafka Connect is configured to automatically load all
+plugins/connectors which are present in the <code>/opt/kafka/plugins</code> directory during startup. There are two ways of adding
+custom plugins into this directory:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Using a custom Docker image</p>
+</li>
+<li>
+<p>Using the OpenShift build system with the Strimzi S2I image</p>
+</li>
+</ul>
+</div>
+<div class="sect4">
+<h5 id="_create_a_new_image_based_on_code_strimzi_kafka_connect_code">Create a new image based on <code>strimzi/kafka-connect</code></h5>
+<div class="paragraph">
+<p>Strimzi provides its own Docker image for running Kafka Connect which can be found on Docker Hub as
+<a href="https://hub.docker.com/r/strimzi/kafka-connect/"><code>strimzi/kafka-connect</code></a>. This image could be used as a base image for
+building a new custom image with additional plugins. The following steps describe the process for creating such a custom image:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Create a new <code>Dockerfile</code> which uses <code>strimzi/kafka-connect</code> as the base image</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-Dockerfile" data-lang="Dockerfile">FROM strimzi/kafka-connect:latest
+USER root:root
+COPY ./my-plugin/ /opt/kafka/plugins/
+USER kafka:kafka</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Build the Docker image and upload it to the appropriate Docker repository</p>
+</li>
+<li>
+<p>Use the new Docker image in the Kafka Connect deployment:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>On OpenShift, the template parameters <code>IMAGE_REPO_NAME</code>, <code>IMAGE_NAME</code> and <code>IMAGE_TAG</code> can be changed to point to the
+new image when the Kafka Connect cluster is being deployed</p>
+</li>
+<li>
+<p>On Kubernetes, the Kafka Connect ConfigMap has to be modified to use the new image</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_using_openshift_build_and_s2i_image">Using OpenShift Build and S2I image</h5>
+<div class="paragraph">
+<p>OpenShift supports <a href="https://docs.openshift.org/3.6/dev_guide/builds/index.html">Builds</a> which can be used together with
+<a href="https://docs.openshift.org/3.6/creating_images/s2i.html#creating-images-s2i">Source-to-Image (S2I)</a> framework to create
+new Docker images. OpenShift Build takes a builder image with S2I support together with source code and/or binaries
+provided by the user and uses them to build a new Docker image. The newly created Docker Image will be stored in
+OpenShift&#8217;s local Docker repository and can then be used in deployments. Strimzi provides a Kafka Connect builder
+image <a href="https://hub.docker.com/r/strimzi/kafka-connect-s2i/"><code>strimzi/kafka-connect-s2i</code></a> with such S2I support. It takes user-provided
+binaries (with plugins and connectors) and creates a new Kafka Connect image. This enhanced Kafka Connect image can be
+used with our Kafka Connect deployment.</p>
+</div>
+<div class="paragraph">
+<p>The S2I deployment is again provided as an OpenShift template. It can be deployed from the template either using the command
+line or using the OpenShift console. To create Kafka Connect S2I cluster from the command line, the following command should
+be run:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc new-app strimzi-connect-s2i</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Once the cluster is deployed, a new Build can be triggered from the command line:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>A directory with Kafka Connect plugins has to be prepared first. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-shell" data-lang="shell">$ tree ./my-plugins/
+./my-plugins/
+├── debezium-connector-mongodb
+│   ├── bson-3.4.2.jar
+│   ├── CHANGELOG.md
+│   ├── CONTRIBUTE.md
+│   ├── COPYRIGHT.txt
+│   ├── debezium-connector-mongodb-0.7.1.jar
+│   ├── debezium-core-0.7.1.jar
+│   ├── LICENSE.txt
+│   ├── mongodb-driver-3.4.2.jar
+│   ├── mongodb-driver-core-3.4.2.jar
+│   └── README.md
+├── debezium-connector-mysql
+│   ├── CHANGELOG.md
+│   ├── CONTRIBUTE.md
+│   ├── COPYRIGHT.txt
+│   ├── debezium-connector-mysql-0.7.1.jar
+│   ├── debezium-core-0.7.1.jar
+│   ├── LICENSE.txt
+│   ├── mysql-binlog-connector-java-0.13.0.jar
+│   ├── mysql-connector-java-5.1.40.jar
+│   ├── README.md
+│   └── wkb-1.0.2.jar
+└── debezium-connector-postgres
+    ├── CHANGELOG.md
+    ├── CONTRIBUTE.md
+    ├── COPYRIGHT.txt
+    ├── debezium-connector-postgres-0.7.1.jar
+    ├── debezium-core-0.7.1.jar
+    ├── LICENSE.txt
+    ├── postgresql-42.0.0.jar
+    ├── protobuf-java-2.6.1.jar
+    └── README.md</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>To start a new image build using the prepared directory, the following command has to be run:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc start-build my-connect-cluster-connect --from-dir ./my-plugins/</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>The name of the build should be changed according to the cluster name of the deployed Kafka Connect cluster.</em></p>
+</div>
+</li>
+<li>
+<p>Once the build is finished, the new image will be used automatically by the Kafka Connect deployment.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_topic_operator">2.5. Topic Operator</h3>
+<div class="paragraph">
+<p>Strimzi uses a component called the Topic Operator to manage topics in the Kafka cluster. The Topic Operator
+is deployed as a process running inside a Kubernetes/OpenShift cluster. To create a new Kafka topic, a ConfigMap
+with the related configuration (name, partitions, replication factor, &#8230;&#8203;) has to be created. Based on the information
+in that ConfigMap, the Topic Operator will create a corresponding Kafka topic in the cluster.</p>
+</div>
+<div class="paragraph">
+<p>Deleting a topic ConfigMap raises the deletion of the corresponding Kafka topic as well.</p>
+</div>
+<div class="paragraph">
+<p>The Cluster Operator is able to deploy a Topic Operator, which can be configured in the cluster ConfigMap.
+Alternatively, it is possible to deploy a Topic Operator manually, rather than having it deployed
+by the Cluster Operator.</p>
+</div>
+<div class="sect3">
+<h4 id="_deploying_through_the_cluster_operator">2.5.1. Deploying through the Cluster Operator</h4>
+<div class="paragraph">
+<p>To deploy the Topic Operator through the Cluster Operator, its configuration needs to be provided in the cluster
+ConfigMap in the <code>topic-operator-config</code> field as a JSON string.</p>
+</div>
+<div class="paragraph">
+<p>For more information on the JSON configuration format see <a href="#topic_operator_json_config">Section 3.2.1.7, &#8220;Topic Operator&#8221;</a>.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_deploying_standalone_topic_operator">2.5.2. Deploying standalone Topic Operator</h4>
+<div class="paragraph">
+<p>If you are not going to deploy the Kafka cluster using the Cluster Operator but you already have a Kafka cluster deployed
+on Kubernetes or OpenShift, it could be useful to deploy the Topic Operator using the provided YAML files.
+In that case you can still leverage on the Topic Operator features of managing Kafka topics through related ConfigMaps.</p>
+</div>
+<div class="sect4">
+<h5 id="_deploying_to_kubernetes_4">Deploying to Kubernetes</h5>
+<div class="paragraph">
+<p>To deploy the Topic Operator on Kubernetes (not through the Cluster Operator), the following command should be executed:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>kubectl create -f examples/install/topic-operator.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To verify whether the Topic Operator has been deployed successfully, the Kubernetes Dashboard or the following
+command can be used:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>kubectl describe all</code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_deploying_to_openshift_4">Deploying to OpenShift</h5>
+<div class="paragraph">
+<p>To deploy the Topic Operator on OpenShift (not through the Cluster Operator), the following command should be executed:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc create -f examples/install/topic-operator</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To verify whether the Topic Operator has been deployed successfully, the OpenShift console or the following command
+can be used:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc describe all</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_topic_configmap">2.5.3. Topic ConfigMap</h4>
+<div class="paragraph">
+<p>When the Topic Operator is deployed by the Cluster Operator it will be configured to watch
+for "topic ConfigMaps" which are those with the following labels:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-yaml" data-lang="yaml">strimzi.io/cluster: &lt;cluster-name&gt;
+strimzi.io/kind: topic</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+When the Topic Operator is deployed manually the <code>strimzi.io/cluster</code> label is not necessary.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The topic ConfigMap contains the topic configuration in a specific format. The ConfigMap format is described in <a href="#topic_config_map_details">Section 4.3, &#8220;Format of the ConfigMap&#8221;</a>.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_cluster_operator_2">3. Cluster Operator</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The cluster operator is in charge of deploying a Kafka cluster alongside a Zookeeper ensemble. As part of the Kafka cluster,
+it can also deploy the topic operator which provides operator-style topic management via ConfigMaps.
+The cluster operator is also able to deploy a Kafka Connect cluster which connects to an existing Kafka cluster.
+On OpenShift such a cluster can be deployed using the Source2Image feature, providing an easy way of including more connectors.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/cluster_operator.png" alt="Cluster Operator">
+</div>
+</div>
+<div class="paragraph">
+<p>When the cluster operator is up, it starts to "watch" for ConfigMaps containing the Kafka or Kafka Connect
+cluster configuration. Such ConfigMaps need to have a specific label which is, by default, <code>strimzi.io/kind=cluster</code>
+(as described <a href="#config_map_details">later</a>) that can be changed through a corresponding environment variable.</p>
+</div>
+<div class="paragraph">
+<p>When a new ConfigMap is created in the Kubernetes/OpenShift cluster, the operator gets the cluster configuration from
+its <code>data</code> section and starts creating a new Kafka or Kafka Connect cluster by creating the necessary Kubernetes/OpenShift
+resources, such as StatefulSets, ConfigMaps, Services etc.</p>
+</div>
+<div class="paragraph">
+<p>Every time the ConfigMap is updated by the user with some changes in the <code>data</code> section, the operator performs corresponding
+updates on the Kubernetes/OpenShift resources which make up the Kafka or Kafka Connect cluster. Resources are either patched
+or deleted and then re-created in order to make the Kafka or Kafka Connect cluster reflect the state of the cluster ConfigMap.
+This might cause a rolling update which might lead to service disruption.</p>
+</div>
+<div class="paragraph">
+<p>Finally, when the ConfigMap is deleted, the operator starts to un-deploy the cluster deleting all the related Kubernetes/OpenShift
+resources.</p>
+</div>
+<div class="sect2">
+<h3 id="_reconciliation">3.1. Reconciliation</h3>
+<div class="paragraph">
+<p>Although the operator reacts to all notifications about the cluster ConfigMaps received from the Kubernetes/OpenShift cluster,
+if the operator is not running, or if a notification is not received for any reason, the ConfigMaps will get out of sync
+with the state of the running Kubernetes/OpenShift cluster.</p>
+</div>
+<div class="paragraph">
+<p>In order to handle failovers properly, a periodic reconciliation process is executed by the cluster operator so
+that it can compare the state of the ConfigMaps with the current cluster deployment in order to have
+a consistent state across all of them.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="config_map_details">3.2. Format of the cluster ConfigMap</h3>
+<div class="paragraph">
+<p>The operator watches for ConfigMaps having the label <code>strimzi.io/kind=cluster</code> in order to find and get
+configuration for a Kafka or Kafka Connect cluster to deploy.</p>
+</div>
+<div class="paragraph">
+<p>In order to distinguish which "type" of cluster to deploy, Kafka or Kafka Connect, the operator checks the
+<code>strimzi.io/type</code> label which can have one of the the following values :</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>kafka</code>: the ConfigMap provides configuration for a Kafka cluster (with Zookeeper ensemble) deployment</p>
+</li>
+<li>
+<p><code>kafka-connect</code>: the ConfigMap provides configuration for a Kafka Connect cluster deployment</p>
+</li>
+<li>
+<p><code>kafka-connect-s2i</code>: the ConfigMap provides configuration for a Kafka Connect cluster deployment using Build and Source2Image
+features (works only with OpenShift)</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Whatever other labels are applied to the ConfigMap will also be applied to the Kubernetes/OpenShift resources making
+up the Kafka or Kafka Connect cluster. This provides a convenient mechanism for those resource to be labelled
+in whatever way the user requires.</p>
+</div>
+<div class="paragraph">
+<p>The <code>data</code> section of such ConfigMaps contains different keys depending on the "type" of deployment as described in the
+following sections.</p>
+</div>
+<div class="sect3">
+<h4 id="kafka_config_map_details">3.2.1. Kafka</h4>
+<div class="paragraph">
+<p>In order to configure a Kafka cluster deployment, it&#8217;s possible to specify the following fields in the <code>data</code> section of
+the related ConfigMap :</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>kafka-nodes</code>: number of Kafka broker nodes. Default is 3</p>
+</li>
+<li>
+<p><code>kafka-image</code>: the Docker image to use for the Kafka brokers.
+Default is determined by the value of the
+<code><a href="#STRIMZI_DEFAULT_KAFKA_IMAGE">STRIMZI_DEFAULT_KAFKA_IMAGE</a></code>
+environment variable of the Cluster Operator.</p>
+</li>
+<li>
+<p><code>kafka-healthcheck-delay</code>: the initial delay for the liveness and readiness probes for each Kafka broker node. Default is 15</p>
+</li>
+<li>
+<p><code>kafka-healthcheck-timeout</code>: the timeout on the liveness and readiness probes for each Kafka broker node. Default is 5</p>
+</li>
+<li>
+<p><code>kafka-config</code>: a JSON string with Kafka configuration. See section <a href="#kafka_configuration_json_config">Section 3.2.1.1, &#8220;Kafka Configuration&#8221;</a> for more details.</p>
+</li>
+<li>
+<p><code>kafka-storage</code>: a JSON string representing the storage configuration for the Kafka broker nodes. See section
+<a href="#storage_configuration_json_config">Section 3.2.1.3, &#8220;Storage&#8221;</a> for more details.</p>
+</li>
+<li>
+<p><code>kafka-metrics-config</code>: a JSON string representing the JMX exporter configuration for exposing metrics from Kafka broker nodes.
+Removing this field means having no metrics exposed.</p>
+</li>
+<li>
+<p><code>kafka-resources</code>:
+a JSON string configuring the resource limits and requests for Kafka broker containers.
+The accepted JSON format is described in the <a href="#resources_json_config">Section 3.2.1.5, &#8220;Resource limits and requests&#8221;</a> section.</p>
+</li>
+<li>
+<p><code>kafka-jvmOptions</code>:
+a JSON string allowing the JVM running Kafka to be configured.
+ The accepted JSON format is described in the <a href="#jvm_json_config">Section 3.2.1.6, &#8220;JVM Options&#8221;</a> section.</p>
+</li>
+<li>
+<p><code>zookeeper-nodes</code>: number of Zookeeper nodes</p>
+</li>
+<li>
+<p><code>zookeeper-image</code>: the Docker image to use for the Zookeeper nodes.
+Default is determined by the value of the
+<code><a href="#STRIMZI_DEFAULT_ZOOKEEPER_IMAGE">STRIMZI_DEFAULT_ZOOKEEPER_IMAGE</a></code>
+environment variable of the Cluster Operator.</p>
+</li>
+<li>
+<p><code>zookeeper-healthcheck-delay</code>: the initial delay for the liveness and readiness probes for each Zookeeper node. Default is 15</p>
+</li>
+<li>
+<p><code>zookeeper-healthcheck-timeout</code>: the timeout on the liveness and readiness probes for each Zookeeper node. Default is 5</p>
+</li>
+<li>
+<p><code>zookeeper-config</code>: a JSON string with Zookeeper configuration. See section <a href="#zookeeper_configuration_json_config">Section 3.2.1.2, &#8220;Zookeeper Configuration&#8221;</a> for more details.</p>
+</li>
+<li>
+<p><code>zookeeper-storage</code>: a JSON string representing the storage configuration for the Zookeeper nodes. See section
+<a href="#storage_configuration_json_config">Section 3.2.1.3, &#8220;Storage&#8221;</a> for more details.</p>
+</li>
+<li>
+<p><code>zookeeper-metrics-config</code>: a JSON string representing the JMX exporter configuration for exposing metrics from Zookeeper nodes.
+Removing this field means having no metrics exposed.</p>
+</li>
+<li>
+<p><code>zookeeper-resources</code>:
+a JSON string configuring the resource limits and requests for Zookeeper broker containers.
+The accepted JSON format is described in the <a href="#resources_json_config">Section 3.2.1.5, &#8220;Resource limits and requests&#8221;</a> section.</p>
+</li>
+<li>
+<p><code>zookeeper-jvmOptions</code>:
+a JSON string allowing the JVM running Zookeeper to be configured.
+ The accepted JSON format is described in the <a href="#jvm_json_config">Section 3.2.1.6, &#8220;JVM Options&#8221;</a> section.</p>
+</li>
+<li>
+<p><code>topic-operator-config</code>: a JSON string representing the topic operator configuration. See the <a href="#topic_operator_json_config">Section 3.2.1.7, &#8220;Topic Operator&#8221;</a>
+documentation for further details. More info about the topic operator in the related <a href="#_topic_operator">Section 2.5, &#8220;Topic Operator&#8221;</a> documentation page.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The following is an example of a ConfigMap for a Kafka cluster.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Kafka cluster ConfigMap</div>
+<div class="content">
+<pre class="highlight nowrap"><code class="language-yaml" data-lang="yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-cluster
+  labels:
+    strimzi.io/kind: cluster
+    strimzi.io/type: kafka
+data:
+  kafka-nodes: "3"
+  kafka-image: "strimzi/kafka:latest"
+  kafka-healthcheck-delay: "15"
+  kafka-healthcheck-timeout: "5"
+  kafka-config: |-
+    {
+      "offsets.topic.replication.factor": 3,
+      "transaction.state.log.replication.factor": 3,
+      "transaction.state.log.min.isr": 2
+    }
+  kafka-storage: |-
+    { "type": "ephemeral" }
+  kafka-metrics-config: |-
+    {
+      "lowercaseOutputName": true,
+      "rules": [
+          {
+            "pattern": "kafka.server&lt;type=(.+), name=(.+)PerSec\\w*&gt;&lt;&gt;Count",
+            "name": "kafka_server_$1_$2_total"
+          },
+          {
+            "pattern": "kafka.server&lt;type=(.+), name=(.+)PerSec\\w*, topic=(.+)&gt;&lt;&gt;Count",
+            "name": "kafka_server_$1_$2_total",
+            "labels":
+            {
+              "topic": "$3"
+            }
+          }
+      ]
+    }
+  zookeeper-nodes: "1"
+  zookeeper-image: "strimzi/zookeeper:latest"
+  zookeeper-healthcheck-delay: "15"
+  zookeeper-healthcheck-timeout: "5"
+  zookeeper-config: |-
+    {
+      "timeTick": 2000,
+      "initLimit": 5,
+      "syncLimit": 2,
+      "autopurge.purgeInterval": 1
+    }
+  zookeeper-storage: |-
+    { "type": "ephemeral" }
+  zookeeper-metrics-config: |-
+    {
+      "lowercaseOutputName": true
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The resources created by the cluster operator into the Kubernetes/OpenShift cluster will be the following :</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>[cluster-name]-zookeeper</code> StatefulSet which is in charge to create the Zookeeper node pods</p>
+</li>
+<li>
+<p><code>[cluster-name]-kafka</code> StatefulSet which is in charge to create the Kafka broker pods</p>
+</li>
+<li>
+<p><code>[cluster-name]-zookeeper-headless</code> Service needed to have DNS resolve the Zookeeper pods IP addresses directly</p>
+</li>
+<li>
+<p><code>[cluster-name]-kafka-headless</code> Service needed to have DNS resolve the Kafka broker pods IP addresses directly</p>
+</li>
+<li>
+<p><code>[cluster-name]-zookeeper</code> Service used by Kafka brokers to connect to Zookeeper nodes as clients</p>
+</li>
+<li>
+<p><code>[cluster-name]-kafka</code> Service can be used as bootstrap servers for Kafka clients</p>
+</li>
+<li>
+<p><code>[cluster-name]-zookeeper-metrics-config</code> ConfigMap which contains the Zookeeper metrics configuration and mounted as
+a volume by the Zookeeper node pods</p>
+</li>
+<li>
+<p><code>[cluster-name]-kafka-metrics-config</code> ConfigMap which contains the Kafka metrics configuration and mounted as
+a volume by the Kafka broker pods</p>
+</li>
+</ul>
+</div>
+<div class="sect4">
+<h5 id="kafka_configuration_json_config">Kafka Configuration</h5>
+<div class="paragraph">
+<p>The <code>kafka-config</code> field allows detailed configuration of Apache Kafka. This field should contain a JSON object with Kafka
+configuration options as keys. The values could be in one of the following JSON types:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>String</p>
+</li>
+<li>
+<p>Number</p>
+</li>
+<li>
+<p>Boolean</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>kafka-config</code> field supports all Kafka configuration options with the exception of options related to:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Security (Encryption, Authentication and Authorization)</p>
+</li>
+<li>
+<p>Listener configuration</p>
+</li>
+<li>
+<p>Broker ID configuration</p>
+</li>
+<li>
+<p>Configuration of log data directories</p>
+</li>
+<li>
+<p>Inter-broker communication</p>
+</li>
+<li>
+<p>Zookeeper connectivity</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Specifically, all configuration options with keys starting with one of the following strings will be ignored:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>listeners</code></p>
+</li>
+<li>
+<p><code>advertised.</code></p>
+</li>
+<li>
+<p><code>broker.</code></p>
+</li>
+<li>
+<p><code>listener.</code></p>
+</li>
+<li>
+<p><code>host.name</code></p>
+</li>
+<li>
+<p><code>port</code></p>
+</li>
+<li>
+<p><code>inter.broker.listener.name</code></p>
+</li>
+<li>
+<p><code>sasl.</code></p>
+</li>
+<li>
+<p><code>ssl.</code></p>
+</li>
+<li>
+<p><code>security.</code></p>
+</li>
+<li>
+<p><code>password.</code></p>
+</li>
+<li>
+<p><code>principal.builder.class</code></p>
+</li>
+<li>
+<p><code>log.dir</code></p>
+</li>
+<li>
+<p><code>zookeeper.connect</code></p>
+</li>
+<li>
+<p><code>zookeeper.set.acl</code></p>
+</li>
+<li>
+<p><code>authorizer.</code></p>
+</li>
+<li>
+<p><code>super.user</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>All other options will be passed to Kafka. A list of all the available options can be found on the
+<a href="http://kafka.apache.org/11/documentation.html#brokerconfigs">Kafka website</a>. An example <code>kafka-config</code> field is provided
+below.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Kafka configuration</div>
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "num.partitions": 1,
+  "num.recovery.threads.per.data.dir": 1,
+  "default.replication.factor": 3,
+  "offsets.topic.replication.factor": 3,
+  "transaction.state.log.replication.factor": 3,
+  "transaction.state.log.min.isr": 1,
+  "log.retention.hours": 168,
+  "log.segment.bytes": 1073741824,
+  "log.retention.check.interval.ms": 300000,
+  "num.network.threads": 3,
+  "num.io.threads": 8,
+  "socket.send.buffer.bytes": 102400,
+  "socket.receive.buffer.bytes": 102400,
+  "socket.request.max.bytes": 104857600,
+  "group.initial.rebalance.delay.ms": 0
+}</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">NOTE</dt>
+<dd>
+<p>The cluster operator doesn&#8217;t validate the provided configuration. When invalid configuration is provided, the
+Kafka cluster might not start or might become unstable. In such cases, the configuration in the <code>kafka-config</code> field
+should be fixed and the cluster operator will roll out the new configuration to all Kafka brokers.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="zookeeper_configuration_json_config">Zookeeper Configuration</h5>
+<div class="paragraph">
+<p>The <code>zookeeper-config</code> field allows detailed configuration of Apache Zookeeper. This field should contain a JSON object
+with Zookeeper configuration options as keys. The values could be in one of the following JSON types:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>String</p>
+</li>
+<li>
+<p>Number</p>
+</li>
+<li>
+<p>Boolean</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>zookeeper-config</code> field supports all Zookeeper configuration options with the exception of options related to:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Security (Encryption, Authentication and Authorization)</p>
+</li>
+<li>
+<p>Listener configuration</p>
+</li>
+<li>
+<p>Configuration of data directories</p>
+</li>
+<li>
+<p>Zookeeper cluster composition</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Specifically, all configuration options with keys starting with one of the following strings will be ignored:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>server.</code></p>
+</li>
+<li>
+<p><code>dataDir</code></p>
+</li>
+<li>
+<p><code>dataLogDir</code></p>
+</li>
+<li>
+<p><code>clientPort</code></p>
+</li>
+<li>
+<p><code>authProvider</code></p>
+</li>
+<li>
+<p><code>quorum.auth</code></p>
+</li>
+<li>
+<p><code>requireClientAuthScheme</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>All other options will be passed to Zookeeper. A list of all the available options can be found on the
+<a href="http://zookeeper.apache.org/doc/r3.4.12/zookeeperAdmin.html">Zookeeper website</a>. An example <code>zookeeper-config</code> field is provided
+below.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Zookeeper configuration</div>
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "timeTick": 2000,
+  "initLimit": 5,
+  "syncLimit": 2,
+  "quorumListenOnAllIPs": true,
+  "maxClientCnxns": 0,
+  "autopurge.snapRetainCount": 3,
+  "autopurge.purgeInterval": 1
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Selected options have default values:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>timeTick</code> with default value <code>2000</code></p>
+</li>
+<li>
+<p><code>initLimit</code> with default value <code>5</code></p>
+</li>
+<li>
+<p><code>syncLimit</code> with default value <code>2</code></p>
+</li>
+<li>
+<p><code>autopurge.purgeInterval</code> with default value <code>1</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These options will be automatically configured in case they are not present in the <code>zookeeper-config</code> field.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">NOTE</dt>
+<dd>
+<p>The cluster operator doesn&#8217;t validate the provided configuration. When invalid configuration is provided, the
+Zookeeper cluster might not start or might become unstable. In such cases, the configuration in the <code>zookeeper-config</code> field
+should be fixed and the cluster operator will roll out the new configuration to all Zookeeper nodes.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="storage_configuration_json_config">Storage</h5>
+<div class="paragraph">
+<p>Both Kafka and Zookeeper save data to files.</p>
+</div>
+<div class="paragraph">
+<p>Strimzi allows to save such data in an "ephemeral" way (using <code>emptyDir</code>) or in a "persistent-claim" way using persistent
+volumes.
+It&#8217;s possible to provide the storage configuration in the related ConfigMap using a JSON string as value for the
+<code>kafka-storage</code> and <code>zookeeper-storage</code> fields.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+The <code>kafka-storage</code> and <code>zookeeper-storage</code> fields can&#8217;t be changed when the cluster is up.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The JSON representation has a mandatory <code>type</code> field for specifying the type of storage to use ("ephemeral" or "persistent-claim").</p>
+</div>
+<div class="paragraph">
+<p>The "ephemeral" storage is really simple to configure and the related JSON string has the following structure.</p>
+</div>
+<div class="listingblock">
+<div class="title">Ephemeral storage JSON</div>
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{ "type": "ephemeral" }</code></pre>
+</div>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+If the Zookeeper cluster is deployed using "ephemeral" storage, the Kafka brokers can have problems dealing with
+Zookeeper node restarts which could happen via updates in the cluster ConfigMap.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>In case of "persistent-claim" type the following fields can be provided as well :</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>size</code>: defines the size of the persistent volume claim (i.e 1Gi) - mandatory</p>
+</li>
+<li>
+<p><code>class</code> : the Kubernetes/OpenShift <a href="https://kubernetes.io/docs/concepts/storage/storage-classes/">storage class</a> to use
+for dynamic volume allocation - optional</p>
+</li>
+<li>
+<p><code>selector</code>: allows to select a specific persistent volume to use. It contains a <code>matchLabels</code> field which defines an
+inner JSON object with key:value representing labels for selecting such a volume - optional</p>
+</li>
+<li>
+<p><code>delete-claim</code>: boolean value which specifies if the persistent volume claim has to be deleted when the cluster is un-deployed.
+Default is <code>false</code> - optional</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">Persistent storage JSON with 1Gi as size</div>
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{ "type": "persistent-claim", "size": "1Gi" }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This example demonstrates use of a storage class.</p>
+</div>
+<div class="listingblock">
+<div class="title">Persistent storage JSON using "storage class"</div>
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "type": "persistent-claim",
+  "size": "1Gi",
+  "class": "my-storage-class"
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Finally, a selector can be used in order to select a specific labeled persistent volume which provides some needed features (i.e. an SSD)</p>
+</div>
+<div class="listingblock">
+<div class="title">Persistent storage JSON with "match labels" selector</div>
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "type": "persistent-claim",
+  "size": "1Gi",
+  "selector":
+  {
+    "matchLabels":
+    {
+      "hdd-type": "ssd"
+    }
+  },
+  "delete-claim": true
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When the "persistent-claim" is used, other than the resources already described in the <a href="#kafka_config_map_details">Section 3.2.1, &#8220;Kafka&#8221;</a> section, the following resources
+are generated :</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>data-[cluster-name]-kafka-[idx]</code> Persistent Volume Claim for the volume used for storing data for the Kafka broker pod <code>[idx]</code></p>
+</li>
+<li>
+<p><code>data-[cluster-name]-zookeeper-[idx]</code> Persistent Volume Claim for the volume used for storing data for the
+Zookeeper node pod <code>[idx]</code></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="metrics_json_config">Metrics</h5>
+<div class="paragraph">
+<p>Because Strimzi uses the [JMX exporter](<a href="https://github.com/prometheus/jmx_exporter" class="bare">https://github.com/prometheus/jmx_exporter</a>) in order to expose metrics
+on each node, the JSON string used for metrics configuration in the cluster ConfigMap reflects the related JMX exporter
+configuration file. For this reason, you can find more information on how to use it in the corresponding GitHub repo.</p>
+</div>
+<div class="paragraph">
+<p>For more information about using the metrics with Prometheus and Grafana, see <a href="#_metrics">Appendix C, <em>Metrics</em></a></p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="resources_json_config">Resource limits and requests</h5>
+<div class="paragraph">
+<p>It is possible to configure <a href="https://v1-7.docs.kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/">Kubernetes resource limits and requests</a> on several containers using a JSON object.
+The object may have a <code>requests</code> and a <code>limits</code> property, each having the same schema, consisting of  <code>cpu</code> and <code>memory</code> properties.
+The same syntax as Kubernetes' is used for the values of <code>cpu</code> and <code>memory</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Resource limits and requests JSON configuration</div>
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "requests": {
+    "cpu": "1",
+    "memory": "2Gi"
+  },
+  "limits": {
+    "cpu": "1",
+    "memory": "2Gi"
+  }
+}</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>requests/memory</code></dt>
+<dd>
+<p>the memory request for the container, corresponding directly to Kubernetes' <a href="https://v1-7.docs.kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/"><code>spec.containers[].resources.requests.memory</code></a> setting.
+Kubernetes/OpenShift will ensure the containers have at least this much memory by running the pod on a node with at least as much free memory as all the containers require.
+Optional with no default.</p>
+</dd>
+<dt class="hdlist1"><code>requests/cpu</code></dt>
+<dd>
+<p>the cpu request for the container, corresponding directly to Kubernetes' <a href="https://v1-7.docs.kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/"><code>spec.containers[].resources.requests.cpu</code></a> setting.
+Kubernetes/OpenShift will ensure the containers have at least this much CPU by running the pod on a node with at least as much uncommitted CPU as all the containers require.
+Optional with no default.</p>
+</dd>
+<dt class="hdlist1"><code>limits/memory</code></dt>
+<dd>
+<p>the memory limit for the container, corresponding directly to Kubernetes' <a href="https://v1-7.docs.kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/"><code>spec.containers[].resources.limits.memory</code></a> setting.
+Kubernetes/OpenShift will limit the containers to this much memory, potentially terminating their pod if they use more.
+Optional with no default.</p>
+</dd>
+<dt class="hdlist1"><code>limits/cpu</code></dt>
+<dd>
+<p>the cpu limit for the container, corresponding directly to Kubernetes' <a href="https://v1-7.docs.kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/"><code>spec.containers[].resources.limits.cpu</code></a> setting.
+Kubernetes/OpenShift will cap the containers CPU usage to this limit.
+Optional with no default.</p>
+</dd>
+</dl>
+</div>
+<div class="sect5">
+<h6 id="_minimum_resource_requirements">Minimum Resource Requirements</h6>
+<div class="paragraph">
+<p>Testing has shown that the cluster operator functions adequately with 256Mi of memory and 200m CPU when watching two clusters.
+It is therefore recommended to use these as a minimum when configuring resource requests and not to run it with lower limits than these.
+Configuring more generous limits is recommended, especially when it&#8217;s controlling multiple clusters.</p>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="jvm_json_config">JVM Options</h5>
+<div class="paragraph">
+<p>It is possible to configure a subset of available JVM options on Kafka, Zookeeper and Kafka Connect containers using a JSON object.
+The object has a property for each JVM (<code>java</code>) option which can be configured:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>-Xmx</code></dt>
+<dd>
+<p>The maximum heap size. See the <a href="#setting_xmx">Section 3.2.1.6.1, &#8220;Setting <code>-Xmx</code>&#8221;</a> section for further details.</p>
+</dd>
+<dt class="hdlist1"><code>-Xms</code></dt>
+<dd>
+<p>The initial heap size.
+Setting the same value for initial and maximum (<code>-Xmx</code>) heap sizes avoids the JVM having to allocate memory after startup, at the cost of possibly allocating more heap than is really needed.
+For Kafka and Zookeeper pods such allocation could cause unwanted latency.
+For Kafka Connect avoiding over allocation may be the more important concern, especially in distributed mode where the effects of over-allocation will be multiplied by the number of consumers.</p>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The units accepted by JVM settings such as <code>-Xmx</code> and <code>-Xms</code> are those accepted by the OpenJDK <code>java</code> binary in the corresponding image.
+Accordingly, <code>1g</code> or <code>1G</code> means 1,073,741,824 bytes, and <code>Gi</code> is not a valid unit suffix.
+This is in contrast to the units used for <a href="#resources_json_config">memory limits and requests</a>, which follow the Kubernetes convention where <code>1G</code> means 1,000,000,000 bytes, and <code>1Gi</code> means 1,073,741,824 bytes
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">Example Resource limits and requests JSON configuration</div>
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "-Xmx": "2g",
+  "-Xms": "2g"
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In the above example, the JVM will use 2 GiB (=2,147,483,648 bytes) for its heap.
+Its total memory usage will be approximately 8GiB.</p>
+</div>
+<div class="sect5">
+<h6 id="setting_xmx">Setting <code>-Xmx</code></h6>
+<div class="paragraph">
+<p>The default value used for <code>-Xmx</code> depends on whether there is a <a href="#resources_json_config">memory limit</a> for the container:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If there is a memory limit, the JVM&#8217;s maximum memory will be limited according to the kind of pod (Kafka, Zookeeper, TopicOperator) to an appropriate value less than the limit.</p>
+</li>
+<li>
+<p>Otherwise, when there is no memory limit, the JVM&#8217;s maximum memory will be set according to the kind of pod and the RAM available to the container.</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Setting <code>-Xmx</code> explicitly is requires some care:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The JVM&#8217;s overall memory usage will be approximately 4 × the maximum heap, as configured by <code>-Xmx</code>.</p>
+</li>
+<li>
+<p>If <code>-Xmx</code> is set without also setting an appropriate Kubernetes
+memory limit, it is possible that the container will be killed should the Kubernetes node
+experience memory pressure (from other Pods running on it).</p>
+</li>
+<li>
+<p>If <code>-Xmx</code> is set without also setting an appropriate Kubernetes
+memory request, it is possible that the container will scheduled to a node with insufficient memory.
+In this case the container will start but crash (immediately if <code>-Xms</code> is set to <code>-Xmx</code>, or some later time if not).</p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>When setting <code>-Xmx</code> explicitly, it is recommended to:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>set the memory request and the memory limit to the same value,</p>
+</li>
+<li>
+<p>use a memory request that is at least 4.5 × the <code>-Xmx</code>,</p>
+</li>
+<li>
+<p>consider setting <code>-Xms</code> to the same value as <code>-Xms</code>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Furthermore, containers doing lots of disk I/O (such as Kafka broker containers) will need to leave some memory available for use as operating system page cache.
+On such containers, the request memory should be substantially more than the memory used by the JVM.</p>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="topic_operator_json_config">Topic Operator</h5>
+<div class="paragraph">
+<p>Alongside the Kafka cluster and the Zookeeper ensemble, the cluster operator can also deploy the topic operator.
+In order to do that, the <code>topic-operator-config</code> field has to be put into the data section of the cluster ConfigMap.
+This field is a JSON string containing the topic operator configuration.
+Without this field, the cluster operator doesn&#8217;t deploy the topic operator. It is still possible to deploy the topic
+operator by creating appropriate Kubernetes/OpenShift resources.</p>
+</div>
+<div class="paragraph">
+<p>The JSON representation of the 'topic-operator-config` has no mandatory fields and if the value is an empty object
+(just "{ }"), the cluster operator will deploy the topic operator with a default configuration.</p>
+</div>
+<div class="paragraph">
+<p>The configurable fields are the following :</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>image</code></dt>
+<dd>
+<p>Docker image to use for the topic operator.
+Default is determined by the value of the
+<code><a href="#STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE">STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE</a></code>
+environment variable of the Cluster Operator.</p>
+</dd>
+<dt class="hdlist1"><code>watchedNamespace</code></dt>
+<dd>
+<p>The Kubernetes namespace (OpenShift project) in which the topic operator watches for topic ConfigMaps.
+Default is the namespace where the topic operator is running</p>
+</dd>
+<dt class="hdlist1"><code>reconciliationIntervalMs</code></dt>
+<dd>
+<p>The interval between periodic reconciliations in milliseconds. Default is 900000 (15 minutes).</p>
+</dd>
+<dt class="hdlist1"><code>zookeeperSessionTimeoutMs</code></dt>
+<dd>
+<p>The Zookeeper session timeout in milliseconds. Default is 20000 milliseconds (20 seconds).</p>
+</dd>
+<dt class="hdlist1"><code>topicMetadataMaxAttempts</code></dt>
+<dd>
+<p>The number of attempts for getting topics metadata from Kafka. The time between each attempt
+is defined as an exponential back-off. You might want to increase this value when topic creation could take more time due
+to its larger size (i.e. many partitions/replicas). Default <code>6</code>.</p>
+</dd>
+<dt class="hdlist1"><code>resources</code></dt>
+<dd>
+<p>an object configuring the resource limits and requests for the topic operator container.
+The accepted JSON format is described in the <a href="#resources_json_config">Section 3.2.1.5, &#8220;Resource limits and requests&#8221;</a> section.</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">Example Topic Operator JSON configuration</div>
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{ "reconciliationIntervalMs": "900000", "zookeeperSessionTimeoutMs": "20000" }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>More information about these configuration parameters in the related <a href="#_topic_operator">Section 2.5, &#8220;Topic Operator&#8221;</a> documentation page.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="kafka_connect_config_map_details">3.2.2. Kafka Connect</h4>
+<div class="paragraph">
+<p>In order to configure a Kafka Connect cluster deployment, it&#8217;s possible to specify the following fields in the <code>data</code> section of
+the related ConfigMap:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>nodes</code></dt>
+<dd>
+<p>Number of Kafka Connect worker nodes. Default is 1</p>
+</dd>
+<dt class="hdlist1"><code>image</code></dt>
+<dd>
+<p>The Docker image to use for the Kafka Connect workers.
+Default is determined by the value of the
+<code><a href="#STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE">STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</a></code>
+environment variable of the Cluster Operator.
+If S2I is used (only on OpenShift), then it should be the related S2I image.</p>
+</dd>
+<dt class="hdlist1"><code>healthcheck-delay</code></dt>
+<dd>
+<p>The initial delay for the liveness and readiness probes for each Kafka Connect worker node. Default is 60</p>
+</dd>
+<dt class="hdlist1"><code>healthcheck-timeout</code></dt>
+<dd>
+<p>The timeout on the liveness and readiness probes for each Kafka Connect worker node. Default is 5</p>
+</dd>
+<dt class="hdlist1"><code>resources</code></dt>
+<dd>
+<p>A JSON string configuring the resource limits and requests for Kafka Connect containers.
+The accepted JSON format is described in the <a href="#resources_json_config">Section 3.2.1.5, &#8220;Resource limits and requests&#8221;</a> section.</p>
+</dd>
+<dt class="hdlist1"><code>jvmOptions</code></dt>
+<dd>
+<p>A JSON string allowing the JVM running Kafka Connect to be configured.
+The accepted JSON format is described in the <a href="#jvm_json_config">Section 3.2.1.6, &#8220;JVM Options&#8221;</a> section.</p>
+</dd>
+<dt class="hdlist1"><code>connect-config</code></dt>
+<dd>
+<p>A JSON string with Kafka Connect configuration. See section <a href="#kafka_connect_configuration_json_config">Section 3.2.2.1, &#8220;Kafka Connect configuration&#8221;</a>
+for more details.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>The following is an example of cluster configuration ConfigMap is the following.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Kafka Connect cluster ConfigMap</div>
+<div class="content">
+<pre class="highlight nowrap"><code class="language-yaml" data-lang="yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-connect-cluster
+  labels:
+    strimzi.io/kind: cluster
+    strimzi.io/type: kafka-connect
+data:
+  nodes: "1"
+  image: "strimzi/kafka-connect:latest"
+  healthcheck-delay: "60"
+  healthcheck-timeout: "5"
+  connect-config: |-
+    {
+      "bootstrap.servers": "my-cluster-kafka:9092"
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The resources created by the cluster operator into the Kubernetes/OpenShift cluster will be the following :</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>[connect-cluster-name]-connect Deployment which is in charge to create the Kafka Connect worker node pods</p>
+</li>
+<li>
+<p>[connect-cluster-name]-connect Service which exposes the REST interface for managing the Kafka Connect cluster</p>
+</li>
+</ul>
+</div>
+<div class="sect4">
+<h5 id="kafka_connect_configuration_json_config">Kafka Connect configuration</h5>
+<div class="paragraph">
+<p>The <code>connect-config</code> field allows detailed configuration of Apache Kafka Connect and Connect S2I. This field should contain
+a JSON object with Kafka Connect configuration options as keys. The values could be in one of the following JSON types:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>String</p>
+</li>
+<li>
+<p>Number</p>
+</li>
+<li>
+<p>Boolean</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>connect-config</code> field supports all Kafka Connect configuration options with the exception of options related to:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Security (Encryption, Authentication and Authorization)</p>
+</li>
+<li>
+<p>Listener / REST interface configuration</p>
+</li>
+<li>
+<p>Plugin path configuration</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Specifically, all configuration options with keys starting with one of the following strings will be ignored:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>ssl.</code></p>
+</li>
+<li>
+<p><code>sasl.</code></p>
+</li>
+<li>
+<p><code>security.</code></p>
+</li>
+<li>
+<p><code>listeners</code></p>
+</li>
+<li>
+<p><code>plugin.path</code></p>
+</li>
+<li>
+<p><code>rest.</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>All other options will be passed to Kafka Connect. A list of all the available options can be found on the
+<a href="http://kafka.apache.org/11/documentation.html#connectconfigs">Kafka website</a>. An example <code>connect-config</code> field is provided
+below.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Kafka Connect configuration</div>
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "bootstrap.servers": "my-cluster-kafka:9092",
+  "group.id": "my-connect-cluster",
+  "offset.storage.topic": "my-connect-cluster-offsets",
+  "config.storage.topic": "my-connect-cluster-configs",
+  "status.storage.topic": "my-connect-cluster-status",
+  "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+  "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+  "key.converter.schemas.enable": true,
+  "value.converter.schemas.enable": true,
+  "internal.key.converter": "org.apache.kafka.connect.json.JsonConverter",
+  "internal.value.converter": "org.apache.kafka.connect.json.JsonConverter",
+  "internal.key.converter.schemas.enable": false,
+  "internal.value.converter.schemas.enable": false,
+  "config.storage.replication.factor": 3,
+  "offset.storage.replication.factor": 3,
+  "status.storage.replication.factor": 3
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Selected options have default values:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>group.id</code> with default value <code>connect-cluster</code></p>
+</li>
+<li>
+<p><code>offset.storage.topic</code> with default value <code>connect-cluster-offsets</code></p>
+</li>
+<li>
+<p><code>config.storage.topic</code> with default value <code>connect-cluster-configs</code></p>
+</li>
+<li>
+<p><code>status.storage.topic</code> with default value <code>connect-cluster-status</code></p>
+</li>
+<li>
+<p><code>key.converter</code> with default value <code>org.apache.kafka.connect.json.JsonConverter</code></p>
+</li>
+<li>
+<p><code>value.converter</code> with default value <code>org.apache.kafka.connect.json.JsonConverter</code></p>
+</li>
+<li>
+<p><code>internal.key.converter</code> with default value <code>org.apache.kafka.connect.json.JsonConverter</code></p>
+</li>
+<li>
+<p><code>internal.value.converter</code> with default value <code>org.apache.kafka.connect.json.JsonConverter</code></p>
+</li>
+<li>
+<p><code>internal.key.converter.schemas.enable</code> with default value <code>false</code></p>
+</li>
+<li>
+<p><code>internal.value.converter.schemas.enable</code> with default value <code>false</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These options will be automatically configured in case they are not present in the <code>connect-config</code> field.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">INFO</dt>
+<dd>
+<p>The cluster operator doesn&#8217;t validate the provided configuration. When invalid configuration is provided, the
+Kafka Connect cluster might not start or might become unstable. In such cases, the configuration in the <code>connect-config</code> field
+should be fixed and the cluster operator will roll out the new configuration to all Kafka Connect instances.</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_provisioning_role_based_access_control_rbac_for_the_operator">3.3. Provisioning Role-Based Access Control (RBAC) for the operator</h3>
+<div class="paragraph">
+<p>For the operator to function it needs permission within the Kubernetes/OpenShift cluster to interact with
+the resources it manages (ConfigMaps, Pods, Deployments, StatefulSets, Services etc).
+Such permission is described in terms of Kubernetes/OpenShift role-based access controls.</p>
+</div>
+<div class="sect3">
+<h4 id="_using_a_serviceaccount">3.3.1. Using a ServiceAccount</h4>
+<div class="paragraph">
+<p>The operator is best run using a ServiceAccount:</p>
+</div>
+<div class="listingblock">
+<div class="title">Example ServiceAccount for the Cluster Operator</div>
+<div class="content">
+<pre class="highlight nowrap"><code class="language-yaml" data-lang="yaml">apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: strimzi-cluster-operator
+  labels:
+    app: strimzi</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The Deployment of the operator then needs to specify this in the <code>serviceAccountName</code> of its <code>template</code>´s
+ <code>spec</code>:</p>
+</div>
+<div class="listingblock">
+<div class="title">Partial example Deployment for the Cluster Operator</div>
+<div class="content">
+<pre class="highlight nowrap"><code class="language-yaml" data-lang="yaml">apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: strimzi-cluster-operator
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: strimzi-cluster-operator
+    spec:
+      serviceAccountName: strimzi-cluster-operator
+      containers:
+# etc ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Note line 12, where the the <code>strimzi-cluster-operator</code> ServiceAccount is specified as the <code>serviceAccountName</code>.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_defining_a_role">3.3.2. Defining a Role</h4>
+<div class="paragraph">
+<p>The operator needs to operate using a Role that gives it access to the necessary resources</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Role for the Cluster Operator</div>
+<div class="content">
+<pre class="highlight nowrap"><code class="language-yaml" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: Role
+metadata:
+  name: strimzi-cluster-operator-role
+  labels:
+    app: strimzi
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - "extensions"
+  resources:
+  - deployments
+  - deployments/scale
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - "apps"
+  resources:
+  - deployments
+  - deployments/scale
+  - deployments/status
+  - statefulsets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+# OpenShift S2I requirements
+- apiGroups:
+  - "extensions"
+  resources:
+  - replicationcontrollers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - apps.openshift.io
+  resources:
+  - deploymentconfigs
+  - deploymentconfigs/scale
+  - deploymentconfigs/status
+  - deploymentconfigs/finalizers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - build.openshift.io
+  resources:
+  - buildconfigs
+  - builds
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - watch
+  - update
+- apiGroups:
+  - image.openshift.io
+  resources:
+  - imagestreams
+  - imagestreams/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - watch
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - replicationcontrollers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_defining_a_rolebinding">3.3.3. Defining a RoleBinding</h4>
+<div class="paragraph">
+<p>Finally, the operator needs a RoleBinding which associates its Role with its ServiceAccount</p>
+</div>
+<div class="listingblock">
+<div class="title">Example RoleBinding for the Cluster Operator</div>
+<div class="content">
+<pre class="highlight nowrap"><code class="language-yaml" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: strimzi-cluster-operator-binding
+  labels:
+    app: strimzi
+subjects:
+  - kind: ServiceAccount
+    name: strimzi-cluster-operator
+roleRef:
+  kind: Role
+  name: strimzi-cluster-operator-role
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_operator_configuration">3.4. Operator configuration</h3>
+<div class="paragraph">
+<p>The operator itself can be configured through the following environment variables.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><a id="STRIMZI_NAMESPACE"></a> <code>STRIMZI_NAMESPACE</code></dt>
+<dd>
+<p>Required. A comma-separated list of namespaces that the operator should operate in. The Cluster Operator deployment might use the <a href="https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/#the-downward-api">Kubernetes Downward API</a>
+to set this automatically to the namespace the Cluster Operator is deployed in. See the example below:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight nowrap"><code class="language-yaml" data-lang="yaml">env:
+  - name: STRIMZI_NAMESPACE
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace</code></pre>
+</div>
+</div>
+</dd>
+<dt class="hdlist1"><a id="STRIMZI_FULL_RECONCILIATION_INTERVAL_MS"></a> <code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code></dt>
+<dd>
+<p>Optional, default: 120000 ms. The interval between periodic reconciliations, in milliseconds.</p>
+</dd>
+<dt class="hdlist1"><a id="STRIMZI_OPERATION_TIMEOUT_MS"></a> <code>STRIMZI_OPERATION_TIMEOUT_MS</code></dt>
+<dd>
+<p>Optional, default: 60000 ms. The timeout for internal operations, in milliseconds. This value should be
+increased when using Strimzi on clusters where regular Kubernetes operations take longer than usual (because of slow downloading of Docker images, for example).</p>
+</dd>
+<dt class="hdlist1"><a id="STRIMZI_DEFAULT_KAFKA_IMAGE"></a> <code>STRIMZI_DEFAULT_KAFKA_IMAGE</code></dt>
+<dd>
+<p>Optional, default <code>strimzi/kafka:latest</code>.
+The image name to use as a default when deploying Kafka, if
+no image is specified as the <code>kafka-image</code> in the <a href="#kafka_config_map_details">Kafka cluster ConfigMap</a>.</p>
+</dd>
+<dt class="hdlist1"><a id="STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE"></a> <code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code></dt>
+<dd>
+<p>Optional, default <code>strimzi/kafka-connect:latest</code>.
+The image name to use as a default when deploying Kafka Connect, if
+no image is specified as the <code>image</code> in the
+<a href="#kafka_connect_config_map_details">Kafka Connect cluster ConfigMap</a>.</p>
+</dd>
+<dt class="hdlist1"><a id="STRIMZI_DEFAULT_KAFKA_CONNECT_S2I_IMAGE"></a> <code>STRIMZI_DEFAULT_KAFKA_CONNECT_S2I_IMAGE</code></dt>
+<dd>
+<p>Optional, default <code>strimzi/kafka-connect-s2i:latest</code>.
+The image name to use as a default when deploying Kafka Connect S2I, if
+no image is specified as the <code>image</code> in the cluster ConfigMap.</p>
+</dd>
+<dt class="hdlist1"><a id="STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE"></a> <code>STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE</code></dt>
+<dd>
+<p>Optional, default <code>strimzi/topic-operator:latest</code>.
+The image name to use as a default when deploying the topic operator, if
+no image is specified as the <code>image</code> in the <a href="#topic_operator_json_config">topic operator config</a>
+of the Kafka cluster ConfigMap.</p>
+</dd>
+<dt class="hdlist1"><a id="STRIMZI_DEFAULT_ZOOKEEPER_IMAGE"></a> <code>STRIMZI_DEFAULT_ZOOKEEPER_IMAGE</code></dt>
+<dd>
+<p>Optional, default <code>strimzi/zookeeper:latest</code>.
+The image name to use as a default when deploying Zookeeper, if
+no image is specified as the <code>zookeeper-image</code> in the <a href="#kafka_config_map_details">Kafka cluster ConfigMap</a>.</p>
+</dd>
+</dl>
+</div>
+<div class="sect3">
+<h4 id="multi-namespace">3.4.1. Watching multiple namespaces</h4>
+<div class="paragraph">
+<p>The <code>STRIMZI_NAMESPACE</code> environment variable can be used to configure a single operator instance
+to operate in multiple namespaces. For each namespace given, the operator will watch for cluster ConfigMaps
+and perform periodic reconciliation. To be able to do this, the operator&#8217;s ServiceAccount needs
+access to the necessary resources in those other namespaces. This can be done by creating an additional
+RoleBinding in each of those namespaces, associating the operator&#8217;s ServiceAccount
+(<code>strimzi-cluster-operator</code> in the examples) with the operator&#8217;s
+Role (<code>strimzi-operator-role</code> in the examples).</p>
+</div>
+<div class="paragraph">
+<p>Suppose, for example, that a operator deployed in namespace <code>foo</code> needs to operate in namespace <code>bar</code>.
+The following RoleBinding would grant the necessary permissions:</p>
+</div>
+<div class="listingblock">
+<div class="title">Example RoleBinding for a operator to operate in namespace <code>bar</code></div>
+<div class="content">
+<pre class="highlight nowrap"><code class="language-yaml" data-lang="yaml">apiVersion: v1
+kind: RoleBinding
+metadata:
+  name: strimzi-cluster-operator-binding-bar
+  namespace: bar
+  labels:
+    app: strimzi
+subjects:
+  - kind: ServiceAccount
+    name: strimzi-cluster-operator
+    namespace: foo
+roleRef:
+  kind: Role
+  name: strimzi-cluster-operator-role
+  apiGroup: v1</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_topic_operator_2">4. Topic Operator</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The Topic Operator is in charge of managing topics in a Kafka cluster. The Topic Operator is deployed as a process
+running inside a Kubernetes/OpenShift cluster.
+It can be deployed through the Cluster Operator or "manually" through provided YAML files.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/topic_operator.png" alt="Topic Operator">
+</div>
+</div>
+<div class="paragraph">
+<p>The role of the topic operator is to keep a set of Kubernetes ConfigMaps describing Kafka topics in-sync with
+corresponding Kafka topics.</p>
+</div>
+<div class="paragraph">
+<p>Specifically:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>if a config map is created, the operator will create the topic it describes</p>
+</li>
+<li>
+<p>if a config map is deleted, the operator will delete the topic it describes</p>
+</li>
+<li>
+<p>if a config map is changed, the operator will update the topic it describes</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>And also, in the other direction:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>if a topic is created, the operator will create a config map describing it</p>
+</li>
+<li>
+<p>if a topic is deleted, the operator will create the config map describing it</p>
+</li>
+<li>
+<p>if a topic is changed, the operator will update the config map describing it</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>This is beneficial to a Kubernetes/OpenShift-centric style of deploying
+applications, because it allows you to declare a ConfigMap as part of your
+applications deployment and the operator will take care of creating
+the topic for you, so your application just needs to deal with producing
+and/or consuming from the necessary topics.</p>
+</div>
+<div class="paragraph">
+<p>Should the topic be reconfigured, reassigned to different Kafka nodes etc,
+the ConfigMap will always be up to date.</p>
+</div>
+<div class="sect2">
+<h3 id="_reconciliation_2">4.1. Reconciliation</h3>
+<div class="paragraph">
+<p>A fundamental problem that the operator has to solve is that there is no
+single source of truth:
+Both the ConfigMap and the topic can be modified independently of the operator.
+Complicating this, the topic operator might not always be able to observe
+changes at each end in real time (the operator might be down etc).</p>
+</div>
+<div class="paragraph">
+<p>To resolve this, the operator maintains its own private copy of the
+information about each topic.
+When a change happens either in the Kafka cluster, or
+in Kubernetes/OpenShift, it looks at both the state of the other system, and at its
+private copy in order to determine what needs to change to keep everything in sync.
+The same thing happens whenever the operator starts, and periodically while its running.</p>
+</div>
+<div class="paragraph">
+<p>For example, suppose the topic operator is not running, and a ConfigMap "my-topic" gets created.
+When the operator starts it will lack a private copy of "my-topic",
+so it can infer that the ConfigMap has been created since it was last running.
+The operator will create the topic corresponding to "my-topic" and also store a private copy of the
+metadata for "my-topic".</p>
+</div>
+<div class="paragraph">
+<p>The private copy allows the operator to cope with scenarios where the topic
+config gets changed both in Kafka and in Kubernetes/OpenShift, so long as the
+changes are not incompatible (e.g. both changing the same topic config key, but to
+different values).
+In the case of incompatible changes, the Kafka configuration wins, and the ConfigMap will
+be updated to reflect that. Defaulting to the Kafka configuration ensures that,
+in the worst case, data won&#8217;t be lost.</p>
+</div>
+<div class="paragraph">
+<p>The private copy is held in the same ZooKeeper ensemble used by Kafka itself.
+This mitigates availability concerns, because if ZooKeeper is not running
+then Kafka itself cannot run, so the operator will be no less available
+than it would even if it was stateless.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_usage_recommendations">4.2. Usage Recommendations</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Try to either always operate on ConfigMaps or always operate directly on topics.</p>
+</li>
+<li>
+<p>When creating a ConfigMap:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Remember that you can&#8217;t easily change the name later.</p>
+</li>
+<li>
+<p>Choose a name for the ConfigMap that reflects the name of the topic it describes.</p>
+</li>
+<li>
+<p>Ideally the ConfigMap&#8217;s <code>metadata.name</code> should be the same as its <code>data.name</code>.
+To do this, the topic name will have to be a <a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/architecture/identifiers.md">valid Kubernetes resource name</a>.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>When creating a topic:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Remember that you can&#8217;t change the name later.</p>
+</li>
+<li>
+<p>It&#8217;s best to use a name that is a <a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/architecture/identifiers.md">valid Kubernetes resource name</a>,
+otherwise the operator will have to sanitize the name when creating
+the corresponding ConfigMap.</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="topic_config_map_details">4.3. Format of the ConfigMap</h3>
+<div class="paragraph">
+<p>By default, the operator only considers ConfigMaps having the label <code>strimzi.io/kind=topic</code>,
+but this is configurable via the <code>STRIMZI_CONFIGMAP_LABELS</code> environment variable.</p>
+</div>
+<div class="paragraph">
+<p>The <code>data</code> of such ConfigMaps supports the following keys:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>name</code> The name of the topic. Optional; if this is absent the name of the ConfigMap itself is used.</p>
+</li>
+<li>
+<p><code>partitions</code> The number of partitions of the Kafka topic. This can be increased, but not decreased. Required.</p>
+</li>
+<li>
+<p><code>replicas</code> The number of replicas of the Kafka topic. This cannot be larger than the number of nodes in the Kafka cluster. Required.</p>
+</li>
+<li>
+<p><code>config</code> A string in JSON format representing the <a href="https://kafka.apache.org/documentation/#topicconfigs">topic configuration</a>. Optional, defaulting to the empty set.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_example">4.4. Example</h3>
+<div class="paragraph">
+<p>Suppose you want to create a topic called "orders" with 10 partitions and 2 replicas.</p>
+</div>
+<div class="paragraph">
+<p>You would first prepare a ConfigMap:</p>
+</div>
+<div class="listingblock">
+<div class="title">Topic declaration ConfigMap</div>
+<div class="content">
+<pre class="highlight"><code class="language-yaml" data-lang="yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orders
+  labels:
+    strimzi.io/kind: topic
+    strimzi.io/cluster: my-cluster
+data:
+  name: orders
+  partitions: "10"
+  replicas: "2"</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+When the Topic Operator is deployed manually the <code>strimzi.io/cluster</code> label is not necessary.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Because the <code>config</code> key is omitted from the <code>data</code> the topic&#8217;s config will be empty, and thus default to the
+Kafka broker default.</p>
+</div>
+<div class="paragraph">
+<p>You would then create this ConfigMap in Kubernetes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>kubectl create -f orders-topic.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or in OpenShift:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc create -f orders-topic.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s it! The operator will create the topic "orders".</p>
+</div>
+<div class="paragraph">
+<p>Suppose you later want to change the log segment retention time to 4 days,
+you can update <code>orders-topic.yaml</code> like this:</p>
+</div>
+<div class="listingblock">
+<div class="title">Topic declaration ConfigMap with "config" update</div>
+<div class="content">
+<pre class="highlight"><code class="language-yaml" data-lang="yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orders
+  labels:
+    strimzi.io/kind: topic
+    strimzi.io/cluster: my-cluster
+data:
+  name: orders
+  partitions: "10"
+  replicas: "2"
+  config: '{ "retention.ms":"345600000" }'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And use <code>oc update -f</code> or <code>kubectl update -f</code> to up update the ConfigMap
+in OpenShift/Kubernetes.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_unsupported_operations">4.5. Unsupported operations</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>You can&#8217;t change the <code>data.name</code> key in a ConfigMap, because Kafka doesn&#8217;t support changing topic names.</p>
+</li>
+<li>
+<p>You can&#8217;t decrease the <code>data.partitions</code>, because Kafka doesn&#8217;t support this.</p>
+</li>
+<li>
+<p>You should exercise caution in increasing <code>data.partitions</code> for topics with keys, as it will change
+how records are partitioned.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_operator_environment">4.6. Operator environment</h3>
+<div class="paragraph">
+<p>The operator is configured from environment variables:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>STRIMZI_CONFIGMAP_LABELS</code>
+– The Kubernetes label selector used to identify ConfigMaps to be managed by the operator.
+  Default: <code>strimzi.io/kind=topic</code>.</p>
+</li>
+<li>
+<p><code>STRIMZI_ZOOKEEPER_SESSION_TIMEOUT_MS</code>
+– The Zookeeper session timeout, in milliseconds. For example <code>10000</code>. Default: <code>20000</code> (20 seconds).</p>
+</li>
+<li>
+<p><code>STRIMZI_KAFKA_BOOTSTRAP_SERVERS</code>
+– The list of Kafka bootstrap servers. This variable is mandatory.</p>
+</li>
+<li>
+<p><code>STRIMZI_ZOOKEEPER_CONNECT</code>
+– The Zookeeper connection information. This variable is mandatory.</p>
+</li>
+<li>
+<p><code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code>
+– The interval between periodic reconciliations, in milliseconds.</p>
+</li>
+<li>
+<p><code>STRIMZI_TOPIC_METADATA_MAX_ATTEMPTS</code>
+– The number of attempts for getting topics metadata from Kafka. The time between each attempt is defined as an exponential
+back-off. You might want to increase this value when topic creation could take more time due to its larger size
+(i.e. many partitions/replicas). Default <code>6</code>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>If the operator configuration needs to be changed the process must be killed and restarted.
+Since the operator is intended to execute within Kubernetes, this can be achieved
+by deleting the pod.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_resource_limits_and_requests">4.7. Resource limits and requests</h3>
+<div class="paragraph">
+<p>The Topic Operator can run with resource limits:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>When it is deployed by the Cluster Operator these can be specified in the <code>resources</code> key of the <code>topic-operator-config</code>.</p>
+</li>
+<li>
+<p>When it is not deployed by the Cluster Operator these can be specified on the Deployment in the usual way.</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="_minimum_resource_requirements_2">4.7.1. Minimum Resource Requirements</h4>
+<div class="paragraph">
+<p>Testing has shown that the topic operator functions adequately with 96Mi of memory and 100m CPU when watching two topics.
+It is therefore recommended to use these as a minimum when configuring resource requests and not to run it with lower limits than these. If the Kafka cluster has more than a handful of topics more generous requests and limits will be necessary.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_frequently_asked_questions">Appendix A: Frequently Asked Questions</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_cluster_operator_3">A.1. Cluster Operator</h3>
+<div class="sect3">
+<h4 id="_log_contains_warnings_about_failing_to_acquire_lock">A.1.1. Log contains warnings about failing to acquire lock</h4>
+<div class="paragraph">
+<p>For each cluster, the Cluster Operator always executes only one operation at a time. The Cluster Operator uses locks
+to make sure that there are never two parallel operations running for the same cluster. In case an operation requires
+more time to complete, other operations will wait until it is completed and the lock is released.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">INFO</dt>
+<dd>
+<p>Examples of cluster operations are <em>cluster creation</em>, <em>rolling update</em>, <em>scale down</em> or <em>scale up</em> etc.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>If the wait for the lock takes too long, the operation times out and the following warning message will be printed to
+the log:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>---
+2018-03-04 17:09:24 WARNING AbstractClusterOperations:290 - Failed to acquire lock for kafka cluster lock::kafka::myproject::my-cluster
+---</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Depending on the exact configuration of <code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code> and <code>STRIMZI_OPERATION_TIMEOUT_MS</code>, this
+warning message may appear regularly without indicating any problems. The operations which time out will be picked up by
+the next periodic reconciliation. It will try to acquire the lock again and execute.</p>
+</div>
+<div class="paragraph">
+<p>Should this message appear periodically even in situations when there should be no other operations running for a given
+cluster, it might indicate that due to some error the lock was not properly released. In such cases it is recommended to
+restart the cluster operator.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_installing_kubernetes_and_openshift_cluster">Appendix B: Installing Kubernetes and OpenShift cluster</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The easiest way to get started with Kubernetes or OpenShift is using the <code>Minikube</code>, <code>Minishift</code> or <code>oc cluster up</code>
+utilities. This section provides basic guidance on how to use them. More details are provided on the websites of
+the tools themselves.</p>
+</div>
+<div class="sect2">
+<h3 id="_kubernetes">B.1. Kubernetes</h3>
+<div class="paragraph">
+<p>In order to interact with a Kubernetes cluster the <a href="https://kubernetes.io/docs/tasks/tools/install-kubectl/"><code>kubectl</code></a>
+utility needs to be installed.</p>
+</div>
+<div class="paragraph">
+<p>The easiest way to get a running Kubernetes cluster is using <code>Minikube</code>. <code>Minikube</code> can be downloaded and installed
+from the <a href="https://kubernetes.io/docs/getting-started-guides/minikube/">Kubernetes website</a>. Depending on the number of brokers
+you want to deploy inside the cluster and if you need Kafka Connect running as well, it could be worth running <code>Minikube</code>
+at least with 4 GB of RAM instead of the default 2 GB.
+Once installed, it can be started using:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>minikube start --memory 4096</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_openshift">B.2. OpenShift</h3>
+<div class="paragraph">
+<p>In order to interact with an OpenShift cluster, the <a href="https://github.com/openshift/origin/releases"><code>oc</code></a> utility is needed.</p>
+</div>
+<div class="paragraph">
+<p>An OpenShift cluster can be started in two different ways. The <code>oc</code> utility can start a cluster locally using the
+command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc cluster up</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This command requires Docker to be installed. More information about this way can be found
+<a href="https://github.com/openshift/origin/blob/master/docs/cluster_up_down.md">here</a>.</p>
+</div>
+<div class="paragraph">
+<p>Another option is to use <code>Minishift</code>. <code>MiniShift</code> is an OpenShift installation within a VM. It can be downloaded and
+installed from the <a href="https://docs.openshift.org/latest/minishift/index.html">Minishift website</a>. Depending on the number of brokers
+you want to deploy inside the cluster and if you need Kafka Connect running as well, it could be worth running <code>Minishift</code>
+at least with 4 GB of RAM instead of the default 2 GB.
+Once installed, <code>Minishift</code> can be started using the following command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>minishift start --memory 4GB</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_metrics">Appendix C: Metrics</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This section describes how to deploy a Prometheus server for scraping metrics from the Kafka cluster and showing them using a Grafana dashboard. The resources provided are examples to show how Kafka metrics can be stored in Prometheus: They are not a recommended configuration, and further support should be available from the Prometheus and Grafana communities.</p>
+</div>
+<div class="paragraph">
+<p>When adding Prometheus and Grafana servers to an Apache Kafka deployment using <code>minikube</code> or <code>minishift</code>, the memory available to the virtual machine should be increased (to 4 GB of RAM, for example, instead of the default 2 GB). Information on how to increase the default amount of memory can be found in the following section <a href="#_installing_kubernetes_and_openshift_cluster">Appendix B, <em>Installing Kubernetes and OpenShift cluster</em></a>.</p>
+</div>
+<div class="sect2">
+<h3 id="_deploying_on_openshift">C.1. Deploying on OpenShift</h3>
+<div class="sect3">
+<h4 id="_prometheus">C.1.1. Prometheus</h4>
+<div class="paragraph">
+<p>The Prometheus server configuration uses a service discovery feature in order to discover the pods in the cluster from which it gets metrics.
+In order to have this feature working, it&#8217;s necessary for the service account used for running the Prometheus service pod to have access to the API server to get the pod list. By default the service account <code>prometheus-server</code> is used.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>export NAMESPACE=[namespace]
+oc login -u system:admin
+oc create sa prometheus-server
+oc adm policy add-cluster-role-to-user cluster-reader system:serviceaccount:${NAMESPACE}:prometheus-server
+oc login -u developer</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>where <code>[namespace]</code> is the namespace/project where the Apache Kafka cluster was deployed.</p>
+</div>
+<div class="paragraph">
+<p>Finally, create the Prometheus service by running</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc create -f https://raw.githubusercontent.com/strimzi/strimzi/master/metrics/examples/prometheus/kubernetes.yaml</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_grafana">C.1.2. Grafana</h4>
+<div class="paragraph">
+<p>A Grafana server is necessary only to get a visualisation of the Prometheus metrics.</p>
+</div>
+<div class="paragraph">
+<p>To deploy Grafana on OpenShift, the following commands should be executed:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>oc create -f https://raw.githubusercontent.com/strimzi/strimzi/master/metrics/examples/grafana/kubernetes.yaml</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_deploying_on_kubernetes">C.2. Deploying on Kubernetes</h3>
+<div class="sect3">
+<h4 id="_prometheus_2">C.2.1. Prometheus</h4>
+<div class="paragraph">
+<p>The Prometheus server configuration uses a service discovery feature in order to discover the pods in the cluster from which it gets metrics.
+If the RBAC is enabled in your Kubernetes deployment then in order to have this feature working, it&#8217;s necessary for the service account used for running the Prometheus service pod to have access to the API server to get the pod list. By default the service account <code>prometheus-server</code> is used.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>export NAMESPACE=[namespace]
+kubectl create sa prometheus-server
+kubectl create -f https://raw.githubusercontent.com/strimzi/strimzi/master/metrics/examples/prometheus/cluster-reader.yaml
+kubectl create clusterrolebinding read-pods-binding --clusterrole=cluster-reader --serviceaccount=${NAMESPACE}:prometheus-server</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>where <code>[namespace]</code> is the namespace/project where the Apache Kafka cluster was deployed.</p>
+</div>
+<div class="paragraph">
+<p>Finally, create the Prometheus service by running</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi/master/metrics/examples/prometheus/kubernetes.yaml</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_grafana_2">C.2.2. Grafana</h4>
+<div class="paragraph">
+<p>A Grafana server is necessary only to get a visualisation of Prometheus metrics.</p>
+</div>
+<div class="paragraph">
+<p>To deploy Grafana on Kubernetes, the following commands should be executed:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi/master/metrics/examples/grafana/kubernetes.yaml</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_grafana_dashboard">C.3. Grafana dashboard</h3>
+<div class="paragraph">
+<p>As an example, and in order to visualize the exported metrics in Grafana, the simple dashboard <a href="https://github.com/strimzi/strimzi/blob/master/metrics/examples/grafana/kafka-dashboard.json"><code>kafka-dashboard.json</code></a> file is provided.
+The Prometheus data source, and the above dashboard, can be set up in Grafana by following these steps.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+For accessing the dashboard, you can use the <code>port-forward</code> command for forwarding traffic from the Grafana pod to the host. For example, you can access the Grafana UI by running <code>oc port-forward grafana-1-fbl7s 3000:3000</code> (or using <code>kubectl</code> instead of <code>oc</code>) and then pointing a browser to <code><a href="http://localhost:3000" class="bare">http://localhost:3000</a></code>.
+</td>
+</tr>
+</table>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Access to the Grafana UI using <code>admin/admin</code> credentials.</p>
+<div class="imageblock">
+<div class="content">
+<img src="./images/grafana_login.png" alt="Grafana login">
+</div>
+</div>
+</li>
+<li>
+<p>Click on the "Add data source" button from the Grafana home in order to add Prometheus as data source.</p>
+<div class="imageblock">
+<div class="content">
+<img src="./images/grafana_home.png" alt="Grafana home">
+</div>
+</div>
+</li>
+<li>
+<p>Fill in the information about the Prometheus data source, specifying a name and "Prometheus" as type. In the URL field, the connection string to the Prometheus server (i.e. <code><a href="http://prometheus:9090" class="bare">http://prometheus:9090</a></code>) should be specified. After "Add" is clicked, Grafana will test the connection to the data source.</p>
+<div class="imageblock">
+<div class="content">
+<img src="./images/grafana_prometheus_data_source.png" alt="Add Prometheus data source">
+</div>
+</div>
+</li>
+<li>
+<p>From the top left menu, click on "Dashboards" and then "Import" to open the "Import Dashboard" window where the provided <a href="https://github.com/strimzi/strimzi/blob/master/metrics/examples/grafana/kafka-dashboard.json"><code>kafka-dashboard.json</code></a> file can be imported or its content pasted.</p>
+<div class="imageblock">
+<div class="content">
+<img src="./images/grafana_import_dashboard.png" alt="Add Grafana dashboard">
+</div>
+</div>
+</li>
+<li>
+<p>After importing the dashboard, the Grafana home should show with some initial metrics about CPU and JVM memory usage. When the Kafka cluster is used (creating topics and exchanging messages) the other metrics, like messages in and bytes in/out per topic, will be shown.</p>
+<div class="imageblock">
+<div class="content">
+<img src="./images/grafana_kafka_dashboard.png" alt="Kafka dashboard">
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
