@@ -4,14 +4,14 @@ title:  "Strimzi 0.4.0 released!"
 date: 2018-04-21
 ---
 
-We are really happy to announce the new Strimzi 0.4.0 release with a lot of fixes and new interesting features!
+We are really happy to announce the new Strimzi 0.4.0 release with a lot of fixes and interesting new features!
 
 <!--more-->
 
 # Enhanced configuration
 
-Until the previous release, just few parameters were exposed through the cluster config map so that the Kafka brokers and Zookeeper nodes configurations were limited. With this release, the `kafka-config` ([doc](http://strimzi.io/docs/0.4.0/#kafka_configuration_json_config)) and the `zookeeper-config` ([doc](http://strimzi.io/docs/0.4.0/#zookeeper_configuration_json_config)) fields were added in order to allow the user to define a full configuration through a JSON string.
-Following an example of the `kafka-config` field.
+Until the previous release, just a few parameters were exposed through the cluster config map so that the Kafka brokers and Zookeeper nodes configurations were limited. With this release, the `kafka-config` ([doc](http://strimzi.io/docs/0.4.0/#kafka_configuration_json_config)) and the `zookeeper-config` ([doc](http://strimzi.io/docs/0.4.0/#zookeeper_configuration_json_config)) fields were added in order to allow the user to define a full configuration through a JSON string.
+Here's an example of the `kafka-config` field:
 
 ```json
 {
@@ -32,8 +32,8 @@ It's possible to do the same within the Kafka Connect config map using the `conn
 
 # Resources usage configuration
 
-It's now possible to specify the Kubernetes/OpenShift resource requests and limits in terms of CPU and memory usage related to the Pods running the cluster nodes. The `kafka-resources` and `zookeeper-resources` fields ([doc](http://strimzi.io/docs/0.4.0/#resources_json_config)) can be used to describe such information using a JSON string.
-Following an example.
+It's now possible to specify the Kubernetes/OpenShift resource requests and limits in terms of CPU and memory usage related to the containers running the cluster nodes. The `kafka-resources` and `zookeeper-resources` fields ([doc](http://strimzi.io/docs/0.4.0/#resources_json_config)) can be used to describe such information using a JSON string.
+Here's an example:
 
 ```json
 {
@@ -63,7 +63,7 @@ The Kafka Connect config map provides the same configuration through the `jvmOpt
 
 # New Kafka version
 
-Taking into account the improvements in the upstream Kafka project, the Strimzi provided Docker image for the Kafka broker is now updated to the latest 1.1.0 release.
+The Strimzi Docker images are now based on the 1.1.0 release of Apache Kafka.
 
 # Conclusion
 
