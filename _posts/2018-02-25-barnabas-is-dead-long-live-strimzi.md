@@ -2,6 +2,7 @@
 layout: post
 title:  "Apache Kafka on Kubernetes and OpenShift: Barnabas is dead ... long live Strimzi!"
 date: 2018-02-25
+author: "Paolo Patierno"
 ---
 
 > this is a re-publication of the following [blog post](https://paolopatierno.wordpress.com/2018/01/18/apache-kafka-on-kuberneted-and-openshift-barnabas-is-died-long-life-to-strimzi/)

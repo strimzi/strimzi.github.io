@@ -1,7 +1,8 @@
 ---
 layout: post
 title:  "Strimzi 0.4.0 released!"
-date: 2018-04-21
+date: 2018-05-16
+author: "Paolo Patierno"
 ---
 
 We are really happy to announce the new Strimzi 0.4.0 release with a lot of fixes and interesting new features!
