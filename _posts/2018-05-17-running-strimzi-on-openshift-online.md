@@ -5,11 +5,11 @@ date: 2018-05-17
 author: "Jakub Scholz"
 ---
 
-OpenShift Online is a managed OpenShift as a Service offering from Red Hat. It has a Starter tier and Pro tier.
+OpenShift Online is a managed OpenShift-as-a-Service offering from Red Hat. It has a Starter tier and a Pro tier.
 The Starter tier is for free, but offers only very limited resources.
 In the Pro tier, you can buy additional resources.
 Can it be used to run Apache Kafka using the Strimzi project?
-Of course it can.
+Of course it can!
 But OpenShift Online has some limitations.
 So we will need to do some modifications to the default Strimzi installation files to get it up and running.
 
@@ -19,14 +19,14 @@ Since OpenShift Online is a managed service, you will not get an account with cl
 You will be only admin of the projects which you create.
 As such, you will be unable to create new roles.
 To follow the principle of least privilege, the default installation of Strimzi creates a new role which contains only the exact access rights which are needed by Strimzi.
-But OpenShift Online will not let you create such role.
+But OpenShift Online will not let you create such a role.
 So instead, we need to reuse one of the existing roles.
 The `edit` cluster role is suitable for this, since it contains all the privileges Strimzi needs to watch and manage resources.
 This role has to be used in the role binding to give the Strimzi service account the required access rights.
-When deploying Strimzi to the Starter tier, we need to minimise the memory consumption, because we have in total only 1GB of memory for deployments and stateful sets.
+When deploying Strimzi to the Starter tier, we need to minimise memory consumption, because we have in total only 1GB of memory for deployments and stateful sets.
 For that, we need to carefully configure the memory we give to the Cluster Operator.
-From my experience, 192Mi of memory is the amount which will keep it running stable.
-The example YAML files below can be used to deploy Cluster Operator to OpenShift Online:
+From my experience, 192Mi of memory will keep it running stable.
+The example YAML files below can be used to deploy the Cluster Operator to OpenShift Online:
 
 ```yaml
 apiVersion: v1
@@ -109,13 +109,13 @@ spec:
     type: Recreate
 ```
 
-Once you apply this YAML, Cluster Operator should deploy and start watching for config maps.
+Once you apply this YAML, Cluster Operator should deploy and start watching for ConfigMaps.
 Creating the Kafka cluster works in the same way as everywhere else.
-You just prepare the config map and the Cluster Operator will deploy Kafka accordingly.
+You just prepare the ConfigMap and the Cluster Operator will deploy Kafka accordingly.
 However, there are some things which you have to be careful about.
-OpenShift Online is using a Limit Range which will set the default resource requests and limits in case there aren't any specified by the Pods.
-So even on the Pro tier with more memory, you should always set the resource requests and limits to avoid the defaults.
-The example config map below shows a deployment which should work on the Starter tier.
+OpenShift Online uses a Limit Range which will set the default resource requests and limits in case there aren't any specified by the Pods.
+So even on the Pro tier with more memory, you should always set the resource requests and limits explicitly to avoid the defaults.
+The example ConfigMap below shows a deployment which should work on the Starter tier.
 It is using only one node for Zookeeper and one for Kafka. And the resources are very constrained.
 If you are on Pro tier, you should definitely increase the numbers ;-).
 The cluster described below is also using only ephemeral storage.
@@ -200,18 +200,18 @@ data:
   zookeeper-storage: '{ "type": "ephemeral" }'
 ```
 
-Once you create the config map, Cluster Operator should start immediately deploying the components - Zookeeper, Kafka broker and Topic Operator.
+Once you create the ConfigMap, the Cluster Operator should start immediately deploying the components - Zookeeper, Kafka broker and the Topic Operator.
 Once they are deployed, you can start using your new Kafka cluster.
 Well ... almost. If you are on the Pro tier, you can now actually deploy your applications using Kafka.
-On the Starter tier, the cluster consumed most of your memory and CPU.
-So, how can you test that the cluster works? We can use Kubernetes Jobs for it.
+On the Starter tier, the cluster will have consumed most of your memory and CPU.
+So, how can you test that the cluster works? We can use Kubernetes Jobs to do that.
 OpenShift Online Starter gives us another 1GB of so called "terminating" memory.
-This memory can be used for things such as builds or jobs which have active deadline.
-We can use this to deploy Kafka Producer and Kafka Consumer.
-They will each send / receive defined amount of messages and terminate.
+This memory can be used for things, such as builds or jobs, which have an active deadline.
+We can use this to deploy a Kafka Producer and Kafka Consumer.
+They will each send / receive a defined amount of messages and terminate.
 
 But before we can deploy the producer and consumer, we have to create the topic.
-The topic can be created by deploying the following config map:
+The topic can be created by deploying the following ConfigMap:
 
 ```yaml
 apiVersion: v1
@@ -233,11 +233,11 @@ data:
     }
 ```
 
-This config map will be picked by the Topic Operator, which will create a new topic named "my-job-topic" with one partition and one replica.
-With the topic being ready, we can now deploy the jobs.
+This ConfigMap will be picked by the Topic Operator, which will create a new topic named "my-job-topic" with one partition and one replica.
+When the topic is ready, we can deploy the jobs.
 The producer job will send in total 1000 messages at a speed of approximately one message per second.
 After it sends all 1000 messages it will terminate. You can follow the progress in the log.
-The consumer job will be consuming the messages sent by the producer job.
+The consumer job will consume the messages sent by the producer job.
 Once it receives all 1000 messages, it will also terminate.
 These jobs will verify that our Kafka deployment really works.
 The YAML below can be used to deploy both jobs.
@@ -306,8 +306,8 @@ spec:
 
 OpenShift Online is a nice service.
 But the Starter tier is obviously too limited for any serious project - at least one using Apache Kafka.
-We cann't deploy there a proper cluster with multiple nodes and sufficient memory for some real work.
-But if you want to give Strimzi a quick try and do not want to bother with running your own cluster, you can give it a try.
+It is too limited to deploy a proper cluster with multiple nodes and sufficient memory for some real work.
+But it is sufficient if you want to give Strimzi a quick try and do not want to bother with running your own cluster.
 It will show you the basic principles how the Strimzi operators work.
 If you are on the paid Pro tier you can get lot more resources.
 And if needed, you can deploy bigger clusters together with applications using them.
