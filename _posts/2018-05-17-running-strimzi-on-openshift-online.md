@@ -21,7 +21,7 @@ As such, you will be unable to create new roles.
 To follow the principle of least privilege, the default installation of Strimzi creates a new role which contains only the exact access rights which are needed by Strimzi.
 But OpenShift Online will not let you create such role.
 So instead, we need to reuse one of the existing roles.
-The cluster role named edit is suitable for this, since it contains all the privileges Strimzi needs to watch and manage resources.
+The `edit` cluster role is suitable for this, since it contains all the privileges Strimzi needs to watch and manage resources.
 This role has to be used in the role binding to give the Strimzi service account the required access rights.
 When deploying Strimzi to the Starter tier, we need to minimise the memory consumption, because we have in total only 1GB of memory for deployments and stateful sets.
 For that, we need to carefully configure the memory we give to the Cluster Operator.
@@ -200,7 +200,7 @@ data:
   zookeeper-storage: '{ "type": "ephemeral" }'
 ```
 
-Once you create the config map, Cluster Operator should start immediately deploying the components - Zookeper, Kafka broker and Topic Operator.
+Once you create the config map, Cluster Operator should start immediately deploying the components - Zookeeper, Kafka broker and Topic Operator.
 Once they are deployed, you can start using your new Kafka cluster.
 Well ... almost. If you are on the Pro tier, you can now actually deploy your applications using Kafka.
 On the Starter tier, the cluster consumed most of your memory and CPU.
@@ -237,7 +237,7 @@ This config map will be picked by the Topic Operator, which will create a new to
 With the topic being ready, we can now deploy the jobs.
 The producer job will send in total 1000 messages at a speed of approximately one message per second.
 After it sends all 1000 messages it will terminate. You can follow the progress in the log.
-The consumer job will be consuming the messages send by the producer job.
+The consumer job will be consuming the messages sent by the producer job.
 Once it receives all 1000 messages, it will also terminate.
 These jobs will verify that our Kafka deployment really works.
 The YAML below can be used to deploy both jobs.
@@ -310,4 +310,4 @@ We cann't deploy there a proper cluster with multiple nodes and sufficient memor
 But if you want to give Strimzi a quick try and do not want to bother with running your own cluster, you can give it a try.
 It will show you the basic principles how the Strimzi operators work.
 If you are on the paid Pro tier you can get lot more resources.
-And if needed, you can deploy bigger cluster together with applications using them.
+And if needed, you can deploy bigger clusters together with applications using them.
