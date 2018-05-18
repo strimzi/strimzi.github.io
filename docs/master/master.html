@@ -1827,7 +1827,12 @@ spec:
 <div class="sect3">
 <h4 id="defining_a_role">3.3.2. Defining a Role</h4>
 <div class="paragraph">
-<p>The operator needs to operate using a Role that gives it access to the necessary resources</p>
+<p>The Cluster Operator needs to operate using a Role that gives it access to the necessary resources.
+Depending on the OpenShift or Kubernetes cluster setup, a cluster administrator might be needed to create the Role.
+Cluster administrator rights are only needed for the creation of the Role.
+The Role itself doesn&#8217;t contain any cluster administrator privileges, and the Cluster Operator will not run under the cluster admin account.
+The Role follows the "principle of least privilege" and contains only those privileges needed by the Cluster Operator to operate Kafka, Kafka Connect and Zookeeper clusters.
+The assigned privileges allow the Cluster Operator to manage OpenShift or Kubernetes resources such as StatefulSets, Deployments, Pods and ConfigMaps.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example Role for the Cluster Operator</div>
@@ -1983,11 +1988,14 @@ rules:
   - update</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>When the Role cannot be created, the predefined ClusterRole named <code>edit</code> can be used instead.</p>
+</div>
 </div>
 <div class="sect3">
 <h4 id="defining_a_rolebinding">3.3.3. Defining a RoleBinding</h4>
 <div class="paragraph">
-<p>Finally, the operator needs a RoleBinding which associates its Role with its ServiceAccount</p>
+<p>Finally, the operator needs a RoleBinding which associates its Role with its ServiceAccount:</p>
 </div>
 <div class="listingblock">
 <div class="title">Example RoleBinding for the Cluster Operator</div>
@@ -2004,6 +2012,27 @@ subjects:
 roleRef:
   kind: Role
   name: strimzi-cluster-operator-role
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In case the <code>edit</code> ClusterRole is being used, the RoleBinding has to be modified to refer to it instead of the <code>strimzi-cluster-operator-role</code> Role:</p>
+</div>
+<div class="listingblock">
+<div class="title">Example RoleBinding for the Cluster Operator using the <code>edit</code> ClusterRole</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: strimzi-cluster-operator-binding
+  labels:
+    app: strimzi
+subjects:
+  - kind: ServiceAccount
+    name: strimzi-cluster-operator
+roleRef:
+  kind: ClusterRole
+  name: edit
   apiGroup: rbac.authorization.k8s.io</code></pre>
 </div>
 </div>
