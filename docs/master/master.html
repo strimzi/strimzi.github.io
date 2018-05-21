@@ -63,6 +63,7 @@
 <li><a href="#kafka_connect_config_map_details">3.2.2. Kafka Connect</a>
 <ul class="sectlevel4">
 <li><a href="#kafka_connect_configuration_json_config">Kafka Connect configuration</a></li>
+<li><a href="#kafka_connect_s2i_deployment">Kafka Connect S2I deployment</a></li>
 </ul>
 </li>
 </ul>
@@ -461,8 +462,8 @@ new image when the Kafka Connect cluster is being deployed</p>
 <div class="sect4">
 <h5 id="using_openshift_build_and_s2i_image">Using OpenShift Build and S2I image</h5>
 <div class="paragraph">
-<p>OpenShift supports <a href="https://docs.openshift.org/3.6/dev_guide/builds/index.html">Builds</a> which can be used together with
-<a href="https://docs.openshift.org/3.6/creating_images/s2i.html#creating-images-s2i">Source-to-Image (S2I)</a> framework to create
+<p>OpenShift supports <a href="https://docs.openshift.org/3.9/dev_guide/builds/index.html">Builds</a> which can be used together with
+the <a href="https://docs.openshift.org/3.9/creating_images/s2i.html#creating-images-s2i">Source-to-Image (S2I)</a> framework to create
 new Docker images. OpenShift Build takes a builder image with S2I support together with source code and/or binaries
 provided by the user and uses them to build a new Docker image. The newly created Docker Image will be stored in
 OpenShift&#8217;s local Docker repository and can then be used in deployments. Strimzi provides a Kafka Connect builder
@@ -1599,7 +1600,7 @@ The accepted JSON format is described in the <a href="#jvm_json_config">JVM Opti
 </dl>
 </div>
 <div class="paragraph">
-<p>The following is an example of cluster configuration ConfigMap is the following.</p>
+<p>The following is an example of a Kafka Connect configuration ConfigMap.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example Kafka Connect cluster ConfigMap</div>
@@ -1772,6 +1773,146 @@ Kafka Connect cluster might not start or might become unstable. In such cases, t
 should be fixed and the Cluster Operator will roll out the new configuration to all Kafka Connect instances.</p>
 </dd>
 </dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="kafka_connect_s2i_deployment">Kafka Connect S2I deployment</h5>
+<div class="paragraph">
+<p>When using Strimzi together with an OpenShift cluster, a user can deploy Kafka Connect with support for <a href="https://docs.openshift.org/3.9/dev_guide/builds/index.html">OpenShift Builds</a> and <a href="https://docs.openshift.org/3.9/creating_images/s2i.html#creating-images-s2i">Source-to-Image (S2I)</a>.
+To activate the S2I deployment, the <code>strimzi.io/type</code> label in the ConfigMap should be set to <code>kafka-connect-s2i</code>.
+The following is a full example of a ConfigMap for a Kafka Connect S2I cluster.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Kafka Connect S2I cluster ConfigMap</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-connect-cluster
+  labels:
+    strimzi.io/kind: cluster
+    strimzi.io/type: kafka-connect-s2i
+data:
+  nodes: "1"
+  image: "strimzi/kafka-connect-s2i:latest"
+  healthcheck-delay: "60"
+  healthcheck-timeout: "5"
+  connect-config: |-
+    {
+      "bootstrap.servers": "my-cluster-kafka:9092"
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The S2I deployment is very similar to the regular Kafka Connect deployment.
+Compared to the regular deployment, the Cluster Operator will create the following additional resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>[connect-cluster-name]-connect-source ImageStream which is used as the base image for the newly-built Docker images</p>
+</li>
+<li>
+<p>[connect-cluster-name]-connect BuildConfig which is responsible for building the new Kafka Connect Docker images</p>
+</li>
+<li>
+<p>[connect-cluster-name]-connect ImageStream where the newly built Docker images will be pushed</p>
+</li>
+<li>
+<p>[connect-cluster-name]-connect DeploymentConfig which is in charge of creating the Kafka Connect worker node pods</p>
+</li>
+<li>
+<p>[connect-cluster-name]-connect Service which exposes the REST interface for managing the Kafka Connect cluster</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The Kafka Connect S2I deployment supports the same options as the regular Kafka Connect deployment.
+A list of supported options can be found in the <a href="#kafka_connect_config_map_details">Kafka Connect</a> section.
+The <code>image</code> option specifies the Docker image which will be used as the <em>source image</em> - the base image for the newly built Docker image.
+The default value of the <code>image</code> option is determined by the value of the <code><a href="#STRIMZI_DEFAULT_KAFKA_CONNECT_S2I_IMAGE">STRIMZI_DEFAULT_KAFKA_CONNECT_S2I_IMAGE</a></code> environment variable of the Cluster Operator.
+All other options have the same meaning as for the regular deployment.</p>
+</div>
+<div class="paragraph">
+<p>Once the Kafka Connect S2I cluster is deployed, new plugins can be added by starting a new OpenShift build.
+Before starting the build, a directory with all the KafkaConnect plugins which should be added has to be created.
+The plugins and all their dependencies can be in a single directory or can be split into multiple subdirectories.
+For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ tree ./s2i-plugins/
+./s2i-plugins/
+├── debezium-connector-mysql
+│   ├── CHANGELOG.md
+│   ├── CONTRIBUTE.md
+│   ├── COPYRIGHT.txt
+│   ├── debezium-connector-mysql-0.7.1.jar
+│   ├── debezium-core-0.7.1.jar
+│   ├── LICENSE.txt
+│   ├── mysql-binlog-connector-java-0.13.0.jar
+│   ├── mysql-connector-java-5.1.40.jar
+│   ├── README.md
+│   └── wkb-1.0.2.jar
+└── debezium-connector-postgres
+    ├── CHANGELOG.md
+    ├── CONTRIBUTE.md
+    ├── COPYRIGHT.txt
+    ├── debezium-connector-postgres-0.7.1.jar
+    ├── debezium-core-0.7.1.jar
+    ├── LICENSE.txt
+    ├── postgresql-42.0.0.jar
+    ├── protobuf-java-2.6.1.jar
+    └── README.md</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A new build can be started using the following command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc start-build my-connect-cluster-connect --from-dir ./s2i-plugins/</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This command will upload the whole directory into the OpenShift cluster and start a new build.
+The build will take the base Docker image from the source ImageStream (named <em>[connect-cluster-name]-connect-source</em>) and add the directory and all the files it contains into this image and push the resulting image into the target ImageStream (named <em>[connect-cluster-name]-connect</em>).
+When the new image is pushed to the target ImageStream, a rolling update of the Kafka Connect S2I deployment will be started and will roll out the new version of the image with the added plugins.
+By default, the <code>oc start-build</code> command will trigger the build and complete.
+The progress of the build can be observed in the OpenShift console.
+Alternatively, the option <code>--follow</code> can be used to follow the build from the command line:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc start-build my-connect-cluster-connect --from-dir ./s2i-plugins/ --follow
+Uploading directory "s2i-plugins" as binary input for the build ...
+build "my-connect-cluster-connect-3" started
+Receiving source from STDIN as archive ...
+Assembling plugins into custom plugin directory /tmp/kafka-plugins
+Moving plugins to /tmp/kafka-plugins
+
+Pushing image 172.30.1.1:5000/myproject/my-connect-cluster-connect:latest ...
+Pushed 6/10 layers, 60% complete
+Pushed 7/10 layers, 70% complete
+Pushed 8/10 layers, 80% complete
+Pushed 9/10 layers, 90% complete
+Pushed 10/10 layers, 100% complete
+Push successful</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The S2I build will always add the additional Kafka Connect plugins to the original source image.
+They will not be added to the Docker image from a previous build.
+To add multiple plugins to the deployment, they all have to be added within the same build.
+</td>
+</tr>
+</table>
 </div>
 </div>
 </div>
@@ -2090,7 +2231,7 @@ no image is specified as the <code>image</code> in the
 The image name to use as a default when deploying Kafka Connect S2I, if
 no image is specified as the <code>image</code> in the cluster ConfigMap.</p>
 </dd>
-<dt class="hdlist1"><a id="STRIMZI_DEFAULT_TOPIC_operator_IMAGE"></a> <code>STRIMZI_DEFAULT_TOPIC_operator_IMAGE</code></dt>
+<dt class="hdlist1"><a id="STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE"></a> <code>STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE</code></dt>
 <dd>
 <p>Optional, default <code>strimzi/topic-operator:latest</code>.
 The image name to use as a default when deploying the topic operator, if
