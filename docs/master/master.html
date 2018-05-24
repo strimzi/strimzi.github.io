@@ -57,6 +57,7 @@
 <li><a href="#metrics">Metrics</a></li>
 <li><a href="#resources_json_config">Resource limits and requests</a></li>
 <li><a href="#jvm_json_config">JVM Options</a></li>
+<li><a href="#kafka_rack">Kafka rack</a></li>
 <li><a href="#topic_operator_json_config">Topic Operator</a></li>
 </ul>
 </li>
@@ -777,7 +778,12 @@ described in the <a href="#resources_json_config">Resource limits and requests</
 <dt class="hdlist1"><code>kafka-jvmOptions</code></dt>
 <dd>
 <p>A JSON string allowing the JVM running Kafka to be configured.
-   The accepted JSON format is described in the <a href="#jvm_json_config">JVM Options</a> section.</p>
+The accepted JSON format is described in the <a href="#jvm_json_config">JVM Options</a> section.</p>
+</dd>
+<dt class="hdlist1"><code>kafka-rack</code></dt>
+<dd>
+<p>A JSON string allowing the Kafka rack feature to be configured and used in rack-aware partition assignment for fault tolerance.
+The accepted JSON format is described in the <a href="#kafka_rack">Kafka rack</a> section.</p>
 </dd>
 <dt class="hdlist1"><code>zookeeper-nodes</code></dt>
 <dd>
@@ -1498,6 +1504,29 @@ memory used by the JVM.</p>
 </div>
 </div>
 <div class="sect4">
+<h5 id="kafka_rack">Kafka rack</h5>
+<div class="paragraph">
+<p>It is possible to enable Kafka rack-awareness by specifying a JSON string for the <code>kafka-rack</code> field in the cluster ConfigMap.
+Such a JSON object has one mandatory field named <code>topologyKey</code>.
+This key needs to match one of the labels assigned to the OpenShift or Kubernetes cluster nodes.
+The label is used by OpenShift or Kubernetes when scheduling Kafka broker pods to nodes.
+OpenShift or Kubernetes will try to minimize the number of pods scheduled on nodes with the same label value.
+If the OpenShift or Kubernetes cluster is running on a cloud provider platform, that label should represent the availability zone where the node is running.
+This will have the effect of spreading the broker pods across the availability zones, and also setting the brokers <code>rack.id</code> configuration parameter.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Kafka rack JSON configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">{
+  "topologyKey": "failure-domain.beta.kubernetes.io/zone"
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In the above example, the <code>failure-domain.beta.kubernetes.io/zone</code> node label will be used for scheduling Kafka broker Pods.</p>
+</div>
+</div>
+<div class="sect4">
 <h5 id="topic_operator_json_config">Topic Operator</h5>
 <div class="paragraph">
 <p>Alongside the Kafka cluster and the Zookeeper ensemble, the Cluster Operator can also deploy the topic operator.
@@ -1948,19 +1977,7 @@ metadata:
 <div class="listingblock">
 <div class="title">Partial example Deployment for the Cluster Operator</div>
 <div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: strimzi-cluster-operator
-spec:
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        name: strimzi-cluster-operator
-    spec:
-      serviceAccountName: strimzi-cluster-operator
-      containers:
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">Unresolved directive in cluster-operator.adoc - include::examples/install/cluster-operator/04-deployment.yaml[lines=1..13]
 # etc ...</code></pre>
 </div>
 </div>
