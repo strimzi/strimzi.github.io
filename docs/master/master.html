@@ -749,6 +749,11 @@ the related ConfigMap :</p>
 <dd>
 <p>The Docker image to use for the Kafka brokers. Default is determined by the value of the <code><a href="#STRIMZI_DEFAULT_KAFKA_IMAGE">STRIMZI_DEFAULT_KAFKA_IMAGE</a></code> environment variable of the Cluster Operator.</p>
 </dd>
+<dt class="hdlist1"><code>init-kafka-image</code></dt>
+<dd>
+<p>The Docker image to use for the init container which does some initial configuration work (i.e. rack support).
+Default is determined by the value of the <code><a href="#STRIMZI_DEFAULT_INIT_KAFKA_IMAGE">STRIMZI_DEFAULT_INIT_KAFKA_IMAGE</a></code> environment variable of the Cluster Operator.</p>
+</dd>
 <dt class="hdlist1"><code>kafka-healthcheck-delay</code></dt>
 <dd>
 <p>The initial delay for the liveness and readiness probes for each Kafka broker node. Default is 15.</p>
@@ -1506,13 +1511,14 @@ memory used by the JVM.</p>
 <div class="sect4">
 <h5 id="kafka_rack">Kafka rack</h5>
 <div class="paragraph">
-<p>It is possible to enable Kafka rack-awareness by specifying a JSON string for the <code>kafka-rack</code> field in the cluster ConfigMap.
-Such a JSON object has one mandatory field named <code>topologyKey</code>.
+<p>It is possible to enable Kafka rack-awareness (more information can be found on the <a href="https://kafka.apache.org/documentation/#basic_ops_racks">Kafka racks documentation</a>)
+by specifying a JSON object for the <code>kafka-rack</code> field in the cluster ConfigMap.
+The <code>kafka-rack</code> JSON object has one mandatory field named <code>topologyKey</code>.
 This key needs to match one of the labels assigned to the OpenShift or Kubernetes cluster nodes.
 The label is used by OpenShift or Kubernetes when scheduling Kafka broker pods to nodes.
-OpenShift or Kubernetes will try to minimize the number of pods scheduled on nodes with the same label value.
 If the OpenShift or Kubernetes cluster is running on a cloud provider platform, that label should represent the availability zone where the node is running.
-This will have the effect of spreading the broker pods across the availability zones, and also setting the brokers <code>rack.id</code> configuration parameter.</p>
+Usually, the nodes are labeled with <code>failure-domain.beta.kubernetes.io/zone</code> that can be easily used as <code>topologyKey</code> value.
+This will have the effect of spreading the broker pods across zones, and also setting the brokers <code>broker.rack</code> configuration parameter.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example Kafka rack JSON configuration</div>
@@ -1977,12 +1983,42 @@ metadata:
 <div class="listingblock">
 <div class="title">Partial example Deployment for the Cluster Operator</div>
 <div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">Unresolved directive in cluster-operator.adoc - include::examples/install/cluster-operator/04-deployment.yaml[lines=1..13]
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: strimzi-cluster-operator
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: strimzi-cluster-operator
+    spec:
+      serviceAccountName: strimzi-cluster-operator
+      containers:
 # etc ...</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Note line 12, where the the <code>strimzi-cluster-operator</code> ServiceAccount is specified as the <code>serviceAccountName</code>.</p>
+</div>
+<div class="paragraph">
+<p>If the rack awareness feature is used, a Kafka init container will be started before the broker container in order to enable it.
+The application inside this container is best run using a ServiceAccount:</p>
+</div>
+<div class="listingblock">
+<div class="title">Example ServiceAccount for the Kafka init container</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: strimzi-kafka
+  labels:
+    app: strimzi</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The Cluster Operator will be in charge of configuring this ServiceAccount as <code>serviceAccountName</code> for the Kafka init container during cluster deployment.</p>
 </div>
 </div>
 <div class="sect3">
@@ -2152,6 +2188,30 @@ rules:
 <div class="paragraph">
 <p>When the Role cannot be created, the predefined ClusterRole named <code>edit</code> can be used instead.</p>
 </div>
+<div class="paragraph">
+<p>If the rack awareness feature is used, the started Kafka init container needs to operate using a ClusterRole that gives it access to the necessary resources.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Role for the Kafka init container</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: strimzi-kafka-role
+  labels:
+    app: strimzi
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The assigned privileges allow the Kafka init container to get Nodes information.</p>
+</div>
 </div>
 <div class="sect3">
 <h4 id="defining_a_rolebinding">3.3.3. Defining a RoleBinding</h4>
@@ -2197,6 +2257,31 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>If the rack awareness feature is used, the Kafka init container needs a ClusterRoleBinding which associates its ClusterRole with its ServiceAccount:</p>
+</div>
+<div class="listingblock">
+<div class="title">Example ClusterRoleBinding for the Kafka init container</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: strimzi-kafka-binding
+  labels:
+    app: strimzi
+subjects:
+  - kind: ServiceAccount
+    name: strimzi-kafka
+    namespace: myproject
+roleRef:
+  kind: ClusterRole
+  name: strimzi-kafka-role
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It&#8217;s important to highlight that the <code>namespace</code> field, specified in the ServiceAccount subject, needs to be the same namespace where the Kafka cluster will be deployed.</p>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -2235,6 +2320,12 @@ increased when using Strimzi on clusters where regular OpenShift or Kubernetes o
 <p>Optional, default <code>strimzi/kafka:latest</code>.
 The image name to use as a default when deploying Kafka, if
 no image is specified as the <code>kafka-image</code> in the <a href="#kafka_config_map_details">Kafka cluster ConfigMap</a>.</p>
+</dd>
+<dt class="hdlist1"><a id="STRIMZI_DEFAULT_INIT_KAFKA_IMAGE"></a> <code>STRIMZI_DEFAULT_INIT_KAFKA_IMAGE</code></dt>
+<dd>
+<p>Optional, default <code>strimzi/init-kafka:latest</code>.
+The image name to use as default for the init container started before the broker for doing initial configuration work (i.e. rack support), if
+no image is specified as the <code>init-kafka-image</code> in the <a href="#kafka_config_map_details">Kafka cluster ConfigMap</a>.</p>
 </dd>
 <dt class="hdlist1"><a id="STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE"></a> <code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code></dt>
 <dd>
