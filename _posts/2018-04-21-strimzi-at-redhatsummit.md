@@ -2,7 +2,7 @@
 layout: post
 title:  "Strimzi at Red Hat Summit"
 date: 2018-04-21
-author: "Paolo Patierno"
+author: paolo_patierno
 ---
 
 If your plan is to attend the [Red Hat Summit 2018](https://www.redhat.com/en/summit/2018) in San Francisco (May 8-10) then you have to know that the Strimzi project will be there as well !

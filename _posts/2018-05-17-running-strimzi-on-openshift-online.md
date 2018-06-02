@@ -2,7 +2,7 @@
 layout: post
 title:  "Running Strimzi on OpenShift Online"
 date: 2018-05-17
-author: "Jakub Scholz"
+author: jakub_scholz
 ---
 
 OpenShift Online is a managed OpenShift-as-a-Service offering from Red Hat. It has a Starter tier and a Pro tier.
