@@ -6,7 +6,7 @@ author: jakub_scholz
 ---
 
 When deploying new Kafka cluster, one of the first decisions you have to make is the type of storage you want to use.
-Even before deciding on such storage aspects such as the type of filesystem which should be used, you have to decide a more basic question: should you run Kafka with local storage or with networked attached storage?
+Even before deciding on such storage aspects such as the type of filesystem which should be used, you have to decide a more basic question: should you run Kafka with local storage or with network attached storage?
 
 <!--more-->
 
@@ -40,7 +40,7 @@ Each behaves a bit differently when your Pods with kafka brokers are rescheduled
 The persistent network attached storage is not tied to any particular node.
 So when the node where your Kafka broker is running suddenly crashes, Kubernetes will be able to reallocate your broker to different node in your cluster.
 This usually takes between several seconds and several minutes, depending on your cloud provider and storage implementation.
-The persistent volume with the data used by the given broker will be moved together with the broker.
+The persistent volume with the data used by the given broker will be reattached to the new node as well.
 So when the broker starts, it will find the same data which it used before.
 It will need to resync the partitions which it hosts, but it doesn't need to start from scratch.
 It has to resync only the records which it missed during the failover.
@@ -61,7 +61,7 @@ The Pod with your broker will also usually not wait for the node to come back on
 ![Ephemeral storage during node crash]({{ "/assets/2018-06-11-using-strimzi-with-local-storage-ephemeral-storage.png" | absolute_url }})
 
 The choice between persistent network attached storage and ephemeral local storage is hard.
-But often - especially with large brokers storing terrabytes of data - the persistent network attached storage can be seen as the better option.
+But often - especially with large brokers storing terabytes of data - the persistent network attached storage can be seen as the better option.
 But in the last versions, Kubernetes added support for the _Local_ storage type.
 How good match is _Local_ storage for Kafka?
 
@@ -122,7 +122,7 @@ Regardless of whether you use Amazon AWS, Microsoft Azure or Google Cloud Platfo
 On the other hand, machines with fast and large local storage are not that common and are not always cheaper than using network attached storage.
 Also the nodes of your Kubernetes cluster also tend to be treated differently in public cloud.
 Instead of doing regular maintenance and restarting the nodes, it is often easier to just spin a new fresh node and kill the old one.
-And as explained in previous chapters, this approach works perfectly with the networked attached storage.
+And as explained in previous chapters, this approach works perfectly with the network attached storage.
 But doesn't fit well with the Local storage, which will be lost during such operations.
 
 On the other hand, when you run Kafka on Kubernetes or OpenShift installed _on-premise_ in your own datacenter, the Local storage might be a real gamechanger.
@@ -130,5 +130,5 @@ You will not need to invest in high performance storage network.
 You just attach the storage locally and use it.
 If you run Kubernetes or OpenShift on bare-metal, your cluster nodes will be also treated as personal resource.
 They will be regularly restarted for maintenance reasons, but will usually get back online after the maintenance is finished.
-But the node will disappear only when it really dies or when it needs to be replaces due to age.
+But the node will disappear only when it really dies or when it needs to be replaced due to age.
 And the Local storage volumes which are tightly coupled with the node fit this approach very well.
