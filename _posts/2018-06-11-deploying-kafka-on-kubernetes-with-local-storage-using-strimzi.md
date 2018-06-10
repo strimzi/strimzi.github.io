@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Using Strimzi with Local storage"
+title:  "Deploying Kafka on Kubernetes with Local storage using Strimzi"
 date: 2018-06-11
 author: jakub_scholz
 ---
@@ -45,7 +45,7 @@ So when the broker starts, it will find the same data which it used before.
 It will need to resync the partitions which it hosts, but it doesn't need to start from scratch.
 It has to resync only the records which it missed during the failover.
 
-![Persistent network attached storage during node crash]({{ "/assets/2018-06-11-using-strimzi-with-local-storage-nas-storage.png" | absolute_url }})
+![Persistent network attached storage during node crash]({{ "/assets/2018-06-11-deploying-kafka-on-kubernetes-with-local-storage-using-strimzi-nas-storage.png" | absolute_url }})
 
 The ephemeral storage behaves differently.
 An ephemeral volume is usually just a directory somewhere in the host operating system of your node.
@@ -58,7 +58,7 @@ Depending on the size of your partitions, this could take a very long time.
 Even if the original node was just restarted, the data stored in ephemeral volume usually do not survive the restart.
 The Pod with your broker will also usually not wait for the node to come back online and it will be started on another node.
 
-![Ephemeral storage during node crash]({{ "/assets/2018-06-11-using-strimzi-with-local-storage-ephemeral-storage.png" | absolute_url }})
+![Ephemeral storage during node crash]({{ "/assets/2018-06-11-deploying-kafka-on-kubernetes-with-local-storage-using-strimzi-ephemeral-storage.png" | absolute_url }})
 
 The choice between persistent network attached storage and ephemeral local storage is hard.
 But often - especially with large brokers storing terabytes of data - the persistent network attached storage can be seen as the better option.
@@ -81,7 +81,7 @@ Kubernetes will wait until your node is back online and only then schedule the K
 When the broker is started, it will find the volume in the same state as it was left.
 It has to resync only the records which it missed during the failover - this is exactly the same as when you use persistent network attached storage.
 
-![Local persistent storage during node restart]({{ "/assets/2018-06-11-using-strimzi-with-local-storage-local-storage.png" | absolute_url }})
+![Local persistent storage during node restart]({{ "/assets/2018-06-11-deploying-kafka-on-kubernetes-with-local-storage-using-strimzi-local-storage.png" | absolute_url }})
 
 Now ... what if your node is gone and will never return?
 In that case, you will need to make sure that the broker is scheduled on another node.
