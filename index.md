@@ -13,11 +13,11 @@ See our [GitHub](http://github.com/strimzi) repository for more info.
 
 # Downloads
 
-Strimzi releases are available for download on our [GitHub](https://github.com/strimzi/strimzi). The release artifacts
+Strimzi releases are available for download on our [GitHub](https://github.com/strimzi/strimzi-kafka-operator). The release artifacts
 contain documentation and example YAML files for deployment on OpenShift and Kubernetes. The Docker images are
 available on [Docker Hub](https://hub.docker.com/u/strimzi/).
 
-* [0.4.0](https://github.com/strimzi/strimzi/releases/tag/0.4.0)
+* [0.4.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.4.0)
 
 Older releases can be found in the [Downloads](/downloads) page
 
@@ -43,11 +43,11 @@ You can contribute by:
 * Fixing issues by opening Pull Requests
 * Talking about Strimzi
 
-All bugs, tasks or enhancements are tracked as [GitHub issues](https://github.com/strimzi/strimzi/issues). Issues which 
-might be a good start for new contributors are marked with ["good-start"](https://github.com/strimzi/strimzi/labels/good-start)
+All bugs, tasks or enhancements are tracked as [GitHub issues](https://github.com/strimzi/strimzi-kafka-operator/issues). Issues which 
+might be a good start for new contributors are marked with ["good-start"](https://github.com/strimzi/strimzi-kafka-operator/labels/good-start)
 label.
 
-The [Hacking guide](https://github.com/strimzi/strimzi/blob/master/HACKING.md) describes how to build Strimzi and how to 
+The [Hacking guide](https://github.com/strimzi/strimzi-kafka-operator/blob/master/HACKING.md) describes how to build Strimzi and how to 
 test your changes before submitting a patch or opening a PR.
 
 If you want to get in touch with us first before contributing, you can use:
