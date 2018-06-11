@@ -12,7 +12,7 @@ Even before deciding on such storage aspects such as the type of filesystem whic
 
 # Local versus network storage
 
-For lot of stateful applications, Network Attached Storage (NAS) is often seen as the prefered choice.
+For a lot of stateful applications, Network Attached Storage (NAS) is often seen as the prefered choice.
 It often promises higher reliability and great performance.
 It is also easy to reattach to another machine when needed (for example because the original machine died).
 But Network Attached Storage has also some drawbacks.
@@ -27,7 +27,7 @@ This can be done easily even with the (often much cheaper) local storage.
 # Kubernetes storage
 
 When running Kafka on bare metal or on virtual machines, both local as well as network attached storage are quite easy to use.
-In fact, whatever storage is supported by your operating system can work.
+In fact, whatever storage is supported by your operating system will work.
 But what if you are running Kafka on Kubernetes or on OpenShift platforms?
 You need to use the storage as supported by your platform.
 
@@ -38,7 +38,7 @@ Kubernetes for a long time supported two kinds of storage:
 
 Each behaves a bit differently when your Pods with kafka brokers are rescheduled or when the node they are running on fails.
 The persistent network attached storage is not tied to any particular node.
-So when the node where your Kafka broker is running suddenly crashes, Kubernetes will be able to reallocate your broker to different node in your cluster.
+So when the node where your Kafka broker is running suddenly crashes, Kubernetes will be able to reallocate your broker to a different node in your cluster.
 This usually takes between several seconds and several minutes, depending on your cloud provider and storage implementation.
 The persistent volume with the data used by the given broker will be reattached to the new node as well.
 So when the broker starts, it will find the same data which it used before.
@@ -120,7 +120,7 @@ But is it really a good idea to use it for Kafka?
 When you are running your Kafka cluster on one of the three major public clouds providers, it might not be interesting.
 Regardless of whether you use Amazon AWS, Microsoft Azure or Google Cloud Platform, their network attached storage is able to deliver very good performance and their virtual machines are optimized for using it.
 On the other hand, machines with fast and large local storage are not that common and are not always cheaper than using network attached storage.
-Also the nodes of your Kubernetes cluster also tend to be treated differently in public cloud.
+Also the nodes of your Kubernetes cluster tend to be treated differently in public cloud.
 Instead of doing regular maintenance and restarting the nodes, it is often easier to just spin a new fresh node and kill the old one.
 And as explained in previous chapters, this approach works perfectly with the network attached storage.
 But doesn't fit well with the Local storage, which will be lost during such operations.
