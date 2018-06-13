@@ -58,6 +58,7 @@
 <li><a href="#resources_json_config">Resource limits and requests</a></li>
 <li><a href="#jvm_json_config">JVM Options</a></li>
 <li><a href="#kafka_rack">Kafka rack</a></li>
+<li><a href="#affinity">Node and Pod Affinity</a></li>
 <li><a href="#topic_operator_json_config">Topic Operator</a></li>
 </ul>
 </li>
@@ -247,6 +248,18 @@ command can be used:</p>
 </div>
 <div class="sect3">
 <h4 id="deploying_to_openshift">2.3.2. Deploying to OpenShift</h4>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+To successfully deploy the Cluster Operator on OpenShift a user with <code>cluster-admin</code> role needs to be used (i.e. like <code>system:admin</code>).
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>To deploy the Cluster Operator on OpenShift, the following commands should be executed:</p>
 </div>
@@ -790,6 +803,12 @@ The accepted JSON format is described in the <a href="#jvm_json_config">JVM Opti
 <p>A JSON string allowing the Kafka rack feature to be configured and used in rack-aware partition assignment for fault tolerance.
 The accepted JSON format is described in the <a href="#kafka_rack">Kafka rack</a> section.</p>
 </dd>
+<dt class="hdlist1"><code>kafka-affinity</code></dt>
+<dd>
+<p>A JSON or YAML string allowing control over how the Kafka pods are scheduled to nodes.
+The format of the corresponding key is the same as the content supported in the Pod <code>affinity</code> in OpenShift or Kubernetes.
+See section <a href="#affinity">Node and Pod Affinity</a> for more details.</p>
+</dd>
 <dt class="hdlist1"><code>zookeeper-nodes</code></dt>
 <dd>
 <p>Number of Zookeeper nodes.</p>
@@ -828,6 +847,12 @@ described in the <a href="#resources_json_config">Resource limits and requests</
 <dt class="hdlist1"><code>zookeeper-jvmOptions</code></dt>
 <dd>
 <p>A JSON string allowing the JVM running Zookeeper to be configured. The accepted JSON format is described in the <a href="#jvm_json_config">JVM Options</a> section.</p>
+</dd>
+<dt class="hdlist1"><code>zookeeper-affinity</code></dt>
+<dd>
+<p>A JSON or YAML string allowing control over how the Zookeeper pods are scheduled to nodes.
+The format of the corresponding key is the same as the content supported in the Pod <code>affinity</code> in OpenShift or Kubernetes.
+See section <a href="#affinity">Node and Pod Affinity</a> for more details.</p>
 </dd>
 <dt class="hdlist1"><code>topic-operator-config</code></dt>
 <dd>
@@ -1574,6 +1599,57 @@ This will have the effect of spreading the broker pods across zones, and also se
 </div>
 </div>
 <div class="sect4">
+<h5 id="affinity">Node and Pod Affinity</h5>
+<div class="paragraph">
+<p>Node and Pod Affinity provide a flexible mechanism to guide the scheduling of pods to nodes by OpenShift or Kubernetes.
+Node affinity can be used so that broker pods are preferentially scheduled to nodes with fast disks, for example.
+Similarly, pod affinity could be used to try to schedule Kafka clients on the same nodes as Kafka brokers.
+More information can be found on the <a href="https://kubernetes.io/docs/concepts/configuration/assign-pod-node/">Kubernetes node and pod affinity documentation</a>.</p>
+</div>
+<div class="paragraph">
+<p>The format of the corresponding key is the same as the content supported in the Pod <code>affinity</code> in OpenShift or Kubernetes, as a string in JSON or YAML format, that is: <code>nodeAffinity</code>, <code>podAffinity</code> and <code>podAntiAffinity</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example fragment of a cluster ConfigMap with a nodeAffinity</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-cluster
+  labels:
+    strimzi.io/kind: cluster
+    strimzi.io/type: kafka
+data:
+  ...
+  kafka-affinity: |
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/e2e-az-name
+            operator: In
+            values:
+            - e2e-az1
+            - e2e-az2
+  ...</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+When using both <code>kafka-affinity</code> and <a href="#kafka_rack"><code>kafka-rack</code></a> be aware that <code>kafka-rack</code> uses a pod anti-affinity.
+This is necessary so that broker pods are scheduled in different failure domains, as specified via the <code>topologyKey</code>.
+This anti-affinity will not be present in the <code>kafka-affinity</code>, but is still present on the StatefulSet and thus will still be considered by the scheduler.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect4">
 <h5 id="topic_operator_json_config">Topic Operator</h5>
 <div class="paragraph">
 <p>Alongside the Kafka cluster and the Zookeeper ensemble, the Cluster Operator can also deploy the topic operator.
@@ -1619,6 +1695,11 @@ many partitions / replicas). Default is <code>6</code>.</p>
 <dd>
 <p>An object configuring the resource limits and requests for the topic operator container. The accepted JSON format is
 described in the <a href="#resources_json_config">Resource limits and requests</a> section.</p>
+</dd>
+<dt class="hdlist1"><code>affinity</code></dt>
+<dd>
+<p>Node and Pod affinity for the Topic Operator, as described in the <a href="#affinity">Node and Pod Affinity</a> section.
+The format of the corresponding key is the same as the content supported in the Pod <code>affinity</code> in OpenShift or Kubernetes.</p>
 </dd>
 </dl>
 </div>
@@ -1673,6 +1754,11 @@ The accepted JSON format is described in the <a href="#resources_json_config">Re
 <dd>
 <p>A JSON string allowing the JVM running Kafka Connect to be configured.
 The accepted JSON format is described in the <a href="#jvm_json_config">JVM Options</a> section.</p>
+</dd>
+<dt class="hdlist1"><code>affinity</code></dt>
+<dd>
+<p>Node and Pod affinity for the Kafka Connect pods, as described in the <a href="#affinity">Node and Pod Affinity</a> section.
+The format of the corresponding key is the same as the content supported in the Pod <code>affinity</code> in OpenShift or Kubernetes.</p>
 </dd>
 </dl>
 </div>
