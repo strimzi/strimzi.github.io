@@ -104,6 +104,13 @@
 </li>
 </ul>
 </li>
+<li><a href="#security">5. Security</a>
+<ul class="sectlevel2">
+<li><a href="#certificates">5.1. Certificates</a></li>
+<li><a href="#listeners">5.2. Listeners</a></li>
+<li><a href="#clients_connection_via_tls">5.3. Clients connection via TLS</a></li>
+</ul>
+</li>
 <li><a href="#frequently_asked_questions">Appendix A: Frequently Asked Questions</a>
 <ul class="sectlevel2">
 <li><a href="#cluster_operator_3">A.1. Cluster Operator</a>
@@ -2318,6 +2325,17 @@ rules:
   - create
   - delete
   - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - create
+  - delete
+  - patch
   - update</code></pre>
 </div>
 </div>
@@ -2945,6 +2963,139 @@ It is therefore recommended to use these as a minimum when configuring resource 
 limits than these. If the Kafka cluster has more than a handful of topics more generous requests and limits will be
 necessary.</p>
 </div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="security">5. Security</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The Apache Kafka project supports data encryption by means of the SSL/TLS protocol.
+This makes it possible to encrypt data transferred between brokers (interbroker communication) and between clients and brokers.</p>
+</div>
+<div class="paragraph">
+<p>The Cluster Operator sets up the SSL/TLS certificates to provide this encryption and authentication.</p>
+</div>
+<div class="sect2">
+<h3 id="certificates">5.1. Certificates</h3>
+<div class="paragraph">
+<p>Each Kafka broker needs its own private and public keys in order to support encryption.
+The public key has to be signed by a certificate authority (CA) in order to have a related X.509 certificate for providing server authentication and encrypting the communication channel with the client (which could be another broker as well).
+More precisely, each broker has two different certificates (and related private keys), one for interbroker communication  and one for communication with clients.
+These broker certificates are signed using different CAs: The "internal-ca" signs the certificates used for interbroker communication, and the "clients-ca" signs the certificates used for client communication.
+The CAs themselves use self-signed certificates.
+The "internal-ca" is used across multiple clusters, that is, there is a single "internal-ca" for each instance of a cluster operator.
+The "clients-ca" is specific to a particular Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>All the generated certificates are saved as Secrets in the OpenShift or Kubernetes cluster, named as follows:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>internal-ca</code>: contains the private and public keys, so the self-signed certificate, used for signing broker certificates used for interbroker communication. It is common to all the Kafka clusters deployed by the Cluster Operator.</p>
+</li>
+<li>
+<p><code>&lt;cluster-name&gt;-kafka-clients-ca</code>: contains the private and public keys, so the self-signed certificate, used for signing broker certificates used for communicating with clients. It is specific for each deployed Kafka cluster as specified in the &lt;cluster-name&gt; prefix.</p>
+</li>
+<li>
+<p><code>&lt;cluster-name&gt;-kafka-cert</code>: contains only the public keys, so the self-signed certificate, used for signing broker certificates used for communicating with clients. This Secret should be used by the final Kafka cluster user in order to extract this certificate to put into the the client&#8217;s truststores for verifying broker identities (server authentication).</p>
+</li>
+<li>
+<p><code>&lt;cluster-name&gt;-kafka-brokers-internal</code>: contains all the brokers private and public keys (certificates signed with "internal-ca") used for interbroker communication.</p>
+</li>
+<li>
+<p><code>&lt;cluster-name&gt;-kafka-brokers-clients</code>: contains all the brokers private and public keys (certificates signed with specific cluster "clients-ca") used for communicating with clients.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>All the keys are 2048 bits in size and are valid for 365 days from initial generation.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+"certificates rotation" for generating new ones on their expiration will be supported in future releases.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="listeners">5.2. Listeners</h3>
+<div class="paragraph">
+<p>The data encryption is provided on two different listeners exposed by each Kafka broker.</p>
+</div>
+<div class="paragraph">
+<p>Interbroker communication is through the <code>REPLICATION</code> listener on port 9091, which is encrypted by default.</p>
+</div>
+<div class="paragraph">
+<p>Encrypted communication with clients is provided through the <code>CLIENTTLS</code> listener on port 9093.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Un-encrypted communication with clients is still possible through the <code>CLIENT</code> listener on port 9092.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="clients_connection_via_tls">5.3. Clients connection via TLS</h3>
+<div class="paragraph">
+<p>If a Kafka client wants to connect to the encrypted listener (CLIENTTLS) on port 9093, it needs to trust the client&#8217;s CA certificate in order to verify the broker certificate received during the SSL/TLS handshake.
+The clients CA certificate can be extracted from the generated <code>&lt;cluster-name&gt;-kafka-cert</code> Secret with the following command if the Kafka cluster is running on OpenShift.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc get secret &lt;cluster-name&gt;-kafka-cert -o jsonpath='{.data.clients-ca\.crt}' | base64 -d &gt; clients-ca.crt</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If the Kafka cluster is running on Kubernetes, the same result can be achieved with the following command.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret &lt;cluster-name&gt;-kafka-cert -o jsonpath='{.data.clients-ca\.crt}' | base64 -d &gt; clients-ca.crt</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The native Kafka client, in order to use it, needs the certificate to be imported in a truststore using the <code>keytool</code> command line tool.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">keytool -keystore client.truststore.jks -alias CARoot -import -file clients-ca.crt</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Finally, in order to configure the Kafka client, following properties should be specified:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>security.protocol</code>: SSL is the value for using encryption.</p>
+</li>
+<li>
+<p><code>ssl.truststore.location</code>: the truststore location where the certificates were imported.</p>
+</li>
+<li>
+<p><code>ssl.truststore.password</code>: password for accessing the truststore. This property can be omitted if it&#8217;s not needed by the truststore.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The current implementation doesn&#8217;t support Subject Alternative Names (SAN) so the hostname verification should be disabled on the client side.
+For doing so the <code>ssl.endpoint.identification.algorithm</code> property needs to be set as empty.</p>
 </div>
 </div>
 </div>
