@@ -795,6 +795,33 @@ Default is determined by the value of the <code><a href="#STRIMZI_DEFAULT_INIT_K
 <p>A JSON string representing the JMX exporter configuration for exposing metrics from Kafka broker nodes.
 When this field is absent no metrics will be exposed.</p>
 </dd>
+<dt class="hdlist1"><code>kafka-logging</code></dt>
+<dd>
+<p>This field can be populated by either a JSON/YAML string that specifies inline logging levels or the name of external config map that specifies the logging levels.
+When this field is absent default values are used.
+List of loggers which can be set:</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>kafka.root.logger.level
+log4j.logger.org.I0Itec.zkclient.ZkClient
+log4j.logger.org.apache.zookeeper
+log4j.logger.kafka
+log4j.logger.org.apache.kafka
+log4j.logger.kafka.request.logger
+log4j.logger.kafka.network.Processor
+log4j.logger.kafka.server.KafkaApis
+log4j.logger.kafka.network.RequestChannel$
+log4j.logger.kafka.controller
+log4j.logger.kafka.log.LogCleaner
+log4j.logger.state.change.logger
+log4j.logger.kafka.authorizer.logger</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
 <dt class="hdlist1"><code>kafka-resources</code></dt>
 <dd>
 <p>A JSON string configuring the resource limits and requests for Kafka broker containers. The accepted JSON format is
@@ -844,9 +871,23 @@ See section <a href="#affinity">Node and Pod Affinity</a> for more details.</p>
 <dt class="hdlist1"><code>zookeeper-metrics-config</code></dt>
 <dd>
 <p>A JSON string representing the JMX exporter configuration for exposing metrics from Zookeeper nodes.
-When this field is absent no metrics will be exposed.
- eans having no metrics exposed.</p>
+When this field is absent no metrics will be exposed.</p>
 </dd>
+<dt class="hdlist1"><code>zookeeper-logging</code></dt>
+<dd>
+<p>This field can be populated by either a JSON/YAML string that specifies inline logging levels or the name of external config map that specifies the logging levels.
+When this field is absent default values are used.
+List of loggers which can be set:</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>zookeeper.root.logger</code></pre>
+</div>
+</div>
+<div class="dlist">
+<dl>
 <dt class="hdlist1"><code>zookeeper-resources</code></dt>
 <dd>
 <p>A JSON string configuring the resource limits and requests for Zookeeper broker containers. The accepted JSON format is
@@ -913,6 +954,11 @@ data:
           }
       ]
     }
+  kafka-logging: |-
+    {
+      "type": "external",
+      "name": "customConfigMap"
+    }
   zookeeper-nodes: "1"
   zookeeper-image: "strimzi/zookeeper:latest"
   zookeeper-healthcheck-delay: "15"
@@ -929,6 +975,13 @@ data:
   zookeeper-metrics-config: |-
     {
       "lowercaseOutputName": true
+    }
+  zookeeper-logging: |-
+    {
+      "type" : "inline",
+      "loggers" : {
+        "zookeeper.root.logger": "INFO"
+      }
     }</code></pre>
 </div>
 </div>
@@ -956,11 +1009,11 @@ data:
 <p><code>[cluster-name]-kafka</code> Service can be used as bootstrap servers for Kafka clients</p>
 </li>
 <li>
-<p><code>[cluster-name]-zookeeper-metrics-config</code> ConfigMap which contains the Zookeeper metrics configuration and mounted as
+<p><code>[cluster-name]-zookeeper-config</code> ConfigMap which contains the Zookeeper ancillary configuration and is mounted as
 a volume by the Zookeeper node pods</p>
 </li>
 <li>
-<p><code>[cluster-name]-kafka-metrics-config</code> ConfigMap which contains the Kafka metrics configuration and mounted as
+<p><code>[cluster-name]-kafka-config</code> ConfigMap which contains the Kafka ancillary configuration and is mounted as
 a volume by the Kafka broker pods</p>
 </li>
 </ul>
@@ -1817,6 +1870,32 @@ data:
 </div>
 <div class="sect4">
 <h5 id="kafka_connect_configuration_json_config">Kafka Connect configuration</h5>
+<div class="paragraph">
+<p>The <code>logging</code> field allows the configuration of loggers. These loggers are:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>log4j.rootLogger
+connect.root.logger.level
+log4j.logger.org.apache.zookeeper
+log4j.logger.org.I0Itec.zkclient
+log4j.logger.org.reflections</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The setting can be done in one of two ways. Either by specifying the key value in JSON or by using a custom config map.
+An example of the latter would look like this::
+`{
+    "fromConfigMap" :
+        {
+            "name" : "customConfigMap"
+        }
+ }
+`
+The difference between these two options is that latter is not validated and does not support default values.
+That means user can supply any logging configuration, even if it is incorrect.
+First option supports default values.</p>
+</div>
 <div class="paragraph">
 <p>The <code>connect-config</code> field allows detailed configuration of Apache Kafka Connect and Connect S2I. This field should contain
 a JSON object with Kafka Connect configuration options as keys. The values could be in one of the following JSON types:</p>
