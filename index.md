@@ -19,14 +19,14 @@ available on [Docker Hub](https://hub.docker.com/u/strimzi/).
 
 * [0.4.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.4.0)
 
-Older releases can be found in the [Downloads](/downloads) page
+Older releases can be found in the [Downloads](/downloads) page.
 
 # Documentation
 
 * [Master](/docs/master/)
 * [0.4.0](/docs/0.4.0/)
 
-Documentation for older releases can be found in the [Documentation](/documentation) page
+Documentation for older releases can be found in the [Documentation](/documentation) page.
 
 # Getting help
 
@@ -37,23 +37,8 @@ If you encounter any issues while using Strimzi, you can get help using:
 
 # Contributing
 
-You can contribute by:
-
-* Raising any issues you find using Strimzi
-* Fixing issues by opening Pull Requests
-* Talking about Strimzi
-
-All bugs, tasks or enhancements are tracked as [GitHub issues](https://github.com/strimzi/strimzi-kafka-operator/issues). Issues which 
-might be a good start for new contributors are marked with ["good-start"](https://github.com/strimzi/strimzi-kafka-operator/labels/good-start)
-label.
-
-The [Hacking guide](https://github.com/strimzi/strimzi-kafka-operator/blob/master/HACKING.md) describes how to build Strimzi and how to 
-test your changes before submitting a patch or opening a PR.
-
-If you want to get in touch with us first before contributing, you can use:
-
-* [Strimzi mailing list](https://www.redhat.com/mailman/listinfo/strimzi)
-* [Strimzi Slack workspace](https://join.slack.com/t/strimzi/shared_invite/enQtMzU2Mjk3NTgxMzE5LTYyMTUwMGNlMDQwMzBhOGI4YmY4MjhiMDgyNjA5OTk2MTFiYjc4M2Q3NGU1YTFjOWRiMzM2NGMwNDUwMjBlNDY)
+Do you want to contribute to the Strimzi project?
+See our [Contributing](/contributing) page for more details.
 
 # License
 
