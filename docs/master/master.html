@@ -40,6 +40,7 @@
 </ul>
 </li>
 <li><a href="#topic_configmap">2.6.3. Topic ConfigMap</a></li>
+<li><a href="#logging">2.6.4. Logging</a></li>
 </ul>
 </li>
 </ul>
@@ -55,7 +56,7 @@
 <li><a href="#zookeeper_configuration_json_config">Zookeeper Configuration</a></li>
 <li><a href="#storage_configuration_json_config">Storage</a></li>
 <li><a href="#metrics">Metrics</a></li>
-<li><a href="#logging">Logging</a></li>
+<li><a href="#logging_2">Logging</a></li>
 <li><a href="#resources_json_config">Resource limits and requests</a></li>
 <li><a href="#jvm_json_config">JVM Options</a></li>
 <li><a href="#kafka_rack">Kafka rack</a></li>
@@ -66,16 +67,18 @@
 <li><a href="#kafka_connect_config_map_details">3.2.2. Kafka Connect</a>
 <ul class="sectlevel4">
 <li><a href="#kafka_connect_configuration_json_config">Kafka Connect configuration</a></li>
+<li><a href="#logging_3">Logging</a></li>
 <li><a href="#kafka_connect_s2i_deployment">Kafka Connect S2I deployment</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#provisioning_role_based_access_control_rbac_for_the_operator">3.3. Provisioning Role-Based Access Control (RBAC) for the operator</a>
+<li><a href="#provisioning-rbac-for-the-cluster-operator">3.3. Provisioning Role-Based Access Control (RBAC) for the Cluster Operator</a>
 <ul class="sectlevel3">
-<li><a href="#using_a_serviceaccount">3.3.1. Using a ServiceAccount</a></li>
-<li><a href="#defining_a_role">3.3.2. Defining a Role</a></li>
-<li><a href="#defining_a_rolebinding">3.3.3. Defining a RoleBinding</a></li>
+<li><a href="#delegated-privileges">3.3.1. Delegated privileges</a></li>
+<li><a href="#using_a_serviceaccount">3.3.2. Using a <code>ServiceAccount</code></a></li>
+<li><a href="#defining_clusterroles">3.3.3. Defining <code>ClusterRoles</code></a></li>
+<li><a href="#defining_clusterrolebindings">3.3.4. Defining <code>ClusterRoleBindings</code></a></li>
 </ul>
 </li>
 <li><a href="#operator_configuration">3.4. Operator configuration</a>
@@ -253,7 +256,16 @@ The format of the <code>Kafka</code> resource is described in <a href="#kafka_as
 <div class="sect3">
 <h4 id="deploying_to_kubernetes">2.3.1. Deploying to Kubernetes</h4>
 <div class="paragraph">
-<p>To deploy the Cluster Operator on Kubernetes, the following command should be executed:</p>
+<p>To deploy the Cluster Operator on Kubernetes, you will first need to modify some of of the installation files according to the namespace the Cluster Operator is going to be installed in.
+To do this, execute the following command, replacing <code>&lt;my-namespace&gt;</code> with the correct namespace:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">sed -i 's/namespace: .*/namespace: &lt;my-namespace&gt;/' examples/install/cluster-operator/*ClusterRoleBinding*.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Next, the following commands should be executed:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -285,7 +297,16 @@ To successfully deploy the Cluster Operator on OpenShift a user with <code>clust
 </table>
 </div>
 <div class="paragraph">
-<p>To deploy the Cluster Operator on OpenShift, the following commands should be executed:</p>
+<p>To deploy the Cluster Operator on OpenShift, you will first need to modify some of of the installation files according to the namespace the Cluster Operator is going to be installed in.
+To do this, execute the following command, replacing <code>&lt;my-namespace&gt;</code> with the correct namespace:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">sed -i 's/namespace: .*/namespace: &lt;my-namespace&gt;/' examples/install/cluster-operator/*ClusterRoleBinding*.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Next, the following commands should be executed:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -673,6 +694,23 @@ When the Topic Operator is deployed manually the <code>strimzi.io/cluster</code>
 <p>The topic ConfigMap contains the topic configuration in a specific format. The ConfigMap format is described in <a href="#topic_config_map_details">Format of the ConfigMap</a>.</p>
 </div>
 </div>
+<div class="sect3">
+<h4 id="logging">2.6.4. Logging</h4>
+<div class="paragraph">
+<p>The <code>logging</code> field allows the configuration of loggers. These loggers are listed below.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>rootLogger.level</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For information on the logging options and examples of how to set logging, see <a href="#logging_examples">logging examples</a> for Kafka.</p>
+</div>
+<div class="paragraph">
+<p>When using external ConfigMap remember to place your custom ConfigMap under <code>log4j2.properties</code> key.</p>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -782,7 +820,7 @@ See section <a href="#storage_configuration_json_config">Storage</a> for more de
 <p>The JMX exporter configuration for exposing metrics from Kafka broker nodes.
 When this field is absent no metrics will be exposed.</p>
 </dd>
-<dt class="hdlist1"><code>spec.kafka.logging</code></dt>
+<dt class="hdlist1"><a id="spec.kafka.logging"></a><code>spec.kafka.logging</code></dt>
 <dd>
 <p>An object that specifies inline logging levels or the name of external config map that specifies the logging levels.
 When this field is absent default values are used.
@@ -872,7 +910,7 @@ Default is 5.</p>
 <p>The JMX exporter configuration for exposing metrics from Zookeeper nodes.
 When this field is absent no metrics will be exposed.</p>
 </dd>
-<dt class="hdlist1"><code>spec.zookeeper.logging</code></dt>
+<dt class="hdlist1"><a id="spec.zookeeper.logging"></a><code>spec.zookeeper.logging</code></dt>
 <dd>
 <p>An object that specifies inline logging levels or the name of external config map that specifies the logging levels.
 When this field is absent default values are used.
@@ -1465,34 +1503,40 @@ You can find more information on how to use it in the corresponding GitHub repo.
 </div>
 </div>
 <div class="sect4">
-<h5 id="logging">Logging</h5>
+<h5 id="logging_2"><a id="logging_examples"></a>Logging</h5>
 <div class="paragraph">
-<p>The <code>logging</code> field allows the configuration of loggers. These loggers are:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code>log4j.rootLogger
-connect.root.logger.level
-log4j.logger.org.apache.zookeeper
-log4j.logger.org.I0Itec.zkclient
-log4j.logger.org.reflections</code></pre>
-</div>
+<p>The <code>logging</code> field allows the configuration of loggers. These loggers for Zookeeper and Kafka are available in the <a href="#spec.zookeeper.logging"><code>spec.zookeeper.logging</code></a> and <a href="#spec.kafka.logging"><code>spec.kafka.logging</code></a> sections respectively.</p>
 </div>
 <div class="paragraph">
 <p>The setting can be done in one of two ways. Either by specifying the loggers and their levels directly or by using a custom config map.
-An example of the latter would look like this::</p>
+An example would look like this:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  logging:
-    fromConfigMap:
-      name : customConfigMap</code></pre>
+    type: inline
+    loggers:
+      logger.name: "INFO"</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The difference between these two options is that latter is not validated and does not support default values.
-That means user can supply any logging configuration, even if it is incorrect.
-First option supports default values.</p>
+<p>The <code>INFO</code> can be replaced with any log4j logger level. The available logger levels are <code>INFO</code>, <code>ERROR</code>, <code>WARN</code>, <code>TRACE</code>, <code>DEBUG</code>, <code>FATAL</code> or <code>OFF</code>.
+The informations about log levels can be found in the <a href="https://logging.apache.org/log4j/2.x/manual/customloglevels.html">log4j manual</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  logging:
+    type: external
+    name: customConfigMap</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When using external ConfigMap remember to place your custom ConfigMap under <code>log4j.properties</code> key.</p>
+</div>
+<div class="paragraph">
+<p>The difference between these two options is that the latter is not validated and does not support default values.
+That means the user can supply any logging configuration, even if it is incorrect.
+The first option supports default values.</p>
 </div>
 </div>
 <div class="sect4">
@@ -2131,6 +2175,24 @@ In such cases, the configuration in the <code>config</code> object should be fix
 </div>
 </div>
 <div class="sect4">
+<h5 id="logging_3">Logging</h5>
+<div class="paragraph">
+<p>The <code>logging</code> field allows the configuration of loggers. These loggers are:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>log4j.rootLogger
+connect.root.logger.level
+log4j.logger.org.apache.zookeeper
+log4j.logger.org.I0Itec.zkclient
+log4j.logger.org.reflections</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For information on the logging options and examples of how to set logging, see <a href="#logging_examples">logging examples</a> for Kafka.</p>
+</div>
+</div>
+<div class="sect4">
 <h5 id="kafka_connect_s2i_deployment">Kafka Connect S2I deployment</h5>
 <div class="paragraph">
 <p>When using Strimzi together with an OpenShift cluster, a user can deploy Kafka Connect with support for <a href="https://docs.openshift.org/3.9/dev_guide/builds/index.html">OpenShift Builds</a> and <a href="https://docs.openshift.org/3.9/creating_images/s2i.html#creating-images-s2i">Source-to-Image (S2I)</a>.
@@ -2277,125 +2339,461 @@ To add multiple plugins to the deployment, they all have to be added within the 
 </div>
 </div>
 <div class="sect2">
-<h3 id="provisioning_role_based_access_control_rbac_for_the_operator">3.3. Provisioning Role-Based Access Control (RBAC) for the operator</h3>
+<h3 id="provisioning-rbac-for-the-cluster-operator">3.3. Provisioning Role-Based Access Control (RBAC) for the Cluster Operator</h3>
 <div class="paragraph">
-<p>For the operator to function it needs permission within the OpenShift or Kubernetes cluster to interact with
-the resources it manages (ConfigMaps, Pods, Deployments, StatefulSets, Services and so on).
-Such permission is described in terms of OpenShift or Kubernetes role-based access controls.</p>
+<p>For the Cluster Operator to function it needs permission within the OpenShift or Kubernetes cluster to interact with the resources it manages and interacts with.
+These include the desired resources, such as  <code>Kafka</code>, <code>Kafka Connect</code>, and so on, as well as the managed resources, such as <code>ConfigMaps</code>, <code>Pods</code>, <code>Deployments</code>, <code>StatefulSets</code>, <code>Services</code>, and so on.
+Such permission is described in terms of OpenShift or Kubernetes role-based access control (RBAC) resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>ServiceAccount</code>,</p>
+</li>
+<li>
+<p><code>Role</code> and <code>ClusterRole</code>,</p>
+</li>
+<li>
+<p><code>RoleBinding</code> and <code>ClusterRoleBinding</code>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>In addition to running under its own <code>ServiceAccount</code> with a <code>ClusterRoleBinding</code>, the Cluster Operator manages some RBAC resources because some of the components need access to OpenShift or Kubernetes resources.</p>
+</div>
+<div class="paragraph">
+<p>OpenShift or Kubernetes also includes privilege escalation protections that prevent components operating under one <code>ServiceAccount</code> from granting other <code>ServiceAccounts</code> privileges that the granting <code>ServiceAccount</code> does not have.
+Because the Cluster Operator must be able to create the <code>ClusterRoleBindings</code> and <code>RoleBindings</code> needed by resources it manages, the Cluster Operator must also have those same privileges.</p>
 </div>
 <div class="sect3">
-<h4 id="using_a_serviceaccount">3.3.1. Using a ServiceAccount</h4>
+<h4 id="delegated-privileges">3.3.1. Delegated privileges</h4>
 <div class="paragraph">
-<p>The operator is best run using a ServiceAccount:</p>
+<p>When the Cluster Operator deploys resources for a desired <code>Kafka</code> resource it also creates <code>ServiceAccounts</code>, <code>RoleBindings</code> and <code>ClusterRoleBindings</code>, as follows:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The Kafka broker pods use a <code>ServiceAccount</code> called <code>&lt;cluster-name&gt;-kafka</code> (where <code>&lt;cluster-name&gt;</code> is a placeholder for the name of the <code>Kafka</code> resource)</p>
+<div class="ulist">
+<ul>
+<li>
+<p>When the rack feature is used, the <code>strimzi-&lt;cluster-name&gt;-kafka-init</code> <code>ClusterRoleBinding</code> is used to grant this <code>ServiceAccount</code> access to the nodes within the cluster via a <code>ClusterRole</code> called <code>strimzi-kafka-broker</code></p>
+</li>
+<li>
+<p>When the rack feature is not used no binding is created.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>The Zookeeper pods use the default <code>ServiceAccount</code> as they have no need to access OpenShift or Kubernetes resources</p>
+</li>
+<li>
+<p>The Topic Operator pod uses a <code>ServiceAccount</code> called <code>&lt;cluster-name&gt;-topic-operator</code> (where <code>&lt;cluster-name&gt;</code> is a placeholder for the name of the <code>Kafka</code> resource)</p>
+<div class="ulist">
+<ul>
+<li>
+<p>The Topic Operator produces OpenShift or Kubernetes events with status information, so the <code>ServiceAccount</code> is bound to a <code>ClusterRole</code> called <code>strimzi-topic-operator</code> which grants this access via the <code>strimzi-topic-operator-role-binding</code> <code>RoleBinding</code>.</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The pods for <code>KafkaConnect</code> and <code>KafkaConnectS2I</code> resources use the default <code>ServiceAccount</code>, since they require no access to OpenShift or Kubernetes resources.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="using_a_serviceaccount">3.3.2. Using a <code>ServiceAccount</code></h4>
+<div class="paragraph">
+<p>The Cluster Operator is best run using a <code>ServiceAccount</code>:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example ServiceAccount for the Cluster Operator</div>
+<div class="title">Example <code>ServiceAccount</code> for the Cluster Operator</div>
 <div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">Unresolved directive in cluster-operator.adoc - include::examples/install/cluster-operator/01-service-account.yaml[]</code></pre>
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: strimzi-cluster-operator
+  labels:
+    app: strimzi</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The Deployment of the operator then needs to specify this in the <code>serviceAccountName</code> of its <code>template.spec</code>:</p>
+<p>The <code>Deployment</code> of the operator then needs to specify this in its <code>spec.template.spec.serviceAccountName</code>:</p>
 </div>
 <div class="listingblock">
-<div class="title">Partial example Deployment for the Cluster Operator</div>
+<div class="title">Partial example <code>Deployment</code> for the Cluster Operator</div>
 <div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">Unresolved directive in cluster-operator.adoc - include::examples/install/cluster-operator/08-deployment.yaml[lines=1..13]
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: strimzi-cluster-operator
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: strimzi-cluster-operator
+    spec:
+      serviceAccountName: strimzi-cluster-operator
+      containers:
       # ...</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Note line 12, where the the <code>strimzi-cluster-operator</code> ServiceAccount is specified as the <code>serviceAccountName</code>.</p>
-</div>
-<div class="paragraph">
-<p>If the rack awareness feature is used, a Kafka init container will be started before the broker container in order to enable it.
-The application inside this container is best run using a ServiceAccount:</p>
-</div>
-<div class="listingblock">
-<div class="title">Example ServiceAccount for the Kafka init container</div>
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">Unresolved directive in cluster-operator.adoc - include::examples/install/cluster-operator/04-service-account-kafka.yaml[]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The Cluster Operator will be in charge of configuring this ServiceAccount as <code>serviceAccountName</code> for the Kafka init container during cluster deployment.</p>
+<p>Note line 12, where the the <code>strimzi-cluster-operator</code> <code>ServiceAccount</code> is specified as the <code>serviceAccountName</code>.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="defining_a_role">3.3.2. Defining a Role</h4>
+<h4 id="defining_clusterroles">3.3.3. Defining <code>ClusterRoles</code></h4>
 <div class="paragraph">
-<p>The Cluster Operator needs to operate using a Role that gives it access to the necessary resources.
-Depending on the OpenShift or Kubernetes cluster setup, a cluster administrator might be needed to create the Role.
-Cluster administrator rights are only needed for the creation of the Role.
-The Role itself does not contain any cluster administrator privileges, and the Cluster Operator will not run under the cluster admin account.
-The Role follows the "principle of least privilege" and contains only those privileges needed by the Cluster Operator to operate Kafka, Kafka Connect and Zookeeper clusters.
-The assigned privileges allow the Cluster Operator to manage OpenShift or Kubernetes resources such as StatefulSets, Deployments, Pods and ConfigMaps.</p>
+<p>The Cluster Operator needs to operate using <code>ClusterRoles</code> that give it access to the necessary resources.
+Depending on the OpenShift or Kubernetes cluster setup, a cluster administrator might be needed to create the <code>ClusterRoles</code>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Cluster administrator rights are only needed for the creation of the <code>ClusterRoles</code>.
+The Cluster Operator will not run under the cluster admin account.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The <code>ClusterRoles</code> follow the "principle of least privilege" and contain only those privileges needed by the Cluster Operator to operate Kafka, Kafka Connect, and Zookeeper clusters. The first set of assigned privileges allow the Cluster Operator to manage OpenShift or Kubernetes resources such as <code>StatefulSets</code>, <code>Deployments</code>, <code>Pods</code>, and <code>ConfigMaps</code>.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example Role for the Cluster Operator</div>
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">Unresolved directive in cluster-operator.adoc - include::examples/install/cluster-operator/02-role.yaml[]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>When the Role cannot be created, the predefined ClusterRole named <code>edit</code> can be used instead.</p>
-</div>
-<div class="paragraph">
-<p>If the rack awareness feature is used, the started Kafka init container needs to operate using a ClusterRole that gives it access to the necessary resources.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example Role for the Kafka init container</div>
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">Unresolved directive in cluster-operator.adoc - include::examples/install/cluster-operator/05-role-kafka.yaml[]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The assigned privileges allow the Kafka init container to get Nodes information.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="defining_a_rolebinding">3.3.3. Defining a RoleBinding</h4>
-<div class="paragraph">
-<p>Finally, the operator needs a RoleBinding which associates its Role with its ServiceAccount:</p>
-</div>
-<div class="listingblock">
-<div class="title">Example RoleBinding for the Cluster Operator</div>
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">Unresolved directive in cluster-operator.adoc - include::examples/install/cluster-operator/03-role-binding.yaml[]</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>In case the <code>edit</code> ClusterRole is being used, the RoleBinding has to be modified to refer to it instead of the <code>strimzi-cluster-operator-role</code> Role:</p>
-</div>
-<div class="listingblock">
-<div class="title">Example RoleBinding for the Cluster Operator using the <code>edit</code> ClusterRole</div>
+<div class="title">Example <code>Role</code> for the Cluster Operator</div>
 <div class="content">
 <pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: RoleBinding
+kind: ClusterRole
 metadata:
-  name: strimzi-cluster-operator-binding
+  name: strimzi-cluster-operator
+  labels:
+    app: strimzi
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - get
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - "rbac.authorization.k8s.io"
+  resources:
+  - clusterrolebindings
+  - rolebindings
+  verbs:
+    - get
+    - create
+    - delete
+    - patch
+    - update
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - "kafka.strimzi.io"
+  resources:
+  - kafkas
+  - kafkaconnects
+  - kafkaconnects2is
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - "extensions"
+  resources:
+  - deployments
+  - deployments/scale
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - "apps"
+  resources:
+  - deployments
+  - deployments/scale
+  - deployments/status
+  - statefulsets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+# OpenShift S2I requirements
+- apiGroups:
+  - "extensions"
+  resources:
+  - replicationcontrollers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - apps.openshift.io
+  resources:
+  - deploymentconfigs
+  - deploymentconfigs/scale
+  - deploymentconfigs/status
+  - deploymentconfigs/finalizers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - build.openshift.io
+  resources:
+  - buildconfigs
+  - builds
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - watch
+  - update
+- apiGroups:
+  - image.openshift.io
+  resources:
+  - imagestreams
+  - imagestreams/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - watch
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - replicationcontrollers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - create
+  - delete
+  - patch
+  - update</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>strimzi-kafka-broker</code> <code>ClusterRole</code> represents the access needed by the init container in Kafka pods that is used for the rack feature. As described in the <a href="#delegated-privileges">Delegated privileges</a> section, this role is also needed by the Cluster Operator in order to be able to delegate this access.</p>
+</div>
+<div class="listingblock">
+<div class="title"><code>ClusterRole</code> for the Cluster Operator allowing it to delegate access to OpenShift or Kubernetes nodes to the Kafka broker pods</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml"># These are the privileges needed by the init container
+# in Kafka broker pods.
+# The Cluster Operator also needs these privileges since
+# it binds the Kafka pods' ServiceAccount to this
+# role.
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: strimzi-kafka-broker
+  labels:
+    app: strimzi
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>strimzi-topic-operator</code> <code>ClusterRole</code> represents the access needed by the Topic Operator. As described in the <a href="#delegated-privileges">Delegated privileges</a> section, this role is also needed by the Cluster Operator in order to be able to delegate this access.</p>
+</div>
+<div class="listingblock">
+<div class="title"><code>ClusterRole</code> for the Cluster Operator allowing it to delegate access to events to the Topic Operator</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml"># These are the privileges needed by the Topic Operator.
+# The Cluster Operator also needs these privileges since
+# it binds the Topic Operator's  ServiceAccount to this
+# role.
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: strimzi-topic-operator
+  labels:
+    app: strimzi
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="defining_clusterrolebindings">3.3.4. Defining <code>ClusterRoleBindings</code></h4>
+<div class="paragraph">
+<p>The operator needs a <code>ClusterRoleBinding</code> which associates its <code>ClusterRole</code> with its <code>ServiceAccount</code>:</p>
+</div>
+<div class="listingblock">
+<div class="title">Example <code>RoleBinding</code> for the Cluster Operator</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: strimzi-cluster-operator
   labels:
     app: strimzi
 subjects:
   - kind: ServiceAccount
     name: strimzi-cluster-operator
+    namespace: myproject
 roleRef:
   kind: ClusterRole
-  name: edit
+  name: strimzi-cluster-operator
   apiGroup: rbac.authorization.k8s.io</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>If the rack awareness feature is used, the Kafka init container needs a ClusterRoleBinding which associates its ClusterRole with its ServiceAccount:</p>
+<p><code>ClusterRoleBindings</code> are also needed for the <code>ClusterRoles</code> needed for delegation:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example ClusterRoleBinding for the Kafka init container</div>
+<div class="title">Example <code>RoleBinding</code> for the Cluster Operator</div>
 <div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">Unresolved directive in cluster-operator.adoc - include::examples/install/cluster-operator/06-role-binding-kafka.yaml[]</code></pre>
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: strimzi-cluster-operator-kafka-broker-delegation
+  labels:
+    app: strimzi
+subjects:
+  - kind: ServiceAccount
+    name: strimzi-cluster-operator
+    namespace: myproject
+roleRef:
+  kind: ClusterRole
+  name: strimzi-kafka-broker
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: strimzi-cluster-operator-topic-operator-delegation
+  labels:
+    app: strimzi
+subjects:
+  - kind: ServiceAccount
+    name: strimzi-cluster-operator
+    namespace: myproject
+roleRef:
+  kind: ClusterRole
+  name: strimzi-topic-operator
+  apiGroup: rbac.authorization.k8s.io
+---</code></pre>
 </div>
-</div>
-<div class="paragraph">
-<p>It&#8217;s important to highlight that the <code>namespace</code> field, specified in the ServiceAccount subject, needs to be the same namespace where the Kafka cluster will be deployed.</p>
 </div>
 </div>
 </div>
