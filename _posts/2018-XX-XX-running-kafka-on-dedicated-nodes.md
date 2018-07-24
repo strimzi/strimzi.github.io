@@ -215,11 +215,11 @@ spec:
     ...
 ```
 
-This will make sure that only the KAfka pods will be running on the dedicated nodes.
+This will make sure that only the Kafka pods will be running on the dedicated nodes.
 
 ## Practical example
 
-To show in detail how the dedicated nodes work, I deployed a 3 node KAfka cluster into my Kubernetes cluster running in AWS.
+To show in detail how the dedicated nodes work, I deployed a 3 node Kafka cluster into my Kubernetes cluster running in AWS.
 My Kubernetes cluster had 1 master node and 6 worker nodes:
 
 ```
