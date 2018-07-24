@@ -9,3 +9,4 @@ layout: default
 * Introduction to Apache Kafka [video](https://www.youtube.com/watch?v=ccGVcqfEyAk) (Kyiv Scala Group, March 2018)
 * Running Apache Kafka on Kubernetes [video](https://www.youtube.com/watch?v=mEHTngy8-bY) (Kyiv Scala Group, March 2018)
 * Meet Apache Kafka : data streaming in your hands [slides](https://www.slideshare.net/paolopat/meet-apache-kafka-data-streaming-in-your-hands) (Walgreens Boots Alliance Conference, March 2018)
+* Introduction to Strimzi Operator with Tom Bentley (Red Hat) - Operator Framework SIG Meeting July 2018 [video] (https://youtu.be/37DDC-Cy2ZI) [slides] (https://red.ht/2OfBPvU)
