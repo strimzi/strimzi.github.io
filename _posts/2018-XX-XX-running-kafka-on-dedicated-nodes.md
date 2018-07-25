@@ -41,7 +41,7 @@ The required scheduling is a hard constraint.
 If the constraint cannot be met, the pod will not be scheduled.
 It will not be deployed and your cluster will be missing some nodes.
 
-Strimzi supports pod affinity for Kafka, Zookeeper and Kafka Connect.
+Strimzi supports pod affinity for Kafka, Zookeeper, Kafka Connect and Topic Operator.
 You can use it to specify the pods which should never run on the same node as Kafka pods.
 Affinity can be specified in the Custom Resources (CR) under the `affinity` property.
 
