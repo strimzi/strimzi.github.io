@@ -8,7 +8,7 @@ layout: default
 
 ### Custom Resource Definitions support for Topic Operator
 
-The Topic Operator should have support for [Custom Resource Definitions (CRDs)](https://kubernetes.io/docs/concepts/api-extension/custom-resources/).
+The Topic Operator uses [Custom Resource Definitions (CRDs)](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) instead of ConfigMaps.
 
 ### Add support for encryption to Kafka Connect
 
@@ -19,7 +19,7 @@ Add support for encryption and authentication for Kafka Connect.
 In order to use Strimzi for production workloads, it has to be possible to secure the cluster. This should 
 include:
 
-* Authentication using TLS client authentication and SASL
+* Authentication using TLS client authentication and SASL SCRAM-SHA
 * Authorization
 
 ## 0.5.0 (July 2018)
@@ -28,9 +28,9 @@ include:
 
 Using Kubernetes Affinity and Tolerations, users can manage scheduling of Kafka, Zookeeper and Kafka Connect pods into nodes.
 
-### Custom Resource Definitions support for Cluster operator
+### Custom Resource Definitions support for Cluster Operator
 
-The Cluster Operator support for [Custom Resource Definitions (CRDs)](https://kubernetes.io/docs/concepts/api-extension/custom-resources/).
+The Cluster Operator uses [Custom Resource Definitions (CRDs)](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) instead of ConfigMaps.
 
 ### Add support for TLS encryption
 
@@ -71,7 +71,7 @@ needed to make sure that the load is optimally distributed across all cluster no
 
 ### Service broker support
 
-The Cluster Controller should be able to work as a [Service Broker](https://www.openservicebrokerapi.org/).
+The Cluster Operator should be able to work as a [Service Broker](https://www.openservicebrokerapi.org/).
 
 ### Integration with other protocols
 
