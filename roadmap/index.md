@@ -4,6 +4,38 @@ layout: default
 
 # Roadmap
 
+## 0.6.0 (August 2018)
+
+### Custom Resource Definitions support for Topic Operator
+
+The Topic Operator should have support for [Custom Resource Definitions (CRDs)](https://kubernetes.io/docs/concepts/api-extension/custom-resources/).
+
+### Add support for encryption to Kafka Connect
+
+Add support for encryption and authentication for Kafka Connect.
+
+### Add support for authentication and authorization
+
+In order to use Strimzi for production workloads, it has to be possible to secure the cluster. This should 
+include:
+
+* Authentication using TLS client authentication and SASL
+* Authorization
+
+## 0.5.0 (July 2018)
+
+### Add support for Kubernetes Affinity and Tolerations
+
+Using Kubernetes Affinity and Tolerations, users can manage scheduling of Kafka, Zookeeper and Kafka Connect pods into nodes.
+
+### Custom Resource Definitions support for Cluster operator
+
+The Cluster Operator support for [Custom Resource Definitions (CRDs)](https://kubernetes.io/docs/concepts/api-extension/custom-resources/).
+
+### Add support for TLS encryption
+
+All traffic between Kafka brokers, Zookeeper nodes and Topic Operator is now encrypted using TLS.
+
 ## 0.4.0 (May 2018)
 
 ### Improve configuration possibilities for Kafka and Kafka Connect
@@ -21,34 +53,14 @@ component.
 
 ## Future releases
 
-### Add support for encryption, authentication and authorization
+### Kafka updates
 
-In order to use Strimzi for production workloads, it has to be possible to secure the cluster. This should 
-include:
-
-* Encryption using TLS
-* Authentication using TLS client authentication and SASL
-* Authorization
+Strimzi should make it possible to smoothly handle updates from one Kafka version to another.
 
 ### Accessing Kafka from the outside of Kubernetes/OpenShift
 
 Currently, the Kafka deployment is accessible only from within the same Kubernetes/OpenShift cluster in which it is 
 deployed. In some scenarios it will be necessary to access it from the outside.
-
-### Add support for Kubernetes node selectors
-
-In order to achieve good performance, it might be necessary to schedule Kafka pods to specific nodes. For example, because 
-they contain special storage hardware or just to run them on dedicated nodes to make sure that Kafka doesn't interfere 
-with any other applications. To achieve this, it should be possible to configure node selectors for the Strimzi 
-deployments.
-
-### Custom Resource Definitions support
-
-The Cluster and Topic Controllers should have support for [Custom Resource Definitions (CRDs)](https://kubernetes.io/docs/concepts/api-extension/custom-resources/).
-
-### Service broker support
-
-The Cluster Controller should be able to work as a [Service Broker](https://www.openservicebrokerapi.org/).
 
 ### Support for automated cluster balancing
 
@@ -57,9 +69,9 @@ topics (i.e. busy topics with a lot of traffic) while other nodes are idle most 
 An automated cluster balancer should continuously monitor the cluster state and balance it (re-distribute the topics) when 
 needed to make sure that the load is optimally distributed across all cluster nodes.
 
-### Kafka updates
+### Service broker support
 
-Strimzi should make it possible to smoothly handle updates from one Kafka version to another.
+The Cluster Controller should be able to work as a [Service Broker](https://www.openservicebrokerapi.org/).
 
 ### Integration with other protocols
 
