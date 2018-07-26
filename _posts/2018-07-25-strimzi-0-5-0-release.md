@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Strimzi 0.5.0 released!"
-date: 2018-07-25
+date: 2018-07-26
 author: paolo_patierno
 ---
 
