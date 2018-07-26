@@ -20,7 +20,7 @@ Good performance does not only mean that most messages are delivered with super 
 It also means that the performance of the cluster is constant in time and without any significant spikes.
 _Noisy neighbors_ are just one possible cause of performance issues.
 
-There are several waysof getting the best out of Apache Kafka:
+There are several ways of getting the best out of Apache Kafka:
 
 * Make sure Kafka pods are not scheduled on the same node as other performance intensive applications
 * Make sure Kafka pods are scheduled on the nodes with the most suitable hardware
