@@ -118,30 +118,43 @@ When deploying the Kafka cluster in the public Cloud (i.e. Amazon, Azure and GCP
 Having Kafka brokers colocated on the same nodes with some other applications running on the same Kubernetes/OpenShift cluster can cause some issues like the _noisy neighbour_ phenomenon.
 This is really a problem when these applications are intensively utilizing the same resource - for example network bandwidth or disk I/O.
 
-Most Apache Kafka users want the best possible performance from their clusters.
-
-There are several ways of getting the best out of Apache Kafka:
-
-* Make sure Kafka pods are not scheduled on the same node as other performance intensive applications
-* Make sure Kafka pods are scheduled on the nodes with the most suitable hardware
-* Use nodes which are dedicated to Kafka only
-
-Thanks to the support for affinity and tolerations in the 0.5.0 release, now Strimzi supports all of the above ways.
+Thanks to the support for affinity and tolerations in the 0.5.0 release, it's now possible to fix all the above problems.
 You'll get more information about this new feature in a dedicated blog post.
 
 # Cluster Operator handling RBAC
 
 The Cluster Operator is now in charge to handle RBAC resource so `ServiceAccount`, `RoleBinding` and `ClusterRoleBindings` for Kafka pods and for Topic Operator pods which need permissions for accessing resources (i.e. ConfigMap, Node, ...).
 
+An important thing to notice is that the `ClusterRoleBindings` have the need to specify the namespace where the `ServiceAccount` lives for binding it to a specific `ClusterRole`. The provided example YAML files specify the default `myproject` namespace as the following:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: strimzi-cluster-operator
+  labels:
+    app: strimzi
+subjects:
+  - kind: ServiceAccount
+    name: strimzi-cluster-operator
+    namespace: myproject
+roleRef:
+  kind: ClusterRole
+  name: strimzi-cluster-operator
+  apiGroup: rbac.authorization.k8s.io
+```
+
+In order to deploy the cluster properly, remember to change the namespace accordingly with what you are using.
+
 # Renaming of services
 
 The Kubernetes/OpenShift services for Kafka, Kafka Connect and Zookeeper have been renamed to better correspond to their purpose, in the following way :
 
-* xxx-kafka -> xxx-kafka-bootstrap
-* xxx-kafka-headless -> xxx-kafka-brokers
-* xxx-zookeeper -> xxx-zookeeper-client
-* xxx-zookeeper-headless -> xxx-zookeeper-nodes
-* xxx-connect -> xxx-connect-api
+* `xxx-kafka` -> `xxx-kafka-bootstrap`
+* `xxx-kafka-headless` -> `xxx-kafka-brokers`
+* `xxx-zookeeper` -> `xxx-zookeeper-client`
+* `xxx-zookeeper-headless` -> `xxx-zookeeper-nodes`
+* `xxx-connect` -> `xxx-connect-api`
 
 This change is backwards incompatible so if you are using the previous names for accessing the cluster from your applications, when deploying a cluster with the new version you have to update them.
 
