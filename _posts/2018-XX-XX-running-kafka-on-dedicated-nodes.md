@@ -299,11 +299,6 @@ spec:
               operator: In
               values:
               - Kafka
-    logging:
-      type: inline
-      loggers:
-        log4j.rootLogger: INFO
-        #log4j.logger.kafka.authorizer.logger: INFO
   zookeeper:
     replicas: 3
     readinessProbe:
@@ -314,15 +309,7 @@ spec:
       timeoutSeconds: 5
     storage:
       type: ephemeral
-   logging:
-     type: inline
-     loggers:
-       zookeeper.root.logger: INFO
-  topicOperator:
-    logging:
-      type: inline
-      loggers:
-        rootLogger.level: INFO
+  topicOperator: {}
 ```
 
 The Cluster Operator will deploy the StatfulSets for Zookeeper and Kafka as well as the Topic Operator.
