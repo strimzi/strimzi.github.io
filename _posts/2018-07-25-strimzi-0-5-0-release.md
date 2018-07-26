@@ -94,8 +94,9 @@ The other way is to provide a reference to a complete log4j configuration stored
 In order to have high-availability, Apache Kafka provides a feature called "rack awareness".
 When your topics are replicated across multiple brokers, it is desirable for those brokers to be in different physical racks.
 If a rack fails, you are sure that other topic replicas are alive, a new leader can be elected and clients can continue to exchange messages. As opposite, if the brokers hosting replicas for a topic are put into the same rack, the partitions are not available anymore on rack failure because all brokers will go down at same time.
+This is because replica assignment that is unaware of broker racks can result in partitions being assigned to brokers in the same rack. Failure of that rack would thus make multiple replicas unavailable, defeating the point of having replicas.
 
-The new Strimzi rack awareness feature provides a way to specify a `topologyKey` in order to spread brokers across different nodes.
+The new Strimzi rack awareness feature provides a way to specify a `topologyKey` in order to spread brokers across nodes in different failure domains.
 The `topologyKey` defines a node label which is used as `broker.rack` for configuring the Kafka brokers accordingly.
 
 ```yaml
@@ -111,21 +112,21 @@ spec:
     # ...
 ```
 
-When deploying the Kafka cluster in the public Cloud (i.e. Amazon, Azure and GCP), it means spreading brokers across different availability zones which can be compared to the physical racks.
+When deploying the Kafka cluster in the public Cloud (i.e. Amazon, Azure and GCP), it means spreading brokers across different availability zones which can be compared to the physical racks. More information on the official Kubernetes [web site](https://kubernetes.io/docs/setup/multiple-zones/).
 
 # Affinity and Tolerations
 
 Having Kafka brokers colocated on the same nodes with some other applications running on the same Kubernetes/OpenShift cluster can cause some issues like the _noisy neighbour_ phenomenon.
 This is really a problem when these applications are intensively utilizing the same resource - for example network bandwidth or disk I/O.
 
-Thanks to the support for affinity and tolerations in the 0.5.0 release, it's now possible to fix all the above problems.
+Thanks to the support for affinity and tolerations in the 0.5.0 release, it is now possible to control the scheduling of your brokers to alleviate this problem, or even dedicate certain nodes in your cluster just for Kafka.
 You'll get more information about this new feature in a dedicated blog post.
 
 # Cluster Operator handling RBAC
 
-The Cluster Operator is now in charge to handle RBAC resource so `ServiceAccount`, `RoleBinding` and `ClusterRoleBindings` for Kafka pods and for Topic Operator pods which need permissions for accessing resources (i.e. ConfigMap, Node, ...).
+The Cluster Operator is in charge of handling RBAC resources (`ServiceAccount`, `RoleBinding` and `ClusterRoleBindings`) for Kafka pods and for Topic Operator pods which need permissions for accessing resources (i.e. `ConfigMap`, `Node`, ...).
 
-An important thing to notice is that the `ClusterRoleBindings` have the need to specify the namespace where the `ServiceAccount` lives for binding it to a specific `ClusterRole`. The provided example YAML files specify the default `myproject` namespace as the following:
+An important thing to notice is that the `ClusterRoleBindings` have the need to specify the namespace where the Cluster Operator's `ServiceAccount` lives for binding it to a specific `ClusterRole`. The provided example YAML files specify the default `myproject` namespace as the following:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -144,23 +145,23 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ```
 
-In order to deploy the cluster properly, remember to change the namespace accordingly with what you are using.
+In order to deploy the cluster properly, remember change the `subjects.namespace` to the one in which you're deploying the Cluster Operator.
 
 # Renaming of services
 
-The Kubernetes/OpenShift services for Kafka, Kafka Connect and Zookeeper have been renamed to better correspond to their purpose, in the following way :
+The Kubernetes/OpenShift services for Kafka, Kafka Connect and Zookeeper have been renamed to better reflect their purpose, as follows:
 
-* `xxx-kafka` -> `xxx-kafka-bootstrap`
-* `xxx-kafka-headless` -> `xxx-kafka-brokers`
-* `xxx-zookeeper` -> `xxx-zookeeper-client`
-* `xxx-zookeeper-headless` -> `xxx-zookeeper-nodes`
-* `xxx-connect` -> `xxx-connect-api`
+* `<cluster-name>-kafka` -> `<cluster-name>-kafka-bootstrap`
+* `<cluster-name>-kafka-headless` -> `<cluster-name>-kafka-brokers`
+* `<cluster-name>-zookeeper` -> `<cluster-name>-zookeeper-client`
+* `<cluster-name>-zookeeper-headless` -> `<cluster-name>-zookeeper-nodes`
+* `<cluster-name>-connect` -> `<cluster-name>-connect-api`
 
 This change is backwards incompatible so if you are using the previous names for accessing the cluster from your applications, when deploying a cluster with the new version you have to update them.
 
 # Conclusion
 
 This release represents a really huge milestone for this open source project.
-Furthermore, because Strimzi is an evolving project, there are some backwards incompatible changes as well; for having more information about them you can refer to the release [changes log](https://github.com/strimzi/strimzi/releases/tag/0.5.0).
+Furthermore, because Strimzi is an evolving project, there are some backwards incompatible changes as well; for more information about them you can refer to the release [changes log](https://github.com/strimzi/strimzi/releases/tag/0.5.0).
 
-What are you waiting for? Engage the community and help us to improve the Strimzi project for running your cluster on Kubernetes/OpenShift!
+What are you waiting for? Engage with the community and help us to improve the Strimzi project for running your Kafka cluster on Kubernetes/OpenShift!
