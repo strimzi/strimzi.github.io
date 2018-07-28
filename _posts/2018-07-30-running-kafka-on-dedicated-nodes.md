@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Running Kafka on dedicated Kubernetes nodes"
-date: 2018-XX-XX
+date: 2018-07-30
 author: jakub_scholz
 ---
 
