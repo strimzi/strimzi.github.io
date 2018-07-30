@@ -20,6 +20,7 @@
 <ul class="sectlevel3">
 <li><a href="#deploying-kafka-cluster-kubernetes-str">2.3.1. Deploying the Kafka cluster to Kubernetes</a></li>
 <li><a href="#deploying-kafka-cluster-openshift-str">2.3.2. Deploying the Kafka cluster to OpenShift</a></li>
+<li><a href="#deploying_with_helm_charts">2.3.3. Deploying with Helm Charts</a></li>
 </ul>
 </li>
 <li><a href="#kafka_connect">2.4. Kafka Connect</a>
@@ -522,6 +523,28 @@ Amazon EBS volumes in Amazon AWS deployments without any changes in the YAML fil
 <p>Example resources and details about the <code>Kafka</code> resource format are in <a href="#kafka_assembly_details">Format of the <code>Kafka</code> resource</a>.</p>
 </li>
 </ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="deploying_with_helm_charts">2.3.3. Deploying with Helm Charts</h4>
+<div class="paragraph">
+<p>Instead of using the example YAML files you can also install the Cluster Operator by using its Helm Chart.
+The Helm Chart is included in the Strimzi release artifact in an unarchived form.
+It is also available as a tarball archive from <a href="https://github.com/strimzi/strimzi-kafka-operator/releases" target="_blank" rel="noopener">GitHub</a>.
+You may choose to install the Cluster Operator using either method, but installing it directly from the GitHub release requires the least amount of steps.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">helm install https://github.com/strimzi/strimzi-kafka-operator/releases/download/latest/strimzi-kafka-operator-latest.tgz</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To verify whether the Cluster Operator has deployed successfully you can use the Helm command line tool to discover its release name and deployment status.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">helm ls</code></pre>
+</div>
 </div>
 </div>
 </div>
@@ -2554,12 +2577,18 @@ Because the Cluster Operator must be able to create the <code>ClusterRoleBinding
 <div class="listingblock">
 <div class="title">Example <code>ServiceAccount</code> for the Cluster Operator</div>
 <div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">##---
+# Source: strimzi-kafka-operator/templates/01-ServiceAccount-strimzi-cluster-operator.yaml
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: strimzi-cluster-operator
   labels:
-    app: strimzi</code></pre>
+    app: strimzi-kafka-operator
+    chart: strimzi-kafka-operator-0.1.0
+    component: service-account
+    release: RELEASE-NAME
+    heritage: Tiller</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2568,19 +2597,19 @@ metadata:
 <div class="listingblock">
 <div class="title">Partial example <code>Deployment</code> for the Cluster Operator</div>
 <div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: extensions/v1beta1
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">##---
+# Source: strimzi-kafka-operator/templates/05-Deployment-strimzi-cluster-operator.yaml
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: strimzi-cluster-operator
+  labels:
+    app: strimzi-kafka-operator
+    chart: strimzi-kafka-operator-0.1.0
+    component: deployment
+    release: RELEASE-NAME
+    heritage: Tiller
 spec:
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        name: strimzi-cluster-operator
-    spec:
-      serviceAccountName: strimzi-cluster-operator
-      containers:
       # ...</code></pre>
 </div>
 </div>
@@ -2613,12 +2642,18 @@ The Cluster Operator will not run under the cluster admin account.
 <div class="listingblock">
 <div class="title">Example <code>Role</code> for the Cluster Operator</div>
 <div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">##---
+# Source: strimzi-kafka-operator/templates/02-ClusterRole-strimzi-cluster-operator-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
   name: strimzi-cluster-operator
   labels:
-    app: strimzi
+    app: strimzi-kafka-operator
+    chart: strimzi-kafka-operator-0.1.0
+    component: role
+    release: RELEASE-NAME
+    heritage: Tiller
 rules:
 - apiGroups:
   - ""
@@ -2821,12 +2856,18 @@ rules:
 # The Cluster Operator also needs these privileges since
 # it binds the Kafka pods' ServiceAccount to this
 # role.
+##---
+# Source: strimzi-kafka-operator/templates/03-ClusterRole-strimzi-kafka-broker.yaml
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
   name: strimzi-kafka-broker
   labels:
-    app: strimzi
+    app: strimzi-kafka-operator
+    chart: strimzi-kafka-operator-0.1.0
+    component: broker-role
+    release: RELEASE-NAME
+    heritage: Tiller
 rules:
 - apiGroups:
   - ""
@@ -2846,12 +2887,18 @@ rules:
 # The Cluster Operator also needs these privileges since
 # it binds the Topic Operator's  ServiceAccount to this
 # role.
+##---
+# Source: strimzi-kafka-operator/templates/04-ClusterRole-strimzi-topic-operator.yaml
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
   name: strimzi-topic-operator
   labels:
-    app: strimzi
+    app: strimzi-kafka-operator
+    chart: strimzi-kafka-operator-0.1.0
+    component: topic-operator-role
+    release: RELEASE-NAME
+    heritage: Tiller
 rules:
 - apiGroups:
   - "kafka.strimzi.io"
@@ -2882,16 +2929,22 @@ rules:
 <div class="listingblock">
 <div class="title">Example <code>RoleBinding</code> for the Cluster Operator</div>
 <div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">##---
+# Source: strimzi-kafka-operator/templates/02-ClusterRoleBinding-strimzi-cluster-operator.yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: strimzi-cluster-operator
   labels:
-    app: strimzi
+    app: strimzi-kafka-operator
+    chart: strimzi-kafka-operator-0.1.0
+    component: role-binding
+    release: RELEASE-NAME
+    heritage: Tiller
 subjects:
   - kind: ServiceAccount
     name: strimzi-cluster-operator
-    namespace: myproject
+    namespace: default
 roleRef:
   kind: ClusterRole
   name: strimzi-cluster-operator
@@ -2905,31 +2958,43 @@ roleRef:
 <div class="title">Example <code>RoleBinding</code> for the Cluster Operator</div>
 <div class="content">
 <pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">---
+##---
+# Source: strimzi-kafka-operator/templates/03-ClusterRoleBinding-strimzi-cluster-operator-kafka-broker-delegation.yaml
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: strimzi-cluster-operator-kafka-broker-delegation
   labels:
-    app: strimzi
+    app: strimzi-kafka-operator
+    chart: strimzi-kafka-operator-0.1.0
+    component: broker-role-binding
+    release: RELEASE-NAME
+    heritage: Tiller
 subjects:
   - kind: ServiceAccount
     name: strimzi-cluster-operator
-    namespace: myproject
+    namespace: default
 roleRef:
   kind: ClusterRole
   name: strimzi-kafka-broker
   apiGroup: rbac.authorization.k8s.io
 ---
+##---
+# Source: strimzi-kafka-operator/templates/04-ClusterRoleBinding-strimzi-cluster-operator-topic-operator-delegation.yaml
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: strimzi-cluster-operator-topic-operator-delegation
   labels:
-    app: strimzi
+    app: strimzi-kafka-operator
+    chart: strimzi-kafka-operator-0.1.0
+    component: topic-operator-role-binding
+    release: RELEASE-NAME
+    heritage: Tiller
 subjects:
   - kind: ServiceAccount
     name: strimzi-cluster-operator
-    namespace: myproject
+    namespace: default
 roleRef:
   kind: ClusterRole
   name: strimzi-topic-operator
