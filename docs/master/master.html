@@ -42,10 +42,10 @@
 <ul class="sectlevel4">
 <li><a href="#deploying_to_kubernetes_2">Deploying to Kubernetes</a></li>
 <li><a href="#deploying_to_openshift_2">Deploying to OpenShift</a></li>
+<li><a href="#kafkatopic_resources"><code>KafkaTopic</code> resources</a></li>
 </ul>
 </li>
-<li><a href="#topic_configmap">2.5.3. Topic ConfigMap</a></li>
-<li><a href="#logging">2.5.4. Logging</a></li>
+<li><a href="#logging">2.5.3. Logging</a></li>
 </ul>
 </li>
 </ul>
@@ -95,20 +95,17 @@
 </li>
 <li><a href="#topic-operator-strimzi">4. Topic Operator</a>
 <ul class="sectlevel2">
-<li><a href="#reconciliation_2">4.1. Reconciliation</a></li>
-<li><a href="#usage_recommendations">4.2. Usage Recommendations</a></li>
-<li><a href="#topic_config_map_details">4.3. Format of the ConfigMap</a></li>
-<li><a href="#example">4.4. Example</a>
+<li><a href="#what-the-topic-operator-does-strimzi">4.1. What the Topic Operator does</a></li>
+<li><a href="#how-the-topic-operator-works-strimzi">4.2. How the Topic Operator works</a></li>
+<li><a href="#usage_recommendations">4.3. Usage Recommendations</a></li>
+<li><a href="#format-of-the-kafkatopic-strimzi">4.4. Format of the <code>KafkaTopic</code></a></li>
+<li><a href="#creating-a-topic-strimzi">4.5. Creating a topic</a></li>
+<li><a href="#changing-a-topic-strimzi">4.6. Changing a topic</a></li>
+<li><a href="#deleting-a-topic-strimzi">4.7. Deleting a topic</a></li>
+<li><a href="#topic-operator&#8212;&#8203;environment-strimzi">4.8. Topic Operator environment</a></li>
+<li><a href="#resource_limits_and_requests">4.9. Resource limits and requests</a>
 <ul class="sectlevel3">
-<li><a href="#on_kubernetes">4.4.1. On Kubernetes</a></li>
-<li><a href="#on_openshift">4.4.2. On OpenShift</a></li>
-</ul>
-</li>
-<li><a href="#unsupported_operations">4.5. Unsupported operations</a></li>
-<li><a href="#operator_environment">4.6. Operator environment</a></li>
-<li><a href="#resource_limits_and_requests">4.7. Resource limits and requests</a>
-<ul class="sectlevel3">
-<li><a href="#minimum_resource_requirements_2">4.7.1. Minimum Resource Requirements</a></li>
+<li><a href="#minimum_resource_requirements_2">4.9.1. Minimum Resource Requirements</a></li>
 </ul>
 </li>
 </ul>
@@ -731,24 +728,23 @@ be run:</p>
 <div class="sect2">
 <h3 id="topic_operator">2.5. Topic Operator</h3>
 <div class="paragraph">
-<p>Strimzi uses a component called the Topic Operator to manage topics in the Kafka cluster. The Topic Operator
-is deployed as a process running inside a OpenShift or Kubernetes cluster. To create a new Kafka topic, a ConfigMap
-with the related configuration (name, partitions, replication factor, &#8230;&#8203;) has to be created. Based on the information
-in that ConfigMap, the Topic Operator will create a corresponding Kafka topic in the cluster.</p>
+<p>Strimzi uses a component called the Topic Operator to manage topics in the Kafka cluster.
+The Topic Operator is deployed as a process running inside a OpenShift or Kubernetes cluster.
+To create a new Kafka topic, a <code>KafkaTopic</code> custom resource with the related configuration (name, partitions, replication factor, &#8230;&#8203;) has to be created.
+Based on the information in that <code>KafkaTopic</code>, the Topic Operator will create a corresponding Kafka topic in the cluster.</p>
 </div>
 <div class="paragraph">
-<p>Deleting a topic ConfigMap causes the deletion of the corresponding Kafka topic as well.</p>
+<p>Deleting a <code>KafkaTopic</code> causes the deletion of the corresponding Kafka topic as well.</p>
 </div>
 <div class="paragraph">
 <p>The Cluster Operator is able to deploy a Topic Operator, which can be configured in the <code>Kafka</code> resource.
-Alternatively, it is possible to deploy a Topic Operator manually, rather than having it deployed
-by the Cluster Operator.</p>
+Alternatively, it is possible to deploy a Topic Operator manually, rather than having it deployed by the Cluster Operator.</p>
 </div>
 <div class="sect3">
 <h4 id="deploying_through_the_cluster_operator">2.5.1. Deploying through the Cluster Operator</h4>
 <div class="paragraph">
 <p>To deploy the Topic Operator through the Cluster Operator, its configuration needs to be provided in the
-<code>Kafka</code> resource in the <code>topicOperator</code> field as a JSON string.</p>
+<code>Kafka</code> resource in the <code>topicOperator</code> property.</p>
 </div>
 <div class="paragraph">
 <p>For more information on the JSON configuration format see <a href="#topic_operator_json_config">Topic Operator</a>.</p>
@@ -759,7 +755,7 @@ by the Cluster Operator.</p>
 <div class="paragraph">
 <p>If you are not going to deploy the Kafka cluster using the Cluster Operator but you already have a Kafka cluster deployed
 on OpenShift or Kubernetes, it could be useful to deploy the Topic Operator using the provided YAML files.
-In that case you can still leverage on the Topic Operator features of managing Kafka topics through related ConfigMaps.</p>
+In that case you can still leverage on the Topic Operator features of managing Kafka topics through related <code>KafkaTopics</code>.</p>
 </div>
 <div class="sect4">
 <h5 id="deploying_to_kubernetes_2">Deploying to Kubernetes</h5>
@@ -801,18 +797,10 @@ can be used:</p>
 </div>
 </div>
 </div>
-</div>
-<div class="sect3">
-<h4 id="topic_configmap">2.5.3. Topic ConfigMap</h4>
+<div class="sect4">
+<h5 id="kafkatopic_resources"><code>KafkaTopic</code> resources</h5>
 <div class="paragraph">
-<p>When the Topic Operator is deployed by the Cluster Operator it will be configured to watch
-for "topic ConfigMaps" which are those with the following labels:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">strimzi.io/cluster: &lt;cluster-name&gt;
-strimzi.io/kind: topic</code></pre>
-</div>
+<p>When the Topic Operator is deployed by the Cluster Operator it will be configured to watch for <code>KafkaTopics</code> with the label <code>strimzi.io/cluster: <em>&lt;cluster-name&gt;</em></code></p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -827,11 +815,12 @@ When the Topic Operator is deployed manually the <code>strimzi.io/cluster</code>
 </table>
 </div>
 <div class="paragraph">
-<p>The topic ConfigMap contains the topic configuration in a specific format. The ConfigMap format is described in <a href="#topic_config_map_details">Format of the ConfigMap</a>.</p>
+<p>The <code>KafkaTopic</code> contains the topic configuration in a specific format, described in <a href="#format-of-the-kafkatopic-strimzi">Format of the <code>KafkaTopic</code></a>.</p>
+</div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="logging">2.5.4. Logging</h4>
+<h4 id="logging">2.5.3. Logging</h4>
 <div class="paragraph">
 <p>The <code>logging</code> field allows the configuration of loggers. These loggers are listed below.</p>
 </div>
@@ -855,7 +844,7 @@ When the Topic Operator is deployed manually the <code>strimzi.io/cluster</code>
 <div class="sectionbody">
 <div class="paragraph">
 <p>The Cluster Operator is in charge of deploying a Kafka cluster alongside a Zookeeper ensemble.
-As part of the Kafka cluster, it can also deploy the topic operator which provides operator-style topic management via ConfigMaps.
+As part of the Kafka cluster, it can also deploy the topic operator which provides operator-style topic management via <code>KafkaTopic</code> custom resources.
 The Cluster Operator is also able to deploy a Kafka Connect cluster which connects to an existing Kafka cluster.
 On OpenShift such a cluster can be deployed using the Source2Image feature, providing an easy way of including more connectors.</p>
 </div>
@@ -2038,7 +2027,7 @@ The default value is determined by the value specified in the <code><a href="#ST
 </dd>
 <dt class="hdlist1"><code>watchedNamespace</code></dt>
 <dd>
-<p>The OpenShift or Kubernetes namespace in which the topic operator watches for topic ConfigMaps. Default is the namespace
+<p>The OpenShift or Kubernetes namespace in which the topic operator watches for <code>KafkaTopics</code>. Default is the namespace
 where the topic operator is running.</p>
 </dd>
 <dt class="hdlist1"><code>reconciliationIntervalMs</code></dt>
@@ -3069,8 +3058,8 @@ no image is specified as the <code>image</code> in the cluster ConfigMap.</p>
 <dd>
 <p>Optional, default <code>strimzi/topic-operator:latest</code>.
 The image name to use as a default when deploying the topic operator, if
-no image is specified as the <code>image</code> in the <a href="#topic_operator_json_config">topic operator config</a>
-of the Kafka cluster ConfigMap.</p>
+no image is specified as the <code>spec.topicOperator.image</code> in the <a href="#topic_operator_json_config">topic operator config</a>
+of the <code>Kafka</code> resource.</p>
 </dd>
 <dt class="hdlist1"><a id="STRIMZI_DEFAULT_ZOOKEEPER_IMAGE"></a> <code>STRIMZI_DEFAULT_ZOOKEEPER_IMAGE</code></dt>
 <dd>
@@ -3139,10 +3128,10 @@ roleRef:
 <div class="sect1">
 <h2 id="topic-operator-strimzi">4. Topic Operator</h2>
 <div class="sectionbody">
+<div class="sect2">
+<h3 id="what-the-topic-operator-does-strimzi">4.1. What the Topic Operator does</h3>
 <div class="paragraph">
-<p>The Topic Operator is in charge of managing topics in a Kafka cluster. The Topic Operator is deployed as a process
-running inside a OpenShift or Kubernetes cluster.
-It can be deployed through the Cluster Operator or "manually" through provided YAML files.</p>
+<p>The Topic Operator provides a way of managing topics in a Kafka cluster via OpenShift or Kubernetes resources.</p>
 </div>
 <div class="imageblock">
 <div class="content">
@@ -3150,8 +3139,7 @@ It can be deployed through the Cluster Operator or "manually" through provided Y
 </div>
 </div>
 <div class="paragraph">
-<p>The role of the Topic Operator is to keep a set of OpenShift or Kubernetes ConfigMaps describing Kafka topics in-sync with
-corresponding Kafka topics.</p>
+<p>The role of the Topic Operator is to keep a set of <code>KafkaTopic</code> OpenShift or Kubernetes resources describing Kafka topics in-sync with corresponding Kafka topics.</p>
 </div>
 <div class="paragraph">
 <p>Specifically:</p>
@@ -3159,13 +3147,13 @@ corresponding Kafka topics.</p>
 <div class="ulist">
 <ul>
 <li>
-<p>if a ConfigMap is created, the operator will create the topic it describes</p>
+<p>if a <code>KafkaTopic</code> is created, the operator will create the topic it describes</p>
 </li>
 <li>
-<p>if a ConfigMap is deleted, the operator will delete the topic it describes</p>
+<p>if a <code>KafkaTopic</code> is deleted, the operator will delete the topic it describes</p>
 </li>
 <li>
-<p>if a ConfigMap is changed, the operator will update the topic it describes</p>
+<p>if a <code>KafkaTopic</code> is changed, the operator will update the topic it describes</p>
 </li>
 </ul>
 </div>
@@ -3175,80 +3163,69 @@ corresponding Kafka topics.</p>
 <div class="ulist">
 <ul>
 <li>
-<p>if a topic is created, the operator will create a ConfigMap describing it</p>
+<p>if a topic is created within the Kafka cluster, the operator will create a <code>KafkaTopic</code> describing it</p>
 </li>
 <li>
-<p>if a topic is deleted, the operator will create the ConfigMap describing it</p>
+<p>if a topic is deleted from the Kafka cluster, the operator will create the <code>KafkaTopic</code> describing it</p>
 </li>
 <li>
-<p>if a topic is changed, the operator will update the ConfigMap describing it</p>
+<p>if a topic in the Kafka cluster is changed, the operator will update the <code>KafkaTopic</code> describing it</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>This is beneficial to a OpenShift or Kubernetes centric style of deploying
-applications, because it allows you to declare a ConfigMap as part of your
-applications deployment and the operator will take care of creating
-the topic for you, so your application just needs to deal with producing
-and/or consuming from the necessary topics.</p>
+<p>This is beneficial to a OpenShift or Kubernetes-centric style of deploying applications because it allows you to declare a <code>KafkaTopic</code> as part of your application&#8217;s deployment and the operator will take care of creating the topic for you.
+Your application just needs to deal with producing or consuming from the necessary topics.</p>
 </div>
 <div class="paragraph">
-<p>Should the topic be reconfigured, reassigned to different Kafka nodes and so on,
-the ConfigMap will always be up to date.</p>
+<p>If the topic be reconfigured or reassigned to different Kafka nodes, the <code>KafkaTopic</code> will always be up to date.</p>
+</div>
 </div>
 <div class="sect2">
-<h3 id="reconciliation_2">4.1. Reconciliation</h3>
+<h3 id="how-the-topic-operator-works-strimzi">4.2. How the Topic Operator works</h3>
 <div class="paragraph">
 <p>A fundamental problem that the operator has to solve is that there is no single source of truth:
-Both the ConfigMap and the topic can be modified independently of the operator.
+Both the <code>KafkaTopic</code> resource and the topic within Kafka can be modified independently of the operator.
 Complicating this, the Topic Operator might not always be able to observe changes at each end in real time (for example, the operator might be down).</p>
 </div>
 <div class="paragraph">
-<p>To resolve this, the operator maintains its own private copy of the
-information about each topic.
-When a change happens either in the Kafka cluster, or
-in OpenShift or Kubernetes, it looks at both the state of the other system, and at its
-private copy in order to determine what needs to change to keep everything in sync.
-The same thing happens whenever the operator starts, and periodically while its running.</p>
+<p>To resolve this, the operator maintains its own private copy of the information about each topic.
+When a change happens either in the Kafka cluster, or in OpenShift or Kubernetes, it looks at both the state of the other system and at its private copy in order to determine what needs to change to keep everything in sync.
+The same thing happens whenever the operator starts, and periodically while it is running.</p>
 </div>
 <div class="paragraph">
-<p>For example, suppose the Topic Operator is not running, and a ConfigMap "my-topic" gets created.
-When the operator starts it will lack a private copy of "my-topic",
-so it can infer that the ConfigMap has been created since it was last running.
-The operator will create the topic corresponding to "my-topic" and also store a private copy of the
-metadata for "my-topic".</p>
+<p>For example, suppose the Topic Operator is not running, and a <code>KafkaTopic</code> <code>my-topic</code> gets created.
+When the operator starts it will lack a private copy of "my-topic", so it can infer that the <code>KafkaTopic</code> has been created since it was last running.
+The operator will create the topic corresponding to "my-topic" and also store a private copy of the metadata for "my-topic".</p>
 </div>
 <div class="paragraph">
-<p>The private copy allows the operator to cope with scenarios where the topic config gets changed both in Kafka and in OpenShift or Kubernetes, so long as the changes are not incompatible (for example, both changing the same topic config key, but to different values).
-In the case of incompatible changes, the Kafka configuration wins, and the ConfigMap will be updated to reflect that.
-Defaulting to the Kafka configuration ensures that, in the worst case, data won&#8217;t be lost.</p>
+<p>The private copy allows the operator to cope with scenarios where the topic configuration gets changed both in Kafka and in OpenShift or Kubernetes, so long as the changes are not incompatible (for example, both changing the same topic config key, but to different values).
+In the case of incompatible changes, the Kafka configuration wins, and the <code>KafkaTopic</code> will be updated to reflect that.</p>
 </div>
 <div class="paragraph">
 <p>The private copy is held in the same ZooKeeper ensemble used by Kafka itself.
-This mitigates availability concerns, because if ZooKeeper is not running
-then Kafka itself cannot run, so the operator will be no less available
-than it would even if it was stateless.</p>
+This mitigates availability concerns, because if ZooKeeper is not running then Kafka itself cannot run, so the operator will be no less available than it would even if it was stateless.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="usage_recommendations">4.2. Usage Recommendations</h3>
+<h3 id="usage_recommendations">4.3. Usage Recommendations</h3>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Try to either always operate on ConfigMaps or always operate directly on topics.</p>
+<p>Either always operate on <code>KafkaTopic</code> resources or always operate directly on topics. That is, avoid routinely using both methods for a given topic.</p>
 </li>
 <li>
-<p>When creating a ConfigMap:</p>
+<p>When creating a <code>KafkaTopic</code> resource:</p>
 <div class="ulist">
 <ul>
 <li>
-<p>Remember that the name cannot be easily changed later.</p>
+<p>Remember that the name cannot be changed later.</p>
 </li>
 <li>
-<p>Choose a name for the ConfigMap that reflects the name of the topic it describes.</p>
+<p>Choose a name for the <code>KafkaTopic</code> resource that reflects the name of the topic it describes.</p>
 </li>
 <li>
-<p>Ideally the ConfigMap&#8217;s <code>metadata.name</code> should be the same as its <code>data.name</code>.
+<p>Ideally the <code>KafkaTopic.metadata.name</code> should be the same as its <code>spec.topicName</code>.
 To do this, the topic name will have to be a <a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/architecture/identifiers.md">valid Kubernetes resource name</a>.</p>
 </li>
 </ul>
@@ -3259,12 +3236,12 @@ To do this, the topic name will have to be a <a href="https://github.com/kuberne
 <div class="ulist">
 <ul>
 <li>
-<p>Remember that the name cannot be easily changed later.</p>
+<p>Remember that the name cannot be changed later.</p>
 </li>
 <li>
 <p>It is best to use a name that is a <a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/architecture/identifiers.md">valid Kubernetes resource name</a>,
-otherwise the operator will have to sanitize the name when creating
-the corresponding ConfigMap.</p>
+otherwise the operator will have to modify the name when creating
+the corresponding <code>KafkaTopic</code>.</p>
 </li>
 </ul>
 </div>
@@ -3273,304 +3250,357 @@ the corresponding ConfigMap.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="topic_config_map_details">4.3. Format of the ConfigMap</h3>
+<h3 id="format-of-the-kafkatopic-strimzi">4.4. Format of the <code>KafkaTopic</code></h3>
 <div class="paragraph">
-<p>By default, the operator only considers ConfigMaps having the label <code>strimzi.io/kind=topic</code>,
-but this is configurable via the <code>STRIMZI_CONFIGMAP_LABELS</code> environment variable.</p>
+<p>For detailed reference of the API for <code>KafkaTopic</code> see <a href="#type-KafkaTopic"><code>KafkaTopic</code> API documentation</a>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="creating-a-topic-strimzi">4.5. Creating a topic</h3>
+<div class="paragraph">
+<p>This procedure describes how to create a Kafka topic using a <code>KafkaTopic</code> OpenShift or Kubernetes resource.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Kafka cluster.</p>
+</li>
+<li>
+<p>A running Topic Operator.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Prepare a file containing the <code>KafkaTopic</code> to be created</p>
+<div class="listingblock">
+<div class="title">An example <code>KafkaTopic</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaTopic
+metadata:
+  name: orders
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 10
+  replicas: 2</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+It is recommended to use a topic name that is a valid OpenShift or Kubernetes resource name. Doing this means that it is not necessary to set the <code>KafkaTopic.spec.topicName</code> property. In any case the <code>KafkaTopic.spec.topicName</code> cannot be changed after creation.
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The <code>KafkaTopic.spec.partitions</code> cannot be decreased.
+</td>
+</tr>
+</table>
+</div>
+</li>
+<li>
+<p>Create the <code>KafkaTopic</code> resource in OpenShift or Kubernetes.</p>
+<div class="paragraph">
+<p>In Kubernetes this can be done using <code>kubectl</code></p>
+</div>
+<div class="listingblock">
+<div class="title">Replacing the <code>KafkaTopic</code> resource using <code>kubctl create</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
 </div>
 <div class="paragraph">
-<p>The <code>data</code> of such ConfigMaps supports the following keys:</p>
+<p>In OpenShift this can be done using <code>oc</code></p>
+</div>
+<div class="listingblock">
+<div class="title">Replacing the <code>KafkaTopic</code> resource using <code>oc create</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc create -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="changing-a-topic-strimzi">4.6. Changing a topic</h3>
+<div class="paragraph">
+<p>This procedure describes how to change the configuration of an existing Kafka topic by using a <code>KafkaTopic</code> OpenShift or Kubernetes resource.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Kafka cluster.</p>
+</li>
+<li>
+<p>A running Topic Operator.</p>
+</li>
+<li>
+<p>An existing <code>KafkaTopic</code> to be changed.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Prepare a file containing the desired <code>KafkaTopic</code></p>
+<div class="listingblock">
+<div class="title">Example <code>KafkaTopic</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaTopic
+metadata:
+  name: orders
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 16
+  replicas: 2</code></pre>
+</div>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Tip</div>
+</td>
+<td class="content">
+You can get the current version of the resource using <code>oc get kafkatopic orders -o yaml</code>.
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Changing topic names using the <code>KafkaTopic.spec.topicName</code> variable and decreasing partition size using the <code>KafkaTopic.spec.partitions</code> variable is not supported by Kafka.
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Caution</div>
+</td>
+<td class="content">
+Increasing <code>spec.partitions</code> for topics with keys will change how records are partitioned, which can be particularly problematic when the topic uses <em>semantic partitioning</em>.
+</td>
+</tr>
+</table>
+</div>
+</li>
+<li>
+<p>Update the <code>KafkaTopic</code> resource in OpenShift or Kubernetes.</p>
+<div class="paragraph">
+<p>In Kubernetes this can be done using <code>kubectl</code></p>
+</div>
+<div class="listingblock">
+<div class="title">Replacing the <code>KafkaTopic</code> resource using <code>kubctl replace</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl replace -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In OpenShift this can be done using <code>oc</code></p>
+</div>
+<div class="listingblock">
+<div class="title">Replacing the <code>KafkaTopic</code> resource using <code>oc replace</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc replace -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="deleting-a-topic-strimzi">4.7. Deleting a topic</h3>
+<div class="paragraph">
+<p>This procedure describes how to delete a Kafka topic using a <code>KafkaTopic</code> OpenShift or Kubernetes resource.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Kafka cluster.</p>
+</li>
+<li>
+<p>A running Topic Operator.</p>
+</li>
+<li>
+<p>An existing <code>KafkaTopic</code> to be deleted.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Delete the <code>KafkaTopic</code> resource in OpenShift or Kubernetes.</p>
+<div class="paragraph">
+<p>In Kubernetes this can be done using <code>kubectl</code></p>
+</div>
+<div class="listingblock">
+<div class="title">Replacing the <code>KafkaTopic</code> resource using <code>kubctl delete</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete kafkatopic <em>&lt;your-topic-name&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In OpenShift this can be done using <code>oc</code></p>
+</div>
+<div class="listingblock">
+<div class="title">Replacing the <code>KafkaTopic</code> resource using <code>oc delete</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc delete kafkatopic <em>&lt;your-topic-name&gt;</em></code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Whether the topic can actually be deleted depends on the value of the <code>delete.topic.enable</code> Kafka broker configuration, specified in the <code>Kafka.spec.kafka.config</code> property.
+</td>
+</tr>
+</table>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="topic-operator&#8212;&#8203;environment-strimzi">4.8. Topic Operator environment</h3>
+<div class="paragraph">
+<p>When deployed standalone the Topic Operator can be configured using environment variables.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The Topic Operator should be configured using the <code>Kafka.spec.topicOperator</code> property when deployed by the Cluster Operator.
+</td>
+</tr>
+</table>
 </div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1"><code>name</code></dt>
+<dt class="hdlist1"><code>STRIMZI_RESOURCE_LABELS</code></dt>
 <dd>
-<p>The name of the topic. Optional; if this is absent the name of the ConfigMap itself is used.</p>
+<p>The label selector used to identify <code>KafkaTopics</code> to be managed by the operator.</p>
 </dd>
-<dt class="hdlist1"><code>partitions</code></dt>
+<dt class="hdlist1"><code>STRIMZI_ZOOKEEPER_SESSION_TIMEOUT_MS</code></dt>
 <dd>
-<p>The number of partitions of the Kafka topic. This can be increased, but not decreased. Required.</p>
+<p>The Zookeeper session timeout, in milliseconds.
+For example, <code>10000</code>.
+Default: <code>20000</code> (20 seconds).</p>
 </dd>
-<dt class="hdlist1"><code>replicas</code></dt>
+<dt class="hdlist1"><code>STRIMZI_KAFKA_BOOTSTRAP_SERVERS</code></dt>
 <dd>
-<p>The number of replicas of the Kafka topic. This cannot be larger than the number of nodes in the Kafka cluster. Required.</p>
+<p>The list of Kafka bootstrap servers.
+This variable is mandatory.</p>
 </dd>
-<dt class="hdlist1"><code>config</code></dt>
+<dt class="hdlist1"><code>STRIMZI_ZOOKEEPER_CONNECT</code></dt>
 <dd>
-<p>A string in JSON format representing the <a href="https://kafka.apache.org/documentation/#topicconfigs">topic configuration</a>. Optional, defaulting to the empty set.</p>
+<p>The Zookeeper connection information.
+This variable is mandatory.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code></dt>
+<dd>
+<p>The interval between periodic reconciliations, in milliseconds.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_TOPIC_METADATA_MAX_ATTEMPTS</code></dt>
+<dd>
+<p>The number of attempts for getting topics metadata from Kafka.
+The time between each attempt is defined as an exponential back-off.
+You might want to increase this value when topic creation could take more time due to its larger size (that is, many partitions/replicas).
+Default <code>6</code>.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_LOG_LEVEL</code></dt>
+<dd>
+<p>The level for printing logging messages.
+The value can be set to: <code>ERROR</code>, <code>WARNING</code>, <code>INFO</code>, <code>DEBUG</code>, and <code>TRACE</code>.
+Default <code>INFO</code>.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_TLS_ENABLED</code></dt>
+<dd>
+<p>For enabling the TLS support so encrypting the communication with Kafka brokers.
+Default <code>true</code></p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_TRUSTSTORE_LOCATION</code></dt>
+<dd>
+<p>The path to the truststore containing certificates for enabling TLS based communication.
+This variable is mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_TRUSTSTORE_PASSWORD</code></dt>
+<dd>
+<p>The password for accessing the truststore defined by <code>STRIMZI_TRUSTSTORE_LOCATION</code>.
+This variable is mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_KEYSTORE_LOCATION</code></dt>
+<dd>
+<p>The path to the keystore containing private keys for enabling TLS based communication.
+This variable is mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_KEYSTORE_PASSWORD</code></dt>
+<dd>
+<p>The password for accessing the keystore defined by <code>STRIMZI_KEYSTORE_LOCATION</code>.
+This variable is mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>.</p>
 </dd>
 </dl>
 </div>
 </div>
 <div class="sect2">
-<h3 id="example">4.4. Example</h3>
-<div class="paragraph">
-<p>This example shows how to create a topic called "orders" with 10 partitions and 2 replicas.</p>
-</div>
-<div class="sect3">
-<h4 id="on_kubernetes">4.4.1. On Kubernetes</h4>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>The ConfigMap has to be prepared:</p>
-<div class="listingblock">
-<div class="title">Topic declaration ConfigMap</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: orders
-  labels:
-    strimzi.io/kind: topic
-    strimzi.io/cluster: my-cluster
-data:
-  name: orders
-  partitions: "10"
-  replicas: "2"</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Because the <code>config</code> key is omitted from the <code>data</code> the topic&#8217;s config will be empty, and thus default to the
-Kafka broker default.</p>
-</div>
-</li>
-<li>
-<p>The ConfigMap should be created in Kubernetes:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f orders-topic.yaml</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>In case the topic should be later changed to retention time to 4 days, the <code>orders-topic.yaml</code> file can be updated:</p>
-<div class="listingblock">
-<div class="title">Topic declaration ConfigMap with "config" update</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: orders
-  labels:
-    strimzi.io/kind: topic
-    strimzi.io/cluster: my-cluster
-data:
-  name: orders
-  partitions: "10"
-  replicas: "2"
-  config: '{ "retention.ms":"345600000" }'</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>The changes in the file have to be applied on Kubernetes using <code>kubectl update -f</code>.</p>
-</li>
-</ol>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-When the Topic Operator is deployed manually the <code>strimzi.io/cluster</code> label is not necessary.
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect3">
-<h4 id="on_openshift">4.4.2. On OpenShift</h4>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>The ConfigMap has to be prepared:</p>
-<div class="listingblock">
-<div class="title">Topic declaration ConfigMap</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: orders
-  labels:
-    strimzi.io/kind: topic
-    strimzi.io/cluster: my-cluster
-data:
-  name: orders
-  partitions: "10"
-  replicas: "2"</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Because the <code>config</code> key is omitted from the <code>data</code> the topic&#8217;s config will be empty, and thus default to the
-Kafka broker default.</p>
-</div>
-</li>
-<li>
-<p>The ConfigMap should be created in OpenShift:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc create -f orders-topic.yaml</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>In case the topic should be later changed to retention time to 4 days, the <code>orders-topic.yaml</code> file can be updated:</p>
-<div class="listingblock">
-<div class="title">Topic declaration ConfigMap with "config" update</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: orders
-  labels:
-    strimzi.io/kind: topic
-    strimzi.io/cluster: my-cluster
-data:
-  name: orders
-  partitions: "10"
-  replicas: "2"
-  config: '{ "retention.ms":"345600000" }'</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>The changes in the file have to be updated on OpenShift using <code>oc update -f</code>.</p>
-</li>
-</ol>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-When the Topic Operator is deployed manually the <code>strimzi.io/cluster</code> label is not necessary.
-</td>
-</tr>
-</table>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="unsupported_operations">4.5. Unsupported operations</h3>
-<div class="ulist">
-<ul>
-<li>
-<p>The <code>data.name</code> cannot be changed key in a ConfigMap, because Kafka does not support changing topic names.</p>
-</li>
-<li>
-<p>The <code>data.partitions</code> cannot be decreased, because Kafka does not support this.</p>
-</li>
-<li>
-<p>Increasing <code>data.partitions</code> for topics with keys should be exercised with caution, as it will change
-how records are partitioned.</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect2">
-<h3 id="operator_environment">4.6. Operator environment</h3>
-<div class="paragraph">
-<p>The operator is configured from environment variables:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>STRIMZI_CONFIGMAP_LABELS</code>
-– The label selector used to identify ConfigMaps to be managed by the operator.
-  Default: <code>strimzi.io/kind=topic</code>.</p>
-</li>
-<li>
-<p><code>STRIMZI_ZOOKEEPER_SESSION_TIMEOUT_MS</code>
-– The Zookeeper session timeout, in milliseconds.
-For example <code>10000</code>.
-Default: <code>20000</code> (20 seconds).</p>
-</li>
-<li>
-<p><code>STRIMZI_KAFKA_BOOTSTRAP_SERVERS</code>
-– The list of Kafka bootstrap servers.
-This variable is mandatory.</p>
-</li>
-<li>
-<p><code>STRIMZI_ZOOKEEPER_CONNECT</code>
-– The Zookeeper connection information.
-This variable is mandatory.</p>
-</li>
-<li>
-<p><code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code>
-– The interval between periodic reconciliations, in milliseconds.</p>
-</li>
-<li>
-<p><code>STRIMZI_TOPIC_METADATA_MAX_ATTEMPTS</code>
-– The number of attempts for getting topics metadata from Kafka.
-The time between each attempt is defined as an exponential back-off.
-You might want to increase this value when topic creation could take more time due to its larger size (that is, many partitions/replicas).
-Default <code>6</code>.</p>
-</li>
-<li>
-<p><code>STRIMZI_LOG_LEVEL</code>
-– The level for printing logging messages.
-The value can be set to: <code>ERROR</code>, <code>WARNING</code>, <code>INFO</code>, <code>DEBUG</code> and <code>TRACE</code>.
-Default <code>INFO</code>.</p>
-</li>
-<li>
-<p><code>STRIMZI_TLS_ENABLED</code>
-– For enabling the TLS support so encrypting the communication with Kafka brokers.
-Default <code>true</code></p>
-</li>
-<li>
-<p><code>STRIMZI_TRUSTSTORE_LOCATION</code>
-– The path to the truststore containing certificates for enabling TLS based communication.
-This variable is mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>.</p>
-</li>
-<li>
-<p><code>STRIMZI_TRUSTSTORE_PASSWORD</code>
-– The password for accessing the truststore defined by <code>STRIMZI_TRUSTSTORE_LOCATION</code>.
-This variable is mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>.</p>
-</li>
-<li>
-<p><code>STRIMZI_KEYSTORE_LOCATION</code>
-– The path to the keystore containing private keys for enabling TLS based communication.
-This variable is mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>.</p>
-</li>
-<li>
-<p><code>STRIMZI_KEYSTORE_PASSWORD</code>
-– The password for accessing the keystore defined by <code>STRIMZI_KEYSTORE_LOCATION</code>.
-This variable is mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>If the operator configuration needs to be changed the process must be killed and restarted.
-Since the operator is intended to execute within OpenShift or Kubernetes, this can be achieved
-by deleting the pod.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="resource_limits_and_requests">4.7. Resource limits and requests</h3>
+<h3 id="resource_limits_and_requests">4.9. Resource limits and requests</h3>
 <div class="paragraph">
 <p>The Topic Operator can run with resource limits:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>When it is deployed by the Cluster Operator these can be specified in the <code>resources</code> key of the <code>topic-operator-config</code>.</p>
+<p>When it is deployed by the Cluster Operator these can be specified in the <code>Kafka.spec.topicOperator.resources</code> property.</p>
 </li>
 <li>
-<p>When it is not deployed by the Cluster Operator these can be specified on the Deployment in the usual way.</p>
+<p>When it is not deployed by the Cluster Operator these can be specified on the <code>Deployment</code> in the usual way.</p>
 </li>
 </ul>
 </div>
 <div class="sect3">
-<h4 id="minimum_resource_requirements_2">4.7.1. Minimum Resource Requirements</h4>
+<h4 id="minimum_resource_requirements_2">4.9.1. Minimum Resource Requirements</h4>
 <div class="paragraph">
 <p>Testing has shown that the topic operator functions adequately with 96Mi of memory and 100m CPU when watching two topics.
-It is therefore recommended to use these as a minimum when configuring resource requests and not to run it with lower
-limits than these. If the Kafka cluster has more than a handful of topics more generous requests and limits will be
-necessary.</p>
+It is therefore recommended to use these as a minimum when configuring resource requests and not to run it with lower limits than these.
+If the Kafka cluster has more than a handful of topics more generous requests and limits will be necessary.</p>
 </div>
 </div>
 </div>
