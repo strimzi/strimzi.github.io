@@ -523,6 +523,32 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#multi-namespace">3.4.1. Watching multiple namespaces</a></li>
 </ul>
 </li>
+<li><a href="#assembly-scheduling-str">3.5. Configuring pod scheduling</a>
+<ul class="sectlevel3">
+<li><a href="#assembly-scheduling-pods-based-on-other-applications-str">3.5.1. Scheduling pods based on other applications</a>
+<ul class="sectlevel4">
+<li><a href="#con-scheduling-based-on-other-pods-scheduling-based-on-pods">Avoid critical applications to share the node</a></li>
+<li><a href="#affinity-scheduling-based-on-pods">Affinity</a></li>
+<li><a href="#configuring-pod-anti-affinity-in-kafka-components-scheduling-based-on-pods">Configuring pod anti-affinity in Kafka components</a></li>
+</ul>
+</li>
+<li><a href="#assembly-node-scheduling-str">3.5.2. Scheduling pods to specific nodes</a>
+<ul class="sectlevel4">
+<li><a href="#con-scheduling-to-specific-nodes-node-scheduling">Node scheduling</a></li>
+<li><a href="#affinity-node-scheduling">Affinity</a></li>
+<li><a href="#proc-configuring-node-affinity-node-scheduling">Configuring node affinity in Kafka components</a></li>
+</ul>
+</li>
+<li><a href="#assembly-dedidcated-nodes-str">3.5.3. Using dedicated nodes</a>
+<ul class="sectlevel4">
+<li><a href="#con-dedicated-nodes-dedicated-nodes">Dedicated nodes</a></li>
+<li><a href="#affinity-dedicated-nodes">Affinity</a></li>
+<li><a href="#tolerations-dedicated-nodes">Tolerations</a></li>
+<li><a href="#proc-dedicated-nodes-dedicated-nodes">Setting up dedicated nodes and scheduling pods on them</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#deploying-the-topic-operator-str">4. Deploying the Topic Operator</a>
@@ -3758,6 +3784,488 @@ roleRef:
 </div>
 </div>
 </div>
+<div class="sect2">
+<h3 id="assembly-scheduling-str">3.5. Configuring pod scheduling</h3>
+<div id="con-scheduling-str" class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+When two application are scheduled to the same OpenShift or Kubernetes node, both applications might use the same resources like disk I/O and impact performance.
+That can lead to performance degradation.
+Scheduling Kafka pods in a way that avoids sharing nodes with other critical workloads, using the right nodes or dedicated a set of nodes only for Kafka are the best ways how to avoid such problems.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="assembly-scheduling-pods-based-on-other-applications-str">3.5.1. Scheduling pods based on other applications</h4>
+<div class="sect4">
+<h5 id="con-scheduling-based-on-other-pods-scheduling-based-on-pods">Avoid critical applications to share the node</h5>
+<div class="paragraph">
+<p>Pod anti-affinity can be used to ensure that critical applications are never scheduled on the same disk.
+When running Kafka cluster, it is recommended to use pod anti-affinity to ensure that the Kafka brokers do not share the nodes with other workloads like databases.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="affinity-scheduling-based-on-pods">Affinity</h5>
+<div class="paragraph">
+<p>Affinity can be configured using the <code>affinity</code> property in following resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Kafka.spec.kafka</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.topicOperator</code></p>
+</li>
+<li>
+<p><code>KafkaConnect.spec</code></p>
+</li>
+<li>
+<p><code>KafkaConnectS2I.spec</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The affinity configuration can include different types of affinity:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Pod affinity and anti-affinity</p>
+</li>
+<li>
+<p>Node affinity</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The format of the <code>affinity</code> property follows the OpenShift or Kubernetes specification.
+For more details visit the <a href="https://kubernetes.io/docs/concepts/configuration/assign-pod-node/" target="_blank" rel="noopener">Kubernetes node and pod affinity documentation</a>.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="configuring-pod-anti-affinity-in-kafka-components-scheduling-based-on-pods">Configuring pod anti-affinity in Kafka components</h5>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>affinity</code> property in the resource specifying the cluster deployment.
+Use labels to specify the pods which should not be scheduled on the same nodes.
+The <code>topologyKey</code> should be set to <code>kubernetes.io/hostname</code> to specify that the selected pods should not be scheduled on nodes with the same hostname.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: application
+                  operator: In
+                  values:
+                    - postgresql
+                    - mongodb
+          topologyKey: "kubernetes.io/hostname"
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-node-scheduling-str">3.5.2. Scheduling pods to specific nodes</h4>
+<div class="sect4">
+<h5 id="con-scheduling-to-specific-nodes-node-scheduling">Node scheduling</h5>
+<div class="paragraph">
+<p>The OpenShift or Kubernetes cluster usually consists of many different types of worker nodes.
+Some are optimized for CPU heavy workloads, some for memory, while other might be optimized for storage (fast local SSDs) or network.
+Using different nodes helps to optimize both costs and performance.
+To achieve the best possible performance, it is important to allow scheduling of Strimzi components to use the right nodes.</p>
+</div>
+<div class="paragraph">
+<p>OpenShift or Kubernetes uses node affinity to schedule workloads onto specific nodes.
+Node affinity allows you to create a scheduling constraint for the node on which the pod will be scheduled.
+The constraint is specified as a label selector.
+You can specify the label using either the built-in node label like <code>beta.kubernetes.io/instance-type</code> or custom labels to select the right node.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="affinity-node-scheduling">Affinity</h5>
+<div class="paragraph">
+<p>Affinity can be configured using the <code>affinity</code> property in following resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Kafka.spec.kafka</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.topicOperator</code></p>
+</li>
+<li>
+<p><code>KafkaConnect.spec</code></p>
+</li>
+<li>
+<p><code>KafkaConnectS2I.spec</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The affinity configuration can include different types of affinity:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Pod affinity and anti-affinity</p>
+</li>
+<li>
+<p>Node affinity</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The format of the <code>affinity</code> property follows the OpenShift or Kubernetes specification.
+For more details visit the <a href="https://kubernetes.io/docs/concepts/configuration/assign-pod-node/" target="_blank" rel="noopener">Kubernetes node and pod affinity documentation</a>.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-node-affinity-node-scheduling">Configuring node affinity in Kafka components</h5>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Label the nodes where Strimzi components should be scheduled.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl label</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl label node <em>&lt;your-node&gt;</em> node-type=fast-network</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc label</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc label node <em>&lt;your-node&gt;</em> node-type=fast-network</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Alternatively, some of the existing labels might be reused.</p>
+</div>
+</li>
+<li>
+<p>Edit the <code>affinity</code> property in the resource specifying the cluster deployment.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-type
+                operator: In
+                values:
+                - fast-network
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-dedidcated-nodes-str">3.5.3. Using dedicated nodes</h4>
+<div class="sect4">
+<h5 id="con-dedicated-nodes-dedicated-nodes">Dedicated nodes</h5>
+<div class="paragraph">
+<p>Cluster administrators can mark selected OpenShift or Kubernetes nodes as tainted.
+Nodes with taints are excluded from regular scheduling and normal pods will not be scheduled to run on them.
+Only services which can tolerate the taint set on the node can be scheduled on it.
+The only other services running on such nodes will be system services such as log collectors or software defined networks.</p>
+</div>
+<div class="paragraph">
+<p>Taints can be used to create dedicated nodes.
+Running Kafka and its components on dedicated nodes can have many advantages.
+There will be no other applications running on the same nodes which could cause disturbance or consume the resources needed for Kafka.
+That can lead to improved performance and stability.</p>
+</div>
+<div class="paragraph">
+<p>To schedule Kafka pods on the dedicated nodes, configure <a href="#affinity-dedicated-nodes">node affinity</a> and <a href="#tolerations-dedicated-nodes">tolerations</a>.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="affinity-dedicated-nodes">Affinity</h5>
+<div class="paragraph">
+<p>Affinity can be configured using the <code>affinity</code> property in following resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Kafka.spec.kafka</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.topicOperator</code></p>
+</li>
+<li>
+<p><code>KafkaConnect.spec</code></p>
+</li>
+<li>
+<p><code>KafkaConnectS2I.spec</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The affinity configuration can include different types of affinity:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Pod affinity and anti-affinity</p>
+</li>
+<li>
+<p>Node affinity</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The format of the <code>affinity</code> property follows the OpenShift or Kubernetes specification.
+For more details visit the <a href="https://kubernetes.io/docs/concepts/configuration/assign-pod-node/" target="_blank" rel="noopener">Kubernetes node and pod affinity documentation</a>.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="tolerations-dedicated-nodes">Tolerations</h5>
+<div class="paragraph">
+<p>Tolerations ca be configured using the <code>tolerations</code> property in following resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Kafka.spec.kafka</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper</code></p>
+</li>
+<li>
+<p><code>KafkaConnect.spec</code></p>
+</li>
+<li>
+<p><code>KafkaConnectS2I.spec</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The format of the <code>tolerations</code> property follows the OpenShift or Kubernetes specification.
+For more details visit the <a href="https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/" target="_blank" rel="noopener">Kubernetes taints and tolerations</a>.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-dedicated-nodes-dedicated-nodes">Setting up dedicated nodes and scheduling pods on them</h5>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Select the nodes which should be used as dedicated</p>
+</li>
+<li>
+<p>Make sure there are no workloads scheduled on these nodes</p>
+</li>
+<li>
+<p>Set the taints on the selected nodes</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl taint</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl taint node <em>&lt;your-node&gt;</em> -l dedicated=Kafka:NoSchedule</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc adm taint</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc adm taint node <em>&lt;your-node&gt;</em> -l dedicated=Kafka:NoSchedule</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Additionally, add a label to the selected nodes as well.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl label</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl label node <em>&lt;your-node&gt;</em> -l dedicated=Kafka</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc label</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc label node <em>&lt;your-node&gt;</em> -l dedicated=Kafka</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Edit the <code>affinity</code> and <code>tolerations</code> properties in the resource specifying the cluster deployment.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    tolerations:
+      - key: "dedicated"
+        operator: "Equal"
+        value: "Kafka"
+        effect: "NoSchedule"
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: dedicated
+              operator: In
+              values:
+              - Kafka
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -3858,7 +4366,7 @@ This mitigates availability concerns, because if ZooKeeper is not running then K
 <p>Edit the <code>Kafka</code> resource specifying in the <code>Kafka.spec.topicOperator.resources</code> property the resource requests and limits you want the Topic Operator to have.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: {KafkaApiVersion}
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
 kind: Kafka
 spec:
   # kafka and zookeeper sections...
@@ -6567,7 +7075,7 @@ For accessing the dashboard, you can use the <code>port-forward</code> command f
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-08-09 07:46:15 UTC
+Last updated 2018-08-09 08:01:16 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
