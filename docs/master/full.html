@@ -523,23 +523,34 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#multi-namespace">3.4.1. Watching multiple namespaces</a></li>
 </ul>
 </li>
-<li><a href="#assembly-scheduling-str">3.5. Configuring pod scheduling</a>
+<li><a href="#assembly-storage-str">3.5. Kafka and Zookeeper storage</a>
 <ul class="sectlevel3">
-<li><a href="#assembly-scheduling-pods-based-on-other-applications-str">3.5.1. Scheduling pods based on other applications</a>
+<li><a href="#ref-storage-str">3.5.1. Storage</a>
+<ul class="sectlevel4">
+<li><a href="#ephemeral_storage">Ephemeral storage</a></li>
+<li><a href="#persistent_storage">Persistent storage</a></li>
+<li><a href="#additional_resources">Additional resources</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#assembly-scheduling-str">3.6. Configuring pod scheduling</a>
+<ul class="sectlevel3">
+<li><a href="#assembly-scheduling-pods-based-on-other-applications-str">3.6.1. Scheduling pods based on other applications</a>
 <ul class="sectlevel4">
 <li><a href="#con-scheduling-based-on-other-pods-scheduling-based-on-pods">Avoid critical applications to share the node</a></li>
 <li><a href="#affinity-scheduling-based-on-pods">Affinity</a></li>
 <li><a href="#configuring-pod-anti-affinity-in-kafka-components-scheduling-based-on-pods">Configuring pod anti-affinity in Kafka components</a></li>
 </ul>
 </li>
-<li><a href="#assembly-node-scheduling-str">3.5.2. Scheduling pods to specific nodes</a>
+<li><a href="#assembly-node-scheduling-str">3.6.2. Scheduling pods to specific nodes</a>
 <ul class="sectlevel4">
 <li><a href="#con-scheduling-to-specific-nodes-node-scheduling">Node scheduling</a></li>
 <li><a href="#affinity-node-scheduling">Affinity</a></li>
 <li><a href="#proc-configuring-node-affinity-node-scheduling">Configuring node affinity in Kafka components</a></li>
 </ul>
 </li>
-<li><a href="#assembly-dedidcated-nodes-str">3.5.3. Using dedicated nodes</a>
+<li><a href="#assembly-dedidcated-nodes-str">3.6.3. Using dedicated nodes</a>
 <ul class="sectlevel4">
 <li><a href="#con-dedicated-nodes-dedicated-nodes">Dedicated nodes</a></li>
 <li><a href="#affinity-dedicated-nodes">Affinity</a></li>
@@ -3788,7 +3799,210 @@ roleRef:
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-scheduling-str">3.5. Configuring pod scheduling</h3>
+<h3 id="assembly-storage-str">3.5. Kafka and Zookeeper storage</h3>
+<div class="paragraph">
+<p>Kafka brokers and Zookeeper are stateful applications.
+They need to store data on disks.
+Strimzi allows you to configure the type of storage, which they want to use for Kafka and Zookeeper.
+Storage configuration is mandatory and has to be specified in every <code>Kafka</code> resource.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+Once the Kafka cluster is deployed, the storage cannot be changed.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="ref-storage-str">3.5.1. Storage</h4>
+<div class="paragraph">
+<p>Storage can be configured using the <code>storage</code> property in following resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Kafka.spec.kafka</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Strimzi supports two types of storage:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Ephemeral</p>
+</li>
+<li>
+<p>Persistent</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The type of storage is specified in the <code>type</code> field.</p>
+</div>
+<div class="sect4">
+<h5 id="ephemeral_storage">Ephemeral storage</h5>
+<div class="paragraph">
+<p>Ephemeral storage is using the <a href="https://kubernetes.io/docs/concepts/storage/volumes/#emptydir" target="_blank" rel="noopener">`emptyDir` volumes</a> to store tha data.
+To use ephemeral storage, the <code>type</code> field should be set to <code>ephemeral</code>.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+<code>EmptyDir</code> volumes are not persistent and the data stored in them will be lost when the Pod is restarted.
+After the new pod is started, it has to recover all data from other nodes of the cluster.
+Ephemeral storage is not suitable for use with single node Zookeeper clusters and for Kafka topics with replication factor 1, because it will lead to data loss.
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">An example of Ephemeral storage</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    storage:
+      type: ephemeral
+    # ...
+  zookeeper:
+    # ...
+    storage:
+      type: ephemeral
+    # ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="persistent_storage">Persistent storage</h5>
+<div class="paragraph">
+<p>Persistent storage uses <a href="https://kubernetes.io/docs/concepts/storage/dynamic-provisioning/" target="_blank" rel="noopener">Persistent Volume Claims</a> to provision persistent volumes for storing data.
+Persistent Volume Claims can be used to provision volumes of many different types, depending on the <a href="https://kubernetes.io/docs/concepts/storage/storage-classes/" target="_blank" rel="noopener">Storage Class</a> which will provision the volume.
+The data types which can be used with persistent volume claims include many types of SAN storage as well as <a href="https://kubernetes.io/docs/concepts/storage/volumes/#local" target="_blank" rel="noopener">Local persistent volumes</a>.</p>
+</div>
+<div class="paragraph">
+<p>To use persistent storage, the <code>type</code> has to be set to <code>persistent-claim</code>.
+Persistent storage supports additional configuration options:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>size</code> (required)</dt>
+<dd>
+<p>Defines the size of the persistent volume claim, for example, "1000Gi".</p>
+</dd>
+<dt class="hdlist1"><code>class</code> (optional)</dt>
+<dd>
+<p>The OpenShift or Kubernetes <a href="https://kubernetes.io/docs/concepts/storage/storage-classes/" target="_blank" rel="noopener">Storage Class</a> to use for dynamic volume provisioning.</p>
+</dd>
+<dt class="hdlist1"><code>selector</code> (optional)</dt>
+<dd>
+<p>Allows selecting a specific persistent volume to use.
+It contains a <code>matchLabels</code> field which contains key:value pairs representing labels for selecting such a volume.</p>
+</dd>
+<dt class="hdlist1"><code>delete-claim</code> (optional)</dt>
+<dd>
+<p>Boolean value which specifies if the Persistent Volume Claim has to be deleted when the cluster is undeployed.
+Default is <code>false</code>.</p>
+</dd>
+</dl>
+</div>
+<div class="listingblock">
+<div class="title">Example fragment of persistent storage configuration with 1000Gi <code>size</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+storage:
+  type: persistent-claim
+  size: 1000Gi
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The following example demonstrates the use of a storage class.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example fragment of persistent storage configuration with specific Storage Class</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+storage:
+  type: persistent-claim
+  size: 1Gi
+  class: my-storage-class
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Finally, a <code>selector</code> can be used in order to select a specific labelled persistent volume which provides some needed features like an SSD.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example fragment of persistent storage configuration with selector</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+storage:
+  type: persistent-claim
+  size: 1Gi
+  selector:
+    matchLabels:
+      "hdd-type": "ssd"
+  deleteClaim: true
+# ...</code></pre>
+</div>
+</div>
+<div class="sect5">
+<h6 id="persistent_volume_claim_naming">Persistent Volume Claim naming</h6>
+<div class="paragraph">
+<p>When the persistent storage is used, it will create Persistent Volume Claims with following names:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>data-<em>&lt;cluster-name&gt;</em>-kafka-<em>&lt;idx&gt;</em></code></dt>
+<dd>
+<p>Persistent Volume Claim for the volume used for storing data for the Kafka broker pod <code>[idx]</code>.</p>
+</dd>
+<dt class="hdlist1"><code>data-<em>&lt;cluster-name&gt;</em>-zookeeper-<em>&lt;idx&gt;</em></code></dt>
+<dd>
+<p>Persistent Volume Claim for the volume used for storing data for the Zookeeper node pod <code>[idx]</code>.</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="additional_resources">Additional resources</h5>
+<div class="ulist">
+<ul>
+<li>
+<p>For more information about ephemeral storage, visit <a href="#type-EphemeralStorage-reference">ephemeral storage schema reference</a>.</p>
+</li>
+<li>
+<p>For more information about persistent storage, visit <a href="#type-PersistentClaimStorage-reference">persistent storage schema reference</a>.</p>
+</li>
+<li>
+<p>For more information about the schema for <code>Kafka</code>, see <a href="#type-Kafka-reference"><code>Kafka</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="assembly-scheduling-str">3.6. Configuring pod scheduling</h3>
 <div id="con-scheduling-str" class="admonitionblock important">
 <table>
 <tr>
@@ -3804,7 +4018,7 @@ Scheduling Kafka pods in a way that avoids sharing nodes with other critical wor
 </table>
 </div>
 <div class="sect3">
-<h4 id="assembly-scheduling-pods-based-on-other-applications-str">3.5.1. Scheduling pods based on other applications</h4>
+<h4 id="assembly-scheduling-pods-based-on-other-applications-str">3.6.1. Scheduling pods based on other applications</h4>
 <div class="sect4">
 <h5 id="con-scheduling-based-on-other-pods-scheduling-based-on-pods">Avoid critical applications to share the node</h5>
 <div class="paragraph">
@@ -3923,7 +4137,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-node-scheduling-str">3.5.2. Scheduling pods to specific nodes</h4>
+<h4 id="assembly-node-scheduling-str">3.6.2. Scheduling pods to specific nodes</h4>
 <div class="sect4">
 <h5 id="con-scheduling-to-specific-nodes-node-scheduling">Node scheduling</h5>
 <div class="paragraph">
@@ -4068,7 +4282,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-dedidcated-nodes-str">3.5.3. Using dedicated nodes</h4>
+<h4 id="assembly-dedidcated-nodes-str">3.6.3. Using dedicated nodes</h4>
 <div class="sect4">
 <h5 id="con-dedicated-nodes-dedicated-nodes">Dedicated nodes</h5>
 <div class="paragraph">
@@ -7271,7 +7485,7 @@ For accessing the dashboard, you can use the <code>port-forward</code> command f
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-08-11 19:30:32 UTC
+Last updated 2018-08-13 11:46:22 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
