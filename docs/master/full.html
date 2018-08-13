@@ -534,23 +534,45 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 </ul>
 </li>
-<li><a href="#assembly-scheduling-str">3.6. Configuring pod scheduling</a>
+<li><a href="#assembly-configuring-kafka-broker-listeners-str">3.6. Configuring Kafka broker listeners</a>
 <ul class="sectlevel3">
-<li><a href="#assembly-scheduling-pods-based-on-other-applications-str">3.6.1. Scheduling pods based on other applications</a>
+<li><a href="#ref-kafka-listeners-str">3.6.1. Kafka listeners</a></li>
+<li><a href="#proc-configuring-kafka-listeners-str">3.6.2. Configuring Kafka listeners</a></li>
+</ul>
+</li>
+<li><a href="#assembly-kafka-authentication-and-authorization-str">3.7. Authentication and Authorization</a>
+<ul class="sectlevel3">
+<li><a href="#ref-kafka-authentication-str">3.7.1. Authentication</a>
+<ul class="sectlevel4">
+<li><a href="#tls_client_authentication">TLS Client Authentication</a></li>
+</ul>
+</li>
+<li><a href="#proc-kafka-authentication-str">3.7.2. Configuring authentication in Kafka brokers</a></li>
+<li><a href="#ref-kafka-authorization-str">3.7.3. Authorization</a>
+<ul class="sectlevel4">
+<li><a href="#simple_authorization">Simple authorization</a></li>
+</ul>
+</li>
+<li><a href="#proc-kafka-authorization-str">3.7.4. Configuring authorization in Kafka brokers</a></li>
+</ul>
+</li>
+<li><a href="#assembly-scheduling-str">3.8. Configuring pod scheduling</a>
+<ul class="sectlevel3">
+<li><a href="#assembly-scheduling-pods-based-on-other-applications-str">3.8.1. Scheduling pods based on other applications</a>
 <ul class="sectlevel4">
 <li><a href="#con-scheduling-based-on-other-pods-scheduling-based-on-pods">Avoid critical applications to share the node</a></li>
 <li><a href="#affinity-scheduling-based-on-pods">Affinity</a></li>
 <li><a href="#configuring-pod-anti-affinity-in-kafka-components-scheduling-based-on-pods">Configuring pod anti-affinity in Kafka components</a></li>
 </ul>
 </li>
-<li><a href="#assembly-node-scheduling-str">3.6.2. Scheduling pods to specific nodes</a>
+<li><a href="#assembly-node-scheduling-str">3.8.2. Scheduling pods to specific nodes</a>
 <ul class="sectlevel4">
 <li><a href="#con-scheduling-to-specific-nodes-node-scheduling">Node scheduling</a></li>
 <li><a href="#affinity-node-scheduling">Affinity</a></li>
 <li><a href="#proc-configuring-node-affinity-node-scheduling">Configuring node affinity in Kafka components</a></li>
 </ul>
 </li>
-<li><a href="#assembly-dedidcated-nodes-str">3.6.3. Using dedicated nodes</a>
+<li><a href="#assembly-dedidcated-nodes-str">3.8.3. Using dedicated nodes</a>
 <ul class="sectlevel4">
 <li><a href="#con-dedicated-nodes-dedicated-nodes">Dedicated nodes</a></li>
 <li><a href="#affinity-dedicated-nodes">Affinity</a></li>
@@ -4002,7 +4024,343 @@ storage:
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-scheduling-str">3.6. Configuring pod scheduling</h3>
+<h3 id="assembly-configuring-kafka-broker-listeners-str">3.6. Configuring Kafka broker listeners</h3>
+<div class="paragraph">
+<p>Strimzi allows users to configure the listeners which will be enabled in Kafka brokers.
+Two types of listeners are supported:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Plain listener on port 9092 (without encryption)</p>
+</li>
+<li>
+<p>TLS listener on port 9093 (with encryption)</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="ref-kafka-listeners-str">3.6.1. Kafka listeners</h4>
+<div class="paragraph">
+<p>Kafka broker listeners can be configured using the <code>listeners</code> property in the <code>Kafka.spec.kafka</code> resource.
+The <code>listeners</code> property contains two sub-properties:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>plain</code></p>
+</li>
+<li>
+<p><code>tls</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>When these sub-properties are not defined, the listener will be disabled.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example of <code>listeners</code> property with all listeners enabled</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+listeners:
+  plain: {}
+  tls: {}
+# ...</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">An example of <code>listeners</code> property with only the plain listener enables</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+listeners:
+  plain: {}
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The listener sub-properties might also contain additional configuration.
+Currently, the only supported configuration is authentication on the <code>tls</code> listener.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example of <code>tls</code> listener with TLS client authentication enabled</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+listeners:
+  tls:
+    authentication:
+      type: tls
+# ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-configuring-kafka-listeners-str">3.6.2. Configuring Kafka listeners</h4>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>listeners</code> property in the <code>Kafka.spec.kafka</code> resource.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    listeners:
+      plain: {}
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about the schema for <code>Kafka</code>, see <a href="#type-Kafka-reference"><code>Kafka</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="assembly-kafka-authentication-and-authorization-str">3.7. Authentication and Authorization</h3>
+<div class="paragraph">
+<p>Strimzi supports authentication and authorization.
+Authentication can be configured independently for each <a href="#assembly-configuring-kafka-broker-listeners-str">listener</a>.
+Authorization is always configured for the whole Kafka cluster.</p>
+</div>
+<div class="sect3">
+<h4 id="ref-kafka-authentication-str">3.7.1. Authentication</h4>
+<div class="paragraph">
+<p>Authentication is configured as part of the <a href="#assembly-configuring-kafka-broker-listeners-str">listener configuration</a> in the <code>authentication</code> property.
+When the <code>authentication</code> property is missing, no authentication will be enabled on given listener.
+The authentication mechanism which will be used is defined by the <code>type</code> field.</p>
+</div>
+<div class="paragraph">
+<p>Currently, the only supported authentication mechanism is the TLS client authentication.</p>
+</div>
+<div class="sect4">
+<h5 id="tls_client_authentication">TLS Client Authentication</h5>
+<div class="paragraph">
+<p>TLS Client authentication can be enabled by specifying the <code>type</code> as <code>tls</code>.
+The TLS client authentication is supported only on the <code>tls</code> listener.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example of <code>authentication</code> with type <code>tls</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+authentication:
+  type: tls
+# ...</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-kafka-authentication-str">3.7.2. Configuring authentication in Kafka brokers</h4>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>listeners</code> property in the <code>Kafka.spec.kafka</code> resource.
+Add the <code>authentication</code> field to the listeners where you want to enable authentication.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    listeners:
+      tls:
+        authentication:
+          type: tls
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about the supported authentication mechanisms, see <a href="#ref-kafka-authentication-str">authentication reference</a>.</p>
+</li>
+<li>
+<p>For more information about the schema for <code>Kafka</code>, see <a href="#type-Kafka-reference"><code>Kafka</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="ref-kafka-authorization-str">3.7.3. Authorization</h4>
+<div class="paragraph">
+<p>Authorization can be configured using the <code>authorization</code> property in the <code>Kafka.spec.kafka</code> resource.
+When the <code>authorization</code> property is missing, no authorization will be enabled.
+When authorization is enabled it will be applied for all enabled <a href="#assembly-configuring-kafka-broker-listeners-str">listeners</a>.
+The authorization method is defined by the <code>type</code> field.</p>
+</div>
+<div class="paragraph">
+<p>Currently, the only supported authorization method is the Simple authorization.</p>
+</div>
+<div class="sect4">
+<h5 id="simple_authorization">Simple authorization</h5>
+<div class="paragraph">
+<p>Simple authorization is using the <code>SimpleAclAuthorizer</code> plugin.
+<code>SimpleAclAuthorizer</code> is the default authorization plugin which is part of Apache Kafka.
+To enable simple authorization, the <code>type</code> field should be set to <code>simple</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example of Simple authorization</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+authorization:
+  type: simple
+# ...</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-kafka-authorization-str">3.7.4. Configuring authorization in Kafka brokers</h4>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Add or edit the <code>authorization</code> property in the <code>Kafka.spec.kafka</code> resource.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    authorization:
+      type: simple
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about the supported authorization methods, see <a href="#ref-kafka-authorization-str">authorization reference</a>.</p>
+</li>
+<li>
+<p>For more information about the schema for <code>Kafka</code>, see <a href="#type-Kafka-reference"><code>Kafka</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="assembly-scheduling-str">3.8. Configuring pod scheduling</h3>
 <div id="con-scheduling-str" class="admonitionblock important">
 <table>
 <tr>
@@ -4018,7 +4376,7 @@ Scheduling Kafka pods in a way that avoids sharing nodes with other critical wor
 </table>
 </div>
 <div class="sect3">
-<h4 id="assembly-scheduling-pods-based-on-other-applications-str">3.6.1. Scheduling pods based on other applications</h4>
+<h4 id="assembly-scheduling-pods-based-on-other-applications-str">3.8.1. Scheduling pods based on other applications</h4>
 <div class="sect4">
 <h5 id="con-scheduling-based-on-other-pods-scheduling-based-on-pods">Avoid critical applications to share the node</h5>
 <div class="paragraph">
@@ -4137,7 +4495,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-node-scheduling-str">3.6.2. Scheduling pods to specific nodes</h4>
+<h4 id="assembly-node-scheduling-str">3.8.2. Scheduling pods to specific nodes</h4>
 <div class="sect4">
 <h5 id="con-scheduling-to-specific-nodes-node-scheduling">Node scheduling</h5>
 <div class="paragraph">
@@ -4282,7 +4640,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-dedidcated-nodes-str">3.6.3. Using dedicated nodes</h4>
+<h4 id="assembly-dedidcated-nodes-str">3.8.3. Using dedicated nodes</h4>
 <div class="sect4">
 <h5 id="con-dedicated-nodes-dedicated-nodes">Dedicated nodes</h5>
 <div class="paragraph">
@@ -7485,7 +7843,7 @@ For accessing the dashboard, you can use the <code>port-forward</code> command f
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-08-13 11:46:22 UTC
+Last updated 2018-08-13 12:51:46 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
