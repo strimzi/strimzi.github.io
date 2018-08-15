@@ -57,6 +57,12 @@
 <li><a href="#logging">2.5.4. Logging</a></li>
 </ul>
 </li>
+<li><a href="#assembly-getting-started-user-operator-str">2.6. User Operator</a>
+<ul class="sectlevel3">
+<li><a href="#con-what-the-user-operator-does-str">2.6.1. What the User Operator does</a></li>
+<li><a href="#proc-deploying-the-user-operator-using-the-cluster-operator-str">2.6.2. Deploying the User Operator using the Cluster Operator</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#cluster_operator">3. Cluster Operator</a>
@@ -178,12 +184,42 @@
 <li><a href="#deleting-a-topic-str">5.4. Deleting a topic</a></li>
 </ul>
 </li>
-<li><a href="#security">6. Security</a>
+<li><a href="#assembly-user-operator-str">6. User Operator</a>
 <ul class="sectlevel2">
-<li><a href="#certificates">6.1. Certificates</a></li>
-<li><a href="#interbroker_kafka_communication">6.2. Interbroker Kafka Communication</a></li>
-<li><a href="#zookeeper_communication">6.3. Zookeeper Communication</a></li>
-<li><a href="#kafka_client_connections_via_tls">6.4. Kafka Client connections via TLS</a></li>
+<li><a href="#con-what-the-user-operator-does-deploying-uo">6.1. What the User Operator does</a></li>
+<li><a href="#proc-deploying-the-user-operator-using-the-cluster-operator-deploying-uo">6.2. Deploying the User Operator using the Cluster Operator</a></li>
+<li><a href="#proc-deploying-the-user-operator-standalone-deploying-uo">6.3. Deploying the standalone User Operator</a></li>
+</ul>
+</li>
+<li><a href="#assembly-using-the-user-operator-str">7. Using the User Operator</a>
+<ul class="sectlevel2">
+<li><a href="#con-what-the-user-operator-does-using-uo">7.1. What the User Operator does</a></li>
+<li><a href="#proc-creating-kafka-user-using-uo">7.2. Creating a Kafka user</a></li>
+<li><a href="#proc-changing-kafka-user-using-uo">7.3. Editing a Kafka user</a></li>
+<li><a href="#deleting-kafka-user-using-uo">7.4. Deleting a Kafka user</a></li>
+<li><a href="#ref-kafka-user-using-uo">7.5. Kafka User resource</a>
+<ul class="sectlevel3">
+<li><a href="#authentication">7.5.1. Authentication</a>
+<ul class="sectlevel4">
+<li><a href="#tls_client_authentication_2">TLS Client Authentication</a></li>
+</ul>
+</li>
+<li><a href="#authorization">7.5.2. Authorization</a>
+<ul class="sectlevel4">
+<li><a href="#simple_authorization_2">Simple Authorization</a></li>
+</ul>
+</li>
+<li><a href="#additional_resources_2">7.5.3. Additional resources</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#security">8. Security</a>
+<ul class="sectlevel2">
+<li><a href="#certificates">8.1. Certificates</a></li>
+<li><a href="#interbroker_kafka_communication">8.2. Interbroker Kafka Communication</a></li>
+<li><a href="#zookeeper_communication">8.3. Zookeeper Communication</a></li>
+<li><a href="#kafka_client_connections_via_tls">8.4. Kafka Client connections via TLS</a></li>
 </ul>
 </li>
 <li><a href="#frequently_asked_questions">Appendix A: Frequently Asked Questions</a>
@@ -1255,7 +1291,7 @@ For instance is can operate <em>with</em> any Kafka cluster, not necessarily one
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Edit the <code>examples/install/cluster-operator/05-Deployment-strimzi-topic-operator.yaml</code> resource. You will need to change the following</p>
+<p>Edit the <code>examples/install/topic-operator/05-Deployment-strimzi-topic-operator.yaml</code> resource. You will need to change the following</p>
 <div class="olist loweralpha">
 <ol class="loweralpha" type="a">
 <li>
@@ -1277,7 +1313,7 @@ For instance is can operate <em>with</em> any Kafka cluster, not necessarily one
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/install/cluster-operator</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/install/topic-operator</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1285,7 +1321,7 @@ For instance is can operate <em>with</em> any Kafka cluster, not necessarily one
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f examples/install/cluster-operator</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f examples/install/topic-operator</code></pre>
 </div>
 </div>
 </li>
@@ -1373,6 +1409,96 @@ When the Topic Operator is deployed manually the <code>strimzi.io/cluster</code>
 </div>
 <div class="paragraph">
 <p>When using external ConfigMap remember to place your custom ConfigMap under <code>log4j2.properties</code> key.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="assembly-getting-started-user-operator-str">2.6. User Operator</h3>
+<div class="paragraph">
+<p>The User Operator provides a way of managing Kafka users via OpenShift or Kubernetes resources.</p>
+</div>
+<div class="sect3">
+<h4 id="con-what-the-user-operator-does-str">2.6.1. What the User Operator does</h4>
+<div class="paragraph">
+<p>The User Operator manages Kafka users for a Kafka cluster by watching for <code>KafkaUser</code> OpenShift or Kubernetes resources that describe Kafka users and ensuring that they are configured properly in the Kafka cluster.
+For example:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>if a <code>KafkaUser</code> is created, the User Operator will create the user it describes</p>
+</li>
+<li>
+<p>if a <code>KafkaUser</code> is deleted, the User Operator will delete the user it describes</p>
+</li>
+<li>
+<p>if a <code>KafkaUser</code> is changed, the User Operator will update the user it describes</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Unlike the <a href="#what-the-topic-operator-does-str">Topic Operator</a>, the User Operator does not sync any changes from the Kafka cluster with the OpenShift or Kubernetes resources.
+Unlike the Kafka topics which might be created by applications directly in Kafka, it is not expected that the users will be managed directly in the Kafka cluster in parallel with the User Operator, so this should not be needed.</p>
+</div>
+<div class="paragraph">
+<p>The User Operator allows you to declare a <code>KafkaUser</code> as part of your application&#8217;s deployment.
+When the user is created, the credentials will be created in a <code>Secret</code>.
+Your application needs to use the user and its credentials for authentication and to produce or consume messages.</p>
+</div>
+<div class="paragraph">
+<p>In addition to managing credentials for authentication, the User Operator also manages authorization rules by including a description of the user&#8217;s rights in the <code>KafkaUser</code> declaration.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-deploying-the-user-operator-using-the-cluster-operator-str">2.6.2. Deploying the User Operator using the Cluster Operator</h4>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Cluster Operator.</p>
+</li>
+<li>
+<p>A <code>Kafka</code> resource to be created or updated.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>Kafka</code> resource ensuring it has a <code>Kafka.spec.entityOperator.userOperator</code> object that configures the User Operator how you want.</p>
+</li>
+<li>
+<p>Create or update the Kafka resource in OpenShift or Kubernetes.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about deploying the Cluster Operator, see <a href="#cluster-operator-str">Cluster Operator</a>.</p>
+</li>
+<li>
+<p>For more information about the <code>Kafka.spec.entityOperator</code> object used to configure the User Operator when deployed by the Cluster Operator, see <a href="#type-EntityOperatorSpec-reference"><code>EntityOperatorSpec</code> schema reference</a>.</p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -4819,7 +4945,7 @@ For instance is can operate <em>with</em> any Kafka cluster, not necessarily one
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Edit the <code>examples/install/cluster-operator/05-Deployment-strimzi-topic-operator.yaml</code> resource. You will need to change the following</p>
+<p>Edit the <code>examples/install/topic-operator/05-Deployment-strimzi-topic-operator.yaml</code> resource. You will need to change the following</p>
 <div class="olist loweralpha">
 <ol class="loweralpha" type="a">
 <li>
@@ -4841,7 +4967,7 @@ For instance is can operate <em>with</em> any Kafka cluster, not necessarily one
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/install/cluster-operator</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/install/topic-operator</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -4849,7 +4975,7 @@ For instance is can operate <em>with</em> any Kafka cluster, not necessarily one
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f examples/install/cluster-operator</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f examples/install/topic-operator</code></pre>
 </div>
 </div>
 </li>
@@ -5315,7 +5441,724 @@ Whether the topic can actually be deleted depends on the value of the <code>dele
 </div>
 </div>
 <div class="sect1">
-<h2 id="security">6. Security</h2>
+<h2 id="assembly-user-operator-str">6. User Operator</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The User Operator provides a way of managing Kafka users via OpenShift or Kubernetes resources.</p>
+</div>
+<div class="sect2">
+<h3 id="con-what-the-user-operator-does-deploying-uo">6.1. What the User Operator does</h3>
+<div class="paragraph">
+<p>The User Operator manages Kafka users for a Kafka cluster by watching for <code>KafkaUser</code> OpenShift or Kubernetes resources that describe Kafka users and ensuring that they are configured properly in the Kafka cluster.
+For example:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>if a <code>KafkaUser</code> is created, the User Operator will create the user it describes</p>
+</li>
+<li>
+<p>if a <code>KafkaUser</code> is deleted, the User Operator will delete the user it describes</p>
+</li>
+<li>
+<p>if a <code>KafkaUser</code> is changed, the User Operator will update the user it describes</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Unlike the <a href="#what-the-topic-operator-does-str">Topic Operator</a>, the User Operator does not sync any changes from the Kafka cluster with the OpenShift or Kubernetes resources.
+Unlike the Kafka topics which might be created by applications directly in Kafka, it is not expected that the users will be managed directly in the Kafka cluster in parallel with the User Operator, so this should not be needed.</p>
+</div>
+<div class="paragraph">
+<p>The User Operator allows you to declare a <code>KafkaUser</code> as part of your application&#8217;s deployment.
+When the user is created, the credentials will be created in a <code>Secret</code>.
+Your application needs to use the user and its credentials for authentication and to produce or consume messages.</p>
+</div>
+<div class="paragraph">
+<p>In addition to managing credentials for authentication, the User Operator also manages authorization rules by including a description of the user&#8217;s rights in the <code>KafkaUser</code> declaration.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-deploying-the-user-operator-using-the-cluster-operator-deploying-uo">6.2. Deploying the User Operator using the Cluster Operator</h3>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Cluster Operator.</p>
+</li>
+<li>
+<p>A <code>Kafka</code> resource to be created or updated.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>Kafka</code> resource ensuring it has a <code>Kafka.spec.entityOperator.userOperator</code> object that configures the User Operator how you want.</p>
+</li>
+<li>
+<p>Create or update the Kafka resource in OpenShift or Kubernetes.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about deploying the Cluster Operator, see <a href="#cluster-operator-str">Cluster Operator</a>.</p>
+</li>
+<li>
+<p>For more information about the <code>Kafka.spec.entityOperator</code> object used to configure the User Operator when deployed by the Cluster Operator, see <a href="#type-EntityOperatorSpec-reference"><code>EntityOperatorSpec</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-deploying-the-user-operator-standalone-deploying-uo">6.3. Deploying the standalone User Operator</h3>
+<div class="paragraph">
+<p>Deploying the User Operator as a standalone component is more complicated than installing it using the Cluster Operator, but is more flexible.
+For instance it can operate <em>with</em> any Kafka cluster, not only the one deployed by the Cluster Operator.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An existing Kafka cluster for the User Operator to connect to.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>examples/install/user-operator/05-Deployment-strimzi-user-operator.yaml</code> resource. You will need to change the following</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>The <code>STRIMZI_CA_NAME</code> environment variable in <code>Deployment.spec.template.spec.containers[0].env</code> should be set to point to an OpenShift or Kubernetes <code>Secret</code> which should contain the Certificate Authority for signing new user certificates for TLS Client Authentication.
+The <code>Secret</code> should contain the public key of the Certificate Authority under the key <code>clients-ca.crt</code> and the private key under <code>clients-ca.key</code>.</p>
+</li>
+<li>
+<p>The <code>STRIMZI_ZOOKEEPER_CONNECT</code> environment variable in <code>Deployment.spec.template.spec.containers[0].env</code> should be set to a list of the Zookeeper nodes, given as a comma-separated list of <code><em>&lt;hostname&gt;</em>:‍<em>&lt;port&gt;</em></code> pairs. This should be the same Zookeeper cluster that your Kafka cluster is using.</p>
+</li>
+<li>
+<p>The <code>STRIMZI_NAMESPACE</code> environment variable in <code>Deployment.spec.template.spec.containers[0].env</code> should be set to the OpenShift or Kubernetes namespace in which you want the operator to watch for  <code>KafkaUser</code> resources.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Deploy the Cluster Operator.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/install/user-operator</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f examples/install/user-operator</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Verify that the User Operator has been deployed successfully.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl describe</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl describe deployment strimzi-user-operator</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc describe</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc describe deployment strimzi-user-operator</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The User Operator is deployed once the <code>Replicas:</code> entry shows <code>1 available</code>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+This could take some time if you have a slow connection to the OpenShift or Kubernetes and the images have not been downloaded before.
+</td>
+</tr>
+</table>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about getting the Cluster Operator to deploy the User Operator for you, see <a href="#proc-deploying-the-user-operator-using-the-cluster-operator-str">Deploying the User Operator using the Cluster Operator</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="assembly-using-the-user-operator-str">7. Using the User Operator</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The User Operator provides a way of managing Kafka users via OpenShift or Kubernetes resources.</p>
+</div>
+<div class="sect2">
+<h3 id="con-what-the-user-operator-does-using-uo">7.1. What the User Operator does</h3>
+<div class="paragraph">
+<p>The User Operator manages Kafka users for a Kafka cluster by watching for <code>KafkaUser</code> OpenShift or Kubernetes resources that describe Kafka users and ensuring that they are configured properly in the Kafka cluster.
+For example:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>if a <code>KafkaUser</code> is created, the User Operator will create the user it describes</p>
+</li>
+<li>
+<p>if a <code>KafkaUser</code> is deleted, the User Operator will delete the user it describes</p>
+</li>
+<li>
+<p>if a <code>KafkaUser</code> is changed, the User Operator will update the user it describes</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Unlike the <a href="#what-the-topic-operator-does-str">Topic Operator</a>, the User Operator does not sync any changes from the Kafka cluster with the OpenShift or Kubernetes resources.
+Unlike the Kafka topics which might be created by applications directly in Kafka, it is not expected that the users will be managed directly in the Kafka cluster in parallel with the User Operator, so this should not be needed.</p>
+</div>
+<div class="paragraph">
+<p>The User Operator allows you to declare a <code>KafkaUser</code> as part of your application&#8217;s deployment.
+When the user is created, the credentials will be created in a <code>Secret</code>.
+Your application needs to use the user and its credentials for authentication and to produce or consume messages.</p>
+</div>
+<div class="paragraph">
+<p>In addition to managing credentials for authentication, the User Operator also manages authorization rules by including a description of the user&#8217;s rights in the <code>KafkaUser</code> declaration.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-creating-kafka-user-using-uo">7.2. Creating a Kafka user</h3>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Kafka cluster.</p>
+</li>
+<li>
+<p>A running User Operator.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Prepare a YAML file containing the <code>KafkaUser</code> to be created.</p>
+<div class="listingblock">
+<div class="title">An example <code>KafkaUser</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaUser
+metadata:
+  name: my-user
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: my-topic
+          patternType: literal
+        operation: Read
+      - resource:
+          type: topic
+          name: my-topic
+          patternType: literal
+        operation: Describe
+      - resource:
+          type: group
+          name: my-group
+          patternType: literal
+        operation: Read</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create the <code>KafkaUser</code> resource in OpenShift or Kubernetes.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Use the credentials from the secret <code>my-user</code> in your application</p>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about deploying the Cluster Operator, see <a href="#cluster-operator-str">Cluster Operator</a>.</p>
+</li>
+<li>
+<p>For more information about the <code>KafkaUser</code> object, see <a href="#type-KafkaUser-reference"><code>KafkaUser</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-changing-kafka-user-using-uo">7.3. Editing a Kafka user</h3>
+<div class="paragraph">
+<p>This procedure describes how to change the configuration of an existing Kafka user by using a <code>KafkaUser</code> OpenShift or Kubernetes resource.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Kafka cluster.</p>
+</li>
+<li>
+<p>A running User Operator.</p>
+</li>
+<li>
+<p>An existing <code>KafkaUser</code> to be changed</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Prepare a YAML file containing the desired <code>KafkaUser</code>.</p>
+<div class="listingblock">
+<div class="title">An example <code>KafkaUser</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaUser
+metadata:
+  name: my-user
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: my-topic
+          patternType: literal
+        operation: Read
+      - resource:
+          type: topic
+          name: my-topic
+          patternType: literal
+        operation: Describe
+      - resource:
+          type: group
+          name: my-group
+          patternType: literal
+        operation: Read</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or edit the <code>KafkaUser</code> resource using OpenShift or Kubernetes tools.
+On Kubernetes this can be done using <code>kubectl edit</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit kafkauser <em>&lt;your-user-name&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc edit</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc edit kafkauser <em>&lt;your-user-name&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Update the <code>KafkaUser</code> resource in OpenShift or Kubernetes.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Use the updated credentials from the secret <code>my-user</code> in your application</p>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about deploying the Cluster Operator, see <a href="#cluster-operator-str">Cluster Operator</a>.</p>
+</li>
+<li>
+<p>For more information about the <code>KafkaUser</code> object, see <a href="#type-KafkaUser-reference"><code>KafkaUser</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="deleting-kafka-user-using-uo">7.4. Deleting a Kafka user</h3>
+<div class="paragraph">
+<p>This procedure describes how to delete a Kafka user created with <code>KafkaUser</code> OpenShift or Kubernetes resource.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Kafka cluster.</p>
+</li>
+<li>
+<p>A running User Operator.</p>
+</li>
+<li>
+<p>An existing <code>KafkaUser</code> to be deleted.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Delete the <code>KafkaUser</code> resource in OpenShift or Kubernetes.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete kafkauser <em>&lt;your-user-name&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc delete kafkauser <em>&lt;your-user-name&gt;</em></code></pre>
+</div>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about deploying the Cluster Operator, see <a href="#cluster-operator-str">Cluster Operator</a>.</p>
+</li>
+<li>
+<p>For more information about the <code>KafkaUser</code> object, see <a href="#type-KafkaUser-reference"><code>KafkaUser</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="ref-kafka-user-using-uo">7.5. Kafka User resource</h3>
+<div class="paragraph">
+<p>The <code>KafkaUser</code> resource is used to declare a user with its authentication mechanism, authorization mechanism, and access rights.</p>
+</div>
+<div class="sect3">
+<h4 id="authentication">7.5.1. Authentication</h4>
+<div class="paragraph">
+<p>Authentication is configured using the <code>authentication</code> property in <code>KafkaUser.spec</code>.
+The authentication mechanism enabled for this user will be specified using the <code>type</code> field.
+Currently, the only supported authentication mechanism is the TLS Client Authentication mechanism.</p>
+</div>
+<div class="paragraph">
+<p>When no authentication mechanism is specified, User Operator will not create the user or its credentials.</p>
+</div>
+<div class="sect4">
+<h5 id="tls_client_authentication_2">TLS Client Authentication</h5>
+<div class="paragraph">
+<p>To use TLS client authentication, set the <code>type</code> field to <code>tls</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example of <code>KafkaUser</code> with enabled TLS Client Authentication</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaUser
+metadata:
+  name: my-user
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  authentication:
+    type: tls
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When the user is created by the User Operator, it will create a new secret with the same name as the <code>KafkaUser</code> resource.
+The secret will contain a public and private key which should be used for the TLS Client Authentication.
+Bundled with them will be the public key of the client certification authority which was used to sign the user certificate.
+All keys will be in X509 format.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example of the <code>Secret</code> with user credentials</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: Secret
+metadata:
+  name: my-user
+  labels:
+    strimzi.io/kind: KafkaUser
+    strimzi.io/cluster: my-cluster
+type: Opaque
+data:
+  ca.crt: # Public key of the Clients CA
+  user.crt: # Public key of the user
+  user.key: # Private key of the user</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="authorization">7.5.2. Authorization</h4>
+<div class="paragraph">
+<p>Authorization is configured using the <code>authorization</code> property in <code>KafkaUser.spec</code>.
+The authorization type enabled for this user will be specified using the <code>type</code> field.
+Currently, the only supported authorization type is the Simple authorization.</p>
+</div>
+<div class="paragraph">
+<p>When no authorization is specified, the User Operator will not provision any access rights for the user.</p>
+</div>
+<div class="sect4">
+<h5 id="simple_authorization_2">Simple Authorization</h5>
+<div class="paragraph">
+<p>To use Simple Authorization, set the <code>type</code> property to <code>simple</code>.
+Simple authorization is using the <code>SimpleAclAuthorizer</code> plugin.
+<code>SimpleAclAuthorizer</code> is the default authorization plugin which is part of Apache Kafka.
+Simple Authorization allows you to specify list of ACL rules in the <code>acls</code> property.</p>
+</div>
+<div class="paragraph">
+<p>The <code>acls</code> property should contain a list of <code>AclRule</code> objects.
+<code>AclRule</code> specifies the access rights whcih will be granted to the user.
+The <code>AclRule</code> object contains following properties:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>type</code></dt>
+<dd>
+<p>Specifies the type of the ACL rule.
+The type can be either <code>allow</code> or <code>deny.
+The `type</code> field is optional and when not specified, the ACL rule will be treated as <code>allow</code> rule.</p>
+</dd>
+<dt class="hdlist1"><code>operation</code></dt>
+<dd>
+<p>Specifies the operation which will be allowed or denied.
+Following operations are supported:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Read</p>
+</li>
+<li>
+<p>Write</p>
+</li>
+<li>
+<p>Delete</p>
+</li>
+<li>
+<p>Alter</p>
+</li>
+<li>
+<p>Describe</p>
+</li>
+<li>
+<p>All</p>
+</li>
+<li>
+<p>IdempotentWrite</p>
+</li>
+<li>
+<p>ClusterAction</p>
+</li>
+<li>
+<p>Create</p>
+</li>
+<li>
+<p>AlterConfigs</p>
+</li>
+<li>
+<p>DescribeConfigs</p>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Not every operation can be combined with every resource.
+</td>
+</tr>
+</table>
+</div>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><code>host</code></dt>
+<dd>
+<p>Specifies a remote host from which is the rule allowed or denied.
+Use <code>*</code> to allow or deny the operation from all hosts.
+The <code>host</code> field is optional and when not specified, the value <code>*</code> will be used as default.</p>
+</dd>
+<dt class="hdlist1"><code>resource</code></dt>
+<dd>
+<p>Specifies the resource for which does the rule apply.
+Simple Authorization supports 3 different resource types:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Topics</p>
+</li>
+<li>
+<p>Consumer Groups</p>
+</li>
+<li>
+<p>Clusters</p>
+<div class="paragraph">
+<p>The resource type can be specified in the <code>type</code> property.
+Use <code>topic</code> for Topics, <code>group</code> for Consumer Groups and <code>cluster</code> for clusters.</p>
+</div>
+<div class="paragraph">
+<p>Topic and Group resources additionally allow to specify the name of the resource for which the rule applies.
+The name can be specified in the <code>name</code> property.
+The name can be either specified as literal or as a prefix.
+To specify the name as literal, set the <code>patternType</code> property to the value <code>literal</code>.
+Literal names will be taken exactly as they are specified in the <code>name</code> field.
+To specify the name as a prefix, set the <code>patternType</code> property to the value <code>prefix</code>.
+Prefix type names will use the value from the <code>name</code> only a prefix and will apply the rule to all resources with names starting with the value.
+The cluster type resources have no name.</p>
+</div>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>For more details about <code>SimpleAclAuthorizer</code>, its ACL rules and the allowed combinations of resources and operations, see <a href="http://kafka.apache.org/documentation/#security_authz" target="_blank" rel="noopener">Authorization and ACLs</a>.</p>
+</div>
+<div class="paragraph">
+<p>For more information about the <code>AclRule</code> object, see <a href="#type-AclRule-reference"><code>AclRule</code> schema reference</a>.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example <code>KafkaUser</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaUser
+metadata:
+  name: my-user
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  # ...
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: my-topic
+          patternType: literal
+        operation: Read
+      - resource:
+          type: topic
+          name: my-topic
+          patternType: literal
+        operation: Describe
+      - resource:
+          type: group
+          name: my-group
+          patternType: prefix
+        operation: Read</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="additional_resources_2">7.5.3. Additional resources</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>For more information about the <code>KafkaUser</code> object, see <a href="#type-KafkaUser-reference"><code>KafkaUser</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="security">8. Security</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>The Strimzi project supports data encryption of communication between the different Kafka and Strimzi components (Kafka brokers, Zookeeper nodes, Kafka Connect and Strimzi Topic Operator) by means of the SSL/TLS protocol.
@@ -5332,7 +6175,7 @@ For the Kafka and Strimzi components, TLS certificates are also used for authent
 <div class="title">Figure 2. Example Architecture diagram of the communication secured by TLS.</div>
 </div>
 <div class="sect2">
-<h3 id="certificates">6.1. Certificates</h3>
+<h3 id="certificates">8.1. Certificates</h3>
 <div class="paragraph">
 <p>Each component needs its own private and public keys in order to support encryption.
 The public key has to be signed by a certificate authority (CA) in order to have a related X.509 certificate for providing server authentication and encrypting the communication channel with the client (which could be another broker as well).
@@ -5396,13 +6239,13 @@ The public key is used by the Kafka brokers to verify the identity of Kafka clie
 </div>
 </div>
 <div class="sect2">
-<h3 id="interbroker_kafka_communication">6.2. Interbroker Kafka Communication</h3>
+<h3 id="interbroker_kafka_communication">8.2. Interbroker Kafka Communication</h3>
 <div class="paragraph">
 <p>Communication between brokers is done through the <code>REPLICATION</code> listener on port 9091, which is encrypted by default.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="zookeeper_communication">6.3. Zookeeper Communication</h3>
+<h3 id="zookeeper_communication">8.3. Zookeeper Communication</h3>
 <div class="paragraph">
 <p>By deploying an <code>stunnel</code> sidecar within every Zookeeper pod, the Cluster Operator is able to provide data encryption and authentication between Zookeeper nodes in a cluster.
 The <code>stunnel</code> sidecar proxies all Zookeeper traffic, TLS decrypting data upon entry into a Zookeeper pod and TLS encrypting data upon departure from a Zookeeper pod.
@@ -5410,7 +6253,7 @@ This TLS encrypting <code>stunnel</code> proxy is instantiated from the <code>sp
 </div>
 </div>
 <div class="sect2">
-<h3 id="kafka_client_connections_via_tls">6.4. Kafka Client connections via TLS</h3>
+<h3 id="kafka_client_connections_via_tls">8.4. Kafka Client connections via TLS</h3>
 <div class="paragraph">
 <p>Encrypted communication between Kafka brokers and clients is provided through the <code>CLIENTTLS</code> listener on port 9093.</p>
 </div>
