@@ -118,7 +118,81 @@ spec:
 
 # Managing users and their ACL rights with the new User Operator
 
-TBD
+With the addition of authentication and authorization, a simple way for declaring users was needed: here is the new User Operator!
+
+The User Operator provides a way of managing Kafka users via OpenShift or Kubernetes resources.
+
+It allows you to create a new user by declaring a `KafkaUser` resource.
+When the user is created, the credentials will be created in a Secret.
+Your application needs to use the user and its credentials for authentication and to produce or consume messages.
+
+In addition to managing credentials for authentication, the User Operator also manages authorization rules by including a description of the user’s rights in the `KafkaUser` declaration: actually it allows to handle the Apache Kafka ACLs (Access Control Lists).
+
+Of course, with updating and deleting a `KafkaUser` resource you are able to update and delete the related user and permissions.
+
+Here's an example snippet of a `KafkaUser` resource for describing a user:
+
+```yaml
+apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaUser
+metadata:
+  name: my-user
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: my-topic
+          patternType: literal
+        operation: Read
+      - resource:
+          type: topic
+          name: my-topic-2
+          patternType: literal
+        operation: Write
+```
+
+The `authentication` property allows to specify the type of authentication which will be used for the user and, currently, the only supported authentication mechanism is the TLS Client Authentication mechanism.
+
+When the `KafkaUser` is detected by the User Operator, it will create a new secret with the same name as the `KafkaUser` resource. The secret will contain a public and private key which should be used for the TLS Client Authentication. Bundled with them will be the public key of the client certification authority which was used to sign the user certificate. All keys will be in X509 format.
+
+Here's an example snippet of the secret containing the certificate and key:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-user
+  labels:
+    strimzi.io/kind: KafkaUser
+    strimzi.io/cluster: my-cluster
+type: Opaque
+data:
+  ca.crt: # Public key of the Clients CA
+  user.crt: # Public key of the user
+  user.key: # Private key of the user
+```
+
+The `authorization` property allows to specify the type of authorization used for that user.
+Currently, the only supported authorization type is the Simple authorization which means using the `SimpleAclAuthorizer` as the default authorization plugin which is part of the Apache Kafka project.
+
+This kind of authorization is based on describing ACL rules in the `acls` property and for each of them:
+
+* `type`: type of ACL rule. Possible values are `allow` or `deny`.
+* `operation`: specifies the operation which will be allowed or denied. Possible values are `Read`, `Write` and more.
+* `resource`: specifies the resource for which does the rule apply. Possible values are `Topics`, `Consumer Groups` and 'Clusters`.
+
+Back to the above example snippet, we are describing a user `my-user` which is authenticated using TLS client authentication and have the following permissions:
+
+* it can `Read` from the topic `my-topic`
+* it can `Write` to the topic `my-topic-2`
+
+As you can see, thanks to the User Operator it's really simple handling Apache Kafka users and related permissions as native Kubernetes/OpenShift resources.
 
 # Kafka Connect: new encryption and TLS client authentication support
 
