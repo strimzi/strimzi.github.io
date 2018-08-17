@@ -196,19 +196,106 @@ As you can see, thanks to the User Operator it's really simple handling Apache K
 
 # Kafka Connect: new encryption and TLS client authentication support
 
-TBD
+The previous 0.5.0 release added TLS support for encryting communication between all the main components in an Apache Kafka cluster, so between brokers, between Zookeeper nodes and between brokers and nodes themselves.
+It also added encryption between the Topic Operator and the Kafka brokers and Zookeeper nodes.
 
-# Helm charts for the Cluster Operator!
+The new release finilize this feature adding the TLS support for encrypting communication between Kafka Connect worker nodes and the Kafka cluster.
 
-TBD
+The TLS support is configured in the `tls` property in the `KafkaConnect` resource and it contains a list of secrets with key names under which the certificates are stored. The certificates should be stored in X509 format.
 
-# Upgrade to latest Apache Kafka 2.0.0 release
+Here's an example snippet of a `KafkaConnect` resource for configuring TLS:
 
-TBD
+```yaml
+apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-cluster
+spec:
+  ...
+  tls:
+    trustedCertificates:
+      - secretName: my-secret
+        certificate: ca.crt
+      - secretName: my-other-secret
+        certificate: certificate.crt
+  ...
+```
+
+Other than encryption, it's also possible to enable authentication through the `authentication` property.
+Currently, the only supported authentication type is TLS client authentication.
+
+TLS client authentication is using TLS certificate to authenticate.
+The certificate has to be specified in the `certificateAndKey` property.
+It is always loaded from an OpenShift or Kubernetes secret.
+Inside the secret, it has to be stored in the X509 format under two different keys: for public and private keys.
+
+Of course, the TLS client authentication works only if the TLS encryption is enabled as described before.
+
+Here's an example snippet of a `KafkaConnect` resource for configuring TLS client authentication:
+
+```yaml
+apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-cluster
+spec:
+  ...
+  authentication:
+    type: tls
+    certificateAndKey:
+      secretName: my-secret
+      certificate: public.crt
+      key: private.key
+  ...
+```
+
+The interesting thing is that the Kafka Connect cluster can be configured to connect using TLS and/or authentication to a Kafka cluster which doesn't need to be deployed by the Cluster Operator.
 
 # The Entity Operator
 
-TBD
+Because the addition of the new User Operator for handling Apache Kafka users and related permissions (ACLs) and already having the Topic Operator in place, we decided to simplyfing their deploying adding the new Entity Operator.
+
+The Entity Operator is responsible for managing different entities in a running Kafka cluster that today are topics and users of course.
+Both Topic and User Operators can be deployed on their own.
+But the easiest way to deploy them is together with the Kafka cluster as part of the Entity Operator using the `topicOperator` and `userOperator` properties under the main `entityOperator` one.
+The Entity Operator can include either one or both of them depending on the configuration.
+They will be automatically configured to manage the topics and users of the Kafka cluster with which they are deployed.
+
+Here's an example snippet of a `Kafka` resource with Entity Operator configured for deploying Topic and User Operators with default configuration:
+
+```yaml
+apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    ...
+  zookeeper:
+    ...
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+```
+
+The Entity Operator is also in charge to deploy the needed TLS sidecar for allowing encrypted connection between operators and the Zookeeper ensamble.
+
+# Upgrade to latest Apache Kafka 2.0.0 release
+
+At the beginning of August, the new Apache Kafka 2.0.0 version was released.
+As always, the community worked hard to bring new features and bug fixes.
+You can find more information about this release in the official [release notes](https://www.apache.org/dist/kafka/2.0.0/RELEASE_NOTES.html).
+
+The new Strimzi release has now updated all the Docker images to use the new Apache Kafka 2.0.0 release.
+
+# Helm charts for the Cluster Operator!
+
+Strimzi community is growing and this time we had a really great contribution from [Sean Glover](https://twitter.com/seg1o) (Lightbend) for adding Helm Charts support!
+
+[Helm](https://helm.sh/) is a package manager for Kubernetes which provides a simple way for deploying applications on Kubernetes through so called "charts".
+Thanks to its templating model, it's possible to configure different parameters for the application before deploying it.
+
+Today, we have Helm Charts for the Cluster Operator for simplyfing its deployment on Kubernetes and configuring all the parameters related to the Apache Kafka deployment.
 
 # Conclusion
 
