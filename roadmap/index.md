@@ -4,6 +4,20 @@ layout: default
 
 # Roadmap
 
+## 0.7.0 (Work in progess - expected September 2018)
+
+### Add support for SASL SCRAM-SHA authentication
+
+Support for authentication using SASL SCRAM-SHA should be added to the already supported TLS Client Authentication.
+
+### Strimzi and Kafka updates
+
+Strimzi should make it possible to smoothly handle updates from one Kafka version to another.
+
+### Certificate rotation
+
+Make it possible to automatically rotate certficates when they reach expiration.
+
 ## 0.6.0 (August 2018)
 
 ### Custom Resource Definitions support for Topic Operator
@@ -19,7 +33,7 @@ Add support for encryption and authentication for Kafka Connect.
 In order to use Strimzi for production workloads, it has to be possible to secure the cluster. This should 
 include:
 
-* Authentication using TLS client authentication and SASL SCRAM-SHA
+* Authentication using TLS client authentication
 * Authorization
 
 ## 0.5.0 (July 2018)
@@ -52,10 +66,6 @@ for more details). A possibility to configure resource limits and requests shoul
 component.
 
 ## Future releases
-
-### Kafka updates
-
-Strimzi should make it possible to smoothly handle updates from one Kafka version to another.
 
 ### Accessing Kafka from the outside of Kubernetes/OpenShift
 
