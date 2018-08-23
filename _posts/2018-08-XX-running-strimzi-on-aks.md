@@ -31,7 +31,18 @@ az group create --name strimzigroup --location northeurope
 
 The above command will provide you a JSON as output with the final status of the resource group creation.
 
-TBD : JSON output
+```json
+{
+  "id": "/subscriptions/<your-subscription-id>/resourceGroups/strimzigroup",
+  "location": "northeurope",
+  "managedBy": null,
+  "name": "strimzigroup",
+  "properties": {
+    "provisioningState": "Succeeded"
+  },
+  "tags": null
+}
+```
 
 > if you don't know what's the exact name to use for the `--location` option, you can get the full list of available location using the command `az account list-locations`
 
@@ -46,7 +57,61 @@ az aks create --resource-group strimzigroup --name strimzicluster --node-count 3
 
 After several minutes, the command completes and returns the information about the cluster in the JSON format.
 
-TBD : JSON output
+```json
+{
+  "aadProfile": null,
+  "addonProfiles": null,
+  "agentPoolProfiles": [
+    {
+      "count": 3,
+      "maxPods": 110,
+      "name": "nodepool1",
+      "osDiskSizeGb": null,
+      "osType": "Linux",
+      "storageProfile": "ManagedDisks",
+      "vmSize": "Standard_DS1_v2",
+      "vnetSubnetId": null
+    }
+  ],
+  "dnsPrefix": "strimziclu-strimzigroup-1de242",
+  "enableRbac": true,
+  "fqdn": "strimziclu-strimzigroup-1de242-bf1a6c8a.hcp.northeurope.azmk8s.io",
+  "id": "/subscriptions/<your-subscription-id>/resourcegroups/strimzigroup/providers/Microsoft.ContainerService/managedClusters/strimzicluster",
+  "kubernetesVersion": "1.9.9",
+  "linuxProfile": {
+    "adminUsername": "azureuser",
+    "ssh": {
+      "publicKeys": [
+        {
+          "keyData": "ssh-rsa <key-data>"
+        }
+      ]
+    }
+  },
+  "location": "northeurope",
+  "name": "strimzicluster",
+  "networkProfile": {
+    "dnsServiceIp": "10.0.0.10",
+    "dockerBridgeCidr": "172.17.0.1/16",
+    "networkPlugin": "kubenet",
+    "networkPolicy": null,
+    "podCidr": "10.244.0.0/16",
+    "serviceCidr": "10.0.0.0/16"
+  },
+  "nodeResourceGroup": "MC_strimzigroup_strimzicluster_northeurope",
+  "provisioningState": "Succeeded",
+  "resourceGroup": "strimzigroup",
+  "servicePrincipalProfile": {
+    "clientId": "f96f2c4a-02b2-49ac-bcb1-f94c9679abc5",
+    "secret": null
+  },
+  "tags": null,
+  "type": "Microsoft.ContainerService/ManagedClusters"
+}
+
+```
+
+> if you want a cluster running a specific Kubernetes version, you can use the `--kubernetes-version` option. All the supported options for the creation command are available at the official [documentation](https://docs.microsoft.com/en-us/cli/azure/aks?view=azure-cli-latest#az-aks-create).
 
 # Connect to the cluster
 
@@ -61,7 +126,12 @@ az aks get-credentials --resource-group strimzigroup --name strimzicluster
 
 To verify that the connection with the Kubernetes cluster is working you can just run the `kubectl get nodes` command for showing all the available nodes in the cluster.
 
-TBD : Kubernetes cluster nodes output
+```
+NAME                       STATUS    ROLES     AGE       VERSION
+aks-nodepool1-24085136-0   Ready     agent     7m        v1.9.9
+aks-nodepool1-24085136-1   Ready     agent     7m        v1.9.9
+aks-nodepool1-24085136-2   Ready     agent     7m        v1.9.9
+```
 
 # Deploying Strimzi and an Apache Kafka
 
@@ -85,9 +155,9 @@ You can check that the related Pod is up and running just executing:
 
 ```
 kubectl get pods
+NAME                                        READY     STATUS    RESTARTS   AGE
+strimzi-cluster-operator-65659b5f86-t5jsp   1/1       Running   0          1m
 ```
-
-TBD: Cluster Operator pod running output
 
 The Strimzi release provides an `examples` folder with examples YAML files for deploying an Kafka cluster with "ephemeral" and "persistent" storage and for deploying Kafka Connect as well.
 You can modify the related YAML files in order to customize for your needs but for the sake of this blog post, it's enough using the already provided Kafka cluster "ephemeral" example by running:
@@ -103,3 +173,11 @@ kubectl get pods -w
 ```
 
 After few minutes, the Apache Kafka cluster will be running in the cloud!
+
+It's also possible to show the Kubernetes dashboard with all the Pods by running:
+
+```
+az aks browse --name strimzicluster --resource-group strimzigroup
+```
+
+![Kubernetes dashboard with Strimzi and Apache Kafka running]({{ "/assets/2018-08-XX-kubernetes-dashboard.png" | absolute_url }})
