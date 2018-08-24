@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Running Strimzi on Azure Container Service"
-date: 2018-08-XX
+date: 2018-08-24
 author: paolo_patierno
 ---
 
@@ -180,4 +180,6 @@ It's also possible to show the Kubernetes dashboard with all the Pods by running
 az aks browse --name strimzicluster --resource-group strimzigroup
 ```
 
-![Kubernetes dashboard with Strimzi and Apache Kafka running]({{ "/assets/2018-08-XX-kubernetes-dashboard.png" | absolute_url }})
+It will open your default browser showing the dashboard as the following picture. 
+
+![Kubernetes dashboard with Strimzi and Apache Kafka running]({{ "/assets/2018-08-24-kubernetes-dashboard.png" | absolute_url }})
