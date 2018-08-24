@@ -988,10 +988,18 @@ oc create -f examples/templates/cluster-operator</code></pre>
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
+<p>Add the Strimzi Helm Chart repository:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">helm repo add strimzi http://strimzi.io/charts/</code></pre>
+</div>
+</div>
+</li>
+<li>
 <p>Deploy the Cluster Operator using the Helm command line tool:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">helm install strimzi-kafka-operator-latest.tgz</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">helm install strimzi/strimzi-kafka-operator</code></pre>
 </div>
 </div>
 </li>
@@ -999,7 +1007,7 @@ oc create -f examples/templates/cluster-operator</code></pre>
 <p>Verify whether the Cluster Operator has been deployed successfully using the Helm command line tool:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>helm ls</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">helm ls</code></pre>
 </div>
 </div>
 </li>
@@ -3582,8 +3590,7 @@ This section provides information about loggers of various components.</p>
 <div class="sect3">
 <h4 id="assembly-kafka-rack-deployment-configuration-kafka">3.1.11. Kafka rack awareness</h4>
 <div class="paragraph">
-<p>Strimzi allows you to enable Kafka rack awareness.
-The rack awareness feature helps to spread the Kafka broker pods and Kafka topic replicas across different racks.
+<p>The rack awareness feature in Strimzi helps to spread the Kafka broker pods and Kafka topic replicas across different racks.
 Enabling rack awareness helps to improve availability of Kafka brokers and the topics they are hosting.</p>
 </div>
 <div class="admonitionblock note">
@@ -3593,92 +3600,22 @@ Enabling rack awareness helps to improve availability of Kafka brokers and the t
 <div class="title">Note</div>
 </td>
 <td class="content">
-"Rack" might represent an availability zone, data center or actual rack in your data center.
+"Rack" might represent an availability zone, data center, or an actual rack in your data center.
 </td>
 </tr>
 </table>
 </div>
 <div class="sect4">
-<h5 id="ref-kafka-rack-deployment-configuration-kafka">Kafka rack awareness</h5>
+<h5 id="proc-configuring-kafka-rack-awareness-deployment-configuration-kafka">Configuring rack awareness in Kafka brokers</h5>
 <div class="paragraph">
 <p>Kafka rack awareness can be configured in the <code>rack</code> property of <code>Kafka.spec.kafka</code>.
 The <code>rack</code> object has one mandatory field named <code>topologyKey</code>.
 This key needs to match one of the labels assigned to the OpenShift or Kubernetes cluster nodes.
 The label is used by OpenShift or Kubernetes when scheduling the Kafka broker pods to nodes.
 If the OpenShift or Kubernetes cluster is running on a cloud provider platform, that label should represent the availability zone where the node is running.
-If the OpenShift or Kubernetes cluster is running on a cloud provider platform, that label should represent the availability zone where the node is running.
-Usually, the nodes are labelled with <code>failure-domain.beta.kubernetes.io/zone</code> that can be easily used as the <code>topologyKey</code> value.
-This will have the effect of spreading the broker pods across zones, and also setting the brokers' <code>broker.rack</code> configuration parameter inside Kafka broker.</p>
+Usually, the nodes are labeled with <code>failure-domain.beta.kubernetes.io/zone</code> that can be easily used as the <code>topologyKey</code> value.
+This has the effect of spreading the broker pods across zones, and also setting the brokers' <code>broker.rack</code> configuration parameter inside Kafka broker.</p>
 </div>
-<div class="listingblock">
-<div class="title">Example of a <code>Kafka</code> resource with the <code>rack</code> feature enabled</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
-kind: Kafka
-metadata:
-  name: my-cluster
-spec:
-  kafka:
-    # ...
-    rack:
-      topologyKey: failure-domain.beta.kubernetes.io/zone
-    # ...</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>In the above example, the <code>failure-domain.beta.kubernetes.io/zone</code> node label will be used for scheduling Kafka broker Pods.
-Consult your OpenShift or Kubernetes administrator about the label which should be used.</p>
-</div>
-<div class="sect5">
-<h6 id="configuring_init_container_image">Configuring init container image</h6>
-<div class="paragraph">
-<p>When the Kafka rack feature is enabled, Kafka broker pods will use init container which will collect the labels from the OpenShift or Kubernetes cluster nodes.
-The container image which will be used for this container can be configured using the <code>brokerRackInitImage</code> property in <code>Kafka.spec.kafka</code>.
-When the <code>brokerRackInitImage</code> field is missing, the following images will be used (in the order of priority):</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Container image specified in <code>STRIMZI_DEFAULT_KAFKA_INIT_IMAGE</code> environment variable in Cluster Operator configuration.</p>
-</li>
-<li>
-<p><code>strimzi/kafka-init:latest</code> container image.</p>
-</li>
-</ol>
-</div>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Warning</div>
-</td>
-<td class="content">
-Overriding container images is recommended only in situations where you need to use a different container registry.
-For example, because your network does not allow access to the container repository used by Strimzi.
-In such case, you should either copy the Strimzi images or build them from source.
-In case the configured image is not compatible with Strimzi images, it might not work properly.
-</td>
-</tr>
-</table>
-</div>
-<div class="listingblock">
-<div class="title">Example of <code>brokerRackInitImage</code> configuration</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
-kind: Kafka
-metadata:
-  name: my-cluster
-spec:
-  kafka:
-    # ...
-    brokerRackInitImage: my-org/my-image:latest
-    # ...</code></pre>
-</div>
-</div>
-</div>
-</div>
-<div class="sect4">
-<h5 id="proc-configuring-kafka-rack-awareness-deployment-configuration-kafka">Configuring rack awareness in Kafka brokers</h5>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -3694,12 +3631,10 @@ spec:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Find out which node labels represent the zone / rack into which the node is deployed.</p>
+<p>Consult your OpenShift or Kubernetes administrator regarding the node label that represent the zone / rack into which the node is deployed.</p>
 </li>
 <li>
-<p>Edit the <code>rack</code> property in the <code>Kafka</code> resource.
-Use the label as the topology key.
-For example:</p>
+<p>Edit the <code>rack</code> property in the <code>Kafka</code> resource using the label as the topology key.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
@@ -3735,6 +3670,14 @@ spec:
 </div>
 </li>
 </ol>
+</div>
+<div class="ulist">
+<div class="title">Additional Resources</div>
+<ul>
+<li>
+<p>For information about Configuring init container image for Kafka rack awareness, see <a href="#assembly-configuring-container-images-deployment-configuration-kafka">Container images</a>.</p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -10527,10 +10470,18 @@ oc create -f examples/templates/cluster-operator</code></pre>
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
+<p>Add the Strimzi Helm Chart repository:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">helm repo add strimzi http://strimzi.io/charts/</code></pre>
+</div>
+</div>
+</li>
+<li>
 <p>Deploy the Cluster Operator using the Helm command line tool:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">helm install strimzi-kafka-operator-latest.tgz</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">helm install strimzi/strimzi-kafka-operator</code></pre>
 </div>
 </div>
 </li>
@@ -10538,7 +10489,7 @@ oc create -f examples/templates/cluster-operator</code></pre>
 <p>Verify whether the Cluster Operator has been deployed successfully using the Helm command line tool:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>helm ls</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">helm ls</code></pre>
 </div>
 </div>
 </li>
@@ -14899,7 +14850,7 @@ For accessing the dashboard, you can use the <code>port-forward</code> command f
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-08-23 14:52:21 UTC
+Last updated 2018-08-24 09:25:32 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
