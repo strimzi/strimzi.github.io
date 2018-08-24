@@ -6,6 +6,10 @@ This repository contains the [Strimzi website](http://strimzi.io).
 
 [Ruby](https://www.ruby-lang.org/en/) and [Rubygems](https://rubygems.org/) are needed in order to build the web site.
 
+Install [bundler](https://bundler.io/)
+
+    gem install bundler
+
 ## Build
 
 In order to build and serve the web site locally, run :
