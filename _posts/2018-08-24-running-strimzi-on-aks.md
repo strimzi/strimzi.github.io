@@ -13,7 +13,7 @@ This is a really great way to have Strimzi up and running in the cloud and then 
 
 So in this post I'm going to show you how easy it is to deploy Strimzi on AKS using the CLI.
 If you already have an Azure account you can be up and running with Strimzi in 15 minutes.
-If not you can sign up [here](TODO).
+If not you can sign up [here](https://azure.microsoft.com).
 
 <!--more-->
 
