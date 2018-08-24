@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Get Kafka on Azure Container Service in 15 minutes using Strimzi"
+title:  "Apache Kafka in the Cloud in 15 minutes using Strimzi and Azure Container Service"
 date: 2018-08-24
 author: paolo_patierno
 ---
