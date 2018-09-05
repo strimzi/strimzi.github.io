@@ -15,7 +15,8 @@
 <li><a href="#con-what-the-cluster-operator-does-str">2.2.1. Overview of the Cluster Operator component</a></li>
 <li><a href="#deploying-cluster-operator-kubernetes-str">2.2.2. Deploying the Cluster Operator to Kubernetes</a></li>
 <li><a href="#deploying-cluster-operator-openshift-str">2.2.3. Deploying the Cluster Operator to OpenShift</a></li>
-<li><a href="#deploying-cluster-operator-helm-chart-str">2.2.4. Deploying the Cluster Operator using Helm Chart</a></li>
+<li><a href="#deploying-cluster-operator-kubernetes-to-watch-multiple-namespacesstr">2.2.4. Deploying the Cluster Operator to watch multiple namespaces</a></li>
+<li><a href="#deploying-cluster-operator-helm-chart-str">2.2.5. Deploying the Cluster Operator using Helm Chart</a></li>
 </ul>
 </li>
 <li><a href="#kafka-cluster-str">2.3. Kafka cluster</a>
@@ -114,9 +115,9 @@
 <li><a href="#con-what-the-cluster-operator-does-deploying-co">4.1.1. Overview of the Cluster Operator component</a></li>
 <li><a href="#deploying-cluster-operator-kubernetes-deploying-co">4.1.2. Deploying the Cluster Operator to Kubernetes</a></li>
 <li><a href="#deploying-cluster-operator-openshift-deploying-co">4.1.3. Deploying the Cluster Operator to OpenShift</a></li>
-<li><a href="#deploying-cluster-operator-helm-chart-deploying-co">4.1.4. Deploying the Cluster Operator using Helm Chart</a></li>
-<li><a href="#con-cluster-operator-reconciliation-deploying-co">4.1.5. Reconciliation</a></li>
-<li><a href="#con-cluster-operator-namespaces-deploying-co">4.1.6. Watching multiple namespaces</a></li>
+<li><a href="#deploying-cluster-operator-kubernetes-to-watch-multiple-namespacesdeploying-co">4.1.4. Deploying the Cluster Operator to watch multiple namespaces</a></li>
+<li><a href="#deploying-cluster-operator-helm-chart-deploying-co">4.1.5. Deploying the Cluster Operator using Helm Chart</a></li>
+<li><a href="#con-cluster-operator-reconciliation-deploying-co">4.1.6. Reconciliation</a></li>
 <li><a href="#ref-operators-cluster-operator-configuration-deploying-co">4.1.7. Cluster Operator Configuration</a></li>
 <li><a href="#con-cluster-operator-rbac-deploying-co">4.1.8. Role-Based Access Control (RBAC)</a></li>
 </ul>
@@ -446,10 +447,25 @@ On OpenShift such a cluster can be deployed using the Source2Image feature, prov
 </div>
 <div class="paragraph">
 <p>When the Cluster Operator is up, it starts to <em>watch</em> for certain OpenShift or Kubernetes resources containing the desired Kafka or Kafka Connect cluster configuration.
-A <code>Kafka</code> resource is used for Kafka cluster configuration, and a <code>KafkaConnect</code> resource is used for Kafka Connect cluster configuration.</p>
+By default, it watches only in the same namespace or project where it is installed.
+The Cluster Operator can be configured to watch for more OpenShift projects or Kubernetes namespaces.
+Cluster Operator watches the following resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A <code>Kafka</code> resource for the Kafka cluster.</p>
+</li>
+<li>
+<p>A <code>KafkaConnect</code> resource for the Kafka Connect cluster.</p>
+</li>
+<li>
+<p>A <code>KafkaConnectS2I</code> resource for the Kafka Connect cluster with Source2Image support.</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
-<p>When a new desired resource (that is, a <code>Kafka</code> or <code>KafkaConnect</code> resource) is created in the OpenShift or Kubernetes cluster, the operator gets the cluster configuration from the desired resource and starts creating a new Kafka or Kafka Connect cluster by creating the necessary other OpenShift or Kubernetes resources, such as StatefulSets, Services, ConfigMaps, and so on.</p>
+<p>When a new <code>Kafka</code>, <code>KafkaConnect</code>, or <code>KafkaConnectS2I</code> resource is created in the OpenShift or Kubernetes cluster, the operator gets the cluster description from the desired resource and starts creating a new Kafka or Kafka Connect cluster by creating the necessary other OpenShift or Kubernetes resources, such as StatefulSets, Services, ConfigMaps, and so on.</p>
 </div>
 <div class="paragraph">
 <p>Every time the desired resource is updated by the user, the operator performs corresponding updates on the OpenShift or Kubernetes resources which make up the Kafka or Kafka Connect cluster.
@@ -469,7 +485,7 @@ This might cause a rolling update which might lead to service disruption.</p>
 <p>Modify the installation files according to the namespace the Cluster Operator is going to be installed in.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>sed -i 's/namespace: .*/namespace: <em>&lt;my-namespace&gt;</em>/' examples/install/cluster-operator/*ClusterRoleBinding*.yaml</code></pre>
+<pre class="highlightjs highlight"><code>sed -i 's/namespace: .*/namespace: <em>&lt;my-namespace&gt;</em>/' examples/install/cluster-operator/*RoleBinding*.yaml</code></pre>
 </div>
 </div>
 </li>
@@ -482,15 +498,7 @@ This might cause a rolling update which might lead to service disruption.</p>
 <p>Deploy the Cluster Operator</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>kubectl apply -f examples/install/cluster-operator</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Verify whether the Cluster Operator has been deployed successfully, the Kubernetes Dashboard or the command line:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code>kubectl describe all</code></pre>
+<pre class="highlightjs highlight"><code>kubectl apply -f examples/install/cluster-operator -n _&lt;my-namespace&gt;_</code></pre>
 </div>
 </div>
 </li>
@@ -509,7 +517,7 @@ This might cause a rolling update which might lead to service disruption.</p>
 <p>Modify the installation files according to the namespace the Cluster Operator is going to be installed in.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>sed -i 's/namespace: .*/namespace: <em>&lt;my-namespace&gt;</em>/' examples/install/cluster-operator/*ClusterRoleBinding*.yaml</code></pre>
+<pre class="highlightjs highlight"><code>sed -i 's/namespace: .*/namespace: <em>&lt;my-project&gt;</em>/' examples/install/cluster-operator/*RoleBinding*.yaml</code></pre>
 </div>
 </div>
 </li>
@@ -522,16 +530,8 @@ This might cause a rolling update which might lead to service disruption.</p>
 <p>Deploy the Cluster Operator</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>oc apply -f examples/install/cluster-operator
-oc apply -f examples/templates/cluster-operator</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Verify whether the Cluster Operator has been deployed successfully, the OpenShift console or the command line:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code>oc describe all</code></pre>
+<pre class="highlightjs highlight"><code>oc apply -f examples/install/cluster-operator -n _&lt;my-project&gt;_
+oc apply -f examples/templates/cluster-operator -n _&lt;my-project&gt;_</code></pre>
 </div>
 </div>
 </li>
@@ -539,7 +539,92 @@ oc apply -f examples/templates/cluster-operator</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="deploying-cluster-operator-helm-chart-str">2.2.4. Deploying the Cluster Operator using Helm Chart</h4>
+<h4 id="deploying-cluster-operator-kubernetes-to-watch-multiple-namespacesstr">2.2.4. Deploying the Cluster Operator to watch multiple namespaces</h4>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>Edit the installation files according to the OpenShift project or Kubernetes namespace the Cluster Operator is going to be installed in.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>sed -i 's/namespace: .*/namespace: <em>&lt;my-namespace&gt;</em>/' examples/install/cluster-operator/*RoleBinding*.yaml</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the file <code>examples/install/cluster-operator/050-Deployment-strimzi-cluster-operator.yaml</code> and in the environment variable <code>STRIMZI_NAMESPACE</code> list all the OpenShift projects or Kubernetes namespaces where Cluster Operator should watch for resources.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: extensions/v1beta1
+kind: Deployment
+spec:
+  template:
+    spec:
+      serviceAccountName: strimzi-cluster-operator
+      containers:
+      - name: strimzi-cluster-operator
+        image: strimzi/cluster-operator:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: STRIMZI_NAMESPACE
+          value: myproject,myproject2,myproject3</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>For all namespaces or projects which should be watched by the Cluster Operator, install the <code>RoleBindings</code>.
+Replace the <code><em>&lt;my-namespace&gt;</em></code> or <code><em>&lt;my-project&gt;</em></code> with the OpenShift project or Kubernetes namespace used in the previous step.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/install/cluster-operator/020-RoleBinding-strimzi-cluster-operator.yaml -n <em>&lt;my-namespace&gt;</em>
+kubectl apply -f examples/install/cluster-operator/031-RoleBinding-strimzi-cluster-operator-entity-operator-delegation.yaml -n <em>&lt;my-namespace&gt;</em>
+kubectl apply -f examples/install/cluster-operator/032-RoleBinding-strimzi-cluster-operator-topic-operator-delegation.yaml -n <em>&lt;my-namespace&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f examples/install/cluster-operator/020-RoleBinding-strimzi-cluster-operator.yaml -n <em>&lt;my-project&gt;</em>
+oc apply -f examples/install/cluster-operator/031-RoleBinding-strimzi-cluster-operator-entity-operator-delegation.yaml -n <em>&lt;my-project&gt;</em>
+oc apply -f examples/install/cluster-operator/032-RoleBinding-strimzi-cluster-operator-topic-operator-delegation.yaml -n <em>&lt;my-project&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Deploy the Cluster Operator</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/install/cluster-operator -n <em>&lt;my-namespace&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f examples/install/cluster-operator -n <em>&lt;my-project&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="deploying-cluster-operator-helm-chart-str">2.2.5. Deploying the Cluster Operator using Helm Chart</h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -10029,10 +10114,25 @@ On OpenShift such a cluster can be deployed using the Source2Image feature, prov
 </div>
 <div class="paragraph">
 <p>When the Cluster Operator is up, it starts to <em>watch</em> for certain OpenShift or Kubernetes resources containing the desired Kafka or Kafka Connect cluster configuration.
-A <code>Kafka</code> resource is used for Kafka cluster configuration, and a <code>KafkaConnect</code> resource is used for Kafka Connect cluster configuration.</p>
+By default, it watches only in the same namespace or project where it is installed.
+The Cluster Operator can be configured to watch for more OpenShift projects or Kubernetes namespaces.
+Cluster Operator watches the following resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A <code>Kafka</code> resource for the Kafka cluster.</p>
+</li>
+<li>
+<p>A <code>KafkaConnect</code> resource for the Kafka Connect cluster.</p>
+</li>
+<li>
+<p>A <code>KafkaConnectS2I</code> resource for the Kafka Connect cluster with Source2Image support.</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
-<p>When a new desired resource (that is, a <code>Kafka</code> or <code>KafkaConnect</code> resource) is created in the OpenShift or Kubernetes cluster, the operator gets the cluster configuration from the desired resource and starts creating a new Kafka or Kafka Connect cluster by creating the necessary other OpenShift or Kubernetes resources, such as StatefulSets, Services, ConfigMaps, and so on.</p>
+<p>When a new <code>Kafka</code>, <code>KafkaConnect</code>, or <code>KafkaConnectS2I</code> resource is created in the OpenShift or Kubernetes cluster, the operator gets the cluster description from the desired resource and starts creating a new Kafka or Kafka Connect cluster by creating the necessary other OpenShift or Kubernetes resources, such as StatefulSets, Services, ConfigMaps, and so on.</p>
 </div>
 <div class="paragraph">
 <p>Every time the desired resource is updated by the user, the operator performs corresponding updates on the OpenShift or Kubernetes resources which make up the Kafka or Kafka Connect cluster.
@@ -10052,7 +10152,7 @@ This might cause a rolling update which might lead to service disruption.</p>
 <p>Modify the installation files according to the namespace the Cluster Operator is going to be installed in.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>sed -i 's/namespace: .*/namespace: <em>&lt;my-namespace&gt;</em>/' examples/install/cluster-operator/*ClusterRoleBinding*.yaml</code></pre>
+<pre class="highlightjs highlight"><code>sed -i 's/namespace: .*/namespace: <em>&lt;my-namespace&gt;</em>/' examples/install/cluster-operator/*RoleBinding*.yaml</code></pre>
 </div>
 </div>
 </li>
@@ -10065,15 +10165,7 @@ This might cause a rolling update which might lead to service disruption.</p>
 <p>Deploy the Cluster Operator</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>kubectl apply -f examples/install/cluster-operator</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Verify whether the Cluster Operator has been deployed successfully, the Kubernetes Dashboard or the command line:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code>kubectl describe all</code></pre>
+<pre class="highlightjs highlight"><code>kubectl apply -f examples/install/cluster-operator -n _&lt;my-namespace&gt;_</code></pre>
 </div>
 </div>
 </li>
@@ -10092,7 +10184,7 @@ This might cause a rolling update which might lead to service disruption.</p>
 <p>Modify the installation files according to the namespace the Cluster Operator is going to be installed in.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>sed -i 's/namespace: .*/namespace: <em>&lt;my-namespace&gt;</em>/' examples/install/cluster-operator/*ClusterRoleBinding*.yaml</code></pre>
+<pre class="highlightjs highlight"><code>sed -i 's/namespace: .*/namespace: <em>&lt;my-project&gt;</em>/' examples/install/cluster-operator/*RoleBinding*.yaml</code></pre>
 </div>
 </div>
 </li>
@@ -10105,16 +10197,8 @@ This might cause a rolling update which might lead to service disruption.</p>
 <p>Deploy the Cluster Operator</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>oc apply -f examples/install/cluster-operator
-oc apply -f examples/templates/cluster-operator</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Verify whether the Cluster Operator has been deployed successfully, the OpenShift console or the command line:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code>oc describe all</code></pre>
+<pre class="highlightjs highlight"><code>oc apply -f examples/install/cluster-operator -n _&lt;my-project&gt;_
+oc apply -f examples/templates/cluster-operator -n _&lt;my-project&gt;_</code></pre>
 </div>
 </div>
 </li>
@@ -10122,7 +10206,92 @@ oc apply -f examples/templates/cluster-operator</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="deploying-cluster-operator-helm-chart-deploying-co">4.1.4. Deploying the Cluster Operator using Helm Chart</h4>
+<h4 id="deploying-cluster-operator-kubernetes-to-watch-multiple-namespacesdeploying-co">4.1.4. Deploying the Cluster Operator to watch multiple namespaces</h4>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>Edit the installation files according to the OpenShift project or Kubernetes namespace the Cluster Operator is going to be installed in.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>sed -i 's/namespace: .*/namespace: <em>&lt;my-namespace&gt;</em>/' examples/install/cluster-operator/*RoleBinding*.yaml</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the file <code>examples/install/cluster-operator/050-Deployment-strimzi-cluster-operator.yaml</code> and in the environment variable <code>STRIMZI_NAMESPACE</code> list all the OpenShift projects or Kubernetes namespaces where Cluster Operator should watch for resources.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: extensions/v1beta1
+kind: Deployment
+spec:
+  template:
+    spec:
+      serviceAccountName: strimzi-cluster-operator
+      containers:
+      - name: strimzi-cluster-operator
+        image: strimzi/cluster-operator:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: STRIMZI_NAMESPACE
+          value: myproject,myproject2,myproject3</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>For all namespaces or projects which should be watched by the Cluster Operator, install the <code>RoleBindings</code>.
+Replace the <code><em>&lt;my-namespace&gt;</em></code> or <code><em>&lt;my-project&gt;</em></code> with the OpenShift project or Kubernetes namespace used in the previous step.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/install/cluster-operator/020-RoleBinding-strimzi-cluster-operator.yaml -n <em>&lt;my-namespace&gt;</em>
+kubectl apply -f examples/install/cluster-operator/031-RoleBinding-strimzi-cluster-operator-entity-operator-delegation.yaml -n <em>&lt;my-namespace&gt;</em>
+kubectl apply -f examples/install/cluster-operator/032-RoleBinding-strimzi-cluster-operator-topic-operator-delegation.yaml -n <em>&lt;my-namespace&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f examples/install/cluster-operator/020-RoleBinding-strimzi-cluster-operator.yaml -n <em>&lt;my-project&gt;</em>
+oc apply -f examples/install/cluster-operator/031-RoleBinding-strimzi-cluster-operator-entity-operator-delegation.yaml -n <em>&lt;my-project&gt;</em>
+oc apply -f examples/install/cluster-operator/032-RoleBinding-strimzi-cluster-operator-topic-operator-delegation.yaml -n <em>&lt;my-project&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Deploy the Cluster Operator</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/install/cluster-operator -n <em>&lt;my-namespace&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f examples/install/cluster-operator -n <em>&lt;my-project&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="deploying-cluster-operator-helm-chart-deploying-co">4.1.5. Deploying the Cluster Operator using Helm Chart</h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -10173,7 +10342,7 @@ oc apply -f examples/templates/cluster-operator</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-cluster-operator-reconciliation-deploying-co">4.1.5. Reconciliation</h4>
+<h4 id="con-cluster-operator-reconciliation-deploying-co">4.1.6. Reconciliation</h4>
 <div class="paragraph">
 <p>Although the operator reacts to all notifications about the desired cluster resources received from the OpenShift or Kubernetes cluster,
 if the operator is not running, or if a notification is not received for any reason, the desired resources will get out of sync with the state of the running OpenShift or Kubernetes cluster.</p>
@@ -10181,29 +10350,6 @@ if the operator is not running, or if a notification is not received for any rea
 <div class="paragraph">
 <p>In order to handle failovers properly, a periodic reconciliation process is executed by the Cluster Operator so that it can compare the state of the desired resources with the current cluster deployments in order to have a consistent state across all of them.
 You can set the time interval for the periodic reconciliations using the <a href="#STRIMZI_FULL_RECONCILIATION_INTERVAL_MS"><code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code></a> variable.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="con-cluster-operator-namespaces-deploying-co">4.1.6. Watching multiple namespaces</h4>
-<div class="paragraph">
-<p>The Cluster Operator is able to watch for <code>Kafka</code>, <code>KafkaConnect</code>, and <code>KafkaConnectS2I</code> resources in multiple namespaces without being installed on each namespace individually.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The only reason to run multiple Cluster Operators in a single cluster is to use different versions of Strimzi.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>The <code>STRIMZI_NAMESPACE</code> environment variable can be used to configure a single operator instance to operate in multiple namespaces.
-For each namespace given, the operator will watch for the <code>Kafka</code>, <code>KafkaConnect</code>, and <code>KafkaConnectS2I</code> and perform periodic reconciliation.
-For more details about the <code>STIRMZI_NAMESPACE</code> environment variable, see <a href="#ref-operators-cluster-operator-configuration-deploying-co">Cluster Operator Configuration</a>.</p>
 </div>
 </div>
 <div class="sect3">
@@ -10436,13 +10582,16 @@ The Cluster Operator will not run under the cluster admin account.
 <div class="paragraph">
 <p>The <code>ClusterRoles</code> follow the <em>principle of least privilege</em> and contain only those privileges needed by the Cluster Operator to operate Kafka, Kafka Connect, and Zookeeper clusters. The first set of assigned privileges allow the Cluster Operator to manage OpenShift or Kubernetes resources such as <code>StatefulSets</code>, <code>Deployments</code>, <code>Pods</code>, and <code>ConfigMaps</code>.</p>
 </div>
+<div class="paragraph">
+<p>Cluster Operator uses ClusterRoles to grant permission at the namespace-scoped resources level and cluster-scoped resources level:</p>
+</div>
 <div class="listingblock">
-<div class="title">Example <code>Role</code> for the Cluster Operator</div>
+<div class="title"><code>ClusterRole</code> with namespaced resources for the Cluster Operator</div>
 <div class="content">
 <pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
-  name: strimzi-cluster-operator
+  name: strimzi-cluster-operator-namespaced
   labels:
     app: strimzi
 rules:
@@ -10459,7 +10608,6 @@ rules:
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
-  - clusterrolebindings
   - rolebindings
   verbs:
   - get
@@ -10648,6 +10796,31 @@ rules:
 </div>
 </div>
 <div class="paragraph">
+<p>The second includes the permissions needed for cluster-scoped resources.</p>
+</div>
+<div class="listingblock">
+<div class="title"><code>ClusterRole</code> with cluster-scoped resources for the Cluster Operator</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: strimzi-cluster-operator-global
+  labels:
+    app: strimzi
+rules:
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  verbs:
+  - get
+  - create
+  - delete
+  - patch
+  - update</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>The <code>strimzi-kafka-broker</code> <code>ClusterRole</code> represents the access needed by the init container in Kafka pods that is used for the rack feature. As described in the <a href="#delegated-privileges-deploying-co">Delegated privileges</a> section, this role is also needed by the Cluster Operator in order to be able to delegate this access.</p>
 </div>
 <div class="listingblock">
@@ -10677,7 +10850,7 @@ rules:
 <pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
-  name: strimzi-topic-operator
+  name: strimzi-entity-operator
   labels:
     app: strimzi
 rules:
@@ -10698,17 +10871,41 @@ rules:
   resources:
   - events
   verbs:
-  - create</code></pre>
+  - create
+- apiGroups:
+  - kafka.strimzi.io
+  resources:
+  - kafkausers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - create
+  - patch
+  - update
+  - delete</code></pre>
 </div>
 </div>
 </div>
 <div class="sect4">
 <h5 id="clusterrolebindings"><code>ClusterRoleBindings</code></h5>
 <div class="paragraph">
-<p>The operator needs a <code>ClusterRoleBinding</code> which associates its <code>ClusterRole</code> with its <code>ServiceAccount</code>:</p>
+<p>The operator needs <code>ClusterRoleBindings</code> and <code>RoleBindings</code> which associates its <code>ClusterRole</code> with its <code>ServiceAccount</code>:
+<code>ClusterRoleBindings</code> are needed for <code>ClusterRoles</code> containing cluster-scoped resources.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example <code>RoleBinding</code> for the Cluster Operator</div>
+<div class="title">Example <code>ClusterRoleBinding</code> for the Cluster Operator</div>
 <div class="content">
 <pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
@@ -10722,7 +10919,7 @@ subjects:
   namespace: myproject
 roleRef:
   kind: ClusterRole
-  name: strimzi-cluster-operator
+  name: strimzi-cluster-operator-global
   apiGroup: rbac.authorization.k8s.io</code></pre>
 </div>
 </div>
@@ -10748,12 +10945,15 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p><code>ClusterRoles</code> containing only namespaced resources are bound using <code>RoleBindings</code> only.</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
-  name: strimzi-cluster-operator-topic-operator-delegation
+  name: strimzi-cluster-operator
   labels:
     app: strimzi
 subjects:
@@ -10762,7 +10962,25 @@ subjects:
   namespace: myproject
 roleRef:
   kind: ClusterRole
-  name: strimzi-topic-operator
+  name: strimzi-cluster-operator-namespaced
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: strimzi-cluster-operator-entity-operator-delegation
+  labels:
+    app: strimzi
+subjects:
+- kind: ServiceAccount
+  name: strimzi-cluster-operator
+  namespace: myproject
+roleRef:
+  kind: ClusterRole
+  name: strimzi-entity-operator
   apiGroup: rbac.authorization.k8s.io</code></pre>
 </div>
 </div>
