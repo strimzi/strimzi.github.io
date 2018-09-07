@@ -5221,11 +5221,21 @@ spec:
 Authentication can be enabled in the <code>KafkaConnect</code> and <code>KafkaConnectS2I</code> resources.</p>
 </div>
 <div class="sect4">
-<h5 id="ref-kafka-connect-authentication-deployment-configuration-kafka-connect">Authentication support in Kafka Connect</h5>
+<h5 id="con-kafka-connect-authenticationdeployment-configuration-kafka-connect">Authentication support in Kafka Connect</h5>
 <div class="paragraph">
 <p>Authentication can be configured in the <code>authentication</code> property in <code>KafkaConnect.spec</code> and <code>KafkaConnectS2I.spec</code>.
 The <code>authentication</code> property specifies the type of the authentication mechanisms which should be used and additional configuration details depending on the mechanism.
-Currently, the only supported authentication type is TLS client authentication.</p>
+The currently supported authentication types are:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>TLS client authentication</p>
+</li>
+<li>
+<p>SASL based authentication using SCRAM-SHA-512 mechanism</p>
+</li>
+</ul>
 </div>
 <div class="sect5">
 <h6 id="tls_client_authentication_2">TLS Client Authentication</h6>
@@ -5268,9 +5278,37 @@ spec:
 </div>
 </div>
 </div>
+<div class="sect5">
+<h6 id="scram_sha_512_authentication">SCRAM-SHA-512 authentication</h6>
+<div class="paragraph">
+<p>To use the authentication using the SCRAM-SHA-512 SASL mechanism, set the <code>type</code> property to the value <code>scram-sha-512</code>.
+SCRAM-SHA-512 uses a username and password to authenticate.
+Specify the username in the <code>username</code> property.
+Specify the password as a link to a <code>Secret</code> containing the password in the <code>passwordSecret</code> property.
+It has to specify the name of the <code>Secret</code> containing the password and the name of the key under which the password is stored inside the <code>Secret</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example showing SCRAM-SHA-512 client authentication configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-cluster
+spec:
+  # ...
+  authentication:
+    type: scram-sha-512
+    username: my-connect-user
+    passwordSecret:
+      secretName: my-connect-user
+      password: password
+  # ...</code></pre>
+</div>
+</div>
+</div>
 </div>
 <div class="sect4">
-<h5 id="proc-configuring-kafka-connect-authentication-deployment-configuration-kafka-connect">Configuring TLS client authentication in Kafka Connect</h5>
+<h5 id="proc-configuring-kafka-connect-authentication-tls-deployment-configuration-kafka-connect">Configuring TLS client authentication in Kafka Connect</h5>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -5286,8 +5324,8 @@ spec:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Find out the name of the secret with the public and private keys which should be used for TLS Client Authentication and the keys under which they are stored in the secret.
-If such secret does not exist yet, prepare the keys in a file and create the secret.</p>
+<p>Find out the name of the <code>Secret</code> with the public and private keys which should be used for TLS Client Authentication and the keys under which they are stored in the <code>Secret</code>.
+If such a <code>Secret</code> does not exist yet, prepare the keys in a file and create the <code>Secret</code>.</p>
 <div class="paragraph">
 <p>On Kubernetes this can be done using <code>kubectl create</code>:</p>
 </div>
@@ -5306,7 +5344,7 @@ If such secret does not exist yet, prepare the keys in a file and create the sec
 </div>
 </li>
 <li>
-<p>Edit the <code>tls</code> property in the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> resource.
+<p>Edit the <code>authentication</code> property in the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> resource.
 For example:</p>
 <div class="listingblock">
 <div class="content">
@@ -5322,6 +5360,90 @@ spec:
       secretName: my-secret
       certificate: my-public.crt
       key: my-private.key
+  # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-kafka-connect-authentication-scram-sha-512-deployment-configuration-kafka-connect">Configuring SCRAM-SHA-512 authentication in Kafka Connect</h5>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+<li>
+<p>Username of the user which should be used for authentication</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Find out the name of the <code>Secret</code> with the password which should be used for authentication and the key under which the password is stored in the <code>Secret</code>.
+If such a <code>Secret</code> does not exist yet, prepare a file with the password and create the <code>Secret</code>.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl create</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">echo -n '<em>&lt;password&gt;</em>' &gt; <em>&lt;my-password.txt&gt;</em>
+kubectl create secret generic <em>&lt;my-secret&gt;</em> --from-file=<em>&lt;my-password.txt&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc create</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">echo -n '1f2d1e2e67df' &gt; <em>&lt;my-password.txt&gt;</em>
+oc create secret generic <em>&lt;my-secret&gt;</em> --from-file=<em>&lt;my-password.txt&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Edit the <code>authentication</code> property in the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> resource.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  authentication:
+    type: scram-sha-512
+    username: _&lt;my-username&gt;_
+    passwordSecret:
+      secretName: _&lt;my-secret&gt;_
+      password: _&lt;my-password.txt&gt;_
   # ...</code></pre>
 </div>
 </div>
@@ -7745,11 +7867,21 @@ spec:
 Authentication can be enabled in the <code>KafkaConnect</code> and <code>KafkaConnectS2I</code> resources.</p>
 </div>
 <div class="sect4">
-<h5 id="ref-kafka-connect-authentication-deployment-configuration-kafka-connect-s2i">Authentication support in Kafka Connect</h5>
+<h5 id="con-kafka-connect-authenticationdeployment-configuration-kafka-connect-s2i">Authentication support in Kafka Connect</h5>
 <div class="paragraph">
 <p>Authentication can be configured in the <code>authentication</code> property in <code>KafkaConnect.spec</code> and <code>KafkaConnectS2I.spec</code>.
 The <code>authentication</code> property specifies the type of the authentication mechanisms which should be used and additional configuration details depending on the mechanism.
-Currently, the only supported authentication type is TLS client authentication.</p>
+The currently supported authentication types are:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>TLS client authentication</p>
+</li>
+<li>
+<p>SASL based authentication using SCRAM-SHA-512 mechanism</p>
+</li>
+</ul>
 </div>
 <div class="sect5">
 <h6 id="tls_client_authentication_3">TLS Client Authentication</h6>
@@ -7792,9 +7924,37 @@ spec:
 </div>
 </div>
 </div>
+<div class="sect5">
+<h6 id="scram_sha_512_authentication_2">SCRAM-SHA-512 authentication</h6>
+<div class="paragraph">
+<p>To use the authentication using the SCRAM-SHA-512 SASL mechanism, set the <code>type</code> property to the value <code>scram-sha-512</code>.
+SCRAM-SHA-512 uses a username and password to authenticate.
+Specify the username in the <code>username</code> property.
+Specify the password as a link to a <code>Secret</code> containing the password in the <code>passwordSecret</code> property.
+It has to specify the name of the <code>Secret</code> containing the password and the name of the key under which the password is stored inside the <code>Secret</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example showing SCRAM-SHA-512 client authentication configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-cluster
+spec:
+  # ...
+  authentication:
+    type: scram-sha-512
+    username: my-connect-user
+    passwordSecret:
+      secretName: my-connect-user
+      password: password
+  # ...</code></pre>
+</div>
+</div>
+</div>
 </div>
 <div class="sect4">
-<h5 id="proc-configuring-kafka-connect-authentication-deployment-configuration-kafka-connect-s2i">Configuring TLS client authentication in Kafka Connect</h5>
+<h5 id="proc-configuring-kafka-connect-authentication-tls-deployment-configuration-kafka-connect-s2i">Configuring TLS client authentication in Kafka Connect</h5>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -7810,8 +7970,8 @@ spec:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Find out the name of the secret with the public and private keys which should be used for TLS Client Authentication and the keys under which they are stored in the secret.
-If such secret does not exist yet, prepare the keys in a file and create the secret.</p>
+<p>Find out the name of the <code>Secret</code> with the public and private keys which should be used for TLS Client Authentication and the keys under which they are stored in the <code>Secret</code>.
+If such a <code>Secret</code> does not exist yet, prepare the keys in a file and create the <code>Secret</code>.</p>
 <div class="paragraph">
 <p>On Kubernetes this can be done using <code>kubectl create</code>:</p>
 </div>
@@ -7830,7 +7990,7 @@ If such secret does not exist yet, prepare the keys in a file and create the sec
 </div>
 </li>
 <li>
-<p>Edit the <code>tls</code> property in the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> resource.
+<p>Edit the <code>authentication</code> property in the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> resource.
 For example:</p>
 <div class="listingblock">
 <div class="content">
@@ -7846,6 +8006,90 @@ spec:
       secretName: my-secret
       certificate: my-public.crt
       key: my-private.key
+  # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-kafka-connect-authentication-scram-sha-512-deployment-configuration-kafka-connect-s2i">Configuring SCRAM-SHA-512 authentication in Kafka Connect</h5>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+<li>
+<p>Username of the user which should be used for authentication</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Find out the name of the <code>Secret</code> with the password which should be used for authentication and the key under which the password is stored in the <code>Secret</code>.
+If such a <code>Secret</code> does not exist yet, prepare a file with the password and create the <code>Secret</code>.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl create</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">echo -n '<em>&lt;password&gt;</em>' &gt; <em>&lt;my-password.txt&gt;</em>
+kubectl create secret generic <em>&lt;my-secret&gt;</em> --from-file=<em>&lt;my-password.txt&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc create</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">echo -n '1f2d1e2e67df' &gt; <em>&lt;my-password.txt&gt;</em>
+oc create secret generic <em>&lt;my-secret&gt;</em> --from-file=<em>&lt;my-password.txt&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Edit the <code>authentication</code> property in the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> resource.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  authentication:
+    type: scram-sha-512
+    username: _&lt;my-username&gt;_
+    passwordSecret:
+      secretName: _&lt;my-secret&gt;_
+      password: _&lt;my-password.txt&gt;_
   # ...</code></pre>
 </div>
 </div>
