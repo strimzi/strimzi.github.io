@@ -152,14 +152,27 @@
 <li><a href="#assembly-using-the-user-operator-str">6. Using the User Operator</a>
 <ul class="sectlevel2">
 <li><a href="#con-what-the-user-operator-does-using-uo">6.1. Overview of the User Operator component</a></li>
-<li><a href="#proc-creating-kafka-user-using-uo">6.2. Creating a Kafka user</a></li>
-<li><a href="#proc-changing-kafka-user-using-uo">6.3. Editing a Kafka user</a></li>
-<li><a href="#deleting-kafka-user-using-uo">6.4. Deleting a Kafka user</a></li>
-<li><a href="#ref-kafka-user-using-uo">6.5. Kafka User resource</a>
+<li><a href="#con-mutual-tls-authentication-using-uo">6.2. Mutual TLS authentication for clients</a>
 <ul class="sectlevel3">
-<li><a href="#authentication">6.5.1. Authentication</a></li>
-<li><a href="#authorization">6.5.2. Authorization</a></li>
-<li><a href="#additional_resources_4">6.5.3. Additional resources</a></li>
+<li><a href="#mutual_tls_authentication_2">6.2.1. Mutual TLS authentication</a></li>
+<li><a href="#when_to_use_mutual_tls_authentication_for_clients_2">6.2.2. When to use mutual TLS authentication for clients</a></li>
+</ul>
+</li>
+<li><a href="#proc-creating-kafka-user-tls-using-uo">6.3. Creating a Kafka user with mutual TLS authentication</a></li>
+<li><a href="#con-scram-sha-authentication-using-uo">6.4. SCRAM-SHA authentication</a>
+<ul class="sectlevel3">
+<li><a href="#supported_scram_credentials_2">6.4.1. Supported SCRAM credentials</a></li>
+<li><a href="#when_to_use_scram_sha_authentication_for_clients_2">6.4.2. When to use SCRAM-SHA authentication for clients</a></li>
+</ul>
+</li>
+<li><a href="#proc-creating-kafka-user-scram-using-uo">6.5. Creating a Kafka user with SCRAM SHA authentication</a></li>
+<li><a href="#proc-changing-kafka-user-using-uo">6.6. Editing a Kafka user</a></li>
+<li><a href="#deleting-kafka-user-using-uo">6.7. Deleting a Kafka user</a></li>
+<li><a href="#ref-kafka-user-using-uo">6.8. Kafka User resource</a>
+<ul class="sectlevel3">
+<li><a href="#authentication">6.8.1. Authentication</a></li>
+<li><a href="#authorization">6.8.2. Authorization</a></li>
+<li><a href="#additional_resources_4">6.8.3. Additional resources</a></li>
 </ul>
 </li>
 </ul>
@@ -1811,7 +1824,97 @@ Two types of listeners are supported:</p>
 </ul>
 </div>
 <div class="sect4">
-<h5 id="ref-kafka-listeners-deployment-configuration-kafka">Kafka listeners</h5>
+<h5 id="con-mutual-tls-authentication-deployment-configuration-kafka">Mutual TLS authentication for clients</h5>
+<div class="sect5">
+<h6 id="mutual_tls_authentication">Mutual TLS authentication</h6>
+<div class="paragraph">
+<p>Mutual authentication or two-way authentication is when both the server and the client present certificates. Strimzi can configure Kafka to use TLS (Transport Layer Security) to provide encrypted communication between Kafka brokers and clients either with or without mutual authentication. When you configure mutual authentication, the broker authenticates the client and the client authenticates the broker. Mutual TLS authentication is always used for the communication between Kafka brokers and Zookeeper pods.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+In many common uses of TLS (such as the HTTPS protocol used between a web browser and a web server) the authentication is not mutual: Only one party to the communication gets proof of the identity of the other party.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>TLS authentication is more commonly one-way, where only one party authenticates to another. For example, when the HTTPS protocol is used between a web browser and a web server, the authentication is not usually mutual and only the server  gets proof of the identity of the browser.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="when_to_use_mutual_tls_authentication_for_clients">When to use mutual TLS authentication for clients</h6>
+<div class="paragraph">
+<p>Mutual TLS authentication is recommended for authenticating Kafka clients when:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The client supports authentication using mutual TLS authentication</p>
+</li>
+<li>
+<p>It is necessary to use the TLS certificates rather than passwords</p>
+</li>
+<li>
+<p>You can reconfigure and restart client applications periodically so that they do not use expired certificates.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="con-scram-sha-authentication-deployment-configuration-kafka">SCRAM-SHA authentication</h5>
+<div class="paragraph">
+<p>SCRAM (Salted Challenge Response Authentication Mechanism) is an authentication protocol that can establish mutual authentication using passwords. Strimzi can configure Kafka to use SASL SCRMA-SHA-512 to provide authentication on both unencrypted and TLS-encrypted client connections. TLS authentication is always used internally between Kafka brokers and Zookeeper nodes. When used with a TLS client connection, the TLS protocol provides encryption, but is not used for authentication.</p>
+</div>
+<div class="paragraph">
+<p>The following properties of SCRAM make it safe to use SCRAM-SHA even on unencrypted connections:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The passwords are not sent in the clear over the communication channel.
+Instead the client and the server are each challenged by the other to offer proof that they know the password of the authenticating user.</p>
+</li>
+<li>
+<p>The server and client each generate a new challenge one each authentication exchange.
+This means that the exchange is resilient against replay attacks.</p>
+</li>
+</ul>
+</div>
+<div class="sect5">
+<h6 id="supported_scram_credentials">Supported SCRAM credentials</h6>
+<div class="paragraph">
+<p>Strimzi supports SCRMA-SHA-512 only.
+When a <code>KafkaUser.spec.authentication.type</code> is configured with <code>scram-sha-512</code> the User Operator will generate a random 12 character password consisting of upper and lowercase ASCII letters and numbers.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="when_to_use_scram_sha_authentication_for_clients">When to use SCRAM-SHA authentication for clients</h6>
+<div class="paragraph">
+<p>SCRAM-SHA is recommended for authenticating Kafka clients when:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The client supports authentication using SCRAM-SHA-512</p>
+</li>
+<li>
+<p>It is necessary to use passwords rather than the TLS certificates</p>
+</li>
+<li>
+<p>When you want to have authentication for unencrypted communication</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="con-kafka-listeners-deployment-configuration-kafka">Kafka listeners</h5>
 <div class="paragraph">
 <p>Kafka broker listeners can be configured using the <code>listeners</code> property in the <code>Kafka.spec.kafka</code> resource.
 The <code>listeners</code> property contains two sub-properties:</p>
@@ -1848,19 +1951,41 @@ listeners:
 # ...</code></pre>
 </div>
 </div>
+<div class="sect5">
+<h6 id="listener_authentication">Listener authentication</h6>
 <div class="paragraph">
-<p>The listener sub-properties might also contain additional configuration.
-Currently, the only supported configuration is authentication on the <code>tls</code> listener.</p>
+<p>The listener sub-properties can also contain additional configuration.
+Both listeners support the <code>authentication</code> property. This is used to specify an authentication mechanism specific to that listener:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>mutual TLS authentication (only on the <code>tls</code> listener)</p>
+</li>
+<li>
+<p>SCRAM-SHA authentication</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>If no <code>authentication</code> property is specified then the listener does not authenticate clients which connect though that listener.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example of <code>tls</code> listener with TLS client authentication enabled</div>
+<div class="title">An example where the plain listener is configured for SCRAM-SHA authentication and the <code>tls</code> listener with mutual TLS authentication</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
 listeners:
+  plain:
+    authentication:
+      type: scram-sha-512
   tls:
     authentication:
       type: tls
 # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Authentication must be configured when using the User Operator to manage <code>KafkaUsers</code>.</p>
 </div>
 </div>
 </div>
@@ -1881,8 +2006,16 @@ listeners:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Edit the <code>listeners</code> property in the <code>Kafka.spec.kafka</code> resource.
-For example:</p>
+<p>Edit the <code>listeners</code> property in the <code>Kafka.spec.kafka</code> resource.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>An example configuration of the plain (unencrypted) listener without authentication:</p>
+</div>
+<div class="paragraph">
+<p>+</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
@@ -1897,7 +2030,8 @@ spec:
     # ...</code></pre>
 </div>
 </div>
-</li>
+<div class="olist arabic">
+<ol class="arabic">
 <li>
 <p>Create or update the resource.</p>
 <div class="paragraph">
@@ -12190,12 +12324,55 @@ Your application needs to use the user and its credentials for authentication an
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-creating-kafka-user-using-uo">6.2. Creating a Kafka user</h3>
+<h3 id="con-mutual-tls-authentication-using-uo">6.2. Mutual TLS authentication for clients</h3>
+<div class="sect3">
+<h4 id="mutual_tls_authentication_2">6.2.1. Mutual TLS authentication</h4>
+<div class="paragraph">
+<p>Mutual authentication or two-way authentication is when both the server and the client present certificates. Strimzi can configure Kafka to use TLS (Transport Layer Security) to provide encrypted communication between Kafka brokers and clients either with or without mutual authentication. When you configure mutual authentication, the broker authenticates the client and the client authenticates the broker. Mutual TLS authentication is always used for the communication between Kafka brokers and Zookeeper pods.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+In many common uses of TLS (such as the HTTPS protocol used between a web browser and a web server) the authentication is not mutual: Only one party to the communication gets proof of the identity of the other party.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>TLS authentication is more commonly one-way, where only one party authenticates to another. For example, when the HTTPS protocol is used between a web browser and a web server, the authentication is not usually mutual and only the server  gets proof of the identity of the browser.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="when_to_use_mutual_tls_authentication_for_clients_2">6.2.2. When to use mutual TLS authentication for clients</h4>
+<div class="paragraph">
+<p>Mutual TLS authentication is recommended for authenticating Kafka clients when:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The client supports authentication using mutual TLS authentication</p>
+</li>
+<li>
+<p>It is necessary to use the TLS certificates rather than passwords</p>
+</li>
+<li>
+<p>You can reconfigure and restart client applications periodically so that they do not use expired certificates.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-creating-kafka-user-tls-using-uo">6.3. Creating a Kafka user with mutual TLS authentication</h3>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
 <li>
-<p>A running Kafka cluster.</p>
+<p>A running Kafka cluster configured with a listener using TLS authentication.</p>
 </li>
 <li>
 <p>A running User Operator.</p>
@@ -12271,13 +12448,159 @@ spec:
 <p>For more information about deploying the Cluster Operator, see <a href="#cluster-operator-str">Cluster Operator</a>.</p>
 </li>
 <li>
+<p>For more information about configuring a listener that authenticates using TLS see <a href="#assembly-configuring-kafka-broker-listeners-deployment-configuration-kafka">Kafka broker listeners</a>.</p>
+</li>
+<li>
+<p>For more information about deploying the Entity Operator, see <a href="#assembly-kafka-entity-operator-deployment-configuration-kafka">Entity Operator</a>.</p>
+</li>
+<li>
 <p>For more information about the <code>KafkaUser</code> object, see <a href="#type-KafkaUser-reference"><code>KafkaUser</code> schema reference</a>.</p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-changing-kafka-user-using-uo">6.3. Editing a Kafka user</h3>
+<h3 id="con-scram-sha-authentication-using-uo">6.4. SCRAM-SHA authentication</h3>
+<div class="paragraph">
+<p>SCRAM (Salted Challenge Response Authentication Mechanism) is an authentication protocol that can establish mutual authentication using passwords. Strimzi can configure Kafka to use SASL SCRMA-SHA-512 to provide authentication on both unencrypted and TLS-encrypted client connections. TLS authentication is always used internally between Kafka brokers and Zookeeper nodes. When used with a TLS client connection, the TLS protocol provides encryption, but is not used for authentication.</p>
+</div>
+<div class="paragraph">
+<p>The following properties of SCRAM make it safe to use SCRAM-SHA even on unencrypted connections:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The passwords are not sent in the clear over the communication channel.
+Instead the client and the server are each challenged by the other to offer proof that they know the password of the authenticating user.</p>
+</li>
+<li>
+<p>The server and client each generate a new challenge one each authentication exchange.
+This means that the exchange is resilient against replay attacks.</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="supported_scram_credentials_2">6.4.1. Supported SCRAM credentials</h4>
+<div class="paragraph">
+<p>Strimzi supports SCRMA-SHA-512 only.
+When a <code>KafkaUser.spec.authentication.type</code> is configured with <code>scram-sha-512</code> the User Operator will generate a random 12 character password consisting of upper and lowercase ASCII letters and numbers.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="when_to_use_scram_sha_authentication_for_clients_2">6.4.2. When to use SCRAM-SHA authentication for clients</h4>
+<div class="paragraph">
+<p>SCRAM-SHA is recommended for authenticating Kafka clients when:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The client supports authentication using SCRAM-SHA-512</p>
+</li>
+<li>
+<p>It is necessary to use passwords rather than the TLS certificates</p>
+</li>
+<li>
+<p>When you want to have authentication for unencrypted communication</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-creating-kafka-user-scram-using-uo">6.5. Creating a Kafka user with SCRAM SHA authentication</h3>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Kafka cluster configured with a listener using SCRAM SHA authentication.</p>
+</li>
+<li>
+<p>A running User Operator.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Prepare a YAML file containing the <code>KafkaUser</code> to be created.</p>
+<div class="listingblock">
+<div class="title">An example <code>KafkaUser</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaUser
+metadata:
+  name: my-user
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: my-topic
+          patternType: literal
+        operation: Read
+      - resource:
+          type: topic
+          name: my-topic
+          patternType: literal
+        operation: Describe
+      - resource:
+          type: group
+          name: my-group
+          patternType: literal
+        operation: Read</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create the <code>KafkaUser</code> resource in OpenShift or Kubernetes.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Use the credentials from the secret <code>my-user</code> in your application</p>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about deploying the Cluster Operator, see <a href="#cluster-operator-str">Cluster Operator</a>.</p>
+</li>
+<li>
+<p>For more information about configuring a listener that authenticates using SCRAM SHA see <a href="assembly-configuring-kafka-broker-listeners&.html#8212;&#8203;deployment-configuration-kafka">assembly-configuring-kafka-broker-listeners&.html</a>.</p>
+</li>
+<li>
+<p>For more information about deploying the Entity Operator, see <a href="#assembly-kafka-entity-operator-deployment-configuration-kafka">Entity Operator</a>.</p>
+</li>
+<li>
+<p>For more information about the <code>KafkaUser</code> object, see <a href="#type-KafkaUser-reference"><code>KafkaUser</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-changing-kafka-user-using-uo">6.6. Editing a Kafka user</h3>
 <div class="paragraph">
 <p>This procedure describes how to change the configuration of an existing Kafka user by using a <code>KafkaUser</code> OpenShift or Kubernetes resource.</p>
 </div>
@@ -12373,7 +12696,7 @@ spec:
 </div>
 </div>
 <div class="sect2">
-<h3 id="deleting-kafka-user-using-uo">6.4. Deleting a Kafka user</h3>
+<h3 id="deleting-kafka-user-using-uo">6.7. Deleting a Kafka user</h3>
 <div class="paragraph">
 <p>This procedure describes how to delete a Kafka user created with <code>KafkaUser</code> OpenShift or Kubernetes resource.</p>
 </div>
@@ -12428,12 +12751,12 @@ spec:
 </div>
 </div>
 <div class="sect2">
-<h3 id="ref-kafka-user-using-uo">6.5. Kafka User resource</h3>
+<h3 id="ref-kafka-user-using-uo">6.8. Kafka User resource</h3>
 <div class="paragraph">
 <p>The <code>KafkaUser</code> resource is used to declare a user with its authentication mechanism, authorization mechanism, and access rights.</p>
 </div>
 <div class="sect3">
-<h4 id="authentication">6.5.1. Authentication</h4>
+<h4 id="authentication">6.8.1. Authentication</h4>
 <div class="paragraph">
 <p>Authentication is configured using the <code>authentication</code> property in <code>KafkaUser.spec</code>.
 The authentication mechanism enabled for this user will be specified using the <code>type</code> field.
@@ -12488,7 +12811,7 @@ data:
 </div>
 </div>
 <div class="sect3">
-<h4 id="authorization">6.5.2. Authorization</h4>
+<h4 id="authorization">6.8.2. Authorization</h4>
 <div class="paragraph">
 <p>Authorization is configured using the <code>authorization</code> property in <code>KafkaUser.spec</code>.
 The authorization type enabled for this user will be specified using the <code>type</code> field.
@@ -12652,7 +12975,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="additional_resources_4">6.5.3. Additional resources</h4>
+<h4 id="additional_resources_4">6.8.3. Additional resources</h4>
 <div class="ulist">
 <ul>
 <li>
