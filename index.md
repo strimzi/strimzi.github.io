@@ -11,6 +11,10 @@ Strimzi provides a way to run an [Apache Kafka](https://kafka.apache.org/) clust
 
 See our [GitHub](http://github.com/strimzi) repository for more info.
 
+# Roadmap
+
+The project roadmap describing our future plans can be found in our [GitHub project](https://github.com/strimzi/strimzi-kafka-operator/projects/1).
+
 # Downloads
 
 Strimzi releases are available for download on our [GitHub](https://github.com/strimzi/strimzi-kafka-operator). The release artifacts
