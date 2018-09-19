@@ -612,14 +612,18 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 </ul>
 </li>
-<li><a href="#security">7. Security</a>
+<li><a href="#security-str">Security</a>
+<ul class="sectlevel1">
+<li><a href="#certificates-str">7. Certificates</a></li>
+<li><a href="#tls-connections-str">8. TLS connections</a>
 <ul class="sectlevel2">
-<li><a href="#certificates">7.1. Certificates</a></li>
-<li><a href="#interbroker_kafka_communication">7.2. Interbroker Kafka Communication</a></li>
-<li><a href="#zookeeper_communication">7.3. Zookeeper Communication</a></li>
-<li><a href="#kafka_client_connections_via_tls">7.4. Kafka Client connections via TLS</a></li>
+<li><a href="#zookeeper_communication">8.1. Zookeeper communication</a></li>
+<li><a href="#kafka_interbroker_communication">8.2. Kafka interbroker communication</a></li>
+<li><a href="#topic_and_user_operators">8.3. Topic and User Operators</a></li>
+<li><a href="#kafka_client_connections">8.4. Kafka Client connections</a></li>
 </ul>
 </li>
+<li><a href="#configuring-clients-to-trust-cluster-ca-str">9. Configuring clients to trust the cluster CA</a></li>
 <li><a href="#frequently_asked_questions">Appendix A: Frequently Asked Questions</a>
 <ul class="sectlevel2">
 <li><a href="#cluster_operator">A.1. Cluster Operator</a>
@@ -702,6 +706,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </ul>
 </li>
 <li><a href="#grafana_dashboard">D.3. Grafana dashboard</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -2383,7 +2389,7 @@ The <code>listeners</code> property contains three sub-properties:</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>If these sub-properties are not defined, the listener is disabled.</p>
+<p>When none of these properties are defined, the listener will be disabled.</p>
 </div>
 <div class="listingblock">
 <div class="title">An example of <code>listeners</code> property with all listeners enabled</div>
@@ -2396,7 +2402,7 @@ listeners:
 </div>
 </div>
 <div class="listingblock">
-<div class="title">An example of <code>listeners</code> property with only the plain listener enables</div>
+<div class="title">An example of <code>listeners</code> property with only the plain listener enabled</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
 listeners:
@@ -3005,10 +3011,20 @@ When the <code>authentication</code> property is missing, no authentication will
 The authentication mechanism which will be used is defined by the <code>type</code> field.</p>
 </div>
 <div class="paragraph">
-<p>Currently, the only supported authentication mechanism is the TLS client authentication.</p>
+<p>The supported authentication mechanisms are:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>TLS client authentication</p>
+</li>
+<li>
+<p>SASL SCRAM-SHA-512</p>
+</li>
+</ul>
 </div>
 <div class="sect5">
-<h6 id="tls_client_authentication">TLS Client Authentication</h6>
+<h6 id="tls_client_authentication">TLS client authentication</h6>
 <div class="paragraph">
 <p>TLS Client authentication can be enabled by specifying the <code>type</code> as <code>tls</code>.
 The TLS client authentication is supported only on the <code>tls</code> listener.</p>
@@ -13531,7 +13547,7 @@ spec:
 <p>For more information about deploying the Cluster Operator, see <a href="#cluster-operator-str">Cluster Operator</a>.</p>
 </li>
 <li>
-<p>For more information about configuring a listener that authenticates using SCRAM SHA see <a href="assembly-configuring-kafka-broker-listeners&.html#8212;&#8203;deployment-configuration-kafka">assembly-configuring-kafka-broker-listeners&.html</a>.</p>
+<p>For more information about configuring a listener that authenticates using SCRAM SHA see <a href="#assembly-configuring-kafka-broker-listeners-deployment-configuration-kafka">Kafka broker listeners</a>.</p>
 </li>
 <li>
 <p>For more information about deploying the Entity Operator, see <a href="#assembly-kafka-entity-operator-deployment-configuration-kafka">Entity Operator</a>.</p>
@@ -13930,73 +13946,72 @@ spec:
 </div>
 </div>
 </div>
-<div class="sect1">
-<h2 id="security">7. Security</h2>
-<div class="sectionbody">
+<h1 id="security-str" class="sect0">Security</h1>
+<div class="openblock partintro">
+<div class="content">
 <div class="paragraph">
-<p>The Strimzi project supports data encryption of communication between the different Kafka and Strimzi components by means of the SSL/TLS protocol.
-This makes it possible to encrypt data transferred between Kafka brokers (interbroker communication), between Zookeeper nodes (internodal communication), and between clients and Kafka brokers.
+<p>Strimzi supports encrypted communication between the Kafka and Strimzi components using the TLS protocol.
+Communication between Kafka brokers (interbroker communication), between Zookeeper nodes (internodal communication), and between these and the Strimzi operators is always encrypted.
+Communication between Kafka clients and Kafka brokers will be encrypted according how the cluster is configured.
 For the Kafka and Strimzi components, TLS certificates are also used for authentication.</p>
 </div>
 <div class="paragraph">
-<p>The Cluster Operator sets up the SSL/TLS certificates to provide this encryption and authentication.</p>
+<p>The Cluster Operator automatically sets up TLS certificates to enable encryption and authentication within your cluster.
+It also sets up other TLS certificates if you want to enable encryption or TLS authentication between Kafka brokers and clients.</p>
 </div>
 <div class="imageblock">
 <div class="content">
 <img src="images/secure_communication.png" alt="Secure Communication">
 </div>
-<div class="title">Figure 3. Example Architecture diagram of the communication secured by TLS.</div>
+<div class="title">Figure 3. Example architecture diagram of the communication secured by TLS.</div>
 </div>
-<div class="sect2">
-<h3 id="certificates">7.1. Certificates</h3>
+</div>
+</div>
+<div class="sect1">
+<h2 id="certificates-str">7. Certificates</h2>
+<div class="sectionbody">
 <div class="paragraph">
-<p>Each component needs its own private and public keys in order to support encryption.
-The public key has to be signed by a certificate authority (CA) in order to have a related X.509 certificate for providing server authentication and encrypting the communication channel with the client (which could be another broker as well).
-All component certificates are signed by a Certification Authority (CA) called <em>cluster CA</em>.
-Another CA is used for authentication of Kafka clients connecting to Kafka brokers.
-This CA is called <em>clients CA</em>.
+<p>Each Strimzi component needs its own private keys and public key certificates in order to support encryption.
+All component certificates are signed by a Certification Authority (CA) called <em>cluster CA</em>, while the <em>clients CA</em>, is used to sign the certificates for the Kafka clients.
 The CAs themselves use self-signed certificates.</p>
 </div>
 <div class="paragraph">
-<p>All of the generated certificates are saved as Secrets in the OpenShift or Kubernetes cluster, named as follows:</p>
+<p>All of the generated certificates are saved as <code>Secrets</code> in the OpenShift or Kubernetes cluster, named as follows:</p>
 </div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1"><code>&lt;cluster-name&gt;-cluster-ca</code></dt>
+<dt class="hdlist1"><code><em>&lt;cluster-name&gt;</em>-cluster-ca</code></dt>
 <dd>
 <p>Contains the private and public keys of the cluster CA which is used for signing server certificates for the Kafka and Strimzi components (Kafka brokers, Zookeeper nodes, and so on).</p>
 </dd>
-<dt class="hdlist1"><code>&lt;cluster-name&gt;-cluster-ca-cert</code></dt>
+<dt class="hdlist1"><code><em>&lt;cluster-name&gt;</em>-cluster-ca-cert</code></dt>
 <dd>
-<p>Contains only the public key of the cluster CA.
-The public key used by Kafka clients to verify the identity of the Kafka brokers they are connecting to (TLS server authentication).</p>
+<p>Contains only the public key of the cluster CA which is used by Kafka clients to verify the identity of the Kafka brokers they are connecting to (TLS server authentication).</p>
 </dd>
-<dt class="hdlist1"><code>&lt;cluster-name&gt;-clients-ca</code></dt>
+<dt class="hdlist1"><code><em>&lt;cluster-name&gt;</em>-clients-ca</code></dt>
 <dd>
-<p>Contains the private and public keys of the clients CA.
-The clients CA is used for TLS client authentication of Kafka clients when connecting to Kafka brokers.</p>
+<p>Contains private and public keys of the clients CA which is used for TLS client authentication of Kafka clients when connecting to Kafka brokers.</p>
 </dd>
-<dt class="hdlist1"><code>&lt;cluster-name&gt;-clients-ca-cert</code></dt>
+<dt class="hdlist1"><code><em>&lt;cluster-name&gt;</em>-clients-ca-cert</code></dt>
 <dd>
-<p>Contains only the public key of the client CA.
-The public key is used by the Kafka brokers to verify the identity of Kafka clients when TLS client authentication is used.</p>
+<p>Contains only the public key of the client CA which is used by the Kafka brokers to verify the identity of Kafka clients when TLS client authentication is used.</p>
 </dd>
-<dt class="hdlist1"><code>&lt;cluster-name&gt;-kafka-brokers</code></dt>
+<dt class="hdlist1"><code><em>&lt;cluster-name&gt;</em>-kafka-brokers</code></dt>
 <dd>
-<p>Contains all the Kafka broker private and public keys (certificates signed with the cluster CA).</p>
+<p>Contains all Kafka broker private and public keys (certificates signed with the cluster CA).</p>
 </dd>
-<dt class="hdlist1"><code>&lt;cluster-name&gt;-zookeeper-nodes</code></dt>
+<dt class="hdlist1"><code><em>&lt;cluster-name&gt;</em>-zookeeper-nodes</code></dt>
 <dd>
-<p>Contains all the Zookeeper node private and public keys (certificates signed with the cluster CA).</p>
+<p>Contains all Zookeeper node private and public keys (certificates signed with the cluster CA).</p>
 </dd>
-<dt class="hdlist1"><code>&lt;cluster-name&gt;-topic-operator-certs</code></dt>
+<dt class="hdlist1"><code><em>&lt;cluster-name&gt;</em>-topic-operator-certs</code></dt>
 <dd>
 <p>Contains the private and public keys (certificates signed with the cluster CA) used for encrypting communication between the Topic Operator and Kafka or Zookeeper.</p>
 </dd>
 </dl>
 </div>
 <div class="paragraph">
-<p>All the keys are 2048 bits in size and are valid for 365 days from initial generation.</p>
+<p>All keys are 2048 bits in size and are valid for 365 days from initial generation.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -14005,30 +14020,53 @@ The public key is used by the Kafka brokers to verify the identity of Kafka clie
 <div class="title">Note</div>
 </td>
 <td class="content">
-"certificates rotation" for generating new ones on their expiration will be supported in future releases.
+Certificate rotation is not currently supported.
 </td>
 </tr>
 </table>
 </div>
 </div>
+</div>
+<div class="sect1">
+<h2 id="tls-connections-str">8. TLS connections</h2>
+<div class="sectionbody">
 <div class="sect2">
-<h3 id="interbroker_kafka_communication">7.2. Interbroker Kafka Communication</h3>
+<h3 id="zookeeper_communication">8.1. Zookeeper communication</h3>
 <div class="paragraph">
-<p>Communication between brokers is done through the <code>REPLICATION</code> listener on port 9091, which is encrypted by default.</p>
+<p>Zookeeper does not support TLS itself.
+By deploying an <code>stunnel</code> sidecar within every Zookeeper pod, the Cluster Operator is able to provide data encryption and authentication between Zookeeper nodes in a cluster.
+Zookeeper communicates only with the <code>stunnel</code> sidecar over the loopback interface.
+The <code>stunnel</code> sidecar then proxies all Zookeeper traffic, TLS decrypting data upon entry into a Zookeeper pod and TLS encrypting data upon departure from a Zookeeper pod.</p>
+</div>
+<div class="paragraph">
+<p>This TLS encrypting <code>stunnel</code> proxy is instantiated from the <code>spec.zookeeper.stunnelImage</code> specified in the Kafka resource.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="zookeeper_communication">7.3. Zookeeper Communication</h3>
+<h3 id="kafka_interbroker_communication">8.2. Kafka interbroker communication</h3>
 <div class="paragraph">
-<p>By deploying an <code>stunnel</code> sidecar within every Zookeeper pod, the Cluster Operator is able to provide data encryption and authentication between Zookeeper nodes in a cluster.
-The <code>stunnel</code> sidecar proxies all Zookeeper traffic, TLS decrypting data upon entry into a Zookeeper pod and TLS encrypting data upon departure from a Zookeeper pod.
-This TLS encrypting <code>stunnel</code> proxy is instantiated from the <code>spec.zookeeper.stunnelImage</code> specified in the Kafka resource.</p>
+<p>Communication between Kafka brokers is done through the <code>REPLICATION</code> listener on port 9091, which is encrypted by default.</p>
+</div>
+<div class="paragraph">
+<p>Communication between Kafka brokers and Zookeeper nodes uses an <code>stunnel</code> sidecar, as described above.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="kafka_client_connections_via_tls">7.4. Kafka Client connections via TLS</h3>
+<h3 id="topic_and_user_operators">8.3. Topic and User Operators</h3>
+<div class="literalblock">
+<div class="content">
+<pre>Like the Cluster Operator, the Topic and User Operators each use an `stunnel` sidecar when communicating with Zookeeper.
+The Topic Operator connects to Kafka brokers on port 9091.</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="kafka_client_connections">8.4. Kafka Client connections</h3>
 <div class="paragraph">
-<p>Encrypted communication between Kafka brokers and clients is provided through the <code>CLIENTTLS</code> listener on port 9093.</p>
+<p>Encrypted communication between Kafka brokers and clients running within the same OpenShift or Kubernetes cluster is provided through the <code>CLIENTTLS</code> listener on port 9093.</p>
+</div>
+<div class="paragraph">
+<p>Encrypted communication between Kafka brokers and clients running outside the same OpenShift or Kubernetes cluster is provided through the <code>EXTERNAL</code> listener on port 9094.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -14042,16 +14080,26 @@ You can use the <code>CLIENT</code> listener on port 9092 for unencrypted commun
 </tr>
 </table>
 </div>
-<div class="paragraph">
-<p>If a Kafka client wants to connect to the encrypted listener (<code>CLIENTTLS</code>) on port 9093, it needs to trust the cluster CA certificate in order to verify the broker certificate received during the SSL/TLS handshake.
-The cluster CA certificate can be extracted from the generated <code>&lt;cluster-name&gt;-cluster-ca-cert</code> <code>Secret</code>.</p>
 </div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="configuring-clients-to-trust-cluster-ca-str">9. Configuring clients to trust the cluster CA</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>If a Kafka client wants to connect to the <code>tls</code> listener on port 9093 or the <code>external</code> listener on port 9094, it needs to trust the cluster CA certificate.</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>The cluster CA certificate can be extracted from the generated <code><em>&lt;cluster-name&gt;</em>-cluster-ca-cert</code> <code>Secret</code>.</p>
 <div class="paragraph">
 <p>On Kubernetes, the certificate can be extracted with the following command:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret &lt;cluster-name&gt;-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>&lt;cluster-name&gt;</em>-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -14059,38 +14107,36 @@ The cluster CA certificate can be extracted from the generated <code>&lt;cluster
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc get secret &lt;cluster-name&gt;-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc extract secret/<em>&lt;cluster-name&gt;</em>-cluster-ca-cert --keys ca.crt</code></pre>
 </div>
 </div>
-<div class="paragraph">
+</li>
+<li>
 <p>The Kafka client has to be configured to trust certificates signed by this CA.
-For the Java-based Kafka Producer, Consumer and Streams APIs, you can do this by importing the CA certificate into the JVM&#8217;s truststore using the following keytool command:</p>
-</div>
+For the Java-based Kafka Producer, Consumer, and Streams APIs, you can do this by importing the CA certificate into the JVM&#8217;s truststore using the following <code>keytool</code> command:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">keytool -keystore client.truststore.jks -alias CARoot -import -file ca.crt</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>Finally, in order to configure the Kafka client, following properties should be specified:</p>
-</div>
+</li>
+<li>
+<p>In order to configure the Kafka client, following properties should be specified:</p>
 <div class="ulist">
 <ul>
 <li>
-<p><code>security.protocol</code>: SSL is the value for using encryption.</p>
+<p><code>security.protocol: SSL</code> when using TLS for encryption (with or without TLS authentication), or <code>security.protocol: SASL_SSL</code> when using SCRAM-SHA authentication over TLS.</p>
 </li>
 <li>
 <p><code>ssl.truststore.location</code>: the truststore location where the certificates were imported.</p>
 </li>
 <li>
-<p><code>ssl.truststore.password</code>: password for accessing the truststore. This property can be omitted if it is not needed by the truststore.</p>
+<p><code>ssl.truststore.password</code>: the password for accessing the truststore. This property can be omitted if it is not needed by the truststore.</p>
 </li>
 </ul>
 </div>
-<div class="paragraph">
-<p>The current implementation does not support Subject Alternative Names (SAN) so the hostname verification should be disabled on the client side.
-For doing so the <code>ssl.endpoint.identification.algorithm</code> property needs to be set as empty.</p>
-</div>
+</li>
+</ol>
 </div>
 </div>
 </div>
@@ -16545,7 +16591,7 @@ For accessing the dashboard, you can use the <code>port-forward</code> command f
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-09-19 05:54:57 UTC
+Last updated 2018-09-19 14:54:39 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
