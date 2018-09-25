@@ -10,10 +10,11 @@ available on [Docker Hub](https://hub.docker.com/u/strimzi/).
 
 ## Latest release
 
-* [0.6.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.6.0)
+* [0.7.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.7.0)
 
 ## Older releases
 
+* [0.6.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.6.0)
 * [0.5.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.5.0)
 * [0.4.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.4.0)
 * [0.3.1](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.3.1)
