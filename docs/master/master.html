@@ -32,17 +32,23 @@
 <li><a href="#using-kafka-connect-with-plugins-str">2.4.3. Using Kafka Connect with plugins</a></li>
 </ul>
 </li>
-<li><a href="#deploying-example-clients-str">2.5. Deploying example clients</a></li>
-<li><a href="#assembly-getting-started-topic-operator-str">2.6. Topic Operator</a>
+<li><a href="#kafka-mirror-maker-str">2.5. Kafka Mirror Maker</a>
 <ul class="sectlevel3">
-<li><a href="#what-the-topic-operator-does-str">2.6.1. Overview of the Topic Operator component</a></li>
-<li><a href="#deploying-the-topic-operator-using-the-cluster-operator-str">2.6.2. Deploying the Topic Operator using the Cluster Operator</a></li>
+<li><a href="#deploying-kafka-mirror-maker-kubernetes-str">2.5.1. Deploying Kafka Connect to Kubernetes</a></li>
+<li><a href="#deploying-kafka-mirror-maker-openshift-str">2.5.2. Deploying Kafka Mirror Maker to OpenShift</a></li>
 </ul>
 </li>
-<li><a href="#assembly-getting-started-user-operator-str">2.7. User Operator</a>
+<li><a href="#deploying-example-clients-str">2.6. Deploying example clients</a></li>
+<li><a href="#assembly-getting-started-topic-operator-str">2.7. Topic Operator</a>
 <ul class="sectlevel3">
-<li><a href="#con-what-the-user-operator-does-str">2.7.1. Overview of the User Operator component</a></li>
-<li><a href="#proc-deploying-the-user-operator-using-the-cluster-operator-str">2.7.2. Deploying the User Operator using the Cluster Operator</a></li>
+<li><a href="#what-the-topic-operator-does-str">2.7.1. Overview of the Topic Operator component</a></li>
+<li><a href="#deploying-the-topic-operator-using-the-cluster-operator-str">2.7.2. Deploying the Topic Operator using the Cluster Operator</a></li>
+</ul>
+</li>
+<li><a href="#assembly-getting-started-user-operator-str">2.8. User Operator</a>
+<ul class="sectlevel3">
+<li><a href="#con-what-the-user-operator-does-str">2.8.1. Overview of the User Operator component</a></li>
+<li><a href="#proc-deploying-the-user-operator-using-the-cluster-operator-str">2.8.2. Deploying the User Operator using the Cluster Operator</a></li>
 </ul>
 </li>
 </ul>
@@ -104,6 +110,25 @@
 <li><a href="#assembly-scheduling-deployment-configuration-kafka-connect-s2i">3.3.12. Configuring pod scheduling</a></li>
 <li><a href="#ref-list-of-kafka-connect-s2i-resources-deployment-configuration-kafka-connect-s2i">3.3.13. List of resources created as part of Kafka Connect cluster with Source2Image support</a></li>
 <li><a href="#using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i">3.3.14. Using OpenShift builds and S2I to create new images</a></li>
+</ul>
+</li>
+<li><a href="#assembly-deployment-configuration-kafka-mirror-maker-str">3.4. Kafka Mirror Maker configuration</a>
+<ul class="sectlevel3">
+<li><a href="#assembly-kafka-mirror-maker-replicas-deployment-configuration-kafka-mirror-maker">3.4.1. Replicas</a></li>
+<li><a href="#assembly-kafka-mirror-maker-bootstrap-servers-deployment-configuration-kafka-mirror-maker">3.4.2. Bootstrap servers</a></li>
+<li><a href="#assembly-kafka-mirror-maker-whitelist-deployment-configuration-kafka-mirror-maker">3.4.3. Whitelist</a></li>
+<li><a href="#assembly-kafka-mirror-maker-groupid-deployment-configuration-kafka-mirror-maker">3.4.4. Consumer group identifier</a></li>
+<li><a href="#assembly-kafka-mirror-maker-numstreams-deployment-configuration-kafka-mirror-maker">3.4.5. Number of consumer streams</a></li>
+<li><a href="#assembly-kafka-mirror-maker-tls-deployment-configuration-kafka-mirror-maker">3.4.6. Connecting to Kafka brokers using TLS</a></li>
+<li><a href="#assembly-kafka-mirror-maker-authentication-deployment-configuration-kafka-mirror-maker">3.4.7. Connecting to Kafka brokers with Authentication</a></li>
+<li><a href="#assembly-kafka-mirror-maker-configuration-deployment-configuration-kafka-mirror-maker">3.4.8. Kafka Mirror Maker configuration</a></li>
+<li><a href="#assembly-resource-limits-and-requests-deployment-configuration-kafka-mirror-maker">3.4.9. CPU and memory resources</a></li>
+<li><a href="#assembly-logging-deployment-configuration-kafka-mirror-maker">3.4.10. Logging</a></li>
+<li><a href="#assembly-metrics-deployment-configuration-kafka-mirror-maker">3.4.11. Prometheus metrics</a></li>
+<li><a href="#assembly-jvm-options-deployment-configuration-kafka-mirror-maker">3.4.12. JVM Options</a></li>
+<li><a href="#assembly-configuring-container-images-deployment-configuration-kafka-mirror-maker">3.4.13. Container images</a></li>
+<li><a href="#assembly-scheduling-deployment-configuration-kafka-mirror-maker">3.4.14. Configuring pod scheduling</a></li>
+<li><a href="#ref-list-of-kafka-mirror-maker-resources-deployment-configuration-kafka-mirror-maker">3.4.15. List of resources created as part of Kafka Mirror Maker</a></li>
 </ul>
 </li>
 </ul>
@@ -172,7 +197,7 @@
 <ul class="sectlevel3">
 <li><a href="#authentication">6.8.1. Authentication</a></li>
 <li><a href="#authorization">6.8.2. Authorization</a></li>
-<li><a href="#additional_resources_4">6.8.3. Additional resources</a></li>
+<li><a href="#additional_resources_5">6.8.3. Additional resources</a></li>
 </ul>
 </li>
 </ul>
@@ -1068,7 +1093,85 @@ The name of the build will be changed according to the cluster name of the deplo
 </div>
 </div>
 <div class="sect2">
-<h3 id="deploying-example-clients-str">2.5. Deploying example clients</h3>
+<h3 id="kafka-mirror-maker-str">2.5. Kafka Mirror Maker</h3>
+<div class="paragraph">
+<p>The Cluster Operator deploys one or more Kafka Mirror Maker replicas to replicate data between Kafka clusters.
+This process is called mirroring to avoid confusion with the Kafka partitions replication concept.
+The Mirror Maker consumes messages from the source cluster and republishes those messages to the target cluster.</p>
+</div>
+<div class="paragraph">
+<p>For information about example resources and the format for deploying Kafka Mirror Maker, see <a href="#assembly-deployment-configuration-kafka-mirror-maker-str">Kafka Mirror Maker configuration</a>.</p>
+</div>
+<div class="sect3">
+<h4 id="deploying-kafka-mirror-maker-kubernetes-str">2.5.1. Deploying Kafka Connect to Kubernetes</h4>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>Before deploying Kafka Mirror Maker, the Cluster Operator must be deployed.</p>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Procedure</div>
+<ul>
+<li>
+<p>Deploy Kafka Mirror Maker on Kubernetes by creating the corresponding <code>KafkaMirrorMaker</code> resource.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka-mirror-maker/kafka-mirror-maker.yaml</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about deploying the Cluster Operator, see <a href="#cluster-operator-str">Cluster Operator</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="deploying-kafka-mirror-maker-openshift-str">2.5.2. Deploying Kafka Mirror Maker to OpenShift</h4>
+<div class="paragraph">
+<p>On OpenShift, Kafka Mirror Maker is provided in the form of a template. It can be deployed from the template using the command-line or through the OpenShift console.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>Before deploying Kafka Mirror Maker, the Cluster Operator must be deployed.</p>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Procedure</div>
+<ul>
+<li>
+<p>Create a Kafka Mirror Maker cluster from the command-line:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f examples/kafka-mirror-maker/kafka-mirror-maker.yaml</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about deploying the Cluster Operator, see <a href="#cluster-operator-str">Cluster Operator</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="deploying-example-clients-str">2.6. Deploying example clients</h3>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -1109,9 +1212,9 @@ The name of the build will be changed according to the cluster name of the deplo
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-getting-started-topic-operator-str">2.6. Topic Operator</h3>
+<h3 id="assembly-getting-started-topic-operator-str">2.7. Topic Operator</h3>
 <div class="sect3">
-<h4 id="what-the-topic-operator-does-str">2.6.1. Overview of the Topic Operator component</h4>
+<h4 id="what-the-topic-operator-does-str">2.7.1. Overview of the Topic Operator component</h4>
 <div class="paragraph">
 <p>The Topic Operator provides a way of managing topics in a Kafka cluster via OpenShift or Kubernetes resources.</p>
 </div>
@@ -1167,7 +1270,7 @@ Your application just needs to deal with producing or consuming from the necessa
 </div>
 </div>
 <div class="sect3">
-<h4 id="deploying-the-topic-operator-using-the-cluster-operator-str">2.6.2. Deploying the Topic Operator using the Cluster Operator</h4>
+<h4 id="deploying-the-topic-operator-using-the-cluster-operator-str">2.7.2. Deploying the Topic Operator using the Cluster Operator</h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -1224,12 +1327,12 @@ Edit the <code>Kafka</code> resource ensuring it has a <code>Kafka.spec.entityOp
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-getting-started-user-operator-str">2.7. User Operator</h3>
+<h3 id="assembly-getting-started-user-operator-str">2.8. User Operator</h3>
 <div class="paragraph">
 <p>The User Operator provides a way of managing Kafka users via OpenShift or Kubernetes resources.</p>
 </div>
 <div class="sect3">
-<h4 id="con-what-the-user-operator-does-str">2.7.1. Overview of the User Operator component</h4>
+<h4 id="con-what-the-user-operator-does-str">2.8.1. Overview of the User Operator component</h4>
 <div class="paragraph">
 <p>The User Operator manages Kafka users for a Kafka cluster by watching for <code>KafkaUser</code> OpenShift or Kubernetes resources that describe Kafka users and ensuring that they are configured properly in the Kafka cluster.
 For example:</p>
@@ -1261,7 +1364,7 @@ Your application needs to use the user and its credentials for authentication an
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-deploying-the-user-operator-using-the-cluster-operator-str">2.7.2. Deploying the User Operator using the Cluster Operator</h4>
+<h4 id="proc-deploying-the-user-operator-using-the-cluster-operator-str">2.8.2. Deploying the User Operator using the Cluster Operator</h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -1331,6 +1434,9 @@ Your application needs to use the user and its credentials for authentication an
 </li>
 <li>
 <p>Kafka Connect clusters with <em>Source2Image</em> support</p>
+</li>
+<li>
+<p>Kafka Mirror Maker</p>
 </li>
 </ul>
 </div>
@@ -10980,6 +11086,2692 @@ The name of the build will be changed according to the cluster name of the deplo
 </div>
 </div>
 </div>
+<div class="sect2">
+<h3 id="assembly-deployment-configuration-kafka-mirror-maker-str">3.4. Kafka Mirror Maker configuration</h3>
+<div class="paragraph">
+<p>The full schema of the <code>KafkaMirrorMaker</code> resource is described in the <a href="#type-KafkaMirrorMaker-reference"><code>KafkaMirrorMaker</code> schema reference</a>.
+All labels that apply to the desired <code>KafkaMirrorMaker</code> resource will also be applied to the OpenShift or Kubernetes resources making up Mirror Maker.
+This provides a convenient mechanism for those resources to be labelled in whatever way the user requires.</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>    // This assembly is included in the following assemblies:
+//
+// assembly-deployment-configuration-kafka-mirror-maker.adoc</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-kafka-mirror-maker-replicas-deployment-configuration-kafka-mirror-maker">3.4.1. Replicas</h4>
+<div class="paragraph">
+<p>It is possible to run multiple Mirror Maker replicas.
+The number of replicas is defined in the <code>KafkaMirrorMaker</code> resource.
+You can run multiple Mirror Maker replicas to provide better availability and scalability.
+However, when running Kafka Mirror Maker on OpenShift or Kubernetes it is not absolutely necessary to run multiple replicas of the Kafka Mirror Maker for high availability.
+When the node where the Kafka Mirror Maker has deployed crashes, OpenShift or Kubernetes will automatically reschedule the Kafka Mirror Maker pod to a different node.
+However, running Kafka Mirror Maker with multiple replicas can provide faster failover times as the other nodes will be up and running.</p>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-kafka-mirror-maker-replicas-deployment-configuration-kafka-mirror-maker">Configuring the number of replicas</h5>
+<div class="paragraph">
+<p>The number of Kafka Mirror Maker replicas can be configured using the <code>replicas</code> property in <code>KafkaMirrorMaker.spec</code>.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>replicas</code> property in the <code>KafkaMirrorMaker</code> resource.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirrorMaker
+metadata:
+  name: my-mirror-maker
+spec:
+  # ...
+  replicas: 3
+  # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-kafka-mirror-maker-bootstrap-servers-deployment-configuration-kafka-mirror-maker">3.4.2. Bootstrap servers</h4>
+<div class="paragraph">
+<p>Kafka Mirror Maker always works together with two Kafka clusters (source and target).
+The source and the target Kafka clusters are specified in the form of two lists of comma-separated list of <code><em>&lt;hostname&gt;</em>:‍<em>&lt;port&gt;</em></code> pairs.
+The bootstrap server lists can refer to Kafka clusters which do not need to be deployed in the same OpenShift or Kubernetes cluster.
+They can even refer to any Kafka cluster not deployed by Strimzi or even deployed by Strimzi but on a different OpenShift or Kubernetes cluster and accessible from outside.</p>
+</div>
+<div class="paragraph">
+<p>If on the same OpenShift or Kubernetes cluster, each list must ideally contain the Kafka cluster bootstrap service which is named <code><em>&lt;cluster-name&gt;</em>-kafka-bootstrap</code> and a port of 9092 for plain traffic or 9093 for encrypted traffic.
+If deployed by Strimzi but on different OpenShift or Kubernetes clusters, the list content depends on the way used for exposing the clusters (routes, nodeports or loadbalancers).</p>
+</div>
+<div class="paragraph">
+<p>The list of bootstrap servers can be configured in the <code>KafkaMirrorMaker.spec.consumer.bootstrapServers</code> and <code>KafkaMirrorMaker.spec.producer.bootstrapServers</code> properties. The servers should be a comma-separated list containing one or more Kafka brokers or a <code>Service</code> pointing to Kafka brokers specified as a <code>&lt;hostname&gt;:&lt;port&gt;</code> pairs.</p>
+</div>
+<div class="paragraph">
+<p>When using Kafka Mirror Maker with a Kafka cluster not managed by Strimzi, you can specify the bootstrap servers list according to the configuration of the given cluster.</p>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-kafka-mirror-maker-bootstrap-servers-deployment-configuration-kafka-mirror-maker">Configuring bootstrap servers</h5>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>KafkaMirrorMaker.spec.consumer.bootstrapServers</code> and <code>KafkaMirrorMaker.spec.producer.bootstrapServers</code> properties.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirrorMaker
+metadata:
+  name: my-mirror-maker
+spec:
+  # ...
+  consumer:
+    bootstrapServers: my-source-cluster-kafka-bootstrap:9092
+  # ...
+  producer:
+    bootstrapServers: my-target-cluster-kafka-bootstrap:9092</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-kafka-mirror-maker-whitelist-deployment-configuration-kafka-mirror-maker">3.4.3. Whitelist</h4>
+<div class="paragraph">
+<p>You specify the list topics that the Kafka Mirror Maker has to mirror from the source to the target Kafka cluster in the KafkaMirrorMaker resource using the <em>whitelist</em> option.
+It allows any regular expression from the simplest case with a single topic name to complex patterns.
+For example, you can mirror topics A and B using "A|B" or all topics using "*".
+You can also pass multiple regular expressions separated by commas to the Kafka Mirror Maker.</p>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-kafka-mirror-maker-whitelist-deployment-configuration-kafka-mirror-maker">Configuring the topics whitelist</h5>
+<div class="paragraph">
+<p>Specify the list topics that have to be mirrored by the Kafka Mirror Maker from source to target Kafka cluster using the <code>whitelist</code> property in <code>KafkaMirrorMaker.spec</code>.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>whitelist</code> property in the <code>KafkaMirrorMaker</code> resource.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirrorMaker
+metadata:
+  name: my-mirror-maker
+spec:
+  # ...
+  whitelist: "my-topic|other-topic"
+  # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-kafka-mirror-maker-groupid-deployment-configuration-kafka-mirror-maker">3.4.4. Consumer group identifier</h4>
+<div class="paragraph">
+<p>The Kafka Mirror Maker uses Kafka consumer to consume messages and it behaves like any other Kafka consumer client.
+It is in charge to consume the messages from the source Kafka cluster which will be mirrored to the target Kafka cluster.
+The consumer needs to be part of a <em>consumer group</em> for being assigned partitions.</p>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-kafka-mirror-maker-groupid-deployment-configuration-kafka-mirror-maker">Configuring the consumer group identifier</h5>
+<div class="paragraph">
+<p>The consumer group identifier can be configured in the <code>KafkaMirrorMaker.spec.consumer.groupId</code> property.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>KafkaMirrorMaker.spec.consumer.groupId</code> property.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirrorMaker
+metadata:
+  name: my-mirror-maker
+spec:
+  # ...
+  consumer:
+    groupId: "my-group"
+  # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-kafka-mirror-maker-numstreams-deployment-configuration-kafka-mirror-maker">3.4.5. Number of consumer streams</h4>
+<div class="paragraph">
+<p>You can increase the throughput in mirroring topics by increase the number of consumer threads.
+More consumer threads will belong to the same configured <em>consumer group</em>.
+The topic partitions will be assigned across these consumer threads which will consume messages in parallel.</p>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-kafka-mirror-maker-numstreams-deployment-configuration-kafka-mirror-maker">Configuring the number of consumer streams</h5>
+<div class="paragraph">
+<p>The number of consumer streams can be configured using the <code>KafkaMirrorMaker.spec.consumer.numStreams</code> property.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>KafkaMirrorMaker.spec.consumer.numStreams</code> property.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirrorMaker
+metadata:
+  name: my-mirror-maker
+spec:
+  # ...
+  consumer:
+    numStreams: 2
+  # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-kafka-mirror-maker-tls-deployment-configuration-kafka-mirror-maker">3.4.6. Connecting to Kafka brokers using TLS</h4>
+<div class="paragraph">
+<p>By default, Kafka Mirror Maker will try to connect to Kafka brokers, in the source and target clusters, using a plain text connection.
+You must make additional configurations to use TLS.</p>
+</div>
+<div class="sect4">
+<h5 id="ref-kafka-mirror-maker-tls-deployment-configuration-kafka-mirror-maker">TLS support in Kafka Mirror Maker</h5>
+<div class="paragraph">
+<p>TLS support is configured in the <code>tls</code> sub-property of <code>consumer</code> and <code>producer</code> properties in <code>KafkaMirrorMaker.spec</code>.
+The <code>tls</code> property contains a list of secrets with key names under which the certificates are stored.
+The certificates should be stored in X.509 format.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example showing TLS configuration with multiple certificates</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirrorMaker
+metadata:
+  name: my-mirror-maker
+spec:
+  # ...
+  consumer:
+    tls:
+      trustedCertificates:
+        - secretName: my-source-secret
+          certificate: ca.crt
+        - secretName: my-other-source-secret
+          certificate: certificate.crt
+  # ...
+  producer:
+    tls:
+      trustedCertificates:
+        - secretName: my-target-secret
+          certificate: ca.crt
+        - secretName: my-other-target-secret
+          certificate: certificate.crt
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When multiple certificates are stored in the same secret, it can be listed multiple times.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example showing TLS configuration with multiple certificates from the same secret</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirrorMaker
+metadata:
+  name: my-mirror-maker
+spec:
+  # ...
+  consumer:
+    tls:
+      trustedCertificates:
+        - secretName: my-source-secret
+          certificate: ca.crt
+        - secretName: my-source-secret
+          certificate: ca2.crt
+  # ...
+  producer:
+    tls:
+      trustedCertificates:
+        - secretName: my-target-secret
+          certificate: ca.crt
+        - secretName: my-target-secret
+          certificate: ca2.crt
+  # ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-kafka-mirror-maker-tls-deployment-configuration-kafka-mirror-maker">Configuring TLS encryption in Kafka Mirror Maker</h5>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Procedure</div>
+<p>As the Kafka Mirror Maker connects to two Kafka clusters (source and target), you can choose to configure TLS for one or both the clusters.
+The following steps describe how to configure TLS on the consumer side for connecting to the source Kafka cluster:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Find out the name of the secret with the certificate which should be used for TLS Server Authentication and the key under which the certificate is stored in the secret.
+If such secret does not exist yet, prepare the certificate in a file and create the secret.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl create</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create secret generic <em>&lt;my-secret&gt;</em> --from-file=<em>&lt;my-file.crt&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc create</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc create secret generic <em>&lt;my-secret&gt;</em> --from-file=<em>&lt;my-file.crt&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Edit the <code>KafkaMirrorMaker.spec.consumer.tls</code> property.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirrorMaker
+metadata:
+  name: my-mirror-maker
+spec:
+  # ...
+  consumer:
+    tls:
+      trustedCertificates:
+        - secretName: my-cluster-cluster-cert
+          certificate: ca.crt
+  # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Repeat the above steps for configuring TLS on the target Kafka cluster.
+In this case, the secret containing the certificate has to be configured in the <code>KafkaMirrorMaker.spec.producer.tls</code> property.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-kafka-mirror-maker-authentication-deployment-configuration-kafka-mirror-maker">3.4.7. Connecting to Kafka brokers with Authentication</h4>
+<div class="paragraph">
+<p>By default, Kafka Mirror Maker will try to connect to Kafka brokers without any authentication.
+Authentication can be enabled in the <code>KafkaMirrorMaker</code> resource.</p>
+</div>
+<div class="sect4">
+<h5 id="con-kafka-mirror-maker-authenticationdeployment-configuration-kafka-mirror-maker">Authentication support in Kafka Mirror Maker</h5>
+<div class="paragraph">
+<p>Authentication can be configured in the <code>KafkaMirrorMaker.spec.consumer.authentication</code> and <code>KafkaMirrorMaker.spec.producer.authentication</code> properties.
+The <code>authentication</code> property specifies the type of the authentication method which should be used and additional configuration details depending on the mechanism.
+The currently supported authentication types are:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>TLS client authentication</p>
+</li>
+<li>
+<p>SASL based authentication using SCRAM-SHA-512 mechanism</p>
+</li>
+</ul>
+</div>
+<div class="sect5">
+<h6 id="tls_client_authentication_4">TLS Client Authentication</h6>
+<div class="paragraph">
+<p>To use the TLS client authentication, set the <code>type</code> property to the value <code>tls</code>.
+The TLS client authentication uses TLS certificate to authenticate.
+The certificate has to be specified in the certificateAndKey property.
+It is always loaded from an OpenShift or Kubernetes secret.
+Inside the secret, it has to be stored in the X.509 format separately as public and private keys.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+TLS client authentication can be used only with TLS connections.
+For more details about TLS configuration in Kafka Mirror Maker see <a href="#assembly-kafka-mirror-maker-tls-deployment-configuration-kafka-mirror-maker">Connecting to Kafka brokers using TLS</a>.
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">An example showing TLS client authentication configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirrorMaker
+metadata:
+  name: my-mirror-maker
+spec:
+  # ...
+  consumer:
+    authentication:
+      type: tls
+      certificateAndKey:
+        secretName: my-source-secret
+        certificate: public.crt
+        key: private.key
+  # ...
+  producer:
+    authentication:
+      type: tls
+      certificateAndKey:
+        secretName: my-target-secret
+        certificate: public.crt
+        key: private.key
+  # ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect5">
+<h6 id="scram_sha_512_authentication_3">SCRAM-SHA-512 authentication</h6>
+<div class="paragraph">
+<p>To use the authentication using the SCRAM-SHA-512 SASL mechanism, set the <code>type</code> property to the value <code>scram-sha-512</code>.
+It is possible to use it only if the broker listener, clients are connecting to, is configured to use it.
+SCRAM-SHA-512 uses a username and password to authenticate.
+Specify the username in the <code>username</code> property.
+Specify the password as a link to a <code>Secret</code> containing the password in the <code>passwordSecret</code> property.
+It has to specify the name of the <code>Secret</code> containing the password and the name of the key under which the password is stored inside the <code>Secret</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example showing SCRAM-SHA-512 client authentication configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirrorMaker
+metadata:
+  name: my-mirror-maker
+spec:
+  # ...
+  consumer:
+    authentication:
+      type: scram-sha-512
+      username: my-source-user
+      passwordSecret:
+        secretName: my-source-user
+        password: password
+  # ...
+  producer:
+    authentication:
+      type: scram-sha-512
+      username: my-producer-user
+      passwordSecret:
+        secretName: my-producer-user
+        password: password
+  # ...</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-kafka-mirror-maker-authentication-tls-deployment-configuration-kafka-mirror-maker">Configuring TLS client authentication in Kafka Mirror Maker</h5>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator with a <code>tls</code> listener with <code>tls</code> authentication enabled</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Procedure</div>
+<p>As the Kafka Mirror Maker connects to two Kafka clusters (source and target), you can choose to configure TLS client authentication for one or both the clusters.
+The following steps describe how to configure TLS client authentication on the consumer side for connecting to the source Kafka cluster:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Find out the name of the <code>Secret</code> with the public and private keys which should be used for TLS Client Authentication and the keys under which they are stored in the <code>Secret</code>.
+If such a <code>Secret</code> does not exist yet, prepare the keys in a file and create the <code>Secret</code>.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl create</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create secret generic <em>&lt;my-secret&gt;</em> --from-file=<em>&lt;my-public.crt&gt;</em> --from-file=<em>&lt;my-private.key&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc create</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc create secret generic <em>&lt;my-secret&gt;</em> --from-file=<em>&lt;my-public.crt&gt;</em> --from-file=<em>&lt;my-private.key&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Edit the <code>KafkaMirrorMaker.spec.consumer.authentication</code> property.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirrorMaker
+metadata:
+  name: my-mirror-maker
+spec:
+  # ...
+  consumer:
+    authentication:
+      type: tls
+      certificateAndKey:
+        secretName: my-secret
+        certificate: my-public.crt
+        key: my-private.key
+  # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Repeat the above steps for configuring TLS client authentication on the target Kafka cluster.
+In this case, the secret containing the certificate has to be configured in the <code>KafkaMirrorMaker.spec.producer.authentication</code> property.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-kafka-mirror-maker-authentication-scram-sha-512-deployment-configuration-kafka-mirror-maker">Configuring SCRAM-SHA-512 authentication in Kafka Mirror Maker</h5>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator with a <code>listener</code> configured for SCRAM-SHA-512 authentication</p>
+</li>
+<li>
+<p>Username to be used for authentication</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Procedure</div>
+<p>As the Kafka Mirror Maker connects to two Kafka clusters (source and target), you can choose to configure SCRAM-SHA-512 authentication for one or both the clusters.
+The following steps describe how to configure SCRAM-SHA-512 authentication on the consumer side for connecting to the source Kafka cluster:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Find out the name of the <code>Secret</code> with the password which should be used for authentication and the key under which the password is stored in the <code>Secret</code>.
+If such a <code>Secret</code> does not exist yet, prepare a file with the password and create the <code>Secret</code>.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl create</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">echo -n '<em>&lt;password&gt;</em>' &gt; <em>&lt;my-password.txt&gt;</em>
+kubectl create secret generic <em>&lt;my-secret&gt;</em> --from-file=<em>&lt;my-password.txt&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc create</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">echo -n '1f2d1e2e67df' &gt; <em>&lt;my-password.txt&gt;</em>
+oc create secret generic <em>&lt;my-secret&gt;</em> --from-file=<em>&lt;my-password.txt&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Edit the <code>KafkaMirrorMaker.spec.consumer.authentication</code> property.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirrorMaker
+metadata:
+  name: my-mirror-maker
+spec:
+  # ...
+  consumer:
+    authentication:
+      type: scram-sha-512
+      username: _&lt;my-username&gt;_
+      passwordSecret:
+        secretName: _&lt;my-secret&gt;_
+        password: _&lt;my-password.txt&gt;_
+  # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Repeat the above steps for configuring SCRAM-SHA-512 authentication on the target Kafka cluster.
+In this case, the secret containing the certificate has to be configured in the <code>KafkaMirrorMaker.spec.producer.authentication</code> property.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-kafka-mirror-maker-configuration-deployment-configuration-kafka-mirror-maker">3.4.8. Kafka Mirror Maker configuration</h4>
+<div class="paragraph">
+<p>Strimzi allows you to customize the configuration of the Kafka Mirror Maker by editing most of the options for the related consumer and producer.
+Producer options are listed in <a href="http://kafka.apache.org/20/documentation.html#producerconfigs" target="_blank" rel="noopener">Apache Kafka documentation</a>.
+Consumer options are listed in <a href="http://kafka.apache.org/20/documentation.html#newconsumerconfigs" target="_blank" rel="noopener">Apache Kafka documentation</a>.</p>
+</div>
+<div class="paragraph">
+<p>The only options which cannot be configured are those related to the following areas:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Kafka cluster bootstrap address</p>
+</li>
+<li>
+<p>Security (Encryption, Authentication, and Authorization)</p>
+</li>
+<li>
+<p>Consumer group identifier</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These options are automatically configured by Strimzi.</p>
+</div>
+<div class="sect4">
+<h5 id="ref-kafka-mirror-maker-configuration-deployment-configuration-kafka-mirror-maker">Kafka Mirror Maker configuration</h5>
+<div class="paragraph">
+<p>Kafka Mirror Maker can be configured using the <code>config</code> sub-property in <code>KafkaMirrorMaker.spec.consumer</code> and <code>KafkaMirrorMaker.spec.producer</code>.
+This property should contain the Kafka Mirror Maker consumer and producer configuration options as keys.
+The values could be in one of the following JSON types:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>String</p>
+</li>
+<li>
+<p>Number</p>
+</li>
+<li>
+<p>Boolean</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Users can specify and configure the options listed in the <a href="http://kafka.apache.org/20/documentation.html#producerconfigs" target="_blank" rel="noopener">Apache Kafka documentation</a> and <a href="http://kafka.apache.org/20/documentation.html#newconsumerconfigs" target="_blank" rel="noopener">Apache Kafka documentation</a> with the exception of those options which are managed directly by Strimzi.
+Specifically, all configuration options with keys equal to or starting with one of the following strings are forbidden:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>ssl.</code></p>
+</li>
+<li>
+<p><code>sasl.</code></p>
+</li>
+<li>
+<p><code>security.</code></p>
+</li>
+<li>
+<p><code>bootstrap.servers</code></p>
+</li>
+<li>
+<p><code>group.id</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>When one of the forbidden options is present in the <code>config</code> property, it will be ignored and a warning message will be printed to the Custer Operator log file.
+All other options will be passed to Kafka Mirror Maker.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+The Cluster Operator does not validate keys or values in the provided <code>config</code> object.
+When an invalid configuration is provided, the Kafka Mirror Maker might not start or might become unstable.
+In such cases, the configuration in the <code>KafkaMirrorMaker.spec.consumer.config</code> or <code>KafkaMirrorMaker.spec.producer.config</code> object should be fixed and the cluster operator will roll out the new configuration for Kafka Mirror Maker.
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">An example showing Kafka Mirror Maker configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirroMaker
+metadata:
+  name: my-mirror-maker
+spec:
+  # ...
+  consumer:
+    config:
+      max.poll.records: 100
+      receive.buffer.bytes: 32768
+  producer:
+    config:
+      compression.type: gzip
+      batch.size: 8192
+  # ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-kafka-mirror-maker-deployment-configuration-kafka-mirror-maker">Configuring Kafka Mirror Maker</h5>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>Two OpenShift or Kubernetes clusters (source and target)</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>KafkaMirrorMaker.spec.consumer.config</code> and <code>KafkaMirrorMaker.spec.producer.config</code> properties.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirroMaker
+metadata:
+  name: my-mirror-maker
+spec:
+  # ...
+  consumer:
+    config:
+      max.poll.records: 100
+      receive.buffer.bytes: 32768
+  producer:
+    config:
+      compression.type: gzip
+      batch.size: 8192
+  # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-resource-limits-and-requests-deployment-configuration-kafka-mirror-maker">3.4.9. CPU and memory resources</h4>
+<div class="paragraph">
+<p>For every deployed container, Strimzi allows you to specify the resources which should be reserved for it and the maximum resources that can be consumed by it.
+Strimzi supports two types of resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Memory</p>
+</li>
+<li>
+<p>CPU</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Strimzi is using the OpenShift or Kubernetes syntax for specifying CPU and memory resources.</p>
+</div>
+<div class="sect4">
+<h5 id="ref-resource-limits-and-requests-deployment-configuration-kafka-mirror-maker">Resource limits and requests</h5>
+<div class="paragraph">
+<p>Resource limits and requests can be configured using the <code>resources</code> property in following resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Kafka.spec.kafka</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.kafka.tlsSidecar</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper.tlsSidecar</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.entityOperator.topicOperator</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.entityOperator.userOperator</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.entityOperator.tlsSidecar</code></p>
+</li>
+<li>
+<p><code>KafkaConnect.spec</code></p>
+</li>
+<li>
+<p><code>KafkaConnectS2I.spec</code></p>
+</li>
+</ul>
+</div>
+<div class="sect5">
+<h6 id="resource_requests_4">Resource requests</h6>
+<div class="paragraph">
+<p>Requests specify the resources that will be reserved for a given container.
+Reserving the resources will ensure that they are always available.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+If the resource request is for more than the available free resources in the OpenShift or Kubernetes cluster, the pod will not be scheduled.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Resource requests can be specified in the <code>request</code> property.
+The resource requests currently supported by Strimzi are memory and CPU.
+Memory is specified under the property <code>memory</code>.
+CPU is specified under the property <code>cpu</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example showing resource request configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+resources:
+  requests:
+    cpu: 12
+    memory: 64Gi
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It is also possible to specify a resource request just for one of the resources:</p>
+</div>
+<div class="listingblock">
+<div class="title">An example showing resource request configuration with memory request only</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+resources:
+  requests:
+    memory: 64Gi
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or:</p>
+</div>
+<div class="listingblock">
+<div class="title">An example showing resource request configuration with CPU request only</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+resources:
+  requests:
+    cpu: 12
+# ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect5">
+<h6 id="resource_limits_4">Resource limits</h6>
+<div class="paragraph">
+<p>Limits specify the maximum resources that can be consumed by a given container.
+The limit is not reserved and might not be always available.
+The container can use the resources up to the limit only when they are available.
+The resource limits should be always higher than the resource requests.</p>
+</div>
+<div class="paragraph">
+<p>Resource limits can be specified in the <code>limits</code> property.
+The resource limits currently supported by Strimzi are memory and CPU.
+Memory is specified under the property <code>memory</code>.
+CPU is specified under the property <code>cpu</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example showing resource limits configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+resources:
+  limits:
+    cpu: 12
+    memory: 64Gi
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It is also possible to specify the resource limit just for one of the resources:</p>
+</div>
+<div class="listingblock">
+<div class="title">An example showing resource limit configuration with memory request only</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+resources:
+  limits:
+    memory: 64Gi
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or:</p>
+</div>
+<div class="listingblock">
+<div class="title">An example showing resource limits configuration with CPU request only</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+resources:
+  requests:
+    cpu: 12
+# ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect5">
+<h6 id="supported_cpu_formats_4">Supported CPU formats</h6>
+<div class="paragraph">
+<p>CPU requests and limits are supported in the following formats:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Number of CPU cores as integer (<code>5</code> CPU core) or decimal (<code>2.5</code> CPU core).</p>
+</li>
+<li>
+<p>Number or <em>millicpus</em> / <em>millicores</em> (<code>100m</code>) where 1000 <em>millicores</em> is the same <code>1</code> CPU core.</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">An example of using different CPU units</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+resources:
+  requests:
+    cpu: 500m
+  limits:
+    cpu: 2.5
+# ...</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The amount of computing power of 1 CPU core might differ depending on the platform where the OpenShift or Kubernetes is deployed.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>For more details about the CPU specification, see the <a href="https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/#meaning-of-cpu" target="_blank" rel="noopener">Meaning of CPU</a> website.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="supported_memory_formats_4">Supported memory formats</h6>
+<div class="paragraph">
+<p>Memory requests and limits are specified in megabytes, gigabytes, mebibytes, and gibibytes.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>To specify memory in megabytes, use the <code>M</code> suffix. For example <code>1000M</code>.</p>
+</li>
+<li>
+<p>To specify memory in gigabytes, use the <code>G</code> suffix. For example <code>1G</code>.</p>
+</li>
+<li>
+<p>To specify memory in mebibytes, use the <code>Mi</code> suffix. For example <code>1000Mi</code>.</p>
+</li>
+<li>
+<p>To specify memory in gibibytes, use the <code>Gi</code> suffix. For example <code>1Gi</code>.</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">An example of using different memory units</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+resources:
+  requests:
+    memory: 512Mi
+  limits:
+    memory: 2Gi
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For more details about the memory specification and additional supported units, see the <a href="https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/#meaning-of-memory" target="_blank" rel="noopener">Meaning of memory</a> website.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="additional_resources_4">Additional resources</h6>
+<div class="ulist">
+<ul>
+<li>
+<p>For more information about managing computing resources on OpenShift or Kubernetes, see <a href="https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/" target="_blank" rel="noopener">Managing Compute Resources for Containers</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-resource-limits-and-requests-deployment-configuration-kafka-mirror-maker">Configuring resource requests and limits</h5>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>resources</code> property in the resource specifying the cluster deployment.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    resources:
+      requests:
+        cpu: "8"
+        memory: 64Gi
+      limits:
+        cpu: "12"
+        memory: 128Gi
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about the schema, see <a href="#type-Resources-reference"><code>Resources</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-logging-deployment-configuration-kafka-mirror-maker">3.4.10. Logging</h4>
+<div class="paragraph">
+<p>Logging enables you to diagnose error and performance issues of Strimzi.
+For the logging, various logger implementations are used.
+Kafka and Zookeeper use <code>log4j</code> logger and Topic Operator, User Operator, and other components use <code>log4j2</code> logger.</p>
+</div>
+<div class="paragraph">
+<p>This section provides information about different loggers and describes how to configure log levels.</p>
+</div>
+<div class="paragraph">
+<p>You can set the log levels by specifying the loggers and their levels directly (inline) or by using a custom (external) config map.</p>
+</div>
+<div class="sect4">
+<h5 id="kafka-inline-logging-deployment-configuration-kafka-mirror-maker">Using inline logging setting</h5>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the YAML file to specify the loggers and their level for the required components. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: {KafkaApiVersion}
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    logging:
+      type: inline
+      loggers:
+       <em>logger.name</em>: "INFO"
+    # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In the above example, the log level is set to INFO.
+You can set the log level to INFO, ERROR, WARN, TRACE, DEBUG, FATAL or OFF. For more information about the log levels, see link: <a href="https://logging.apache.org/log4j/2.x/manual/customloglevels.html" target="_blank" rel="noopener">log4j manual</a>.</p>
+</div>
+</li>
+<li>
+<p>Create or update the Kafka resource in OpenShift or Kubernetes.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect4">
+<h5 id="kafka-external-logging-deployment-configuration-kafka-mirror-maker">Using external ConfigMap for logging setting</h5>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the YAML file to specify the name of the <code>ConfigMap</code> which should be used for the required components. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: {KafkaApiVersion}
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    logging:
+      type: external
+      name: customConfigMap
+    # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Remember to place your custom ConfigMap under <code>log4j.properties</code> eventually <code>log4j2.properties</code> key.</p>
+</div>
+</li>
+<li>
+<p>Create or update the Kafka resource in OpenShift or Kubernetes.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect4">
+<h5 id="kafka-logging-loggers-deployment-configuration-kafka-mirror-maker">Loggers</h5>
+<div class="paragraph">
+<p>Strimzi consists of several components. Each component has its own loggers and is configurable.
+This section provides information about loggers of various components.</p>
+</div>
+<div class="paragraph">
+<p>Components and their loggers are listed below.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Kafka</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>kafka.root.logger.level</code></p>
+</li>
+<li>
+<p><code>log4j.logger.org.I0Itec.zkclient.ZkClient</code></p>
+</li>
+<li>
+<p><code>log4j.logger.org.apache.zookeeper</code></p>
+</li>
+<li>
+<p><code>log4j.logger.kafka</code></p>
+</li>
+<li>
+<p><code>log4j.logger.org.apache.kafka</code></p>
+</li>
+<li>
+<p><code>log4j.logger.kafka.request.logger</code></p>
+</li>
+<li>
+<p><code>log4j.logger.kafka.network.Processor</code></p>
+</li>
+<li>
+<p><code>log4j.logger.kafka.server.KafkaApis</code></p>
+</li>
+<li>
+<p><code>log4j.logger.kafka.network.RequestChannel$</code></p>
+</li>
+<li>
+<p><code>log4j.logger.kafka.controller</code></p>
+</li>
+<li>
+<p><code>log4j.logger.kafka.log.LogCleaner</code></p>
+</li>
+<li>
+<p><code>log4j.logger.state.change.logger</code></p>
+</li>
+<li>
+<p><code>log4j.logger.kafka.authorizer.logger</code></p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Zookeeper</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>zookeeper.root.logger</code></p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Kafka Connect and Kafka Connect with Source2Image support</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>connect.root.logger.level</code></p>
+</li>
+<li>
+<p><code>log4j.logger.org.apache.zookeeper</code></p>
+</li>
+<li>
+<p><code>log4j.logger.org.I0Itec.zkclient</code></p>
+</li>
+<li>
+<p><code>log4j.logger.org.reflections</code></p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Topic Operator</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>rootLogger.level</code></p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>User Operator</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>rootLogger.level</code></p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-metrics-deployment-configuration-kafka-mirror-maker">3.4.11. Prometheus metrics</h4>
+<div class="paragraph">
+<p>Strimzi supports Prometheus metrics using <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX exporter</a> to convert the JMX metrics supported by Apache Kafka and Zookeeper to Prometheus metrics.
+When metrics are enabled, they are exposed on port 9404.</p>
+</div>
+<div class="paragraph">
+<p>For more information about configuring Prometheus and Grafana, see <a href="#metrics-str">Metrics</a>.</p>
+</div>
+<div class="sect4">
+<h5 id="ref-metrics-deployment-configuration-kafka-mirror-maker">Metrics configuration</h5>
+<div class="paragraph">
+<p>Prometheus metrics can be enabled by configuring the <code>metrics</code> property in following resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Kafka.spec.kafka</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper</code></p>
+</li>
+<li>
+<p><code>KafkaConnect.spec</code></p>
+</li>
+<li>
+<p><code>KafkaConnectS2I.spec</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>When the <code>metrics</code> property is not defined in the resource, the Prometheus metrics will be disabled.
+To enable Prometheus metrics export without any further configuration, you can set it to an empty object (<code>{}</code>).</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of enabling metrics without any further configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    metrics: {}
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>metrics</code> property might contain additional configuration for the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX exporter</a>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of enabling metrics with additional Prometheus JMX Exporter configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    metrics:
+      lowercaseOutputName: true
+      rules:
+        - pattern: "kafka.server&lt;type=(.+), name=(.+)PerSec\\w*&gt;&lt;&gt;Count"
+          name: "kafka_server_$1_$2_total"
+        - pattern: "kafka.server&lt;type=(.+), name=(.+)PerSec\\w*, topic=(.+)&gt;&lt;&gt;Count"
+          name: "kafka_server_$1_$2_total"
+          labels:
+            topic: "$3"
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-metrics-deployment-configuration-kafka-mirror-maker">Configuring Prometheus metrics</h5>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>metrics</code> property in the <code>Kafka</code>, <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> resource.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+  zookeeper:
+    # ...
+    metrics:
+      lowercaseOutputName: true
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-jvm-options-deployment-configuration-kafka-mirror-maker">3.4.12. JVM Options</h4>
+<div class="paragraph">
+<p>Apache Kafka and Apache Zookeeper are running inside of a Java Virtual Machine (JVM).
+JVM has many configuration options to optimize the performance for different platforms and architectures.
+Strimzi allows configuring some of these options.</p>
+</div>
+<div class="sect4">
+<h5 id="ref-jvm-options-deployment-configuration-kafka-mirror-maker">JVM configuration</h5>
+<div class="paragraph">
+<p>JVM options can be configured using the <code>jvmOptions</code> property in following resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Kafka.spec.kafka</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper</code></p>
+</li>
+<li>
+<p><code>KafkaConnect.spec</code></p>
+</li>
+<li>
+<p><code>KafkaConnectS2I.spec</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Only a selected subset of available JVM options can be configured.
+The following options are supported:</p>
+</div>
+<div class="paragraph">
+<div class="title">-Xms and -Xmx</div>
+<p><code>-Xms</code> configures the minimum initial allocation heap size when the JVM starts.
+<code>-Xmx</code> configures the maximum heap size.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The units accepted by JVM settings such as <code>-Xmx</code> and <code>-Xms</code> are those accepted by the JDK <code>java</code> binary in the corresponding image.
+Accordingly, <code>1g</code> or <code>1G</code> means 1,073,741,824 bytes, and <code>Gi</code> is not a valid unit suffix.
+This is in contrast to the units used for <a href="#assembly-resource-limits-and-requests-deployment-configuration-kafka-mirror-maker">memory requests and limits</a>, which follow the OpenShift or Kubernetes convention where <code>1G</code> means 1,000,000,000 bytes, and <code>1Gi</code> means 1,073,741,824 bytes
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The default values used for <code>-Xms</code> and <code>-Xmx</code> depends on whether there is a <a href="#assembly-resource-limits-and-requests-deployment-configuration-kafka-mirror-maker">memory request</a> limit configured for the container:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If there is a memory limit then the JVM&#8217;s minimum and maximum memory will be set to a value corresponding to the limit.</p>
+</li>
+<li>
+<p>If there is no memory limit then the JVM&#8217;s minimum memory will be set to <code>128M</code> and the JVM&#8217;s maximum memory will not be defined.  This allows for the JVM&#8217;s memory to grow as-needed, which is ideal for single node environments in test and development.</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Setting <code>-Xmx</code> explicitly requires some care:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The JVM&#8217;s overall memory usage will be approximately 4 × the maximum heap, as configured by <code>-Xmx</code>.</p>
+</li>
+<li>
+<p>If <code>-Xmx</code> is set without also setting an appropriate OpenShift or Kubernetes memory limit, it is possible that the container will be killed should the OpenShift or Kubernetes node experience memory pressure (from other Pods running on it).</p>
+</li>
+<li>
+<p>If <code>-Xmx</code> is set without also setting an appropriate OpenShift or Kubernetes memory request, it is possible that the container will be scheduled to a node with insufficient memory.
+In this case, the container will not start but crash (immediately if <code>-Xms</code> is set to <code>-Xmx</code>, or some later time if not).</p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>When setting <code>-Xmx</code> explicitly, it is recommended to:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>set the memory request and the memory limit to the same value,</p>
+</li>
+<li>
+<p>use a memory request that is at least 4.5 × the <code>-Xmx</code>,</p>
+</li>
+<li>
+<p>consider setting <code>-Xms</code> to the same value as <code>-Xms</code>.</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+Containers doing lots of disk I/O (such as Kafka broker containers) will need to leave some memory available for use as operating system page cache.
+On such containers, the requested memory should be significantly higher than the memory used by the JVM.
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">Example fragment configuring <code>-Xmx</code> and <code>-Xms</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+jvmOptions:
+  "-Xmx": "2g"
+  "-Xms": "2g"
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In the above example, the JVM will use 2 GiB (=2,147,483,648 bytes) for its heap.
+Its total memory usage will be approximately 8GiB.</p>
+</div>
+<div class="paragraph">
+<p>Setting the same value for initial (<code>-Xms</code>) and maximum (<code>-Xmx</code>) heap sizes avoids the JVM having to allocate memory after startup, at the cost of possibly allocating more heap than is really needed.
+For Kafka and Zookeeper pods such allocation could cause unwanted latency.
+For Kafka Connect avoiding over allocation may be the most important concern, especially in distributed mode where the effects of over-allocation will be multiplied by the number of consumers.</p>
+</div>
+<div class="paragraph">
+<div class="title">-server</div>
+<p><code>-server</code> enables the server JVM. This option can be set to true or false.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example fragment configuring <code>-server</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+jvmOptions:
+  "-server": true
+# ...</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+When neither of the two options (<code>-server</code> and <code>-XX</code>) is specified, the default Apache Kafka configuration of <code>KAFKA_JVM_PERFORMANCE_OPTS</code> will be used.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<div class="title">-XX</div>
+<p><code>-XX</code> object can be used for configuring advanced runtime options of a JVM.
+The <code>-server</code> and <code>-XX</code> options are used to configure the <code>KAFKA_JVM_PERFORMANCE_OPTS</code> option of Apache Kafka.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example showing the use of the <code>-XX</code> object</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">jvmOptions:
+  "-XX":
+    "UseG1GC": true,
+    "MaxGCPauseMillis": 20,
+    "InitiatingHeapOccupancyPercent": 35,
+    "ExplicitGCInvokesConcurrent": true,
+    "UseParNewGC": false</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The example configuration above will result in the following JVM options:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>-XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -XX:-UseParNewGC</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+When neither of the two options (<code>-server</code> and <code>-XX</code>) is specified, the default Apache Kafka configuration of <code>KAFKA_JVM_PERFORMANCE_OPTS</code> will be used.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-jvm-options-deployment-configuration-kafka-mirror-maker">Configuring JVM options</h5>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>jvmOptions</code> property in the <code>Kafka</code>, <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> resource.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    jvmOptions:
+      "-Xmx": "8g"
+      "-Xms": "8g"
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-configuring-container-images-deployment-configuration-kafka-mirror-maker">3.4.13. Container images</h4>
+<div class="paragraph">
+<p>Strimzi allows you to configure container images which will be used for its components.
+Overriding container images is recommended only in special situations, where you need to use a different container registry.
+For example, because your network does not allow access to the container repository used by Strimzi.
+In such a case, you should either copy the Strimzi images or build them from the source.
+If the configured image is not compatible with Strimzi images, it might not work properly.</p>
+</div>
+<div class="sect4">
+<h5 id="ref-configuring-container-images-deployment-configuration-kafka-mirror-maker">Container image configurations</h5>
+<div class="paragraph">
+<p>Container image which should be used for given components can be specified using the <code>image</code> property in:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Kafka.spec.kafka</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.kafka.tlsSidecar</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper.tlsSidecar</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.entityOperator.topicOperator</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.entityOperator.userOperator</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.entityOperator.tlsSidecar</code></p>
+</li>
+<li>
+<p><code>KafkaConnect.spec</code></p>
+</li>
+<li>
+<p><code>KafkaConnectS2I.spec</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>image</code> specified in the component-specific custom resource will be used during deployment. If the <code>image</code> field is missing, the <code>image</code> specified in the Cluster Operator configuration will be used. If the <code>image</code> name is not defined in the Cluster Operator configuration, then the default value will be used.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>For Kafka brokers:</p>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+</li>
+<li>
+<p><code>strimzi/kafka:latest</code> container image.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>For Kafka broker TLS sidecar:</p>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_TLS_SIDECAR_KAFKA_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+</li>
+<li>
+<p><code>strimzi/kafka-stunnel:latest</code> container image.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>For Zookeeper nodes:</p>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_ZOOKEEPER_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+</li>
+<li>
+<p><code>strimzi/zookeeper:latest</code> container image.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>For Zookeeper node TLS sidecar:</p>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_TLS_SIDECAR_ZOOKEEPER_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+</li>
+<li>
+<p><code>strimzi/zookeeper-stunnel:latest</code> container image.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>For Topic Operator:</p>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE</code> environment variable from the Cluster Operator configuration.
+.** <code>strimzi/topic-operator:latest</code> container image.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>For User Operator:</p>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_USER_OPERATOR_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+</li>
+<li>
+<p><code>strimzi/user-operator:latest</code> container image.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>For Entity Operator TLS sidecar:</p>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_TLS_SIDECAR_ENTITY_OPERATOR_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+</li>
+<li>
+<p><code>strimzi/entity-operator-stunnel:latest</code> container image.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>For Kafka Connect:</p>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+</li>
+<li>
+<p><code>strimzi/kafka-connect:latest</code> container image.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>For Kafka Connect with Source2image support:</p>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_S2I_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+</li>
+<li>
+<p><code>strimzi/kafka-connect-s2i:latest</code> container image.</p>
+</li>
+</ol>
+</div>
+</li>
+</ul>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Overriding container images is recommended only in special situations, where you need to use a different container registry.
+For example, because your network does not allow access to the container repository used by Strimzi.
+In such case, you should either copy the Strimzi images or build them from source.
+In case the configured image is not compatible with Strimzi images, it might not work properly.
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">Example of container image configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    image: my-org/my-image:latest
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-container-images-deployment-configuration-kafka-mirror-maker">Configuring container images</h5>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>image</code> property in the <code>Kafka</code>, <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> resource.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    image: my-org/my-image:latest
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-scheduling-deployment-configuration-kafka-mirror-maker">3.4.14. Configuring pod scheduling</h4>
+<div id="con-scheduling-deployment-configuration-kafka-mirror-maker" class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+When two application are scheduled to the same OpenShift or Kubernetes node, both applications might use the same resources like disk I/O and impact performance.
+That can lead to performance degradation.
+Scheduling Kafka pods in a way that avoids sharing nodes with other critical workloads, using the right nodes or dedicated a set of nodes only for Kafka are the best ways how to avoid such problems.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect4">
+<h5 id="assembly-scheduling-pods-based-on-other-applications-deployment-configuration-kafka-mirror-maker-scheduling-based-on-pods">Scheduling pods based on other applications</h5>
+<div class="sect5">
+<h6 id="con-scheduling-based-on-other-pods-deployment-configuration-kafka-mirror-maker-scheduling-based-on-pods">Avoid critical applications to share the node</h6>
+<div class="paragraph">
+<p>Pod anti-affinity can be used to ensure that critical applications are never scheduled on the same disk.
+When running Kafka cluster, it is recommended to use pod anti-affinity to ensure that the Kafka brokers do not share the nodes with other workloads like databases.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="affinity-deployment-configuration-kafka-mirror-maker-scheduling-based-on-pods">Affinity</h6>
+<div class="paragraph">
+<p>Affinity can be configured using the <code>affinity</code> property in following resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Kafka.spec.kafka</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.entityOperator</code></p>
+</li>
+<li>
+<p><code>KafkaConnect.spec</code></p>
+</li>
+<li>
+<p><code>KafkaConnectS2I.spec</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The affinity configuration can include different types of affinity:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Pod affinity and anti-affinity</p>
+</li>
+<li>
+<p>Node affinity</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The format of the <code>affinity</code> property follows the OpenShift or Kubernetes specification.
+For more details, see the <a href="https://kubernetes.io/docs/concepts/configuration/assign-pod-node/" target="_blank" rel="noopener">Kubernetes node and pod affinity documentation</a>.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="configuring-pod-anti-affinity-in-kafka-components-deployment-configuration-kafka-mirror-maker-scheduling-based-on-pods">Configuring pod anti-affinity in Kafka components</h6>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>affinity</code> property in the resource specifying the cluster deployment.
+Use labels to specify the pods which should not be scheduled on the same nodes.
+The <code>topologyKey</code> should be set to <code>kubernetes.io/hostname</code> to specify that the selected pods should not be scheduled on nodes with the same hostname.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: application
+                  operator: In
+                  values:
+                    - postgresql
+                    - mongodb
+            topologyKey: "kubernetes.io/hostname"
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="assembly-node-scheduling-deployment-configuration-kafka-mirror-maker-node-scheduling">Scheduling pods to specific nodes</h5>
+<div class="sect5">
+<h6 id="con-scheduling-to-specific-nodes-deployment-configuration-kafka-mirror-maker-node-scheduling">Node scheduling</h6>
+<div class="paragraph">
+<p>The OpenShift or Kubernetes cluster usually consists of many different types of worker nodes.
+Some are optimized for CPU heavy workloads, some for memory, while other might be optimized for storage (fast local SSDs) or network.
+Using different nodes helps to optimize both costs and performance.
+To achieve the best possible performance, it is important to allow scheduling of Strimzi components to use the right nodes.</p>
+</div>
+<div class="paragraph">
+<p>OpenShift or Kubernetes uses node affinity to schedule workloads onto specific nodes.
+Node affinity allows you to create a scheduling constraint for the node on which the pod will be scheduled.
+The constraint is specified as a label selector.
+You can specify the label using either the built-in node label like <code>beta.kubernetes.io/instance-type</code> or custom labels to select the right node.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="affinity-deployment-configuration-kafka-mirror-maker-node-scheduling">Affinity</h6>
+<div class="paragraph">
+<p>Affinity can be configured using the <code>affinity</code> property in following resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Kafka.spec.kafka</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.entityOperator</code></p>
+</li>
+<li>
+<p><code>KafkaConnect.spec</code></p>
+</li>
+<li>
+<p><code>KafkaConnectS2I.spec</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The affinity configuration can include different types of affinity:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Pod affinity and anti-affinity</p>
+</li>
+<li>
+<p>Node affinity</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The format of the <code>affinity</code> property follows the OpenShift or Kubernetes specification.
+For more details, see the <a href="https://kubernetes.io/docs/concepts/configuration/assign-pod-node/" target="_blank" rel="noopener">Kubernetes node and pod affinity documentation</a>.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="proc-configuring-node-affinity-deployment-configuration-kafka-mirror-maker-node-scheduling">Configuring node affinity in Kafka components</h6>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Label the nodes where Strimzi components should be scheduled.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl label</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl label node <em>your-node</em> node-type=fast-network</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc label</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc label node <em>your-node</em> node-type=fast-network</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Alternatively, some of the existing labels might be reused.</p>
+</div>
+</li>
+<li>
+<p>Edit the <code>affinity</code> property in the resource specifying the cluster deployment.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-type
+                operator: In
+                values:
+                - fast-network
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="assembly-dedidcated-nodes-deployment-configuration-kafka-mirror-maker-dedicated-nodes">Using dedicated nodes</h5>
+<div class="sect5">
+<h6 id="con-dedicated-nodes-deployment-configuration-kafka-mirror-maker-dedicated-nodes">Dedicated nodes</h6>
+<div class="paragraph">
+<p>Cluster administrators can mark selected OpenShift or Kubernetes nodes as tainted.
+Nodes with taints are excluded from regular scheduling and normal pods will not be scheduled to run on them.
+Only services which can tolerate the taint set on the node can be scheduled on it.
+The only other services running on such nodes will be system services such as log collectors or software defined networks.</p>
+</div>
+<div class="paragraph">
+<p>Taints can be used to create dedicated nodes.
+Running Kafka and its components on dedicated nodes can have many advantages.
+There will be no other applications running on the same nodes which could cause disturbance or consume the resources needed for Kafka.
+That can lead to improved performance and stability.</p>
+</div>
+<div class="paragraph">
+<p>To schedule Kafka pods on the dedicated nodes, configure <a href="#affinity-deployment-configuration-kafka-mirror-maker-dedicated-nodes">node affinity</a> and <a href="#tolerations-deployment-configuration-kafka-mirror-maker-dedicated-nodes">tolerations</a>.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="affinity-deployment-configuration-kafka-mirror-maker-dedicated-nodes">Affinity</h6>
+<div class="paragraph">
+<p>Affinity can be configured using the <code>affinity</code> property in following resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Kafka.spec.kafka</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.entityOperator</code></p>
+</li>
+<li>
+<p><code>KafkaConnect.spec</code></p>
+</li>
+<li>
+<p><code>KafkaConnectS2I.spec</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The affinity configuration can include different types of affinity:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Pod affinity and anti-affinity</p>
+</li>
+<li>
+<p>Node affinity</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The format of the <code>affinity</code> property follows the OpenShift or Kubernetes specification.
+For more details, see the <a href="https://kubernetes.io/docs/concepts/configuration/assign-pod-node/" target="_blank" rel="noopener">Kubernetes node and pod affinity documentation</a>.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="tolerations-deployment-configuration-kafka-mirror-maker-dedicated-nodes">Tolerations</h6>
+<div class="paragraph">
+<p>Tolerations ca be configured using the <code>tolerations</code> property in following resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Kafka.spec.kafka</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.entityOperator</code></p>
+</li>
+<li>
+<p><code>KafkaConnect.spec</code></p>
+</li>
+<li>
+<p><code>KafkaConnectS2I.spec</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The format of the <code>tolerations</code> property follows the OpenShift or Kubernetes specification.
+For more details, see the <a href="https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/" target="_blank" rel="noopener">Kubernetes taints and tolerations</a>.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="proc-dedicated-nodes-deployment-configuration-kafka-mirror-maker-dedicated-nodes">Setting up dedicated nodes and scheduling pods on them</h6>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Select the nodes which should be used as dedicated</p>
+</li>
+<li>
+<p>Make sure there are no workloads scheduled on these nodes</p>
+</li>
+<li>
+<p>Set the taints on the selected nodes</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl taint</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl taint node <em>your-node</em> dedicated=Kafka:NoSchedule</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc adm taint</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc adm taint node <em>your-node</em> dedicated=Kafka:NoSchedule</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Additionally, add a label to the selected nodes as well.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl label</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl label node <em>your-node</em> dedicated=Kafka</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc label</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc label node <em>your-node</em> dedicated=Kafka</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Edit the <code>affinity</code> and <code>tolerations</code> properties in the resource specifying the cluster deployment.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    tolerations:
+      - key: "dedicated"
+        operator: "Equal"
+        value: "Kafka"
+        effect: "NoSchedule"
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: dedicated
+              operator: In
+              values:
+              - Kafka
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="ref-list-of-kafka-mirror-maker-resources-deployment-configuration-kafka-mirror-maker">3.4.15. List of resources created as part of Kafka Mirror Maker</h4>
+<div class="paragraph">
+<p>The following resources will created by the Cluster Operator in the OpenShift or Kubernetes cluster:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><em>&lt;mirror-maker-name&gt;</em>-mirror-maker</dt>
+<dd>
+<p>Deployment which is in charge to create the Kafka Mirror Maker pods.</p>
+</dd>
+<dt class="hdlist1"><em>&lt;mirror-maker-name&gt;</em>-config</dt>
+<dd>
+<p>ConfigMap which contains the Kafka Mirror Maker ancillary configuration and is mounted as a volume by the Kafka broker pods.</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -13273,7 +16065,7 @@ Currently, the only supported authentication mechanism is the TLS Client Authent
 <p>When no authentication mechanism is specified, User Operator will not create the user or its credentials.</p>
 </div>
 <div class="sect4">
-<h5 id="tls_client_authentication_4">TLS Client Authentication</h5>
+<h5 id="tls_client_authentication_5">TLS Client Authentication</h5>
 <div class="paragraph">
 <p>To use TLS client authentication, set the <code>type</code> field to <code>tls</code>.</p>
 </div>
@@ -13482,7 +16274,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="additional_resources_4">6.8.3. Additional resources</h4>
+<h4 id="additional_resources_5">6.8.3. Additional resources</h4>
 <div class="ulist">
 <ul>
 <li>
