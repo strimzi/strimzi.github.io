@@ -74,7 +74,9 @@
 <li><a href="#assembly-configuring-container-images-deployment-configuration-kafka">3.1.15. Container images</a></li>
 <li><a href="#assembly-tls-sidecar-deployment-configuration-kafka">3.1.16. TLS sidecar</a></li>
 <li><a href="#assembly-scheduling-deployment-configuration-kafka">3.1.17. Configuring pod scheduling</a></li>
-<li><a href="#ref-list-of-kafka-cluster-resources-deployment-configuration-kafka">3.1.18. List of resources created as part of Kafka cluster</a></li>
+<li><a href="#proc-manual-delete-pod-pvc-kafka-deployment-configuration-kafka">3.1.18. Deleting Kafka nodes manually</a></li>
+<li><a href="#proc-manual-delete-pod-pvc-zookeeper-deployment-configuration-kafka">3.1.19. Deleting Zookeeper nodes manually</a></li>
+<li><a href="#ref-list-of-kafka-cluster-resources-deployment-configuration-kafka">3.1.20. List of resources created as part of Kafka cluster</a></li>
 </ul>
 </li>
 <li><a href="#assembly-deployment-configuration-kafka-connect-str">3.2. Kafka Connect cluster configuration</a>
@@ -202,18 +204,20 @@
 </li>
 </ul>
 </li>
-<li><a href="#security-str">Security</a>
-<ul class="sectlevel1">
-<li><a href="#certificates-str">7. Certificates</a></li>
-<li><a href="#tls-connections-str">8. TLS connections</a>
+<li><a href="#security-str">7. Security</a>
 <ul class="sectlevel2">
-<li><a href="#zookeeper_communication">8.1. Zookeeper communication</a></li>
-<li><a href="#kafka_interbroker_communication">8.2. Kafka interbroker communication</a></li>
-<li><a href="#topic_and_user_operators">8.3. Topic and User Operators</a></li>
-<li><a href="#kafka_client_connections">8.4. Kafka Client connections</a></li>
+<li><a href="#certificates-str">7.1. Certificates</a></li>
+<li><a href="#tls-connections-str">7.2. TLS connections</a>
+<ul class="sectlevel3">
+<li><a href="#zookeeper_communication">7.2.1. Zookeeper communication</a></li>
+<li><a href="#kafka_interbroker_communication">7.2.2. Kafka interbroker communication</a></li>
+<li><a href="#topic_and_user_operators">7.2.3. Topic and User Operators</a></li>
+<li><a href="#kafka_client_connections">7.2.4. Kafka Client connections</a></li>
 </ul>
 </li>
-<li><a href="#configuring-clients-to-trust-cluster-ca-str">9. Configuring clients to trust the cluster CA</a></li>
+<li><a href="#configuring-clients-to-trust-cluster-ca-str">7.3. Configuring clients to trust the cluster CA</a></li>
+</ul>
+</li>
 <li><a href="#frequently_asked_questions">Appendix A: Frequently Asked Questions</a>
 <ul class="sectlevel2">
 <li><a href="#cluster_operator">A.1. Cluster Operator</a>
@@ -314,8 +318,6 @@
 <li><a href="#kafka_dashboard">D.4.1. Kafka Dashboard</a></li>
 <li><a href="#zookeeper_dashboard">D.4.2. ZooKeeper Dashboard</a></li>
 <li><a href="#metrics_references">D.4.3. Metrics References</a></li>
-</ul>
-</li>
 </ul>
 </li>
 </ul>
@@ -5660,7 +5662,165 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-list-of-kafka-cluster-resources-deployment-configuration-kafka">3.1.18. List of resources created as part of Kafka cluster</h4>
+<h4 id="proc-manual-delete-pod-pvc-kafka-deployment-configuration-kafka">3.1.18. Deleting Kafka nodes manually</h4>
+<div class="paragraph">
+<p>This procedure describes how to delete an existing Kafka node by using an OpenShift or Kubernetes annotation.
+Deleting a Kafka node consists of deleting both the <code>Pod</code> on which the Kafka broker is running and the related <code>PersistentVolumeClaim</code> (if the cluster was deployed with persistent storage).
+After deletion, the <code>Pod</code> and its related <code>PersistentVolumeClaim</code> are recreated automatically.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Deleting a <code>PersistentVolumeClaim</code> can cause permanent data loss. The following procedure should only be performed if you have encountered storage issues.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Kafka cluster.</p>
+</li>
+<li>
+<p>A running Cluster Operator.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Find the name of the <code>Pod</code> that you want to delete.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>For example, if the cluster is named <em>cluster-name</em>, the pods are named <em>cluster-name</em>-kafka-<em>index</em>, where <em>index</em> starts at zero and ends at the total number of replicas.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Annotate the <code>Pod</code> resource in OpenShift or Kubernetes.</p>
+<div class="paragraph">
+<p>On Kubernetes use <code>kubectl annotate</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate pod <em>cluster-name</em>-kafka-<em>index</em> cluster.operator.strimzi.io/delete-pod-and-pvc=true</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift use <code>oc annotate</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc annotate pod <em>cluster-name</em>-kafka-<em>index</em> cluster.operator.strimzi.io/delete-pod-and-pvc=true</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Wait for the next reconciliation, when the annotated pod with the underlying persistent volume claim will be deleted and then recreated.</p>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about deploying the Cluster Operator, see <a href="#cluster-operator-str">Cluster Operator</a>.</p>
+</li>
+<li>
+<p>For more information about deploying the Kafka cluster, see <a href="#deploying-kafka-cluster-openshift-str">Deploying the Kafka cluster to OpenShift</a> and <a href="#deploying-kafka-cluster-kubernetes-str">Deploying the Kafka cluster to Kubernetes</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-manual-delete-pod-pvc-zookeeper-deployment-configuration-kafka">3.1.19. Deleting Zookeeper nodes manually</h4>
+<div class="paragraph">
+<p>This procedure describes how to delete an existing Zookeeper node by using an OpenShift or Kubernetes annotation.
+Deleting a Zookeeper node consists of deleting both the <code>Pod</code> on which Zookeeper is running and the related <code>PersistentVolumeClaim</code> (if the cluster was deployed with persistent storage).
+After deletion, the <code>Pod</code> and its related <code>PersistentVolumeClaim</code> are recreated automatically.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Deleting a <code>PersistentVolumeClaim</code> can cause permanent data loss. The following procedure should only be performed if you have encountered storage issues.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Zookeeper cluster.</p>
+</li>
+<li>
+<p>A running Cluster Operator.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Find the name of the <code>Pod</code> that you want to delete.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>For example, if the cluster is named <em>cluster-name</em>, the pods are named <em>cluster-name</em>-zookeeper-<em>index</em>, where <em>index</em> starts at zero and ends at the total number of replicas.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Annotate the <code>Pod</code> resource in OpenShift or Kubernetes.</p>
+<div class="paragraph">
+<p>On Kubernetes use <code>kubectl annotate</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate pod <em>cluster-name</em>-zookeeper-<em>index</em> cluster.operator.strimzi.io/delete-pod-and-pvc=true</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift use <code>oc annotate</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc annotate pod <em>cluster-name</em>-zookeeper-<em>index</em> cluster.operator.strimzi.io/delete-pod-and-pvc=true</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Wait for the next reconciliation, when the annotated pod with the underlying persistent volume claim will be deleted and then recreated.</p>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about deploying the Cluster Operator, see <a href="#cluster-operator-str">Cluster Operator</a>.</p>
+</li>
+<li>
+<p>For more information about deploying the Zookeeper cluster, see <a href="#deploying-kafka-cluster-openshift-str">Deploying the Kafka cluster to OpenShift</a> and <a href="#deploying-kafka-cluster-kubernetes-str">Deploying the Kafka cluster to Kubernetes</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="ref-list-of-kafka-cluster-resources-deployment-configuration-kafka">3.1.20. List of resources created as part of Kafka cluster</h4>
 <div class="paragraph">
 <p>The following resources will created by the Cluster Operator in the OpenShift or Kubernetes cluster:</p>
 </div>
@@ -16431,9 +16591,9 @@ spec:
 </div>
 </div>
 </div>
-<h1 id="security-str" class="sect0">Security</h1>
-<div class="openblock partintro">
-<div class="content">
+<div class="sect1">
+<h2 id="security-str">7. Security</h2>
+<div class="sectionbody">
 <div class="paragraph">
 <p>Strimzi supports encrypted communication between the Kafka and Strimzi components using the TLS protocol.
 Communication between Kafka brokers (interbroker communication), between Zookeeper nodes (internodal communication), and between these and the Strimzi operators is always encrypted.
@@ -16450,11 +16610,8 @@ It also sets up other TLS certificates if you want to enable encryption or TLS a
 </div>
 <div class="title">Figure 3. Example architecture diagram of the communication secured by TLS.</div>
 </div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="certificates-str">7. Certificates</h2>
-<div class="sectionbody">
+<div class="sect2">
+<h3 id="certificates-str">7.1. Certificates</h3>
 <div class="paragraph">
 <p>Each Strimzi component needs its own private keys and public key certificates in order to support encryption.
 All component certificates are signed by a Certification Authority (CA) called <em>cluster CA</em>, while the <em>clients CA</em>, is used to sign the certificates for the Kafka clients.
@@ -16511,12 +16668,10 @@ Certificate rotation is not currently supported.
 </table>
 </div>
 </div>
-</div>
-<div class="sect1">
-<h2 id="tls-connections-str">8. TLS connections</h2>
-<div class="sectionbody">
 <div class="sect2">
-<h3 id="zookeeper_communication">8.1. Zookeeper communication</h3>
+<h3 id="tls-connections-str">7.2. TLS connections</h3>
+<div class="sect3">
+<h4 id="zookeeper_communication">7.2.1. Zookeeper communication</h4>
 <div class="paragraph">
 <p>Zookeeper does not support TLS itself.
 By deploying an <code>stunnel</code> sidecar within every Zookeeper pod, the Cluster Operator is able to provide data encryption and authentication between Zookeeper nodes in a cluster.
@@ -16527,8 +16682,8 @@ The <code>stunnel</code> sidecar then proxies all Zookeeper traffic, TLS decrypt
 <p>This TLS encrypting <code>stunnel</code> proxy is instantiated from the <code>spec.zookeeper.stunnelImage</code> specified in the Kafka resource.</p>
 </div>
 </div>
-<div class="sect2">
-<h3 id="kafka_interbroker_communication">8.2. Kafka interbroker communication</h3>
+<div class="sect3">
+<h4 id="kafka_interbroker_communication">7.2.2. Kafka interbroker communication</h4>
 <div class="paragraph">
 <p>Communication between Kafka brokers is done through the <code>REPLICATION</code> listener on port 9091, which is encrypted by default.</p>
 </div>
@@ -16536,8 +16691,8 @@ The <code>stunnel</code> sidecar then proxies all Zookeeper traffic, TLS decrypt
 <p>Communication between Kafka brokers and Zookeeper nodes uses an <code>stunnel</code> sidecar, as described above.</p>
 </div>
 </div>
-<div class="sect2">
-<h3 id="topic_and_user_operators">8.3. Topic and User Operators</h3>
+<div class="sect3">
+<h4 id="topic_and_user_operators">7.2.3. Topic and User Operators</h4>
 <div class="literalblock">
 <div class="content">
 <pre>Like the Cluster Operator, the Topic and User Operators each use an `stunnel` sidecar when communicating with Zookeeper.
@@ -16545,8 +16700,8 @@ The Topic Operator connects to Kafka brokers on port 9091.</pre>
 </div>
 </div>
 </div>
-<div class="sect2">
-<h3 id="kafka_client_connections">8.4. Kafka Client connections</h3>
+<div class="sect3">
+<h4 id="kafka_client_connections">7.2.4. Kafka Client connections</h4>
 <div class="paragraph">
 <p>Encrypted communication between Kafka brokers and clients running within the same OpenShift or Kubernetes cluster is provided through the <code>CLIENTTLS</code> listener on port 9093.</p>
 </div>
@@ -16567,10 +16722,8 @@ You can use the <code>CLIENT</code> listener on port 9092 for unencrypted commun
 </div>
 </div>
 </div>
-</div>
-<div class="sect1">
-<h2 id="configuring-clients-to-trust-cluster-ca-str">9. Configuring clients to trust the cluster CA</h2>
-<div class="sectionbody">
+<div class="sect2">
+<h3 id="configuring-clients-to-trust-cluster-ca-str">7.3. Configuring clients to trust the cluster CA</h3>
 <div class="paragraph">
 <p>If a Kafka client wants to connect to the <code>tls</code> listener on port 9093 or the <code>external</code> listener on port 9094, it needs to trust the cluster CA certificate.</p>
 </div>
@@ -16622,6 +16775,7 @@ For the Java-based Kafka Producer, Consumer, and Streams APIs, you can do this b
 </div>
 </li>
 </ol>
+</div>
 </div>
 </div>
 </div>
