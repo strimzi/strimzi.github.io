@@ -641,16 +641,37 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#security-str">7. Security</a>
 <ul class="sectlevel2">
-<li><a href="#certificates-str">7.1. Certificates</a></li>
-<li><a href="#tls-connections-str">7.2. TLS connections</a>
+<li><a href="#certificate-authorities-str">7.1. Certificate Authorities</a>
 <ul class="sectlevel3">
-<li><a href="#zookeeper_communication">7.2.1. Zookeeper communication</a></li>
-<li><a href="#kafka_interbroker_communication">7.2.2. Kafka interbroker communication</a></li>
-<li><a href="#topic_and_user_operators">7.2.3. Topic and User Operators</a></li>
-<li><a href="#kafka_client_connections">7.2.4. Kafka Client connections</a></li>
+<li><a href="#ca_certificates">7.1.1. CA certificates</a></li>
 </ul>
 </li>
-<li><a href="#configuring-clients-to-trust-cluster-ca-str">7.3. Configuring clients to trust the cluster CA</a></li>
+<li><a href="#certificates-and-secrets-str">7.2. Certificates and <code>Secrets</code></a>
+<ul class="sectlevel3">
+<li><a href="#cluster_ca_secrets">7.2.1. Cluster CA <code>Secrets</code></a></li>
+<li><a href="#client_ca_secrets">7.2.2. Client CA <code>Secrets</code></a></li>
+<li><a href="#user_secrets">7.2.3. User <code>Secrets</code></a></li>
+</ul>
+</li>
+<li><a href="#installing-your-own-ca-certificates-str">7.3. Installing your own CA certificates</a></li>
+<li><a href="#con-certificate-renewal-str">7.4. Certificate renewal</a>
+<ul class="sectlevel3">
+<li><a href="#renewal_process_with_generated_cas">7.4.1. Renewal process with generated CAs</a></li>
+<li><a href="#renewal_process_with_your_own_ca_certificates">7.4.2. Renewal process with your own CA certificates</a></li>
+<li><a href="#client_applications">7.4.3. Client applications</a></li>
+</ul>
+</li>
+<li><a href="#renewing-your-own-ca-certificates-str">7.5. Renewing your own CA certificates</a></li>
+<li><a href="#tls-connections-str">7.6. TLS connections</a>
+<ul class="sectlevel3">
+<li><a href="#zookeeper_communication">7.6.1. Zookeeper communication</a></li>
+<li><a href="#kafka_interbroker_communication">7.6.2. Kafka interbroker communication</a></li>
+<li><a href="#topic_and_user_operators">7.6.3. Topic and User Operators</a></li>
+<li><a href="#kafka_client_connections">7.6.4. Kafka Client connections</a></li>
+</ul>
+</li>
+<li><a href="#configuring-internal-clients-to-trust-cluster-ca-str">7.7. Configuring internal clients to trust the cluster CA</a></li>
+<li><a href="#configuring-external-clients-to-trust-cluster-ca-str">7.8. Configuring external clients to trust the cluster CA</a></li>
 </ul>
 </li>
 <li><a href="#frequently_asked_questions">Appendix A: Frequently Asked Questions</a>
@@ -17045,7 +17066,7 @@ spec:
 <div class="paragraph">
 <p>Strimzi supports encrypted communication between the Kafka and Strimzi components using the TLS protocol.
 Communication between Kafka brokers (interbroker communication), between Zookeeper nodes (internodal communication), and between these and the Strimzi operators is always encrypted.
-Communication between Kafka clients and Kafka brokers will be encrypted according how the cluster is configured.
+Communication between Kafka clients and Kafka brokers is encrypted according to how the cluster is configured.
 For the Kafka and Strimzi components, TLS certificates are also used for authentication.</p>
 </div>
 <div class="paragraph">
@@ -17059,49 +17080,101 @@ It also sets up other TLS certificates if you want to enable encryption or TLS a
 <div class="title">Figure 3. Example architecture diagram of the communication secured by TLS.</div>
 </div>
 <div class="sect2">
-<h3 id="certificates-str">7.1. Certificates</h3>
+<h3 id="certificate-authorities-str">7.1. Certificate Authorities</h3>
 <div class="paragraph">
-<p>Each Strimzi component needs its own private keys and public key certificates in order to support encryption.
-All component certificates are signed by a Certification Authority (CA) called <em>cluster CA</em>, while the <em>clients CA</em>, is used to sign the certificates for the Kafka clients.
-The CAs themselves use self-signed certificates.</p>
+<p>To support encryption, each {ProductName] component needs its own private keys and public key certificates.
+All component certificates are signed by a Certificate Authority (CA) called the <em>cluster CA</em>.</p>
 </div>
 <div class="paragraph">
-<p>All of the generated certificates are saved as <code>Secrets</code> in the OpenShift or Kubernetes cluster, named as follows:</p>
+<p>Similarly, each Kafka client application connecting using TLS client authentication needs private keys and certificates.
+The <em>clients CA</em> is used to sign the certificates for the Kafka clients.</p>
 </div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1"><code><em>cluster-name</em>-cluster-ca</code></dt>
-<dd>
-<p>Contains the private and public keys of the cluster CA which is used for signing server certificates for the Kafka and Strimzi components (Kafka brokers, Zookeeper nodes, and so on).</p>
-</dd>
-<dt class="hdlist1"><code><em>cluster-name</em>-cluster-ca-cert</code></dt>
-<dd>
-<p>Contains only the public key of the cluster CA which is used by Kafka clients to verify the identity of the Kafka brokers they are connecting to (TLS server authentication).</p>
-</dd>
-<dt class="hdlist1"><code><em>cluster-name</em>-clients-ca</code></dt>
-<dd>
-<p>Contains private and public keys of the clients CA which is used for TLS client authentication of Kafka clients when connecting to Kafka brokers.</p>
-</dd>
-<dt class="hdlist1"><code><em>cluster-name</em>-clients-ca-cert</code></dt>
-<dd>
-<p>Contains only the public key of the client CA which is used by the Kafka brokers to verify the identity of Kafka clients when TLS client authentication is used.</p>
-</dd>
-<dt class="hdlist1"><code><em>cluster-name</em>-kafka-brokers</code></dt>
-<dd>
-<p>Contains all Kafka broker private and public keys (certificates signed with the cluster CA).</p>
-</dd>
-<dt class="hdlist1"><code><em>cluster-name</em>-zookeeper-nodes</code></dt>
-<dd>
-<p>Contains all Zookeeper node private and public keys (certificates signed with the cluster CA).</p>
-</dd>
-<dt class="hdlist1"><code><em>cluster-name</em>-topic-operator-certs</code></dt>
-<dd>
-<p>Contains the private and public keys (certificates signed with the cluster CA) used for encrypting communication between the Topic Operator and Kafka or Zookeeper.</p>
-</dd>
-</dl>
+<div class="sect3">
+<h4 id="ca_certificates">7.1.1. CA certificates</h4>
+<div class="paragraph">
+<p>Each CA has a self-signed public key certificate.</p>
 </div>
 <div class="paragraph">
-<p>All keys are 2048 bits in size and are valid for 365 days from initial generation.</p>
+<p>Kafka brokers are configured to trust certificates signed by either the clients CA or the cluster CA. Components to which clients do not need to connect, such as Zookeeper, only trust certificates signed by the cluster CA. Client applications that perform mutual TLS authentication have to trust the certificates signed by the cluster CA.</p>
+</div>
+<div class="paragraph">
+<p>By default, Strimzi generates and renews CA certificates automatically. You can configure the management of CA certificates in the <code>Kafka.spec.clusterCa</code> and <code>Kafka.spec.clientsCa</code> objects.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="certificates-and-secrets-str">7.2. Certificates and <code>Secrets</code></h3>
+<div class="paragraph">
+<p>Strimzi stores CA, component and Kafka client private keys and certificates in <code>Secrets</code>.
+All keys are 2048 bits in size.</p>
+</div>
+<div class="paragraph">
+<p>CA certificate validity periods, expressed as a number of days after certificate generation, can be configured in <code>Kafka.spec.clusterCa.validityDays</code>
+and <code>Kafka.spec.clusterCa.validityDays</code>.</p>
+</div>
+<div class="sect3">
+<h4 id="cluster_ca_secrets">7.2.1. Cluster CA <code>Secrets</code></h4>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 2. Cluster CA <code>Secrets</code> managed by the Cluster Operator in <em>&lt;cluster&gt;</em></caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 20%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top"><code>Secret</code> name</th>
+<th class="tableblock halign-left valign-top">Field within <code>Secret</code></th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><em>&lt;cluster&gt;</em>-cluster-ca</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ca.key</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The current private key for the cluster CA.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><code><em>&lt;cluster&gt;</em>-cluster-ca-cert</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ca.crt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The current certificate for the cluster CA.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ca-<em>&lt;date&gt;</em>.crt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Former (but not yet expired) certificate for the cluster CA. <code><em>&lt;date&gt;</em></code> is the date the certificate will expire.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><code><em>&lt;cluster&gt;</em>-kafka-brokers</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><em>&lt;cluster&gt;</em>-kafka-<em>&lt;num&gt;</em>.crt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Certificate for Kafka broker pod <em>&lt;num&gt;</em>. Signed by a current or former cluster CA private key in <code><em>&lt;cluster&gt;</em>-cluster-ca</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><em>&lt;cluster&gt;</em>-kafka-<em>&lt;num&gt;</em>.key</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Private key for Kafka broker pod <em>&lt;num&gt;</em>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><code><em>&lt;cluster&gt;</em>-zookeeper-nodes</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><em>&lt;cluster&gt;</em>-zookeeper-<em>&lt;num&gt;</em>.crt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Certificate for Zookeeper node <em>&lt;num&gt;</em>. Signed by a current or former cluster CA private key in <code><em>&lt;cluster&gt;</em>-cluster-ca</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><em>&lt;cluster&gt;</em>-zookeeper-<em>&lt;num&gt;</em>.key</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Private key for Zookeeper pod <em>&lt;num&gt;</em>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="3"><p class="tableblock"><code><em>&lt;cluster&gt;</em>-entity-operator-certs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>entity-operator_.crt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Certificate for TLS communication between the Entity Operator and Kafka or Zookeeper.
+                                   Signed by a current or former cluster CA private key in <code><em>&lt;cluster&gt;</em>-cluster-ca</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>entity-operator.key</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Private key for TLS communication between the Entity Operator and Kafka or Zookeeper</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The CA certificates in <code><em>&lt;cluster&gt;</em>-cluster-ca-cert</code> must be trusted by Kafka client applications so that they validate the Kafka broker certificates when connecting to Kafka brokers over TLS.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -17110,16 +17183,463 @@ The CAs themselves use self-signed certificates.</p>
 <div class="title">Note</div>
 </td>
 <td class="content">
-Certificate rotation is not currently supported.
+Only <code><em>&lt;cluster&gt;</em>-cluster-ca-cert</code> needs to be used by clients.
+All other <code>Secrets</code> in the table above only need to be accessed by the
+ Strimzi components.
+ You can enforce this using OpenShift or Kubernetes role-based access controls if necessary.
 </td>
 </tr>
 </table>
 </div>
 </div>
-<div class="sect2">
-<h3 id="tls-connections-str">7.2. TLS connections</h3>
 <div class="sect3">
-<h4 id="zookeeper_communication">7.2.1. Zookeeper communication</h4>
+<h4 id="client_ca_secrets">7.2.2. Client CA <code>Secrets</code></h4>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 3. Clients CA <code>Secrets</code> managed by the Cluster Operator in <em>&lt;cluster&gt;</em></caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 20%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top"><code>Secret</code> name</th>
+<th class="tableblock halign-left valign-top">Field within <code>Secret</code></th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><em>&lt;cluster&gt;</em>-clients-ca</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ca.key</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The current private key for the clients CA.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><code><em>&lt;cluster&gt;</em>-clients-ca-cert</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ca.crt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The current certificate for the clients CA.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ca-<em>&lt;date&gt;</em>.crt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Former (but not yet expired) certificate for the clients CA. <code><em>&lt;date&gt;</em></code> is the date the certificate will expire.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The certificates in <code><em>&lt;cluster&gt;</em>-clients-ca-cert</code> are those which the Kafka brokers trust.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<code><em>&lt;cluster&gt;</em>-cluster-ca</code> is used to sign certificates of client applications.
+It needs to be accessible to the Strimzi components and for administrative access if you are intending to issue application certificates without using the User Operator.
+You can enforce this using OpenShift or Kubernetes role-based access controls if necessary.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="user_secrets">7.2.3. User <code>Secrets</code></h4>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 4. <code>Secrets</code> managed by the User Operator</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 20%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top"><code>Secret</code> name</th>
+<th class="tableblock halign-left valign-top">Field within <code>Secret</code></th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><code><em>&lt;user&gt;</em></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>user.crt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Certificate for the user, signed by the clients CA</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>user.key</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Private key for the user</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="installing-your-own-ca-certificates-str">7.3. Installing your own CA certificates</h3>
+<div class="paragraph">
+<p>This procedure describes how to install your own CA certificates and private keys instead of using CA certificates and private keys generated by the Cluster Operator.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+<li>
+<p>A <code>Kafka</code> resource within OpenShift or Kubernetes</p>
+</li>
+<li>
+<p>Your own X.509 certificates and keys in PEM format for the cluster CA or clisters CA. For example, these could be generated by <code>openssl</code>, using a command such as:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">openssl req -x509 -new -days <em>&lt;validity&gt;</em> --nodes -out ca.crt -keyout ca.key</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>Kafka</code> resource for your cluster, configuring either the <code>Kafka.spec.clusterCa</code> or the <code>Kafka.spec.clientsCa</code> object to <em>not</em> use generated CAs:</p>
+<div class="listingblock">
+<div class="title">Example fragment <code>Kafka</code> resource configuring the cluster CA to use certificates you supply for yourself</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">kind: Kafka
+version: v1alpha1
+spec:
+  # ...
+  clusterCa:
+    generateCertificateAuthority: false</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This will prevent the Cluster Operator from generating a new CA. It will not disable an existing generated CA.</p>
+</div>
+</li>
+<li>
+<p>Put your CA certificate in the corresponding <code>Secret</code> (<code><em>&lt;cluster&gt;</em>-cluster-ca-cert</code> for the cluster CA or <code><em>&lt;cluster&gt;</em>-client-ca-cert</code> for the clients CA):</p>
+<div class="paragraph">
+<p>On Kubernetes, run the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># Delete any existing secret (ignore "Not Exists" errors)
+kubectl delete secret <em>&lt;ca-cert-secret&gt;</em>
+# Create the new one
+kubectl create secret generic <em>&lt;ca-cert-secret&gt;</em> --from-file=ca.crt=<em>&lt;ca-cert-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift, run the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># Delete any existing secret (ignore "Not Exists" errors)
+oc delete secret <em>&lt;ca-cert-secret&gt;</em>
+# Create the new one
+oc create secret generic <em>&lt;ca-cert-secret&gt;</em> --from-file=ca.crt=<em>&lt;ca-cert-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Put your CA key in the corresponding <code>Secret</code> (<code><em>&lt;cluster&gt;</em>-cluster-ca</code> for the cluster CA or <code><em>&lt;cluster&gt;</em>-client-ca</code> for the clients CA)</p>
+<div class="paragraph">
+<p>On Kubernetes, run the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># Delete the existing secret
+kubectl delete secret <em>&lt;ca-key-secret&gt;</em>
+# Create the new one
+kubectl create secret generic <em>&lt;ca-key-secret&gt;</em> --from-file=ca.key=<em>&lt;ca-key-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift, run the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># Delete the existing secret
+oc delete secret <em>&lt;ca-key-secret&gt;</em>
+# Create the new one
+oc create secret generic <em>&lt;ca-key-secret&gt;</em> --from-file=ca.key=<em>&lt;ca-key-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For the procedure for renewing CA certificates you have previousy installed, see <a href="#renewing-your-own-ca-certificates-str">Renewing your own CA certificates</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="con-certificate-renewal-str">7.4. Certificate renewal</h3>
+<div class="paragraph">
+<p>The cluster CA and clients CA certificates are only valid for a limited time period, known as the validity period.
+This is usually defined as a number of days since the certificate was generated.
+For auto-generated CA certificates, you can configure the validity period in <code>Kafka.spec.clusterCa.validityDays</code> and <code>Kafka.spec.clientsCa.validityDays</code>.
+The default validity period for both certificates is 365 days.
+Manually-installed CA certificates should have their own validity period defined.</p>
+</div>
+<div class="paragraph">
+<p>When a CA certificate expires, the certificates that it has signed will fail validation, even if they were previously valid.
+This means that, when replacing a CA certificate, you must also replace all other certificates signed by it.
+When the replacement of a CA certificate is in progress, it is necessary for peers to trust certificates signed by either the old or the new CA.
+This ensures the continued operation of the cluster.</p>
+</div>
+<div class="paragraph">
+<p>To allow the renewal of CA certificates without a loss of service, the Cluster Operator will initiate certificate renewal before the old CA certificates expire.
+You can configure the renewal period in <code>Kafka.spec.clusterCa.renewalDays</code> and <code>Kafka.spec.clientsCa.renewalDays</code> (both default to 30 days).
+The renewal period is measured backwards, from the expiry date of the current certificate.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>Not Before                                     Not After
+    |                                              |
+    |&lt;--------------- validityDays ---------------&gt;|
+                              &lt;--- renewalDays ---&gt;|</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The behavior of the Cluster Operator during the renewal period depends on whether the relevant setting is enabled, in either <code>Kafka.spec.clusterCa.generateCertificateAuthority</code> or <code>Kafka.spec.clientsCa.generateCertificateAuthority</code>.</p>
+</div>
+<div class="sect3">
+<h4 id="renewal_process_with_generated_cas">7.4.1. Renewal process with generated CAs</h4>
+<div class="paragraph">
+<p>The Cluster Operator performs the following process to renew CA certificates:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Generate a new CA key and certificate. The new private key replaces the old private key in the corresponding <code>Secret</code>. The new certificate is given the name <code>ca.crt</code> within the corresponding <code>Secret</code> and the old certificate is renamed <code>ca-<em>&lt;expiry-date&gt;</em>.crt</code>.</p>
+</li>
+<li>
+<p>Restart Zookeeper nodes so that they will trust the new CA certificate.</p>
+</li>
+<li>
+<p>Restart Kafka brokers so that they will trust the new CA certificate.</p>
+</li>
+<li>
+<p>Restart the Topic and User Operators so that they will trust the new CA certificate.</p>
+</li>
+<li>
+<p>Generate new client certificates (for Zookeeper nodes, Kafka brokers, and the entity operator) signed by the new CA.</p>
+</li>
+<li>
+<p>Perform the same restarts so that clients are using certificates signed by the new CA certificate.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>At the end of the renewal period the Cluster Operator will remove the now expired CA certificates (those named <code>ca-<em>&lt;expiry-date&gt;</em>.crt</code>) from the corresponding <code>Secret</code> and perform a further round of restarts.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="renewal_process_with_your_own_ca_certificates">7.4.2. Renewal process with your own CA certificates</h4>
+<div class="paragraph">
+<p>At the start of the renewal period the Cluster Operator will start logging at the <code>WARN</code> level that new CA certificates and keys are needed.
+Once you have provided the new certificates and keys, the Cluster Operator performs a further set of restarts within the Kafka cluster for which the warning was issued.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="client_applications">7.4.3. Client applications</h4>
+<div class="paragraph">
+<p>The Cluster Operator is not aware of all the client applications using the Kafka cluster.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+Depending on how your applications are configured, you might need take action to ensure they continue working after certificate renewal.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Consider the following important points to ensure that client applications continue working.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>When they connect to the cluster, client applications must trust <em>all</em> the cluster CA certificates published in <em>&lt;cluster&gt;</em>-cluster-ca-certs.</p>
+</li>
+<li>
+<p>When using the User Operator to provision client certificates, client applications must use the current <code>user.crt</code> and <code>user.key</code> published in their <code><em>&lt;user&gt;</em></code> <code>Secret</code> when they connect to the cluster.
+For workloads running inside the same OpenShift or Kubernetes cluster this can be achieved by mounting the secrets as a volume and having the client Pods construct their key- and truststores from the current state of the <code>Secrets</code>.
+For more details on this procedure, see <a href="#configuring-internal-clients-to-trust-cluster-ca-str">Configuring internal clients to trust the cluster CA</a>.</p>
+</li>
+<li>
+<p>When renewing client certificates, if you are provisioning client certificates and keys manually, you must generate new client certificates and ensure the new certificates are used by clients within the renewal period. Failure to do this by the end of the renewal period could result in client applications being unable to connect.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="renewing-your-own-ca-certificates-str">7.5. Renewing your own CA certificates</h3>
+<div class="paragraph">
+<p>This procedure describes how to renew CA certificates and private keys that you previously installed.
+You will need to follow this procedure during the renewal period in order to replace CA certificates which will soon expire.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+<li>
+<p>A Kafka cluster in which you previously installed your own CA certificates and private keys.</p>
+</li>
+<li>
+<p>New cluster and clients X.509 certificates and keys in PEM format. These could be generated using <code>openssl</code> using a command such as:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">openssl req -x509 -new -days <em>&lt;validity&gt;</em> --nodes -out ca.crt -keyout ca.key</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Establish what CA certificates already exist in the <code>Secret</code>:</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl describe secret <em>&lt;ca-cert-secret&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc describe secret <em>&lt;ca-cert-secret&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Prepare a directory containing the existing CA certificates in the secret.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">mkdir new-ca-cert-secret
+cd new-ca-cert-secret</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On Kubernetes for each certificate <em>&lt;ca-certificate&gt;</em> from the previous step, run:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># Fetch the existing secret
+kubectl get secret <em>&lt;ca-cert-secret&gt;</em> -o 'jsonpath={.data.<em>&lt;ca-certificate&gt;</em>}' | base64 -d &gt; <em>&lt;ca-certificate&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift for each certificate <em>&lt;ca-certificate&gt;</em> from the previous step, run:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># Fetch the existing secret
+oc get secret <em>&lt;ca-cert-secret&gt;</em> -o 'jsonpath={.data.<em>&lt;ca-certificate&gt;</em>}' | base64 -d &gt; <em>&lt;ca-certificate&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Rename the old <code>ca.crt</code> file to <code>ca_&lt;date&gt;_.crt</code>, where <em>&lt;date&gt;</em> is the certificate expiry date in the format <em>&lt;year&gt;</em>-<em>&lt;month&gt;</em>-<em>&lt;day&gt;_T</em>&lt;hour&gt;_-<em>&lt;minute&gt;</em>-_&lt;second&gt;_Z, for example <code>ca-2018-09-27T17-32-00Z.crt</code>.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">mv ca.crt ca-$(date -u -d$(openssl x509 -enddate -noout -in ca.crt | sed 's/.*=//') +'%Y-%m-%dT%H-%M-%SZ').crt</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Copy the new CA certificate into the directory, naming it <code>ca.crt</code></p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">cp <em>&lt;path-to-new-cert&gt;</em> ca.crt</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Replace the CA certificate <code>Secret</code>  (<code><em>&lt;cluster&gt;</em>-cluster-ca</code> or <code><em>&lt;cluster&gt;</em>-clients-ca</code>).</p>
+<div class="paragraph">
+<p>On OpenShift this can be done using the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># Delete the existing secret
+kubectl delete secret <em>&lt;ca-cert-secret&gt;</em>
+# Re-create the secret with the new private key
+kubectl create secret generic <em>&lt;ca-cert-secret&gt;</em> --from-file=.</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># Delete the existing secret
+oc delete secret <em>&lt;ca-cert-secret&gt;</em>
+# Re-create the secret with the new private key
+oc create secret generic <em>&lt;ca-cert-secret&gt;</em> --from-file=.</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can now delete the directory you created:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">cd ..
+rm -r new-ca-cert-secret</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Replace the CA key <code>Secret</code> (<code><em>&lt;cluster&gt;</em>-cluster-ca</code> or <code><em>&lt;cluster&gt;</em>-clients-ca</code>).</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># Delete the existing secret
+kubectl delete secret <em>&lt;ca-key-secret&gt;</em>
+# Re-create the secret with the new private key
+kubectl create secret generic <em>&lt;ca-key-secret&gt;</em> --from-file=ca.key=<em>&lt;ca-key-file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># Delete the existing secret
+oc delete secret <em>&lt;ca-key-secret&gt;</em>
+# Re-create the secret with the new private key
+oc create secret generic <em>&lt;ca-key-secret&gt;</em> --from-file=ca.key=<em>&lt;ca-key-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="tls-connections-str">7.6. TLS connections</h3>
+<div class="sect3">
+<h4 id="zookeeper_communication">7.6.1. Zookeeper communication</h4>
 <div class="paragraph">
 <p>Zookeeper does not support TLS itself.
 By deploying an <code>stunnel</code> sidecar within every Zookeeper pod, the Cluster Operator is able to provide data encryption and authentication between Zookeeper nodes in a cluster.
@@ -17131,7 +17651,7 @@ The <code>stunnel</code> sidecar then proxies all Zookeeper traffic, TLS decrypt
 </div>
 </div>
 <div class="sect3">
-<h4 id="kafka_interbroker_communication">7.2.2. Kafka interbroker communication</h4>
+<h4 id="kafka_interbroker_communication">7.6.2. Kafka interbroker communication</h4>
 <div class="paragraph">
 <p>Communication between Kafka brokers is done through the <code>REPLICATION</code> listener on port 9091, which is encrypted by default.</p>
 </div>
@@ -17140,7 +17660,7 @@ The <code>stunnel</code> sidecar then proxies all Zookeeper traffic, TLS decrypt
 </div>
 </div>
 <div class="sect3">
-<h4 id="topic_and_user_operators">7.2.3. Topic and User Operators</h4>
+<h4 id="topic_and_user_operators">7.6.3. Topic and User Operators</h4>
 <div class="literalblock">
 <div class="content">
 <pre>Like the Cluster Operator, the Topic and User Operators each use an `stunnel` sidecar when communicating with Zookeeper.
@@ -17149,7 +17669,7 @@ The Topic Operator connects to Kafka brokers on port 9091.</pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="kafka_client_connections">7.2.4. Kafka Client connections</h4>
+<h4 id="kafka_client_connections">7.6.4. Kafka Client connections</h4>
 <div class="paragraph">
 <p>Encrypted communication between Kafka brokers and clients running within the same OpenShift or Kubernetes cluster is provided through the <code>CLIENTTLS</code> listener on port 9093.</p>
 </div>
@@ -17171,31 +17691,32 @@ You can use the <code>CLIENT</code> listener on port 9092 for unencrypted commun
 </div>
 </div>
 <div class="sect2">
-<h3 id="configuring-clients-to-trust-cluster-ca-str">7.3. Configuring clients to trust the cluster CA</h3>
+<h3 id="configuring-internal-clients-to-trust-cluster-ca-str">7.7. Configuring internal clients to trust the cluster CA</h3>
 <div class="paragraph">
-<p>If a Kafka client wants to connect to the <code>tls</code> listener on port 9093 or the <code>external</code> listener on port 9094, it needs to trust the cluster CA certificate.</p>
+<p>This procedure describes how to configure a Kafka client that resides inside the OpenShift or Kubernetes cluster — connecting to the <code>tls</code> listener on port 9093 — to trust the cluster CA certificate.</p>
+</div>
+<div class="paragraph">
+<p>The easiest way to achieve this for an internal client is to use a volume mount to access the <code>Secrets</code> containing the necessary certificates and keys.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+<li>
+<p>A <code>Kafka</code> resource within the OpenShift or Kubernetes cluster.</p>
+</li>
+<li>
+<p>A Kafka client application inside the OpenShift or Kubernetes cluster which will connect using TLS and needs to trust the cluster CA certificate.</p>
+</li>
+</ul>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>The cluster CA certificate can be extracted from the generated <code><em>cluster-name</em>-cluster-ca-cert</code> <code>Secret</code>.</p>
-<div class="paragraph">
-<p>On Kubernetes, the certificate can be extracted with the following command:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>cluster-name</em>-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>On OpenShift, the certificate can be extracted with the following command:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc extract secret/<em>cluster-name</em>-cluster-ca-cert --keys ca.crt</code></pre>
-</div>
-</div>
+<p>When defining the client <code>Pod</code></p>
 </li>
 <li>
 <p>The Kafka client has to be configured to trust certificates signed by this CA.
@@ -17207,7 +17728,7 @@ For the Java-based Kafka Producer, Consumer, and Streams APIs, you can do this b
 </div>
 </li>
 <li>
-<p>In order to configure the Kafka client, following properties should be specified:</p>
+<p>To configure the Kafka client, specify the following properties:</p>
 <div class="ulist">
 <ul>
 <li>
@@ -17223,6 +17744,115 @@ For the Java-based Kafka Producer, Consumer, and Streams APIs, you can do this b
 </div>
 </li>
 </ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For the procedure for configuring external clients to trust the cluster CA, see <a href="#configuring-external-clients-to-trust-cluster-ca-str">Configuring external clients to trust the cluster CA</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="configuring-external-clients-to-trust-cluster-ca-str">7.8. Configuring external clients to trust the cluster CA</h3>
+<div class="paragraph">
+<p>This procedure describes how to configure a Kafka client that resides outside the OpenShift or Kubernetes cluster – connecting to the <code>external</code> listener on port 9094 – to trust the cluster CA certificate.</p>
+</div>
+<div class="paragraph">
+<p>You can use the same procedure to configure clients inside OpenShift or Kubernetes, which connect to the <code>tls</code> listener on port 9093, but it is usually more convenient to access the <code>Secrets</code> using a volume mount in the client <code>Pod</code>.</p>
+</div>
+<div class="paragraph">
+<p>Follow this procedure when setting up the client and during the renewal period, when the old clients CA certificate is replaced.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+The <code><em>&lt;cluster-name&gt;</em>-cluster-ca-cert</code> <code>Secret</code> will contain more than one CA certificate during CA certificate renewal. Clients must add <em>all</em> of them to their truststores.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+<li>
+<p>A <code>Kafka</code> resource within the OpenShift or Kubernetes cluster.</p>
+</li>
+<li>
+<p>A Kafka client application outside the OpenShift or Kubernetes cluster which will connect using TLS and needs to trust the cluster CA certificate.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Extract the cluster CA certificates from the generated <code><em>&lt;cluster-name&gt;</em>-cluster-ca-cert</code> <code>Secret</code>.</p>
+<div class="paragraph">
+<p>On Kubernetes, run the following command to extract the certificates:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>&lt;cluster-name&gt;</em>-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift, run the following command to extract the certificates:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc extract secret/<em>&lt;cluster-name&gt;</em>-cluster-ca-cert --keys ca.crt</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Execute the same command for every <code>.crt</code> file contained in the <code>Secret</code>.</p>
+</div>
+</li>
+<li>
+<p>The Kafka client has to be configured to trust certificates signed by this CA.
+For the Java-based Kafka Producer, Consumer, and Streams APIs, you can do this by importing the CA certificates into the JVM&#8217;s truststore using the following <code>keytool</code> command:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">keytool -keystore client.truststore.jks -alias CARoot -import -file ca.crt</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The same command should be executed for each of the <code>.crt</code> files extracted in the first step.</p>
+</div>
+</li>
+<li>
+<p>To configure the Kafka client, specify the following properties:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>security.protocol: SSL</code> when using TLS for encryption (with or without TLS authentication), or <code>security.protocol: SASL_SSL</code> when using SCRAM-SHA authentication over TLS.</p>
+</li>
+<li>
+<p><code>ssl.truststore.location</code>: the truststore location where the certificates were imported.</p>
+</li>
+<li>
+<p><code>ssl.truststore.password</code>: the password for accessing the truststore. This property can be omitted if it is not needed by the truststore.</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For the procedure for configuring internal clients to trust the cluster CA, see <a href="#configuring-internal-clients-to-trust-cluster-ca-str">Configuring internal clients to trust the cluster CA</a></p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -20184,7 +20814,7 @@ This reference describes how to monitor cAdvisor metrics in various ways using P
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-10-11 12:08:36 UTC
+Last updated 2018-10-11 12:43:45 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
