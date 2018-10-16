@@ -76,9 +76,10 @@
 <li><a href="#assembly-scheduling-deployment-configuration-kafka">3.1.17. Configuring pod scheduling</a></li>
 <li><a href="#proc-manual-rolling-update-kafka-deployment-configuration-kafka">3.1.18. Performing a rolling update of a Kafka cluster</a></li>
 <li><a href="#proc-manual-rolling-update-zookeeper-deployment-configuration-kafka">3.1.19. Performing a rolling update of a Zookeeper cluster</a></li>
-<li><a href="#proc-manual-delete-pod-pvc-kafka-deployment-configuration-kafka">3.1.20. Deleting Kafka nodes manually</a></li>
-<li><a href="#proc-manual-delete-pod-pvc-zookeeper-deployment-configuration-kafka">3.1.21. Deleting Zookeeper nodes manually</a></li>
-<li><a href="#ref-list-of-kafka-cluster-resources-deployment-configuration-kafka">3.1.22. List of resources created as part of Kafka cluster</a></li>
+<li><a href="#scaling-clusters-deployment-configuration-kafka">3.1.20. Scaling clusters</a></li>
+<li><a href="#proc-manual-delete-pod-pvc-kafka-deployment-configuration-kafka">3.1.21. Deleting Kafka nodes manually</a></li>
+<li><a href="#proc-manual-delete-pod-pvc-zookeeper-deployment-configuration-kafka">3.1.22. Deleting Zookeeper nodes manually</a></li>
+<li><a href="#ref-list-of-kafka-cluster-resources-deployment-configuration-kafka">3.1.23. List of resources created as part of Kafka cluster</a></li>
 </ul>
 </li>
 <li><a href="#assembly-deployment-configuration-kafka-connect-str">3.2. Kafka Connect cluster configuration</a>
@@ -1742,14 +1743,17 @@ storage:
 <div class="sect3">
 <h4 id="assembly-kafka-broker-replicas-deployment-configuration-kafka">3.1.2. Replicas</h4>
 <div class="paragraph">
-<p>Kafka cluster can run with many brokers and Kafka brokers can run with various numbers of nodes.
-The number of brokers used for the Kafka cluster is defined in the Kafka resource.
+<p>A Kafka cluster can run with many brokers.
+You can configure the number of brokers used for the Kafka cluster in <code>Kafka.spec.kafka.replicas</code>.
 The best number of brokers for your cluster has to be determined based on your specific use case.</p>
 </div>
 <div class="sect4">
 <h5 id="proc-configuring-kafka-broker-replicas-deployment-configuration-kafka">Configuring the number of broker nodes</h5>
 <div class="paragraph">
-<p>Number of Kafka broker nodes is configured using the <code>replicas</code> property in <code>Kafka.spec.kafka</code>.</p>
+<p>This procedure describes how to configure the number of Kafka broker nodes in a new cluster.
+It only applies to new clusters, with no partitions.
+If your cluster already has topics defined you should see
+<a href="#scaling-clusters-deployment-configuration-kafka">Scaling clusters</a>.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -1759,6 +1763,9 @@ The best number of brokers for your cluster has to be determined based on your s
 </li>
 <li>
 <p>A running Cluster Operator</p>
+</li>
+<li>
+<p>A Kafka cluster with no topics defined yet</p>
 </li>
 </ul>
 </div>
@@ -1804,6 +1811,11 @@ spec:
 </div>
 </li>
 </ol>
+</div>
+<div class="paragraph">
+<div class="title">Additional resources</div>
+<p>If your cluster already has topics defined see
+<a href="#scaling-clusters-deployment-configuration-kafka">Scaling clusters</a>.</p>
 </div>
 </div>
 </div>
@@ -5836,8 +5848,715 @@ Once the rolling update of all the pods is complete, the annotation is removed f
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-delete-pod-pvc-kafka-deployment-configuration-kafka">3.1.20. Deleting Kafka nodes manually</h4>
+<h4 id="scaling-clusters-deployment-configuration-kafka">3.1.20. Scaling clusters</h4>
+<div class="sect4">
+<h5 id="con-scaling-kafka-clusters-deployment-configuration-kafka">Scaling Kafka clusters</h5>
+<div class="sect5">
+<h6 id="adding_brokers_to_a_cluster">Adding brokers to a cluster</h6>
 <div class="paragraph">
+<p>The primary way of increasing throughput for a topic is to increase the number of partitions for that topic.
+That works because the extra partitions allow the load of the topic to be shared between the different brokers in the cluster.
+However, in situations where every broker is constrained by a particular resource (typically I/O) using more partitions will not result in increased throughput.
+Instead, you need to add brokers to the cluster.</p>
+</div>
+<div class="paragraph">
+<p>When you add an extra broker to the cluster, Kafka does not assign any partitions to it automatically.
+You must decide which partitions to move from the existing brokers to the new broker.</p>
+</div>
+<div class="paragraph">
+<p>Once the partitions have been redistributed between all the brokers, the resource utilization of each broker should be reduced.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="removing_brokers_from_a_cluster">Removing brokers from a cluster</h6>
+<div class="paragraph">
+<p>Because Strimzi uses <code>StatefulSets</code> to manage broker pods, you cannot remove <em>any</em> pod from the cluster.
+You can only remove one or more of the highest numbered pods from the cluster.
+For example, in a cluster of 12 brokers the pods are named <code><em>cluster-name</em>-kafka-0</code> up to <code><em>cluster-name</em>-kafka-11</code>.
+If you decide to scale down by one broker, the <code><em>cluster-name</em>-kafka-11</code> will be removed.</p>
+</div>
+<div class="paragraph">
+<p>Before you remove a broker from a cluster, ensure that it is not assigned to any partitions.
+You should also decide which of the remaining brokers will be responsible for each of the partitions on the broker being decommissioned.
+Once the broker has no assigned partitions, you can scale the cluster down safely.</p>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="con-partition-reassignment-deployment-configuration-kafka">Partition reassignment</h5>
+<div class="paragraph">
+<p>The Topic Operator does not currently support reassigning replicas to different brokers, so it is necessary to connect directly to broker pods to reassign replicas to brokers.</p>
+</div>
+<div class="paragraph">
+<p>Within a broker pod, the <code>kafka-reassign-partitions.sh</code> utility allows you to reassign partitions to different brokers.</p>
+</div>
+<div class="paragraph">
+<p>It has three different modes:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>--generate</code></dt>
+<dd>
+<p>Takes a set of topics and brokers and generates a <em>reassignment JSON file</em> which will result in the partitions of those topics being assigned to those brokers.
+Because this operates on whole topics, it cannot be used when you just need to reassign some of the partitions of some topics.</p>
+</dd>
+<dt class="hdlist1"><code>--execute</code></dt>
+<dd>
+<p>Takes a <em>reassignment JSON file</em> and applies it to the partitions and brokers in the cluster.
+Brokers that gain partitions as a result become followers of the partition leader.
+For a given partition, once the new broker has caught up and joined the ISR (in-sync replicas) the old broker will stop being a follower and will delete its replica.</p>
+</dd>
+<dt class="hdlist1"><code>--verify</code></dt>
+<dd>
+<p>Using the same <em>reassignment JSON file</em> as the <code>--execute</code> step, <code>--verify</code> checks whether all of the partitions in the file have been moved to their intended brokers.
+If the reassignment is complete, --verify also removes any <a href="#con-reassignment-throttles-deployment-configuration-kafka">throttles</a> that are in effect.
+Unless removed, throttles will continue to affect the cluster even after the reassignment has finished.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>It is only possible to have one reassignment running in a cluster at any given time, and it is not possible to cancel a running reassignment.
+If you need to cancel a reassignment, wait for it to complete and then perform another reassignment to revert the effects of the first reassignment.
+The <code>kafka-reassign-partitions.sh</code> will print the reassignment JSON for this reversion as part of its output.
+Very large reassignments should be broken down into a number of smaller reassignments in case there is a need to stop in-progress reassignment.</p>
+</div>
+<div class="sect5">
+<h6 id="reassignment_json_file">Reassignment JSON file</h6>
+<div class="paragraph">
+<p>The <em>reassignment JSON file</em> has a specific structure:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>{
+  "version": 1,
+  "partitions": [
+    <em>&lt;PartitionObjects&gt;</em>
+  ]
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Where <em>&lt;PartitionObjects&gt;</em> is a comma-separated list of objects like:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>{
+  "topic": <em>&lt;TopicName&gt;</em>,
+  "partition": <em>&lt;Partition&gt;</em>,
+  "replicas": [ <em>&lt;AssignedBrokerIds&gt;</em> ]
+}</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Although Kafka also supports a <code>"log_dirs"</code> property this should not be used in Strimzi.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The following is an example reassignment JSON file that assigns topic <code>topic-a</code>, partition <code>4</code> to brokers <code>2</code>, <code>4</code> and <code>7</code>, and topic <code>topic-b</code> partition <code>2</code> to brokers <code>1</code>, <code>5</code> and <code>7</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">{
+  "version": 1,
+  "partitions": [
+    {
+      "topic": "topic-a",
+      "partition": 4,
+      "replicas": [2,4,7]
+    },
+    {
+      "topic": "topic-b",
+      "partition": 2,
+      "replicas": [1,5,7]
+    }
+  ]
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Partitions not included in the JSON are not changed.</p>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-generating-reassignment-json-files-deployment-configuration-kafka">Generating reassignment JSON files</h5>
+<div class="paragraph">
+<p>This procedure describes how to generate a reassignment JSON file that reassigns all the partitions for a given set of topics using the <code>kafka-reassign-partitions.sh</code> tool.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+<li>
+<p>A <code>Kafka</code> resource</p>
+</li>
+<li>
+<p>A set of topics to reassign the partitions of</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Prepare a JSON file named <code><em>topics.json</em></code> that lists the topics to move.
+It must have the following structure:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>{
+  "version": 1,
+  "topics": [
+    <em>&lt;TopicObjects&gt;</em>
+  ]
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>where <em>&lt;TopicObjects&gt;</em> is a comma-separated list of objects like:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>{
+  "topic": <em>&lt;TopicName&gt;</em>
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example if you want to reassign all the partitions of <code>topic-a</code> and <code>topic-b</code>, you would need to prepare a <code><em>topics.json</em></code> file like this:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">{
+  "version": 1,
+  "topics": [
+    { "topic": "topic-a"},
+    { "topic": "topic-b"}
+  ]
+}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Copy the <code><em>topics.json</em></code> file to one of the broker pods:</p>
+<div class="paragraph">
+<p>On Kubernetes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>cat <em>topics.json</em> | kubectl exec -c kafka <em>&lt;BrokerPod&gt;</em> -i -- \
+  /bin/bash -c \
+  'cat &gt; /tmp/topics.json'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>cat <em>topics.json</em> | oc rsh -c kafka <em>&lt;BrokerPod&gt;</em> /bin/bash -c \
+  'cat &gt; /tmp/topics.json'</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Use the <code>kafka-reassign-partitions.sh`</code> command to generate the reassignment JSON.</p>
+<div class="paragraph">
+<p>On Kubernetes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>kubectl exec <em>&lt;BrokerPod&gt;</em> -c kafka -it -- \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --topics-to-move-json-file /tmp/topics.json \
+  --broker-list <em>&lt;BrokerList&gt;</em> \
+  --generate</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>oc rsh -c kafka <em>&lt;BrokerPod&gt;</em> \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --topics-to-move-json-file /tmp/topics.json \
+  --broker-list <em>&lt;BrokerList&gt;</em> \
+  --generate</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, to move all the partitions of <code>topic-a</code> and <code>topic-b</code> to brokers <code>4</code> and <code>7</code></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc rsh -c kafka _&lt;BrokerPod&gt;_ \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --topics-to-move-json-file /tmp/topics.json \
+  --broker-list 4,7 \
+  --generate</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect4">
+<h5 id="creating_reassignment_json_files_manually">Creating reassignment JSON files manually</h5>
+<div class="paragraph">
+<p>You can manually create the reassignment JSON file if you want to move specific partitions.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="con-reassignment-throttles-deployment-configuration-kafka">Reassignment throttles</h5>
+<div class="paragraph">
+<p>Partition reassignment can be a slow process because it involves transferring large amounts of data between brokers.
+To avoid a detrimental impact on clients, you can throttle the reassignment process.
+This might cause the reassignment to take longer to complete.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If the throttle is too low then the newly assigned brokers will not be able to keep up with records being published and the reassignment will never complete.</p>
+</li>
+<li>
+<p>If the throttle is too high then clients will be impacted.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For example, for producers, this could manifest as higher than normal latency waiting for acknowledgement. For consumers, this could manifest as a drop in throughput caused by higher latency between polls.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-scaling-up-a-kafka-cluster-deployment-configuration-kafka">Scaling up a Kafka cluster</h5>
+<div class="paragraph">
+<p>This procedure describes how to increase the number of brokers in a Kafka cluster.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An existing Kafka cluster.</p>
+</li>
+<li>
+<p>A <em>reassignment JSON file</em> named <code><em>reassignment.json</em></code> that describes how partitions should be reassigned to brokers in the enlarged cluster.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Add as many new brokers as you need by increasing the <code>Kafka.spec.kafka.replicas</code> configuration option.</p>
+</li>
+<li>
+<p>Verify that the new broker pods have started.</p>
+</li>
+<li>
+<p>Copy the <code><em>reassignment.json</em></code> file to the broker pod on which you will later execute the commands:</p>
+<div class="paragraph">
+<p>On Kubernetes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">cat <em>reassignment.json</em> | \
+  kubectl exec <em>broker-pod</em> -c kafka -i -- /bin/bash -c \
+  'cat &gt; /tmp/reassignment.json'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">cat <em>reassignment.json</em> | \
+  oc rsh -c kafka <em>broker-pod</em> /bin/bash -c \
+  'cat &gt; /tmp/reassignment.json'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">cat reassignment.json | \
+  oc rsh -c kafka my-cluster-kafka-0 /bin/bash -c \
+  'cat &gt; /tmp/reassignment.json'</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Execute the partition reassignment using the <code>kafka-reassign-partitions.sh</code> command line tool from the same broker pod.</p>
+<div class="paragraph">
+<p>On Kubernetes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec <em>broker-pod</em> -c kafka -it -- \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --execute</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc rsh -c kafka <em>broker-pod</em> \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --execute</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you are going to throttle replication you can also pass the <code>--throttle</code> option with an inter-broker throttled rate in bytes per second. For example:</p>
+</div>
+<div class="paragraph">
+<p>On Kubernetes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec my-cluster-kafka-0 -c kafka -it -- \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --throttle 5000000 \
+  --execute</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc rsh -c kafka my-cluster-kafka-0 \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --throttle 5000000 \
+  --execute</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This command will print out two reassignment JSON objects.
+The first records the current assignment for the partitions being moved.
+You should save this to a local file (not a file in the pod) in case you need to revert the reassignment later on.
+The second JSON object is the target reassignment you have passed in your reassignment JSON file.</p>
+</div>
+</li>
+<li>
+<p>If you need to change the throttle during reassignment you can use the same command line with a different throttled rate. For example:</p>
+<div class="paragraph">
+<p>On Kubernetes,</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec my-cluster-kafka-0 -c kafka -it -- \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --throttle 10000000 \
+  --execute</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc rsh -c kafka my-cluster-kafka-0 \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --throttle 10000000 \
+  --execute</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Periodically verify whether the reassignment has completed using the <code>kafka-reassign-partitions.sh</code> command line tool from any of the broker pods. This is the same command as the previous step but with the <code>--verify</code> option instead of the <code>--execute</code> option.</p>
+<div class="paragraph">
+<p>On Kubernetes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec <em>broker-pod</em> -c kafka -it -- \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --verify</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc rsh -c kafka <em>broker-pod</em> \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --verify</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, on Kubernetes,</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec my-cluster-kafka-0 -c kafka -it -- \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --verify</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, on {OpenShift},</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc rsh -c kafka my-cluster-kafka-0 \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --verify</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>The reassignment has finished when the <code>--verify</code> command reports each of  the partitions being moved as completed successfully.
+This final <code>--verify</code> will also have the effect of removing any reassignment throttles.
+You can now delete the revert file if you saved the JSON for reverting the assignment to their original brokers.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-scaling-down-a-kafka-cluster-deployment-configuration-kafka">Scaling down a Kafka cluster</h5>
+<div class="paragraph">
+<div class="title">Additional resources</div>
+<p>This procedure describes how to decrease the number of brokers in a Kafka cluster.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An existing Kafka cluster.</p>
+</li>
+<li>
+<p>A <em>reassignment JSON file</em> named <code><em>reassignment.json</em></code> describing how partitions should be reassigned to brokers in the cluster once the broker(s) in the highest numbered <code>Pod(s)</code> have been removed.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Copy the <code><em>reassignment.json</em></code> file to the broker pod on which you will later execute the commands:</p>
+<div class="paragraph">
+<p>On Kubernetes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">cat <em>reassignment.json</em> | \
+  kubectl exec <em>broker-pod</em> -c kafka -i -- /bin/bash -c \
+  'cat &gt; /tmp/reassignment.json'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">cat <em>reassignment.json</em> | \
+  oc rsh -c kafka <em>broker-pod</em> /bin/bash -c \
+  'cat &gt; /tmp/reassignment.json'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">cat reassignment.json | \
+  oc rsh -c kafka my-cluster-kafka-0 /bin/bash -c \
+  'cat &gt; /tmp/reassignment.json'</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Execute the partition reassignment using the <code>kafka-reassign-partitions.sh</code> command line tool from the same broker pod.</p>
+<div class="paragraph">
+<p>On Kubernetes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec <em>broker-pod</em> -c kafka -it -- \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --execute</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc rsh -c kafka <em>broker-pod</em> \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --execute</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you are going to throttle replication you can also pass the <code>--throttle</code> option with an inter-broker throttled rate in bytes per second. For example:</p>
+</div>
+<div class="paragraph">
+<p>On Kubernetes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec my-cluster-kafka-0 -c kafka -it -- \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --throttle 5000000 \
+  --execute</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc rsh -c kafka my-cluster-kafka-0 \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --throttle 5000000 \
+  --execute</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This command will print out two reassignment JSON objects.
+The first records the current assignment for the partitions being moved.
+You should save this to a local file (not a file in the pod) in case you need to revert the reassignment later on.
+The second JSON object is the target reassignment you have passed in your reassignment JSON file.</p>
+</div>
+</li>
+<li>
+<p>If you need to change the throttle during reassignment you can use the same command line with a different throttled rate. For example:</p>
+<div class="paragraph">
+<p>On Kubernetes,</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec my-cluster-kafka-0 -c kafka -it -- \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --throttle 10000000 \
+  --execute</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc rsh -c kafka my-cluster-kafka-0 \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --throttle 10000000 \
+  --execute</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Periodically verify whether the reassignment has completed using the <code>kafka-reassign-partitions.sh</code> command line tool from any of the broker pods. This is the same command as the previous step but with the <code>--verify</code> option instead of the <code>--execute</code> option.</p>
+<div class="paragraph">
+<p>On Kubernetes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec <em>broker-pod</em> -c kafka -it -- \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --verify</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc rsh -c kafka <em>broker-pod</em> \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --verify</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, on Kubernetes,</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec my-cluster-kafka-0 -c kafka -it -- \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --verify</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, on {OpenShift},</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc rsh -c kafka my-cluster-kafka-0 \
+  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  --reassignment-json-file /tmp/reassignment.json \
+  --verify</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>The reassignment has finished when the <code>--verify</code> command reports each of  the partitions being moved as completed successfully.
+This final <code>--verify</code> will also have the effect of removing any reassignment throttles.
+You can now delete the revert file if you saved the JSON for reverting the assignment to their original brokers.</p>
+</li>
+<li>
+<p>Once all the partition reassignments have finished, the broker(s) being removed should not have responsibility for any of the partitions in the cluster.
+You can verify this by checking that the broker&#8217;s data log directory does not contain any live partition logs.
+If the log directory on the broker contains a directory that does not match the extended regular expression <code>[a-zA-Z0-9.-]+\.[a-z0-9]+-delete$</code> then the broker still has live partitions and it should not be stopped.</p>
+<div class="paragraph">
+<p>You can check this by executing the command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc rsh <em>&lt;BrokerN&gt;</em> -c kafka /bin/bash -c \
+  "ls -l /var/lib/kafka/kafka-log_&lt;N&gt;_ | grep -E '^d' | grep -vE '[a-zA-Z0-9.-]+\.[a-z0-9]+-delete$'"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>where <em>N</em> is the number of the <code>Pod(s)</code> being deleted.</p>
+</div>
+<div class="paragraph">
+<p>If the above command prints any output then the broker still has live partitions.
+In this case, either the reassignment has not finished, or the reassignment JSON file was incorrect.</p>
+</div>
+</li>
+<li>
+<p>Once you have confirmed that the broker has no live partitions you can edit the <code>Kafka.spec.kafka.replicas</code> of your <code>Kafka</code> resource, which will scale down the <code>StatefulSet</code>, deleting the highest numbered broker <code>Pod(s)</code>.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-manual-delete-pod-pvc-kafka-deployment-configuration-kafka">3.1.21. Deleting Kafka nodes manually</h4>
+<div class="paragraph">
+<div class="title">Additional resources</div>
 <p>This procedure describes how to delete an existing Kafka node by using an OpenShift or Kubernetes annotation.
 Deleting a Kafka node consists of deleting both the <code>Pod</code> on which the Kafka broker is running and the related <code>PersistentVolumeClaim</code> (if the cluster was deployed with persistent storage).
 After deletion, the <code>Pod</code> and its related <code>PersistentVolumeClaim</code> are recreated automatically.</p>
@@ -5915,7 +6634,7 @@ Deleting a <code>PersistentVolumeClaim</code> can cause permanent data loss. The
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-delete-pod-pvc-zookeeper-deployment-configuration-kafka">3.1.21. Deleting Zookeeper nodes manually</h4>
+<h4 id="proc-manual-delete-pod-pvc-zookeeper-deployment-configuration-kafka">3.1.22. Deleting Zookeeper nodes manually</h4>
 <div class="paragraph">
 <p>This procedure describes how to delete an existing Zookeeper node by using an OpenShift or Kubernetes annotation.
 Deleting a Zookeeper node consists of deleting both the <code>Pod</code> on which Zookeeper is running and the related <code>PersistentVolumeClaim</code> (if the cluster was deployed with persistent storage).
@@ -5994,7 +6713,7 @@ Deleting a <code>PersistentVolumeClaim</code> can cause permanent data loss. The
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-list-of-kafka-cluster-resources-deployment-configuration-kafka">3.1.22. List of resources created as part of Kafka cluster</h4>
+<h4 id="ref-list-of-kafka-cluster-resources-deployment-configuration-kafka">3.1.23. List of resources created as part of Kafka cluster</h4>
 <div class="paragraph">
 <p>The following resources will created by the Cluster Operator in the OpenShift or Kubernetes cluster:</p>
 </div>
