@@ -6,7 +6,7 @@ layout: default
 
 ## Latest release
 
-* [0.8.0](/docs/0.8.0/)
+* [0.8.1](/docs/0.8.1/)
 
 ## Master
 
@@ -14,6 +14,7 @@ layout: default
 
 ## Older releases
 
+* [0.8.0](/docs/0.8.0/)
 * [0.7.0](/docs/0.7.0/)
 * [0.6.0](/docs/0.6.0/)
 * [0.5.0](/docs/0.5.0/)
