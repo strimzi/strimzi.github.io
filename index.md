@@ -27,6 +27,7 @@ Older releases can be found in the [Downloads](/downloads) page.
 
 # Documentation
 
+* [Quickstarts](/quickstarts)
 * [Master](/docs/master/)
 * [0.8.2](/docs/0.8.2/)
 
