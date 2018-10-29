@@ -11,9 +11,14 @@ Strimzi provides a way to run an [Apache Kafka](https://kafka.apache.org/) clust
 
 See our [GitHub](http://github.com/strimzi) repository for more info.
 
-# Roadmap
+# Quickstart
 
-The project roadmap describing our future plans can be found in our [GitHub project](https://github.com/strimzi/strimzi-kafka-operator/projects/1).
+Getting up and running with an Apache Kafka cluster on Kubernetes and OKD (the Origin Community Distribution of Kubernetes that powers Red Hat OpenShift) can be very simple, when using the Strimzi project! 
+
+Below are a few quickstart documents for different environments, that walk you through a quick and easy install for your development environment:
+
+* [Minikube](/quickstarts/minikube/)
+* [OKD](/quickstarts/okd)
 
 # Downloads
 
@@ -27,7 +32,6 @@ Older releases can be found in the [Downloads](/downloads) page.
 
 # Documentation
 
-* [Quickstarts](/quickstarts)
 * [Master](/docs/master/)
 * [0.8.2](/docs/0.8.2/)
 
@@ -44,6 +48,10 @@ If you encounter any issues while using Strimzi, you can get help using:
 
 Do you want to contribute to the Strimzi project?
 See our [Contributing](/contributing) page for more details.
+
+# Roadmap
+
+The project roadmap describing our future plans can be found in our [GitHub project](https://github.com/strimzi/strimzi-kafka-operator/projects/1).
 
 # License
 
