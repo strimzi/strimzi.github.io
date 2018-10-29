@@ -3,12 +3,12 @@
 This assumes that you have the latest version of the `minikube` binary, which you can get [here](https://kubernetes.io/docs/setup/minikube/#installation).
 
 ```shell
-minikube start ...
+minikube start
 ```
 
 > NOTE: Make sure to start `minikube` with your configured VM. If need help look at the [documentation](https://kubernetes.io/docs/setup/minikube/#quickstart) for more.
 
-Once Minikube this is started, let's create our `kafka` namespace:
+Once Minikube is started, let's create our `kafka` namespace:
 
 ```shell
 kubectl create namespace kafka 
