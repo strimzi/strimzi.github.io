@@ -28,7 +28,7 @@ curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.8.
 
 # Provision the Apache Kafka cluster
 
-Afterwards we feed Strimzi with a simple **Custom Resource**, which will than give you a simple, ephemeral Apache Kafka Cluster:
+After that we feed Strimzi with a simple **Custom Resource**, which will than give you a simple, ephemeral Apache Kafka Cluster:
 
 ```shell
 # Apply the `Kafka` Cluster CR file
