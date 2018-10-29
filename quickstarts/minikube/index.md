@@ -35,7 +35,7 @@ After that we feed Strimzi with a simple **Custom Resource**, which will than gi
 kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.8.1/examples/kafka/kafka-ephemeral.yaml -n kafka
 ```
 
-We can now watch the deployment on the `kafka` namesapce, and see all required pods being created:
+We can now watch the deployment on the `kafka` namespace, and see all required pods being created:
 
 ```shell
 kubectl get pods -n kafka -w
