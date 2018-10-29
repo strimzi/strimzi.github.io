@@ -18,7 +18,7 @@ kubectl create namespace kafka
 
 # Applying Strimzi installation file
 
-Next we are applying the Strimzi install files, including `ClusterRoles`, `ClusterRoleBindings` and some **Custom Resource Definitions** (`CRDs`) for the Apache Kafka itself, or creating Apache Kafka topics:
+Next we apply the Strimzi install files, including `ClusterRoles`, `ClusterRoleBindings` and some **Custom Resource Definitions** (`CRDs`). The CRDs define the schemas used for declarative management of the Kafka cluster, Kafka topics and users.
 
 ```shell
 curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.8.1/strimzi-cluster-operator-0.8.1.yaml \
