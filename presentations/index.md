@@ -4,6 +4,7 @@ layout: default
 
 # Presentations
 
+* Kafka on OpenShift: make it easy with AMQ Streams (Red Hat Open Source Day 2018, October 2018) [slides](https://www.slideshare.net/paolopat/kafka-on-openshift-make-it-easy-with-amq-streams)
 * Strimzi: Running Apache Kafka on Kubernetes and OpenShift (OpenSlava 2018, October 2018) [video](https://www.youtube.com/watch?v=AlU4CUuUfHA)
 * Introduction to Strimzi Operator (Operator Framework SIG Meeting, July 2018) [video](https://youtu.be/37DDC-Cy2ZI) [slides](https://red.ht/2OfBPvU)
 * Apache Kafka: Turning your Architecture Inside-Out [slides](https://speakerdeck.com/tombentley/riviera-dev-2018-apache-kafka-turning-your-architecture-inside-out) (Riviera Dev, May 2018)
