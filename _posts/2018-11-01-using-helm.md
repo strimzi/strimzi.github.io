@@ -5,6 +5,11 @@ date: 2018-11-01
 author: seglo
 ---
 
+The Kubernetes [Helm](https://helm.sh/) project is the leading way to package, configure, and deploy Kubernetes resources.
+Let's see how it's possible to use it in order to deploy an Apache Kafka cluster on Kubernetes through the Strimzi project.
+
+<!--more-->
+
 # A brief introduction to Helm
 
 The Kubernetes [Helm](https://helm.sh/) project is the leading way to package, configure, and deploy Kubernetes resources.
