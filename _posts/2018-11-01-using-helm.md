@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Using Helm to deploy the Strimzi Kafka Operator"
-date: 2018-10-31
+date: 2018-11-01
 author: seglo
 ---
 
@@ -35,22 +35,21 @@ For instructions on how to install Helm in an OpenShift environment please consu
 The Strimzi Helm Chart facilitates the install of the Strimzi Cluster Operator and defines the `CustomResourceDefinitions` to create Strimzi resources.
 Therefore, it's a two step process to eventually run a Kafka cluster.
 
-* Install the Strimzi Cluster operator with Helm.
-* Create a `Kafka` Kubernetes resource which the Cluster operator will use to create a Kafka and ZooKeeper cluster.
-
+* Install the Strimzi Cluster Operator with Helm.
+* Create a `Kafka` Kubernetes resource which the Cluster Operator will use to create a Kafka and ZooKeeper cluster.
 
 You can install the Strimzi Helm Chart by referencing the artifact directly from the Strimzi GitHub Releases page, or by using the Strimzi Chart Repository.
 
 To reference it directly you can download the appropriate release from the Strimzi [GitHub Releases](https://github.com/strimzi/strimzi-kafka-operator/releases/) page, or provide the full URL to the Chart to a [`helm install`](https://docs.helm.sh/helm/#helm-install) command.
 
 To use the Strimzi Chart Repository you must first add the Repository to your local Helm configuration.
-Strimzi releases are published directly to their own [Helm Chart Repository](http://strimzi.io/Charts/index.yaml) (located at [http://strimzi.io/charts/](http://strimzi.io/Charts/index.yaml)) every release cycle.
+Strimzi releases are published directly to their own [Helm Chart Repository](http://strimzi.io/charts/index.yaml) (located at [http://strimzi.io/charts/](http://strimzi.io/charts/index.yaml)) every release cycle.
 You may optionally also download a version of the Chart and host it within your own organization's Helm Chart Repository.
 
 First add the Strimzi Chart Repository.
 
 ```bash
-helm repo add strimzi http://strimzi.io/Charts/
+helm repo add strimzi http://strimzi.io/charts/
 ```
 
 Strimzi uploads a new Chart as part of the release process.
@@ -66,7 +65,7 @@ strimzi/strimzi-kafka-operator  0.7.0           0.7.0           Strimzi: Kafka a
 strimzi/strimzi-kafka-operator  0.6.0           0.6.0           Strimzi: Kafka as a Service
 ```
 
-Then you can install a version of the Strimzi Cluster operator.
+Then you can install a version of the Strimzi Cluster Operator.
 
 ```bash
 helm install strimzi/strimzi-kafka-operator
@@ -90,7 +89,7 @@ Once the Cluster Operator is installed you may now [install a Kafka cluster](htt
 
 ## Installation without using Helm Tiller server
 
-if you cannot run the Tiller server in your Kubernetes cluster you can still use Helm to generate all the resources locally with your desired configuration.
+If you cannot run the Tiller server in your Kubernetes cluster you can still use Helm to generate all the resources locally with your desired configuration.
 Usually this is done if Tiller is not running or otherwise secured in a way in which you do not have access to it and you want to create a resource bundle for someone else to deploy into the cluster.
 
 To accomplish this you can use the [`helm template`](https://docs.helm.sh/helm/#helm-template) command to generate the resources locally.  The Helm documentation makes the following disclaimer when choosing this method of installation.
@@ -159,7 +158,7 @@ deployment.extensions/strimzi-cluster-operator created
 # Helm Chart Configuration
 
 The Helm Chart contains configuration that can be overridden by the user to suit their needs.
-The full set of configuration that can be passed to this Chart can be found in the Chart's [`values.yaml`](https://github.com/strimzi/strimzi-kafka-operator/blob/master/helm-Charts/strimzi-kafka-operator/values.yaml) file and documented in the Chart's [`README.md`](https://github.com/strimzi/strimzi-kafka-operator/blob/master/helm-Charts/strimzi-kafka-operator/README.md).
+The full set of configuration that can be passed to this Chart can be found in the Chart's [`values.yaml`](https://github.com/strimzi/strimzi-kafka-operator/blob/master/helm-charts/strimzi-kafka-operator/values.yaml) file and documented in the Chart's [`README.md`](https://github.com/strimzi/strimzi-kafka-operator/blob/master/helm-charts/strimzi-kafka-operator/README.md).
 
 To explore the different ways to override Helm Chart values consult the Helm documentation's [Helm Install](https://docs.helm.sh/helm/#helm-install) section.
 
@@ -186,7 +185,7 @@ In this example, the Cluster Operator docker image coordinates would be: `regist
 
 ## Configure Cluster Operator to watch multiple Namespaces or Projects
 
-By default the Cluster operator will only watch for `Kafka` resources created or updated within the namespace the Cluster Operator is running in.
+By default the Cluster Operator will only watch for `Kafka` resources created or updated within the namespace the Cluster Operator is running in.
 If you wish to create `Kafka` resources in a different namespace from your Cluster Operator, or if you wish to watch multiple namespaces, then you can add them as a comma-delimited list for the `watchNamespaces` value override.
 
 The Cluster Operator _will always_ watch for Kafka resources created in the namespace it's installed into.
@@ -201,7 +200,7 @@ helm install strimzi/strimzi-kafka-operator \
 ```
 
 The Chart will install several more resources to Kubernetes than it normally does to be able to watch the additional namespaces.
-Additional `RoleBindings` will be created in each additional namespace so that the Cluster Operator has the correct permissions to watch for `Kafka` resources created, and each entity operator component (topic-operator, user-operator, etc.) has permissions to watch for their respective resources created in those namespaces.
+Additional `RoleBindings` will be created in each additional namespace so that the Cluster Operator has the correct permissions to watch for `Kafka` resources created, and each Entity Operator component (topic-operator, user-operator, etc.) has permissions to watch for their respective resources created in those namespaces.
 You will see these additional resources created in the summary of resources created as part of the `helm install` command.
 
 For the previous example you can view all the `RoleBindings` created in specific namespaces with the following command.
