@@ -576,6 +576,13 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#ref-list-of-kafka-mirror-maker-resources-deployment-configuration-kafka-mirror-maker">3.4.15. List of resources created as part of Kafka Mirror Maker</a></li>
 </ul>
 </li>
+<li><a href="#assembly-customizing-deployments-str">3.5. Customizing deployments</a>
+<ul class="sectlevel3">
+<li><a href="#con-customizing-template-properties-str">3.5.1. Template properties</a></li>
+<li><a href="#con-customizing-labels-and-annotations-str">3.5.2. Labels and Annotations</a></li>
+<li><a href="#proc-customizing-deployments-str">3.5.3. Customizing deployments</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#assembly-operators-str">4. Operators</a>
@@ -15498,6 +15505,304 @@ spec:
 </div>
 </div>
 </div>
+<div class="sect2">
+<h3 id="assembly-customizing-deployments-str"><a class="link" href="#assembly-customizing-deployments-str">3.5. Customizing deployments</a></h3>
+<div class="paragraph">
+<p>Strimzi creates several OpenShift or Kubernetes resources, such as <code>Deployments</code>, <code>StatefulSets</code>, <code>Pods</code>, and <code>Services</code>, which are managed by OpenShift or Kubernetes operators.
+Only the operator that is responsible for managing a particular OpenShift or Kubernetes resource can change that resource.
+If you try to manually change an operator-managed OpenShift or Kubernetes resource, the operator will revert your changes back.</p>
+</div>
+<div class="paragraph">
+<p>However, changing an operator-managed OpenShift or Kubernetes resource can be useful if you want to perform certain tasks, such as:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Adding custom labels or annotations that control how <code>Pods</code> are treated by Istio or other services;</p>
+</li>
+<li>
+<p>Managing how <code>Loadbalancer</code>-type Services are created by the cluster.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>You can make these types of changes using the <code>template</code> property in the Strimzi custom resources.</p>
+</div>
+<div class="sect3">
+<h4 id="con-customizing-template-properties-str"><a class="link" href="#con-customizing-template-properties-str">3.5.1. Template properties</a></h4>
+<div class="paragraph">
+<p>You can use the <code>template</code> property to configure aspects of the resource creation process.
+You can include it in the following resources and properties:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Kafka.spec.kafka</p>
+</li>
+<li>
+<p>Kafka.spec.zookeeper</p>
+</li>
+<li>
+<p>Kafka.spec.entityOperator</p>
+</li>
+<li>
+<p>KafkaConnect.spec</p>
+</li>
+<li>
+<p>KafkaConnectS2I.spec</p>
+</li>
+<li>
+<p>KafkaMirrorMakerSpec</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>In the following example, the <code>template</code> property is used to modify the labels in a Kafka broker&#8217;s <code>StatefulSet</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+metadata:
+  name: my-cluster
+  labels:
+    app: my-cluster
+spec:
+  kafka:
+    # ...
+    template:
+      statefulset:
+        metadata:
+          labels:
+            mylabel: myvalue
+    # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Supported resources in Kafka cluster</div>
+<p>When defined in a Kafka cluster, the <code>template</code> object can have the following fields:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>statefulset</code></dt>
+<dd>
+<p>Configures the <code>StatefulSet</code> used by the Kafka broker.</p>
+</dd>
+<dt class="hdlist1"><code>pod</code></dt>
+<dd>
+<p>Configures the Kafka broker <code>Pods</code> created by the <code>StatefulSet</code>.</p>
+</dd>
+<dt class="hdlist1"><code>bootstrapService</code></dt>
+<dd>
+<p>Configures the bootstrap service used by clients running within OpenShift or Kubernetes to connect to the Kafka broker.</p>
+</dd>
+<dt class="hdlist1"><code>brokersService</code></dt>
+<dd>
+<p>Configures the headless service.</p>
+</dd>
+<dt class="hdlist1"><code>externalBootstrapService</code></dt>
+<dd>
+<p>Configures the bootstrap service used by clients connecting to Kafka brokers from outside of OpenShift or Kubernetes.</p>
+</dd>
+<dt class="hdlist1"><code>perPodService</code></dt>
+<dd>
+<p>Configures the per-Pod services used by clients connecting to the Kafka broker from outside OpenShift or Kubernetes to access individual brokers.</p>
+</dd>
+<dt class="hdlist1"><code>externalBootstrapRoute</code></dt>
+<dd>
+<p>Configures the bootstrap route used by clients connecting to the Kafka brokers from outside of OpenShift using OpenShift <code>Routes</code>.</p>
+</dd>
+<dt class="hdlist1"><code>perPodRoute</code></dt>
+<dd>
+<p>Configures the per-Pod routes used by clients connecting to the Kafka broker from outside OpenShift to access individual brokers using OpenShift <code>Routes</code>.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<div class="title">Supported resources in Zookeeper cluster</div>
+<p>When defined in a Zookeeper cluster, the <code>template</code> object can have the following fields:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>statefulset</code></dt>
+<dd>
+<p>Configures the Zookeeper <code>StatefulSet</code>.</p>
+</dd>
+<dt class="hdlist1"><code>pod</code></dt>
+<dd>
+<p>Configures the Zookeeper <code>Pods</code> created by the <code>StatefulSet</code>.</p>
+</dd>
+<dt class="hdlist1"><code>clientsService</code></dt>
+<dd>
+<p>Configures the service used by clients to access Zookeeper.</p>
+</dd>
+<dt class="hdlist1"><code>nodesService</code></dt>
+<dd>
+<p>Configures the headless service.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<div class="title">Supported resources in Entity Operator</div>
+<p>When defined in an Entity Operator , the template object can have the following fields:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>deployment</code></dt>
+<dd>
+<p>Configures the Deployment used by the Entity Operator.</p>
+</dd>
+<dt class="hdlist1"><code>pod</code></dt>
+<dd>
+<p>Configures the Entity Operator <code>Pod</code> created by the <code>Deployment</code>.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<div class="title">Supported resources in Kafka Connect and Kafka Connect with Source2Image support</div>
+<p>When used with Kafka Connect and Kafka Connect with Source2Image support , the template object can have the following fields:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>deployment</code></dt>
+<dd>
+<p>Configures the Kafka Connect <code>Deployment</code>.</p>
+</dd>
+<dt class="hdlist1"><code>pod</code></dt>
+<dd>
+<p>Configures the Kafka Connect <code>Pods</code> created by the <code>Deployment</code>.</p>
+</dd>
+<dt class="hdlist1"><code>apiService</code></dt>
+<dd>
+<p>Configures the service used by the Kafka Connect REST API.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<div class="title">Supported resource in Kafka Mirror Maker</div>
+<p>When used with Kafka Mirror Maker , the template object can have the following fields:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>deployment</code></dt>
+<dd>
+<p>Configures the Kafka Mirror Maker <code>Deployment</code>.</p>
+</dd>
+<dt class="hdlist1"><code>pod</code></dt>
+<dd>
+<p>Configures the Kafka Mirror Maker <code>Pods</code> created by the <code>Deployment</code>.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-customizing-labels-and-annotations-str"><a class="link" href="#con-customizing-labels-and-annotations-str">3.5.2. Labels and Annotations</a></h4>
+<div class="paragraph">
+<p>For every resource, you can configure additional <code>Labels</code> and <code>Annotations</code>.
+<code>Labels</code> and <code>Annotations</code> are configured in the <code>metadata</code> property.
+For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+template:
+    statefulset:
+        metadata:
+            labels:
+                label1: value1
+                label2: value2
+            annotations:
+                annotation1: value1
+                annotation2: value2
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>labels</code> and <code>annotations</code> fields can contain any labels or annotations that do not contain the reserved string <code>strimzi.io</code>.
+Labels and annotations containing <code>strimzi.io</code> are used internally by Strimzi and cannot be configured by the user.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-customizing-deployments-str"><a class="link" href="#proc-customizing-deployments-str">3.5.3. Customizing deployments</a></h4>
+<div class="paragraph">
+<p>This procedure describes how to customize <code>Labels</code> of a Kafka cluster.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster.</p>
+</li>
+<li>
+<p>A running Cluster Operator.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>template</code> property in the <code>Kafka</code>, <code>KafkaConnect</code>, <code>KafkaConnectS2I</code>, or <code>KafkaMirrorMaker</code> resource.
+For example, to modify the labels for the Kafka broker <code>StatefulSet</code>, use:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+metadata:
+  name: my-cluster
+  labels:
+    app: my-cluster
+spec:
+  kafka:
+    # ...
+    template:
+      statefulset:
+        metadata:
+          labels:
+            mylabel: myvalue
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes, use <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Alternatively, use <code>kubectl edit</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit <em>Resource</em> <em>ClusterName</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift, use <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Alternatively, use <code>oc edit</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc edit <em>Resource</em> <em>ClusterName</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -22000,7 +22305,7 @@ This reference describes how to monitor cAdvisor metrics in various ways using P
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-11-01 18:10:11 UTC
+Last updated 2018-11-03 22:39:08 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/github.min.css">
