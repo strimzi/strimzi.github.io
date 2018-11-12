@@ -50,7 +50,7 @@ Using Vault to create your own CA arguably gives you more control over your TLS 
 
 Consider a Kafka cluster with a Kafka client you have developed. Your cluster requires that clients authenticate themselves using SSL, i.e. `ssl.client.auth="required"`.
 
-Using Vault as a CA, you could have an intermediate CA used for signing certificates for both your clients and brokers. Because Vault supports revocation, you could revoke any client certs which are no longer trusted. This could be done simply, without much effort required. Consider a situation without Vault, fulfilling these tasks would be a lot more cumbersome!
+Using Vault as a CA, you can have an intermediate CA used for signing certificates for both your clients and brokers. Because Vault supports revocation, you can revoke any client certificates which are no longer trusted. This can be done simply, without much effort required. Consider a situation without Vault, fulfilling these tasks would be a lot more cumbersome! Indeed, the same can be done for your cluster certificates, but only by _revoking the intermediate CA itself._
 
 Vault integrates particularly well with Kubernetes, for example using the [Kubernetes Auth Method](https://www.vaultproject.io/docs/auth/kubernetes.html).
 
@@ -65,14 +65,17 @@ Assuming you have a Vault cluster running, you can [create your own CA by doing 
 # First, enable the pki secrets engine at the pki path:
 $ vault secrets enable pki
 
-# Tune the pki secrets engine to issue certificates with a maximum time-to-live (TTL) of 87600 hours.
+# Tune the pki secrets engine to issue certificates with a maximum time-to-live (TTL) 
+#   of 87600 hours.
 $ vault secrets tune -max-lease-ttl=87600h pki
 
 # Generate the root certificate and save the certificate in CA_cert.crt.
 $ vault write -field=certificate pki/root/generate/internal common_name="example.com" \
        ttl=87600h > CA_cert.crt
 
-# This generates a new self-signed CA certificate and private key. Vault will automatically revoke the generated root at the end of its lease period (TTL); the CA certificate will sign its own Certificate Revocation List (CRL).
+# This generates a new self-signed CA certificate and private key. Vault will automatically
+#   revoke the generated root at the end of its lease period (TTL); the CA certificate will
+#     sign its own Certificate Revocation List (CRL).
 
 # Configure the CA and CRL URLs:
 $ vault write pki/config/urls \
@@ -83,10 +86,12 @@ $ vault write pki/config/urls \
 # First, enable the pki secrets engine at the pki_int path:
 $ vault secrets enable -path=pki_int pki
 
-# Tune the pki_int secrets engine to issue certificates with a maximum time-to-live (TTL) of 43800 hours.
+# Tune the pki_int secrets engine to issue certificates with a maximum time-to-live (TTL)
+#   of 43800 hours.
 $ vault secrets tune -max-lease-ttl=43800h pki_int
 
-# Execute the following command to generate an intermediate and save the CSR as pki_intermediate.csr:
+# Execute the following command to generate an intermediate and save the CSR as 
+#   pki_intermediate.csr:
 $ vault write -format=json pki_int/intermediate/generate/exported \
         common_name="example.com Intermediate Authority" ttl="43800h" format="pem" > pki_intermediate
 
@@ -94,18 +99,24 @@ $ vault write -format=json pki_int/intermediate/generate/exported \
 $ jq -r '.data.private_key' < pki_intermediate > intermediate.key.pem
 $ jq -r '.data.csr' < pki_intermediate > pki_intermediate.csr
 
-# Sign the intermediate certificate with the root certificate and save the generated certificate as intermediate.cert.pem:
+# Sign the intermediate certificate with the root certificate and save the generated
+#   certificate as intermediate.cert.pem:
 $ vault write -format=json pki/root/sign-intermediate csr=@pki_intermediate.csr \
         format="pem" \
         | jq -r '.data.certificate' > intermediate.cert.pem
 
-# Once the CSR is signed and the root CA returns a certificate, it can be imported back into Vault:
+# Once the CSR is signed and the root CA returns a certificate, it can be imported back 
+#   into Vault:
 $ vault write pki_int/intermediate/set-signed certificate=@intermediate.cert.pem
 ```
 
-You now have both the files required to install your own CA with Strimzi - the private key from the from the generation of the intermediate CA, `intermediate.key.pem`, and the certificate itself from the signing of the intermediate CA by the root, `intermediate.cert.pem`.
+You now have both the files required to install your own CA with Strimzi - the private key from the generation of the intermediate CA, `intermediate.key.pem`, and the certificate itself from the signing of the intermediate CA by the root, `intermediate.cert.pem`.
 
-## Generating certificates using the intermediate CA
+## Separate intermediate CA per cluster
+
+Now that you have an intermediate CA, you might be tempted to use the same certificate and key for multiple clusters. However, considering Strimzi generates certificates outside of Vault, the only way you can revoke those certificates is by revoking the intermediate CA itself. As such, you should have _a separate intermediate CA per cluster._
+
+## Generating certificates using Vault and the intermediate CA
 
 If you want a client, for example, to be able to generate certificates using the intermediate CA, you'll need to set up a role for clients to use. More details on next steps [here](https://learn.hashicorp.com/vault/secrets-management/sm-pki-engine#step-3-create-a-role).
 
