@@ -112,7 +112,7 @@ $ vault write pki_int/intermediate/set-signed certificate=@intermediate.cert.pem
 
 You now have both the files required to install your own CA with Strimzi - the private key from the generation of the intermediate CA, `intermediate.key.pem`, and the certificate itself from the signing of the intermediate CA by the root, `intermediate.cert.pem`.
 
-## Separate intermediate CA per cluster
+## Separate intermediate CA per cluster
 
 Now that you have an intermediate CA, you might be tempted to use the same certificate and key for multiple clusters. However, considering Strimzi generates certificates outside of Vault, the only way you can revoke those certificates is by revoking the intermediate CA itself. As such, you should have _a separate intermediate CA per cluster._
 
