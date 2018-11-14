@@ -2,7 +2,7 @@
 layout: post
 title:  "Using Vault PKI secrets engine as a CA with the Strimzi Kafka Operator"
 date: 2018-11-14
-author: chris-vest
+author: chris_vest
 ---
 
 <!--more-->
