@@ -54,7 +54,9 @@ Using Vault as a CA, you can have an intermediate CA used for signing certificat
 
 Vault integrates particularly well with Kubernetes, for example using the [Kubernetes Auth Method](https://www.vaultproject.io/docs/auth/kubernetes.html).
 
-## _SUGGESTIONS_? _ANY OTHER REASONS?_
+See the Vault documentation for a full list of features:
+* [Secrets Engines](https://www.vaultproject.io/docs/secrets/index.html)
+* [Auth Methods](https://www.vaultproject.io/docs/auth/index.html)
 
 # Configuration of the Vault PKI secrets engine
 
