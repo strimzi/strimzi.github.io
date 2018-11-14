@@ -91,7 +91,7 @@ $ vault write pki/config/urls \
 $ vault secrets enable -path=pki_int pki
 
 # Tune the pki_int secrets engine to issue certificates with a maximum time-to-live (TTL)
-#   of 43800 hours.
+#   of 43800 hours (5 years).
 $ vault secrets tune -max-lease-ttl=43800h pki_int
 
 # Execute the following command to generate an intermediate and save the CSR as 
