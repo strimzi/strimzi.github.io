@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Using Vault PKI secrets engine as a CA with the Strimzi Kafka Operator"
-date: 2018-11-12
+date: 2018-11-14
 author: chris-vest
 ---
 
@@ -55,7 +55,9 @@ Using Vault as a CA, you can have an intermediate CA used for signing certificat
 Vault integrates particularly well with Kubernetes, for example using the [Kubernetes Auth Method](https://www.vaultproject.io/docs/auth/kubernetes.html).
 
 See the Vault documentation for a full list of features:
+
 * [Secrets Engines](https://www.vaultproject.io/docs/secrets/index.html)
+
 * [Auth Methods](https://www.vaultproject.io/docs/auth/index.html)
 
 # Configuration of the Vault PKI secrets engine
