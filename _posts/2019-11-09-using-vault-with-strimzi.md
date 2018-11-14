@@ -70,10 +70,11 @@ Assuming you have a Vault cluster running, you can [create your own CA by doing 
 $ vault secrets enable pki
 
 # Tune the pki secrets engine to issue certificates with a maximum time-to-live (TTL) 
-#   of 87600 hours (10 years).
+#   of 87600 hours (10 years):
 $ vault secrets tune -max-lease-ttl=87600h pki
 
-# Generate the root certificate and save the certificate in CA_cert.crt.
+# Generate the root CA, extracting the root CA's certificate to CA_cert.crt; the secret
+#   key is not exported!
 $ vault write -field=certificate pki/root/generate/internal common_name="example.com" \
        ttl=87600h > CA_cert.crt
 
@@ -91,7 +92,7 @@ $ vault write pki/config/urls \
 $ vault secrets enable -path=pki_int pki
 
 # Tune the pki_int secrets engine to issue certificates with a maximum time-to-live (TTL)
-#   of 43800 hours (5 years).
+#   of 43800 hours (5 years):
 $ vault secrets tune -max-lease-ttl=43800h pki_int
 
 # Execute the following command to generate an intermediate and save the CSR as 
