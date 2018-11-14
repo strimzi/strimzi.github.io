@@ -48,7 +48,7 @@ Now, in order to bring your own CA, you need to do this yourself and add the nec
 
 Using Vault to create your own CA arguably gives you more control over your TLS configuration.
 
-Consider a Kafka cluster with a Kafka client you have developed. Your cluster requires that clients authenticate themselves using SSL, i.e. `ssl.client.auth="required"`.
+Consider a Strimzi Kafka cluster with a Kafka client you have developed. The cluster requires that clients authenticate themselves using SSL, i.e. `ssl.client.auth="required"`.
 
 Using Vault as a CA, you can have an intermediate CA used for signing certificates for both your clients and brokers. Because Vault supports revocation, you can revoke any client certificates which are no longer trusted. This can be done simply, without much effort required. Consider a situation without Vault, fulfilling these tasks would be a lot more cumbersome! Indeed, the same can be done for your cluster certificates, but only by _revoking the intermediate CA itself._ More on this in the [Separate intermediate CA per cluster](#separate-intermediate-CA-per-cluster) section below.
 
