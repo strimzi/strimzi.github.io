@@ -46,26 +46,15 @@ Now, in order to bring your own CA, you need to do this yourself and add the nec
 
 # Why Vault?
 
-Using Vault to create your own CA arguably gives you more control over your TLS configuration.
+Some reasons to use Vault:
 
-Consider a Strimzi Kafka cluster with a Kafka client you have developed. The Strimzi Kafka cluster has been configured with a TLS listener configured as follows:
+* Open source​
+* Battle tested, documented & secure​
+* Plethora of authentication methods​
+* Extensible​
+* Powerful auditing capabilities
 
-```yaml
-...
-spec:
-  kafka:
-    ...
-    listeners:
-      tls:
-        tls: true
-        authentication:
-          type: tls
-...
-```
-
-As such, clients are required to authenticate themselves using TLS.
-
-Using Vault as a CA, you can have an intermediate CA used for signing certificates for both your brokers and clients. Because Vault supports revocation, you can revoke any _client_ certificates which are no longer trusted. This can be done simply, without much effort required. Now consider a situation without Vault, fulfilling these tasks would be a lot more cumbersome! Indeed, the same can be done for your brokers' certificates, but only by _revoking the intermediate CA itself._ More on this in the [Separate intermediate CA per cluster](#separate-intermediate-CA-per-cluster) section below.
+Specifically in this context of using Vault to create your own CA, it gives you more control over your TLS configuration. It provides a centralised place to manage your CAs, and the rest of your secrets required by your environment - having a single secrets store minimizes the attack surface by reducing secrets sprawl; you only have to focus on securing a single service!
 
 Vault integrates particularly well with Kubernetes, for example using the [Kubernetes Auth Method](https://www.vaultproject.io/docs/auth/kubernetes.html).
 
