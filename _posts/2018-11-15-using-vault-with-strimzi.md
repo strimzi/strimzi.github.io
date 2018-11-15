@@ -1,9 +1,13 @@
 ---
 layout: post
-title:  "Using Vault PKI secrets engine as a CA with the Strimzi Kafka Operator"
+title:  "Using the Vault PKI secrets engine to generate a CA to use with the Strimzi Kafka Operator"
 date: 2018-11-15
 author: chris_vest
 ---
+
+Securing Kafka can be difficult. Securing Kafka on Kubernetes can also be diffult. But using Strimzi's Kafka Operator makes it easy!
+
+Below you will find a guide on how to use the Vault PKI secrets engine to generate an intermediate CA to use with the Strimzi Kafka Operator.
 
 <!--more-->
 
@@ -184,7 +188,6 @@ LOG3[1:139683950376704]: SSL_connect: 14090086: error:14090086:SSL routines:ssl3
 * If you would prefer to set up Vault PKI this using the UI or the API, there is documentation for that [here](https://www.vaultproject.io/docs/secrets/pki/index.html). _Gotcha!_ Remember the importance of the `type`, which needs to be `exported`. The Hashicorp docs use `internal`.
 
 * You might be tempted to just use the root CA... But _definitely use an intermediate CA!_ [Why?](https://www.whichssl.com/intermediate-certificates.html)
-
 # Conclusion
 
 So we've looked at how to use Vault PKI secrets engine to generate an intermediate CA to use in your Kafka cluster resource. Hopefully you should now have a Kafka CRD applied, with the cluster running, which is using your Vault-generated CA certificate and private key!
@@ -196,3 +199,7 @@ So we've looked at how to use Vault PKI secrets engine to generate an intermedia
 ### Deploying Vault
 
 [Seth Vargo's `vault-on-gke`](https://github.com/sethvargo/vault-on-gke) project gives you everything you need to create a Vault cluster on GKE, backed by GCS. This project was developed with the help of Google's security team, so it is hopefully quite secure! It contains Kelsey Hightower's [`vault-on-google-kubernetes-engine` project](https://github.com/kelseyhightower/vault-on-google-kubernetes-engine) captured as [Terraform.](https://www.terraform.io/)
+
+### Resources
+
+[The difference between root certificates and intermediate certificates.](https://www.thesslstore.com/blog/root-certificates-intermediate/)
