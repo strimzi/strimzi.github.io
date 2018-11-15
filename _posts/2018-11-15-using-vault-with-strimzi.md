@@ -175,9 +175,9 @@ LOG4[1:139683950376704]: Certificate check failed: depth=0, /O=io.strimzi/CN=zoo
 LOG3[1:139683950376704]: SSL_connect: 14090086: error:14090086:SSL routines:ssl3_get_server_certificate:certificate verify failed
 ```
 
-* When generating your CA, `type` needs to be `exported`, otherwise the command will _not_ return the private key! [More information on that here.](https://www.vaultproject.io/api/secret/pki/index.html#generate-root)
+* When generating your intermediate CA, `type` needs to be `exported`, otherwise the command will _not_ return the private key! [More information on that here.](https://www.vaultproject.io/api/secret/pki/index.html#generate-root)
 
-* If you would prefer to set up Vault PKI this using the UI or the API, there is documentation for that [here.](https://www.vaultproject.io/docs/secrets/pki/index.html) _Gotcha!_ Remember the importance of the `type`, which needs to be `exported`. The Hashicorp docs use `internal`.
+* If you would prefer to set up Vault PKI this using the UI or the API, there is documentation for that [here](https://www.vaultproject.io/docs/secrets/pki/index.html). _Gotcha!_ Remember the importance of the `type`, which needs to be `exported`. The Hashicorp docs use `internal`.
 
 * You might be tempted to just use the root CA... But _definitely use an intermediate CA!_ [Why?](https://www.whichssl.com/intermediate-certificates.html)
 
