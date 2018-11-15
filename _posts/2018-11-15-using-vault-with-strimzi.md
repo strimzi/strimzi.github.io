@@ -37,7 +37,14 @@ Straight out of the box, [Strimzi provides all of this for you](http://strimzi.i
 > Strimzi supports encrypted communication between the Kafka and Strimzi components using the TLS protocol. Communication between Kafka brokers (interbroker communication), between Zookeeper nodes (internodal communication), and between these and the Strimzi operators is always encrypted. Communication between Kafka clients and Kafka brokers is encrypted according to how the cluster is configured. For the Kafka and Strimzi components, TLS certificates are also used for authentication.
 > The Cluster Operator automatically sets up TLS certificates to enable encryption and authentication within your cluster. It also sets up other TLS certificates if you want to enable encryption or TLS authentication between Kafka brokers and clients.
 
-By default, Strimzi generates its own CA and stores the CA certificate and private key as Kubernetes secrets. Using these two secrets, Strimzi generates certificates for all of the components in the cluster, which in turn ensures all communication is encrypted!
+By default, Strimzi generates its own CA for the cluster and client, storing the certificate and private key as Kubernetes secrets.
+
+* Cluster CA - all internal communication within the cluster
+* Client CA - all client communication
+
+Using these two secrets per type, Strimzi generates certificates for all of the components in the cluster, which in turn ensures all communication is encrypted!
+
+##### _N.B. This post only deals with the Cluster CA!_
 
 ## Bringing your own CA
 
