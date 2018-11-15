@@ -26,7 +26,7 @@ It is this last point, certificates, which we are going to be looking at. Specif
 
 ## The `incubator` Kafka charts
 
-Like me, you may have tried configuring TLS for Kafka using the `incubator` Helm charts (you can find them [here](https://github.com/helm/charts/tree/master/incubator/kafka)), and realised that in fact this is _far from trivial_. I had initially configured an `initContainer` to get certificates from the Vault PKI backend using the Vault CLI, which did indeed work. However, in addition to the startup scripts in the main broker container and another custom `initContainer` I had configured to set up rack awareness, this caused the the pod startup times to become quite long!
+Like me, you may have tried configuring TLS for Kafka using the `incubator` Helm charts (you can find them [here](https://github.com/helm/charts/tree/master/incubator/kafka)), and realised that in fact this is _far from trivial_. I had initially configured an `initContainer` to get certificates from the Vault PKI backend using the Vault CLI, which did indeed work. However, in addition to the startup scripts in the main broker container and another custom `initContainer` I had configured to set up rack awareness, this caused the pod startup times to become quite long!
 
 At this point I had configured the brokers and clients with TLS, but what about the Zookeepers? Zookeeper does not support TLS, which is problematic if, for example, you are a financial organisation streaming sensitive data through your Kafka cluster. Even if you're not a fintech company, but you're a sensible individual with security concerns, this might be a deal breaker for you!
 
