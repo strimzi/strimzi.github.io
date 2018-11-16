@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Using the Vault PKI secrets engine to setup a CA to use with the Strimzi Kafka Operator"
+title:  "Using the Vault PKI secrets engine to set up a CA to use with the Strimzi Kafka Operator"
 date: 2018-11-16
 author: chris_vest
 ---
