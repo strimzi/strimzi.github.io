@@ -207,6 +207,6 @@ So we've looked at how to use Vault PKI secrets engine to generate an intermedia
 
 [Seth Vargo's `vault-on-gke`](https://github.com/sethvargo/vault-on-gke) project gives you everything you need to create a Vault cluster on GKE, backed by GCS. This project was developed with the help of Google's security team, so it is hopefully quite secure! It contains Kelsey Hightower's [`vault-on-google-kubernetes-engine` project](https://github.com/kelseyhightower/vault-on-google-kubernetes-engine) captured as [Terraform.](https://www.terraform.io/)
 
-### Resources
+### Resources
 
 [The difference between root certificates and intermediate certificates.](https://www.thesslstore.com/blog/root-certificates-intermediate/)
