@@ -146,7 +146,7 @@ If you want a client, for example, to be able to generate certificates using the
 
 ---
 
-## Launching your Kafka cluster using the Vault CA
+# Launching your Kafka cluster using the Vault CA
 
 ## Adding the certificate and private key to your Kubernetes cluster
 
