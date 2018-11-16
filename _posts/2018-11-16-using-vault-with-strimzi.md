@@ -39,8 +39,8 @@ Straight out of the box, [Strimzi provides all of this for you](http://strimzi.i
 
 By default, Strimzi generates two CAs, one for the cluster and another for clients, storing the certificates and private keys as Kubernetes secrets.
 
-* Cluster CA - all internal communication within the cluster
-* Client CA - all client communication
+* Cluster CA - all internal communication within the cluster and encryption with clients
+* Client CA - all client communication for supporting TLS mutual authentication
 
 Using these secrets, Strimzi generates certificates for all of the components in the cluster, which in turn ensures all communication is encrypted!
 
