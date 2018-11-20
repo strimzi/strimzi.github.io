@@ -6,14 +6,15 @@ layout: default
 
 ## Latest release
 
-* [0.8.2](/docs/0.8.2/)
+* [0.8.2](/docs/latest/)
 
 ## Master
 
 * [Master](/docs/master/)
 
-## Older releases
+## All releases
 
+* [0.8.2](/docs/0.8.2/)
 * [0.8.1](/docs/0.8.1/)
 * [0.8.0](/docs/0.8.0/)
 * [0.7.0](/docs/0.7.0/)
