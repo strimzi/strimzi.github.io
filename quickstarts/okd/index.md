@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Starting OKD 
 
 This assumes that you have the latest version of the `oc` binary, which you can get [here](https://github.com/openshift/origin/releases).

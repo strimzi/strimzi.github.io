@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Starting Minikube 
 
 This assumes that you have the latest version of the `minikube` binary, which you can get [here](https://kubernetes.io/docs/setup/minikube/#installation).

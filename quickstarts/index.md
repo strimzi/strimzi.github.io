@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Strimzi Quickstart
 
 Getting up and running with an Apache Kafka cluster on Kubernetes and OKD (the Origin Community Distribution of Kubernetes that powers Red Hat OpenShift) can be very simple, when using the Strimzi project! 
