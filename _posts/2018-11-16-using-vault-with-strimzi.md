@@ -96,10 +96,10 @@ $ vault secrets enable pki
 #   of 87600 hours (10 years):
 $ vault secrets tune -max-lease-ttl=87600h pki
 
-# Generate the root CA, extracting the root CA's certificate to CA_cert.crt; the secret
+# Generate the root CA, extracting the root CA's certificate to root.crt; the secret
 #   key is not exported!
 $ vault write -field=certificate pki/root/generate/internal common_name="example.com" \
-       ttl=87600h > CA_cert.crt
+       ttl=87600h > root.crt
 
 # This generates a new self-signed CA certificate and private key. Vault will automatically
 #   revoke the generated root at the end of its lease period (TTL); the CA certificate will
@@ -138,7 +138,12 @@ $ vault write -format=json pki/root/sign-intermediate csr=@pki_intermediate.csr 
 $ vault write pki_int/intermediate/set-signed certificate=@intermediate.cert.pem
 ```
 
-You now have both the files required to install your own CA with Strimzi - the private key from the generation of the intermediate CA, `intermediate.key.pem`, and the certificate itself from the signing of the intermediate CA by the root, `intermediate.cert.pem`.
+You now have all the files required to install your own CA with Strimzi - the root CA certificate from the creation of the root CA, `root.crt`, the private key from the generation of the intermediate CA, `intermediate.key.pem`, and the intermediate CA certificate from the signing of the intermediate CSR by the root, `intermediate.cert.pem`. You will need both of these files to create your CA chain, `intermediate.chain.pem`:
+
+```bash
+$ cat intermediate.cert.pem > intermediate.chain.pem
+$ cat root.crt >> intermediate.chain.pem
+```
 
 ## Separate intermediate CA per cluster
 
@@ -166,7 +171,7 @@ kubectl create secret -n ${strimziNamespace} generic ${clusterName}-cluster-ca \
 
 # Certificate
 kubectl create secret -n ${strimziNamespace} generic ${clusterName}-cluster-ca-cert \
-  --from-file=ca.crt=intermediate.cert.pem \
+  --from-file=ca.crt=intermediate.chain.pem \
   && kubectl label secret -n ${strimziNamespace} ${clusterName}-cluster-ca-cert \
   strimzi.io/kind="Kafka" \
   strimzi.io/cluster="${clusterName}"
@@ -199,6 +204,19 @@ LOG4[1:139683950376704]: CERT: Verification error: permitted subtree violation
 LOG4[1:139683950376704]: Certificate check failed: depth=0, /O=io.strimzi/CN=zookeeper
 LOG3[1:139683950376704]: SSL_connect: 14090086: error:14090086:SSL routines:ssl3_get_server_certificate:certificate verify failed
 ```
+
+* If you are getting an error like this, make sure you have correctly signed your intermediate CA with the root CA:
+
+```text
+CERT: Verification error: unable to get issuer certificate
+Certificate check failed: depth=1, /O=${O}/CN=${CN}
+SSL_connect: 14090086: error:14090086:SSL routines:ssl3_get_server_certificate:certificate verify failed
+```
+
+When debugging something like this, remember:
+1) `depth=2` is the root CA certificate
+2) `depth=1` is the intermediate CA certificate
+3) `depth=0` is the primary certificate
 
 * When generating your intermediate CA, `type` needs to be `exported`, otherwise the command will _not_ return the private key! [More information on that here.](https://www.vaultproject.io/api/secret/pki/index.html#generate-root)
 
