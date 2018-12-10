@@ -27,9 +27,9 @@
 </li>
 <li><a href="#kafka-connect-str">2.4. Kafka Connect</a>
 <ul class="sectlevel3">
-<li><a href="#deploying-kafka-connect-kubernetes-str">2.4.1. Deploying Kafka Connect to Kubernetes</a></li>
-<li><a href="#deploying-kafka-connect-openshift-str">2.4.2. Deploying Kafka Connect to OpenShift</a></li>
-<li><a href="#using-kafka-connect-with-plugins-str">2.4.3. Using Kafka Connect with plugins</a></li>
+<li><a href="#deploying-kafka-connect-kubernetes-str">2.4.1. Deploying Kafka Connect to your Kubernetes cluster</a></li>
+<li><a href="#deploying-kafka-connect-openshift-str">2.4.2. Deploying Kafka Connect to your OpenShift cluster</a></li>
+<li><a href="#using-kafka-connect-with-plug-ins-str">2.4.3. Extending Kafka Connect with plug-ins</a></li>
 </ul>
 </li>
 <li><a href="#kafka-mirror-maker-str">2.5. Kafka Mirror Maker</a>
@@ -119,7 +119,7 @@
 <li><a href="#assembly-configuring-container-images-deployment-configuration-kafka-connect-s2i">3.3.11. Container images</a></li>
 <li><a href="#assembly-scheduling-deployment-configuration-kafka-connect-s2i">3.3.12. Configuring pod scheduling</a></li>
 <li><a href="#ref-list-of-kafka-connect-s2i-resources-deployment-configuration-kafka-connect-s2i">3.3.13. List of resources created as part of Kafka Connect cluster with Source2Image support</a></li>
-<li><a href="#using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i">3.3.14. Using OpenShift builds and S2I to create new images</a></li>
+<li><a href="#using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i">3.3.14. Creating a container image using OpenShift builds and Source-to-Image</a></li>
 </ul>
 </li>
 <li><a href="#assembly-deployment-configuration-kafka-mirror-maker-str">3.4. Kafka Mirror Maker configuration</a>
@@ -954,24 +954,65 @@ For more information on the different configuration options supported by the <co
 <div class="sect2">
 <h3 id="kafka-connect-str"><a class="link" href="#kafka-connect-str">2.4. Kafka Connect</a></h3>
 <div class="paragraph">
-<p>The Cluster Operator deploys a <a href="https://kafka.apache.org/documentation/#connect" target="_blank" rel="noopener">Kafka Connect</a> cluster, which can be used with your Kafka broker deployment.
-It is implemented as a <code>Deployment</code> with a configurable number of workers.
-The default image currently contains only the <code>FileStreamSinkConnector</code> and <code>FileStreamSourceConnector</code> connectors.
-The REST interface for managing the Kafka Connect cluster is exposed internally within the OpenShift or Kubernetes cluster as a <code>kafka-connect</code> service on port <code>8083</code>.</p>
+<p><a href="https://kafka.apache.org/documentation/#connect" target="_blank" rel="noopener">Kafka Connect</a> is a tool for streaming data between Apache Kafka and external systems. It provides a framework for moving large amounts of data into and out of your Kafka cluster while maintaining scalability and reliability. Kafka Connect is typically used to integrate Kafka with external databases and storage and messaging systems.</p>
 </div>
 <div class="paragraph">
-<p>Example <code>KafkaConnect</code> resources and the details about the <code>KafkaConnect</code> format for deploying Kafka Connect can be found in
-<a href="#assembly-deployment-configuration-kafka-connect-str">Kafka Connect cluster configuration</a>
-and
-<a href="#assembly-deployment-configuration-kafka-connect-s2i-str">Kafka Connect cluster with Source2Image support</a>.</p>
+<p>You can use Kafka Connect to:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Build connector plug-ins (as JAR files) for your Kafka cluster</p>
+</li>
+<li>
+<p>Run connectors</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Kafka Connect includes the following built-in connectors for moving file-based data into and out of your Kafka cluster.</p>
+</div>
+<table class="tableblock frame-all grid-all stripes-none stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">File Connector</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>FileStreamSourceConnector</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Transfers data to your Kafka cluster from a file (the source).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>FileStreamSinkConnector</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Transfers data from your Kafka cluster to a file (the sink).</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>In Strimzi, you can use the Cluster Operator to deploy a Kafka Connect or Kafka Connect Source-2-Image (S2I) cluster to your OpenShift or Kubernetes cluster.</p>
+</div>
+<div class="paragraph">
+<p>A Kafka Connect cluster is implemented as a <code>Deployment</code> with a configurable number of workers. The Kafka Connect REST API is available on port 8083, as the <code>&lt;connect-cluster-name&gt;-connect-api</code> service.</p>
+</div>
+<div class="paragraph">
+<p>For more information on deploying a Kafka Connect S2I cluster, see <a href="#using-openshift-s2i-create-image-str">Creating a container image using OpenShift builds and Source-to-Image</a>.</p>
 </div>
 <div class="sect3">
-<h4 id="deploying-kafka-connect-kubernetes-str"><a class="link" href="#deploying-kafka-connect-kubernetes-str">2.4.1. Deploying Kafka Connect to Kubernetes</a></h4>
+<h4 id="deploying-kafka-connect-kubernetes-str"><a class="link" href="#deploying-kafka-connect-kubernetes-str">2.4.1. Deploying Kafka Connect to your Kubernetes cluster</a></h4>
+<div class="paragraph">
+<p>You can deploy a Kafka Connect cluster to your Kubernetes cluster by using the Cluster Operator.</p>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
 <li>
-<p>Before deploying Kafka Connect, the Cluster Operator must be deployed.</p>
+<p><a href="#deploying-cluster-operator-kubernetes-str">Deploying the Cluster Operator to Kubernetes</a></p>
 </li>
 </ul>
 </div>
@@ -979,7 +1020,7 @@ and
 <div class="title">Procedure</div>
 <ul>
 <li>
-<p>Deploy Kafka Connect on Kubernetes by creating the corresponding <code>KafkaConnect</code> resource.</p>
+<p>Use the <code>kubectl apply</code> command to create a <code>KafkaConnect</code> resource based on the <code>kafka-connect.yaml</code> file:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka-connect/kafka-connect.yaml</code></pre>
@@ -992,21 +1033,24 @@ and
 <div class="title">Additional resources</div>
 <ul>
 <li>
-<p>For more information about deploying the Cluster Operator, see <a href="#cluster-operator-str">Cluster Operator</a></p>
+<p><a href="#assembly-deployment-configuration-kafka-connect-str">Kafka Connect cluster configuration</a></p>
+</li>
+<li>
+<p><a href="#assembly-deployment-configuration-kafka-connect-s2i-str">Kafka Connect cluster with Source2Image support</a></p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect3">
-<h4 id="deploying-kafka-connect-openshift-str"><a class="link" href="#deploying-kafka-connect-openshift-str">2.4.2. Deploying Kafka Connect to OpenShift</a></h4>
+<h4 id="deploying-kafka-connect-openshift-str"><a class="link" href="#deploying-kafka-connect-openshift-str">2.4.2. Deploying Kafka Connect to your OpenShift cluster</a></h4>
 <div class="paragraph">
-<p>On OpenShift, Kafka Connect is provided in the form of a template. It can be deployed from the template using the command-line or through the OpenShift console.</p>
+<p>You can deploy a Kafka Connect cluster to your OpenShift cluster by using the Cluster Operator. Kafka Connect is provided as an OpenShift template that you can deploy from the command line or the OpenShift console.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
 <li>
-<p>Before deploying Kafka Connect, the Cluster Operator must be deployed.</p>
+<p><a href="#deploying-cluster-operator-openshift-str">Deploying the Cluster Operator to OpenShift</a></p>
 </li>
 </ul>
 </div>
@@ -1014,7 +1058,7 @@ and
 <div class="title">Procedure</div>
 <ul>
 <li>
-<p>Create a Kafka Connect cluster from the command-line:</p>
+<p>Use the <code>oc apply</code> command to create a <code>KafkaConnect</code> resource based on the <code>kafka-connect.yaml</code> file:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f examples/kafka-connect/kafka-connect.yaml</code></pre>
@@ -1027,40 +1071,47 @@ and
 <div class="title">Additional resources</div>
 <ul>
 <li>
-<p>For more information about deploying the Cluster Operator, see <a href="#cluster-operator-str">Cluster Operator</a></p>
+<p><a href="#assembly-deployment-configuration-kafka-connect-str">Kafka Connect cluster configuration</a></p>
+</li>
+<li>
+<p><a href="#assembly-deployment-configuration-kafka-connect-s2i-str">Kafka Connect cluster with Source2Image support</a></p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect3">
-<h4 id="using-kafka-connect-with-plugins-str"><a class="link" href="#using-kafka-connect-with-plugins-str">2.4.3. Using Kafka Connect with plugins</a></h4>
+<h4 id="using-kafka-connect-with-plug-ins-str"><a class="link" href="#using-kafka-connect-with-plug-ins-str">2.4.3. Extending Kafka Connect with plug-ins</a></h4>
 <div class="paragraph">
-<p>Strimzi container images for Kafka Connect contain, by default, only the <code>FileStreamSinkConnector</code> and <code>FileStreamSourceConnector</code> connectors which are part of Apache Kafka.</p>
-</div>
-<div class="paragraph">
-<p>To facilitate deployment with 3rd party connectors, you have to add the connector plugins to the Kafka Connect container image.
-There are two ways how to do that:</p>
+<p>The Strimzi container images for Kafka Connect include the two built-in file connectors: <code>FileStreamSourceConnector</code> and <code>FileStreamSinkConnector</code>. You can add your own connectors by using one of the following methods:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Using a custom Docker image</p>
+<p>Create a Docker image from the Kafka Connect base image.</p>
 </li>
 <li>
-<p>Using the OpenShift build system with the Strimzi S2I</p>
+<p>Create a container image using OpenShift builds and Source-to-Image (S2I).</p>
 </li>
 </ul>
 </div>
 <div class="sect4">
-<h5 id="creating-new-image-from-base-str"><a class="link" href="#creating-new-image-from-base-str">Create a new image based on our base image</a></h5>
+<h5 id="creating-new-image-from-base-str"><a class="link" href="#creating-new-image-from-base-str">Creating a Docker image from the Kafka Connect base image</a></h5>
 <div class="paragraph">
-<p>Strimzi provides its own container image for running Kafka Connect, which can be found on <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as
-<code>strimzi/kafka-connect:latest</code>.
-The <code>strimzi/kafka-connect:latest</code> image is configured to automatically load all plugins or connectors that are present in the <code>/opt/kafka/plugins</code> directory during startup.
-This image can be used as a base image for building a new custom image with additional plugins.</p>
+<p>A container image for running Kafka Connect using Strimzi is available on <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as <code>strimzi/kafka-connect:latest</code>. You can use this as a base image for creating your own custom image with additional connector plug-ins.</p>
 </div>
 <div class="paragraph">
-<p>The following procedure describes the process for creating such a custom image and adding the connector plugins to the the <code>/opt/kafka/plugins</code> directory.</p>
+<p>The following procedure explains how to create your custom image and add it to the <code>/opt/kafka/plugins</code> directory. At startup, the AMQ Streams version of Kafka Connect loads any third-party connector plug-ins contained in the <code>/opt/kafka/plugins</code> directory.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p><a href="#deploying-cluster-operator-kubernetes-str">Deploying the Cluster Operator to Kubernetes</a></p>
+</li>
+<li>
+<p><a href="#deploying-cluster-operator-openshift-str">Deploying the Cluster Operator to OpenShift</a></p>
+</li>
+</ul>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -1077,10 +1128,27 @@ USER kafka:kafka</code></pre>
 </div>
 </li>
 <li>
-<p>Build the container image and upload it to the appropriate container image repository.</p>
+<p>Build the container image.</p>
 </li>
 <li>
-<p>Set the <code>KafkaConnect.spec.image</code> property of the KafkaConnect custom resource or the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code> variable to point to the new container image.</p>
+<p>Push your custom image to your container registry.</p>
+</li>
+<li>
+<p>Edit the <code>KafkaConnect.spec.image</code> property of the <code>KafkaConnect</code> custom resource to point to the new container image. If set, this property overrides the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code> variable referred to in the next step.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster
+spec:
+  #...
+  image: my-new-container-image</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>In the <code>install/cluster-operator/050-Deployment-strimzi-cluster-operator.yaml</code> file, edit the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code> variable to point to the new container image.</p>
 </li>
 </ol>
 </div>
@@ -1088,32 +1156,27 @@ USER kafka:kafka</code></pre>
 <div class="title">Additional resources</div>
 <ul>
 <li>
-<p>For more information about the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code> variable, see <a href="#ref-operators-cluster-operator-configuration-deploying-co">Cluster Operator Configuration</a>.</p>
+<p>For more information on the <code>KafkaConnect.spec.image property</code>, see <a href="#assembly-configuring-container-images-deployment-configuration-kafka-connect">Container images</a>.</p>
 </li>
 <li>
-<p>For more information about the <code>KafkaConnect.spec.image property</code>, see <a href="#assembly-configuring-container-images-deployment-configuration-kafka-connect">Container images</a>.</p>
+<p>For more information on the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code> variable, see <a href="#ref-operators-cluster-operator-configuration-deploying-co">Cluster Operator Configuration</a>.</p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect4">
-<h5 id="using-openshift-s2i-create-image-str"><a class="link" href="#using-openshift-s2i-create-image-str">Using OpenShift builds and S2I to create new images</a></h5>
+<h5 id="using-openshift-s2i-create-image-str"><a class="link" href="#using-openshift-s2i-create-image-str">Creating a container image using OpenShift builds and Source-to-Image</a></h5>
 <div class="paragraph">
-<p>OpenShift supports <a href="https://docs.openshift.org/3.9/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a>, which can be used together with the <a href="https://docs.openshift.org/3.9/creating_images/s2i.html#creating-images-s2i" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images.
-An OpenShift build takes a builder image with S2I support together with the connector plugin binaries provided by the user and uses them to build a new container image.
-The newly created container image is stored in OpenShift&#8217;s local container image repository and can be used in deployments.</p>
+<p>You can use OpenShift <a href="https://docs.openshift.org/3.9/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a> and the  <a href="https://docs.openshift.org/3.9/creating_images/s2i.html#creating-images-s2i" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images. An OpenShift build takes a builder image with S2I support, together with source code and binaries provided by the user, and uses them to build a new container image. Once built, container images are stored in OpenShift&#8217;s local container image repository and are available for use in deployments.</p>
 </div>
 <div class="paragraph">
-<p>Strimzi provides a Kafka Connect builder image, which can be found on <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as <code>strimzi/kafka-connect-s2i:latest</code> with this S2I support.
-The S2I image takes user-provided binaries (with plugins and connectors), places them in the <code>/tmp/kafka-plugins/s2i</code> directory, and creates a new Kafka Connect image with them.
-This enhanced Kafka Connect image can be used with the Kafka Connect deployment.
-When Kafka Connect is started using the new image, it will automatically load all plugins or connectors from the <code>/tmp/kafka-plugins/s2i</code> directory.</p>
+<p>A Kafka Connect builder image with S2I support is provided by Strimzi on the <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as <code>strimzi/kafka-connect-s2i:latest</code>. This S2I image takes your binaries (with plug-ins and connectors) and stores them in the <code>/tmp/kafka-plugins/s2i</code> directory. It creates a new Kafka Connect image from this directory, which can then be used with the Kafka Connect deployment. When started using the enhanced image, Kafka Connect loads any third-party plug-ins from the <code>/tmp/kafka-plugins/s2i</code> directory.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Create a Kafka Connect S2I cluster from the command-line</p>
+<p>On the command line, use the <code>oc apply</code> command to create and deploy a Kafka Connect S2I cluster:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>oc apply -f examples/kafka-connect/kafka-connect-s2i.yaml</code></pre>
@@ -1121,8 +1184,7 @@ When Kafka Connect is started using the new image, it will automatically load al
 </div>
 </li>
 <li>
-<p>Once the cluster is deployed, a new build can be triggered from the command-line by creating a directory
-with Kafka Connect plugins:</p>
+<p>Create a directory with Kafka Connect plug-ins:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>$ tree ./<em>my-plugins</em>/
@@ -1163,7 +1225,7 @@ with Kafka Connect plugins:</p>
 </div>
 </li>
 <li>
-<p>Start a new image build using the prepared directory:</p>
+<p>Use the <code>oc start-build</code> command to start a new build of the image using the prepared directory:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>oc start-build <em>my-connect-cluster-connect</em> --from-dir ./<em>my-plugins</em>/</code></pre>
@@ -1176,14 +1238,14 @@ with Kafka Connect plugins:</p>
 <div class="title">Note</div>
 </td>
 <td class="content">
-The name of the build will be changed according to the cluster name of the deployed Kafka Connect cluster.
+The name of the build is the same as the name of the deployed Kafka Connect cluster.
 </td>
 </tr>
 </table>
 </div>
 </li>
 <li>
-<p>Once the build is finished, the new image will be used automatically by the Kafka Connect deployment.</p>
+<p>Once the build has finished, the new image is used automatically by the Kafka Connect deployment.</p>
 </li>
 </ol>
 </div>
@@ -12272,23 +12334,18 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i"><a class="link" href="#using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i">3.3.14. Using OpenShift builds and S2I to create new images</a></h4>
+<h4 id="using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i"><a class="link" href="#using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i">3.3.14. Creating a container image using OpenShift builds and Source-to-Image</a></h4>
 <div class="paragraph">
-<p>OpenShift supports <a href="https://docs.openshift.org/3.9/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a>, which can be used together with the <a href="https://docs.openshift.org/3.9/creating_images/s2i.html#creating-images-s2i" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images.
-An OpenShift build takes a builder image with S2I support together with the connector plugin binaries provided by the user and uses them to build a new container image.
-The newly created container image is stored in OpenShift&#8217;s local container image repository and can be used in deployments.</p>
+<p>You can use OpenShift <a href="https://docs.openshift.org/3.9/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a> and the  <a href="https://docs.openshift.org/3.9/creating_images/s2i.html#creating-images-s2i" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images. An OpenShift build takes a builder image with S2I support, together with source code and binaries provided by the user, and uses them to build a new container image. Once built, container images are stored in OpenShift&#8217;s local container image repository and are available for use in deployments.</p>
 </div>
 <div class="paragraph">
-<p>Strimzi provides a Kafka Connect builder image, which can be found on <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as <code>strimzi/kafka-connect-s2i:latest</code> with this S2I support.
-The S2I image takes user-provided binaries (with plugins and connectors), places them in the <code>/tmp/kafka-plugins/s2i</code> directory, and creates a new Kafka Connect image with them.
-This enhanced Kafka Connect image can be used with the Kafka Connect deployment.
-When Kafka Connect is started using the new image, it will automatically load all plugins or connectors from the <code>/tmp/kafka-plugins/s2i</code> directory.</p>
+<p>A Kafka Connect builder image with S2I support is provided by Strimzi on the <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as <code>strimzi/kafka-connect-s2i:latest</code>. This S2I image takes your binaries (with plug-ins and connectors) and stores them in the <code>/tmp/kafka-plugins/s2i</code> directory. It creates a new Kafka Connect image from this directory, which can then be used with the Kafka Connect deployment. When started using the enhanced image, Kafka Connect loads any third-party plug-ins from the <code>/tmp/kafka-plugins/s2i</code> directory.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Create a Kafka Connect S2I cluster from the command-line</p>
+<p>On the command line, use the <code>oc apply</code> command to create and deploy a Kafka Connect S2I cluster:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>oc apply -f examples/kafka-connect/kafka-connect-s2i.yaml</code></pre>
@@ -12296,8 +12353,7 @@ When Kafka Connect is started using the new image, it will automatically load al
 </div>
 </li>
 <li>
-<p>Once the cluster is deployed, a new build can be triggered from the command-line by creating a directory
-with Kafka Connect plugins:</p>
+<p>Create a directory with Kafka Connect plug-ins:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>$ tree ./<em>my-plugins</em>/
@@ -12338,7 +12394,7 @@ with Kafka Connect plugins:</p>
 </div>
 </li>
 <li>
-<p>Start a new image build using the prepared directory:</p>
+<p>Use the <code>oc start-build</code> command to start a new build of the image using the prepared directory:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code>oc start-build <em>my-connect-cluster-connect</em> --from-dir ./<em>my-plugins</em>/</code></pre>
@@ -12351,14 +12407,14 @@ with Kafka Connect plugins:</p>
 <div class="title">Note</div>
 </td>
 <td class="content">
-The name of the build will be changed according to the cluster name of the deployed Kafka Connect cluster.
+The name of the build is the same as the name of the deployed Kafka Connect cluster.
 </td>
 </tr>
 </table>
 </div>
 </li>
 <li>
-<p>Once the build is finished, the new image will be used automatically by the Kafka Connect deployment.</p>
+<p>Once the build has finished, the new image is used automatically by the Kafka Connect deployment.</p>
 </li>
 </ol>
 </div>
