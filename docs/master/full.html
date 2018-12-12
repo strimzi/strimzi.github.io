@@ -519,7 +519,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#scaling-clusters-deployment-configuration-kafka">3.1.20. Scaling clusters</a></li>
 <li><a href="#proc-manual-delete-pod-pvc-kafka-deployment-configuration-kafka">3.1.21. Deleting Kafka nodes manually</a></li>
 <li><a href="#proc-manual-delete-pod-pvc-zookeeper-deployment-configuration-kafka">3.1.22. Deleting Zookeeper nodes manually</a></li>
-<li><a href="#ref-list-of-kafka-cluster-resources-deployment-configuration-kafka">3.1.23. List of resources created as part of Kafka cluster</a></li>
+<li><a href="#assembly-maintenance-time-windows-deployment-configuration-kafka">3.1.23. Maintenance time windows for rolling updates</a></li>
+<li><a href="#ref-list-of-kafka-cluster-resources-deployment-configuration-kafka">3.1.24. List of resources created as part of Kafka cluster</a></li>
 </ul>
 </li>
 <li><a href="#assembly-deployment-configuration-kafka-connect-str">3.2. Kafka Connect cluster configuration</a>
@@ -7337,7 +7338,144 @@ Deleting a <code>PersistentVolumeClaim</code> can cause permanent data loss. The
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-list-of-kafka-cluster-resources-deployment-configuration-kafka"><a class="link" href="#ref-list-of-kafka-cluster-resources-deployment-configuration-kafka">3.1.23. List of resources created as part of Kafka cluster</a></h4>
+<h4 id="assembly-maintenance-time-windows-deployment-configuration-kafka"><a class="link" href="#assembly-maintenance-time-windows-deployment-configuration-kafka">3.1.23. Maintenance time windows for rolling updates</a></h4>
+<div class="paragraph">
+<p>Maintenance time windows allow you to schedule certain rolling updates of your Kafka and Zookeeper clusters to start at a convenient time.</p>
+</div>
+<div class="sect4">
+<h5 id="con-maintenance-time-windows-overview-deployment-configuration-kafka"><a class="link" href="#con-maintenance-time-windows-overview-deployment-configuration-kafka">Maintenance time windows overview</a></h5>
+<div class="paragraph">
+<p>In most cases, the Cluster Operator only updates your Kafka or Zookeeper clusters in response to changes to the corresponding <code>Kafka</code> resource.
+This enables you to plan when to apply changes to a <code>Kafka</code> resource to minimize the impact on Kafka client applications.</p>
+</div>
+<div class="paragraph">
+<p>However, some updates to your Kafka and Zookeeper clusters can happen without any corresponding change to the <code>Kafka</code> resource.
+For example, the Cluster Operator will need to perform a rolling restart if a CA (Certificate Authority) certificate that it manages is close to expiry.</p>
+</div>
+<div class="paragraph">
+<p>While a rolling restart of the pods should not affect <em>availability</em> of the service (assuming correct broker and topic configurations), it could affect <em>performance</em> of the Kafka client applications.
+Maintenance time windows allow you to schedule such spontaneous rolling updates of your Kafka and Zookeeper clusters to start at a convenient time.
+If maintenance time windows are not configured for a cluster then it is possible that such spontaneous rolling updates will happen at an inconvenient time, such as during a predictable period of high load.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="con-maintenance-time-window-definition-deployment-configuration-kafka"><a class="link" href="#con-maintenance-time-window-definition-deployment-configuration-kafka">Maintenance time window definition</a></h5>
+<div class="paragraph">
+<p>You configure maintenance time windows by entering an array of strings in the <code>Kafka.spec.maintenanceTimeWindows</code> property.
+Each string is a <a href="http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html" target="_blank" rel="noopener">cron expression</a> interpreted as being in UTC (Coordinated Universal Time, which for practical purposes is the same as Greenwich Mean Time).</p>
+</div>
+<div class="paragraph">
+<p>The following example configures a single maintenance time window that starts at midnight and ends at 01:59am (UTC), on Sundays, Mondays, Tuesdays, Wednesdays, and Thursdays:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+maintenanceTimeWindows:
+  - "* * 0-1 ? * SUN,MON,TUE,WED,THU *"
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In practice, maintenance windows should be set in conjunction with the <code>Kafka.spec.clusterCa.renewalDays</code> and <code>Kafka.spec.clientsCa.renewalDays</code> properties of the <code>Kafka</code> resource, to ensure that the necessary CA certificate renewal can be completed in the configured maintenance time windows.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Strimzi does not schedule maintenance operations exactly according to the given windows. Instead, for each reconciliation, it checks whether a maintenance window is currently "open".
+This means that the start of maintenance operations within a given time window can be delayed by up to the Cluster Operator reconciliation interval.
+Maintenance time windows must therefore be at least this long.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about the Cluster Operator configuration, see <a href="#ref-operators-cluster-operator-configuration-deploying-co">Cluster Operator Configuration</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-maintenance-time-windows-deployment-configuration-kafka"><a class="link" href="#proc-configuring-maintenance-time-windows-deployment-configuration-kafka">Configuring a maintenance time window</a></h5>
+<div class="paragraph">
+<p>You can configure a maintenance time window for rolling updates triggered by supported processes.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster.</p>
+</li>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Add or edit the <code>maintenanceTimeWindows</code> property in the <code>Kafka</code> resource.
+For example to allow maintenance between 0800 and 1059 and between 1400 and 1559 you would set the <code>maintenanceTimeWindows</code> as shown below:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+  zookeeper:
+    # ...
+  maintenanceTimeWindows:
+    - "* * 8-10 * * ?"
+    - "* * 14-15 * * ?"</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift, use <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>Performing a rolling update of a Kafka cluster, see <a href="#proc-manual-rolling-update-kafka-deployment-configuration-kafka">Performing a rolling update of a Kafka cluster</a></p>
+</li>
+<li>
+<p>Performing a rolling update of a Zookeeper cluster, see <a href="#proc-manual-rolling-update-zookeeper-deployment-configuration-kafka">Performing a rolling update of a Zookeeper cluster</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="ref-list-of-kafka-cluster-resources-deployment-configuration-kafka"><a class="link" href="#ref-list-of-kafka-cluster-resources-deployment-configuration-kafka">3.1.24. List of resources created as part of Kafka cluster</a></h4>
 <div class="paragraph">
 <p>The following resources will created by the Cluster Operator in the OpenShift or Kubernetes cluster:</p>
 </div>
@@ -22485,7 +22623,7 @@ This reference describes how to monitor cAdvisor metrics in various ways using P
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-12-11 20:55:50 UTC
+Last updated 2018-12-12 11:57:09 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/github.min.css">
