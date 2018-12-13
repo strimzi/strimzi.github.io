@@ -26,14 +26,14 @@ Strimzi releases are available for download on our [GitHub](https://github.com/s
 contain documentation and example YAML files for deployment on OpenShift and Kubernetes. The Docker images are
 available on [Docker Hub](https://hub.docker.com/u/strimzi/).
 
-* [0.8.2](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.8.2)
+* [0.9.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.9.0)
 
 Older releases can be found in the [Downloads](/downloads) page.
 
 # Documentation
 
 * [Master](/docs/master/)
-* [0.8.2](/docs/0.8.2/)
+* [0.9.0](/docs/latest/)
 
 Documentation for older releases can be found in the [Documentation](/documentation) page.
 
