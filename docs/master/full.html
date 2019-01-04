@@ -2964,6 +2964,75 @@ listeners:
 <p>Authentication must be configured when using the User Operator to manage <code>KafkaUsers</code>.</p>
 </div>
 </div>
+<div class="sect5">
+<h6 id="network_policies"><a class="link" href="#network_policies">Network policies</a></h6>
+<div class="paragraph">
+<p>Strimzi automatically creates a <code>NetworkPolicy</code> resource for every listener that is enabled on a Kafka broker.
+By default, a <code>NetworkPolicy</code> grants access to a listener to all applications and namespaces.
+If you want to restrict access to a listener to only selected applications or namespaces, use the <code>networkPolicyPeers</code> field.
+Each listener can have a different <code>networkPolicyPeers</code> configuration.</p>
+</div>
+<div class="paragraph">
+<p>The following example shows a <code>networkPolicyPeers</code> configuration for a <code>plain</code> and a <code>tls</code> listener:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+listeners:
+      plain:
+        authentication:
+          type: scram-sha-512
+        networkPolicyPeers:
+          - podSelector:
+              matchLabels:
+                app: kafka-sasl-consumer
+          - podSelector:
+              matchLabels:
+                app: kafka-sasl-producer
+      tls:
+        authentication:
+          type: tls
+        networkPolicyPeers:
+          - namespaceSelector:
+              matchLabels:
+                project: myproject
+          - namespaceSelector:
+              matchLabels:
+                project: myproject2
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In the above example:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Only application pods matching the labels <code>app: kafka-sasl-consumer</code> and <code>app: kafka-sasl-producer</code> can connect to the <code>plain</code> listener.
+The application pods must be running in the same namespace as the Kafka broker.</p>
+</li>
+<li>
+<p>Only application pods running in namespaces matching the labels <code>project: myproject</code> and <code>project: myproject2</code> can connect to the <code>tls</code> listener.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The syntax of the <code>networkPolicyPeers</code> field is the same as the <code>from</code> field in the <code>NetworkPolicy</code> resource in Kubernetes.
+For more information about the schema, see <a href="https://v1-9.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.9/#networkpolicypeer-v1-networking" target="_blank" rel="noopener">NetworkPolicyPeer API reference</a> and the <a href="#type-KafkaListeners-reference"><code>KafkaListeners</code> schema reference</a>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Your configuration of OpenShift or Kubernetes must support Ingress NetworkPolicies in order to use network policies in Strimzi.
+</td>
+</tr>
+</table>
+</div>
+</div>
 </div>
 <div class="sect4">
 <h5 id="proc-configuring-kafka-listeners-deployment-configuration-kafka"><a class="link" href="#proc-configuring-kafka-listeners-deployment-configuration-kafka">Configuring Kafka listeners</a></h5>
@@ -3405,6 +3474,82 @@ If you enabled any authentication, you will also need to configure SASL or TLS a
 <ul>
 <li>
 <p>For more information about the schema, see <a href="#type-KafkaListeners-reference"><code>KafkaListeners</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-restricting-access-to-listeners-using-network-policies-deployment-configuration-kafka"><a class="link" href="#proc-restricting-access-to-listeners-using-network-policies-deployment-configuration-kafka">Restricting access to Kafka listeners using <code>networkPolicyPeers</code></a></h5>
+<div class="paragraph">
+<p>You can restrict access to a listener to only selected applications by using the <code>networkPolicyPeers</code> field.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster with support for Ingress NetworkPolicies.</p>
+</li>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Open the <code>Kafka</code> resource.</p>
+</li>
+<li>
+<p>In the <code>networkPolicyPeers</code> field, define the application pods or namespaces that will be allowed to access the Kafka cluster.</p>
+<div class="paragraph">
+<p>For example, to configure a <code>tls</code> listener to allow connections only from application pods with the label <code>app</code> set to <code>kafka-client</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    listeners:
+      tls:
+        networkPolicyPeers:
+          - podSelector:
+              matchLabels:
+                app: kafka-client
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes use <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift use <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about the schema, see <a href="https://v1-9.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.9/#networkpolicypeer-v1-networking" target="_blank" rel="noopener">NetworkPolicyPeer API reference</a> and the <a href="#type-KafkaListeners-reference"><code>KafkaListeners</code> schema reference</a>.</p>
 </li>
 </ul>
 </div>
@@ -23137,7 +23282,7 @@ This reference describes how to monitor cAdvisor metrics in various ways using P
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-01-03 18:45:09 UTC
+Last updated 2019-01-04 16:54:46 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/github.min.css">
