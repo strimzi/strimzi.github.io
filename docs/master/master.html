@@ -102,7 +102,8 @@
 <li><a href="#assembly-jvm-options-deployment-configuration-kafka-connect">3.2.10. JVM Options</a></li>
 <li><a href="#assembly-configuring-container-images-deployment-configuration-kafka-connect">3.2.11. Container images</a></li>
 <li><a href="#assembly-scheduling-deployment-configuration-kafka-connect">3.2.12. Configuring pod scheduling</a></li>
-<li><a href="#ref-list-of-kafka-connect-resources-deployment-configuration-kafka-connect">3.2.13. List of resources created as part of Kafka Connect cluster</a></li>
+<li><a href="#assembly-kafka-connect-external-configuration-deployment-configuration-kafka-connect">3.2.13. Using external configuration and secrets</a></li>
+<li><a href="#ref-list-of-kafka-connect-resources-deployment-configuration-kafka-connect">3.2.14. List of resources created as part of Kafka Connect cluster</a></li>
 </ul>
 </li>
 <li><a href="#assembly-deployment-configuration-kafka-connect-s2i-str">3.3. Kafka Connect cluster with Source2Image support</a>
@@ -119,8 +120,9 @@
 <li><a href="#assembly-jvm-options-deployment-configuration-kafka-connect-s2i">3.3.10. JVM Options</a></li>
 <li><a href="#assembly-configuring-container-images-deployment-configuration-kafka-connect-s2i">3.3.11. Container images</a></li>
 <li><a href="#assembly-scheduling-deployment-configuration-kafka-connect-s2i">3.3.12. Configuring pod scheduling</a></li>
-<li><a href="#ref-list-of-kafka-connect-s2i-resources-deployment-configuration-kafka-connect-s2i">3.3.13. List of resources created as part of Kafka Connect cluster with Source2Image support</a></li>
-<li><a href="#using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i">3.3.14. Creating a container image using OpenShift builds and Source-to-Image</a></li>
+<li><a href="#assembly-kafka-connect-external-configuration-deployment-configuration-kafka-connect-s2i">3.3.13. Using external configuration and secrets</a></li>
+<li><a href="#ref-list-of-kafka-connect-s2i-resources-deployment-configuration-kafka-connect-s2i">3.3.14. List of resources created as part of Kafka Connect cluster with Source2Image support</a></li>
+<li><a href="#using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i">3.3.15. Creating a container image using OpenShift builds and Source-to-Image</a></li>
 </ul>
 </li>
 <li><a href="#assembly-deployment-configuration-kafka-mirror-maker-str">3.4. Kafka Mirror Maker configuration</a>
@@ -9976,7 +9978,338 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-list-of-kafka-connect-resources-deployment-configuration-kafka-connect"><a class="link" href="#ref-list-of-kafka-connect-resources-deployment-configuration-kafka-connect">3.2.13. List of resources created as part of Kafka Connect cluster</a></h4>
+<h4 id="assembly-kafka-connect-external-configuration-deployment-configuration-kafka-connect"><a class="link" href="#assembly-kafka-connect-external-configuration-deployment-configuration-kafka-connect">3.2.13. Using external configuration and secrets</a></h4>
+<div class="paragraph">
+<p>Kafka Connect connectors are configured using an HTTP REST interface.
+The connector configuration is passed to Kafka Connect as part of an HTTP request and stored within Kafka itself.</p>
+</div>
+<div class="paragraph">
+<p>Some parts of the configuration of a Kafka Connect connector can be externalized using ConfigMaps or Secrets.
+You can then reference the configuration values in HTTP REST commands (this keeps the configuration separate and more secure, if needed).
+This method applies especially to confidential data, such as usernames, passwords, or certificates.</p>
+</div>
+<div class="paragraph">
+<p>ConfigMaps and Secrets are standard OpenShift or Kubernetes resources used for storing of configurations and confidential data.</p>
+</div>
+<div class="sect4">
+<h5 id="con-kafka-connect-external-configuration-deployment-configuration-kafka-connect"><a class="link" href="#con-kafka-connect-external-configuration-deployment-configuration-kafka-connect">Storing connector configurations externally</a></h5>
+<div class="paragraph">
+<p>You can mount ConfigMaps or Secrets into a Kafka Connect pod as volumes or environment variables.
+Volumes and environment variables are configured in the <code>externalConfiguration</code> property in <code>KafkaConnect.spec</code> and <code>KafkaConnectS2I.spec</code>.</p>
+</div>
+<div class="sect5">
+<h6 id="external_configuration_as_environment_variables"><a class="link" href="#external_configuration_as_environment_variables">External configuration as environment variables</a></h6>
+<div class="paragraph">
+<p>The <code>env</code> property is used to specify one or more environment variables.
+These variables can contain a value from either a ConfigMap or a Secret.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The names of user-defined environment variables cannot start with <code>KAFKA_</code> or <code>STRIMZI_</code>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>To mount a value from a Secret to an environment variable, use the <code>valueFrom</code> property and the <code>secretKeyRef</code> as shown in the following example.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of an environment variable set to a value from a Secret</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  externalConfiguration:
+    env:
+      - name: MY_ENVIRONMENT_VARIABLE
+        valueFrom:
+          secretKeyRef:
+            name: my-secret
+            key: my-key</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A common use case for mounting Secrets to environment variables is when your connector needs to communicate with Amazon AWS and needs to read the <code>AWS_ACCESS_KEY_ID</code> and <code>AWS_SECRET_ACCESS_KEY</code> environment variables with credentials.</p>
+</div>
+<div class="paragraph">
+<p>To mount a value from a ConfigMap to an environment variable, use <code>configMapKeyRef</code> in the <code>valueFrom</code> property as shown in the following example.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of an environment variable set to a value from a ConfigMap</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  externalConfiguration:
+    env:
+      - name: MY_ENVIRONMENT_VARIABLE
+        valueFrom:
+          configMapKeyRef:
+            name: my-config-map
+            key: my-key</code></pre>
+</div>
+</div>
+</div>
+<div class="sect5">
+<h6 id="external_configuration_as_volumes"><a class="link" href="#external_configuration_as_volumes">External configuration as volumes</a></h6>
+<div class="paragraph">
+<p>You can also mount ConfigMaps or Secrets to a Kafka Connect pod as volumes.
+Using volumes instead of environment variables is useful in the following scenarios:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Mounting truststores or keystores with TLS certificates</p>
+</li>
+<li>
+<p>Mounting a properties file that is used to configure Kafka Connect connectors</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>In the <code>volumes</code> property of the <code>externalConfiguration</code> resource, list the ConfigMaps or Secrets that will be mounted as volumes.
+Each volume must specify a name in the <code>name</code> property and a reference to ConfigMap or Secret.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of volumes with external configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  externalConfiguration:
+    volumes:
+      - name: connector1
+        configMap:
+          name: connector1-configuration
+    - name: connector1-certificates
+      secret:
+        secretName: connector1-certificates</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The volumes will be mounted inside the Kafka Connect containers in the path <code>/opt/kafka/external-configuration/<em>&lt;volume-name&gt;</em></code>.
+For example, the files from a volume named <code>connector1</code> would appear in the directory <code>/opt/kafka/external-configuration/connector1</code>.</p>
+</div>
+<div class="paragraph">
+<p>The <code>FileConfigProvider</code> has to be used to read the values from the mounted properties files in connector configurations.</p>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-kafka-connect-mounting-secrets-as-environment-variables-deployment-configuration-kafka-connect"><a class="link" href="#proc-kafka-connect-mounting-secrets-as-environment-variables-deployment-configuration-kafka-connect">Mounting Secrets as environment variables</a></h5>
+<div class="paragraph">
+<p>You can create an OpenShift or Kubernetes Secret and mount it to Kafka Connect as an environment variable.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Cluster Operator.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Create a secret containing the information that will be mounted as an environment variable.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: Secret
+metadata:
+  name: aws-creds
+type: Opaque
+data:
+  awsAccessKey: QUtJQVhYWFhYWFhYWFhYWFg=
+  awsSecretAccessKey: Ylhsd1lYTnpkMjl5WkE=</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or edit the Kafka Connect resource.
+Configure the <code>externalConfiguration</code> section of the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> custom resource to reference the secret.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  externalConfiguration:
+    env:
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: aws-creds
+            key: awsAccessKey
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: aws-creds
+            key: awsSecretAccessKey</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Apply the changes to your Kafka Connect deployment.</p>
+<div class="paragraph">
+<p>On Kubernetes use <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift use <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>The environment variables are now available for use when developing your connectors.</p>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about external configuration in Kafka Connect, see <a href="#type-ExternalConfiguration-reference"><code>ExternalConfiguration</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-kafka-connect-mounting-volumes-deployment-configuration-kafka-connect"><a class="link" href="#proc-kafka-connect-mounting-volumes-deployment-configuration-kafka-connect">Mounting Secrets as volumes</a></h5>
+<div class="paragraph">
+<p>You can create an OpenShift or Kubernetes Secret, mount it as a volume to Kafka Connect, and then use it to configure a Kafka Connect connector.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Cluster Operator.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Create a secret containing a properties file that defines the configuration options for your connector configuration.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+type: Opaque
+stringData:
+  connector.properties: |-
+    dbUsername: my-user
+    dbPassword: my-password</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or edit the Kafka Connect resource.
+Configure the <code>FileConfigProvider</code> in the <code>config</code> section and the <code>externalConfiguration</code> section of the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> custom resource to reference the secret.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  config:
+    config.providers: file
+    config.providers.file.class: org.apache.kafka.common.config.provider.FileConfigProvider
+  #...
+  externalConfiguration:
+    volumes:
+      - name: connector-config
+        secret:
+          secretName: mysecret</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Apply the changes to your Kafka Connect deployment.</p>
+<div class="paragraph">
+<p>On Kubernetes use <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift use <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Use the values from the mounted properties file in your JSON payload with connector configuration.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">{
+   "name":"my-connector",
+   "config":{
+      "connector.class":"MyDbConnector",
+      "tasks.max":"3",
+      "database": "my-postgresql:5432"
+      "username":"${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbUsername}",
+      "password":"${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbPassword}",
+      # ...
+   }
+}</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about external configuration in Kafka Connect, see <a href="#type-ExternalConfiguration-reference"><code>ExternalConfiguration</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="ref-list-of-kafka-connect-resources-deployment-configuration-kafka-connect"><a class="link" href="#ref-list-of-kafka-connect-resources-deployment-configuration-kafka-connect">3.2.14. List of resources created as part of Kafka Connect cluster</a></h4>
 <div class="paragraph">
 <p>The following resources will created by the Cluster Operator in the OpenShift or Kubernetes cluster:</p>
 </div>
@@ -12633,7 +12966,338 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-list-of-kafka-connect-s2i-resources-deployment-configuration-kafka-connect-s2i"><a class="link" href="#ref-list-of-kafka-connect-s2i-resources-deployment-configuration-kafka-connect-s2i">3.3.13. List of resources created as part of Kafka Connect cluster with Source2Image support</a></h4>
+<h4 id="assembly-kafka-connect-external-configuration-deployment-configuration-kafka-connect-s2i"><a class="link" href="#assembly-kafka-connect-external-configuration-deployment-configuration-kafka-connect-s2i">3.3.13. Using external configuration and secrets</a></h4>
+<div class="paragraph">
+<p>Kafka Connect connectors are configured using an HTTP REST interface.
+The connector configuration is passed to Kafka Connect as part of an HTTP request and stored within Kafka itself.</p>
+</div>
+<div class="paragraph">
+<p>Some parts of the configuration of a Kafka Connect connector can be externalized using ConfigMaps or Secrets.
+You can then reference the configuration values in HTTP REST commands (this keeps the configuration separate and more secure, if needed).
+This method applies especially to confidential data, such as usernames, passwords, or certificates.</p>
+</div>
+<div class="paragraph">
+<p>ConfigMaps and Secrets are standard OpenShift or Kubernetes resources used for storing of configurations and confidential data.</p>
+</div>
+<div class="sect4">
+<h5 id="con-kafka-connect-external-configuration-deployment-configuration-kafka-connect-s2i"><a class="link" href="#con-kafka-connect-external-configuration-deployment-configuration-kafka-connect-s2i">Storing connector configurations externally</a></h5>
+<div class="paragraph">
+<p>You can mount ConfigMaps or Secrets into a Kafka Connect pod as volumes or environment variables.
+Volumes and environment variables are configured in the <code>externalConfiguration</code> property in <code>KafkaConnect.spec</code> and <code>KafkaConnectS2I.spec</code>.</p>
+</div>
+<div class="sect5">
+<h6 id="external_configuration_as_environment_variables_2"><a class="link" href="#external_configuration_as_environment_variables_2">External configuration as environment variables</a></h6>
+<div class="paragraph">
+<p>The <code>env</code> property is used to specify one or more environment variables.
+These variables can contain a value from either a ConfigMap or a Secret.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The names of user-defined environment variables cannot start with <code>KAFKA_</code> or <code>STRIMZI_</code>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>To mount a value from a Secret to an environment variable, use the <code>valueFrom</code> property and the <code>secretKeyRef</code> as shown in the following example.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of an environment variable set to a value from a Secret</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  externalConfiguration:
+    env:
+      - name: MY_ENVIRONMENT_VARIABLE
+        valueFrom:
+          secretKeyRef:
+            name: my-secret
+            key: my-key</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A common use case for mounting Secrets to environment variables is when your connector needs to communicate with Amazon AWS and needs to read the <code>AWS_ACCESS_KEY_ID</code> and <code>AWS_SECRET_ACCESS_KEY</code> environment variables with credentials.</p>
+</div>
+<div class="paragraph">
+<p>To mount a value from a ConfigMap to an environment variable, use <code>configMapKeyRef</code> in the <code>valueFrom</code> property as shown in the following example.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of an environment variable set to a value from a ConfigMap</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  externalConfiguration:
+    env:
+      - name: MY_ENVIRONMENT_VARIABLE
+        valueFrom:
+          configMapKeyRef:
+            name: my-config-map
+            key: my-key</code></pre>
+</div>
+</div>
+</div>
+<div class="sect5">
+<h6 id="external_configuration_as_volumes_2"><a class="link" href="#external_configuration_as_volumes_2">External configuration as volumes</a></h6>
+<div class="paragraph">
+<p>You can also mount ConfigMaps or Secrets to a Kafka Connect pod as volumes.
+Using volumes instead of environment variables is useful in the following scenarios:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Mounting truststores or keystores with TLS certificates</p>
+</li>
+<li>
+<p>Mounting a properties file that is used to configure Kafka Connect connectors</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>In the <code>volumes</code> property of the <code>externalConfiguration</code> resource, list the ConfigMaps or Secrets that will be mounted as volumes.
+Each volume must specify a name in the <code>name</code> property and a reference to ConfigMap or Secret.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of volumes with external configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  externalConfiguration:
+    volumes:
+      - name: connector1
+        configMap:
+          name: connector1-configuration
+    - name: connector1-certificates
+      secret:
+        secretName: connector1-certificates</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The volumes will be mounted inside the Kafka Connect containers in the path <code>/opt/kafka/external-configuration/<em>&lt;volume-name&gt;</em></code>.
+For example, the files from a volume named <code>connector1</code> would appear in the directory <code>/opt/kafka/external-configuration/connector1</code>.</p>
+</div>
+<div class="paragraph">
+<p>The <code>FileConfigProvider</code> has to be used to read the values from the mounted properties files in connector configurations.</p>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-kafka-connect-mounting-secrets-as-environment-variables-deployment-configuration-kafka-connect-s2i"><a class="link" href="#proc-kafka-connect-mounting-secrets-as-environment-variables-deployment-configuration-kafka-connect-s2i">Mounting Secrets as environment variables</a></h5>
+<div class="paragraph">
+<p>You can create an OpenShift or Kubernetes Secret and mount it to Kafka Connect as an environment variable.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Cluster Operator.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Create a secret containing the information that will be mounted as an environment variable.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: Secret
+metadata:
+  name: aws-creds
+type: Opaque
+data:
+  awsAccessKey: QUtJQVhYWFhYWFhYWFhYWFg=
+  awsSecretAccessKey: Ylhsd1lYTnpkMjl5WkE=</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or edit the Kafka Connect resource.
+Configure the <code>externalConfiguration</code> section of the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> custom resource to reference the secret.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  externalConfiguration:
+    env:
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: aws-creds
+            key: awsAccessKey
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: aws-creds
+            key: awsSecretAccessKey</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Apply the changes to your Kafka Connect deployment.</p>
+<div class="paragraph">
+<p>On Kubernetes use <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift use <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>The environment variables are now available for use when developing your connectors.</p>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about external configuration in Kafka Connect, see <a href="#type-ExternalConfiguration-reference"><code>ExternalConfiguration</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-kafka-connect-mounting-volumes-deployment-configuration-kafka-connect-s2i"><a class="link" href="#proc-kafka-connect-mounting-volumes-deployment-configuration-kafka-connect-s2i">Mounting Secrets as volumes</a></h5>
+<div class="paragraph">
+<p>You can create an OpenShift or Kubernetes Secret, mount it as a volume to Kafka Connect, and then use it to configure a Kafka Connect connector.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Cluster Operator.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Create a secret containing a properties file that defines the configuration options for your connector configuration.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+type: Opaque
+stringData:
+  connector.properties: |-
+    dbUsername: my-user
+    dbPassword: my-password</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or edit the Kafka Connect resource.
+Configure the <code>FileConfigProvider</code> in the <code>config</code> section and the <code>externalConfiguration</code> section of the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> custom resource to reference the secret.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  config:
+    config.providers: file
+    config.providers.file.class: org.apache.kafka.common.config.provider.FileConfigProvider
+  #...
+  externalConfiguration:
+    volumes:
+      - name: connector-config
+        secret:
+          secretName: mysecret</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Apply the changes to your Kafka Connect deployment.</p>
+<div class="paragraph">
+<p>On Kubernetes use <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift use <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Use the values from the mounted properties file in your JSON payload with connector configuration.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">{
+   "name":"my-connector",
+   "config":{
+      "connector.class":"MyDbConnector",
+      "tasks.max":"3",
+      "database": "my-postgresql:5432"
+      "username":"${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbUsername}",
+      "password":"${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbPassword}",
+      # ...
+   }
+}</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about external configuration in Kafka Connect, see <a href="#type-ExternalConfiguration-reference"><code>ExternalConfiguration</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="ref-list-of-kafka-connect-s2i-resources-deployment-configuration-kafka-connect-s2i"><a class="link" href="#ref-list-of-kafka-connect-s2i-resources-deployment-configuration-kafka-connect-s2i">3.3.14. List of resources created as part of Kafka Connect cluster with Source2Image support</a></h4>
 <div class="paragraph">
 <p>The following resources will created by the Cluster Operator in the OpenShift or Kubernetes cluster:</p>
 </div>
@@ -12667,7 +13331,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i"><a class="link" href="#using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i">3.3.14. Creating a container image using OpenShift builds and Source-to-Image</a></h4>
+<h4 id="using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i"><a class="link" href="#using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i">3.3.15. Creating a container image using OpenShift builds and Source-to-Image</a></h4>
 <div class="paragraph">
 <p>You can use OpenShift <a href="https://docs.openshift.org/3.9/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a> and the  <a href="https://docs.openshift.org/3.9/creating_images/s2i.html#creating-images-s2i" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images. An OpenShift build takes a builder image with S2I support, together with source code and binaries provided by the user, and uses them to build a new container image. Once built, container images are stored in OpenShift&#8217;s local container image repository and are available for use in deployments.</p>
 </div>
