@@ -149,7 +149,8 @@
 <li><a href="#con-customizing-template-properties-str">3.5.1. Template properties</a></li>
 <li><a href="#con-customizing-labels-and-annotations-str">3.5.2. Labels and Annotations</a></li>
 <li><a href="#con-customizing-pods-str">3.5.3. Customizing Pods</a></li>
-<li><a href="#proc-customizing-deployments-str">3.5.4. Customizing deployments</a></li>
+<li><a href="#con-customizing-pod-disruption-budgets-str">3.5.4. Customizing Pod Disruption Budgets</a></li>
+<li><a href="#proc-customizing-deployments-str">3.5.5. Customizing deployments</a></li>
 </ul>
 </li>
 </ul>
@@ -7263,6 +7264,10 @@ spec:
 <dd>
 <p>Service account used by the Kafka brokers.</p>
 </dd>
+<dt class="hdlist1"><code><em>cluster-name</em>-kafka</code></dt>
+<dd>
+<p>Pod Disruption Budget configured for the Kafka brokers.</p>
+</dd>
 <dt class="hdlist1"><code>strimzi-<em>namespace-name</em>-<em>cluster-name</em>-kafka-init</code></dt>
 <dd>
 <p>Cluster role binding used by the Kafka brokers.</p>
@@ -7286,6 +7291,10 @@ spec:
 <dt class="hdlist1"><code><em>cluster-name</em>-zookeeper-nodes</code></dt>
 <dd>
 <p>Secret with Zookeeper node keys.</p>
+</dd>
+<dt class="hdlist1"><code><em>cluster-name</em>-zookeeper</code></dt>
+<dd>
+<p>Pod Disruption Budget configured for the Zookeeper nodes.</p>
 </dd>
 <dt class="hdlist1"><code><em>cluster-name</em>-entity-operator</code></dt>
 <dd>
@@ -10327,6 +10336,10 @@ For example:</p>
 <dd>
 <p>ConfigMap which contains the Kafka Connect ancillary configuration and is mounted as a volume by the Kafka broker pods.</p>
 </dd>
+<dt class="hdlist1"><em>connect-cluster-name</em>-connect</dt>
+<dd>
+<p>Pod Disruption Budget configured for the Kafka Connect worker nodes.</p>
+</dd>
 </dl>
 </div>
 </div>
@@ -13327,6 +13340,10 @@ For example:</p>
 <dd>
 <p>ConfigMap which contains the Kafka Connect ancillary configuration and is mounted as a volume by the Kafka broker pods.</p>
 </dd>
+<dt class="hdlist1"><em>connect-cluster-name</em>-connect</dt>
+<dd>
+<p>Pod Disruption Budget configured for the Kafka Connect worker nodes.</p>
+</dd>
 </dl>
 </div>
 </div>
@@ -16121,6 +16138,10 @@ spec:
 <dd>
 <p>ConfigMap which contains the Kafka Mirror Maker ancillary configuration and is mounted as a volume by the Kafka broker pods.</p>
 </dd>
+<dt class="hdlist1"><em>&lt;mirror-maker-name&gt;</em>-mirror-maker</dt>
+<dd>
+<p>Pod Disruption Budget configured for the Kafka Mirror Maker worker nodes.</p>
+</dd>
 </dl>
 </div>
 </div>
@@ -16236,6 +16257,10 @@ spec:
 <dd>
 <p>Configures the per-Pod routes used by clients connecting to the Kafka broker from outside OpenShift to access individual brokers using OpenShift <code>Routes</code>.</p>
 </dd>
+<dt class="hdlist1"><code>podDisruptionBudget</code></dt>
+<dd>
+<p>Configures the Pod Disruption Budget for Kafka broker <code>StatefulSet</code>.</p>
+</dd>
 </dl>
 </div>
 <div class="paragraph">
@@ -16259,6 +16284,10 @@ spec:
 <dt class="hdlist1"><code>nodesService</code></dt>
 <dd>
 <p>Configures the headless service.</p>
+</dd>
+<dt class="hdlist1"><code>podDisruptionBudget</code></dt>
+<dd>
+<p>Configures the Pod Disruption Budget for Zookeeper <code>StatefulSet</code>.</p>
 </dd>
 </dl>
 </div>
@@ -16296,6 +16325,10 @@ spec:
 <dd>
 <p>Configures the service used by the Kafka Connect REST API.</p>
 </dd>
+<dt class="hdlist1"><code>podDisruptionBudget</code></dt>
+<dd>
+<p>Configures the Pod Disruption Budget for Kafka Connect <code>Deployment</code>.</p>
+</dd>
 </dl>
 </div>
 <div class="paragraph">
@@ -16311,6 +16344,10 @@ spec:
 <dt class="hdlist1"><code>pod</code></dt>
 <dd>
 <p>Configures the Kafka Mirror Maker <code>Pods</code> created by the <code>Deployment</code>.</p>
+</dd>
+<dt class="hdlist1"><code>podDisruptionBudget</code></dt>
+<dd>
+<p>Configures the Pod Disruption Budget for Kafka Mirror Maker <code>Deployment</code>.</p>
 </dd>
 </dl>
 </div>
@@ -16412,7 +16449,46 @@ template:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-customizing-deployments-str"><a class="link" href="#proc-customizing-deployments-str">3.5.4. Customizing deployments</a></h4>
+<h4 id="con-customizing-pod-disruption-budgets-str"><a class="link" href="#con-customizing-pod-disruption-budgets-str">3.5.4. Customizing Pod Disruption Budgets</a></h4>
+<div class="paragraph">
+<p>Strimzi creates a pod disruption budget for every new <code>StatefulSet</code> or <code>Deployment</code>.
+By default, these pod disruption budgets only allow a single pod to be unavailable at a given time by setting the <code>maxUnavailable</code> value in the`PodDisruptionBudget.spec` resource to 1.
+You can change the amount of unavailable pods allowed by changing the default value of <code>maxUnavailable</code> in the pod disruption budget template.
+This template applies to each type of cluster (Kafka and Zookeeper; Kafka Connect and Kafka Connect with S2I support; and Kafka Mirror Maker).</p>
+</div>
+<div class="paragraph">
+<p>The following example shows customized <code>podDisruptionBudget</code> fields on a <code>template</code> property:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+template:
+    podDisruptionBudget:
+        metadata:
+            labels:
+                key1: label1
+                key2: label2
+            annotations:
+                key1: label1
+                key2: label2
+        maxUnavailable: 1
+# ...</code></pre>
+</div>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information, see <a href="#type-PodDisruptionBudgetTemplate-reference"><code>PodDisruptionBudgetTemplate</code> schema reference</a>.</p>
+</li>
+<li>
+<p>The <a href="https://kubernetes.io/docs/concepts/workloads/pods/disruptions/" target="_blank" rel="noopener">Disruptions</a> chapter of the Kubernetes documentation.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-customizing-deployments-str"><a class="link" href="#proc-customizing-deployments-str">3.5.5. Customizing deployments</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to customize <code>Labels</code> of a Kafka cluster.</p>
 </div>
@@ -21141,7 +21217,7 @@ It must have the value <code>external</code> for the type <code>ExternalLogging<
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">metadata</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Metadata which should be applied to the resource.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Metadata which should be applied to the <code>PodDistruptionBugetTemplate</code> resource.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-MetadataTemplate-reference"><code>MetadataTemplate</code></a></p></td>
