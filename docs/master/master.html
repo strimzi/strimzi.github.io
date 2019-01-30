@@ -257,6 +257,20 @@
 <li><a href="#configuring-external-clients-to-trust-cluster-ca-str">7.7. Configuring external clients to trust the cluster CA</a></li>
 </ul>
 </li>
+<li><a href="#assembly-upgrade-str">8. Strimzi and Kafka upgrades</a>
+<ul class="sectlevel2">
+<li><a href="#proc-upgrading-the-cluster-operator-str">8.1. Upgrading the Cluster Operator from 0.9.0 to 0.10.0</a></li>
+<li><a href="#assembly-upgrading-kafka-versions-str">8.2. Upgrading and downgrading Kafka versions</a>
+<ul class="sectlevel3">
+<li><a href="#con-versions-and-images-str">8.2.1. Versions and images overview</a></li>
+<li><a href="#con-kafka-upgrades-using-cluster-operator-str">8.2.2. Kafka upgrades using the Cluster Operator</a></li>
+<li><a href="#proc-upgrading-brokers-newer-kafka-str">8.2.3. Upgrading brokers to a newer Kafka version</a></li>
+<li><a href="#con-kafka-downgrades-using-cluster-operator-str">8.2.4. Kafka downgrades using the Cluster Operator</a></li>
+<li><a href="#proc-downgrading-brokers-older-kafka-str">8.2.5. Downgrading brokers to an older Kafka version</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li><a href="#frequently_asked_questions">Appendix A: Frequently Asked Questions</a>
 <ul class="sectlevel2">
 <li><a href="#cluster_operator">A.1. Cluster Operator</a>
@@ -605,20 +619,7 @@ This might cause a rolling update which might lead to service disruption.</p>
 <li>
 <p>Modify the installation files according to the namespace the Cluster Operator is going to be installed in.</p>
 <div class="paragraph">
-<p>On Linux, use:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code>sed -i 's/namespace: .*/namespace: <em>my-namespace</em>/' install/cluster-operator/*RoleBinding*.yaml</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>On MacOS, use:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code>sed -i '' 's/namespace: .*/namespace: <em>my-namespace</em>/' install/cluster-operator/*RoleBinding*.yaml</code></pre>
-</div>
+<p>include:frag-cluster-operator-namespace-sed.adoc[]</p>
 </div>
 </li>
 </ul>
@@ -1111,7 +1112,7 @@ For more information on the different configuration options supported by the <co
 <div class="sect4">
 <h5 id="creating-new-image-from-base-str"><a class="link" href="#creating-new-image-from-base-str">Creating a Docker image from the Kafka Connect base image</a></h5>
 <div class="paragraph">
-<p>A container image for running Kafka Connect using Strimzi is available on <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as <code>strimzi/kafka-connect:latest-kafka-2.0.0</code>. You can use this as a base image for creating your own custom image with additional connector plug-ins.</p>
+<p>A container image for running Kafka Connect using Strimzi is available on <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as <code>strimzi/kafka-connect:latest-kafka-2.1.0</code>. You can use this as a base image for creating your own custom image with additional connector plug-ins.</p>
 </div>
 <div class="paragraph">
 <p>The following procedure explains how to create your custom image and add it to the <code>/opt/kafka/plugins</code> directory. At startup, the AMQ Streams version of Kafka Connect loads any third-party connector plug-ins contained in the <code>/opt/kafka/plugins</code> directory.</p>
@@ -1131,10 +1132,10 @@ For more information on the different configuration options supported by the <co
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Create a new <code>Dockerfile</code> using <code>strimzi/kafka-connect:latest-kafka-2.0.0</code> as the base image:</p>
+<p>Create a new <code>Dockerfile</code> using <code>strimzi/kafka-connect:latest-kafka-2.1.0</code> as the base image:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code>FROM strimzi/kafka-connect:latest-kafka-2.0.0
+<pre class="highlightjs highlight"><code>FROM strimzi/kafka-connect:latest-kafka-2.1.0
 USER root:root
 COPY ./<em>my-plugins</em>/ /opt/kafka/plugins/
 USER kafka:kafka</code></pre>
@@ -1184,7 +1185,7 @@ spec:
 <p>You can use OpenShift <a href="https://docs.openshift.org/3.9/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a> and the  <a href="https://docs.openshift.org/3.9/creating_images/s2i.html#creating-images-s2i" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images. An OpenShift build takes a builder image with S2I support, together with source code and binaries provided by the user, and uses them to build a new container image. Once built, container images are stored in OpenShift&#8217;s local container image repository and are available for use in deployments.</p>
 </div>
 <div class="paragraph">
-<p>A Kafka Connect builder image with S2I support is provided by Strimzi on the <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as <code>strimzi/kafka-connect-s2i:latest-kafka-2.0.0</code>. This S2I image takes your binaries (with plug-ins and connectors) and stores them in the <code>/tmp/kafka-plugins/s2i</code> directory. It creates a new Kafka Connect image from this directory, which can then be used with the Kafka Connect deployment. When started using the enhanced image, Kafka Connect loads any third-party plug-ins from the <code>/tmp/kafka-plugins/s2i</code> directory.</p>
+<p>A Kafka Connect builder image with S2I support is provided by Strimzi on the <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as <code>strimzi/kafka-connect-s2i:latest-kafka-2.1.0</code>. This S2I image takes your binaries (with plug-ins and connectors) and stores them in the <code>/tmp/kafka-plugins/s2i</code> directory. It creates a new Kafka Connect image from this directory, which can then be used with the Kafka Connect deployment. When started using the enhanced image, Kafka Connect loads any third-party plug-ins from the <code>/tmp/kafka-plugins/s2i</code> directory.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -1364,7 +1365,7 @@ The Mirror Maker consumes messages from the source cluster and republishes those
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl run kafka-producer -ti --image=strimzi/kafka:latest-kafka-2.0.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list <em>cluster-name</em>-kafka-bootstrap:9092 --topic <em>my-topic</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl run kafka-producer -ti --image=strimzi/kafka:latest-kafka-2.1.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list <em>cluster-name</em>-kafka-bootstrap:9092 --topic <em>my-topic</em></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1372,7 +1373,7 @@ The Mirror Maker consumes messages from the source cluster and republishes those
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc run kafka-producer -ti --image=strimzi/kafka:latest-kafka-2.0.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list <em>cluster-name</em>-kafka-bootstrap:9092 --topic <em>my-topic</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc run kafka-producer -ti --image=strimzi/kafka:latest-kafka-2.1.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list <em>cluster-name</em>-kafka-bootstrap:9092 --topic <em>my-topic</em></code></pre>
 </div>
 </div>
 </li>
@@ -1389,7 +1390,7 @@ The Mirror Maker consumes messages from the source cluster and republishes those
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl run kafka-consumer -ti --image=strimzi/kafka:latest-kafka-2.0.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server <em>cluster-name</em>-kafka-bootstrap:9092 --topic <em>my-topic</em> --from-beginning</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl run kafka-consumer -ti --image=strimzi/kafka:latest-kafka-2.1.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server <em>cluster-name</em>-kafka-bootstrap:9092 --topic <em>my-topic</em> --from-beginning</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1397,7 +1398,7 @@ The Mirror Maker consumes messages from the source cluster and republishes those
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc run kafka-consumer -ti --image=strimzi/kafka:latest-kafka-2.0.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server <em>cluster-name</em>-kafka-bootstrap:9092 --topic <em>my-topic</em> --from-beginning</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc run kafka-consumer -ti --image=strimzi/kafka:latest-kafka-2.1.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server <em>cluster-name</em>-kafka-bootstrap:9092 --topic <em>my-topic</em> --from-beginning</code></pre>
 </div>
 </div>
 </li>
@@ -5179,24 +5180,52 @@ If the configured image is not compatible with Strimzi images, it might not work
 </li>
 </ul>
 </div>
+<div class="sect5">
+<h6 id="configuring_the_kafka_spec_kafka_image_property"><a class="link" href="#configuring_the_kafka_spec_kafka_image_property">Configuring the <code>Kafka.spec.kafka.image</code> property</a></h6>
 <div class="paragraph">
-<p>The <code>image</code> specified in the component-specific custom resource will be used during deployment. If the <code>image</code> field is missing, the <code>image</code> specified in the Cluster Operator configuration will be used. If the <code>image</code> name is not defined in the Cluster Operator configuration, then the default value will be used.</p>
+<p>The <code>Kafka.spec.kafka.image</code> property functions differently from the others, because Strimzi supports multiple versions of Kafka, each requiring the own image.
+The <code>STRIMZI_KAFKA_IMAGES</code> environment variable of the Cluster Operator configuration is used to provide a mapping between Kafka versions and the corresponding images.
+This is used in combination with the <code>Kafka.spec.kafka.image</code> and <code>Kafka.spec.kafka.version</code> properties as follows:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>For Kafka brokers:</p>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+<p>If neither <code>Kafka.spec.kafka.image</code> nor <code>Kafka.spec.kafka.version</code> are given in the custom resource then the <code>version</code> will default to the  Cluster Operator&#8217;s default Kafka version, and the image will be the one corresponding to this version in the <code>STRIMZI_KAFKA_IMAGES</code>.</p>
 </li>
 <li>
-<p><code>strimzi/kafka:latest</code> container image.</p>
+<p>If <code>Kafka.spec.kafka.image</code> is given but <code>Kafka.spec.kafka.version</code> is not then the given image will be used and the <code>version</code> will be assumed to be the  Cluster Operator&#8217;s default Kafka version.</p>
 </li>
-</ol>
+<li>
+<p>If <code>Kafka.spec.kafka.version</code> is given but <code>Kafka.spec.kafka.image</code> is not then image will be the one corresponding to this version in the <code>STRIMZI_KAFKA_IMAGES</code>.</p>
+</li>
+<li>
+<p>Both <code>Kafka.spec.kafka.version</code> and <code>Kafka.spec.kafka.image</code> are given the given image will be used, and it will be assumed to contain a Kafka broker with the given version.</p>
+</li>
+</ul>
 </div>
-</li>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+It is best to provide just <code>Kafka.spec.kafka.version</code> and leave the <code>Kafka.spec.kafka.image</code> property unspecified.
+This reduces the chances of making a mistake in configuring the <code>Kafka</code> resource. If you need to change the images used for different versions of Kafka, it is better to configure the Cluster Operator&#8217;s <code>STRIMZI_KAFKA_IMAGES</code> environment variable.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect5">
+<h6 id="configuring_the_image_property_in_other_resources"><a class="link" href="#configuring_the_image_property_in_other_resources">Configuring the <code>image</code> property in other resources</a></h6>
+<div class="paragraph">
+<p>For the <code>image</code> property in the other custom resources, the given value will be used during deployment.
+If the <code>image</code> property is missing, the <code>image</code> specified in the Cluster Operator configuration will be used.
+If the <code>image</code> name is not defined in the Cluster Operator configuration, then the default value will be used.</p>
+</div>
+<div class="ulist">
+<ul>
 <li>
 <p>For Kafka broker TLS sidecar:</p>
 <div class="olist arabic">
@@ -5330,6 +5359,7 @@ spec:
     # ...
   zookeeper:
     # ...</code></pre>
+</div>
 </div>
 </div>
 </div>
@@ -9294,24 +9324,52 @@ If the configured image is not compatible with Strimzi images, it might not work
 </li>
 </ul>
 </div>
+<div class="sect5">
+<h6 id="configuring_the_kafka_spec_kafka_image_property_2"><a class="link" href="#configuring_the_kafka_spec_kafka_image_property_2">Configuring the <code>Kafka.spec.kafka.image</code> property</a></h6>
 <div class="paragraph">
-<p>The <code>image</code> specified in the component-specific custom resource will be used during deployment. If the <code>image</code> field is missing, the <code>image</code> specified in the Cluster Operator configuration will be used. If the <code>image</code> name is not defined in the Cluster Operator configuration, then the default value will be used.</p>
+<p>The <code>Kafka.spec.kafka.image</code> property functions differently from the others, because Strimzi supports multiple versions of Kafka, each requiring the own image.
+The <code>STRIMZI_KAFKA_IMAGES</code> environment variable of the Cluster Operator configuration is used to provide a mapping between Kafka versions and the corresponding images.
+This is used in combination with the <code>Kafka.spec.kafka.image</code> and <code>Kafka.spec.kafka.version</code> properties as follows:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>For Kafka brokers:</p>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+<p>If neither <code>Kafka.spec.kafka.image</code> nor <code>Kafka.spec.kafka.version</code> are given in the custom resource then the <code>version</code> will default to the  Cluster Operator&#8217;s default Kafka version, and the image will be the one corresponding to this version in the <code>STRIMZI_KAFKA_IMAGES</code>.</p>
 </li>
 <li>
-<p><code>strimzi/kafka:latest</code> container image.</p>
+<p>If <code>Kafka.spec.kafka.image</code> is given but <code>Kafka.spec.kafka.version</code> is not then the given image will be used and the <code>version</code> will be assumed to be the  Cluster Operator&#8217;s default Kafka version.</p>
 </li>
-</ol>
+<li>
+<p>If <code>Kafka.spec.kafka.version</code> is given but <code>Kafka.spec.kafka.image</code> is not then image will be the one corresponding to this version in the <code>STRIMZI_KAFKA_IMAGES</code>.</p>
+</li>
+<li>
+<p>Both <code>Kafka.spec.kafka.version</code> and <code>Kafka.spec.kafka.image</code> are given the given image will be used, and it will be assumed to contain a Kafka broker with the given version.</p>
+</li>
+</ul>
 </div>
-</li>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+It is best to provide just <code>Kafka.spec.kafka.version</code> and leave the <code>Kafka.spec.kafka.image</code> property unspecified.
+This reduces the chances of making a mistake in configuring the <code>Kafka</code> resource. If you need to change the images used for different versions of Kafka, it is better to configure the Cluster Operator&#8217;s <code>STRIMZI_KAFKA_IMAGES</code> environment variable.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect5">
+<h6 id="configuring_the_image_property_in_other_resources_2"><a class="link" href="#configuring_the_image_property_in_other_resources_2">Configuring the <code>image</code> property in other resources</a></h6>
+<div class="paragraph">
+<p>For the <code>image</code> property in the other custom resources, the given value will be used during deployment.
+If the <code>image</code> property is missing, the <code>image</code> specified in the Cluster Operator configuration will be used.
+If the <code>image</code> name is not defined in the Cluster Operator configuration, then the default value will be used.</p>
+</div>
+<div class="ulist">
+<ul>
 <li>
 <p>For Kafka broker TLS sidecar:</p>
 <div class="olist arabic">
@@ -9445,6 +9503,7 @@ spec:
     # ...
   zookeeper:
     # ...</code></pre>
+</div>
 </div>
 </div>
 </div>
@@ -12286,24 +12345,52 @@ If the configured image is not compatible with Strimzi images, it might not work
 </li>
 </ul>
 </div>
+<div class="sect5">
+<h6 id="configuring_the_kafka_spec_kafka_image_property_3"><a class="link" href="#configuring_the_kafka_spec_kafka_image_property_3">Configuring the <code>Kafka.spec.kafka.image</code> property</a></h6>
 <div class="paragraph">
-<p>The <code>image</code> specified in the component-specific custom resource will be used during deployment. If the <code>image</code> field is missing, the <code>image</code> specified in the Cluster Operator configuration will be used. If the <code>image</code> name is not defined in the Cluster Operator configuration, then the default value will be used.</p>
+<p>The <code>Kafka.spec.kafka.image</code> property functions differently from the others, because Strimzi supports multiple versions of Kafka, each requiring the own image.
+The <code>STRIMZI_KAFKA_IMAGES</code> environment variable of the Cluster Operator configuration is used to provide a mapping between Kafka versions and the corresponding images.
+This is used in combination with the <code>Kafka.spec.kafka.image</code> and <code>Kafka.spec.kafka.version</code> properties as follows:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>For Kafka brokers:</p>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+<p>If neither <code>Kafka.spec.kafka.image</code> nor <code>Kafka.spec.kafka.version</code> are given in the custom resource then the <code>version</code> will default to the  Cluster Operator&#8217;s default Kafka version, and the image will be the one corresponding to this version in the <code>STRIMZI_KAFKA_IMAGES</code>.</p>
 </li>
 <li>
-<p><code>strimzi/kafka:latest</code> container image.</p>
+<p>If <code>Kafka.spec.kafka.image</code> is given but <code>Kafka.spec.kafka.version</code> is not then the given image will be used and the <code>version</code> will be assumed to be the  Cluster Operator&#8217;s default Kafka version.</p>
 </li>
-</ol>
+<li>
+<p>If <code>Kafka.spec.kafka.version</code> is given but <code>Kafka.spec.kafka.image</code> is not then image will be the one corresponding to this version in the <code>STRIMZI_KAFKA_IMAGES</code>.</p>
+</li>
+<li>
+<p>Both <code>Kafka.spec.kafka.version</code> and <code>Kafka.spec.kafka.image</code> are given the given image will be used, and it will be assumed to contain a Kafka broker with the given version.</p>
+</li>
+</ul>
 </div>
-</li>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+It is best to provide just <code>Kafka.spec.kafka.version</code> and leave the <code>Kafka.spec.kafka.image</code> property unspecified.
+This reduces the chances of making a mistake in configuring the <code>Kafka</code> resource. If you need to change the images used for different versions of Kafka, it is better to configure the Cluster Operator&#8217;s <code>STRIMZI_KAFKA_IMAGES</code> environment variable.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect5">
+<h6 id="configuring_the_image_property_in_other_resources_3"><a class="link" href="#configuring_the_image_property_in_other_resources_3">Configuring the <code>image</code> property in other resources</a></h6>
+<div class="paragraph">
+<p>For the <code>image</code> property in the other custom resources, the given value will be used during deployment.
+If the <code>image</code> property is missing, the <code>image</code> specified in the Cluster Operator configuration will be used.
+If the <code>image</code> name is not defined in the Cluster Operator configuration, then the default value will be used.</p>
+</div>
+<div class="ulist">
+<ul>
 <li>
 <p>For Kafka broker TLS sidecar:</p>
 <div class="olist arabic">
@@ -12437,6 +12524,7 @@ spec:
     # ...
   zookeeper:
     # ...</code></pre>
+</div>
 </div>
 </div>
 </div>
@@ -13358,7 +13446,7 @@ For example:</p>
 <p>You can use OpenShift <a href="https://docs.openshift.org/3.9/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a> and the  <a href="https://docs.openshift.org/3.9/creating_images/s2i.html#creating-images-s2i" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images. An OpenShift build takes a builder image with S2I support, together with source code and binaries provided by the user, and uses them to build a new container image. Once built, container images are stored in OpenShift&#8217;s local container image repository and are available for use in deployments.</p>
 </div>
 <div class="paragraph">
-<p>A Kafka Connect builder image with S2I support is provided by Strimzi on the <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as <code>strimzi/kafka-connect-s2i:latest-kafka-2.0.0</code>. This S2I image takes your binaries (with plug-ins and connectors) and stores them in the <code>/tmp/kafka-plugins/s2i</code> directory. It creates a new Kafka Connect image from this directory, which can then be used with the Kafka Connect deployment. When started using the enhanced image, Kafka Connect loads any third-party plug-ins from the <code>/tmp/kafka-plugins/s2i</code> directory.</p>
+<p>A Kafka Connect builder image with S2I support is provided by Strimzi on the <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as <code>strimzi/kafka-connect-s2i:latest-kafka-2.1.0</code>. This S2I image takes your binaries (with plug-ins and connectors) and stores them in the <code>/tmp/kafka-plugins/s2i</code> directory. It creates a new Kafka Connect image from this directory, which can then be used with the Kafka Connect deployment. When started using the enhanced image, Kafka Connect loads any third-party plug-ins from the <code>/tmp/kafka-plugins/s2i</code> directory.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -15431,24 +15519,52 @@ If the configured image is not compatible with Strimzi images, it might not work
 </li>
 </ul>
 </div>
+<div class="sect5">
+<h6 id="configuring_the_kafka_spec_kafka_image_property_4"><a class="link" href="#configuring_the_kafka_spec_kafka_image_property_4">Configuring the <code>Kafka.spec.kafka.image</code> property</a></h6>
 <div class="paragraph">
-<p>The <code>image</code> specified in the component-specific custom resource will be used during deployment. If the <code>image</code> field is missing, the <code>image</code> specified in the Cluster Operator configuration will be used. If the <code>image</code> name is not defined in the Cluster Operator configuration, then the default value will be used.</p>
+<p>The <code>Kafka.spec.kafka.image</code> property functions differently from the others, because Strimzi supports multiple versions of Kafka, each requiring the own image.
+The <code>STRIMZI_KAFKA_IMAGES</code> environment variable of the Cluster Operator configuration is used to provide a mapping between Kafka versions and the corresponding images.
+This is used in combination with the <code>Kafka.spec.kafka.image</code> and <code>Kafka.spec.kafka.version</code> properties as follows:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>For Kafka brokers:</p>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+<p>If neither <code>Kafka.spec.kafka.image</code> nor <code>Kafka.spec.kafka.version</code> are given in the custom resource then the <code>version</code> will default to the  Cluster Operator&#8217;s default Kafka version, and the image will be the one corresponding to this version in the <code>STRIMZI_KAFKA_IMAGES</code>.</p>
 </li>
 <li>
-<p><code>strimzi/kafka:latest</code> container image.</p>
+<p>If <code>Kafka.spec.kafka.image</code> is given but <code>Kafka.spec.kafka.version</code> is not then the given image will be used and the <code>version</code> will be assumed to be the  Cluster Operator&#8217;s default Kafka version.</p>
 </li>
-</ol>
+<li>
+<p>If <code>Kafka.spec.kafka.version</code> is given but <code>Kafka.spec.kafka.image</code> is not then image will be the one corresponding to this version in the <code>STRIMZI_KAFKA_IMAGES</code>.</p>
+</li>
+<li>
+<p>Both <code>Kafka.spec.kafka.version</code> and <code>Kafka.spec.kafka.image</code> are given the given image will be used, and it will be assumed to contain a Kafka broker with the given version.</p>
+</li>
+</ul>
 </div>
-</li>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+It is best to provide just <code>Kafka.spec.kafka.version</code> and leave the <code>Kafka.spec.kafka.image</code> property unspecified.
+This reduces the chances of making a mistake in configuring the <code>Kafka</code> resource. If you need to change the images used for different versions of Kafka, it is better to configure the Cluster Operator&#8217;s <code>STRIMZI_KAFKA_IMAGES</code> environment variable.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect5">
+<h6 id="configuring_the_image_property_in_other_resources_4"><a class="link" href="#configuring_the_image_property_in_other_resources_4">Configuring the <code>image</code> property in other resources</a></h6>
+<div class="paragraph">
+<p>For the <code>image</code> property in the other custom resources, the given value will be used during deployment.
+If the <code>image</code> property is missing, the <code>image</code> specified in the Cluster Operator configuration will be used.
+If the <code>image</code> name is not defined in the Cluster Operator configuration, then the default value will be used.</p>
+</div>
+<div class="ulist">
+<ul>
 <li>
 <p>For Kafka broker TLS sidecar:</p>
 <div class="olist arabic">
@@ -15582,6 +15698,7 @@ spec:
     # ...
   zookeeper:
     # ...</code></pre>
+</div>
 </div>
 </div>
 </div>
@@ -16633,20 +16750,7 @@ This might cause a rolling update which might lead to service disruption.</p>
 <li>
 <p>Modify the installation files according to the namespace the Cluster Operator is going to be installed in.</p>
 <div class="paragraph">
-<p>On Linux, use:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code>sed -i 's/namespace: .*/namespace: <em>my-namespace</em>/' install/cluster-operator/*RoleBinding*.yaml</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>On MacOS, use:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code>sed -i '' 's/namespace: .*/namespace: <em>my-namespace</em>/' install/cluster-operator/*RoleBinding*.yaml</code></pre>
-</div>
+<p>include:frag-cluster-operator-namespace-sed.adoc[]</p>
 </div>
 </li>
 </ul>
@@ -16903,11 +17007,13 @@ The level for printing logging messages. The value can be set to: <code>ERROR</c
 <p>Optional, default: 300000 ms. The timeout for internal operations, in milliseconds. This value should be
 increased when using Strimzi on clusters where regular OpenShift or Kubernetes operations take longer than usual (because of slow downloading of Docker images, for example).</p>
 </dd>
-<dt class="hdlist1"><code>STRIMZI_DEFAULT_KAFKA_IMAGE</code></dt>
+<dt class="hdlist1"><code>STRIMZI_KAFKA_IMAGES</code></dt>
 <dd>
-<p>Optional, default <code>strimzi/kafka:latest</code>.
-The image name to use as the default when deploying Kafka, if
-no image is specified as the <code>Kafka.spec.kafka.image</code> in the <a href="#assembly-configuring-container-images-deployment-configuration-kafka">Container images</a>.</p>
+<p>Required.
+This provides a mapping from Kafka version to the corresponding Docker image containing a Kafka broker of that version.
+The required syntax is whitespace or comma separated <code><em>&lt;version&gt;</em>=<em>&lt;image&gt;</em></code> pairs.
+For example <code>2.0.0=strimzi/kafka:latest-kafka-2.0.0, 2.1.0=strimzi/kafka:latest-kafka-2.1.0</code>.
+This is used when a <code>Kafka.spec.kafka.version</code> property is specified but not the <code>Kafka.spec.kafka.image</code>, as described in <a href="#assembly-configuring-container-images-deployment-configuration-kafka">Container images</a>.</p>
 </dd>
 <dt class="hdlist1"><code>STRIMZI_DEFAULT_KAFKA_INIT_IMAGE</code></dt>
 <dd>
@@ -16932,17 +17038,29 @@ no image is specified as the <code>Kafka.spec.zookeeper.image</code> in the <a h
 The image name to use as the default when deploying the sidecar container which provides TLS support for Zookeeper, if
 no image is specified as the <code>Kafka.spec.zookeeper.tlsSidecar.image</code> in the <a href="#assembly-configuring-container-images-deployment-configuration-kafka">Container images</a>.</p>
 </dd>
-<dt class="hdlist1"><code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code></dt>
+<dt class="hdlist1"><code>STRIMZI_KAFKA_CONNECT_IMAGES</code></dt>
 <dd>
-<p>Optional, default <code>strimzi/kafka-connect:latest</code>.
-The image name to use as the default when deploying Kafka Connect,
-if no image is specified as the <code>image</code> in the Kafka Connect cluster ConfigMap</p>
+<p>Required.
+This provides a mapping from the Kafka version to the corresponding Docker image containing a Kafka connect of that version.
+The required syntax is whitespace or comma separated <code><em>&lt;version&gt;</em>=<em>&lt;image&gt;</em></code> pairs.
+For example <code>2.0.0=strimzi/kafka:latest-kafka-connect-2.0.0, 2.1.0=strimzi/kafka-connect:latest-kafka-2.1.0</code>.
+This is used when a <code>KafkaConnect.spec.version</code> property is specified but not the <code>KafkaConnect.spec.image</code>, as described in <a href="#assembly-configuring-container-images-deployment-configuration-kafka-connect">Container images</a>.</p>
 </dd>
-<dt class="hdlist1"><code>STRIMZI_DEFAULT_KAFKA_CONNECT_S2I_IMAGE</code></dt>
+<dt class="hdlist1"><code>STRIMZI_KAFKA_CONNECT_S2I_IMAGES</code></dt>
 <dd>
-<p>Optional, default <code>strimzi/kafka-connect-s2i:latest</code>.
-The image name to use as the default when deploying Kafka Connect S2I,
-if no image is specified as the <code>image</code> in the cluster ConfigMap.</p>
+<p>Required.
+This provides a mapping from the Kafka version to the corresponding Docker image containing a Kafka connect of that version.
+The required syntax is whitespace or comma separated <code><em>&lt;version&gt;</em>=<em>&lt;image&gt;</em></code> pairs.
+For example <code>2.0.0=strimzi/kafka:latest-kafka-connect-s2i-2.0.0, 2.1.0=strimzi/kafka-connect-s2i:latest-kafka-2.1.0</code>.
+This is used when a <code>KafkaConnectS2I.spec.version</code> property is specified but not the <code>KafkaConnectS2I.spec.image</code>, as described in <a href="#assembly-configuring-container-images-deployment-configuration-kafka-connect-s2i">Container images</a>.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_KAFKA_MIRROR_MAKER_IMAGES</code></dt>
+<dd>
+<p>Required.
+This provides a mapping from the Kafka version to the corresponding Docker image containing a Kafka mirror maker of that version.
+The required syntax is whitespace or comma separated <code><em>&lt;version&gt;</em>=<em>&lt;image&gt;</em></code> pairs.
+For example <code>2.0.0=strimzi/kafka-mirror-maker:latest-kafka-2.0.0, 2.1.0=strimzi/kafka-mirror-maker:latest-kafka-2.1.0</code>.
+This is used when a <code>KafkaMirrorMaker.spec.version</code> property is specified but not the <code>KafkaMirrorMaker.spec.image</code>, as described in <a href="#assembly-configuring-container-images-deployment-configuration-kafka-mirror-maker">Container images</a>.</p>
 </dd>
 <dt class="hdlist1"><code>STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE</code></dt>
 <dd>
@@ -19846,6 +19964,551 @@ For the Java-based Kafka Producer, Consumer, and Streams APIs, you can do this b
 </div>
 </div>
 <div class="sect1">
+<h2 id="assembly-upgrade-str"><a class="link" href="#assembly-upgrade-str">8. Strimzi and Kafka upgrades</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Each version of Strimzi supports a range of versions of Apache Kafka.
+You can upgrade to a higher Kafka version as long as that version is supported by your version of Strimzi.
+In some cases, you can also downgrade to a lower supported Kafka version.</p>
+</div>
+<div class="paragraph">
+<p>When a newer version of Strimzi is available, it may provide support for newer versions of Kafka.
+Therefore, you will need to upgrade to the new version of Strimzi before you can upgrade to a higher supported Kafka version.
+Upgrading the version of Strimzi is done by upgrading the Cluster Operator deployment to the new version.</p>
+</div>
+<div class="sect2">
+<h3 id="proc-upgrading-the-cluster-operator-str"><a class="link" href="#proc-upgrading-the-cluster-operator-str">8.1. Upgrading the Cluster Operator from 0.9.0 to 0.10.0</a></h3>
+<div class="paragraph">
+<p>This procedure will describe how to upgrade a Cluster Operator deployment from version 0.9.x to version 0.10.0.
+The availability of Kafka clusters managed by the Cluster Operator is not affected by the upgrade operation.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An existing version 0.9.0 Cluster Operator deployment to be upgraded.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Update your existing <code>Kafka</code>, <code>KafkaConnect</code>, <code>KafkaConnectS2I</code>, and <code>KafkaMirrorMaker</code> resources, as follows:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Add <code>Kafka.spec.kafka.version</code> with the value <code>2.0.1</code></p>
+</li>
+<li>
+<p>Add <code>KafkaConnect.spec.version</code> with the value <code>2.0.1</code></p>
+</li>
+<li>
+<p>Add <code>KafkaConnectS2I.spec.version</code> with the value <code>2.0.1</code></p>
+</li>
+<li>
+<p>Add <code>KafkaMirrorMaker.spec.version</code> with the value <code>2.0.1</code></p>
+<div class="paragraph">
+<p>Wait for the associated rolling updates to complete.</p>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Backup the existing Cluster Operator resources.</p>
+<div class="paragraph">
+<p>On Kubernetes use <code>kubectl get</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>kubectl get -l app=strimzi &gt; strimzi-backup.yaml</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift use <code>oc get</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>oc get -l app=strimzi &gt; strimzi-backup.yaml</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Update the Cluster Operator.
+You will need to modify the installation files according to the namespace the Cluster Operator is running in.</p>
+<div class="paragraph">
+<p>include:frag-cluster-operator-namespace-sed.adoc[]</p>
+</div>
+<div class="paragraph">
+<p>If you modified one or more environment variables in your existing Cluster Operator <code>Deployment</code>, edit
+<code>install/cluster-operator/050-Deployment-cluster-operator.yaml</code> to reflect the changes that you made.</p>
+</div>
+</li>
+<li>
+<p>When you have an updated configuration you can deploy it along with the rest of the install resources.</p>
+<div class="paragraph">
+<p>On Kubernetes use <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>kubectl apply -f install/cluster-operator</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift use <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>oc apply -f install/cluster-operator</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Wait for the associated rolling updates to complete.</p>
+</div>
+</li>
+<li>
+<p>Update existing resources to cope with deprecated custom resource properties.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>If you have <code>Kafka</code> resources that specify <code>Kafka.spec.topicOperator</code>, rewrite them to use <code>Kafka.spec.entityOperator.topicOperator</code> instead.</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="assembly-upgrading-kafka-versions-str"><a class="link" href="#assembly-upgrading-kafka-versions-str">8.2. Upgrading and downgrading Kafka versions</a></h3>
+<div class="sect3">
+<h4 id="con-versions-and-images-str"><a class="link" href="#con-versions-and-images-str">8.2.1. Versions and images overview</a></h4>
+<div class="paragraph">
+<p>The Cluster Operator embeds knowledge of different Kafka versions, but not of the corresponding images in which those versions are provided.
+Using the <code>STRIMZI_KAFKA_IMAGES</code> environment variable, the Cluster Operator is configured with a mapping between the Kafka version and the image to be used when that version is requested in a given <code>Kafka</code> resource.</p>
+</div>
+<div class="paragraph">
+<p>Each <code>Kafka</code> resource can be configured with a <code>Kafka.spec.kafka.version</code>.
+If <code>Kafka.spec.kafka.image</code> is not configured then the default image for the given version will be used.
+If <code>Kafka.spec.kafka.image</code> is given, this overrides the default.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+The Cluster Operator cannot validate that an image actually contains a Kafka broker of the expected version.
+Take care to ensure that the given image corresponds to the given Kafka version.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-kafka-upgrades-using-cluster-operator-str"><a class="link" href="#con-kafka-upgrades-using-cluster-operator-str">8.2.2. Kafka upgrades using the Cluster Operator</a></h4>
+<div class="paragraph">
+<p>How the Cluster Operator will perform an upgrade depends on the differences between:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The interbroker protocol version of the two Kafka versions</p>
+</li>
+<li>
+<p>The log message format version of the two Kafka versions</p>
+</li>
+<li>
+<p>The version of Zookeeper used by the two Kafka versions</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>When each of these versions is the same, as is typically the case for a patch level upgrade (for example 2.0.0 to 2.0.1), then the Cluster Operator can perform the upgrade using a single rolling update of the Kafka brokers.
+When one or more of these versions differ, the Cluster Operator will require two or three rolling updates of the Kafka brokers to perform the upgrade.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-upgrading-brokers-newer-kafka-str"><a class="link" href="#proc-upgrading-brokers-newer-kafka-str">8.2.3. Upgrading brokers to a newer Kafka version</a></h4>
+<div class="paragraph">
+<p>This procedure describes how to upgrade a Strimzi Kafka cluster from one version to a higher version; for example 2.0.0 to 2.1.0.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Cluster Operator, which supports both versions of Kafka, is up and running.</p>
+</li>
+<li>
+<p>A <code>Kafka</code> resource to be upgraded.</p>
+</li>
+<li>
+<p>You have checked that your <code>Kafka.spec.kafka.config</code> contains no options that are not supported in the version of Kafka that you are upgrading to.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Consult the table below and determine whether the new Kafka version has a different log message format version than the previous version.</p>
+</li>
+</ol>
+</div>
+<div class="sect4">
+<h5 id="ref-kafka-versions-str"><a class="link" href="#ref-kafka-versions-str">Kafka versions</a></h5>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Kafka version</th>
+<th class="tableblock halign-left valign-top">Interbroker protocol version</th>
+<th class="tableblock halign-left valign-top">Log message format version</th>
+<th class="tableblock halign-left valign-top">Zookeeper version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.0.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3.4.13</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.0.1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3.4.13</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.1.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2.1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3.4.13</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The default Kafka version is 2.1.0.</p>
+</div>
+<div class="paragraph">
+<p>+
+If the log message format versions are the same proceed to the next step.
+Otherwise, ensure the <code>Kafka.spec.kafka.config</code> has the <code>log.message.format.version</code> configured to the default for the previous version.</p>
+</div>
+<div class="paragraph">
+<p>+
+For example, if upgrading from 2.0.0:</p>
+</div>
+<div class="paragraph">
+<p>+</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1alpha1
+kind: Kafka
+spec:
+  # ...
+  kafka:
+    version: 2.0.0
+    config:
+      log.message.format.version: "2.0"
+      # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>+
+NOTE: You must format the value of <code>log.message.format.version</code> as a string to prevent it from being interpreted as a number.</p>
+</div>
+<div class="paragraph">
+<p>+
+If <code>log.message.format.version</code> is unset then set it and wait for the resulting rolling restart of the Kafka cluster to complete.</p>
+</div>
+<div class="paragraph">
+<p>+
+. Change the <code>Kafka.spec.kafka.version</code> to specify the new version, but leave the <code>log.message.format.version</code> as the previous version.
+If the image to be used is different from the image for the given version of Kafka configured in the Cluster Operator&#8217;s <code>STRIMZI_KAFKA_IMAGES</code> then configure the <code>Kafka.spec.kafka.image</code> as well.</p>
+</div>
+<div class="paragraph">
+<p>+
+For example, if upgrading from Kafka 2.0.0 to 2.1.0:</p>
+</div>
+<div class="paragraph">
+<p>+</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1alpha1
+kind: Kafka
+spec:
+  # ...
+  kafka:
+    version: 2.1.0 <b class="conum">(1)</b>
+    config:
+      log.message.format.version: "2.0" <b class="conum">(2)</b>
+      # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>This is changed to the new version</p>
+</li>
+<li>
+<p>This remains at the previous version</p>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Wait for the Cluster Operator to upgrade the cluster.
+If the old and new versions of Kafka have different interbroker protocol versions, look in the Cluster Operator logs for an <code>INFO</code> level message in the following format:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>Reconciliation #<em>&lt;num&gt;</em>(watch) Kafka(<em>&lt;namespace&gt;</em>/<em>&lt;name&gt;</em>): Kafka version upgrade from <em>&lt;from-version&gt;</em> to <em>&lt;to-version&gt;</em>, phase 2 of 2 completed</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Alternatively, if the old and new versions of Kafka have the same interbroker protocol version, look in the Cluster Operator logs for an <code>INFO</code> level message  in the following format:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>Reconciliation #<em>&lt;num&gt;</em>(watch) Kafka(<em>&lt;namespace&gt;</em>/<em>&lt;name&gt;</em>): Kafka version upgrade from <em>&lt;from-version&gt;</em> to <em>&lt;to-version&gt;</em>, phase 1 of 1 completed</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, using <code>grep</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc logs -f <em>&lt;cluster-operator-pod-name&gt;</em> | grep -E "Kafka version upgrade from [0-9.]+ to [0-9.]+, phase ([0-9]+) of \1 completed"</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Upgrade all your client applications to use the new version of the client libraries.</p>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+You cannot downgrade after completing this step. If, for whatever reason, you need to revert the update at this point, follow the procedure <a href="#proc-downgrading-brokers-older-kafka-str">Downgrading brokers to an older Kafka version</a>.
+</td>
+</tr>
+</table>
+</div>
+</li>
+<li>
+<p>If the log message format versions, as identified in step 1, are the same proceed to the next step.
+Otherwise change the <code>log.message.format.version</code> in <code>Kafka.spec.kafka.config</code> to the default version for the new version of Kafka now being used.
+For example, if upgrading to 2.1.0:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1alpha1
+kind: Kafka
+spec:
+  # ...
+  kafka:
+    version: 2.1.0
+    config:
+      log.message.format.version: "2.1"
+      # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Wait for the Cluster Operator to update the cluster.</p>
+</div>
+</li>
+</ol>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>See <a href="#proc-downgrading-brokers-older-kafka-str">Downgrading brokers to an older Kafka version</a> for the procedure to downgrade a Strimzi Kafka cluster from one version to a lower version, for example 2.0.1 to 2.0.0.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-kafka-downgrades-using-cluster-operator-str"><a class="link" href="#con-kafka-downgrades-using-cluster-operator-str">8.2.4. Kafka downgrades using the Cluster Operator</a></h4>
+<div class="paragraph">
+<p>Whether and how the Cluster Operator will perform a downgrade depends on the differences between:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The interbroker protocol version of the two Kafka versions</p>
+</li>
+<li>
+<p>The log message format version of the two Kafka versions</p>
+</li>
+<li>
+<p>The version of Zookeeper used by the two Kafka versions</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>If the downgraded version of Kafka has the same log message format version then downgrading is always possible.
+In this case the Cluster Operator will be able to downgrade by performing a single rolling restart of the brokers.</p>
+</div>
+<div class="paragraph">
+<p>If the downgraded version of Kafka has a different log message format version, then downgrading is only possible if the running cluster has
+<em>always</em> had <code>log.message.format.version</code> set to the version used by the downgraded version.
+This is typically only the case when the upgrade procedure has been aborted before the <code>log.message.format.version</code> was changed.
+In this case the downgrade will require two rolling restarts of the brokers if the interbroker protocol of the two versions is different, or a single rolling restart if they are the same.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-downgrading-brokers-older-kafka-str"><a class="link" href="#proc-downgrading-brokers-older-kafka-str">8.2.5. Downgrading brokers to an older Kafka version</a></h4>
+<div class="paragraph">
+<p>You can downgrade a Strimzi Kafka cluster from one version to a lower version; for example, from 2.1.0 to 2.0.0.</p>
+</div>
+<div class="paragraph">
+<p>In this procedure the term <em>previous version</em> means the version being downgraded <em>to</em> (such as 2.0.0), and the term <em>new version</em> means the version being downgraded <em>from</em> (such as 2.1.0).</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+Downgrading is not possible if the version being downgraded <em>from</em> has ever used a <code>log.message.format.version</code> that is not supported by the version being downgraded <em>to</em> (including where the default value for <code>log.message.format.version</code> is used).
++For example, consider:
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>+</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1alpha1
+kind: Kafka
+spec:
+  # ...
+  kafka:
+    version: 2.1.0
+    config:
+      log.message.format.version: "2.0"
+      # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>+
+This resource can be downgraded to Kafka version 2.0.0 because the <code>log.message.format.version</code> has not been changed.
+If the <code>log.message.format.version</code> were absent (so that the parameter took its default value for a 2.1.0 broker of 2.1), or was <code>"2.1"</code> then downgrade would not be possible.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Cluster Operator is up and running.</p>
+</li>
+<li>
+<p>A <code>Kafka</code> resource to be downgraded.</p>
+</li>
+<li>
+<p>The <code>Kafka.spec.kafka.config</code> has a <code>log.message.format.version</code> that is supported by the version being downgraded to.</p>
+</li>
+<li>
+<p>You have checked that your <code>Kafka.spec.kafka.config</code> contains no options which are not supported in the version of Kafka being downgraded to.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Change the <code>Kafka.spec.kafka.version</code> to specify the version being downgraded <em>to</em>.
+If the image to be used is different from the image for the given version of Kafka configured in the Cluster Operator&#8217;s <code>STRIMZI_KAFKA_IMAGES</code> then configure the <code>Kafka.spec.kafka.image</code> as well.</p>
+<div class="paragraph">
+<p>For example, if downgrading from Kafka 2.1.0 to 2.0.0:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1alpha1
+kind: Kafka
+spec:
+  # ...
+  kafka:
+    version: 2.0.0 <b class="conum">(1)</b>
+    config:
+      log.message.format.version: "2.0" <b class="conum">(2)</b>
+      # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>This is changed to the downgraded version</p>
+</li>
+<li>
+<p>This is unchanged</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+It is necessary to format the value of <code>log.message.format.version</code> as a string to prevent it being interpreted as a number.
+</td>
+</tr>
+</table>
+</div>
+</li>
+<li>
+<p>Wait for the Cluster Operator to downgrade the cluster.
+If both the previous and new versions of Kafka have a different interbroker protocol version look in the Cluster Operator logs for an <code>INFO</code> level message  in the following format:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>Reconciliation #<em>&lt;num&gt;</em>(watch) Kafka(<em>&lt;namespace&gt;</em>/<em>&lt;name&gt;</em>): Kafka version downgrade from <em>&lt;from-version&gt;</em> to <em>&lt;to-version&gt;</em>, phase 2 of 2 completed</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Alternatively, if both the previous and new versions of Kafka have the same interbroker protocol version look in the Cluster Operator logs for an <code>INFO</code> level message in the following format:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>Reconciliation #<em>&lt;num&gt;</em>(watch) Kafka(<em>&lt;namespace&gt;</em>/<em>&lt;name&gt;</em>): Kafka version downgrade from <em>&lt;from-version&gt;</em> to <em>&lt;to-version&gt;</em>, phase 1 of 1 completed</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, using <code>grep</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc logs -f <em>&lt;cluster-operator-pod-name&gt;</em> | grep -E "Kafka version downgrade from [0-9.]+ to [0-9.]+, phase ([0-9]+) of \1 completed"</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Downgrade each client application to use the previous version of the client libraries.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
 <h2 id="frequently_asked_questions"><a class="link" href="#frequently_asked_questions">Appendix A: Frequently Asked Questions</a></h2>
 <div class="sectionbody">
 <div class="sect2">
@@ -19853,6 +20516,7 @@ For the Java-based Kafka Producer, Consumer, and Streams APIs, you can do this b
 <div class="sect3">
 <h4 id="why_do_i_need_cluster_admin_privileges_to_install_strimzi"><a class="link" href="#why_do_i_need_cluster_admin_privileges_to_install_strimzi">A.1.1. Why do I need cluster admin privileges to install Strimzi?</a></h4>
 <div class="paragraph">
+<div class="title">Additional resources</div>
 <p>To install Strimzi, you must have the ability to create Custom Resource Definitions (CRDs).
 CRDs instruct OpenShift or Kubernetes about resources that are specific to Strimzi, such as Kafka, KafkaConnect, and so on.
 Because CRDs are a cluster-scoped resource rather than being scoped to a particular OpenShift or Kubernetes namespace, they typically require cluster admin privileges to install.</p>
@@ -20247,7 +20911,7 @@ Once installed, <code>Minishift</code> can be started using the following comman
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">version</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The kafka broker version. Defaults to 2.0.0. Consult the user documentation to understand the process required to upgrade or downgrade the version.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The kafka broker version. Defaults to 2.1.0. Consult the user documentation to understand the process required to upgrade or downgrade the version.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
@@ -22026,7 +22690,7 @@ It must have the value <code>external</code> for the type <code>ExternalLogging<
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">version</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The Kafka Connect version. Defaults to 2.0.0. Consult the user documentation to understand the process required to upgrade or downgrade the version.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The Kafka Connect version. Defaults to 2.1.0. Consult the user documentation to understand the process required to upgrade or downgrade the version.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
@@ -22606,7 +23270,7 @@ It must have the value <code>scram-sha-512</code> for the type <code>KafkaConnec
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">version</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The Kafka Connect version. Defaults to 2.0.0. Consult the user documentation to understand the process required to upgrade or downgrade the version.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The Kafka Connect version. Defaults to 2.1.0. Consult the user documentation to understand the process required to upgrade or downgrade the version.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
@@ -23185,7 +23849,7 @@ It must have the value <code>transactionalId</code> for the type <code>AclRuleTr
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">version</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The Kafka Mirror Maker version. Defaults to 2.0.0. Consult the user documentation to understand the process required to upgrade or downgrade the version.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The Kafka Mirror Maker version. Defaults to 2.1.0. Consult the user documentation to understand the process required to upgrade or downgrade the version.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
