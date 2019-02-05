@@ -16,7 +16,8 @@
 <li><a href="#deploying-cluster-operator-kubernetes-str">2.2.2. Deploying the Cluster Operator to Kubernetes</a></li>
 <li><a href="#deploying-cluster-operator-openshift-str">2.2.3. Deploying the Cluster Operator to OpenShift</a></li>
 <li><a href="#deploying-cluster-operator-kubernetes-to-watch-multiple-namespacesstr">2.2.4. Deploying the Cluster Operator to watch multiple namespaces</a></li>
-<li><a href="#deploying-cluster-operator-helm-chart-str">2.2.5. Deploying the Cluster Operator using Helm Chart</a></li>
+<li><a href="#deploying-cluster-operator-kubernetes-to-watch-whole-cluster-str">2.2.5. Deploying the Cluster Operator to watch all namespaces</a></li>
+<li><a href="#deploying-cluster-operator-helm-chart-str">2.2.6. Deploying the Cluster Operator using Helm Chart</a></li>
 </ul>
 </li>
 <li><a href="#kafka-cluster-str">2.3. Kafka cluster</a>
@@ -163,10 +164,11 @@
 <li><a href="#deploying-cluster-operator-kubernetes-deploying-co">4.1.2. Deploying the Cluster Operator to Kubernetes</a></li>
 <li><a href="#deploying-cluster-operator-openshift-deploying-co">4.1.3. Deploying the Cluster Operator to OpenShift</a></li>
 <li><a href="#deploying-cluster-operator-kubernetes-to-watch-multiple-namespacesdeploying-co">4.1.4. Deploying the Cluster Operator to watch multiple namespaces</a></li>
-<li><a href="#deploying-cluster-operator-helm-chart-deploying-co">4.1.5. Deploying the Cluster Operator using Helm Chart</a></li>
-<li><a href="#con-cluster-operator-reconciliation-deploying-co">4.1.6. Reconciliation</a></li>
-<li><a href="#ref-operators-cluster-operator-configuration-deploying-co">4.1.7. Cluster Operator Configuration</a></li>
-<li><a href="#con-cluster-operator-rbac-deploying-co">4.1.8. Role-Based Access Control (RBAC)</a></li>
+<li><a href="#deploying-cluster-operator-kubernetes-to-watch-whole-cluster-deploying-co">4.1.5. Deploying the Cluster Operator to watch all namespaces</a></li>
+<li><a href="#deploying-cluster-operator-helm-chart-deploying-co">4.1.6. Deploying the Cluster Operator using Helm Chart</a></li>
+<li><a href="#con-cluster-operator-reconciliation-deploying-co">4.1.7. Reconciliation</a></li>
+<li><a href="#ref-operators-cluster-operator-configuration-deploying-co">4.1.8. Cluster Operator Configuration</a></li>
+<li><a href="#con-cluster-operator-rbac-deploying-co">4.1.9. Role-Based Access Control (RBAC)</a></li>
 </ul>
 </li>
 <li><a href="#deploying-the-topic-operator-str">4.2. Topic Operator</a>
@@ -782,7 +784,106 @@ oc apply -f install/cluster-operator/032-RoleBinding-strimzi-cluster-operator-to
 </div>
 </div>
 <div class="sect3">
-<h4 id="deploying-cluster-operator-helm-chart-str"><a class="link" href="#deploying-cluster-operator-helm-chart-str">2.2.5. Deploying the Cluster Operator using Helm Chart</a></h4>
+<h4 id="deploying-cluster-operator-kubernetes-to-watch-whole-cluster-str"><a class="link" href="#deploying-cluster-operator-kubernetes-to-watch-whole-cluster-str">2.2.5. Deploying the Cluster Operator to watch all namespaces</a></h4>
+<div class="paragraph">
+<p>You can configure the Cluster Operator to watch OpenShift resources across all OpenShift projects or Kubernetes namespaces in your OpenShift or Kubernetes cluster. When running in this mode, the Cluster Operator automatically manages clusters in any new projects or namespaces that are created.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>Your OpenShift or Kubernetes cluster is running.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Configure the Cluster Operator to watch all namespaces:</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>Edit the <code>050-Deployment-strimzi-cluster-operator.yaml</code> file.</p>
+</li>
+<li>
+<p>Set the value of the <code>STRIMZI_NAMESPACE</code> environment variable to <code>*</code>.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: extensions/v1beta1
+kind: Deployment
+spec:
+  template:
+    spec:
+      # ...
+      serviceAccountName: strimzi-cluster-operator
+      containers:
+      - name: strimzi-cluster-operator
+        image: strimzi/cluster-operator:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: STRIMZI_NAMESPACE
+          value: "*"
+        # ...</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Create <code>ClusterRoleBindings</code> that grant cluster-wide access to all OpenShift projects or Kubernetes namespaces to the Cluster Operator.</p>
+<div class="paragraph">
+<p>On OpenShift, use the <code>oc adm policy</code> command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc adm policy add-cluster-role-to-user strimzi-cluster-operator-namespaced --serviceaccount strimzi-cluster-operator -n <em>my-project</em>
+oc adm policy add-cluster-role-to-user strimzi-entity-operator --serviceaccount strimzi-cluster-operator -n <em>my-project</em>
+oc adm policy add-cluster-role-to-user strimzi-topic-operator --serviceaccount strimzi-cluster-operator -n <em>my-project</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace <code><em>my-project</em></code> with the project in which you want to install the Cluster Operator.</p>
+</div>
+<div class="paragraph">
+<p>On Kubernetes, use the <code>kubectl create</code> command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create clusterrolebinding strimzi-cluster-operator-namespaced --clusterrole=strimzi-cluster-operator-namespaced --serviceaccount <em>my-namespace</em>:strimzi-cluster-operator
+kubectl create clusterrolebinding strimzi-cluster-operator-entity-operator-delegation --clusterrole=strimzi-entity-operator --serviceaccount <em>my-namespace</em>:strimzi-cluster-operator
+kubectl create clusterrolebinding strimzi-cluster-operator-topic-operator-delegation --clusterrole=strimzi-topic-operator --serviceaccount <em>my-namespace</em>:strimzi-cluster-operator</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace <code><em>my-namespace</em></code> with the namespace in which you want to install the Cluster Operator.</p>
+</div>
+</li>
+<li>
+<p>Deploy the Cluster Operator to your OpenShift or Kubernetes cluster.</p>
+<div class="paragraph">
+<p>On OpenShift, use the <code>oc apply</code> command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f install/cluster-operator -n <em>my-project</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On Kubernetes, use the <code>kubectl apply</code> command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f install/cluster-operator -n <em>my-namespace</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="deploying-cluster-operator-helm-chart-str"><a class="link" href="#deploying-cluster-operator-helm-chart-str">2.2.6. Deploying the Cluster Operator using Helm Chart</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -16916,7 +17017,106 @@ oc apply -f install/cluster-operator/032-RoleBinding-strimzi-cluster-operator-to
 </div>
 </div>
 <div class="sect3">
-<h4 id="deploying-cluster-operator-helm-chart-deploying-co"><a class="link" href="#deploying-cluster-operator-helm-chart-deploying-co">4.1.5. Deploying the Cluster Operator using Helm Chart</a></h4>
+<h4 id="deploying-cluster-operator-kubernetes-to-watch-whole-cluster-deploying-co"><a class="link" href="#deploying-cluster-operator-kubernetes-to-watch-whole-cluster-deploying-co">4.1.5. Deploying the Cluster Operator to watch all namespaces</a></h4>
+<div class="paragraph">
+<p>You can configure the Cluster Operator to watch OpenShift resources across all OpenShift projects or Kubernetes namespaces in your OpenShift or Kubernetes cluster. When running in this mode, the Cluster Operator automatically manages clusters in any new projects or namespaces that are created.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>Your OpenShift or Kubernetes cluster is running.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Configure the Cluster Operator to watch all namespaces:</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>Edit the <code>050-Deployment-strimzi-cluster-operator.yaml</code> file.</p>
+</li>
+<li>
+<p>Set the value of the <code>STRIMZI_NAMESPACE</code> environment variable to <code>*</code>.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: extensions/v1beta1
+kind: Deployment
+spec:
+  template:
+    spec:
+      # ...
+      serviceAccountName: strimzi-cluster-operator
+      containers:
+      - name: strimzi-cluster-operator
+        image: strimzi/cluster-operator:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: STRIMZI_NAMESPACE
+          value: "*"
+        # ...</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Create <code>ClusterRoleBindings</code> that grant cluster-wide access to all OpenShift projects or Kubernetes namespaces to the Cluster Operator.</p>
+<div class="paragraph">
+<p>On OpenShift, use the <code>oc adm policy</code> command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc adm policy add-cluster-role-to-user strimzi-cluster-operator-namespaced --serviceaccount strimzi-cluster-operator -n <em>my-project</em>
+oc adm policy add-cluster-role-to-user strimzi-entity-operator --serviceaccount strimzi-cluster-operator -n <em>my-project</em>
+oc adm policy add-cluster-role-to-user strimzi-topic-operator --serviceaccount strimzi-cluster-operator -n <em>my-project</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace <code><em>my-project</em></code> with the project in which you want to install the Cluster Operator.</p>
+</div>
+<div class="paragraph">
+<p>On Kubernetes, use the <code>kubectl create</code> command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create clusterrolebinding strimzi-cluster-operator-namespaced --clusterrole=strimzi-cluster-operator-namespaced --serviceaccount <em>my-namespace</em>:strimzi-cluster-operator
+kubectl create clusterrolebinding strimzi-cluster-operator-entity-operator-delegation --clusterrole=strimzi-entity-operator --serviceaccount <em>my-namespace</em>:strimzi-cluster-operator
+kubectl create clusterrolebinding strimzi-cluster-operator-topic-operator-delegation --clusterrole=strimzi-topic-operator --serviceaccount <em>my-namespace</em>:strimzi-cluster-operator</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace <code><em>my-namespace</em></code> with the namespace in which you want to install the Cluster Operator.</p>
+</div>
+</li>
+<li>
+<p>Deploy the Cluster Operator to your OpenShift or Kubernetes cluster.</p>
+<div class="paragraph">
+<p>On OpenShift, use the <code>oc apply</code> command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f install/cluster-operator -n <em>my-project</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On Kubernetes, use the <code>kubectl apply</code> command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f install/cluster-operator -n <em>my-namespace</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="deploying-cluster-operator-helm-chart-deploying-co"><a class="link" href="#deploying-cluster-operator-helm-chart-deploying-co">4.1.6. Deploying the Cluster Operator using Helm Chart</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -16967,7 +17167,7 @@ oc apply -f install/cluster-operator/032-RoleBinding-strimzi-cluster-operator-to
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-cluster-operator-reconciliation-deploying-co"><a class="link" href="#con-cluster-operator-reconciliation-deploying-co">4.1.6. Reconciliation</a></h4>
+<h4 id="con-cluster-operator-reconciliation-deploying-co"><a class="link" href="#con-cluster-operator-reconciliation-deploying-co">4.1.7. Reconciliation</a></h4>
 <div class="paragraph">
 <p>Although the operator reacts to all notifications about the desired cluster resources received from the OpenShift or Kubernetes cluster,
 if the operator is not running, or if a notification is not received for any reason, the desired resources will get out of sync with the state of the running OpenShift or Kubernetes cluster.</p>
@@ -16978,7 +17178,7 @@ You can set the time interval for the periodic reconciliations using the <a href
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-operators-cluster-operator-configuration-deploying-co"><a class="link" href="#ref-operators-cluster-operator-configuration-deploying-co">4.1.7. Cluster Operator Configuration</a></h4>
+<h4 id="ref-operators-cluster-operator-configuration-deploying-co"><a class="link" href="#ref-operators-cluster-operator-configuration-deploying-co">4.1.8. Cluster Operator Configuration</a></h4>
 <div class="paragraph">
 <p>The Cluster Operator can be configured through the following supported environment variables:</p>
 </div>
@@ -17090,7 +17290,7 @@ no image is specified as the <code>Kafka.spec.entityOperator.tlsSidecar.image</c
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-cluster-operator-rbac-deploying-co"><a class="link" href="#con-cluster-operator-rbac-deploying-co">4.1.8. Role-Based Access Control (RBAC)</a></h4>
+<h4 id="con-cluster-operator-rbac-deploying-co"><a class="link" href="#con-cluster-operator-rbac-deploying-co">4.1.9. Role-Based Access Control (RBAC)</a></h4>
 <div class="sect4">
 <h5 id="provisioning_role_based_access_control_rbac_for_the_cluster_operator"><a class="link" href="#provisioning_role_based_access_control_rbac_for_the_cluster_operator">Provisioning Role-Based Access Control (RBAC) for the Cluster Operator</a></h5>
 <div class="paragraph">
