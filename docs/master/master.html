@@ -150,8 +150,9 @@
 <li><a href="#con-customizing-template-properties-str">3.5.1. Template properties</a></li>
 <li><a href="#con-customizing-labels-and-annotations-str">3.5.2. Labels and Annotations</a></li>
 <li><a href="#con-customizing-pods-str">3.5.3. Customizing Pods</a></li>
-<li><a href="#con-customizing-pod-disruption-budgets-str">3.5.4. Customizing Pod Disruption Budgets</a></li>
-<li><a href="#proc-customizing-deployments-str">3.5.5. Customizing deployments</a></li>
+<li><a href="#con-customizing-image-pull-policy-str">3.5.4. Customizing the image pull policy</a></li>
+<li><a href="#con-customizing-pod-disruption-budgets-str">3.5.5. Customizing Pod Disruption Budgets</a></li>
+<li><a href="#proc-customizing-deployments-str">3.5.6. Customizing deployments</a></li>
 </ul>
 </li>
 </ul>
@@ -16723,7 +16724,46 @@ template:
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-customizing-pod-disruption-budgets-str"><a class="link" href="#con-customizing-pod-disruption-budgets-str">3.5.4. Customizing Pod Disruption Budgets</a></h4>
+<h4 id="con-customizing-image-pull-policy-str"><a class="link" href="#con-customizing-image-pull-policy-str">3.5.4. Customizing the image pull policy</a></h4>
+<div class="paragraph">
+<p>Strimzi allows you to customize the image pull policy for containers in all pods deployed by the Cluster Operator.
+The image pull policy is configured using the environment variable <code>STRIMZI_IMAGE_PULL_POLICY</code> in the Cluster Operator deployment.
+The <code>STRIMZI_IMAGE_PULL_POLICY</code> environment variable can be set to three different values:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>Always</code></dt>
+<dd>
+<p>Container images are pulled from the registry every time the pod is started or restarted.</p>
+</dd>
+<dt class="hdlist1"><code>IfNotPresent</code></dt>
+<dd>
+<p>Container images are pulled from the registry only when they were not pulled before.</p>
+</dd>
+<dt class="hdlist1"><code>Never</code></dt>
+<dd>
+<p>Container images are never pulled from the registry.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>The image pull policy can be currently customized only for all Kafka, Kafka Connect, and Kafka Mirror Maker clusters at once.
+Changing the policy will result in a rolling update of all your Kafka, Kafka Connect, and Kafka Mirror Maker clusters.</p>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about Cluster Operator configuration, see <a href="#assembly-operators-cluster-operator-str">Cluster Operator</a>.</p>
+</li>
+<li>
+<p>For more information about Image Pull Policies, see <a href="https://kubernetes.io/docs/concepts/containers/images/#updating-images" target="_blank" rel="noopener">Disruptions</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-customizing-pod-disruption-budgets-str"><a class="link" href="#con-customizing-pod-disruption-budgets-str">3.5.5. Customizing Pod Disruption Budgets</a></h4>
 <div class="paragraph">
 <p>Strimzi creates a pod disruption budget for every new <code>StatefulSet</code> or <code>Deployment</code>.
 By default, these pod disruption budgets only allow a single pod to be unavailable at a given time by setting the <code>maxUnavailable</code> value in the`PodDisruptionBudget.spec` resource to 1.
@@ -16762,7 +16802,7 @@ template:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-customizing-deployments-str"><a class="link" href="#proc-customizing-deployments-str">3.5.5. Customizing deployments</a></h4>
+<h4 id="proc-customizing-deployments-str"><a class="link" href="#proc-customizing-deployments-str">3.5.6. Customizing deployments</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to customize <code>Labels</code> of a Kafka cluster.</p>
 </div>
@@ -17346,6 +17386,14 @@ if no image is specified as the <code>Kafka.spec.entityOperator.userOperator.ima
 <p>Optional, default <code>strimzi/entity-operator-stunnel:latest</code>.
 The image name to use as the default when deploying the sidecar container which provides TLS support for the Entity Operator, if
 no image is specified as the <code>Kafka.spec.entityOperator.tlsSidecar.image</code> in the <a href="#assembly-configuring-container-images-deployment-configuration-kafka">Container images</a>.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_IMAGE_PULL_POLICY</code></dt>
+<dd>
+<p>Optional.
+The <code>ImagePullPolicy</code> which will be applied to containers in all pods managed by Strimzi Cluster Operator.
+The valid values are <code>Always</code>, <code>IfNotPresent</code>, and <code>Never</code>.
+If not specified, the OpenShift or Kubernetes defaults will be used.
+Changing the policy will result in a rolling update of all your Kafka, Kafka Connect, and Kafka Mirror Maker clusters.</p>
 </dd>
 </dl>
 </div>
@@ -19826,14 +19874,33 @@ You can enforce this using OpenShift or Kubernetes role-based access controls if
 <p>The Cluster Operator is running.</p>
 </li>
 <li>
-<p>A <code>Kafka</code> resource within OpenShift or Kubernetes</p>
+<p>A Kafka cluster is not yet deployed.</p>
 </li>
 <li>
-<p>Your own X.509 certificates and keys in PEM format for the cluster CA or clients CA. For example, these could be generated by <code>openssl</code>, using a command such as:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">openssl req -x509 -new -days <em>&lt;validity&gt;</em> --nodes -out ca.crt -keyout ca.key</code></pre>
+<p>Your own X.509 certificates and keys in PEM format for the cluster CA or clients CA.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>If you want to use a cluster or clients CA which is not a Root CA, you have to include the whole chain in the certificate file.
+The chain should be in the following order:</p>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The cluster or clients CA</p>
+</li>
+<li>
+<p>One or more intermediate CAs</p>
+</li>
+<li>
+<p>The root CA</p>
+</li>
+</ol>
 </div>
+</li>
+<li>
+<p>All CAs in the chain should be configured as a CA in the X509v3 Basic Constraints.</p>
+</li>
+</ul>
 </div>
 </li>
 </ul>
@@ -19851,11 +19918,7 @@ You can enforce this using OpenShift or Kubernetes role-based access controls if
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># Delete any existing secret (ignore "Not Exists" errors)
 kubectl delete secret <em>&lt;ca-cert-secret&gt;</em>
 # Create and label the new one
-kubectl create secret generic <em>&lt;ca-cert-secret&gt;</em> \
-  --from-file=ca.crt=<em>&lt;ca-cert-file&gt;</em> \
-  &amp;&amp; kubectl label secret <em>&lt;ca-cert-secret&gt;</em> \
-  strimzi.io/kind=Kafka \
-  strimzi.io/cluster=<em>&lt;my-cluster&gt;</em></code></pre>
+kubectl create secret generic <em>&lt;ca-cert-secret&gt;</em> --from-file=ca.crt=<em>&lt;ca-cert-file&gt;</em></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -19866,11 +19929,7 @@ kubectl create secret generic <em>&lt;ca-cert-secret&gt;</em> \
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># Delete any existing secret (ignore "Not Exists" errors)
 oc delete secret <em>&lt;ca-cert-secret&gt;</em>
 # Create the new one
-oc create secret generic <em>&lt;ca-cert-secret&gt;</em> \
-  --from-file=ca.crt=<em>&lt;ca-cert-file&gt;</em> \
-  &amp;&amp; oc label secret <em>&lt;ca-cert-secret&gt;</em> \
-  strimzi.io/kind=Kafka \
-  strimzi.io/cluster=<em>&lt;my-cluster&gt;</em></code></pre>
+oc create secret generic <em>&lt;ca-cert-secret&gt;</em> --from-file=ca.crt=<em>&lt;ca-cert-file&gt;</em></code></pre>
 </div>
 </div>
 </li>
@@ -19884,11 +19943,7 @@ oc create secret generic <em>&lt;ca-cert-secret&gt;</em> \
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># Delete the existing secret
 kubectl delete secret <em>&lt;ca-key-secret&gt;</em>
 # Create the new one
-kubectl create secret generic <em>&lt;ca-key-secret&gt;</em> \
-  --from-file=ca.key=<em>&lt;ca-key-file&gt;</em> \\
-  &amp;&amp; kubectl label secret <em>&lt;ca-key-secret&gt;</em> \
-  strimzi.io/kind=Kafka \
-  strimzi.io/cluster=<em>&lt;my-cluster&gt;</em></code></pre>
+kubectl create secret generic <em>&lt;ca-key-secret&gt;</em> --from-file=ca.key=<em>&lt;ca-key-file&gt;</em></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -19899,11 +19954,28 @@ kubectl create secret generic <em>&lt;ca-key-secret&gt;</em> \
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># Delete the existing secret
 oc delete secret <em>&lt;ca-key-secret&gt;</em>
 # Create the new one
-oc create secret generic <em>&lt;ca-key-secret&gt;</em> \
-  --from-file=ca.key=<em>&lt;ca-key-file&gt;</em> \
-  &amp;&amp; oc label secret <em>&lt;ca-key-secret&gt;</em> \
-  strimzi.io/kind=Kafka \
-  strimzi.io/cluster=<em>&lt;my-cluster&gt;</em></code></pre>
+oc create secret generic <em>&lt;ca-key-secret&gt;</em> --from-file=ca.key=<em>&lt;ca-key-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Label both <code>Secrets</code> with labels <code>strimzi.io/kind=Kafka</code> and <code>strimzi.io/cluster=<em>&lt;my-cluster&gt;</em></code>:</p>
+<div class="paragraph">
+<p>On Kubernetes, run the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl label secret <em>&lt;ca-cert-secret&gt;</em> strimzi.io/kind=Kafka strimzi.io/cluster=<em>&lt;my-cluster&gt;</em>
+kubectl label secret <em>&lt;ca-key-secret&gt;</em> strimzi.io/kind=Kafka strimzi.io/cluster=<em>&lt;my-cluster&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift, run the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc label secret <em>&lt;ca-cert-secret&gt;</em> strimzi.io/kind=Kafka strimzi.io/cluster=<em>&lt;my-cluster&gt;</em>
+oc label secret <em>&lt;ca-key-secret&gt;</em> strimzi.io/kind=Kafka strimzi.io/cluster=<em>&lt;my-cluster&gt;</em></code></pre>
 </div>
 </div>
 </li>
