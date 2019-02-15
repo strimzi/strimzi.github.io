@@ -754,6 +754,14 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#metrics_references">C.4.3. Metrics References</a></li>
 </ul>
 </li>
+<li><a href="#prometheus_alerting">C.5. Prometheus alerting</a></li>
+<li><a href="#prometheus_alert_manager">C.6. Prometheus alert manager</a>
+<ul class="sectlevel3">
+<li><a href="#deploying_on_openshift_4">C.6.1. Deploying on OpenShift</a></li>
+<li><a href="#deploying_on_kubernetes_4">C.6.2. Deploying on Kubernetes</a></li>
+<li><a href="#alerts_examples">C.6.3. Alerts examples</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#api_reference-str">Appendix D: Custom Resource API Reference</a>
@@ -21457,15 +21465,32 @@ They should only be used to demonstrate this Grafana dashboard example.</p>
 </li>
 </ul>
 </div>
+<div class="paragraph">
+<p>Prometheus also provides an alerting system through the <a href="https://prometheus.io/docs/alerting/alertmanager/">alert manager</a> component.
+In order to enable alerting, the provided <a href="https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/alerting-rules.yaml"><code>alerting-rules.yaml</code></a> file describes a <code>ConfigMap</code> resource which defines sample alerting rules on Kafka and Zookeeper metrics.
+When an alert condition is evaluated as true on the Prometheus server, it sends the alert data to the alert manager which then uses the configured notification methods to notify the user.</p>
+</div>
+<div class="paragraph">
+<p>More information about how to set up alerting rules <a href="https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/">here</a>.</p>
+</div>
 <div class="sect3">
 <h4 id="deploying_on_openshift_2"><a class="link" href="#deploying_on_openshift_2">C.2.1. Deploying on OpenShift</a></h4>
 <div class="paragraph">
 <p>The provided <code>prometheus.yaml</code> file, with all the Prometheus related resources, creates a <code>ClusterRoleBinding</code> in the <code>myproject</code> namespace.
+It also discovers an alert manager instance in the same namespace.
 If you are using a different namespace, download the resource file and update it as follows:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">curl -s https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/prometheus.yaml | sed -e 's/namespace: .\*/namespace: _my-namespace_/' &gt; prometheus.yaml</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">curl -s https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/prometheus.yaml | sed -e 's/namespace: .*/namespace: _my-namespace_/;s/regex: myproject/regex: _my-namespace_/' &gt; prometheus.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The provided <code>alerting-rules.yaml</code> file creates a <code>ConfigMap</code> with sample alerting rules; download the resource file as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">curl -s https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/alerting-rules.yaml</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -21474,6 +21499,7 @@ If you are using a different namespace, download the resource file and update it
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc login -u system:admin
+oc apply -f alerting-rules.yaml
 oc apply -f prometheus.yaml</code></pre>
 </div>
 </div>
@@ -21486,7 +21512,15 @@ If you are using a different namespace, download the resource file and update it
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">curl -s https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/prometheus.yaml | sed -e 's/namespace: .\*/namespace: _my-namespace_/' &gt; prometheus.yaml</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">curl -s https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/prometheus.yaml | sed -e 's/namespace: .*/namespace: _my-namespace_/;s/regex: myproject/regex: _my-namespace_/' &gt; prometheus.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The provided <code>alerting-rules.yaml</code> file creates a <code>ConfigMap</code> with sample alerting rules; download the resource file as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">curl -s https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/alerting-rules.yaml</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -21494,7 +21528,8 @@ If you are using a different namespace, download the resource file and update it
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f prometheus.yaml</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f alerting-rules.yaml
+kubectl apply -f prometheus.yaml</code></pre>
 </div>
 </div>
 </div>
@@ -21630,6 +21665,137 @@ This reference describes how to monitor cAdvisor metrics in various ways using P
 </li>
 </ul>
 </div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="prometheus_alerting"><a class="link" href="#prometheus_alerting">C.5. Prometheus alerting</a></h3>
+<div class="paragraph">
+<p>In the monitoring space, one of the useful aspects is to be notified when some metrics conditions are verified.
+They allow a human operator to get notifications about problems in the monitored system.</p>
+</div>
+<div class="paragraph">
+<p>Prometheus allows to write so called "alerting rules" which describe such a conditions using <a href="https://prometheus.io/docs/prometheus/latest/querying/basics/">PromQL</a> expressions that are continuously evaluated.
+When an expression becomes true, the described condition is met and the Prometheus server fires an alert.</p>
+</div>
+<div class="paragraph">
+<p>Prometheus itself is not responsible for sending notifications to the users when an alert is fired.
+A different component, the Prometheus alert manager, is in charge to do so, sending emails, chat messages or using different notification methods.
+When an alert condition is verified, the alert is fired and the Prometheus server sends it to the alert manager which will send notifications.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="prometheus_alert_manager"><a class="link" href="#prometheus_alert_manager">C.6. Prometheus alert manager</a></h3>
+<div class="paragraph">
+<p>Other than a server for scraping metrics, Prometheus provides an alerting system through the alert manager component.
+It is possible to declare alerting rules on the Prometheus server in order to be notified about specific conditions in the metrics.
+When an alert condition is evaluated as true, Prometheus sends alert data to the alert manager which then sends notifications out.
+Notifications can be sent via methods such as email, Slack, PagerDuty and HipChat</p>
+</div>
+<div class="paragraph">
+<p>The provided Prometheus <a href="https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/alertmanager.yaml"><code>alertmanager.yaml</code></a> YAML file describes all the resources required for deploying and configuring the alert manager.</p>
+</div>
+<div class="paragraph">
+<p>The following resources are defined:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A <code>Deployment</code> to manage the actual alert manager pod.</p>
+</li>
+<li>
+<p>A <code>ConfigMap</code> to manage the configuration of the alert manager.</p>
+</li>
+<li>
+<p>A <code>Service</code> to provide an easy to reference hostname for other services to connect to alert manager (such as Prometheus).</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The provided sample configuration configures the alert manager to send notification to a Slack channel.
+Before deploying the alert manager it is needed to update the following parameters:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The <code>slack_api_url</code> field with the actual value of the Slack API URL related to the application for the Slack workspace.</p>
+</li>
+<li>
+<p>The <code>channel</code> field with the actual Slack channel on which sending the notifications.</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="deploying_on_openshift_4"><a class="link" href="#deploying_on_openshift_4">C.6.1. Deploying on OpenShift</a></h4>
+<div class="paragraph">
+<p>To deploy the alert manager the following commands should be executed:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/alertmanager.yaml</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="deploying_on_kubernetes_4"><a class="link" href="#deploying_on_kubernetes_4">C.6.2. Deploying on Kubernetes</a></h4>
+<div class="paragraph">
+<p>To deploy the alert manager the following commands should be executed:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/alertmanager.yaml</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="alerts_examples"><a class="link" href="#alerts_examples">C.6.3. Alerts examples</a></h4>
+<div class="paragraph">
+<p>The provided <a href="https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/alerting-rules.yaml"><code>alerting-rules.yaml</code></a> YAML file provides the following sample alerting rules on Kafka and Zookeeper metrics.</p>
+</div>
+<div class="paragraph">
+<p>Kafka alerts are:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>UnderReplicatedPartitions</code>: the under replicated partitions metric gives the number of partitions for which the current broker is the leader replica but the follower replicas are not caught up.
+This metric provides insights about offline brokers which hosts the follower replicas.
+This alert is raised when this value is greater than zero, providing the information of the under replicated partitions for each broker.</p>
+</li>
+<li>
+<p><code>AbnormalControllerState</code>: the active controller metric indicate if the current broker is the controller for the cluster.
+It can just be 0 or 1.
+During the life of a cluster, only one broker should be the controller and the cluster needs to have always an active controller.
+Having two or more brokers saying that they are controllers indicates a problem.
+This alert is raised when the sum of all the values for this metric on all broker is not equals to 1.
+It means that there is no active controller (the sum is 0) or more than one controller (the sum is greater than 1).</p>
+</li>
+<li>
+<p><code>UnderMinIsrPartitionCount</code>: the Kafka broker <code>min.insync.replicas</code> allows to specify the minimum number of replicas that have to acknowledge a write operation for successful in order to be in-sync.
+The under min ISR partition count metric definest the number of partitions that this broker leads for which in-sync replicas count is less than the min in-sync.
+This alert is raised when this value is greater than zero, providing the information of the under min ISR partition count for each broker.</p>
+</li>
+<li>
+<p><code>OfflineLogDirectoryCount</code>: the offline log directory count metric indicate the number of log directories which are offline (due to an hardware failure for example) so that the broker cannot store incoming messages anymore.
+This alert is raised when this value is greater than zero, providing the information of the number of offline log directories for each broker.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Zookeeper alerts are:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>AvgRequestLatency</code>: the average request latency metric indicates the amount of time it takes for the server to respond to a client request.
+This alert is raised when this value is greate than 10 (ticks), providing the actual value of the average request latency for each server.</p>
+</li>
+<li>
+<p><code>OutstandingRequests</code>: the outstanding requests metric indicates the number of queued requests in the server.
+This value goes up when the server receives more requests than it can process.
+This alert is raised when this value is greate than 10 (ticks), providing the actual number of outstanding requests for each server.</p>
 </li>
 </ul>
 </div>
@@ -25206,7 +25372,7 @@ It must have the value <code>scram-sha-512</code> for the type <code>KafkaMirror
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-02-15 08:25:54 UTC
+Last updated 2019-02-15 09:35:21 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/github.min.css">
