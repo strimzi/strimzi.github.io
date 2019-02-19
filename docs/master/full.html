@@ -2294,13 +2294,22 @@ This provides a convenient mechanism for those resources to be labelled in whate
 <div class="sect3">
 <h4 id="assembly-storage-deployment-configuration-kafka"><a class="link" href="#assembly-storage-deployment-configuration-kafka">3.1.1. Kafka and Zookeeper storage</a></h4>
 <div class="paragraph">
-<p>Kafka brokers and Zookeeper are stateful applications.
-They need to store data on disks.
-Strimzi allows you to configure the type of storage, which they want to use for Kafka and Zookeeper.
-Storage configuration is mandatory and has to be specified in every <code>Kafka</code> resource.</p>
+<p>As stateful applications, Kafka and Zookeeper need to store data on disk. Strimzi supports three different types of storage for this data: ephemeral, persistent, and JBOD (Just a Bunch of Disks) storage.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+JBOD storage is only supported for Kafka, not for Zookeeper.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>Storage can be configured using the <code>storage</code> property in following resources:</p>
+<p>When configuring a <code>Kafka</code> resource, you can specify the type of storage used by the Kafka broker and its corresponding Zookeeper node. You configure the storage type using the <code>storage</code> property in the following resources:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -2313,29 +2322,16 @@ Storage configuration is mandatory and has to be specified in every <code>Kafka<
 </ul>
 </div>
 <div class="paragraph">
-<p>Strimzi supports two types of storage:</p>
+<p>The storage type is configured in the <code>type</code> field.</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>Ephemeral</p>
-</li>
-<li>
-<p>Persistent</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>The type of storage is specified in the <code>type</code> field.</p>
-</div>
-<div class="admonitionblock important">
+<div class="admonitionblock warning">
 <table>
 <tr>
 <td class="icon">
-<div class="title">Important</div>
+<div class="title">Warning</div>
 </td>
 <td class="content">
-Once the Kafka cluster is deployed, the storage cannot be changed.
+The storage type cannot be changed after a Kafka cluster is deployed.
 </td>
 </tr>
 </table>
@@ -2394,6 +2390,11 @@ Persistent storage supports additional configuration options:</p>
 </div>
 <div class="dlist">
 <dl>
+<dt class="hdlist1"><code>id</code> (optional)</dt>
+<dd>
+<p>Storage identification number. This option is mandatory for storage volumes defined in a JBOD storage declaration.
+Default is <code>0</code>.</p>
+</dd>
 <dt class="hdlist1"><code>size</code> (required)</dt>
 <dd>
 <p>Defines the size of the persistent volume claim, for example, "1000Gi".</p>
@@ -2483,6 +2484,66 @@ storage:
 </dd>
 </dl>
 </div>
+</div>
+<div class="sect4">
+<h5 id="ref-jbod-storage-deployment-configuration-kafka"><a class="link" href="#ref-jbod-storage-deployment-configuration-kafka">JBOD storage overview</a></h5>
+<div class="paragraph">
+<p>You can configure Strimzi to use JBOD, a data storage configuration in which multiple disks are combined to create a single logical disk, or volume. JBOD is one approach to providing increased data storage for Kafka brokers. It can also improve performance.</p>
+</div>
+<div class="paragraph">
+<p>A JBOD configuration is described by one or more volumes, each of which can be either <a href="#ref-ephemeral-storage-deployment-configuration-kafka">ephemeral</a> or <a href="#ref-persistent-storage-deployment-configuration-kafka">persistent</a>. The rules and constraints for JBOD volume declarations are the same as those for ephemeral and persistent storage. For example, you cannot change the size of a persistent storage volume after it has been provisioned.</p>
+</div>
+<div class="sect5">
+<h6 id="jbod_configuration"><a class="link" href="#jbod_configuration">JBOD configuration</a></h6>
+<div class="paragraph">
+<p>To use JBOD with Strimzi, the storage <code>type</code> must be set to <code>jbod</code>. The <code>volumes</code> property allows you to describe the disks that make up your JBOD storage array or configuration. The following fragment shows an example JBOD configuration:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+storage:
+  type: jbod
+  volumes:
+  - id: 0
+    type: persistent-claim
+    size: 100Gi
+    deleteClaim: false
+  - id: 1
+    type: persistent-claim
+    size: 100Gi
+    deleteClaim: false
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The ids cannot be changed once the JBOD volumes are created.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Adding and removing volumes from a JBOD configuration is not currently supported.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect5">
+<h6 id="jbod_and_persistent_volume_claims"><a class="link" href="#jbod_and_persistent_volume_claims">JBOD and Persistent Volume Claims</a></h6>
+<div class="paragraph">
+<p>When persistent storage is used to declare JBOD volumes, the naming scheme of the resulting Persistent Volume Claims is as follows:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>data-<em>id</em>-<em>cluster-name</em>-kafka-<em>idx</em></code></dt>
+<dd>
+<p>Where <code><em>id</em></code> is the ID of the volume used for storing data for Kafka broker pod <code><em>idx</em></code>.</p>
+</dd>
+</dl>
+</div>
 <div class="ulist">
 <div class="title">Additional resources</div>
 <ul>
@@ -2493,9 +2554,13 @@ storage:
 <p>For more information about persistent storage, see <a href="#type-PersistentClaimStorage-reference">persistent storage schema reference</a>.</p>
 </li>
 <li>
+<p>For more information about JBOD storage, see <a href="#type-JbodStorage-reference">JBOD schema reference</a>.</p>
+</li>
+<li>
 <p>For more information about the schema for <code>Kafka</code>, see <a href="#type-Kafka-reference"><code>Kafka</code> schema reference</a>.</p>
 </li>
 </ul>
+</div>
 </div>
 </div>
 </div>
@@ -7976,6 +8041,10 @@ spec:
 <dt class="hdlist1"><code>data-<em>cluster-name</em>-kafka-<em>idx</em></code></dt>
 <dd>
 <p>Persistent Volume Claim for the volume used for storing data for the Kafka broker pod <code><em>idx</em></code>. This resource will be created only if persistent storage is selected for provisioning persistent volumes to store data.</p>
+</dd>
+<dt class="hdlist1"><code>data-<em>id</em>-<em>cluster-name</em>-kafka-<em>idx</em></code></dt>
+<dd>
+<p>Persistent Volume Claim for the volume <code><em>id</em></code> used for storing data for the Kafka broker pod <code><em>idx</em></code>. This resource is only created if persistent storage is selected for JBOD volumes when provisioning persistent volumes to store data.</p>
 </dd>
 <dt class="hdlist1"><code>data-<em>cluster-name</em>-zookeeper-<em>idx</em></code></dt>
 <dd>
@@ -25376,7 +25445,7 @@ It must have the value <code>scram-sha-512</code> for the type <code>KafkaMirror
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-02-18 21:06:37 UTC
+Last updated 2019-02-19 13:35:33 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/github.min.css">
