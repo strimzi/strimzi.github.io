@@ -262,14 +262,15 @@
 </li>
 <li><a href="#assembly-upgrade-str">8. Strimzi and Kafka upgrades</a>
 <ul class="sectlevel2">
-<li><a href="#proc-upgrading-the-cluster-operator-str">8.1. Upgrading the Cluster Operator from 0.9.0 to 0.10.0</a></li>
-<li><a href="#assembly-upgrading-kafka-versions-str">8.2. Upgrading and downgrading Kafka versions</a>
+<li><a href="#proc-upgrading-the-cluster-operator-0-10-0-to-0-11-0-str">8.1. Upgrading the Cluster Operator from 0.10.0 to 0.11.0</a></li>
+<li><a href="#proc-upgrading-the-cluster-operator-str">8.2. Upgrading the Cluster Operator from 0.9.0 to 0.10.0</a></li>
+<li><a href="#assembly-upgrading-kafka-versions-str">8.3. Upgrading and downgrading Kafka versions</a>
 <ul class="sectlevel3">
-<li><a href="#con-versions-and-images-str">8.2.1. Versions and images overview</a></li>
-<li><a href="#con-kafka-upgrades-using-cluster-operator-str">8.2.2. Kafka upgrades using the Cluster Operator</a></li>
-<li><a href="#proc-upgrading-brokers-newer-kafka-str">8.2.3. Upgrading brokers to a newer Kafka version</a></li>
-<li><a href="#con-kafka-downgrades-using-cluster-operator-str">8.2.4. Kafka downgrades using the Cluster Operator</a></li>
-<li><a href="#proc-downgrading-brokers-older-kafka-str">8.2.5. Downgrading brokers to an older Kafka version</a></li>
+<li><a href="#con-versions-and-images-str">8.3.1. Versions and images overview</a></li>
+<li><a href="#con-kafka-upgrades-using-cluster-operator-str">8.3.2. Kafka upgrades using the Cluster Operator</a></li>
+<li><a href="#proc-upgrading-brokers-newer-kafka-0-9-0-to-0-10-0-str">8.3.3. Upgrading brokers to a newer Kafka version</a></li>
+<li><a href="#con-kafka-downgrades-using-cluster-operator-str">8.3.4. Kafka downgrades using the Cluster Operator</a></li>
+<li><a href="#proc-downgrading-brokers-older-kafka-str">8.3.5. Downgrading brokers to an older Kafka version</a></li>
 </ul>
 </li>
 </ul>
@@ -2625,6 +2626,33 @@ Kafka clients can use these <code>Routes</code> to connect to Kafka on port 443.
 <p>When exposing Kafka using OpenShift <code>Routes</code>, TLS encryption is always used.</p>
 </div>
 <div class="paragraph">
+<p>By default, the route hosts are automatically assigned by OpenShift.
+However, you can override the assigned route hosts by specifying the requested hosts in the <code>overrides</code> property.
+Strimzi will not perform any validation that the requested hosts are available; you must ensure that they are free and can be used.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of an external listener of type <code>routes</code> configured with overrides for OpenShift route hosts</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+listeners:
+  external:
+    type: routes
+    authentication:
+      type: tls
+    overrides:
+      bootstrap:
+        host: bootstrap.myrouter.com
+      brokers:
+      - broker: 0
+        host: broker-0.myrouter.com
+      - broker: 1
+        host: broker-1.myrouter.com
+      - broker: 2
+        host: broker-2.myrouter.com
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>For more information on using <code>Routes</code> to access Kafka, see <a href="#proc-accessing-kafka-using-routes-deployment-configuration-kafka">Accessing Kafka using OpenShift routes</a>.</p>
 </div>
 <div class="paragraph">
@@ -2689,10 +2717,12 @@ TLS hostname verification is not currently supported when exposing Kafka cluster
 </table>
 </div>
 <div class="paragraph">
-<p>It is possible to override the auto assigned node ports for bootstrap service and brokers, and advertised host and port for each broker.</p>
+<p>By default, the port numbers used for the bootstrap and broker services are automatically assigned by OpenShift or Kubernetes.
+However, you can override the assigned node ports by specifying the requested port numbers in the <code>overrides</code> property.
+Strimzi does not perform any validation on the requested ports; you must ensure that they are free and available for use.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example where the external listener is configured with overrides for node ports and advertised addresses</div>
+<div class="title">Example of an external listener configured with overrides for node ports</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
 listeners:
@@ -2706,22 +2736,67 @@ listeners:
         nodePort: 32100
       brokers:
       - broker: 0
-        advertisedHost: example.host.1
-        advertisedPort: 12340
         nodePort: 32000
       - broker: 1
-        advertisedHost: example.host.2
-        advertisedPort: 12341
         nodePort: 32001
       - broker: 2
-        advertisedHost: example.host.3
-        advertisedPort: 12342
         nodePort: 32002
 # ...</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>For more information on using node ports to access Kafka, see <a href="#proc-accessing-kafka-using-nodeports-deployment-configuration-kafka">Accessing Kafka using node ports routes</a>.</p>
+</div>
+<div class="paragraph">
+<div class="title">Customizing advertised addresses on external listeners</div>
+<p>By default, Strimzi tries to automatically determine the hostnames and ports that your Kafka cluster advertises to its clients.
+This is not sufficient in all situations, because the infrastructure on which Strimzi is running might not provide the right hostname or port through which Kafka can be accessed.
+You can customize the advertised hostname and port in the <code>overrides</code> property of the external listener.
+Strimzi will then automatically configure the advertised address in the Kafka brokers and add it to the broker certificates so it can be used for TLS hostname verification.
+Overriding the advertised host and ports is available for all types of external listeners.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of an external listener configured with overrides for advertised addresses</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+listeners:
+  external:
+    type: routes
+    authentication:
+      type: tls
+    overrides:
+      brokers:
+      - broker: 0
+        advertisedHost: example.hostname.0
+        advertisedPort: 12340
+      - broker: 1
+        advertisedHost: example.hostname.1
+        advertisedPort: 12341
+      - broker: 2
+        advertisedHost: example.hostname.2
+        advertisedPort: 12342
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Additionally, you can specify the name of the bootstrap service.
+This name will be added to the broker certificates and can be used for TLS hostname verification.
+Adding the additional bootstrap address is available for all types of external listeners.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of an external listener configured with an additional bootstrap address</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+listeners:
+  external:
+    type: routes
+    authentication:
+      type: tls
+    overrides:
+      bootstrap:
+        address: example.hostname
+# ...</code></pre>
+</div>
 </div>
 </div>
 <div class="sect5">
@@ -20366,7 +20441,102 @@ Therefore, you will need to upgrade to the new version of Strimzi before you can
 Upgrading the version of Strimzi is done by upgrading the Cluster Operator deployment to the new version.</p>
 </div>
 <div class="sect2">
-<h3 id="proc-upgrading-the-cluster-operator-str"><a class="link" href="#proc-upgrading-the-cluster-operator-str">8.1. Upgrading the Cluster Operator from 0.9.0 to 0.10.0</a></h3>
+<h3 id="proc-upgrading-the-cluster-operator-0-10-0-to-0-11-0-str"><a class="link" href="#proc-upgrading-the-cluster-operator-0-10-0-to-0-11-0-str">8.1. Upgrading the Cluster Operator from 0.10.0 to 0.11.0</a></h3>
+<div class="paragraph">
+<p>This procedure will describe how to upgrade a Cluster Operator deployment from version 0.10.0 to version 0.11.0.
+The availability of Kafka clusters managed by the Cluster Operator is not affected by the upgrade operation.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An existing version 0.10.0 Cluster Operator deployment to be upgraded.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Backup the existing Cluster Operator resources.</p>
+<div class="paragraph">
+<p>On Kubernetes use <code>kubectl get</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>kubectl get all -l app=strimzi &gt; strimzi-backup.yaml</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift use <code>oc get</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>oc get -l all app=strimzi &gt; strimzi-backup.yaml</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Update the Cluster Operator.
+You will need to modify the installation files according to the namespace the Cluster Operator is running in.</p>
+<div class="paragraph">
+<p>On Linux, use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>sed -i 's/namespace: .*/namespace: <em>my-namespace</em>/' install/cluster-operator/*RoleBinding*.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On MacOS, use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code>sed -i '' 's/namespace: .*/namespace: <em>my-namespace</em>/' install/cluster-operator/*RoleBinding*.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you modified one or more environment variables in your existing Cluster Operator <code>Deployment</code>, edit
+<code>install/cluster-operator/050-Deployment-cluster-operator.yaml</code> to reflect the changes that you made.</p>
+</div>
+</li>
+<li>
+<p>When you have an updated configuration you can deploy it along with the rest of the install resources.</p>
+<div class="paragraph">
+<p>On Kubernetes use <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>kubectl apply -f install/cluster-operator</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift use <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>oc apply -f install/cluster-operator</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Wait for the associated rolling updates to complete.</p>
+</div>
+</li>
+<li>
+<p>Update existing resources to cope with deprecated custom resource properties.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>If you have <code>Kafka</code> resources that specify <code>Kafka.spec.topicOperator</code>, rewrite them to use <code>Kafka.spec.entityOperator.topicOperator</code> instead.</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-upgrading-the-cluster-operator-str"><a class="link" href="#proc-upgrading-the-cluster-operator-str">8.2. Upgrading the Cluster Operator from 0.9.0 to 0.10.0</a></h3>
 <div class="paragraph">
 <p>This procedure will describe how to upgrade a Cluster Operator deployment from version 0.9.x to version 0.10.0.
 The availability of Kafka clusters managed by the Cluster Operator is not affected by the upgrade operation.</p>
@@ -20483,9 +20653,9 @@ You will need to modify the installation files according to the namespace the Cl
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-upgrading-kafka-versions-str"><a class="link" href="#assembly-upgrading-kafka-versions-str">8.2. Upgrading and downgrading Kafka versions</a></h3>
+<h3 id="assembly-upgrading-kafka-versions-str"><a class="link" href="#assembly-upgrading-kafka-versions-str">8.3. Upgrading and downgrading Kafka versions</a></h3>
 <div class="sect3">
-<h4 id="con-versions-and-images-str"><a class="link" href="#con-versions-and-images-str">8.2.1. Versions and images overview</a></h4>
+<h4 id="con-versions-and-images-str"><a class="link" href="#con-versions-and-images-str">8.3.1. Versions and images overview</a></h4>
 <div class="paragraph">
 <p>The Cluster Operator embeds knowledge of different Kafka versions, but not of the corresponding images in which those versions are provided.
 Using the <code>STRIMZI_KAFKA_IMAGES</code> environment variable, the Cluster Operator is configured with a mapping between the Kafka version and the image to be used when that version is requested in a given <code>Kafka</code> resource.</p>
@@ -20510,7 +20680,7 @@ Take care to ensure that the given image corresponds to the given Kafka version.
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-kafka-upgrades-using-cluster-operator-str"><a class="link" href="#con-kafka-upgrades-using-cluster-operator-str">8.2.2. Kafka upgrades using the Cluster Operator</a></h4>
+<h4 id="con-kafka-upgrades-using-cluster-operator-str"><a class="link" href="#con-kafka-upgrades-using-cluster-operator-str">8.3.2. Kafka upgrades using the Cluster Operator</a></h4>
 <div class="paragraph">
 <p>How the Cluster Operator will perform an upgrade depends on the differences between:</p>
 </div>
@@ -20533,7 +20703,7 @@ When one or more of these versions differ, the Cluster Operator will require two
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-upgrading-brokers-newer-kafka-str"><a class="link" href="#proc-upgrading-brokers-newer-kafka-str">8.2.3. Upgrading brokers to a newer Kafka version</a></h4>
+<h4 id="proc-upgrading-brokers-newer-kafka-0-9-0-to-0-10-0-str"><a class="link" href="#proc-upgrading-brokers-newer-kafka-0-9-0-to-0-10-0-str">8.3.3. Upgrading brokers to a newer Kafka version</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to upgrade a Strimzi Kafka cluster from one version to a higher version; for example 2.0.0 to 2.1.0.</p>
 </div>
@@ -20698,7 +20868,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-kafka-downgrades-using-cluster-operator-str"><a class="link" href="#con-kafka-downgrades-using-cluster-operator-str">8.2.4. Kafka downgrades using the Cluster Operator</a></h4>
+<h4 id="con-kafka-downgrades-using-cluster-operator-str"><a class="link" href="#con-kafka-downgrades-using-cluster-operator-str">8.3.4. Kafka downgrades using the Cluster Operator</a></h4>
 <div class="paragraph">
 <p>Whether and how the Cluster Operator will perform a downgrade depends on the differences between:</p>
 </div>
@@ -20727,7 +20897,7 @@ In this case the downgrade will require two rolling restarts of the brokers if t
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-downgrading-brokers-older-kafka-str"><a class="link" href="#proc-downgrading-brokers-older-kafka-str">8.2.5. Downgrading brokers to an older Kafka version</a></h4>
+<h4 id="proc-downgrading-brokers-older-kafka-str"><a class="link" href="#proc-downgrading-brokers-older-kafka-str">8.3.5. Downgrading brokers to an older Kafka version</a></h4>
 <div class="paragraph">
 <p>You can downgrade a Strimzi Kafka cluster from one version to a lower version; for example, from 2.1.0 to 2.0.0.</p>
 </div>
