@@ -22,7 +22,7 @@ oc login -u system:admin
 Next we apply the Strimzi install files, including `ClusterRoles`, `ClusterRoleBindings` and some **Custom Resource Definitions** (`CRDs`). The CRDs define the schemas used for declarative management of the Kafka cluster, Kafka topics and users.
 
 ```shell
-oc apply -f https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.10.0/strimzi-cluster-operator-0.10.0.yaml -n myproject
+oc apply -f https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.11.0/strimzi-cluster-operator-0.11.0.yaml -n myproject
 ```
 
 # Provision the Apache Kafka cluster
@@ -31,7 +31,7 @@ After that we feed Strimzi with a simple **Custom Resource**, which will than gi
 
 ```shell
 # Apply the `Kafka` Cluster CR file
-oc apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.10.0/examples/kafka/kafka-persistent.yaml -n myproject
+oc apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.11.0/examples/kafka/kafka-persistent.yaml -n myproject
 ```
 
 We can now watch the deployment on the `myproject` namesapce, and see all required pods being created:
