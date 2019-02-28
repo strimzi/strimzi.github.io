@@ -7,7 +7,7 @@ author: jakub_scholz
 
 Do you know the feeling when you run out of disk space?
 When you want to save some new data to your disk but there is not enough space?
-It probably happened to most of us at least once in our life.
+It has probably happened to most of us at least once in our life.
 So, what should you do when this happens to your Kafka cluster?
 
 <!--more-->
@@ -19,7 +19,7 @@ If you want to try OpenShift 4, check out the [Developer Preview](https://try.op
 
 In an ideal case, you would just edit the `Kafka` custom resource and increase the size of the persistent volume.
 Unfortunately, Strimzi currently doesn't support automatic resizing of persistent volumes.
-So if you change the size of the persistent volume all you will get back will be an error message telling you that you are not allowed to change storage configuration which will appear in the Cluster Operator logs.
+So if you change the size of the persistent volume all you will get back will be an error message in the Cluster Operator logs telling you that you are not allowed to change storage configuration.
 
 Luckily, you can still increase your volume size manually.
 To see how to do it, we have to first deploy the Kafka cluster.
@@ -164,7 +164,7 @@ status:
       lastTransitionTime: '2019-02-27T12:25:15Z'
 ```
 
-As you can see, the capacity is still 100Gi, but Kubernetes / OpenShift are now resizing the volume.
+As you can see, the capacity is still 100Gi, but Kubernetes / OpenShift is now resizing the volume.
 Once the resizing of the volume is finished, the `status` will change to this:
 
 ```yaml
@@ -189,7 +189,7 @@ As you can read in the message, the volume has been resized.
 But the file system is still only 100Gi big and needs to be resized as well.
 The resizing of the file system cannot be done while the pod is running - it will be done automatically when the pod is restarted. 
 
-The easiest way how to restart the Kafka pods to resize the file system is to tell Strimzi to perform a rolling update of the Kafka Statefulset.
+The easiest way to restart the Kafka pods to resize the file system is to tell Strimzi to perform a rolling update of the Kafka Statefulset.
 You can do that using the [`strimzi.io/manual-rolling-update=true`annotation](https://strimzi.io/docs/latest/full.html#proc-manual-rolling-update-kafka-deployment-configuration-kafka).
 
 ```console
@@ -198,7 +198,7 @@ kubectl annotate statefulset cluster-name-kafka strimzi.io/manual-rolling-update
 
 After you set this annotation, Strimzi will roll all the Kafka pods one by one.
 While the pods are being restarted, the filesystem will be resized.
-In case you already run out of disk space and your Kafka pods are in the crash loop, you might need to delete the pods manually.
+In case you already ran out of disk space and your Kafka pods are crash-looping, you might need to delete the pods manually.
 If you check your PVCs after the restart is finished, you should see something like this:
 
 ```yaml
@@ -239,7 +239,7 @@ status:
     storage: 200Gi
 ```
 
-As you can see, the requested size is no 200Gi and the actual capacity is now also 200Gi.
+As you can see, the requested size is now 200Gi and the actual capacity is also now 200Gi.
 We can also confirm that the disk size was increased from inside the pod:
 
 ```console
