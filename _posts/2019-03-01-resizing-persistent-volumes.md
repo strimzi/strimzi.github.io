@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Resizing persistent volumes with Strimzi"
-date: 2019-03-01
+date: 2019-02-28
 author: jakub_scholz
 ---
 
