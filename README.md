@@ -1,6 +1,6 @@
 # Strimzi website
 
-This repository contains the [Strimzi website](http://strimzi.io).
+This repository contains the [Strimzi website](https://strimzi.io).
 
 ## Prerequisites
 
