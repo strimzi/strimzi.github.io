@@ -14,7 +14,7 @@ So, what should you do when this happens to your Kafka cluster?
 
 _Note:
 Support for resizing volumes depends on the version of your Kubernetes or OpenShift cluster and on the infrastructure it runs on.
-The steps described in this arrticle were tested with OpenShift 4 on Amazon AWS, but they should be compatible with Kubernetes 1.11+ and OpenShift 3.11+.
+The steps described in this article were tested with OpenShift 4 on Amazon AWS, but they should be compatible with Kubernetes 1.11+ and OpenShift 3.11+.
 If you want to try OpenShift 4, check out the [Developer Preview](https://try.openshift.com/)._
 
 In an ideal case, you would just edit the `Kafka` custom resource and increase the size of the persistent volume.
@@ -57,7 +57,7 @@ spec:
     userOperator: {}
 ```
 
-As you can see, it is requesting 100Gi persistent volumes for both Kafka and Zookeeeper.
+As you can see, it is requesting 100Gi persistent volumes for both Kafka and Zookeeper.
 After you create the resource, your Kafka cluster will be deployed.
 You can check that it created 6 Persistent Volume Claims.
 And each of them looks something like this:
@@ -197,7 +197,7 @@ kubectl annotate statefulset cluster-name-kafka strimzi.io/manual-rolling-update
 ```
 
 After you set this annotation, Strimzi will roll all the Kafka pods one by one.
-It might take Strimzi upto oe reconciliation interval (environment variable `STRIMZI_FULL_RECONCILIATION_INTERVAL_MS` in Cluster Operator deployment) to notice the annotation.
+It might take Strimzi up to one reconciliation interval (environment variable `STRIMZI_FULL_RECONCILIATION_INTERVAL_MS` in Cluster Operator deployment) to notice the annotation.
 While the pods are being restarted, the filesystem will be resized.
 In case you already ran out of disk space and your Kafka pods are crash-looping, you might need to delete the pods manually.
 If you check your PVCs after the restart is finished, you should see something like this:
