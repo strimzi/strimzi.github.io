@@ -5,7 +5,7 @@ date: 2019-03-06
 author: jakub_scholz
 ---
 
-[Operator Framework](https://github.com/operator-framework/) is an open source toolkit for writting and managing Kubernetes Operators.
+[Operator Framework](https://github.com/operator-framework/) is an open source toolkit for writing and managing Kubernetes Operators.
 It consists of several components and one of them is the [Operator Lifecycle Manager (OLM)](https://github.com/operator-framework/operator-lifecycle-manager).
 OLM is an _Operator for Operators_.
 It provides a declarative way for installing and managing operators.
@@ -23,8 +23,8 @@ So how does it look when you want to install Strimzi using OLM today?
 
 [OperatorHub.io](https://www.operatorhub.io/) is a registry of operators for Kubernetes.
 It provides a catalog of operators together with instructions how to install them on your Kubernetes cluster.
-It will guide through the installation of the OLM it self as well as the different operators which it supports.
-To see how it works, lets have a look at this video recording:
+It will guide through the installation of the OLM itself as well as the different operators which it supports.
+To see how it works, let's have a look at this video recording:
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/BfT35ay6v-Q" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
@@ -32,7 +32,7 @@ To see how it works, lets have a look at this video recording:
 
 While on Kubernetes we had to copy paste the commands into a terminal, the [Developer Preview of OpenShift 4](https://try.openshift.com/) is already one step further and has the Operator hub integrated directly into its web console.
 Thank to that you can install Strimzi and deploy Apache Kafka cluster just with few clicks from the UI.
-To see how it works and looks on OpenShift 4, lets have a look at this video recording:
+To see how it works and looks on OpenShift 4, let's have a look at this video recording:
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/KJ8S5ysY044" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
