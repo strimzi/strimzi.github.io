@@ -56,4 +56,18 @@ my-cluster-zookeeper-2                        2/2     Running   0          2m30s
 strimzi-cluster-operator-78f8bf857-kpmhb      1/1     Running   0          3m10s
 ```
 
+# Send and receive messages
+
+Once the cluster is running, you can run a simple producer to send messages to Kafka topic (the topic will be automatically created):
+
+```shell
+kubectl run kafka-producer -ti --image=strimzi/kafka:0.11.1-kafka-2.1.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic my-topic
+```
+
+And to receive them:
+
+```shell
+kubectl run kafka-consumer -ti --image=strimzi/kafka:0.11.1-kafka-2.1.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic --from-beginning
+```
+
 Enjoy your Apache Kafka cluster, running on Minikube!
