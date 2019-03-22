@@ -2,7 +2,7 @@
 layout: default
 ---
 
-# Starting Minikube 
+# Starting Minikube
 
 This assumes that you have the latest version of the `minikube` binary, which you can get [here](https://kubernetes.io/docs/setup/minikube/#installation).
 
@@ -15,7 +15,7 @@ minikube start
 Once Minikube is started, let's create our `kafka` namespace:
 
 ```shell
-kubectl create namespace kafka 
+kubectl create namespace kafka
 ```
 
 # Applying Strimzi installation file
@@ -34,7 +34,7 @@ After that we feed Strimzi with a simple **Custom Resource**, which will than gi
 
 ```shell
 # Apply the `Kafka` Cluster CR file
-kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.11.1/examples/kafka/kafka-persistent.yaml -n kafka
+kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.11.1/examples/kafka/kafka-ephemeral.yaml -n kafka
 ```
 
 We can now watch the deployment on the `kafka` namespace, and see all required pods being created:
