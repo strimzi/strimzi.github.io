@@ -34,7 +34,7 @@ After that we feed Strimzi with a simple **Custom Resource**, which will than gi
 
 ```shell
 # Apply the `Kafka` Cluster CR file
-kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.11.1/examples/kafka/kafka-ephemeral.yaml -n kafka
+kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.11.1/examples/kafka/kafka-persistent-single.yaml -n kafka
 ```
 
 We can now watch the deployment on the `kafka` namespace, and see all required pods being created:
@@ -48,11 +48,7 @@ The installation is complete, once the `my-cluster-entity-operator` is running, 
 ```
 my-cluster-entity-operator-6bc7f6985c-q29p5   3/3     Running   0          44s
 my-cluster-kafka-0                            2/2     Running   1          91s
-my-cluster-kafka-1                            2/2     Running   1          91s
-my-cluster-kafka-2                            2/2     Running   1          91s
 my-cluster-zookeeper-0                        2/2     Running   0          2m30s
-my-cluster-zookeeper-1                        2/2     Running   0          2m30s
-my-cluster-zookeeper-2                        2/2     Running   0          2m30s
 strimzi-cluster-operator-78f8bf857-kpmhb      1/1     Running   0          3m10s
 ```
 
