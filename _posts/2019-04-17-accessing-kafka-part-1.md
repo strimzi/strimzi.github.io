@@ -29,7 +29,7 @@ But how do the clients know where to connect?
 
 Kafka has its own discovery protocol.
 When a Kafka client is connecting to the Kafka cluster, it first connects to any broker which is member of the cluster and asks it for _metadata_ for one or more topics.
-These _metadata_ contain the information about the topics, its partitions and brokers which are responsible for them.
+These _metadata_ contain the information about the topics, its partitions and brokers which host these partitions.
 All brokers should have these data for the whole cluster because they are all synced through Zookeeper.
 Therefore it doesn't matter to which broker the client connected as first - all of them will give it the same response.
 
@@ -37,7 +37,7 @@ Therefore it doesn't matter to which broker the client connected as first - all 
 
 Once the client gets the _metadata_, it will use them to figure out where to connect when it wants to write to or read from given partition.
 The broker addresses used in the _metadata_ will be either created by the broker itself based on the hostname of the machine where the broker runs.
-Or it can be configured by the used using the `advertised.listeners` option.
+Or it can be configured by the user using the `advertised.listeners` option.
 The client will use the address from the _metadata_ to open one or more new connections to the addresses of the brokers which hosts the particular partitions it is interested in.
 Even when the _metadata_ would point to the same broker where the client already connected and received the _metadata_ from, it would still open a second connection.
 And these connection will be used to produce or consume data.
@@ -76,8 +76,8 @@ This is normally not used by regular Kubernetes applications.
 One of the reasons is that Kubernetes doesn't offer any nice way to discover these IP addresses.
 To find out the IP address, you would need to use the Kubernetes API, find the right pod and its IP address.
 And you would need to have the rights for this.
-Instead, Kubernetes use the services with their stable DNS names as the main discovery mechanism.
-But with Kafka, this not an issue, because it has its own discovery protocol.
+Instead, Kubernetes uses the services with their stable DNS names as the main discovery mechanism.
+But with Kafka, this is not an issue, because it has its own discovery protocol.
 We do not need the clients to figure out the API address from the Kubernetes API.
 We just need to configure it and the advertised address and the clients will discover it through the Kafka _metadata_.
 
