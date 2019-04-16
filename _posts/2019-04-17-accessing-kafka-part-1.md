@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Accessing Kafka: Part 1 - Introduction"
-date: 2019-04-16
+date: 2019-04-17
 author: jakub_scholz
 ---
 
@@ -21,7 +21,7 @@ That helps to significantly reduce the amount of work the brokers have to do and
 The only data traffic between the different brokers is due to replication, when the follower brokers are fetching data from the lead broker for a given partition.
 That makes the data shards independent on each other and that makes Kafka scale so well.
 
-![Clients connecting to partitions]({{ "/assets/2019-04-16-connecting-to-leader.png" }})
+![Clients connecting to partitions]({{ "/assets/2019-04-17-connecting-to-leader.png" }})
 
 But how do the clients know where to connect?
 
@@ -33,7 +33,7 @@ These _metadata_ contain the information about the topics, its partitions and br
 All brokers should have these data for the whole cluster because they are all synced through Zookeeper.
 Therefore it doesn't matter to which broker the client connected as first - all of them will give it the same response.
 
-![Connection flow between Kafka client and Kafka cluster]({{ "/assets/2019-04-16-connection-flow.png" }})
+![Connection flow between Kafka client and Kafka cluster]({{ "/assets/2019-04-17-connection-flow.png" }})
 
 Once the client gets the _metadata_, it will use them to figure out where to connect when it wants to write to or read from given partition.
 The broker addresses used in the _metadata_ will be either created by the broker itself based on the hostname of the machine where the broker runs.
@@ -89,7 +89,7 @@ So with Strimzi:
 * The subsequent connections are opened using the DNS names given to the pods by another headless Kubernetes service.
 The diagram below shows how does it look with an example Kafka cluster named `my-cluster`.
 
-![Accessing Kafka inside the same Kubernetes cluster]({{ "/assets/2019-04-16-inside-kubernetes.png" }})
+![Accessing Kafka inside the same Kubernetes cluster]({{ "/assets/2019-04-17-inside-kubernetes.png" }})
 
 Both approaches have their own pros and cons.
 Using the DNS can sometimes cause problems with cached DNS information.
