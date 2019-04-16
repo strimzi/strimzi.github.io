@@ -47,7 +47,7 @@ _Note: The description of the Kafka protocol is intentionally simplified for the
 # What does it mean for Kafka on Kubernetes
 
 So, what does this mean for running Kafka on Kubernetes?
-If you are familiar with Kubernetes, you probably know that the most common way how to expose some application is using a Kubernetes service.
+If you are familiar with Kubernetes, you probably know that the most common way  to expose some application is using a Kubernetes `Service`.
 Kubernetes services work as _layer 4_ load-balancers.
 They provide a stable DNS address, where the clients can connect.
 And they just forward the connections to one of the pods which are backing the service.
@@ -94,7 +94,7 @@ The diagram below shows how does it look with an example Kafka cluster named `my
 Both approaches have their own pros and cons.
 Using the DNS can sometimes cause problems with cached DNS information.
 When the underlying IP addresses of the pods change, for example during rolling updates, the clients connecting to the brokers need to have the latest DNS information.
-However, we found out the using the IP addresses is causing even worse problems, because sometimes Kubernetes re-use them very aggressively and a new pod gets the IP address used just few seconds before by some other Kafka node.
+However, we found out that using IP addresses causes even worse problems, because sometimes Kubernetes re-uses them very aggressively and a new pod gets the IP address used just a few seconds before by some other Kafka node.
 
 ## Connecting from the outside
 
