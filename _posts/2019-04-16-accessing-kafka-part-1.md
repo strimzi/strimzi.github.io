@@ -39,6 +39,7 @@ Once the client gets the _metadata_, it will use them to figure out where to con
 The broker addresses used in the _metadata_ will be either created by the broker itself based on the hostname of the machine where the broker runs.
 Or it can be configured by the used using the `advertised.listeners` option.
 The client will use the address from the _metadata_ to open one or more new connections to the addresses of the brokers which hosts the particular partitions it is interested in.
+Even when the _metadata_ would point to the same broker where the client already connected and received the _metadata_ from, it would still open a second connection.
 And these connection will be used to produce or consume data.
 
 _Note: The description of the Kafka protocol is intentionally simplified for the purpose of this blog post._
