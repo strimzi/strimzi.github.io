@@ -13,6 +13,12 @@ This blog-series will explain how Kafka and its clients work and how Strimzi dea
 
 <!--more-->
 
+_This post is part of a bigger series about different ways to access a Kafka cluster powered by Strimzi.
+The other parts published so far are:_
+
+* _Part 1 - Introduction (this post)_
+* _[Part 2 - Node Ports](https://strimzi.io/2019/04/23/accessing-kafka-part-2.html)_
+
 It would, of course, be insufficient to just shard the data into partitions.
 The ingress and egress data traffic also needs to be properly handled.
 The clients writing to or reading from a given partition have to connect directly to the leader broker which is hosting it.
