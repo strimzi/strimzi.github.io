@@ -4,6 +4,7 @@ layout: default
 
 # Presentations
 
+* Strimzi: how Apache Kafka has fallen in love with Kubernetes (Modern Integration and Application Development Day, April 2019) [slides](https://www.slideshare.net/paolopat/strimzi-how-apache-kafka-has-fallen-in-love-with-kubernetes)
 * Kafka on OpenShift: make it easy with AMQ Streams (Red Hat Open Source Day 2018, October 2018) [slides](https://www.slideshare.net/paolopat/kafka-on-openshift-make-it-easy-with-amq-streams)
 * Strimzi: Running Apache Kafka on Kubernetes and OpenShift (OpenSlava 2018, October 2018) [video](https://www.youtube.com/watch?v=AlU4CUuUfHA)
 * Introduction to Strimzi Operator (Operator Framework SIG Meeting, July 2018) [video](https://youtu.be/37DDC-Cy2ZI) [slides](https://red.ht/2OfBPvU)
