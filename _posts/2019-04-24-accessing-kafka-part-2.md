@@ -144,7 +144,15 @@ This can happen for example because the DNS name or IP address used there is onl
 This might happen with production grade cluster but also with local development tools such as Minikube or Minishift.
 In such case, you might get following errors from your client:
 
-TODO: Error messages
+```
+[2019-04-22 21:04:11,976] WARN [Consumer clientId=consumer-1, groupId=console-consumer-42133] Connection to node 1 (/10.0.2.15:31301) could not be established. Broker may not be available. (org.apache.kafka.clients.NetworkClient)
+```
+
+or
+
+```
+[2019-04-22 21:11:37,295] WARN [Producer clientId=console-producer] Connection to node -1 (/10.0.2.15:31488) could not be established. Broker may not be available. (org.apache.kafka.clients.NetworkClient)
+```
 
 When you see one of the errors, you can compare the following addresses:
 * The address under which you expect your nodes to be reachable by your Kafka clients (with Minikube, that should be the IP address returned by the `minikube ip` command).
