@@ -2145,6 +2145,20 @@ spec:
     # ...</code></pre>
 </div>
 </div>
+<div class="sect5">
+<h6 id="log_directories"><a class="link" href="#log_directories">Log directories</a></h6>
+<div class="paragraph">
+<p>The ephemeral volume will be used by the Kafka brokers as log directories mounted into the following path:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>/var/lib/kafka/data/kafka-log_idx_</code></dt>
+<dd>
+<p>Where <code><em>idx</em></code> is the Kafka broker pod index. For example <code>/var/lib/kafka/data/kafka-log0</code>.</p>
+</dd>
+</dl>
+</div>
+</div>
 </div>
 <div class="sect4">
 <h5 id="ref-persistent-storage-deployment-configuration-kafka"><a class="link" href="#ref-persistent-storage-deployment-configuration-kafka">Persistent storage</a></h5>
@@ -2237,9 +2251,10 @@ storage:
 # ...</code></pre>
 </div>
 </div>
+<div class="sect5">
+<h6 id="persistent_volume_claim_naming"><a class="link" href="#persistent_volume_claim_naming">Persistent Volume Claim naming</a></h6>
 <div class="paragraph">
-<div class="title">Persistent Volume Claim naming</div>
-<p>When the persistent storage is used, it will create Persistent Volume Claims with the following names:</p>
+<p>When persistent storage is used, it creates Persistent Volume Claims with the following names:</p>
 </div>
 <div class="dlist">
 <dl>
@@ -2252,6 +2267,21 @@ storage:
 <p>Persistent Volume Claim for the volume used for storing data for the Zookeeper node pod <code><em>idx</em></code>.</p>
 </dd>
 </dl>
+</div>
+</div>
+<div class="sect5">
+<h6 id="log_directories_2"><a class="link" href="#log_directories_2">Log directories</a></h6>
+<div class="paragraph">
+<p>The persistent volume will be used by the Kafka brokers as log directories mounted into the following path:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>/var/lib/kafka/data/kafka-log_idx_</code></dt>
+<dd>
+<p>Where <code><em>idx</em></code> is the Kafka broker pod index. For example <code>/var/lib/kafka/data/kafka-log0</code>.</p>
+</dd>
+</dl>
+</div>
 </div>
 </div>
 <div class="sect4">
@@ -2287,17 +2317,8 @@ storage:
 <div class="paragraph">
 <p>The ids cannot be changed once the JBOD volumes are created.</p>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Adding and removing volumes from a JBOD configuration is not currently supported.
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p>Users can add or remove volumes from the JBOD configuration.</p>
 </div>
 </div>
 <div class="sect5">
@@ -2312,6 +2333,211 @@ Adding and removing volumes from a JBOD configuration is not currently supported
 <p>Where <code><em>id</em></code> is the ID of the volume used for storing data for Kafka broker pod <code><em>idx</em></code>.</p>
 </dd>
 </dl>
+</div>
+</div>
+<div class="sect5">
+<h6 id="log_directories_3"><a class="link" href="#log_directories_3">Log directories</a></h6>
+<div class="paragraph">
+<p>The JBOD volumes will be used by the Kafka brokers as log directories mounted into the following path:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>/var/lib/kafka/data-<em>id</em>/kafka-log_idx_</code></dt>
+<dd>
+<p>Where <code><em>id</em></code> is the ID of the volume used for storing data for Kafka broker pod <code><em>idx</em></code>. For example <code>/var/lib/kafka/data-0/kafka-log0</code>.</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-adding-volumes-to-jbod-storage-deployment-configuration-kafka"><a class="link" href="#proc-adding-volumes-to-jbod-storage-deployment-configuration-kafka">Adding volumes to JBOD storage</a></h5>
+<div class="paragraph">
+<p>This procedure describes how to add volumes to a Kafka cluster configured to use JBOD storage.
+It cannot be applied to Kafka clusters configured to use any other storage type.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+When adding a new volume under an <code>id</code> which was already used in the past and removed, you have to make sure that the previously used <code>PersistentVolumeClaims</code> have been deleted.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+<li>
+<p>A Kafka cluster with JBOD storage</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>spec.kafka.storage.volumes</code> property in the <code>Kafka</code> resource.
+Add the new volumes to the <code>volumes</code> array.
+For example, add the new volume with id <code>2</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    storage:
+      type: jbod
+      volumes:
+      - id: 0
+        type: persistent-claim
+        size: 100Gi
+        deleteClaim: false
+      - id: 1
+        type: persistent-claim
+        size: 100Gi
+        deleteClaim: false
+      - id: 2
+        type: persistent-claim
+        size: 100Gi
+        deleteClaim: false
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create new topics or reassign existing partitions to the new disks.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<div class="title">Additional resources</div>
+<p>For more information about reassigning topics, see <a href="#con-partition-reassignment-deployment-configuration-kafka">Partition reassignment</a>.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-removing-volumes-from-jbod-storage-deployment-configuration-kafka"><a class="link" href="#proc-removing-volumes-from-jbod-storage-deployment-configuration-kafka">Removing volumes from JBOD storage</a></h5>
+<div class="paragraph">
+<p>This procedure describes how to remove volumes from Kafka cluster configured to use JBOD storage.
+It cannot be applied to Kafka clusters configured to use any other storage type.
+The JBOD storage always has to contain at least one volume.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+To avoid data loss, you have to move all partitions before removing the volumes.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+<li>
+<p>A Kafka cluster with JBOD storage with two or more volumes</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Reassign all partitions from the disks which are you going to remove.
+Any data in partitions still assigned to the disks which are going to be removed might be lost.</p>
+</li>
+<li>
+<p>Edit the <code>spec.kafka.storage.volumes</code> property in the <code>Kafka</code> resource.
+Remove one or more volumes from the <code>volumes</code> array.
+For example, remove the volumes with ids <code>1</code> and <code>2</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    storage:
+      type: jbod
+      volumes:
+      - id: 0
+        type: persistent-claim
+        size: 100Gi
+        deleteClaim: false
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<div class="title">Additional resources</div>
+<p>For more information about reassigning topics, see <a href="#con-partition-reassignment-deployment-configuration-kafka">Partition reassignment</a>.</p>
 </div>
 <div class="ulist">
 <div class="title">Additional resources</div>
@@ -2329,7 +2555,6 @@ Adding and removing volumes from a JBOD configuration is not currently supported
 <p>For more information about the schema for <code>Kafka</code>, see <a href="#type-Kafka-reference"><code>Kafka</code> schema reference</a>.</p>
 </li>
 </ul>
-</div>
 </div>
 </div>
 </div>
@@ -7150,6 +7375,40 @@ Although Kafka also supports a <code>"log_dirs"</code> property this should not 
 </div>
 <div class="paragraph">
 <p>Partitions not included in the JSON are not changed.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="reassigning_partitions_between_jbod_volumes"><a class="link" href="#reassigning_partitions_between_jbod_volumes">Reassigning partitions between JBOD volumes</a></h6>
+<div class="paragraph">
+<p>When using JBOD storage in your Kafka cluster, you can choose to reassign the partitions between specific volumes and their log directories (each volume has a single log directory).
+To reassign a partition to a specific volume, add the <code>log_dirs</code> option to <em>&lt;PartitionObjects&gt;</em> in the reassignment JSON file.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">{
+  "topic": <em>&lt;TopicName&gt;</em>,
+  "partition": <em>&lt;Partition&gt;</em>,
+  "replicas": [ <em>&lt;AssignedBrokerIds&gt;</em> ],
+  "log_dirs": [ <em>&lt;AssignedLogDirs&gt;</em> ]
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>log_dirs</code> object should contain the same number of log directories as the number of replicas specified in the <code>replicas</code> object.
+The value should be either an absolute path to the log directory, or the <code>any</code> keyword.</p>
+</div>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">{
+      "topic": "topic-a",
+      "partition": 4,
+      "replicas": [2,4,7].
+      "log_dirs": [ "/var/lib/kafka/data-0/kafka-log2", "/var/lib/kafka/data-0/kafka-log4", "/var/lib/kafka/data-0/kafka-log7" ]
+}</code></pre>
+</div>
 </div>
 </div>
 </div>
