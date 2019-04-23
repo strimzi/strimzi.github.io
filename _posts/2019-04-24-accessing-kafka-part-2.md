@@ -20,7 +20,7 @@ The other parts published so far are:_
 # Node ports
 
 A `NodePort` is a special type of [Kubernetes service](https://kubernetes.io/docs/concepts/services-networking/service/#nodeport).
-When such a service is created, Kubernetes will allocated a port on all nodes of the Kubernetes cluster and will make sure that all traffic to this port is routed to the service and eventually to the pods behind this service.
+When such a service is created, Kubernetes will allocate a port on all nodes of the Kubernetes cluster and will make sure that all traffic to this port is routed to the service and eventually to the pods behind this service.
 
 The routing of the traffic is done by the kube-proxy Kubernetes component.
 It doesn't matter which node your pod is running on.
@@ -28,7 +28,7 @@ The node ports will be open on all nodes and the traffic will always reach your 
 So your clients need to connect to the node port on any of the nodes of the Kubernetes cluster and let Kubernetes handle the rest.
 
 The node port is selected from the port range 30000-32767 by default.
-But this range can be changed in Kubernetes configuration.
+But this range can be changed in Kubernetes configuration (see [Kubernetes docs](https://kubernetes.io/docs/concepts/services-networking/service/#nodeport) for more details about configuring the node port range).
 
 So, how do we use `NodePort` type services in Strimzi to expose Apache Kafka?
 
@@ -62,7 +62,7 @@ Inside the Kubernetes cluster we addressed it by using the pod DNS names as the 
 But the pod hostnames or IP addresses are not recognized outside of Kubernetes, so we cannot use them.
 So, how does Strimzi solve it?
 
-Instead, of using the pod hostnames or IP addresses, we create additional services - one of each Kafka broker.
+Instead, of using the pod hostnames or IP addresses, we create additional services - one for each Kafka broker.
 So in a Kafka cluster with N brokers we will have N+1 node port services:
 
 * One which can be used by the Kafka clients as the bootstrap service for the initial connection and for receiving the metadata about the Kafka cluster
@@ -75,6 +75,24 @@ Each of these services will be assigned different node port, so that the traffic
 
 Since Kubernetes 1.9, every pod in a stateful set is automatically labelled with `statefulset.kubernetes.io/pod-name` which contains the name of the pod.
 Using this label in the pod selector inside the Kubernetes service definition allows us to target only the individual Kafka brokers and not the whole Kafka cluster.
+The following YAML snippet shows how the service created by Strimzi targets just one pod from the stateful set by using the `statefulset.kubernetes.io/pod-name` label in the selector:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-cluster-kafka-0
+  # ...
+spec:
+  # ...
+  selector:
+    statefulset.kubernetes.io/pod-name: my-cluster-kafka-0
+    strimzi.io/cluster: my-cluster
+    strimzi.io/kind: Kafka
+    strimzi.io/name: my-cluster-kafka
+  type: NodePort
+  # ...
+```
 
 But the node port services are just the infrastructure which can route the traffic to the brokers.
 We still need to configure the Kafka brokers to advertise the right address, so that the clients use this infrastructure.
@@ -126,7 +144,8 @@ kubectl get service my-cluster-kafka-external-bootstrap -o=jsonpath='{.spec.port
 kubectl get node node-name -o=jsonpath='{range .status.addresses[*]}{.type}{"\t"}{.address}{"\n"}'
 ```
 
-The node address and node port number give you all that is needed to connect to your cluster:
+The node address and node port number give you all that is needed to connect to your cluster.
+The following example uses the `kafka-console-producer.sh` utility which is part of Apache Kafka:
 
 ```
 bin/kafka-console-producer.sh --broker-list <node-address>:<node-port> --topic <your-topic>
@@ -154,7 +173,7 @@ or
 [2019-04-22 21:11:37,295] WARN [Producer clientId=console-producer] Connection to node -1 (/10.0.2.15:31488) could not be established. Broker may not be available. (org.apache.kafka.clients.NetworkClient)
 ```
 
-When you see one of the errors, you can compare the following addresses:
+When you see one of these errors, you can compare the following addresses:
 * The address under which you expect your nodes to be reachable by your Kafka clients (with Minikube, that should be the IP address returned by the `minikube ip` command).
 * The address of the nodes where the Kafka pods are running (`kubectl get node <node-name> -o=jsonpath='{range .status.addresses[*]}{.type}{"\t"}{.address}{"\n"}'`
 * The address advertised by the Kafka broker (`kubectl exec my-cluster-kafka-0 -c kafka -it -- cat /tmp/strimzi.properties | grep advertised`)
