@@ -291,7 +291,7 @@ Changing the advertised port will only change the advertised port in the Kafka b
 It will have no impact on the node port which is assigned by Kubernetes.
 To configure the node port numbers used by the Kubernetes services, use the `nodePort` option described above.
 
-Overriding the advertised hosts is something we already used in one of the previous chapters when the host provided by the Kubernetes API was not the correct one.
+Overriding the advertised hosts is something we already used in the troubleshooting section above when the node address provided by the Kubernetes API was not the correct one.
 But it can be useful also in other situations.
 
 For example when your network does some network address translation:
