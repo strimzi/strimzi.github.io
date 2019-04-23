@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Accessing Kafka: Part 2 - Node ports"
-date: 2019-04-17
+date: 2019-04-23
 author: jakub_scholz
 ---
 
@@ -71,7 +71,7 @@ So in a Kafka cluster with N brokers we will have N+1 node port services:
 All of these services are created with the type `NodePort`.
 Each of these services will be assigned different node port, so that the traffic for the different brokers can be distinguished.
 
-![Accessing Kafka using per-pod services]({{ "/assets/2019-04-24-per-pod-services.png" }})
+![Accessing Kafka using per-pod services]({{ "/assets/2019-04-23-per-pod-services.png" }})
 
 Since Kubernetes 1.9, every pod in a stateful set is automatically labelled with `statefulset.kubernetes.io/pod-name` which contains the name of the pod.
 Using this label in the pod selector inside the Kubernetes service definition allows us to target only the individual Kafka brokers and not the whole Kafka cluster.
@@ -111,7 +111,7 @@ But every time the broker restarts, the node might change.
 Therefore Strimzi uses an [init container](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/) which is run every time the Kafka broker pod starts.
 It collects the address of the node and uses it to configure the advertised address.
 
-![Using init-container to get the node address]({{ "/assets/2019-04-24-init-container.png" }})
+![Using init-container to get the node address]({{ "/assets/2019-04-23-init-container.png" }})
 
 To get the node address, the init container has to talk with the Kubernetes API and get the node resource.
 In the status of the node resource, the address is normally listed as one of the following:
@@ -128,7 +128,7 @@ The init container will try to get one of them in the same order as they are lis
 Once the address is configured, the client can use the bootstrap node port service to make the initial connection.
 From there the client will get the metadata containing the addresses of the individual brokers and start sending and receiving messages.
 
-![Client connecting to a broker using node port service]({{ "/assets/2019-04-24-client-connecting.png" }})
+![Client connecting to a broker using node port service]({{ "/assets/2019-04-23-client-connecting.png" }})
 
 After Strimzi configures everything inside the Kubernetes and Kafka clusters for you, you need to do just two things:
 
@@ -315,12 +315,12 @@ But it can be useful also in other situations.
 
 For example when your network does some network address translation:
 
-![Using host overrides with network address translation]({{ "/assets/2019-04-24-host-override.png" }})
+![Using host overrides with network address translation]({{ "/assets/2019-04-23-host-override.png" }})
 
 Another example might be when you don't want the clients to connect directly to the nodes where the Kafka pods are running.
 You can have only selected Kubernetes nodes exposed to the clients and use the `advertisedHost` option to configure the Kafka brokers to use these nodes.
 
-![Using overrides to route traffic over infra-nodes]({{ "/assets/2019-04-24-2019-04-24-infra-node.png" }})
+![Using overrides to route traffic over infra-nodes]({{ "/assets/2019-04-23-infra-node.png" }})
 
 # Pros and cons
 

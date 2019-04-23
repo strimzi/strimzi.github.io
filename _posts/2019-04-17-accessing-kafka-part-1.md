@@ -17,7 +17,7 @@ _This post is part of a bigger series about different ways to access a Kafka clu
 The other parts published so far are:_
 
 * _Part 1 - Introduction (this post)_
-* _[Part 2 - Node Ports](https://strimzi.io/2019/04/24/accessing-kafka-part-2.html)_
+* _[Part 2 - Node Ports](https://strimzi.io/2019/04/23/accessing-kafka-part-2.html)_
 
 It would, of course, be insufficient to just shard the data into partitions.
 The ingress and egress data traffic also needs to be properly handled.
