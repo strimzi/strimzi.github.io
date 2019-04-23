@@ -4,17 +4,16 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Asciidoctor 2.0.7">
+<meta name="generator" content="Asciidoctor 2.0.8">
 <title>Using Strimzi</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | https://asciidoctor.org */
-/* Uncomment @import statement when using as custom stylesheet */
+/* Uncomment @import statement to use as custom stylesheet */
 /*@import "https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700";*/
 article,aside,details,figcaption,figure,footer,header,hgroup,main,nav,section{display:block}
-audio,canvas,video{display:inline-block}
+audio,video{display:inline-block}
 audio:not([controls]){display:none;height:0}
-script{display:none!important}
 html{font-family:sans-serif;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}
 a{background:none}
 a:focus{outline:thin dotted}
@@ -219,8 +218,8 @@ table.tableblock #preamble>.sectionbody>[class="paragraph"]:first-of-type p{font
 .literalblock pre,.listingblock>.content>pre{-webkit-border-radius:4px;border-radius:4px;word-wrap:break-word;overflow-x:auto;padding:1em;font-size:.8125em}
 @media screen and (min-width:768px){.literalblock pre,.listingblock>.content>pre{font-size:.90625em}}
 @media screen and (min-width:1280px){.literalblock pre,.listingblock>.content>pre{font-size:1em}}
+.literalblock pre,.listingblock>.content>pre:not(.highlight),.listingblock>.content>pre[class="highlight"],.listingblock>.content>pre[class^="highlight "]{background:#f7f7f8}
 .literalblock.output pre{color:#f7f7f8;background:rgba(0,0,0,.9)}
-.listingblock>.content>pre:not(.highlight),.listingblock>.content>pre[class="highlight"],.listingblock>.content>pre[class^="highlight "]{background:#f7f7f8}
 .listingblock>.content{position:relative}
 .listingblock code[data-lang]::before{display:none;content:attr(data-lang);position:absolute;font-size:.75em;top:.425rem;right:.5rem;line-height:1;text-transform:uppercase;color:inherit;opacity:.5}
 .listingblock:hover code[data-lang]::before{display:block}
@@ -263,7 +262,8 @@ pre.pygments .lineno::before{content:"";margin-right:-.125em}
 .quoteblock.excerpt .attribution,.quoteblock .quoteblock .attribution{color:inherit;text-align:left;margin-right:0}
 table.tableblock{max-width:100%;border-collapse:separate}
 p.tableblock:last-child{margin-bottom:0}
-td.tableblock>.content{margin-bottom:-1.25em}
+td.tableblock>.content>:last-child{margin-bottom:-1.25em}
+td.tableblock>.content>:last-child.sidebarblock{margin-bottom:0}
 table.tableblock,th.tableblock,td.tableblock{border:0 solid #dedede}
 table.grid-all>thead>tr>.tableblock,table.grid-all>tbody>tr>.tableblock{border-width:0 1px 1px 0}
 table.grid-all>tfoot>tr>.tableblock{border-width:1px 1px 0 0}
@@ -628,7 +628,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel3">
 <li><a href="#con-what-the-user-operator-does-deploying-uo">4.3.1. Overview of the User Operator component</a></li>
 <li><a href="#proc-deploying-the-user-operator-using-the-cluster-operator-deploying-uo">4.3.2. Deploying the User Operator using the Cluster Operator</a></li>
-<li><a href="#proc-deploying-the-user-operator-standalone-deploying-uo">4.3.3. Deploying the standalone User Operator</a></li>
+<li><a href="#proc-user-operator-with-resource-requests-limits-deploying-uo">4.3.3. Configuring the User Operator with resource requests and limits</a></li>
+<li><a href="#proc-deploying-the-user-operator-standalone-deploying-uo">4.3.4. Deploying the standalone User Operator</a></li>
 </ul>
 </li>
 </ul>
@@ -19322,11 +19323,14 @@ spec:
 </div>
 <div class="sect3">
 <h4 id="proc-topic-operator-with-resource-requests-limits-deploying"><a class="link" href="#proc-topic-operator-with-resource-requests-limits-deploying">4.2.4. Configuring the Topic Operator with resource requests and limits</a></h4>
+<div class="paragraph">
+<p>You can allocate resources, such as CPU and memory, to the Topic Operator and set a limit on the amount of resources it can consume.</p>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
 <li>
-<p>A running Cluster Operator</p>
+<p>The Cluster Operator is running.</p>
 </li>
 </ul>
 </div>
@@ -19334,40 +19338,60 @@ spec:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Edit the <code>Kafka</code> resource specifying in the <code>Kafka.spec.entityOperator.topicOperator.resources</code> property the resource requests and limits you want the Topic Operator to have.</p>
+<p>Update the Kafka cluster configuration in an editor, as required:</p>
+<div class="paragraph">
+<p>On Kubernetes, use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl edit kafka my-cluster</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift, use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc edit kafka my-cluster</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>In the <code>spec.entityOperator.topicOperator.resources</code> property in the <code>Kafka</code> resource, set the resource requests and limits for the Topic Operator.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
 spec:
   # kafka and zookeeper sections...
-  topicOperator:
-    resources:
-      request:
-        cpu: "1"
-        memory: 500Mi
-      limit:
-        cpu: "1"
-        memory: 500Mi</code></pre>
+  entityOperator:
+    topicOperator:
+      resources:
+        request:
+          cpu: "1"
+          memory: 500Mi
+        limit:
+          cpu: "1"
+          memory: 500Mi</code></pre>
 </div>
 </div>
 </li>
 <li>
-<p>Create or update the <code>Kafka</code> resource.</p>
+<p>Apply the new configuration to create or update the resource.</p>
 <div class="paragraph">
-<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+<p>On Kubernetes, use <code>kubectl apply</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>your-file</em></code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>kafka.yaml</em></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+<p>On OpenShift, use <code>oc apply</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc apply -f <em>your-file</em></code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc apply -f <em>kafka.yaml</em></code></pre>
 </div>
 </div>
 </li>
@@ -19377,7 +19401,7 @@ spec:
 <div class="title">Additional resources</div>
 <ul>
 <li>
-<p>For more information about the schema of the resources object, see <a href="#type-ResourceRequirements-reference"><code>ResourceRequirements</code> schema reference</a>.</p>
+<p>For more information about the schema of the <code>resources</code> object, see <a href="#type-ResourceRequirements-reference"><code>ResourceRequirements</code> schema reference</a>.</p>
 </li>
 </ul>
 </div>
@@ -19657,7 +19681,92 @@ Your application needs to use the user and its credentials for authentication an
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-deploying-the-user-operator-standalone-deploying-uo"><a class="link" href="#proc-deploying-the-user-operator-standalone-deploying-uo">4.3.3. Deploying the standalone User Operator</a></h4>
+<h4 id="proc-user-operator-with-resource-requests-limits-deploying-uo"><a class="link" href="#proc-user-operator-with-resource-requests-limits-deploying-uo">4.3.3. Configuring the User Operator with resource requests and limits</a></h4>
+<div class="paragraph">
+<p>You can allocate resources, such as CPU and memory, to the User Operator and set a limit on the amount of resources it can consume.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Update the Kafka cluster configuration in an editor, as required:</p>
+<div class="paragraph">
+<p>On Kubernetes, use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl edit kafka my-cluster</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift, use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc edit kafka my-cluster</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>In the <code>spec.entityOperator.userOperator.resources</code> property in the <code>Kafka</code> resource, set the resource requests and limits for the User Operator.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+spec:
+  # kafka and zookeeper sections...
+  entityOperator:
+    userOperator:
+      resources:
+        request:
+          cpu: "1"
+          memory: 500Mi
+        limit:
+          cpu: "1"
+          memory: 500Mi</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Apply the new configuration to create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes, use <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>kafka.yaml</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift, use <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc apply -f <em>kafka.yaml</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about the schema of the <code>resources</code> object, see <a href="#type-ResourceRequirements-reference"><code>ResourceRequirements</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-deploying-the-user-operator-standalone-deploying-uo"><a class="link" href="#proc-deploying-the-user-operator-standalone-deploying-uo">4.3.4. Deploying the standalone User Operator</a></h4>
 <div class="paragraph">
 <p>Deploying the User Operator as a standalone component is more complicated than installing it using the Cluster Operator, but it is more flexible.
 For instance, it can operate <em>with</em> any Kafka cluster, not only the one deployed by the Cluster Operator.</p>
@@ -26730,7 +26839,7 @@ It must have the value <code>scram-sha-512</code> for the type <code>KafkaMirror
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-04-20 18:58:17 UTC
+Last updated 2019-04-23 07:35:01 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
