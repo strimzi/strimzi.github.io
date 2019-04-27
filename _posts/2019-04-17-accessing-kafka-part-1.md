@@ -18,6 +18,7 @@ The other parts published so far are:_
 
 * _Part 1 - Introduction (this post)_
 * _[Part 2 - Node Ports](https://strimzi.io/2019/04/23/accessing-kafka-part-2.html)_
+* _[Part 3 - OpenShift Routes](https://strimzi.io/2019/04/30/accessing-kafka-part-3.html)_
 
 It would, of course, be insufficient to just shard the data into partitions.
 The ingress and egress data traffic also needs to be properly handled.
