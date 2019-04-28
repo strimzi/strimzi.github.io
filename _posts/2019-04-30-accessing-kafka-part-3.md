@@ -87,6 +87,8 @@ Since Strimzi is using the TLS passthrough functionality, it means that:
 
 Getting the address where to connect with your client is easy.
 As mentioned above, the port will be always 443.
+This is often a cause of issues, when users try to connect to port 9094 instead of 443.
+But 443 is always the correct port number with OpenShift Routes.
 And you can find the host in the status of the `Route` resource (replace `my-cluster` with the name of your cluster):
 
 ```
@@ -114,115 +116,50 @@ bin/kafka-console-producer.sh --broker-list <route-address>:443 --producer-prope
 
 For more details, see the [Strimzi documentation](https://strimzi.io/docs/latest/full.html#proc-accessing-kafka-using-routes-deployment-configuration-kafka).
 
-
-
-
-
-
-
-
-
-
-
 # Customizations
 
-Strimzi aims to make node ports work out of the box.
-But there are several options which you can use to customize the Kafka cluster and its node port services.
-
-## Pre-configured node port numbers
-
-By default, the node port numbers are generated / assigned by the Kubernetes controllers.
-That means that every time you delete your Kafka cluster and deploy a new one, a new set of node ports will be assigned to the Kubernetes services created by Strimzi.
-So after every redeployment you have to reconfigure all your applications using the node ports with the new node port of the bootstrap service.
-
-Strimzi allows you to customize the node ports in the `Kafka` custom resource:
+As explained in the previous section, the routes get by default automatically assigned DNS names based on the name of your cluster and namespace.
+But you can customize this and specify your own DNS names:
 
 ```yaml
 # ...
 listeners:
   external:
-    type: nodeport
-    tls: true
+    type: route
     authentication:
       type: tls
     overrides:
       bootstrap:
-        nodePort: 32100
+        host: bootstrap.myrouter.com
       brokers:
       - broker: 0
-        nodePort: 32000
+        host: broker-0.myrouter.com
       - broker: 1
-        nodePort: 32001
+        host: broker-1.myrouter.com
       - broker: 2
-        nodePort: 32002
+        host: broker-2.myrouter.com
 # ...
 ```
 
-The example above requests node port `32100` for the bootstrap service and ports `32000`, `32001` and `32002` for the per-broker services.
-This allows you to re-deploy your cluster without changing the node ports numbers in all your applications.
-
-However, Strimzi doesn't do any validation of the requested port numbers.
-So you have to make sure that they are:
-
-* within the range assigned for node ports in the configuration of your Kubernetes cluster
-* not used by any other service.
-
-You do not have to configure all the node ports.
-You can decide to configure only some of them - for example only the one for the external bootstrap service.
-
-## Configuring advertised hosts and ports
-
-Strimzi also allows you to customize the advertised hostname and port which will be used in the configuration of the Kafka pods:
-
-```yaml
-# ...
-listeners:
-  external:
-    type: nodeport
-    authentication:
-      type: tls
-    overrides:
-      brokers:
-      - broker: 0
-        advertisedHost: example.hostname.0
-        advertisedPort: 12340
-      - broker: 1
-        advertisedHost: example.hostname.1
-        advertisedPort: 12341
-      - broker: 2
-        advertisedHost: example.hostname.2
-        advertisedPort: 12342
-# ...
-```
-
-The `advertisedHost` field can contain either DNS name or an IP address.
-You can of course also decide to customize just one of these.
-
-Changing the advertised port will only change the advertised port in the Kafka broker configuration.
-It will have no impact on the node port which is assigned by Kubernetes.
-To configure the node port numbers used by the Kubernetes services, use the `nodePort` option described above.
-
-Overriding the advertised hosts is something we already used in the troubleshooting section above when the node address provided by the Kubernetes API was not the correct one.
-But it can be useful also in other situations.
-
-For example when your network does some network address translation:
-
-![Using host overrides with network address translation]({{ "/assets/2019-04-23-host-override.png" }})
-
-Another example might be when you don't want the clients to connect directly to the nodes where the Kafka pods are running.
-You can have only selected Kubernetes nodes exposed to the clients and use the `advertisedHost` option to configure the Kafka brokers to use these nodes.
-
-![Using overrides to route traffic over infra-nodes]({{ "/assets/2019-04-23-infra-node.png" }})
+The customized names still need to match the DNS configuration of the OpenShift router.
+But you can give them a friendlier name.
+The custom DNS names (as well as the names automatically assigned to the routes) will be of course added to the TLS certificates and your Kafka clients can use TLS hostname verification.
 
 # Pros and cons
 
-Exposing your Kafka cluster to the outside using node ports can give you a lot of flexibility.
-It is also able to deliver very good performance.
-Compared to other solutions such as load-balancers, routes or ingress there is no middleman to be a bottleneck or add latency.
-Your client connections will go to your Kafka broker in the most direct way possible.
+Routes are available only on OpenShift.
+So if you are using Kubernetes, this will be clearly a deal breaking disadvantage.
+One of the other disadvantages is also that the routes always use TLS encryption.
+You will always have to deal with the TLS certificates and encryption in your Kafka clients and applications.
 
-But there is also a price you have to pay for this.
-Node ports are a very low level solution.
-Often you will run into problems with the detection of the advertised addresses as described in the sections above.
-Another problem might be that node ports expect you to expose your Kubernetes nodes to the clients.
-And that is often seen as security risk by the administrators.
+You should also carefully consider the performance.
+The OpenShift HAProxy router will act as a middleman between your Kafka clients and brokers.
+It can add latency and it can also become a performance bottleneck.
+Applications using Kafka also often generate a lot of traffic - hundreds or even thousands megabytes per second.
+You have to keep this in mind and make sure that the Kafka traffic will still leave some capacity for other applications using the router.
+Luckily, the OpenShift Router is scalable and highly configurable.
+So you can fine-tune its performance.
+And if needed, you can even setup a separate instances of the router for the Kafka routes.
+
+The main advantage of using OpenShift Routes is that they simply work.
+Unlike the node ports discussed in the previous blog post, which are often tricky to configure and require a deeper knowledge of Kubernetes and the infrastructure, the routes work very reliably out of the box on any OpenShift installation.
