@@ -24,15 +24,15 @@ The other parts published so far are:_
 Routes are OpenShift concept for exposing services to the outside of the OpenShift platform.
 Routes handle both data routing as well as DNS resolution.
 DNS resolution is usually handled using wildcard DNS entries.
-That allows OpenShift to assign each route its own DNS which is based on the wildcard entry.
+That allows OpenShift to assign each route its own DNS name which is based on the wildcard entry.
 Users do not have to anything special to handle the DNS records.
-Don't worry, when you don't own any domains where you can setup the wildcard entires, it can use services such as [nip.ip](https://nip.io/) for the DNS routing.
+But don't worry, when you don't own any domains where you can setup the wildcard entires, it can use services such as [nip.ip](https://nip.io/) for the wildcard DNS routing.
 Data routing is done using the [HAProxy](https://www.haproxy.org) load balancer which serves as the router behind the routes.
 
-The main use-case of the is HTTP(S) routing.
+The main use-case of the router is HTTP(S) routing.
 The routes are able to do path based routing of HTTP and HTTPS (with TLS termination) traffic.
 In this mode, the HTTP requests will be routed to different services based on the request path.
-However, since Kafka protocol is not based on HTTP, the HTTP features are not very useful for Strimzi and Kafka brokers.
+However, since the Kafka protocol is not based on HTTP, the HTTP features are not very useful for Strimzi and Kafka brokers.
 
 But luckily the routes can be also used for TLS passthrough.
 In this mode, it uses TLS SNI to determine the service to which the traffic should be routed and passes the TLS connection to the service (and eventually to the pod backing the service) without decoding it.
@@ -60,14 +60,14 @@ spec:
     # ...
 ```
 
-And Strimzi and OpenShift will take care of the rest.
+And Strimzi Kafka Operator and OpenShift will take care of the rest.
 To provide access to the individual brokers, we use the same tricks as we use with node ports and which were already described in the [previous blog post](https://strimzi.io/2019/04/23/accessing-kafka-part-2.html).
 We create a dedicated service for each of the brokers.
 These will be used to address the individual brokers directly.
-Apart from that we will also use one service for the bootstrapping of the client.
+Apart from that we will also use one service for the bootstrapping of the clients.
 This service would round-robin between all Kafka brokers.
 
-But unlike when using node ports, these services will be only regular Kubernetes service of the `clusterIP` type.
+But unlike when using node ports, these services will be only regular Kubernetes services of the `clusterIP` type.
 Instead, the Strimzi Kafka operator will also create a `Route` resource for each of these services.
 That will expose them using the HAProxy router.
 The DNS addresses assigned to these routes will be used by Strimzi to configure the advertised addresses in the different Kafka brokers.
@@ -75,9 +75,9 @@ The DNS addresses assigned to these routes will be used by Strimzi to configure 
 ![Accessing Kafka using per-pod routes]({{ "/assets/2019-04-30-per-pod-routes.png" }})
 
 Kafka clients will connect to the bootstrap route which will route them through the bootstrap service to one of the brokers.
-From this broker, they will get the metadata which will contain the DNS names of the routes.
-The Kafka client will use these addresses to connect to the routes dedicated to the specific broker.
-And the router will again route it through the corresponding service into the correct Kafka broker.
+From this broker, they will get the metadata which will contain the DNS names of the per-broker routes.
+The Kafka clients will use these addresses to connect to the routes dedicated to the specific broker.
+And the router will again route it through the corresponding service to the right pod.
 
 As explained in the previous section, the routers main use-case is routing of HTTP(S) traffic.
 Therefore it is always listening on the ports 80 and 443.
@@ -100,7 +100,7 @@ So for example for my Kafka cluster named `my-cluster` running in project named 
 
 Since it will always use TLS, you will always have to configure the TLS also in your Kafka clients.
 This includes getting the TLS certificate from the broker and configuring it in the client.
-You can use following commands to get the CA certificate used by the Kafka brokers and import it into Java Keystore file which can be used with Java applications (replace `my-cluster` with the name of your cluster):
+You can use following commands to get the CA certificate used by the Kafka brokers and import it into Java keystore file which can be used with Java applications (replace `my-cluster` with the name of your cluster):
 
 ```
 oc extract secret/my-cluster-cluster-ca-cert --keys=ca.crt --to=- > ca.crt
