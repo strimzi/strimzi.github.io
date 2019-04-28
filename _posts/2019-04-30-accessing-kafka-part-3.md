@@ -6,7 +6,7 @@ author: jakub_scholz
 ---
 
 In the third part of this blog post series we will look at exposing Kafka using OpenShift Routes.
-This post will explain how routes work and how can they be used with Kafka.
+This post will explain how routes work and how they can be used with Kafka.
 Routes are available only on OpenShift.
 But if you are a Kubernetes user, don't be sad, one of the next part will be about using Kubernetes Ingress which is similar to OpenShift routes.
 
@@ -21,9 +21,9 @@ The other parts published so far are:_
 
 # OpenShift Routes
 
-Routes are OpenShift concept for exposing services to the outside of the OpenShift platform.
+Routes are an OpenShift concept for exposing services to the outside of the OpenShift platform.
 Routes handle both data routing as well as DNS resolution.
-DNS resolution is usually handled using wildcard DNS entries.
+DNS resolution is usually handled using [wildcard DNS entries](https://en.wikipedia.org/wiki/Wildcard_DNS_record).
 That allows OpenShift to assign each route its own DNS name which is based on the wildcard entry.
 Users do not have to anything special to handle the DNS records.
 But don't worry, when you don't own any domains where you can setup the wildcard entires, it can use services such as [nip.ip](https://nip.io/) for the wildcard DNS routing.
