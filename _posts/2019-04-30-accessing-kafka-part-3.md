@@ -27,7 +27,7 @@ DNS resolution is usually handled using [wildcard DNS entries](https://en.wikipe
 That allows OpenShift to assign each route its own DNS name which is based on the wildcard entry.
 Users do not have to do anything special to handle the DNS records.
 But don't worry, when you don't own any domains where you can setup the wildcard entires, it can use services such as [nip.ip](https://nip.io/) for the wildcard DNS routing.
-Data routing is done using the [HAProxy](https://www.haproxy.org) load balancer which serves as the router behind the routes.
+Data routing is done using the [HAProxy](https://www.haproxy.org) load balancer which serves as the router behind the domain names.
 
 The main use-case of the router is HTTP(S) routing.
 The routes are able to do path based routing of HTTP and HTTPS (with TLS termination) traffic.
@@ -42,7 +42,7 @@ If you want to learn more about OpenShift Routes, check the [OpenShift documenta
 
 # Exposing Kafka using OpenShift Routes
 
-Exposing Kafka using OpenShift Routes is probably the easiest of all the available options.
+Exposing Kafka using OpenShift Routes is probably the easiest of all the available listener types.
 All you need to do is to configure it in the Kafka custom resource.
 
 ```yaml
@@ -96,7 +96,7 @@ oc get routes my-cluster-kafka-bootstrap -o=jsonpath='{.status.ingress[0].host}{
 ```
 
 By default, the DNS name of the route will be based on the name of the service it points to and on the name of the OpenShift project.
-So for example for my Kafka cluster named `my-cluster` running in project named `myproject`, the default DNS name will be something like `my-cluster-kafka-bootstrap-myproject.mydomain.io`.
+So for example for my Kafka cluster named `my-cluster` running in project named `myproject`, the default DNS name will be `my-cluster-kafka-bootstrap-myproject.<router-domain>`.
 
 Since it will always use TLS, you will always have to configure TLS in your Kafka clients.
 This includes getting the TLS certificate from the broker and configuring it in the client.
@@ -118,8 +118,7 @@ For more details, see the [Strimzi documentation](https://strimzi.io/docs/latest
 
 # Customizations
 
-As explained in the previous section, by default the routes get automatically assigned DNS names based on the name of your cluster and namespace.
-But you can customize this and specify your own DNS names:
+As explained in the previous section, by default the routes get automatically assigned DNS names based on the name of your cluster and namespace, but you can customize this and specify your own DNS names:
 
 ```yaml
 # ...
@@ -157,9 +156,7 @@ The OpenShift HAProxy router will act as a middleman between your Kafka clients 
 It can add latency and it can also become a performance bottleneck.
 Applications using Kafka also often generate a lot of traffic - hundreds or even thousands megabytes per second.
 You have to keep this in mind and make sure that the Kafka traffic will still leave some capacity for other applications using the router.
-Luckily, the OpenShift Router is scalable and highly configurable.
-So you can fine-tune its performance.
-And if needed, you can even setup a separate instances of the router for the Kafka routes.
+Luckily, the OpenShift Router is scalable and highly configurable so you can fine-tune its performance and if needed, you can even setup a separate instances of the router for the Kafka routes.
 
 The main advantage of using OpenShift Routes is that they are so easy to get working.
 Unlike the node ports discussed in the previous blog post, which are often tricky to configure and require a deeper knowledge of Kubernetes and the infrastructure, OpenShift routes work very reliably out of the box on any OpenShift installation.
