@@ -759,14 +759,14 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#prometheus">C.2. Prometheus</a>
 <ul class="sectlevel3">
-<li><a href="#deploying_on_openshift_2">C.2.1. Deploying on OpenShift</a></li>
-<li><a href="#deploying_on_kubernetes_2">C.2.2. Deploying on Kubernetes</a></li>
+<li><a href="#deploying_the_prometheus_operator_on_kubernetes">C.2.1. Deploying the Prometheus Operator on Kubernetes</a></li>
+<li><a href="#deploying_prometheus">C.2.2. Deploying Prometheus</a></li>
 </ul>
 </li>
 <li><a href="#grafana">C.3. Grafana</a>
 <ul class="sectlevel3">
-<li><a href="#deploying_on_openshift_3">C.3.1. Deploying on OpenShift</a></li>
-<li><a href="#deploying_on_kubernetes_3">C.3.2. Deploying on Kubernetes</a></li>
+<li><a href="#deploying_on_openshift_2">C.3.1. Deploying on OpenShift</a></li>
+<li><a href="#deploying_on_kubernetes_2">C.3.2. Deploying on Kubernetes</a></li>
 </ul>
 </li>
 <li><a href="#grafana_dashboard">C.4. Grafana dashboard</a>
@@ -777,11 +777,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </ul>
 </li>
 <li><a href="#prometheus_alerting">C.5. Prometheus alerting</a></li>
-<li><a href="#prometheus_alert_manager">C.6. Prometheus alert manager</a>
+<li><a href="#prometheus_alertmanager">C.6. Prometheus Alertmanager</a>
 <ul class="sectlevel3">
-<li><a href="#deploying_on_openshift_4">C.6.1. Deploying on OpenShift</a></li>
-<li><a href="#deploying_on_kubernetes_4">C.6.2. Deploying on Kubernetes</a></li>
-<li><a href="#alerts_examples">C.6.3. Alerts examples</a></li>
+<li><a href="#deploying_alertmanager">C.6.1. Deploying Alertmanager</a></li>
+<li><a href="#alerts_examples">C.6.2. Alerts examples</a></li>
 </ul>
 </li>
 </ul>
@@ -23472,7 +23471,7 @@ Once installed, <code>Minishift</code> can be started using the following comman
 <div class="sectionbody">
 <div class="paragraph">
 <p>This section describes how to monitor Strimzi Kafka and ZooKeeper clusters using Grafana dashboards.
-In order to run the example dashboards you must configure Prometheus server and add the appropriate <a href="https://github.com/prometheus/jmx_exporter">Prometheus JMX Exporter</a> rules to your Kafka cluster resource.</p>
+To run the example dashboards you must configure a Prometheus server and add the appropriate <a href="#ref-metrics-deployment-configuration-kafka">metrics configuration</a> to your Kafka cluster resource.</p>
 </div>
 <div class="admonitionblock warning">
 <table>
@@ -23493,8 +23492,8 @@ If you require further support on configuration and running Prometheus or Grafan
 <div class="sect2">
 <h3 id="kafka_metrics_configuration"><a class="link" href="#kafka_metrics_configuration">C.1. Kafka Metrics Configuration</a></h3>
 <div class="paragraph">
-<p>Strimzi uses the <a href="https://github.com/prometheus/jmx_exporter">Prometheus JMX Exporter</a> to export JMX metrics from Kafka and ZooKeeper to a Prometheus HTTP metrics endpoint that is scraped by Prometheus server.
-The Grafana dashboard relies on the Kafka and ZooKeeper Prometheus JMX Exporter relabeling rules defined in the example <code>Kafka</code> resource configuration in <a href="https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/kafka/kafka-metrics.yaml"><code>kafka-metrics.yaml</code></a>.
+<p>Strimzi uses the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX Exporter</a> to export JMX metrics from Kafka and ZooKeeper to a Prometheus HTTP metrics endpoint that is scraped by Prometheus server.
+The Grafana dashboard relies on the Kafka and ZooKeeper Prometheus JMX Exporter relabeling rules defined in the example <code>Kafka</code> resource configuration in <a href="https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/kafka/kafka-metrics.yaml" target="_blank" rel="noopener"><code>kafka-metrics.yaml</code></a>.
 Copy this configuration to your own <code>Kafka</code> resource definition, or run this example, in order to use the provided Grafana dashboards.</p>
 </div>
 <div class="sect3">
@@ -23504,7 +23503,7 @@ Copy this configuration to your own <code>Kafka</code> resource definition, or r
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/kafka/kafka-metrics.yaml</code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{GithubVersion}/metrics/examples/kafka/kafka-metrics.yaml</code></pre>
 </div>
 </div>
 </div>
@@ -23515,7 +23514,7 @@ Copy this configuration to your own <code>Kafka</code> resource definition, or r
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/kafka/kafka-metrics.yaml</code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{GithubVersion}/metrics/examples/kafka/kafka-metrics.yaml</code></pre>
 </div>
 </div>
 </div>
@@ -23523,17 +23522,76 @@ Copy this configuration to your own <code>Kafka</code> resource definition, or r
 <div class="sect2">
 <h3 id="prometheus"><a class="link" href="#prometheus">C.2. Prometheus</a></h3>
 <div class="paragraph">
-<p>The provided Prometheus <a href="https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/prometheus.yaml"><code>prometheus.yaml</code></a> YAML file describes all the resources required by Prometheus in order to effectively monitor a Strimzi Kafka &amp; ZooKeeper cluster.
-These resources lack important production configuration to run a healthy and highly available Prometheus server.
-They should only be used to demonstrate this Grafana dashboard example.</p>
+<p><a href="https://prometheus.io/" target="_blank" rel="noopener">Prometheus</a> is an open-source set of components for systems monitoring and alerting.
+Strimzi uses the <a href="https://github.com/coreos/prometheus-operator" target="_blank" rel="noopener">CoreOS Prometheus Operator</a> to run Prometheus on Kubernetes.
+This Operator enables you to run a highly available Prometheus server that is suitable for use in production environments.</p>
+</div>
+<div class="sect3">
+<h4 id="deploying_the_prometheus_operator_on_kubernetes"><a class="link" href="#deploying_the_prometheus_operator_on_kubernetes">C.2.1. Deploying the Prometheus Operator on Kubernetes</a></h4>
+<div class="paragraph">
+<p>To deploy the Prometheus Operator in your Kafka cluster, apply the <code>.yaml</code> files from the <a href="https://github.com/coreos/prometheus-operator/tree/master/example/rbac/prometheus-operator">Prometheus CoreOS repository</a>.</p>
 </div>
 <div class="paragraph">
-<p>The following resources are defined:</p>
+<p>To use a different namespace than that specified in the repository files (<code>myproject</code>), use the following commands to download and edit the files from the repository:</p>
+</div>
+<div class="paragraph">
+<p>On Linux, use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">curl -s https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/rbac/prometheus-operator/prometheus-operator-deployment.yaml | sed -e 's/namespace: .*/namespace: <em>my-namespace</em>/' &gt; prometheus-operator-deployment.yaml
+curl -s https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/rbac/prometheus-operator/prometheus-operator-cluster-role-binding.yaml | sed -e 's/namespace: .*/namespace: <em>my-namespace</em>/' &gt; prometheus-operator-cluster-role-binding.yaml
+curl -s https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/rbac/prometheus-operator/prometheus-operator-service-account.yaml | sed -e 's/namespace: .*/namespace: <em>my-namespace</em>/' &gt; prometheus-operator-service-account.yaml
+curl -s https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/rbac/prometheus-operator/prometheus-operator-cluster-role.yaml &gt; prometheus-operator-cluster-role.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On MacOS, use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">curl -s https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/rbac/prometheus-operator/prometheus-operator-deployment.yaml | sed -e '' 's/namespace: .*/namespace: <em>my-namespace</em>/' &gt; prometheus-operator-deployment.yaml
+curl -s https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/rbac/prometheus-operator/prometheus-operator-cluster-role-binding.yaml | sed -e '' 's/namespace: .*/namespace: <em>my-namespace</em>/' &gt; prometheus-operator-cluster-role-binding.yaml
+curl -s https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/rbac/prometheus-operator/prometheus-operator-service-account.yaml | sed -e '' 's/namespace: .*/namespace: <em>my-namespace</em>/' &gt; prometheus-operator-service-account.yaml
+curl -s https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/rbac/prometheus-operator/prometheus-operator-cluster-role.yaml &gt; prometheus-operator-cluster-role.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If needed, you can remove the <code>securityContext</code> from the Prometheus Operator <code>Deployment</code>.
+You can manually remove the <code>spec.template.spec.securityContext</code> property from the <code>prometheus-operator-deployment.yaml</code> file.</p>
+</div>
+<div class="paragraph">
+<p>Next, apply all the files using the following commands:</p>
+</div>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f prometheus-operator-service-account.yaml
+kubectl apply -f prometheus-operator-cluster-role.yaml
+kubectl apply -f prometheus-operator-cluster-role-binding.yaml
+kubectl apply -f prometheus-operator-deployment.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc apply -f prometheus-operator-service-account.yaml
+oc apply -f prometheus-operator-cluster-role.yaml
+oc apply -f prometheus-operator-cluster-role-binding.yaml
+oc apply -f prometheus-operator-deployment.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The Strimzi repository contains <a href="https://github.com/strimzi/strimzi-kafka-operator/tree/master/metrics/examples/prometheus/install" target="_blank" rel="noopener">configuration files</a> for the Prometheus server. When you apply these configuration files, the following resources are created in your Kubernetes cluster and managed by the Prometheus Operator.</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>A <code>ClusterRole</code> that grants permissions to read Prometheus health endpoints of the Kubernetes system, including cAdvisor and kubelet for container metrics.  The Prometheus server configuration uses the Kubernetes service discovery feature in order to discover the pods in the cluster from which it gets metrics.  In order to have this feature working, it is necessary for the service account used for running the Prometheus service pod to have access to the API server to get the pod list.</p>
+<p>A <code>ClusterRole</code> that grants permissions to read the Prometheus health endpoints of the Kubernetes system, including cAdvisor and the kubelet for container metrics. The Prometheus server configuration uses the Kubernetes service discovery feature in order to discover the pods in the cluster from which it gets metrics.  For this feature to work correctly, the service account used for running the Prometheus service pod must have access to the API server so it can retrieve the pod list.</p>
 </li>
 <li>
 <p>A <code>ServiceAccount</code> for the Prometheus pods to run under.</p>
@@ -23542,82 +23600,117 @@ They should only be used to demonstrate this Grafana dashboard example.</p>
 <p>A <code>ClusterRoleBinding</code> which binds the aforementioned <code>ClusterRole</code> to the <code>ServiceAccount</code>.</p>
 </li>
 <li>
-<p>A <code>Deployment</code> to manage the actual Prometheus server pod.</p>
+<p>A <code>Deployment</code> to manage the Prometheus Operator pod.</p>
 </li>
 <li>
-<p>A <code>ConfigMap</code> to manage the configuration of Prometheus Server.</p>
+<p>A <code>ServiceMonitor</code> to manage the configuration of the Prometheus pod.</p>
 </li>
 <li>
-<p>A <code>Service</code> to provide an easy to reference hostname for other services to connect to Prometheus server (such as Grafana).</p>
+<p>A <code>Secret</code> to manage additional Prometheus settings.</p>
+</li>
+<li>
+<p>A <code>PrometheusRule</code> to manage alert rules for the Prometheus pod.</p>
+</li>
+<li>
+<p>A <code>Prometheus</code> to manage the configuration of the Prometheus pod.</p>
 </li>
 </ul>
 </div>
-<div class="paragraph">
-<p>Prometheus also provides an alerting system through the <a href="https://prometheus.io/docs/alerting/alertmanager/">alert manager</a> component.
-In order to enable alerting, the provided <a href="https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/alerting-rules.yaml"><code>alerting-rules.yaml</code></a> file describes a <code>ConfigMap</code> resource which defines sample alerting rules on Kafka and Zookeeper metrics.
-When an alert condition is evaluated as true on the Prometheus server, it sends the alert data to the alert manager which then uses the configured notification methods to notify the user.</p>
-</div>
-<div class="paragraph">
-<p>More information about how to set up alerting rules <a href="https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/">here</a>.</p>
 </div>
 <div class="sect3">
-<h4 id="deploying_on_openshift_2"><a class="link" href="#deploying_on_openshift_2">C.2.1. Deploying on OpenShift</a></h4>
+<h4 id="deploying_prometheus"><a class="link" href="#deploying_prometheus">C.2.2. Deploying Prometheus</a></h4>
 <div class="paragraph">
-<p>The provided <code>prometheus.yaml</code> file, with all the Prometheus related resources, creates a <code>ClusterRoleBinding</code> in the <code>myproject</code> namespace.
-It also discovers an alert manager instance in the same namespace.
-If you are using a different namespace, download the resource file and update it as follows:</p>
+<p>The provided <a href="https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/install/prometheus.yaml" target="_blank" rel="noopener"><code>prometheus.yaml</code></a> file, together with the Prometheus related resources, creates a <code>ClusterRoleBinding</code> in the <code>myproject</code> namespace.
+It also discovers an Alertmanager instance in the same namespace.
+If you are using a different namespace, download the resource file and update it using the following command:</p>
+</div>
+<div class="paragraph">
+<p>On Linux, use:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">curl -s https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/prometheus.yaml | sed -e 's/namespace: .*/namespace: _my-namespace_/;s/regex: myproject/regex: _my-namespace_/' &gt; prometheus.yaml</code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">curl -s https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{GithubVersion}/metrics/examples/prometheus/install/prometheus.yaml | sed -e 's/namespace: .*/namespace: <em>my-namespace</em>/' &gt; prometheus.yaml</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The provided <code>alerting-rules.yaml</code> file creates a <code>ConfigMap</code> with sample alerting rules; download the resource file as follows:</p>
+<p>On MacOS, use:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">curl -s https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/alerting-rules.yaml &gt; alerting-rules.yaml</code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">curl -s https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{GithubVersion}/metrics/examples/prometheus/install/prometheus.yaml | sed -e '' 's/namespace: .*/namespace: <em>my-namespace</em>/' &gt; prometheus.yaml</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>To deploy all these resources you can run the following.</p>
+<p>To define Prometheus jobs that will scrape the metrics data, you must apply the <code>ServiceMonitor</code> resource located in the provided <code>strimzi-service-monitor.yaml</code> file.
+Download this file using the following command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">curl -O https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{GithubVersion}/metrics/examples/prometheus/install/strimzi-service-monitor.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Currently, the Prometheus Operator only supports jobs that include an <code>endpoints</code> role for service discovery.
+To use another role, edit the <code>additionalScrapeConfigs</code> property in the <code>prometheus.yaml</code> configuration file.
+This takes the name of the <code>Secret</code> and the name of the property in a given <code>Secret</code> in which additional configuration is stored.
+To create this <code>Secret</code> resource, use the following command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">curl -O https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{GithubVersion}/metrics/examples/prometheus/additional-properties/prometheus-additional.yaml
+oc create secret generic additional-scrape-configs --from-file=prometheus-additional.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The provided <code>prometheus-rules.yaml</code> file creates a <code>PrometheusRule</code> with sample alerting rules. Download and update the resource file as follows:</p>
+</div>
+<div class="paragraph">
+<p>On Linux, use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">curl -s https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{GithubVersion}/metrics/examples/prometheus/install/prometheus-rules.yaml | sed -e 's/namespace: .*/namespace: <em>my-namespace</em>/' &gt; prometheus-rules.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On MacOS, use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">curl -s https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{GithubVersion}/metrics/examples/prometheus/install/prometheus-rules.yaml | sed -e '' 's/namespace: .*/namespace: <em>my-namespace</em>/' &gt; prometheus-rules.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To deploy these resources, run the following commands:</p>
+</div>
+<div class="paragraph">
+<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f strimzi-service-monitor.yaml
+kubectl apply -f prometheus-rules.yaml
+kubectl apply -f prometheus.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc login -u system:admin
-oc apply -f alerting-rules.yaml
+oc apply -f strimzi-service-monitor.yaml
+oc apply -f prometheus-rules.yaml
 oc apply -f prometheus.yaml</code></pre>
 </div>
 </div>
-</div>
-<div class="sect3">
-<h4 id="deploying_on_kubernetes_2"><a class="link" href="#deploying_on_kubernetes_2">C.2.2. Deploying on Kubernetes</a></h4>
 <div class="paragraph">
-<p>The provided <code>prometheus.yaml</code> file, with all the Prometheus related resources, creates a <code>ClusterRoleBinding</code> in the <code>myproject</code> namespace.
-If you are using a different namespace, download the resource file and update it as follows:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">curl -s https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/prometheus.yaml | sed -e 's/namespace: .*/namespace: _my-namespace_/;s/regex: myproject/regex: _my-namespace_/' &gt; prometheus.yaml</code></pre>
-</div>
+<p>Prometheus also provides an alerting system through the <a href="https://prometheus.io/docs/alerting/alertmanager/" target="_blank" rel="noopener">Alertmanager</a> component.
+To enable alerting, the provided <a href="https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/install/prometheus-rules.yaml" target="_blank" rel="noopener"><code>prometheus-rules.yaml</code></a> file describes a <code>PrometheusRule</code> resource that defines sample alerting rules for Kafka and Zookeeper metrics.
+When an alert condition is evaluated as true on the Prometheus server, it sends the alert data to the Alertmanager which then uses the configured notification methods to notify the user.</p>
 </div>
 <div class="paragraph">
-<p>The provided <code>alerting-rules.yaml</code> file creates a <code>ConfigMap</code> with sample alerting rules; download the resource file as follows:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">curl -s https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/alerting-rules.yaml &gt; alerting-rules.yaml</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>To deploy all these resources you can run the following.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f alerting-rules.yaml
-kubectl apply -f prometheus.yaml</code></pre>
-</div>
+<p>For more information about setting up alerting rules, see <a href="https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/">Alerting Rules</a> in the Prometheus documentation.</p>
 </div>
 </div>
 </div>
@@ -23627,24 +23720,24 @@ kubectl apply -f prometheus.yaml</code></pre>
 <p>A Grafana server is necessary to get a visualisation of the Prometheus metrics.  The source for the Grafana docker image used can be found in the <code>./metrics/examples/grafana/grafana-openshift</code> directory.</p>
 </div>
 <div class="sect3">
-<h4 id="deploying_on_openshift_3"><a class="link" href="#deploying_on_openshift_3">C.3.1. Deploying on OpenShift</a></h4>
+<h4 id="deploying_on_openshift_2"><a class="link" href="#deploying_on_openshift_2">C.3.1. Deploying on OpenShift</a></h4>
 <div class="paragraph">
 <p>To deploy Grafana the following commands should be executed:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/grafana/grafana.yaml</code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{GithubVersion}/metrics/examples/grafana/grafana.yaml</code></pre>
 </div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="deploying_on_kubernetes_3"><a class="link" href="#deploying_on_kubernetes_3">C.3.2. Deploying on Kubernetes</a></h4>
+<h4 id="deploying_on_kubernetes_2"><a class="link" href="#deploying_on_kubernetes_2">C.3.2. Deploying on Kubernetes</a></h4>
 <div class="paragraph">
 <p>To deploy Grafana the following commands should be executed:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/grafana/grafana.yaml</code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{GithubVersion}/metrics/examples/grafana/grafana.yaml</code></pre>
 </div>
 </div>
 </div>
@@ -23691,7 +23784,7 @@ For accessing the dashboard, you can use the <code>port-forward</code> command f
 </div>
 </li>
 <li>
-<p>Fill in the information about the Prometheus data source, specifying a name and "Prometheus" as type. In the URL field, the connection string to the Prometheus server (that is, <code><a href="http://prometheus:9090" class="bare">http://prometheus:9090</a></code>) should be specified. After "Add" is clicked, Grafana will test the connection to the data source.</p>
+<p>Fill in the information about the Prometheus data source, specifying a name and "Prometheus" as type. In the URL field, the connection string to the Prometheus server (that is, <code><a href="http://prometheus-operated:9090" class="bare">http://prometheus-operated:9090</a></code>) should be specified. After "Add" is clicked, Grafana will test the connection to the data source.</p>
 <div class="imageblock">
 <div class="content">
 <img src="images/grafana_prometheus_data_source.png" alt="Add Prometheus data source">
@@ -23769,20 +23862,21 @@ When an expression becomes true, the described condition is met and the Promethe
 </div>
 <div class="paragraph">
 <p>Prometheus itself is not responsible for sending notifications to the users when an alert is fired.
-A different component, the Prometheus alert manager, is in charge to do so, sending emails, chat messages or using different notification methods.
-When an alert condition is verified, the alert is fired and the Prometheus server sends it to the alert manager which will send notifications.</p>
+A different component, the Prometheus Alertmanager, is in charge to do so, sending emails, chat messages or using different notification methods.
+When an alert condition is verified, the alert is fired and the Prometheus server sends it to the Alertmanager which will send notifications.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="prometheus_alert_manager"><a class="link" href="#prometheus_alert_manager">C.6. Prometheus alert manager</a></h3>
+<h3 id="prometheus_alertmanager"><a class="link" href="#prometheus_alertmanager">C.6. Prometheus Alertmanager</a></h3>
 <div class="paragraph">
-<p>Other than a server for scraping metrics, Prometheus provides an alerting system through the alert manager component.
+<p>Other than a server for scraping metrics, Prometheus provides an alerting system through the Alertmanager component.
 It is possible to declare alerting rules on the Prometheus server in order to be notified about specific conditions in the metrics.
-When an alert condition is evaluated as true, Prometheus sends alert data to the alert manager which then sends notifications out.
+When an alert condition is evaluated as true, Prometheus sends alert data to the Alertmanager which then sends notifications out.
 Notifications can be sent via methods such as email, Slack, PagerDuty and HipChat</p>
 </div>
 <div class="paragraph">
-<p>The provided Prometheus <a href="https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/alertmanager.yaml"><code>alertmanager.yaml</code></a> YAML file describes all the resources required for deploying and configuring the alert manager.</p>
+<p>The provided Prometheus <a href="https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/install/alert-manager.yaml"><code>alert-manager.yaml</code></a> file describes the resources required for deploying and configuring the Alertmanager.
+The file <a href="https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/alertmanager-config/alertmanager.yaml"><code>alertmanager.yaml</code></a> YAML file describes the hook for sending notifications.</p>
 </div>
 <div class="paragraph">
 <p>The following resources are defined:</p>
@@ -23790,19 +23884,19 @@ Notifications can be sent via methods such as email, Slack, PagerDuty and HipCha
 <div class="ulist">
 <ul>
 <li>
-<p>A <code>Deployment</code> to manage the actual alert manager pod.</p>
+<p>An <code>Alertmanager</code> to manage the Alertmanager pod.</p>
 </li>
 <li>
-<p>A <code>ConfigMap</code> to manage the configuration of the alert manager.</p>
+<p>A <code>Secret</code> to manage the configuration of the Alertmanager.</p>
 </li>
 <li>
-<p>A <code>Service</code> to provide an easy to reference hostname for other services to connect to alert manager (such as Prometheus).</p>
+<p>A <code>Service</code> to provide an easy to reference hostname for other services to connect to Alertmanager (such as Prometheus).</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>The provided sample configuration configures the alert manager to send notification to a Slack channel.
-Before deploying the alert manager it is needed to update the following parameters:</p>
+<p>The provided sample configuration configures the Alertmanager to send notification to a Slack channel.
+Before deploying the Alertmanager it is needed to update the following parameters:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -23815,31 +23909,59 @@ Before deploying the alert manager it is needed to update the following paramete
 </ul>
 </div>
 <div class="sect3">
-<h4 id="deploying_on_openshift_4"><a class="link" href="#deploying_on_openshift_4">C.6.1. Deploying on OpenShift</a></h4>
+<h4 id="deploying_alertmanager"><a class="link" href="#deploying_alertmanager">C.6.1. Deploying Alertmanager</a></h4>
 <div class="paragraph">
-<p>To deploy the alert manager the following commands should be executed:</p>
+<p>Download <code>alert-manager.yaml</code> by a command.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/alertmanager.yaml</code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">curl -O https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{GithubVersion}/metrics/examples/prometheus/install/alert-manager.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To configure Alert Manager hook for sending alerts we need to create a <code>Secret</code> resource with configuration.
+Download the <code>alertmanager.yaml</code> file and create a <code>Secret</code> from it.</p>
+</div>
+<div class="paragraph">
+<p>On Kubernetes this can be done using these commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">curl -O https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{GithubVersion}/metrics/examples/prometheus/alertmanager-config/alertmanager.yaml
+kubectl create secret generic alertmanager-alertmanager --from-file=alertmanager.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using these commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">curl -O https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{GithubVersion}/metrics/examples/prometheus/alertmanager-config/alertmanager.yaml
+oc create secret generic alertmanager-alertmanager --from-file=alertmanager.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To deploy the Alertmanager the following commands should be executed:
+On Kubernetes this can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f alert-manager.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift this can be done using <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc apply -f alert-manager.yaml</code></pre>
 </div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="deploying_on_kubernetes_4"><a class="link" href="#deploying_on_kubernetes_4">C.6.2. Deploying on Kubernetes</a></h4>
+<h4 id="alerts_examples"><a class="link" href="#alerts_examples">C.6.2. Alerts examples</a></h4>
 <div class="paragraph">
-<p>To deploy the alert manager the following commands should be executed:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/alertmanager.yaml</code></pre>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="alerts_examples"><a class="link" href="#alerts_examples">C.6.3. Alerts examples</a></h4>
-<div class="paragraph">
-<p>The provided <a href="https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/alerting-rules.yaml"><code>alerting-rules.yaml</code></a> YAML file provides the following sample alerting rules on Kafka and Zookeeper metrics.</p>
+<p>The provided <a href="https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/master/metrics/examples/prometheus/install/prometheus-rules.yaml"><code>prometheus-rules.yaml</code></a> file provides the following sample alerting rules on Kafka and Zookeeper metrics.</p>
 </div>
 <div class="paragraph">
 <p>Kafka alerts are:</p>
@@ -27915,7 +28037,7 @@ It must have the value <code>scram-sha-512</code> for the type <code>KafkaMirror
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-04-27 14:26:55 UTC
+Last updated 2019-04-29 19:18:54 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
