@@ -8,7 +8,7 @@ author: jakub_scholz
 In the third part of this blog post series we will look at exposing Kafka using OpenShift Routes.
 This post will explain how routes work and how they can be used with Kafka.
 Routes are available only on OpenShift.
-But if you are a Kubernetes user, don't be sad, one of the next part will be about using Kubernetes Ingress which is similar to OpenShift routes.
+But if you are a Kubernetes user, don't be sad, one of the next parts will be about using Kubernetes Ingress which is similar to OpenShift routes.
 
 <!--more-->
 
@@ -25,7 +25,7 @@ Routes are an OpenShift concept for exposing services to the outside of the Open
 Routes handle both data routing as well as DNS resolution.
 DNS resolution is usually handled using [wildcard DNS entries](https://en.wikipedia.org/wiki/Wildcard_DNS_record).
 That allows OpenShift to assign each route its own DNS name which is based on the wildcard entry.
-Users do not have to anything special to handle the DNS records.
+Users do not have to do anything special to handle the DNS records.
 But don't worry, when you don't own any domains where you can setup the wildcard entires, it can use services such as [nip.ip](https://nip.io/) for the wildcard DNS routing.
 Data routing is done using the [HAProxy](https://www.haproxy.org) load balancer which serves as the router behind the routes.
 
@@ -35,8 +35,8 @@ In this mode, the HTTP requests will be routed to different services based on th
 However, since the Kafka protocol is not based on HTTP, the HTTP features are not very useful for Strimzi and Kafka brokers.
 
 But luckily the routes can be also used for TLS passthrough.
-In this mode, it uses TLS SNI to determine the service to which the traffic should be routed and passes the TLS connection to the service (and eventually to the pod backing the service) without decoding it.
-This mode is what Strimzi is using for exposing Kafka.
+In this mode, it uses TLS [SNI](https://en.wikipedia.org/wiki/Server_Name_Indication) to determine the service to which the traffic should be routed and passes the TLS connection to the service (and eventually to the pod backing the service) without decoding it.
+This mode is what Strimzi uses to expose Kafka.
 
 If you want to learn more about OpenShift Routes, check the [OpenShift documentation](https://docs.openshift.com/container-platform/3.11/architecture/networking/routes.html).
 
@@ -65,10 +65,10 @@ To provide access to the individual brokers, we use the same tricks as we use wi
 We create a dedicated service for each of the brokers.
 These will be used to address the individual brokers directly.
 Apart from that we will also use one service for the bootstrapping of the clients.
-This service would round-robin between all Kafka brokers.
+This service would round-robin between all available Kafka brokers.
 
 But unlike when using node ports, these services will be only regular Kubernetes services of the `clusterIP` type.
-Instead, the Strimzi Kafka operator will also create a `Route` resource for each of these services.
+The Strimzi Kafka operator will also create a `Route` resource for each of these services.
 That will expose them using the HAProxy router.
 The DNS addresses assigned to these routes will be used by Strimzi to configure the advertised addresses in the different Kafka brokers.
 
@@ -82,11 +82,11 @@ And the router will again route it through the corresponding service to the righ
 As explained in the previous section, the routers main use-case is routing of HTTP(S) traffic.
 Therefore it is always listening on the ports 80 and 443.
 Since Strimzi is using the TLS passthrough functionality, it means that:
-* The port will be always 443 as the port used for HTTPS.
+* The port will always be 443 as the port used for HTTPS.
 * The traffic will **always use TLS encryption**.
 
-Getting the address where to connect with your client is easy.
-As mentioned above, the port will be always 443.
+Getting the address to connect to with your client is easy.
+As mentioned above, the port will always be 443.
 This is often a cause of issues, when users try to connect to port 9094 instead of 443.
 But 443 is always the correct port number with OpenShift Routes.
 And you can find the host in the status of the `Route` resource (replace `my-cluster` with the name of your cluster):
@@ -98,7 +98,7 @@ oc get routes my-cluster-kafka-bootstrap -o=jsonpath='{.status.ingress[0].host}{
 By default, the DNS name of the route will be based on the name of the service it points to and on the name of the OpenShift project.
 So for example for my Kafka cluster named `my-cluster` running in project named `myproject`, the default DNS name will be something like `my-cluster-kafka-bootstrap-myproject.mydomain.io`.
 
-Since it will always use TLS, you will always have to configure the TLS also in your Kafka clients.
+Since it will always use TLS, you will always have to configure TLS in your Kafka clients.
 This includes getting the TLS certificate from the broker and configuring it in the client.
 You can use following commands to get the CA certificate used by the Kafka brokers and import it into Java keystore file which can be used with Java applications (replace `my-cluster` with the name of your cluster):
 
@@ -118,7 +118,7 @@ For more details, see the [Strimzi documentation](https://strimzi.io/docs/latest
 
 # Customizations
 
-As explained in the previous section, the routes get by default automatically assigned DNS names based on the name of your cluster and namespace.
+As explained in the previous section, by default the routes get automatically assigned DNS names based on the name of your cluster and namespace.
 But you can customize this and specify your own DNS names:
 
 ```yaml
@@ -147,12 +147,12 @@ The custom DNS names (as well as the names automatically assigned to the routes)
 
 # Pros and cons
 
-Routes are available only on OpenShift.
+Routes are only available on OpenShift.
 So if you are using Kubernetes, this will be clearly a deal breaking disadvantage.
-One of the other disadvantages is also that the routes always use TLS encryption.
+Another potential disadvantage is that routes always use TLS encryption.
 You will always have to deal with the TLS certificates and encryption in your Kafka clients and applications.
 
-You should also carefully consider the performance.
+You should also carefully consider performance.
 The OpenShift HAProxy router will act as a middleman between your Kafka clients and brokers.
 It can add latency and it can also become a performance bottleneck.
 Applications using Kafka also often generate a lot of traffic - hundreds or even thousands megabytes per second.
@@ -161,5 +161,5 @@ Luckily, the OpenShift Router is scalable and highly configurable.
 So you can fine-tune its performance.
 And if needed, you can even setup a separate instances of the router for the Kafka routes.
 
-The main advantage of using OpenShift Routes is that they simply work.
-Unlike the node ports discussed in the previous blog post, which are often tricky to configure and require a deeper knowledge of Kubernetes and the infrastructure, the routes work very reliably out of the box on any OpenShift installation.
+The main advantage of using OpenShift Routes is that they are so easy to get working.
+Unlike the node ports discussed in the previous blog post, which are often tricky to configure and require a deeper knowledge of Kubernetes and the infrastructure, OpenShift routes work very reliably out of the box on any OpenShift installation.
