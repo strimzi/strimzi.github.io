@@ -60,7 +60,7 @@ spec:
     # ...
 ```
 
-And Strimzi Kafka Operator and OpenShift will take care of the rest.
+And the Strimzi Kafka Operator and OpenShift will take care of the rest.
 To provide access to the individual brokers, we use the same tricks as we use with node ports and which were already described in the [previous blog post](https://strimzi.io/2019/04/23/accessing-kafka-part-2.html).
 We create a dedicated service for each of the brokers.
 These will be used to address the individual brokers directly.
