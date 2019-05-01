@@ -1,14 +1,12 @@
 ---
 layout: post
-title:  "Accessing Kafka: Part 3 - OpenShift Routes"
-date: 2019-04-30
+title:  "Accessing Kafka: Part 4 - Load Balancers"
+date: 2019-05-06
 author: jakub_scholz
 ---
 
-In the third part of this blog post series we will look at exposing Kafka using OpenShift Routes.
-This post will explain how routes work and how they can be used with Kafka.
-Routes are available only on OpenShift.
-But if you are a Kubernetes user, don't be sad, one of the next parts will be about using Kubernetes Ingress which is similar to OpenShift routes.
+In the fourth part of this blog post series we will look at exposing Kafka using load balancers.
+This post will explain how to use load balancers in public cloud environments and how they can be used with Kafka.
 
 <!--more-->
 
@@ -17,10 +15,10 @@ The other parts published so far are:_
 
 * _[Part 1 - Introduction](https://strimzi.io/2019/04/17/accessing-kafka-part-1.html)_
 * _[Part 2 - Node Ports](https://strimzi.io/2019/04/23/accessing-kafka-part-2.html)_
-* _Part 3 - OpenShift Routes (this post)_
-* _[Part 4 - Load Balancers](https://strimzi.io/2019/05/06/accessing-kafka-part-4.html)_
+* _[Part 3 - OpenShift Routes](https://strimzi.io/2019/04/30/accessing-kafka-part-3.html)_
+* _Part 4 - Load Balancers (this post)_
 
-# OpenShift Routes
+# Load balancers
 
 Routes are an OpenShift concept for exposing services to the outside of the OpenShift platform.
 Routes handle both data routing as well as DNS resolution.
@@ -119,45 +117,36 @@ For more details, see the [Strimzi documentation](https://strimzi.io/docs/latest
 
 # Customizations
 
-As explained in the previous section, by default the routes get automatically assigned DNS names based on the name of your cluster and namespace, but you can customize this and specify your own DNS names:
+## DNS annotations
 
-```yaml
-# ...
-listeners:
-  external:
-    type: route
-    authentication:
-      type: tls
-    overrides:
-      bootstrap:
-        host: bootstrap.myrouter.com
-      brokers:
-      - broker: 0
-        host: broker-0.myrouter.com
-      - broker: 1
-        host: broker-1.myrouter.com
-      - broker: 2
-        host: broker-2.myrouter.com
-# ...
-```
+## advertised hostnames and ports
 
-The customized names still need to match the DNS configuration of the OpenShift router.
-But you can give them a friendlier name.
-The custom DNS names (as well as the names automatically assigned to the routes) will be of course added to the TLS certificates and your Kafka clients can use TLS hostname verification.
+## Internal load balancers
+
 
 # Pros and cons
 
-Routes are only available on OpenShift.
-So if you are using Kubernetes, this will be clearly a deal breaking disadvantage.
-Another potential disadvantage is that routes always use TLS encryption.
-You will always have to deal with the TLS certificates and encryption in your Kafka clients and applications.
+Load balancers are easy to use and usually deliver good performance.
+The typical load balancer is a service which runs outside of your cluster.
+So you do not need to be afraid of how much performance does it need, how much load will it put on your cluster and so on.
+Most load balancers also support routing of TCP traffic, so it is only up to you whether you want to use TLS or not.
+If they are available.
 
-You should also carefully consider performance.
-The OpenShift HAProxy router will act as a middleman between your Kafka clients and brokers.
-It can add latency and it can also become a performance bottleneck.
-Applications using Kafka also often generate a lot of traffic - hundreds or even thousands megabytes per second.
-You have to keep this in mind and make sure that the Kafka traffic will still leave some capacity for other applications using the router.
-Luckily, the OpenShift Router is scalable and highly configurable so you can fine-tune its performance and if needed, you can even setup a separate instances of the router for the Kafka routes.
+Every major public cloud has some load balancing service which is available on demand.
+In AWS it will be the Elastic Load Balancer (ELB).
+In Azure the Azure load balancer.
+And Google has Google Cloud Load Balancing service.
+Also many private clouds which are running for example on OpenStack have load balancers as a service.
+However, there are also many environments without load balancers - for example when running Kubernetes or OpenShift on on bare metal.
 
-The main advantage of using OpenShift Routes is that they are so easy to get working.
-Unlike the node ports discussed in the previous blog post, which are often tricky to configure and require a deeper knowledge of Kubernetes and the infrastructure, OpenShift routes work very reliably out of the box on any OpenShift installation.
+Another aspect which you should consider is the price.
+Load balancers are not for free in public clouds.
+Usually you have to pay some fixed fee per instance which depends on how long does the load balancer exist plus some fee for every transfer gigabyte.
+Strimzi always requires N+1 load balancers (where N is the number of brokers) - one for each broker + one for the bootstrap.
+So you will always need multiple load balancers and the fees can easily add up.
+Especially when you realize, that with Kafka in most cases the load balancer does't even balance the load because for most of the load balancers, there is only single broker behind them.
+
+Load balancers usually deliver a very good performance.
+However, in most cases Kubernetes will configure them to load balance across all cluster nodes.
+So despite there being only one broker where the traffic will arrive at the end, different connections might be routed to the broker in through different cluster nodes and then forwarded through the kube-proxies to the right now where the Kafka broker actually runs.
+This would not happen for example with node ports, where the advertised address points directly to the node where the broker is running.
