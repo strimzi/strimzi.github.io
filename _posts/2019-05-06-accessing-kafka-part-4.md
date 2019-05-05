@@ -185,7 +185,7 @@ For example:
 * For Google Cloud, use the annotation `cloud.google.com/load-balancer-type: "Internal"`
 * On  Microsoft Azure use `service.beta.kubernetes.io/azure-load-balancer-internal: "true"`
 * Amazon AWS is using `service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0`
-* And OpenStack uses `service.beta.kubernetes.io/openstack-internal-load-balancer: "true"`.
+* And OpenStack uses `service.beta.kubernetes.io/openstack-internal-load-balancer: "true"`
 
 As you can see, most of these are completely different.
 So instead of integrating all of these into Strimzi, we decided to just give you the option to specify the annotations for the services which Strimzi creates.
