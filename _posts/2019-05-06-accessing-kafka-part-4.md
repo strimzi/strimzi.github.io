@@ -20,29 +20,49 @@ The other parts published so far are:_
 
 # Load balancers
 
-Routes are an OpenShift concept for exposing services to the outside of the OpenShift platform.
-Routes handle both data routing as well as DNS resolution.
-DNS resolution is usually handled using [wildcard DNS entries](https://en.wikipedia.org/wiki/Wildcard_DNS_record).
-That allows OpenShift to assign each route its own DNS name which is based on the wildcard entry.
-Users do not have to do anything special to handle the DNS records.
-But don't worry, when you don't own any domains where you can setup the wildcard entires, it can use services such as [nip.ip](https://nip.io/) for the wildcard DNS routing.
-Data routing is done using the [HAProxy](https://www.haproxy.org) load balancer which serves as the router behind the domain names.
+Load balancers automatically distribute incoming traffic across multiple targets.
+Different implementations do the traffic distribution on different level:
 
-The main use-case of the router is HTTP(S) routing.
-The routes are able to do path based routing of HTTP and HTTPS (with TLS termination) traffic.
-In this mode, the HTTP requests will be routed to different services based on the request path.
-However, since the Kafka protocol is not based on HTTP, the HTTP features are not very useful for Strimzi and Kafka brokers.
+* Layer 7 load balancers can distribute the traffic on the level of individual requests (for example HTTP requests)
+* Layer 4 load balancers distribute the TCP connections
 
-But luckily the routes can be also used for TLS passthrough.
-In this mode, it uses TLS [SNI](https://en.wikipedia.org/wiki/Server_Name_Indication) to determine the service to which the traffic should be routed and passes the TLS connection to the service (and eventually to the pod backing the service) without decoding it.
-This mode is what Strimzi uses to expose Kafka.
+Load balancers are available in most public and private clouds.
+Examples of load balancers are Elastic Load Balancing services from Amazon AWS, Azure Load Balancer in Microsoft Azure public cloud or Google Cloud Load Balancing service from Google.
+Load balancing services are also available in OpenStack.
+If you run your Kubernetes or OpenShift cluster on bare metal, you might not have load balancers available on demand.
+In that case, using node ports, OpenShift Routes or Ingress might be a better option for you.
 
-If you want to learn more about OpenShift Routes, check the [OpenShift documentation](https://docs.openshift.com/container-platform/3.11/architecture/networking/routes.html).
+Do not get scared by the long list of different load balancing services.
+Most of them are very well integrated with Kubernetes.
+When the Kubernetes service as configured with the type `Loadbalancer`, Kubernetes will automatically create the load balancer through the cloud provider, which understands the different services offered by given cloud.
+Thanks to that the Kubernetes applications - including Strimzi - do not need to understand the differences and should work everywhere where the cloud infrastructure and Kubernetes are properly integrated.
 
-# Exposing Kafka using OpenShift Routes
+# Using load balancers in Strimzi
 
-Exposing Kafka using OpenShift Routes is probably the easiest of all the available listener types.
-All you need to do is to configure it in the Kafka custom resource.
+Since none of the common load balancing services supports the Kafka protocol, Strimzi always uses the Layer 4 load balancing.
+Since Layer 4 works on the TCP level, it means that the load balancer will always take the whole TCP connection and direct it to one of the targets.
+That has some advantages - you can for example decide whether TLS encryption should be enabled or disabled.
+
+To give Kafka clients access to the individual brokers, Strimzi creates a separate service with `type=Loadbalancer` for each broker.
+As a result, each broker will get a separate load balancer _(despite the Kubernetes service being of a load balancer type, the load balancer is still a separate entity manages by the infrastructure / cloud)_.
+A Kafka cluster with N brokers will need N+1 load balancers.
+
+![Accessing Kafka using load balancers]({{ "/assets/2019-05-06-per-pod-load-balancers.png" }})
+
+On the beginning of this post we defined load balancer as something what _distribute incoming traffic across multiple targets_.
+However, as you can set from the diagram above, the per-broker load balancers have only one target and are technically not load balancing.
+That is true, but in most cases the actual implementation is a bit more complicated.
+
+When Kubernetes create the load balancer, they usually target it to all nodes of your Kubernetes cluster and not only to the nodes where your application is actually running.
+That means that although the TCP connections will always end on the same node in the same broker, they might be routed through the other nodes of your cluster.
+When the connection is sent by the load balancer to the node which does not host the Kafka broker, the `kube-proxy` component of Kubernetes will forward it to the right node where the broker runs.
+This can lead to some delays since some fo the connections might be routed through more hops then absolutely necessary.
+
+![Routing of connections through `kube-proxy`]({{ "/assets/2019-05-06-connection-routing.png" }})
+
+The only exception is the bootstrap load balancer which is distributing the connections to all brokers in your Kafka cluster.
+
+You can very easily configure Strimzi Kafka operator to expose your Kafka cluster using load balancers by selecting the `loadbalancer` type in the external listener:
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta1
@@ -55,98 +75,245 @@ spec:
     listeners:
       # ...
       external:
-        type: route
+        type: loadbalancer
     # ...
 ```
 
-And the Strimzi Kafka Operator and OpenShift will take care of the rest.
-To provide access to the individual brokers, we use the same tricks as we use with node ports and which were already described in the [previous blog post](https://strimzi.io/2019/04/23/accessing-kafka-part-2.html).
-We create a dedicated service for each of the brokers.
-These will be used to address the individual brokers directly.
-Apart from that we will also use one service for the bootstrapping of the clients.
-This service would round-robin between all available Kafka brokers.
+Similarly to the node port external listener, also with load balancers TLS is enabled by default.
+If you don't want to use TLS encryption, you can easily disable it:
 
-But unlike when using node ports, these services will be only regular Kubernetes services of the `clusterIP` type.
-The Strimzi Kafka operator will also create a `Route` resource for each of these services.
-That will expose them using the HAProxy router.
-The DNS addresses assigned to these routes will be used by Strimzi to configure the advertised addresses in the different Kafka brokers.
-
-![Accessing Kafka using per-pod routes]({{ "/assets/2019-04-30-per-pod-routes.png" }})
-
-Kafka clients will connect to the bootstrap route which will route them through the bootstrap service to one of the brokers.
-From this broker, they will get the metadata which will contain the DNS names of the per-broker routes.
-The Kafka clients will use these addresses to connect to the routes dedicated to the specific broker.
-And the router will again route it through the corresponding service to the right pod.
-
-As explained in the previous section, the routers main use-case is routing of HTTP(S) traffic.
-Therefore it is always listening on the ports 80 and 443.
-Since Strimzi is using the TLS passthrough functionality, it means that:
-* The port will always be 443 as the port used for HTTPS.
-* The traffic will **always use TLS encryption**.
-
-Getting the address to connect to with your client is easy.
-As mentioned above, the port will always be 443.
-This is often a cause of issues, when users try to connect to port 9094 instead of 443.
-But 443 is always the correct port number with OpenShift Routes.
-And you can find the host in the status of the `Route` resource (replace `my-cluster` with the name of your cluster):
-
-```
-oc get routes my-cluster-kafka-bootstrap -o=jsonpath='{.status.ingress[0].host}{"\n"}'
+```yaml
+    # ...
+    listeners:
+      external:
+        type: loadbalancer
+        tls: false
+    # ...
 ```
 
-By default, the DNS name of the route will be based on the name of the service it points to and on the name of the OpenShift project.
-So for example for my Kafka cluster named `my-cluster` running in project named `myproject`, the default DNS name will be `my-cluster-kafka-bootstrap-myproject.<router-domain>`.
+After Strimzi creates the load balancer type Kubernetes services, the load balancers will be automatically created.
+Most clouds will automatically assign the load balancer some DNS name and IP addresses.
+These will be automatically propagated into the `status` section of the Kubernetes service.
+Strimzi will read it from there and use it to configure the advertised address in the Kafka brokers.
+When available, Strimzi currently always prefers the DNS name over the IP address.
+The reason is that the IP addresses are often volatile while the DNS name is fixes for the whole lifetime of the load balancer (this applies at least to Amazon AWS ELB load balancers).
+But if the load balancer has only an IP address, Strimzi will of course use it.
 
-Since it will always use TLS, you will always have to configure TLS in your Kafka clients.
-This includes getting the TLS certificate from the broker and configuring it in the client.
-You can use following commands to get the CA certificate used by the Kafka brokers and import it into Java keystore file which can be used with Java applications (replace `my-cluster` with the name of your cluster):
-
-```
-oc extract secret/my-cluster-cluster-ca-cert --keys=ca.crt --to=- > ca.crt
-keytool -import -trustcacerts -alias root -file ca.crt -keystore truststore.jks -storepass password -noprompt
-```
-
-With the certificate and address, you can connect to the Kafka cluster.
-The following example uses the `kafka-console-producer.sh` utility which is part of Apache Kafka:
+As a user, you should always use the bootstrap load balancer address for the initial connection.
+You can get the address form the `status` section with following command (replace `my-cluster` with the name of your cluster):
 
 ```
-bin/kafka-console-producer.sh --broker-list <route-address>:443 --producer-property security.protocol=SSL --producer-property ssl.truststore.password=password --producer-property ssl.truststore.location=./truststore.jks --topic <your-topic>
+kubectl get service my-cluster-kafka-external-bootstrap -o=jsonpath='{.status.loadBalancer.ingress[0].hostname}{"\n"}'
 ```
 
-For more details, see the [Strimzi documentation](https://strimzi.io/docs/latest/full.html#proc-accessing-kafka-using-routes-deployment-configuration-kafka).
+In case there is no hostname set, you can also try the IP address (replace `my-cluster` with the name of your cluster):
+
+```
+kubectl get service my-cluster-kafka-external-bootstrap -o=jsonpath='{.status.loadBalancer.ingress[0].ip}{"\n"}'
+```
+
+The DNS or IP returned by one of these commands can be used in your clients as the bootstrap address.
+The load balancers use always the port `9094` to expose Apache Kafka.
+For more details, see the [Strimzi documentation](https://strimzi.io/docs/latest/full.html#proc-accessing-kafka-using-loadbalancers-deployment-configuration-kafka).
 
 # Customizations
 
-## DNS annotations
+## Advertised hostnames and ports
 
-## advertised hostnames and ports
+In the section above, I explained how Strimzi will always prefer to use the DNS name over the IP address when configuring the advertised listener address in Kafka brokers.
+Sometimes, this might be a problem - for example when for whatever reason the DNS resolution doesn't work for your Kafka clients.
+In that case you can override the advertised hostnames in the `Kafka` custom resource.
+
+```yaml
+# ...
+listeners:
+  external:
+    type: loadbalancer
+    overrides:
+      brokers:
+      - broker: 0
+        advertisedHost: 216.58.201.78
+      - broker: 1
+        advertisedHost: 104.215.148.63
+      - broker: 2
+        advertisedHost: 40.112.72.205
+# ...
+```
+
+I hope that in one of the future versions we will give users a more comfortable option to choose between the IP address and hostname.
+But this feature might be useful to handle also different kinds of network configurations and translations.
+If needed, you can also use it to override the node port numbers as well.
+
+```yaml
+# ...
+listeners:
+  external:
+    type: route
+    authentication:
+      type: tls
+    overrides:
+      brokers:
+      - broker: 0
+        advertisedHost: 216.58.201.78
+        advertisedPort: 12340
+      - broker: 1
+        advertisedHost: 104.215.148.63
+        advertisedPort: 12341
+      - broker: 2
+        advertisedHost: 40.112.72.205
+        advertisedPort: 12342
+# ...
+```
+
+Just keep in mind that the `advertisedPort` option doesn't really change the port used in the load balancer it self.
+It changes only the port number used in the advertised listener inside the Kafka broker.
 
 ## Internal load balancers
 
+Many cloud providers differentiate between public and internal load balancers.
+The public load balancers will get a public IP addresses and DNS names and will be accessible from the whole internal.
+On the other hand the internal load balancers will only use private IP addresses and hostnames and will be available only from certain private network (for example from other machines in the same Amazon AWS VPC).
+
+Often, you want to share you Kafka cluster managed by Strimzi with applications running outside of your Kubernetes or OpenShift cluster but not necessarily with the whole world.
+In such case the internal load balancers might be handy.
+
+Kubernetes will usually always try to create a public load balancer by default.
+And users can use special annotations to indicate that given Kubernetes service with load balancer type should have the load balancer created as internal.
+
+For example:
+
+* For Google Cloud, use the annotation `cloud.google.com/load-balancer-type: "Internal"`
+* On  Microsoft Azure use `service.beta.kubernetes.io/azure-load-balancer-internal: "true"`
+* Amazon AWS is using `service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0`
+* And OpenStack uses `service.beta.kubernetes.io/openstack-internal-load-balancer: "true"`.
+
+As you can see, most of these are completely different.
+So instead of integrating all of these into Strimzi, we decided to just give you the option to specify the annotations for the services which Strimzi creates.
+Thanks to that you can use these annotations even if we never heard about the cloud provider where you use Strimzi.
+The annotations can be specified in the `template` property in `Kafka.spec.kafka`.
+The following example shows the OpenStack annotations:
+
+```yaml
+apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    template:
+      externalBootstrapService:
+        metadata:
+          annotations:
+            service.beta.kubernetes.io/openstack-internal-load-balancer: "true"
+      perPodService:
+        metadata:
+          annotations:
+            service.beta.kubernetes.io/openstack-internal-load-balancer: "true"
+    # ...
+```
+
+You can specify different annotations for the bootstrap and the per-broker services.
+After you specify these annotations, they will be passed by Strimzi to the Kubernetes services and the load balancers will be created accordingly.
+
+## DNS annotations
+
+**This feature will be available only since Strimzi 0.12.0.**
+
+Many users are using some additional tools such as [ExternalDNS](https://github.com/kubernetes-incubator/external-dns) to automatically manage DNS records for their load balancers.
+External DNS is using annotations on load balancer type services (and `Ingress` resources - more about that next time) to manage their DNS names.
+It supports many different DNs services such as Amazon AWS Route53, Google Cloud DNS, Azure DNS etc.
+
+Strimzi lets you assign these annotations through the `Kafka` custom resource using a field called `dnsAnnotations`.
+The main difference between the template annotations mentioned in previous section is that the `dnsAnnotations` allow you to configure the annotation per each broker. Where as the `perPodService` option of the `template` field will set the annotations to all services.
+
+Using the DNS annotations is simple:
+
+```yaml
+# ...
+listeners:
+  external:
+    type: loadbalancer
+    overrides:
+      bootstrap:
+        dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-bootstrap.mydomain.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+      brokers:
+      - broker: 0
+        dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-0.mydomain.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+      - broker: 1
+        dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-1.mydomain.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+      - broker: 2
+        dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-2.mydomain.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+# ...
+```
+
+Yet again, Strimzi lets you configure the annotations directly.
+That gives you more freedom and hopefully makes this feature usable even when you use some other tool then External DNS.
+It also lets you configure other options then just the DNS names, such as the time-to-live of the DNS records etc.
+
+Please note that the addresses used in the annotations will not be added to the TLS certificates or configured in the advertised listeners of the Kafka brokers.
+To do so, you need to combine them with the advertised name configuration described in one of the previous section:
+
+```yaml
+# ...
+listeners:
+  external:
+    type: loadbalancer
+    overrides:
+      bootstrap:
+        dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-bootstrap.mydomain.com.
+          address: kafka-bootstrap.mydomain.com
+      brokers:
+      - broker: 0
+        dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-0.mydomain.com.
+          advertisedHost: kafka-broker-0.mydomain.com
+      - broker: 1
+        dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-1.mydomain.com.
+          advertisedHost: kafka-broker-1.mydomain.com
+      - broker: 2
+        dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-2.mydomain.com.
+          advertisedHost: kafka-broker-2.mydomain.com
+# ...
+```
 
 # Pros and cons
 
-Load balancers are easy to use and usually deliver good performance.
+The integration of load balancers into Kubernetes and OpenShift is very good and makes them very easy to use.
+Strimzi can use the power of Kubernetes to provision them on many different public and private clouds.
+Thanks to the TCP routing, you can freely decide whether you want to use TLS encryption or not.
+
+The load balancers are also something what stands between the applications and the nodes of the Kubernetes cluster.
+It minimizes the attach surface and many admins would prefer load balancers over node ports for security reasons.
+
+Load balancers usually deliver a very good performance.
 The typical load balancer is a service which runs outside of your cluster.
 So you do not need to be afraid of how much performance does it need, how much load will it put on your cluster and so on.
-Most load balancers also support routing of TCP traffic, so it is only up to you whether you want to use TLS or not.
-If they are available.
+However, there are some things to keep in mind:
 
-Every major public cloud has some load balancing service which is available on demand.
-In AWS it will be the Elastic Load Balancer (ELB).
-In Azure the Azure load balancer.
-And Google has Google Cloud Load Balancing service.
-Also many private clouds which are running for example on OpenStack have load balancers as a service.
-However, there are also many environments without load balancers - for example when running Kubernetes or OpenShift on on bare metal.
+* In most cases Kubernetes will configure them to load balance across all cluster nodes.
+So despite there being only one broker where the traffic will arrive at the end, different connections might be routed to the broker in through different cluster nodes and then forwarded through the `kube-proxy` to the right node where the Kafka broker actually runs.
+This would not happen for example with node ports, where the advertised address points directly to the node where the broker is running.
+* The load balancer it self is yet another service which the connection needs to go through.
+That might add a little bit of latency
 
 Another aspect which you should consider is the price.
-Load balancers are not for free in public clouds.
-Usually you have to pay some fixed fee per instance which depends on how long does the load balancer exist plus some fee for every transfer gigabyte.
-Strimzi always requires N+1 load balancers (where N is the number of brokers) - one for each broker + one for the bootstrap.
+In public clouds, the load balancers are normally not for free.
+Usually you have to pay some fixed fee per instance which depends only on how long does the load balancer exist plus some fee for every transferred gigabyte.
+Strimzi always requires N+1 load balancers (where N is the number of brokers) - one for each broker + one for the bootstrapping.
 So you will always need multiple load balancers and the fees can easily add up.
 Especially when you realize, that with Kafka in most cases the load balancer does't even balance the load because for most of the load balancers, there is only single broker behind them.
 
-Load balancers usually deliver a very good performance.
-However, in most cases Kubernetes will configure them to load balance across all cluster nodes.
-So despite there being only one broker where the traffic will arrive at the end, different connections might be routed to the broker in through different cluster nodes and then forwarded through the kube-proxies to the right now where the Kafka broker actually runs.
-This would not happen for example with node ports, where the advertised address points directly to the node where the broker is running.
+
+
