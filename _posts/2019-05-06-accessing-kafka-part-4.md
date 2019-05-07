@@ -28,7 +28,7 @@ Different implementations do the traffic distribution on different levels:
 
 Load balancers are available in most public and private clouds.
 Examples of load balancers are Elastic Load Balancing services from Amazon AWS, Azure Load Balancer in Microsoft Azure public cloud or Google Cloud Load Balancing service from Google.
-Load balancing services are also available in OpenStack.
+Load balancing services are also [available in OpenStack](https://docs.openstack.org/mitaka/networking-guide/config-lbaas.html).
 If you run your Kubernetes or OpenShift cluster on bare metal, you might not have load balancers available on demand.
 In that case, using node ports, OpenShift Routes or Ingress might be a better option for you.
 
@@ -114,6 +114,12 @@ kubectl get service my-cluster-kafka-external-bootstrap -o=jsonpath='{.status.lo
 
 The DNS or IP returned by one of these commands can be used in your clients as the bootstrap address.
 The load balancers use always the port `9094` to expose Apache Kafka.
+The following example uses the `kafka-console-producer.sh` utility which is part of Apache Kafka to connect the cluster:
+
+```
+bin/kafka-console-producer.sh --broker-list <load-balancer-address>:9094 --topic <your-topic>
+```
+
 For more details, see the [Strimzi documentation](https://strimzi.io/docs/latest/full.html#proc-accessing-kafka-using-loadbalancers-deployment-configuration-kafka).
 
 # Customizations
