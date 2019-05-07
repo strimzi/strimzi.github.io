@@ -171,7 +171,7 @@ It changes only the port number used in the `advertised.listeners` Kafka broker 
 ## Internal load balancers
 
 Many cloud providers differentiate between _public_ and _internal_ load balancers.
-The public load balancers will get a public IP addresses and DNS names and will be accessible from the whole internal.
+The public load balancers will get a public IP address and DNS name which will be accessible from the whole internet.
 On the other hand the internal load balancers will only use private IP addresses and hostnames and will be available only from certain private networks (for example from other machines in the same Amazon AWS VPC).
 
 Often, you want to share you Kafka cluster managed by Strimzi with applications running outside of your Kubernetes or OpenShift cluster but not necessarily with the whole world.
