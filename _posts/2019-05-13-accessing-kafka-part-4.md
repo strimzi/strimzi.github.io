@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Accessing Kafka: Part 4 - Load Balancers"
-date: 2019-05-06
+date: 2019-05-13
 author: jakub_scholz
 ---
 
@@ -47,7 +47,7 @@ To give Kafka clients access to the individual brokers, Strimzi creates a separa
 As a result, each broker will get a separate load balancer _(despite the Kubernetes service being of a load balancer type, the load balancer is still a separate entity managed by the infrastructure / cloud)_.
 A Kafka cluster with N brokers will need N+1 load balancers.
 
-![Accessing Kafka using load balancers]({{ "/assets/2019-05-06-per-pod-load-balancers.png" }})
+![Accessing Kafka using load balancers]({{ "/assets/2019-05-13-per-pod-load-balancers.png" }})
 
 At the beginning of this post we defined load balancer as something that _distributes incoming traffic across multiple targets_.
 However, as you can set from the diagram above, the per-broker load balancers have only one target and are technically not load balancing.
@@ -58,7 +58,7 @@ That means that although the TCP connections will always end on the same node in
 When the connection is sent by the load balancer to the node which does not host the Kafka broker, the `kube-proxy` component of Kubernetes will forward it to the right node where the broker runs.
 This can lead to some delays since some of the connections might be routed through more hops than absolutely necessary.
 
-![Routing of connections through `kube-proxy`]({{ "/assets/2019-05-06-connection-routing.png" }})
+![Routing of connections through `kube-proxy`]({{ "/assets/2019-05-13-connection-routing.png" }})
 
 The only exception is the bootstrap load balancer which is distributing the connections to all brokers in your Kafka cluster.
 

@@ -18,7 +18,7 @@ The other parts published so far are:_
 * _[Part 1 - Introduction](https://strimzi.io/2019/04/17/accessing-kafka-part-1.html)_
 * _[Part 2 - Node Ports](https://strimzi.io/2019/04/23/accessing-kafka-part-2.html)_
 * _Part 3 - OpenShift Routes (this post)_
-* _[Part 4 - Load Balancers](https://strimzi.io/2019/05/06/accessing-kafka-part-4.html)_
+* _[Part 4 - Load Balancers](https://strimzi.io/2019/05/13/accessing-kafka-part-4.html)_
 
 # OpenShift Routes
 
