@@ -18,7 +18,7 @@ The other parts published so far are:_
 * _[Part 3 - OpenShift Routes](https://strimzi.io/2019/04/30/accessing-kafka-part-3.html)_
 * _Part 4 - Load Balancers (this post)_
 
-# Load balancers
+## Load balancers
 
 Load balancers automatically distribute incoming traffic across multiple targets.
 Different implementations do the traffic distribution on different levels:
@@ -37,7 +37,7 @@ Most of them are very well integrated with Kubernetes.
 When the Kubernetes `Service` is configured with the type `Loadbalancer`, Kubernetes will automatically create the load balancer through the cloud provider, which understands the different services offered by given cloud.
 Thanks to that, Kubernetes applications – including Strimzi – do not need to understand the differences and should work everywhere where the cloud infrastructure and Kubernetes are properly integrated.
 
-# Using load balancers in Strimzi
+## Using load balancers in Strimzi
 
 Since none of the common load balancing services supports the Kafka protocol, Strimzi always uses the Layer 4 load balancing.
 Since Layer 4 works on the TCP level, the load balancer will always take the whole TCP connection and direct it to one of the targets.
@@ -122,9 +122,9 @@ bin/kafka-console-producer.sh --broker-list <load-balancer-address>:9094 --topic
 
 For more details, see the [Strimzi documentation](https://strimzi.io/docs/latest/full.html#proc-accessing-kafka-using-loadbalancers-deployment-configuration-kafka).
 
-# Customizations
+## Customizations
 
-## Advertised hostnames and ports
+### Advertised hostnames and ports
 
 In the section above, I explained how Strimzi will always prefer to use the DNS name over the IP address when configuring the advertised listener address in Kafka brokers.
 Sometimes, this might be a problem - for example when for whatever reason the DNS resolution doesn't work for your Kafka clients.
@@ -174,7 +174,7 @@ listeners:
 Just keep in mind that the `advertisedPort` option doesn't really change the port used in the load balancer itself.
 It changes only the port number used in the `advertised.listeners` Kafka broker configuration parameter.
 
-## Internal load balancers
+### Internal load balancers
 
 Many cloud providers differentiate between _public_ and _internal_ load balancers.
 The public load balancers will get a public IP address and DNS name which will be accessible from the whole internet.
@@ -222,7 +222,7 @@ spec:
 You can specify different annotations for the bootstrap and the per-broker services.
 After you specify these annotations, they will be passed by Strimzi to the Kubernetes services, and the load balancers will be created accordingly.
 
-## DNS annotations
+### DNS annotations
 
 **This feature will be available from Strimzi 0.12.0.**
 
@@ -294,7 +294,7 @@ listeners:
 # ...
 ```
 
-# Pros and cons
+## Pros and cons
 
 The integration of load balancers into Kubernetes and OpenShift is very convenient and makes them very easy to use.
 Strimzi can use the power of Kubernetes to provision them on many different public and private clouds.
