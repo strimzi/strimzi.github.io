@@ -23,7 +23,7 @@ kubectl create namespace kafka
 Next we apply the Strimzi install files, including `ClusterRoles`, `ClusterRoleBindings` and some **Custom Resource Definitions** (`CRDs`). The CRDs define the schemas used for declarative management of the Kafka cluster, Kafka topics and users.
 
 ```shell
-curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.11.3/strimzi-cluster-operator-0.11.3.yaml \
+curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.11.4/strimzi-cluster-operator-0.11.4.yaml \
   | sed 's/namespace: .*/namespace: kafka/' \
   | kubectl -n kafka apply -f -
 ```
@@ -34,7 +34,7 @@ After that we feed Strimzi with a simple **Custom Resource**, which will than gi
 
 ```shell
 # Apply the `Kafka` Cluster CR file
-kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.11.3/examples/kafka/kafka-persistent-single.yaml -n kafka
+kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.11.4/examples/kafka/kafka-persistent-single.yaml -n kafka
 ```
 
 We can now watch the deployment on the `kafka` namespace, and see all required pods being created:
@@ -57,13 +57,13 @@ strimzi-cluster-operator-78f8bf857-kpmhb      1/1     Running   0          3m10s
 Once the cluster is running, you can run a simple producer to send messages to Kafka topic (the topic will be automatically created):
 
 ```shell
-kubectl -n kafka run kafka-producer -ti --image=strimzi/kafka:0.11.3-kafka-2.1.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic my-topic
+kubectl -n kafka run kafka-producer -ti --image=strimzi/kafka:0.11.4-kafka-2.1.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic my-topic
 ```
 
 And to receive them:
 
 ```shell
-kubectl -n kafka run kafka-consumer -ti --image=strimzi/kafka:0.11.3-kafka-2.1.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic --from-beginning
+kubectl -n kafka run kafka-consumer -ti --image=strimzi/kafka:0.11.4-kafka-2.1.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic --from-beginning
 ```
 
 Enjoy your Apache Kafka cluster, running on Minikube!

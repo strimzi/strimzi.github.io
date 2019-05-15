@@ -22,7 +22,7 @@ oc login -u system:admin
 Next we apply the Strimzi install files, including `ClusterRoles`, `ClusterRoleBindings` and some **Custom Resource Definitions** (`CRDs`). The CRDs define the schemas used for declarative management of the Kafka cluster, Kafka topics and users.
 
 ```shell
-oc apply -f https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.11.3/strimzi-cluster-operator-0.11.3.yaml -n myproject
+oc apply -f https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.11.4/strimzi-cluster-operator-0.11.4.yaml -n myproject
 ```
 
 # Provision the Apache Kafka cluster
@@ -31,7 +31,7 @@ After that we feed Strimzi with a simple **Custom Resource**, which will than gi
 
 ```shell
 # Apply the `Kafka` Cluster CR file
-oc apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.11.3/examples/kafka/kafka-persistent-single.yaml -n myproject
+oc apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.11.4/examples/kafka/kafka-persistent-single.yaml -n myproject
 ```
 
 We can now watch the deployment on the `myproject` namesapce, and see all required pods being created:
@@ -54,13 +54,13 @@ strimzi-cluster-operator-78f8bf857-kpmhb      1/1     Running   0          3m10s
 Once the cluster is running, you can run a simple producer to send messages to Kafka topic (the topic will be automatically created):
 
 ```shell
-oc run kafka-producer -ti --image=strimzi/kafka:0.11.3-kafka-2.1.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic my-topic
+oc run kafka-producer -ti --image=strimzi/kafka:0.11.4-kafka-2.1.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic my-topic
 ```
 
 And to receive them:
 
 ```shell
-oc run kafka-consumer -ti --image=strimzi/kafka:0.11.3-kafka-2.1.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic --from-beginning
+oc run kafka-consumer -ti --image=strimzi/kafka:0.11.4-kafka-2.1.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic --from-beginning
 ```
 
 Enjoy your Apache Kafka cluster, running on OKD!
