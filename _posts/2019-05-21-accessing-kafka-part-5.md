@@ -6,7 +6,7 @@ author: jakub_scholz
 ---
 
 In the fifth and last part of this blog post series we will look at exposing Kafka using Kubernetes Ingress.
-This post will explain how to use Ingress controllers on Kubernetes, how does Ingress compare with OpenShift Routes and how it can be used with Strimzi and Kafka.
+This post will explain how to use Ingress controllers on Kubernetes, how Ingress compares with OpenShift Routes and how it can be used with Strimzi and Kafka.
 Off-cluster access using Kubernetes Ingress is available only from Strimzi 0.12.0.
 
 <!--more-->
@@ -25,20 +25,20 @@ _This is the last post in the series._
 ## Kubernetes Ingress
 
 Ingress is a Kubernetes API for managing external access to HTTP/HTTPS services which was added in Kubernetes 1.1.
-Ingress is the Kubernetes counter part to the OpenShift Routes which we discussed in [part 3](https://strimzi.io/2019/04/30/accessing-kafka-part-3.html).
+Ingress is the Kubernetes counterpart to OpenShift Routes, which we discussed in [part 3](https://strimzi.io/2019/04/30/accessing-kafka-part-3.html).
 It acts as a [Layer 7](https://en.wikipedia.org/wiki/OSI_model#Layer_7:_Application_Layer) load balancer for HTTP or HTTPS traffic.
 The Ingress resources will define the rules for routing the traffic to different services and pods.
-And an Ingress controller will take care of the actual routing.
+An Ingress controller takes care of the actual routing.
 For more information about Ingress, check the [Kubernetes website](https://kubernetes.io/docs/concepts/services-networking/ingress/).
 
-Ingress is a bit strange part of the Kubernetes API.
-The Ingress API it self is part of every Kubernetes cluster.
-But the Ingress controller which would do the routing is not part of core Kubernetes.
+Ingress is a bit of a strange part of the Kubernetes API.
+The Ingress API itself is part of every Kubernetes cluster,
+but the Ingress controller which would do the routing is not part of core Kubernetes.
 So while you will be able to create the Ingress resources, there might be nothing to actually route the traffic.
 
 So for the Ingress resources to actually do something, you need to make sure an Ingress controller is installed.
 There are many different Ingress controllers.
-The Kubernetes project it self has two controllers: 
+The Kubernetes project itself has two controllers: 
 * [NGINX controller](https://github.com/kubernetes/ingress-nginx)
 * [GCE controller](https://github.com/kubernetes/ingress-gce) for Google Cloud
 
@@ -47,36 +47,36 @@ A list of different controllers can be found on the [Kubernetes website](https:/
 
 Most of the controllers rely on a load balancer or node port service which will get the external traffic to the controller.
 Once the traffic reaches the controller, the controller will route it based in the rules specified in the Ingress resource to the different services and pods.
-The controller it self usually also runs as yet another application inside the Kubernetes cluster.
+The controller itself usually also runs as yet another application inside the Kubernetes cluster.
 
 ![Accessing applications using NGINX Ingress Controller]({{ "/assets/2019-05-21-ingress-controller.png" }})
 
-Some of the controllers are tailored for a specific public clouds - for example the [AWS ALB Ingress Controller](https://github.com/kubernetes-sigs/aws-alb-ingress-controller) is provisioning the AWS Application Load Balancer to do the routing instead of doing it inside some pod in your Kubernetes cluster.
+Some of the controllers are tailored for a specific public cloud - for example the [AWS ALB Ingress Controller](https://github.com/kubernetes-sigs/aws-alb-ingress-controller) provisions the AWS Application Load Balancer to do the routing instead of doing it inside some pod in your Kubernetes cluster.
 
 Ingress offers a lot of functionality for HTTP applications such as:
 * TLS termination
 * Redirecting from HTTP to HTTPS
 * Routing based on HTTP request path
 
-Some of the controllers such as the NGINX controller also offer TLS passthrough which we will use in Strimzi.
+Some of the controllers such as the NGINX controller also offer TLS passthrough, which is a feature we use in Strimzi.
 
 ## Using Ingress in Strimzi
 
 Ingress support in Strimzi has been added in Strimzi 0.12.0.
-It is using TLS passthrough and it was tested with the [NGINX Ingress Controller](https://github.com/kubernetes/ingress-nginx).
+It uses TLS passthrough and it was tested with the [NGINX Ingress Controller](https://github.com/kubernetes/ingress-nginx).
 Before using it, please make sure that the TLS passthrough is [enabled in the controller](https://kubernetes.github.io/ingress-nginx/user-guide/tls/#ssl-passthrough).
 
-Ingress support in Strimzi 0.12.0 can be called _experimental_.
+Ingress support in Strimzi 0.12.0 is _experimental_.
 If you have any feedback to it or if you want to help to make it work with different Ingress controllers, get in touch with us through our [Slack, mailing list or GitHub](https://strimzi.io/contributing/).
 
 Although some Ingress controllers also support working directly with TCP connections, TLS passthrough seems to be more widely supported.
 Therefore we decided to prefer TLS passthrough in Strimzi.
-That also means that when using Ingress, TLs encryption will be always enabled.
+That also means that when using Ingress, TLS encryption will always be enabled.
 
 One of the main differences compared to OpenShift Routes is that for Ingress you have to specify the host address in your Kafka custom resource.
 The Router in OpenShift will automatically assign a host address based on the route name and the project.
-But in Ingress it has to be specified in the Ingress resource.
-You also have to take care that the host address DNS resolves to the ingress controller.
+But in Ingress the host address has to be specified in the Ingress resource.
+You also have to take care that DNS resolves the host address to the ingress controller.
 Strimzi cannot generate it for you, because it does not know which DNS addresses are configured for the Ingress controller.
 
 If you want to try it for example on Minikube or in other environments where you don't have any managed DNS service to add the hosts for the Kafka cluster, you can use one of the wildcard DNS services such as [nip.io](https://nip.io/) or [xip.io](http://xip.io/) and set it to point to the IP address of your Ingress controller.
@@ -84,8 +84,8 @@ For example `broker-0.<minikube-ip-address>.nip.io`.
 
 ![Kafka clients connecting through Ingress controller]({{ "/assets/2019-05-21-connecting-through-ingress" }})
 
-The way Strimzi uses Ingress to expose Kafka should be already familiar to you from the previous blog posts.
-We create one service as a bootstrap service and and additional services for individual access to each of the Kafka brokers in your cluster.
+The way Strimzi uses Ingress to expose Kafka should already be familiar to you from the previous blog posts.
+We create one service as a bootstrap service and additional services for individual access to each of the Kafka brokers in your cluster.
 For each of these services we will also create one Ingress resource with the corresponding TLS passthrough rule.
 
 ![Accessing Kafka using Ingress]({{ "/assets/2019-05-21-ingress-access.png" }})
@@ -126,7 +126,7 @@ keytool -import -trustcacerts -alias root -file ca.crt -keystore truststore.jks 
 ```
 
 Once you have the TLS certificate, you can use the bootstrap host you specified in the Kafka custom resource and connect to the Kafka cluster.
-Since Ingress is using TLS passthrough, you always have to connect on port `443`.
+Since Ingress uses TLS passthrough, you always have to connect on port `443`.
 The following example uses the `kafka-console-producer.sh` utility which is part of Apache Kafka:
 
 ```
@@ -189,30 +189,30 @@ listeners:
 ```
 
 Again, Strimzi lets you configure the annotations directly.
-That gives you more freedom and hopefully makes this feature usable even when you use some other tool then External DNS.
+That gives you more freedom and hopefully makes this feature usable even when you use some other tool than External DNS.
 It also lets you configure other options than just the DNS names, such as the time-to-live of the DNS records etc.
 
 ## Pros and cons
 
 Kubernetes Ingress is not always easy to use because you have to install the Ingress controller and you have to configure the hosts.
 It is also available only with TLS encryption because of the TLS passthrough functionality which Strimzi uses.
-But it can offer an interesting option for clusters where node ports are not an option for example for security reasons and using load balancers would be too expensive.
+But it can offer an interesting option for clusters where node ports are not an option, for example for security reasons, and where using load balancers would be too expensive.
 
-When using Strimzi Kafka operator with Ingress you always have to be careful about the performance.
-The ingress controller usually runs inside your cluster as yet another deployment and adds additional step through which your data have to flow between our clients and the brokers.
+When using Strimzi Kafka operator with Ingress you always have to consider performance.
+The ingress controller usually runs inside your cluster as yet another deployment and adds an additional step through which your data has to flow between your clients and the brokers.
 You also need to scale it properly to ensure it will not be a bottleneck for your clients.
 
 So Ingress might not be the best option when most of your applications using Kafka are outside of your Kubernetes cluster and you need to handle 10s or 100s MBs of throughput per second.
-However, especially in situations when most of your applications are inside your cluster and only minority outside and the throughput you need is not so big, Ingress might be a convenient option.
+However, especially in situations when most of your applications are inside your cluster and only a minority outside and when the throughput you need is not so high, Ingress might be a convenient option.
 
-The Ingress API and the Ingress controllers can be usually installed on OpenShift clusters as well.
+The Ingress API and the Ingress controllers can usually be installed on OpenShift clusters as well.
 But they do not offer any advantages over the OpenShift Routes.
 So on OpenShift, you should prefer the OpenShift Routes instead.
 
 ## What's next?
 
-This was for now the last post in this series about accessing Strimzi Kafka clusters.
-In the 5 blog posts, we covered all the supported mechanisms how Strimzi operator allows you to access Kafka from inside and outside of your Kubernetes or OpenShift cluster.
-We will of course keep posting blog posts on another topic and if something about accessing Kafka changes in the future, we will add new blog posts to this series.
+This was, for now, the last post in this series about accessing Strimzi Kafka clusters.
+In the 5 blog posts, we covered all the supported mechanisms that the Strimzi operator supports for accessing Kafka from both inside and outside of your Kubernetes or OpenShift cluster.
+We will, of course, keep posting blog posts on other topics and if something about accessing Kafka changes in the future, we will add new blog posts to this series.
 
 If you liked this series, star us on [GitHub](https://github.com/strimzi/strimzi-kafka-operator) and follow us on [Twitter](https://twitter.com/strimziio) to make sure you don't miss any of our future blog posts!
