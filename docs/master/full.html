@@ -731,7 +731,17 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 </ul>
 </li>
-<li><a href="#uninstalling-str">9. Uninstalling Strimzi</a></li>
+<li><a href="#assembly-upgrade-resources-str">9. Strimzi resource upgrades</a>
+<ul class="sectlevel2">
+<li><a href="#proc-upgrade-kafka-resources-str">9.1. Upgrading Kafka resources</a></li>
+<li><a href="#proc-upgrade-kafka-connect-resources-str">9.2. Upgrading Kafka Connect resources</a></li>
+<li><a href="#proc-upgrade-kafka-connect-s2i-resources-str">9.3. Upgrading Kafka Connect S2I resources</a></li>
+<li><a href="#proc-upgrade-kafka-mirror-maker-resources-str">9.4. Upgrading Kafka Mirror Maker resources</a></li>
+<li><a href="#proc-upgrade-kafka-topic-resources-str">9.5. Upgrading Kafka Topic resources</a></li>
+<li><a href="#proc-upgrade-kafka-user-resources-str">9.6. Upgrading Kafka User resources</a></li>
+</ul>
+</li>
+<li><a href="#uninstalling-str">10. Uninstalling Strimzi</a></li>
 <li><a href="#frequently_asked_questions">Appendix A: Frequently Asked Questions</a>
 <ul class="sectlevel2">
 <li><a href="#cluster_operator">A.1. Cluster Operator</a>
@@ -21740,6 +21750,18 @@ In some cases, you can also downgrade to a lower supported Kafka version.</p>
 <div class="paragraph">
 <p>Newer versions of Strimzi may support newer versions of Kafka, but you need to upgrade Strimzi <em>before</em> you can upgrade to a higher supported Kafka version.</p>
 </div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+<a href="#assembly-upgrade-resources-str">Strimzi resource upgrades</a> <em>must</em> be performed after upgrading Strimzi and Kafka.
+</td>
+</tr>
+</table>
+</div>
 <div class="sect2">
 <h3 id="con-upgrade-intro-str"><a class="link" href="#con-upgrade-intro-str">8.1. Upgrade process</a></h3>
 <div class="paragraph">
@@ -22946,7 +22968,649 @@ You must format the value of <code>log.message.format.version</code> as a string
 </div>
 </div>
 <div class="sect1">
-<h2 id="uninstalling-str"><a class="link" href="#uninstalling-str">9. Uninstalling Strimzi</a></h2>
+<h2 id="assembly-upgrade-resources-str"><a class="link" href="#assembly-upgrade-resources-str">9. Strimzi resource upgrades</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>For this release of Strimzi, resources that use the API version <code>kafka.strimzi.io/v1alpha1</code> must be updated to use <code>kafka.strimzi.io/v1beta1</code>.</p>
+</div>
+<div class="paragraph">
+<p>The <code>kafka.strimzi.io/v1alpha1</code> API version is deprecated in release latest.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+The upgrade of resources <em>must</em> be performed after <a href="#assembly-upgrade-str">Strimzi and Kafka upgrades</a>, so the Cluster Operator can understand the resources.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect2">
+<h3 id="proc-upgrade-kafka-resources-str"><a class="link" href="#proc-upgrade-kafka-resources-str">9.1. Upgrading Kafka resources</a></h3>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Cluster Operator supporting the v1beta1 API version is up and running.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Procedure</div>
+<p>Execute the following steps for each <code>Kafka</code> resource in your deployment.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Update the <code>Kafka</code> resource in an editor.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl edit kafka <em>my-cluster</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Replace:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">apiVersion: kafka.strimzi.io/v1alpha1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>with:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">apiVersion:kafka.strimzi.io/v1beta1</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If the <code>Kafka</code> resource has:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">Kafka.spec.topicOperator</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace it with:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">Kafka.spec.entityOperator.topicOperator</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, replace:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  topicOperator: {}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>with:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  entityOperator:
+    topicOperator: {}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If present, move:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">Kafka.spec.entityOperator.affinity</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">Kafka.spec.entityOperator.tolerations</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>to:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">Kafka.spec.entityOperator.template.pod.affinity</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">Kafka.spec.entityOperator.template.pod.tolerations</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, move:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  entityOperator:
+    affinity {}
+    tolerations {}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>to:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  entityOperator:
+    template:
+      pod:
+        affinity {}
+        tolerations {}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If present, move:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">Kafka.spec.kafka.affinity</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">Kafka.spec.kafka.tolerations</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>to:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">Kafka.spec.kafka.template.pod.affinity</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">Kafka.spec.kafka.template.pod.tolerations</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, move:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  kafka:
+    affinity {}
+    tolerations {}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>to:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  kafka:
+    template:
+      pod:
+        affinity {}
+        tolerations {}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If present, move:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">Kafka.spec.zookeeper.affinity</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">Kafka.spec.zookeeper.tolerations</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>to:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">Kafka.spec.zookeeper.template.pod.affinity</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">Kafka.spec.zookeeper.template.pod.tolerations</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, move:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  zookeeper:
+    affinity {}
+    tolerations {}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>to:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  zookeeper:
+    template:
+      pod:
+        affinity {}
+        tolerations {}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Save the file, exit the editor and wait for the updated resource to be reconciled.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-upgrade-kafka-connect-resources-str"><a class="link" href="#proc-upgrade-kafka-connect-resources-str">9.2. Upgrading Kafka Connect resources</a></h3>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Cluster Operator supporting the v1beta1 API version is up and running.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Procedure</div>
+<p>Execute the following steps for each <code>KafkaConnect</code> resource in your deployment.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Update the <code>KafkaConnect</code> resource in an editor.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl edit kafkaconnect <em>my-connect</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Replace:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">apiVersion: kafka.strimzi.io/v1alpha1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>with:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">apiVersion:kafka.strimzi.io/v1beta1</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If present, move:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">KafkaConnect.spec.affinity</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">KafkaConnect.spec.tolerations</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>to:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">KafkaConnect.spec.template.pod.affinity</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">KafkaConnect.spec.template.pod.tolerations</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, move:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  affinity {}
+  tolerations {}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>to:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  template:
+    pod:
+      affinity {}
+      tolerations {}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Save the file, exit the editor and wait for the updated resource to be reconciled.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-upgrade-kafka-connect-s2i-resources-str"><a class="link" href="#proc-upgrade-kafka-connect-s2i-resources-str">9.3. Upgrading Kafka Connect S2I resources</a></h3>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Cluster Operator supporting the v1beta1 API version is up and running.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Procedure</div>
+<p>Execute the following steps for each <code>KafkaConnectS2I</code> resource in your deployment.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Update the <code>KafkaConnectS2I</code> resource in an editor.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl edit kafkaconnects2i <em>my-connect</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Replace:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">apiVersion: kafka.strimzi.io/v1alpha1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>with:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">apiVersion:kafka.strimzi.io/v1beta1</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If present, move:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">KafkaConnectS2I.spec.affinity</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">KafkaConnectS2I.spec.tolerations</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>to:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">KafkaConnectS2I.spec.template.pod.affinity</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">KafkaConnectS2I.spec.template.pod.tolerations</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, move:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  affinity {}
+  tolerations {}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>to:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  template:
+    pod:
+      affinity {}
+      tolerations {}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Save the file, exit the editor and wait for the updated resource to be reconciled.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-upgrade-kafka-mirror-maker-resources-str"><a class="link" href="#proc-upgrade-kafka-mirror-maker-resources-str">9.4. Upgrading Kafka Mirror Maker resources</a></h3>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Cluster Operator supporting the v1beta1 API version is up and running.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Procedure</div>
+<p>Execute the following steps for each <code>KafkaMirrorMaker</code> resource in your deployment.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Update the <code>KafkaMirrorMaker</code> resource in an editor.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl edit kafkamirrormaker <em>my-connect</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Replace:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">apiVersion: kafka.strimzi.io/v1alpha1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>with:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">apiVersion:kafka.strimzi.io/v1beta1</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If present, move:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">KafkaConnectMirrorMaker.spec.affinity</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">KafkaConnectMirrorMaker.spec.tolerations</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>to:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">KafkaConnectMirrorMaker.spec.template.pod.affinity</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">KafkaConnectMirrorMaker.spec.template.pod.tolerations</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, move:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  affinity {}
+  tolerations {}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>to:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  template:
+    pod:
+      affinity {}
+      tolerations {}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Save the file, exit the editor and wait for the updated resource to be reconciled.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-upgrade-kafka-topic-resources-str"><a class="link" href="#proc-upgrade-kafka-topic-resources-str">9.5. Upgrading Kafka Topic resources</a></h3>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Topic Operator supporting the v1beta1 API version is up and running.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Procedure</div>
+<p>Execute the following steps for each <code>KafkaTopic</code> resource in your deployment.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Update the <code>KafkaTopic</code> resource in an editor.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl edit kafkatopic <em>my-topic</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Replace:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">apiVersion: kafka.strimzi.io/v1alpha1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>with:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">apiVersion:kafka.strimzi.io/v1beta1</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Save the file, exit the editor and wait for the updated resource to be reconciled.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-upgrade-kafka-user-resources-str"><a class="link" href="#proc-upgrade-kafka-user-resources-str">9.6. Upgrading Kafka User resources</a></h3>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A User Operator supporting the v1beta1 API version is up and running.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Procedure</div>
+<p>Execute the following steps for each <code>KafkaUser</code> resource in your deployment.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Update the <code>KafkaUser</code> resource in an editor.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl edit kafkauser <em>my-user</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Replace:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">apiVersion: kafka.strimzi.io/v1alpha1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>with:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">apiVersion:kafka.strimzi.io/v1beta1</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Save the file, exit the editor and wait for the updated resource to be reconciled.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="uninstalling-str"><a class="link" href="#uninstalling-str">10. Uninstalling Strimzi</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>This procedure describes how to uninstall Strimzi and remove resources related to the deployment.</p>
@@ -27889,7 +28553,7 @@ It must have the value <code>plain</code> for the type <code>KafkaMirrorMakerAut
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-05-20 20:59:37 UTC
+Last updated 2019-05-21 05:57:56 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
