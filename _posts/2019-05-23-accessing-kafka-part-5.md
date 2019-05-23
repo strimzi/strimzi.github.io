@@ -82,7 +82,7 @@ Strimzi cannot generate it for you, because it does not know which DNS addresses
 If you want to try it for example on Minikube or in other environments where you don't have any managed DNS service to add the hosts for the Kafka cluster, you can use one of the wildcard DNS services such as [nip.io](https://nip.io/) or [xip.io](http://xip.io/) and set it to point to the IP address of your Ingress controller.
 For example `broker-0.<minikube-ip-address>.nip.io`.
 
-![Kafka clients connecting through Ingress controller]({{ "/assets/2019-05-23-connecting-through-ingress" }})
+![Kafka clients connecting through Ingress controller]({{ "/assets/2019-05-23-connecting-through-ingress.png" }})
 
 The way Strimzi uses Ingress to expose Kafka should already be familiar to you from the previous blog posts.
 We create one service as a bootstrap service and additional services for individual access to each of the Kafka brokers in your cluster.
