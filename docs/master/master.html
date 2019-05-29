@@ -644,7 +644,7 @@ When CRDs are deleted, custom resources of that type are also deleted. Additiona
 <div class="title">Additional resources</div>
 <ul>
 <li>
-<p><a href="https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/">Extend the Kubernetes API with CustomResourceDefinitions</a></p>
+<p><a href="https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/" target="_blank" rel="noopener">Extend the Kubernetes API with CustomResourceDefinitions</a></p>
 </li>
 </ul>
 </div>
@@ -2202,7 +2202,7 @@ This provides a convenient mechanism for resources to be labeled as required.</p
 <p>An efficient data storage infrastructure is essential to the optimal performance of Strimzi.</p>
 </div>
 <div class="paragraph">
-<p>Strimzi requires block storage and is designed to work optimally with cloud-based block storage solutions, including Amazon Elastic Block Store (EBS). The use of file storage is not recommended.</p>
+<p>Strimzi requires block storage and is designed to work optimally with cloud-based block storage solutions, including Amazon Elastic Block Store (EBS). The use of file storage (for example, NFS) is not recommended.</p>
 </div>
 <div class="paragraph">
 <p>Choose local storage (local persistent volumes) when possible. If local storage is not available, you can use a Storage Area Network (SAN) accessed by a protocol such as Fibre Channel or iSCSI.</p>
@@ -2412,8 +2412,9 @@ Default is <code>false</code>.</p>
 <div class="title">Warning</div>
 </td>
 <td class="content">
-Resizing persistent storage for existing Strimzi clusters is not currently supported.
-You must decide the necessary storage size before deploying the cluster.
+Increasing the size of persistent volumes in an existing Strimzi cluster is only supported in OpenShift or Kubernetes versions that support persistent volume resizing. The persistent volume to be resized must use a storage class that supports volume expansion.
+For other versions of OpenShift or Kubernetes and storage classes which do not support volume expansion, you must decide the necessary storage size before deploying the cluster.
+Decreasing the size of existing persistent volumes is not possible.
 </td>
 </tr>
 </table>
@@ -2459,6 +2460,66 @@ storage:
 </div>
 </div>
 <div class="sect5">
+<h6 id="storage_class_overrides"><a class="link" href="#storage_class_overrides">Storage class overrides</a></h6>
+<div class="paragraph">
+<p>You can specify a different storage class for one or more Kafka brokers, instead of using the default storage class.
+This is useful if, for example, storage classes are restricted to different availability zones or data centers.
+You can use the <code>overrides</code> field for this purpose.</p>
+</div>
+<div class="paragraph">
+<p>In this example, the default storage class is named <code>my-storage-class</code>:</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Strimzi cluster using storage class overrides</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  labels:
+    app: my-cluster
+  name: my-cluster
+  namespace: myproject
+spec:
+  # ...
+  kafka:
+    replicas: 3
+    storage:
+      deleteClaim: true
+      size: 100Gi
+      type: persistent-claim
+      class: my-storage-class
+      overrides:
+        - broker: 0
+          class: my-storage-class-zone-1a
+        - broker: 1
+          class: my-storage-class-zone-1b
+        - broker: 2
+          class: my-storage-class-zone-1c
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>As a result of the configured <code>overrides</code> property, the broker volumes use the following storage classes:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The persistent volumes of broker 0 will use <code>my-storage-class-zone-1a</code>.</p>
+</li>
+<li>
+<p>The persistent volumes of broker 1 will use <code>my-storage-class-zone-1b</code>.</p>
+</li>
+<li>
+<p>The persistent volumes of broker 2 will use <code>my-storage-class-zone-1c</code>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>overrides</code> property is currently used only to override storage class configurations. Overriding other storage configuration fields is not currently supported.
+Other fields from the storage configuration are currently not supported.</p>
+</div>
+</div>
+<div class="sect5">
 <h6 id="persistent_volume_claim_naming"><a class="link" href="#persistent_volume_claim_naming">Persistent Volume Claim naming</a></h6>
 <div class="paragraph">
 <p>When persistent storage is used, it creates Persistent Volume Claims with the following names:</p>
@@ -2489,6 +2550,107 @@ storage:
 </dd>
 </dl>
 </div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-resizing-persistent-volumes-deployment-configuration-kafka"><a class="link" href="#proc-resizing-persistent-volumes-deployment-configuration-kafka">Resizing persistent volumes</a></h5>
+<div class="paragraph">
+<p>You can provision increased storage capacity by increasing the size of the persistent volumes used by an existing Strimzi cluster.
+Resizing persistent volumes is supported in clusters that use either a single persistent volume or multiple persistent volumes in a JBOD storage configuration.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+You can increase but not decrease the size of persistent volumes.
+Decreasing the size of persistent volumes is not currently supported in OpenShift or Kubernetes.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster with support for volume resizing.</p>
+</li>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+<li>
+<p>A Kafka cluster using persistent volumes created using a storage class that supports volume expansion.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>In a <code>Kafka</code> resource, increase the size of the persistent volume allocated to the Kafka cluster, the Zookeeper cluster, or both.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>To increase the volume size allocated to the Kafka cluster, edit the <code>spec.kafka.storage</code> property.</p>
+</li>
+<li>
+<p>To increase the volume size allocated to the Zookeeper cluster, edit the <code>spec.zookeeper.storage</code> property.</p>
+<div class="paragraph">
+<p>For example, to increase the volume size from <code>1000Gi</code> to <code>2000Gi</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    storage:
+      type: persistent-claim
+      size: 2000Gi
+      class: my-storage-class
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>On Kubernetes, use <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On OpenShift, use <code>oc apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>OpenShift or Kubernetes increases the capacity of the selected persistent volumes in response to a request from the Cluster Operator.
+When the resizing is complete, the Cluster Operator restarts all pods that use the resized persistent volumes.
+This happens automatically.</p>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<div class="title">Additional resources</div>
+<p>For more information about resizing persistent volumes in OpenShift or Kubernetes, see <a href="https://kubernetes.io/blog/2018/07/12/resizing-persistent-volumes-using-kubernetes/" target="_blank" rel="noopener">Resizing Persistent Volumes using Kubernetes</a>.</p>
 </div>
 </div>
 <div class="sect4">
