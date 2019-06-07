@@ -4,31 +4,19 @@ layout: default
 
 # Documentation
 
-## Latest release
+## Strimzi Kafka operators
 
-* [0.11.4](/docs/latest/)
-
-## Master
-
+* [0.11.4 - Latest stable release](/docs/latest/)
 * [Master](/docs/master/)
 
-## All releases
+## Strimzi Kafka bridge
 
-* [0.11.4](/docs/0.11.4/)
-* [0.11.3](/docs/0.11.3/)
-* [0.11.2](/docs/0.11.2/)
-* [0.11.1](/docs/0.11.1/)
-* [0.11.0](/docs/0.11.0/)
-* [0.10.0](/docs/0.10.0/)
-* [0.9.0](/docs/0.9.0/)
-* [0.8.2](/docs/0.8.2/)
-* [0.8.1](/docs/0.8.1/)
-* [0.8.0](/docs/0.8.0/)
-* [0.7.0](/docs/0.7.0/)
-* [0.6.0](/docs/0.6.0/)
-* [0.5.0](/docs/0.5.0/)
-* [0.4.0](/docs/0.4.0/)
-* [0.3.1](/docs/0.3.1/)
-* [0.3.0](/docs/0.3.0/)
-* [0.2.0](/docs/0.2.0/)
-* [0.1.0](/docs/0.1.0/README.md)
+* [Master](/docs/bridge/master/)
+
+## Documentation Archive
+
+Documentation for the older Strimzi versions can be found in the [documentation archive](/documentation/archive).
+
+-----
+
+_The master documentation corresponds to the Strimzi version which is currently being developed and is in the `master` branch in our GitHub repositories._
