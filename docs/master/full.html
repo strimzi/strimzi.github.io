@@ -454,6 +454,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#assembly-custom-resources-str">2.2. Custom resources</a>
 <ul class="sectlevel3">
 <li><a href="#con-custom-resources-example-str">2.2.1. Strimzi custom resource example</a></li>
+<li><a href="#con-custom-resources-status-str">2.2.2. Strimzi custom resource status</a></li>
 </ul>
 </li>
 <li><a href="#cluster-operator-str">2.3. Cluster Operator</a>
@@ -747,6 +748,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </ul>
 </li>
 <li><a href="#uninstalling-str">10. Uninstalling Strimzi</a></li>
+<li><a href="#proc-accessing-resource-status-str">11. Checking the status of a custom resource</a></li>
 <li><a href="#ref-kafka-logging-str">Appendix A: Configurable loggers</a></li>
 <li><a href="#frequently_asked_questions">Appendix B: Frequently Asked Questions</a>
 <ul class="sectlevel2">
@@ -1216,6 +1218,106 @@ spec: <b class="conum">(2)</b>
 </div>
 <div class="paragraph">
 <p>After a <code>KafkaTopic</code> custom resource is created, the Topic Operator is notified and corresponding Kafka topics are created in Strimzi.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-custom-resources-status-str"><a class="link" href="#con-custom-resources-status-str">2.2.2. Strimzi custom resource status</a></h4>
+<div class="paragraph">
+<p>The <code>status</code> property of a Strimzi-specific custom resource publishes the <em>current</em> state of the resource to users and tools that need the information.</p>
+</div>
+<div class="paragraph">
+<p>Status information is useful for tracking progress related to a resource achieving its <em>desired</em> state, as defined by the <code>spec</code> property. The <code>status</code> provides the time and reason the state of the resource changed and details of events preventing or delaying the Operator from realizing the desired state.</p>
+</div>
+<div class="paragraph">
+<p>Strimzi creates and maintains the status of custom resources, periodically evaluating the current state of the custom resource and updating its status accordingly.</p>
+</div>
+<div class="paragraph">
+<p>When performing an update on a custom resource using <code>kubectl edit</code>, for example, its <code>status</code> is not editable. Moreover, changing the <code>status</code> would not affect the configuration of the Kafka cluster.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+The status property feature for Strimzi-specific custom resources is still under development and only available for Kafka resources.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Here we see the <code>status</code> property specified for a Kafka custom resource.</p>
+</div>
+<div class="listingblock">
+<div class="title">Kafka custom resource with status</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+spec:
+  # ...
+status:
+  conditions: <b class="conum">(1)</b>
+  - lastTransitionTime: 2019-06-02T23:46:57+0000
+    status: "True"
+    type: Ready <b class="conum">(2)</b>
+  listeners: <b class="conum">(3)</b>
+  - addresses:
+    - host: my-cluster-kafka-bootstrap.myproject.svc
+      port: 9092
+    type: plain
+  - addresses:
+    - host: my-cluster-kafka-bootstrap.myproject.svc
+      port: 9093
+    type: tls
+  - addresses:
+    - host: 172.29.49.180
+      port: 9094
+    type: external
+    # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Status <code>conditions</code> describe criteria related to the status that cannot be deduced from the existing resource information, or are specific to the instance of a resource.</p>
+</li>
+<li>
+<p>The <code>Ready</code> condition indicates whether the Cluster Operator currently considers the Kafka cluster able to handle traffic.</p>
+</li>
+<li>
+<p>The <code>listeners</code> describe the current Kafka bootstrap addresses by type.</p>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+The status for <code>external</code> listeners is still under development and does not provide a specific IP address for external listeners of type <code>nodeport</code>.
+</td>
+</tr>
+</table>
+</div>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The Kafka bootstrap addresses listed in the status do not signify that those endpoints or the Kafka cluster is in a ready state.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<div class="title">Accessing status information</div>
+<p>You can access status information for a resource from the command line. For more information, see <a href="#proc-accessing-resource-status-str">Checking the status of a custom resource</a>.</p>
 </div>
 </div>
 </div>
@@ -1916,10 +2018,10 @@ For more information on the different configuration options supported by the <co
 <div class="sect4">
 <h5 id="creating-new-image-from-base-str"><a class="link" href="#creating-new-image-from-base-str">Creating a Docker image from the Kafka Connect base image</a></h5>
 <div class="paragraph">
-<p>A container image for running Kafka Connect using Strimzi is available on <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as <code>strimzi/kafka:latest-kafka-2.2.1</code>. You can use this as a base image for creating your own custom image with additional connector plug-ins.</p>
+<p>You can use the Kafka container image on <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as a base image for creating your own custom image with additional connector plug-ins.</p>
 </div>
 <div class="paragraph">
-<p>The following procedure explains how to create your custom image and add it to the <code>/opt/kafka/plugins</code> directory. At startup, the AMQ Streams version of Kafka Connect loads any third-party connector plug-ins contained in the <code>/opt/kafka/plugins</code> directory.</p>
+<p>The following procedure explains how to create your custom image and add it to the <code>/opt/kafka/plugins</code> directory. At startup, the Strimzi version of Kafka Connect loads any third-party connector plug-ins contained in the <code>/opt/kafka/plugins</code> directory.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -1989,7 +2091,7 @@ spec:
 <p>You can use OpenShift <a href="https://docs.openshift.org/3.9/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a> and the  <a href="https://docs.openshift.org/3.9/creating_images/s2i.html#creating-images-s2i" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images. An OpenShift build takes a builder image with S2I support, together with source code and binaries provided by the user, and uses them to build a new container image. Once built, container images are stored in OpenShift&#8217;s local container image repository and are available for use in deployments.</p>
 </div>
 <div class="paragraph">
-<p>A Kafka Connect builder image with S2I support is provided by Strimzi on the <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as <code>strimzi/kafka:latest-kafka-2.2.1</code>. This S2I image takes your binaries (with plug-ins and connectors) and stores them in the <code>/tmp/kafka-plugins/s2i</code> directory. It creates a new Kafka Connect image from this directory, which can then be used with the Kafka Connect deployment. When started using the enhanced image, Kafka Connect loads any third-party plug-ins from the <code>/tmp/kafka-plugins/s2i</code> directory.</p>
+<p>A Kafka Connect builder image with S2I support is provided on the <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as part of the <code>strimzi/kafka:latest-kafka-2.2.1</code> image. This S2I image takes your binaries (with plug-ins and connectors) and stores them in the <code>/tmp/kafka-plugins/s2i</code> directory. It creates a new Kafka Connect image from this directory, which can then be used with the Kafka Connect deployment. When started using the enhanced image, Kafka Connect loads any third-party plug-ins from the <code>/tmp/kafka-plugins/s2i</code> directory.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -2596,7 +2698,7 @@ Each Kafka version supported for the release has a separate image.
 </ul>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>AMQ Streams image for running the operators:</p>
+<p>Strimzi image for running the operators:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -2703,7 +2805,7 @@ You do not need to provision replicated storage because Kafka and Zookeeper both
 <div class="sect4">
 <h5 id="file_systems"><a class="link" href="#file_systems">File systems</a></h5>
 <div class="paragraph">
-<p>It is recommended that you configure your storage system to use the XFS file system. AMQ Streams is also compatible with the ext4 file system, but this might require additional configuration for best results.</p>
+<p>It is recommended that you configure your storage system to use the XFS file system. Strimzi is also compatible with the ext4 file system, but this might require additional configuration for best results.</p>
 </div>
 </div>
 </div>
@@ -15260,7 +15362,7 @@ For example:</p>
 <p>You can use OpenShift <a href="https://docs.openshift.org/3.9/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a> and the  <a href="https://docs.openshift.org/3.9/creating_images/s2i.html#creating-images-s2i" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images. An OpenShift build takes a builder image with S2I support, together with source code and binaries provided by the user, and uses them to build a new container image. Once built, container images are stored in OpenShift&#8217;s local container image repository and are available for use in deployments.</p>
 </div>
 <div class="paragraph">
-<p>A Kafka Connect builder image with S2I support is provided by Strimzi on the <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as <code>strimzi/kafka:latest-kafka-2.2.1</code>. This S2I image takes your binaries (with plug-ins and connectors) and stores them in the <code>/tmp/kafka-plugins/s2i</code> directory. It creates a new Kafka Connect image from this directory, which can then be used with the Kafka Connect deployment. When started using the enhanced image, Kafka Connect loads any third-party plug-ins from the <code>/tmp/kafka-plugins/s2i</code> directory.</p>
+<p>A Kafka Connect builder image with S2I support is provided on the <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as part of the <code>strimzi/kafka:latest-kafka-2.2.1</code> image. This S2I image takes your binaries (with plug-ins and connectors) and stores them in the <code>/tmp/kafka-plugins/s2i</code> directory. It creates a new Kafka Connect image from this directory, which can then be used with the Kafka Connect deployment. When started using the enhanced image, Kafka Connect loads any third-party plug-ins from the <code>/tmp/kafka-plugins/s2i</code> directory.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -23757,6 +23859,52 @@ Deleting <code>CustomResourceDefinitions</code> results in the garbage collectio
 </div>
 </div>
 <div class="sect1">
+<h2 id="proc-accessing-resource-status-str"><a class="link" href="#proc-accessing-resource-status-str">11. Checking the status of a custom resource</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This procedure describes how to find the status of a custom resource.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An OpenShift or Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Procedure</div>
+<ul>
+<li>
+<p>Specify the custom resource and use <code>-o jsonpath</code> option to apply a standard JSONPath expression to select the <code>status</code> property:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get kafka <em>&lt;kafka_resource_name&gt;</em> -o jsonpath='{.status}'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This expression returns all the status information for the specified custom resource. You can use dot notation, such as <code>status.listeners</code>, to fine-tune the status information you wish to see.</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#con-custom-resources-status-str">Strimzi custom resource status</a></p>
+</li>
+<li>
+<p>For more information about using JSONPath, see <a href="https://kubernetes.io/docs/reference/kubectl/jsonpath/" target="_blank" rel="noopener">JSONPath support</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
 <h2 id="ref-kafka-logging-str"><a class="link" href="#ref-kafka-logging-str">Appendix A: Configurable loggers</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
@@ -29356,7 +29504,7 @@ It must have the value <code>plain</code> for the type <code>KafkaBridgeAuthenti
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-06-08 16:06:51 UTC
+Last updated 2019-06-10 12:36:46 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
