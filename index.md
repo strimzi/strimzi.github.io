@@ -7,18 +7,18 @@ layout: default
 
 # Overview
 
-Strimzi provides a way to run an [Apache Kafka](https://kafka.apache.org/) cluster on [OpenShift](https://www.openshift.org/) and [Kubernetes](https://kubernetes.io/) in various deployment configurations.
+Strimzi provides a way to run an [Apache Kafka](https://kafka.apache.org/) cluster on [Kubernetes](https://kubernetes.io/) in various deployment configurations.
 
 See our [GitHub](http://github.com/strimzi) repository for more info.
 
 # Quickstart
 
-Getting up and running with an Apache Kafka cluster on Kubernetes and OKD (the Origin Community Distribution of Kubernetes that powers Red Hat OpenShift) can be very simple, when using the Strimzi project! 
+Getting up and running with an Apache Kafka cluster on Kubernetes can be very simple, when using the Strimzi project! 
 
 Below are a few quickstart documents for different environments, that walk you through a quick and easy install for your development environment:
 
 * [Minikube](/quickstarts/minikube/)
-* [OKD](/quickstarts/okd)
+* [OKD](/quickstarts/okd) (the Origin Community Distribution of Kubernetes, the basis of Red Hat OpenShift)
 
 # Downloads
 
