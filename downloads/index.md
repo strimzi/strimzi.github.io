@@ -5,7 +5,7 @@ layout: default
 # Downloads
 
 Strimzi releases are available for download on our [GitHub](https://github.com/strimzi/strimzi-kafka-operator). The release artifacts
-contain documentation and example YAML files for deployment on OpenShift and Kubernetes. The Docker images are
+contain documentation and example YAML files for deployment on Kubernetes. The Docker images are
 available on [Docker Hub](https://hub.docker.com/u/strimzi/).
 
 ## Latest release
