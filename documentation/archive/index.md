@@ -24,3 +24,7 @@ layout: default
 * [0.3.0](/docs/0.3.0/)
 * [0.2.0](/docs/0.2.0/)
 * [0.1.0](/docs/0.1.0/README.md)
+
+## Strimzi Kafka bridge
+
+* [0.12.0](/docs/bridge/0.12.0/)
