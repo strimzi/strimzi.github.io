@@ -27,7 +27,7 @@ contain documentation and example YAML files for deployment on OpenShift and Kub
 available on [Docker Hub](https://hub.docker.com/u/strimzi/).
 
 * [Strimzi Kafka operators - latest stable version (0.11.4)](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.11.4)
-* [Strimzi Kafka bridge - Latest stable release (0.12.0)](https://github.com/strimzi/strimzi-kafka-bridge/releases/tag/0.12.0)
+* [Strimzi Kafka bridge - latest stable release (0.12.0)](https://github.com/strimzi/strimzi-kafka-bridge/releases/tag/0.12.0)
 
 All releases can be found in the [Downloads](/downloads) page.
 
