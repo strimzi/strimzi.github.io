@@ -34,7 +34,7 @@ All releases can be found in the [Downloads](/downloads) page.
 # Documentation
 
 * [Strimzi Kafka operators - latest stable version (0.11.4)](/docs/latest/)
-* [Strimzi Kafka bridge - latest stable version (0.12.0)](/docs/latest/)
+* [Strimzi Kafka bridge - latest stable version (0.12.0)](/docs/bridge/latest/)
 
 Documentation for all releases can be found in the [Documentation](/documentation) page.
 
