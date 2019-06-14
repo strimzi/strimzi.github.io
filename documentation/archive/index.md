@@ -6,6 +6,7 @@ layout: default
 
 ## Strimzi Kafka operators
 
+* [0.12.0](/docs/0.12.0/)
 * [0.11.4](/docs/0.11.4/)
 * [0.11.3](/docs/0.11.3/)
 * [0.11.2](/docs/0.11.2/)
