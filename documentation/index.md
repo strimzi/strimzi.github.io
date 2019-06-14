@@ -11,7 +11,7 @@ layout: default
 
 ## Strimzi Kafka bridge
 
-* [0.12.0 - Latest stable release](/docs/blatest/)
+* [0.12.0 - Latest stable release](/docs/latest/)
 * [Master](/docs/bridge/master/)
 
 ## Documentation Archive
