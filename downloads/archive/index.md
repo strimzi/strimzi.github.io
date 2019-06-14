@@ -6,6 +6,7 @@ layout: default
 
 ## Strimzi Kafka operators
 
+* [0.12.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.12.0)
 * [0.11.4](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.11.4)
 * [0.11.3](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.11.3)
 * [0.11.2](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.11.2)
