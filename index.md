@@ -26,15 +26,15 @@ Strimzi releases are available for download on our [GitHub](https://github.com/s
 contain documentation and example YAML files for deployment on OpenShift and Kubernetes. The Docker images are
 available on [Docker Hub](https://hub.docker.com/u/strimzi/).
 
-* [Strimzi Kafka operators - latest stable version (0.12.0)](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.12.0)
-* [Strimzi Kafka bridge - Latest stable release (0.12.0)](https://github.com/strimzi/strimzi-kafka-bridge/releases/tag/0.12.0)
+* [Strimzi Kafka operators - latest stable version ({{site.data.releases.operator[0].version}})](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/{{site.data.releases.operator[0].version}})
+* [Strimzi Kafka bridge - Latest stable release ({{site.data.releases.bridge[0].version}})](https://github.com/strimzi/strimzi-kafka-bridge/releases/tag/{{site.data.releases.bridge[0].version}})
 
 All releases can be found in the [Downloads](/downloads) page.
 
 # Documentation
 
-* [Strimzi Kafka operators - latest stable version (0.12.0)](/docs/latest/)
-* [Strimzi Kafka bridge - latest stable version (0.12.0)](/docs/bridge/latest/)
+* [Strimzi Kafka operators - latest stable version ({{site.data.releases.operator[0].version}})](/docs/latest/)
+* [Strimzi Kafka bridge - latest stable version ({{site.data.releases.bridge[0].version}})](/docs/bridge/latest/)
 
 Documentation for all releases can be found in the [Documentation](/documentation) page.
 
