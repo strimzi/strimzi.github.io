@@ -6,12 +6,12 @@ layout: default
 
 ## Strimzi Kafka operators
 
-* [0.12.0 - Latest stable release](/docs/latest/)
+* [{{site.data.releases.operator[0].version}} - latest stable release](/docs/latest/)
 * [Master](/docs/master/)
 
 ## Strimzi Kafka bridge
 
-* [0.12.0 - Latest stable release](/docs/bridge/latest/)
+* [{{site.data.releases.bridge[0].version}} - latest stable release](/docs/bridge/latest/)
 * [Master](/docs/bridge/master/)
 
 ## Documentation Archive

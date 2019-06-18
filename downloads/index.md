@@ -11,11 +11,11 @@ available on [Docker Hub](https://hub.docker.com/u/strimzi/).
 
 ## Strimzi Kafka operators
 
-* [Latest stable release - 0.12.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.12.0)
+* [{{site.data.releases.operator[0].version}} – latest stable release](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/{{site.data.releases.operator[0].version}})
 
 ## Strimzi Kafka bridge
 
-* [Latest stable release - 0.12.0](https://github.com/strimzi/strimzi-kafka-bridge/releases/tag/0.12.0)
+* [{{site.data.releases.bridge[0].version}} – latest stable release](https://github.com/strimzi/strimzi-kafka-bridge/releases/tag/{{site.data.releases.bridge[0].version}})
 
 ## Downloads Archive
 
