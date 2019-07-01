@@ -57,7 +57,7 @@ strimzi-cluster-operator-78f8bf857-kpmhb      1/1     Running   0          3m10s
 Once the cluster is running, you can run a simple producer to send messages to Kafka topic (the topic will be automatically created):
 
 ```shell
-kubectl -n kafka run kafka-producer -ti --image=strimzi/kafka{{site.data.releases.operator[0].version}}-kafka-{{site.data.releases.operator[0].defaultKafkaVersion}} --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic my-topic
+kubectl -n kafka run kafka-producer -ti --image=strimzi/kafka:{{site.data.releases.operator[0].version}}-kafka-{{site.data.releases.operator[0].defaultKafkaVersion}} --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic my-topic
 ```
 
 And to receive them:
