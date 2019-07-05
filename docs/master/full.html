@@ -4831,20 +4831,19 @@ spec:
 <div class="sect4">
 <h5 id="ref-kafka-authorization-deployment-configuration-kafka"><a class="link" href="#ref-kafka-authorization-deployment-configuration-kafka">Authorization</a></h5>
 <div class="paragraph">
-<p>Authorization can be configured using the <code>authorization</code> property in the <code>Kafka.spec.kafka</code> resource.
-When the <code>authorization</code> property is missing, no authorization will be enabled.
-When authorization is enabled it will be applied for all enabled <a href="#assembly-configuring-kafka-broker-listeners-deployment-configuration-kafka">listeners</a>.
-The authorization method is defined by the <code>type</code> field.</p>
+<p>You configure authorization for Kafka brokers using the <code>authorization</code> property in the <code>Kafka.spec.kafka</code> resource.
+If the <code>authorization</code> property is missing, no authorization is enabled.
+When enabled, authorization is applied to all enabled <a href="#assembly-configuring-kafka-broker-listeners-deployment-configuration-kafka">listeners</a>.
+The authorization method is defined in the <code>type</code> field; only Simple authorization is currently supported.</p>
 </div>
 <div class="paragraph">
-<p>Currently, the only supported authorization method is the Simple authorization.</p>
+<p>You can optionally designate a list of super users in the <code>superUsers</code> field.</p>
 </div>
 <div class="sect5">
 <h6 id="simple_authorization"><a class="link" href="#simple_authorization">Simple authorization</a></h6>
 <div class="paragraph">
-<p>Simple authorization is using the <code>SimpleAclAuthorizer</code> plugin.
-<code>SimpleAclAuthorizer</code> is the default authorization plugin which is part of Apache Kafka.
-To enable simple authorization, the <code>type</code> field should be set to <code>simple</code>.</p>
+<p>Simple authorization in Strimzi uses the <code>SimpleAclAuthorizer</code> plugin, the default Access Control Lists (ACLs) authorization plugin provided with Apache Kafka. ACLs allow you to define which users have access to which resources at a granular level.
+To enable simple authorization, set the <code>type</code> field to <code>simple</code>.</p>
 </div>
 <div class="listingblock">
 <div class="title">An example of Simple authorization</div>
@@ -4856,9 +4855,47 @@ authorization:
 </div>
 </div>
 </div>
+<div class="sect5">
+<h6 id="super_users"><a class="link" href="#super_users">Super users</a></h6>
+<div class="paragraph">
+<p>Super users can access all resources in your Kafka cluster regardless of any access restrictions defined in ACLs.
+To designate super users for a Kafka cluster, enter a list of user principles in the <code>superUsers</code> field.
+If a user uses TLS Client Authentication, the username will be the common name from their certificate subject prefixed with <code>CN=</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example of designating super users</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs"># ...
+authorization:
+  type: simple
+  superUsers:
+    - CN=fred
+    - sam
+    - CN=edward
+# ...</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The <code>super.user</code> configuration option in the <code>config</code> property in <code>Kafka.spec.kafka</code> is ignored.
+Designate super users in the <code>authorization</code> property instead.
+For more information, see <a href="#ref-kafka-broker-configuration-deployment-configuration-kafka">Kafka broker configuration</a>.
+</td>
+</tr>
+</table>
+</div>
+</div>
 </div>
 <div class="sect4">
 <h5 id="proc-kafka-authorization-deployment-configuration-kafka"><a class="link" href="#proc-kafka-authorization-deployment-configuration-kafka">Configuring authorization in Kafka brokers</a></h5>
+<div class="paragraph">
+<p>Configure authorization and designate super users for a particular Kafka broker.</p>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -4866,7 +4903,7 @@ authorization:
 <p>A Kubernetes cluster</p>
 </li>
 <li>
-<p>A running Cluster Operator</p>
+<p>The Cluster Operator is running</p>
 </li>
 </ul>
 </div>
@@ -4885,6 +4922,10 @@ spec:
     # ...
     authorization:
       type: simple
+      superUsers:
+        - CN=fred
+        - sam
+        - CN=edward
     # ...
   zookeeper:
     # ...</code></pre>
@@ -4912,6 +4953,9 @@ spec:
 </li>
 <li>
 <p>For more information about the schema for <code>Kafka</code>, see <a href="#type-Kafka-reference"><code>Kafka</code> schema reference</a>.</p>
+</li>
+<li>
+<p>For more information about configuring user authentication, see <a href="#ref-kafka-user-using-uo">Kafka User resource</a>.</p>
 </li>
 </ul>
 </div>
@@ -30228,7 +30272,7 @@ It must have the value <code>plain</code> for the type <code>KafkaBridgeAuthenti
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-07-04 22:55:24 UTC
+Last updated 2019-07-05 19:10:11 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
