@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Persistent storage improvements"
-date: 2019-08-07
+date: 2019-07-08
 author: jakub_scholz
 ---
 
@@ -83,19 +83,19 @@ spec:
     # ...
     storage:
       type: persistent-claim
-      size: 200Gi
+      size: 1000Gi
       deleteClaim: false
   zookeeper:
     # ...
     storage:
       type: persistent-claim
-      size: 1000Gi
+      size: 200Gi
       deleteClaim: false
 ```
 
 And the rest will be taken care of by Strimzi.
 The cluster operator will automatically change the requested volume size in the PVCs and wait until the restart of the pod is required.
-Once the condition of the PVC is set to `FileSystemResizePending`, Strimzi will automatically restart the pod using this PVC.
+Once the condition of the PVC is set to `FileSystemResizePending` (read the [original blog post](https://strimzi.io/2019/02/28/resizing-persistent-volumes.html) for more information about the different states the PVC can be in during the resizing), Strimzi will automatically restart the pod using this PVC.
 
 ```yaml
 # ...
@@ -104,7 +104,7 @@ status:
   accessModes:
     - ReadWriteOnce
   capacity:
-    storage: 100Gi
+    storage: 1000Gi
   conditions:
     - type: FileSystemResizePending
       status: 'True'
