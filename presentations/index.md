@@ -4,6 +4,7 @@ layout: default
 
 # Presentations
 
+* Strimzi: Distributed Streaming with Apache Kafka in Kubernetes (Istanbul JUG Meetup, July 2019) [slides](https://speakerdeck.com/mabulgu/strimzi-distributed-streaming-with-apache-kafka-in-kubernetes) [video](https://www.youtube.com/watch?v=pDRei8DMujM)
 * Running Kafka on Kubernetes with Strimzi, Kafka in Jail with Strimzi (O'Reilly Strata San Francisco 2019, Lightbend Webinar, Toronto Data Science & Big Data Meetup) [slides](https://seanglover.com/assets/slides/Kafka_in_Jail-Toronto_Data_Science_and_Big_Data_Meetup_2019.pdf) [video](https://www.youtube.com/watch?v=rzHQvImn2XY) [demo](https://www.youtube.com/watch?v=KEPB7iG5Fgc)
 * Strimzi: how Apache Kafka has fallen in love with Kubernetes (Modern Integration and Application Development Day, April 2019) [slides](https://www.slideshare.net/paolopat/strimzi-how-apache-kafka-has-fallen-in-love-with-kubernetes)
 * Kafka on OpenShift: make it easy with AMQ Streams (Red Hat Open Source Day 2018, October 2018) [slides](https://www.slideshare.net/paolopat/kafka-on-openshift-make-it-easy-with-amq-streams)
