@@ -1585,7 +1585,7 @@ spec:
 <div class="sect4">
 <h5 id="using-openshift-s2i-create-image-str"><a class="link" href="#using-openshift-s2i-create-image-str">Creating a container image using OpenShift builds and Source-to-Image</a></h5>
 <div class="paragraph">
-<p>You can use {OpenShiftName} <a href="https://docs.okd.io/3.9/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a> and the  <a href="https://docs.okd.io/3.9/creating_images/s2i.html" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images. An OpenShift build takes a builder image with S2I support, together with source code and binaries provided by the user, and uses them to build a new container image. Once built, container images are stored in {OpenShiftName}'s local container image repository and are available for use in deployments.</p>
+<p>You can use OpenShift <a href="https://docs.okd.io/3.9/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a> and the  <a href="https://docs.okd.io/3.9/creating_images/s2i.html" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images. An OpenShift build takes a builder image with S2I support, together with source code and binaries provided by the user, and uses them to build a new container image. Once built, container images are stored in OpenShift&#8217;s local container image repository and are available for use in deployments.</p>
 </div>
 <div class="paragraph">
 <p>A Kafka Connect builder image with S2I support is provided on the <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as part of the <code>strimzi/kafka:latest-kafka-2.2.1</code> image. This S2I image takes your binaries (with plug-ins and connectors) and stores them in the <code>/tmp/kafka-plugins/s2i</code> directory. It creates a new Kafka Connect image from this directory, which can then be used with the Kafka Connect deployment. When started using the enhanced image, Kafka Connect loads any third-party plug-ins from the <code>/tmp/kafka-plugins/s2i</code> directory.</p>
@@ -3670,235 +3670,18 @@ When a <code>KafkaUser.spec.authentication.type</code> is configured with <code>
 <div class="sect4">
 <h5 id="assembly-kafka-broker-external-listeners-deployment-configuration-kafka"><a class="link" href="#assembly-kafka-broker-external-listeners-deployment-configuration-kafka">External listeners</a></h5>
 <div class="paragraph">
-<p>An external listener allows a client outside a Kubernetes environment to connect to a Strimzi Kafka cluster.
-Strimzi supports the following types of external listeners:</p>
+<p>Use an external listener to expose your Strimzi Kafka cluster to a client outside a Kubernetes environment.</p>
 </div>
 <div class="ulist">
+<div class="title">Additional resources</div>
 <ul>
 <li>
-<p><code>route</code> (supported only on OpenShift)</p>
-</li>
-<li>
-<p><code>loadbalancer</code></p>
-</li>
-<li>
-<p><code>nodeport</code></p>
-</li>
-<li>
-<p><code>ingress</code></p>
+<p><a href="https://strimzi.io/2019/04/17/accessing-kafka-part-1.html" target="_blank" rel="noopener">Accessing Apache Kafka in Strimzi</a></p>
 </li>
 </ul>
 </div>
 <div class="sect5">
-<h6 id="con-kafka-broker-exposing-external-listeners-deployment-configuration-kafka"><a class="link" href="#con-kafka-broker-exposing-external-listeners-deployment-configuration-kafka">Exposing Kafka using {OpenShiftName} <code>Routes</code></a></h6>
-<div class="paragraph">
-<p>An external listener of type <code>route</code> exposes Kafka by using {OpenShiftName} <code>Routes</code> and the HAProxy router.
-A dedicated <code>Route</code> is created for every Kafka broker pod.
-An additional <code>Route</code> is created to serve as a Kafka bootstrap address.
-Kafka clients can use these <code>Routes</code> to connect to Kafka on port 443.</p>
-</div>
-<div class="paragraph">
-<p>When exposing Kafka using {OpenShiftName} <code>Routes</code>, TLS encryption is always used.</p>
-</div>
-<div class="paragraph">
-<p>By default, the route hosts are automatically assigned by {OpenShiftName}.
-However, you can override the assigned route hosts by specifying the requested hosts in the <code>overrides</code> property.
-Strimzi will not perform any validation that the requested hosts are available; you must ensure that they are free and can be used.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example of an external listener of type <code>routes</code> configured with overrides for {OpenShiftName} route hosts</div>
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs"># ...
-listeners:
-  external:
-    type: route
-    authentication:
-      type: tls
-    overrides:
-      bootstrap:
-        host: bootstrap.myrouter.com
-      brokers:
-      - broker: 0
-        host: broker-0.myrouter.com
-      - broker: 1
-        host: broker-1.myrouter.com
-      - broker: 2
-        host: broker-2.myrouter.com
-# ...</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>For more information on using <code>Routes</code> to access Kafka, see <a href="#proc-accessing-kafka-using-routes-deployment-configuration-kafka">Accessing Kafka using OpenShift routes</a>.</p>
-</div>
-</div>
-<div class="sect5">
-<h6 id="exposing_kafka_using_loadbalancers"><a class="link" href="#exposing_kafka_using_loadbalancers">Exposing Kafka using loadbalancers</a></h6>
-<div class="paragraph">
-<p>External listeners of type <code>loadbalancer</code> expose Kafka by using <code>Loadbalancer</code> type <code>Services</code>.
-A new loadbalancer service is created for every Kafka broker pod.
-An additional loadbalancer is created to serve as a Kafka <em>bootstrap</em> address.
-Loadbalancers listen to connections on port 9094.</p>
-</div>
-<div class="paragraph">
-<p>By default, TLS encryption is enabled.
-To disable it, set the <code>tls</code> field to <code>false</code>.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example of an external listener of type <code>loadbalancer</code></div>
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs"># ...
-listeners:
-  external:
-    type: loadbalancer
-    authentication:
-      type: tls
-# ...</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>For more information on using loadbalancers to access Kafka, see <a href="#proc-accessing-kafka-using-loadbalancers-deployment-configuration-kafka">Accessing Kafka using loadbalancers</a>.</p>
-</div>
-</div>
-<div class="sect5">
-<h6 id="exposing_kafka_using_node_ports"><a class="link" href="#exposing_kafka_using_node_ports">Exposing Kafka using node ports</a></h6>
-<div class="paragraph">
-<p>External listeners of type <code>nodeport</code> expose Kafka by using <code>NodePort</code> type <code>Services</code>.
-When exposing Kafka in this way, Kafka clients connect directly to the nodes of Kubernetes.
-You must enable access to the ports on the Kubernetes nodes for each client (for example, in firewalls or security groups).
-Each Kafka broker pod is then accessible on a separate port.
-Additional <code>NodePort</code> type <code>Service</code> is created to serve as a Kafka bootstrap address.</p>
-</div>
-<div class="paragraph">
-<p>When configuring the advertised addresses for the Kafka broker pods, Strimzi uses the address of the node on which the given pod is running.
-When selecting the node address, the different address types are used with the following priority:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>ExternalDNS</p>
-</li>
-<li>
-<p>ExternalIP</p>
-</li>
-<li>
-<p>Hostname</p>
-</li>
-<li>
-<p>InternalDNS</p>
-</li>
-<li>
-<p>InternalIP</p>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>By default, TLS encryption is enabled.
-To disable it, set the <code>tls</code> field to <code>false</code>.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-TLS hostname verification is not currently supported when exposing Kafka clusters using node ports.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>By default, the port numbers used for the bootstrap and broker services are automatically assigned by Kubernetes.
-However, you can override the assigned node ports by specifying the requested port numbers in the <code>overrides</code> property.
-Strimzi does not perform any validation on the requested ports; you must ensure that they are free and available for use.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example of an external listener configured with overrides for node ports</div>
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs"># ...
-listeners:
-  external:
-    type: nodeport
-    tls: true
-    authentication:
-      type: tls
-    overrides:
-      bootstrap:
-        nodePort: 32100
-      brokers:
-      - broker: 0
-        nodePort: 32000
-      - broker: 1
-        nodePort: 32001
-      - broker: 2
-        nodePort: 32002
-# ...</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>For more information on using node ports to access Kafka, see <a href="#proc-accessing-kafka-using-nodeports-deployment-configuration-kafka">Accessing Kafka using node ports</a>.</p>
-</div>
-</div>
-<div class="sect5">
-<h6 id="exposing_kafka_using_kubernetesname_ingress"><a class="link" href="#exposing_kafka_using_kubernetesname_ingress">Exposing Kafka using {KubernetesName} <code>Ingress</code></a></h6>
-<div class="paragraph">
-<p>An external listener of type <code>ingress</code> exposes Kafka by using {KubernetesName} <code>Ingress</code> and the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a>.
-A dedicated <code>Ingress</code> resource is created for every Kafka broker pod.
-An additional <code>Ingress</code> resource is created to serve as a Kafka bootstrap address.
-Kafka clients can use these <code>Ingress</code> resources to connect to Kafka on port 443.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-External listeners using <code>Ingress</code> have been currently tested only with the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a>.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Strimzi uses the TLS passthrough feature of the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a>.
-Make sure TLS passthrough is enabled in your <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a> deployment.
-For more information about enabling TLS passthrough see <a href="https://kubernetes.github.io/ingress-nginx/user-guide/tls/#ssl-passthrough">TLS passthrough documentation</a>.
-Because it is using the TLS passthrough functionality, TLS encryption cannot be disabled when exposing Kafka using <code>Ingress</code>.</p>
-</div>
-<div class="paragraph">
-<p>The Ingress controller does not assign any hostnames automatically.
-You have to specify the hostnames which should be used by the bootstrap and per-broker services in the <code>spec.kafka.listeners.external.configuration</code> section.
-You also have to make sure that the hostnames resolve to the Ingress endpoints.
-Strimzi will not perform any validation that the requested hosts are available and properly routed to the Ingress endpoints.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example of an external listener of type <code>ingress</code></div>
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs"># ...
-listeners:
-  external:
-    type: ingress
-    authentication:
-      type: tls
-    configuration:
-      bootstrap:
-        host: bootstrap.myingress.com
-      brokers:
-      - broker: 0
-        host: broker-0.myingress.com
-      - broker: 1
-        host: broker-1.myingress.com
-      - broker: 2
-        host: broker-2.myingress.com
-# ...</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>For more information on using <code>Ingress</code> to access Kafka, see <a href="#proc-accessing-kafka-using-ingress-deployment-configuration-kafka">Accessing Kafka using ingress</a>.</p>
-</div>
-</div>
-<div class="sect5">
-<h6 id="customizing_advertised_addresses_on_external_listeners"><a class="link" href="#customizing_advertised_addresses_on_external_listeners">Customizing advertised addresses on external listeners</a></h6>
+<h6 id="con-kafka-broker-external-listeners-addresses-deployment-configuration-kafka"><a class="link" href="#con-kafka-broker-external-listeners-addresses-deployment-configuration-kafka">Customizing advertised addresses on external listeners</a></h6>
 <div class="paragraph">
 <p>By default, Strimzi tries to automatically determine the hostnames and ports that your Kafka cluster advertises to its clients.
 This is not sufficient in all situations, because the infrastructure on which Strimzi is running might not provide the right hostname or port through which Kafka can be accessed.
@@ -3951,78 +3734,65 @@ listeners:
 </div>
 </div>
 <div class="sect5">
-<h6 id="customizing_dns_names_of_external_listeners"><a class="link" href="#customizing_dns_names_of_external_listeners">Customizing DNS names of external listeners</a></h6>
+<h6 id="assembly-kafka-broker-external-listeners-routes-deployment-configuration-kafka"><a class="link" href="#assembly-kafka-broker-external-listeners-routes-deployment-configuration-kafka">Route external listeners</a></h6>
 <div class="paragraph">
-<p>On <code>loadbalancer</code> and <code>ingress</code> listeners, you can use the <code>dnsAnnotations</code> property to add additional annotations to the ingress resources or load balancer services.
-You can use these annotations to instrument DNS tooling such as <a href="https://github.com/kubernetes-incubator/external-dns" target="_blank" rel="noopener">External DNS</a>, which automatically assigns DNS names to the ingress resources or services.</p>
+<p>An external listener of type <code>route</code> exposes Kafka using OpenShift <code>Routes</code> and the HAProxy router.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<code>route</code> is only supported on OpenShift
+</td>
+</tr>
+</table>
+</div>
+<div class="sect6">
+<h7 id="con-kafka-broker-external-listeners-routes-deployment-configuration-kafka"><a class="link" href="#con-kafka-broker-external-listeners-routes-deployment-configuration-kafka">Exposing Kafka using OpenShift <code>Routes</code></a></h7>
+<div class="paragraph">
+<p>When exposing Kafka using OpenShift <code>Routes</code>  and the HAProxy router, a dedicated <code>Route</code> is created for every Kafka broker pod.
+An additional <code>Route</code> is created to serve as a Kafka bootstrap address.
+Kafka clients can use these <code>Routes</code> to connect to Kafka on port 443.</p>
+</div>
+<div class="paragraph">
+<p>TLS encryption is always used with <code>Routes</code>.</p>
+</div>
+<div class="paragraph">
+<p>By default, the route hosts are automatically assigned by OpenShift.
+However, you can override the assigned route hosts by specifying the requested hosts in the <code>overrides</code> property.
+Strimzi will not perform any validation that the requested hosts are available; you must ensure that they are free and can be used.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example of an external listener of type <code>loadbalancer</code> using <a href="https://github.com/kubernetes-incubator/external-dns" target="_blank" rel="noopener">External DNS</a> annotations</div>
+<div class="title">Example of an external listener of type <code>routes</code> configured with overrides for OpenShift route hosts</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs"># ...
 listeners:
   external:
-    type: loadbalancer
+    type: route
     authentication:
       type: tls
     overrides:
       bootstrap:
-        dnsAnnotations:
-          external-dns.alpha.kubernetes.io/hostname: kafka-bootstrap.mydomain.com.
-          external-dns.alpha.kubernetes.io/ttl: "60"
+        host: bootstrap.myrouter.com
       brokers:
       - broker: 0
-        dnsAnnotations:
-          external-dns.alpha.kubernetes.io/hostname: kafka-broker-0.mydomain.com.
-          external-dns.alpha.kubernetes.io/ttl: "60"
+        host: broker-0.myrouter.com
       - broker: 1
-        dnsAnnotations:
-          external-dns.alpha.kubernetes.io/hostname: kafka-broker-1.mydomain.com.
-          external-dns.alpha.kubernetes.io/ttl: "60"
+        host: broker-1.myrouter.com
       - broker: 2
-        dnsAnnotations:
-          external-dns.alpha.kubernetes.io/hostname: kafka-broker-2.mydomain.com.
-          external-dns.alpha.kubernetes.io/ttl: "60"
+        host: broker-2.myrouter.com
 # ...</code></pre>
 </div>
 </div>
-<div class="listingblock">
-<div class="title">Example of an external listener of type <code>ingress</code> using <a href="https://github.com/kubernetes-incubator/external-dns" target="_blank" rel="noopener">External DNS</a> annotations</div>
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs"># ...
-listeners:
-  external:
-    type: ingress
-    authentication:
-      type: tls
-    configuration:
-      bootstrap:
-        dnsAnnotations:
-          external-dns.alpha.kubernetes.io/hostname: bootstrap.myingress.com.
-          external-dns.alpha.kubernetes.io/ttl: "60"
-        host: bootstrap.myingress.com
-      brokers:
-      - broker: 0
-        dnsAnnotations:
-          external-dns.alpha.kubernetes.io/hostname: broker-0.myingress.com.
-          external-dns.alpha.kubernetes.io/ttl: "60"
-        host: broker-0.myingress.com
-      - broker: 1
-        dnsAnnotations:
-          external-dns.alpha.kubernetes.io/hostname: broker-1.myingress.com.
-          external-dns.alpha.kubernetes.io/ttl: "60"
-        host: broker-1.myingress.com
-      - broker: 2
-        dnsAnnotations:
-          external-dns.alpha.kubernetes.io/hostname: broker-2.myingress.com.
-          external-dns.alpha.kubernetes.io/ttl: "60"
-        host: broker-2.myingress.com
-# ...</code></pre>
+<div class="paragraph">
+<p>For more information on using <code>Routes</code> to access Kafka, see <a href="#proc-accessing-kafka-using-routes-deployment-configuration-kafka">Accessing Kafka using OpenShift routes</a>.</p>
 </div>
 </div>
-</div>
-<div class="sect5">
-<h6 id="proc-accessing-kafka-using-routes-deployment-configuration-kafka"><a class="link" href="#proc-accessing-kafka-using-routes-deployment-configuration-kafka">Accessing Kafka using OpenShift routes</a></h6>
+<div class="sect6">
+<h7 id="proc-accessing-kafka-using-routes-deployment-configuration-kafka"><a class="link" href="#proc-accessing-kafka-using-routes-deployment-configuration-kafka">Accessing Kafka using OpenShift routes</a></h7>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -4101,8 +3871,78 @@ If you enabled any authentication, you will also need to configure SASL or TLS a
 </ul>
 </div>
 </div>
+</div>
 <div class="sect5">
-<h6 id="proc-accessing-kafka-using-loadbalancers-deployment-configuration-kafka"><a class="link" href="#proc-accessing-kafka-using-loadbalancers-deployment-configuration-kafka">Accessing Kafka using loadbalancers</a></h6>
+<h6 id="assembly-kafka-broker-external-listeners-loadbalancers-deployment-configuration-kafka"><a class="link" href="#assembly-kafka-broker-external-listeners-loadbalancers-deployment-configuration-kafka">Loadbalancer external listeners</a></h6>
+<div class="paragraph">
+<p>External listeners of type <code>loadbalancer</code> expose Kafka by using <code>Loadbalancer</code> type <code>Services</code>.</p>
+</div>
+<div class="sect6">
+<h7 id="con-kafka-broker-external-listeners-loadbalancers-deployment-configuration-kafka"><a class="link" href="#con-kafka-broker-external-listeners-loadbalancers-deployment-configuration-kafka">Exposing Kafka using loadbalancers</a></h7>
+<div class="paragraph">
+<p>When exposing Kafka using <code>Loadbalancer</code> type <code>Services</code>, a new loadbalancer service is created for every Kafka broker pod.
+An additional loadbalancer is created to serve as a Kafka <em>bootstrap</em> address.
+Loadbalancers listen to connections on port 9094.</p>
+</div>
+<div class="paragraph">
+<p>By default, TLS encryption is enabled.
+To disable it, set the <code>tls</code> field to <code>false</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of an external listener of type <code>loadbalancer</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs"># ...
+listeners:
+  external:
+    type: loadbalancer
+    authentication:
+      type: tls
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For more information on using loadbalancers to access Kafka, see <a href="#proc-accessing-kafka-using-loadbalancers-deployment-configuration-kafka">Accessing Kafka using loadbalancers</a>.</p>
+</div>
+</div>
+<div class="sect6">
+<h7 id="customizing_the_dns_names_of_external_loadbalancer_listeners"><a class="link" href="#customizing_the_dns_names_of_external_loadbalancer_listeners">Customizing the DNS names of external loadbalancer listeners</a></h7>
+<div class="paragraph">
+<p>On <code>loadbalancer</code> listeners, you can use the <code>dnsAnnotations</code> property to add additional annotations to the loadbalancer services.
+You can use these annotations to instrument DNS tooling such as <a href="https://github.com/kubernetes-incubator/external-dns" target="_blank" rel="noopener">External DNS</a>, which automatically assigns DNS names to the loadbalancer services.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of an external listener of type <code>loadbalancer</code> using <a href="https://github.com/kubernetes-incubator/external-dns" target="_blank" rel="noopener">External DNS</a> annotations</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs"># ...
+listeners:
+  external:
+    type: loadbalancer
+    authentication:
+      type: tls
+    overrides:
+      bootstrap:
+        dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-bootstrap.mydomain.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+      brokers:
+      - broker: 0
+        dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-0.mydomain.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+      - broker: 1
+        dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-1.mydomain.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+      - broker: 2
+        dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-2.mydomain.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+# ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect6">
+<h7 id="proc-accessing-kafka-using-loadbalancers-deployment-configuration-kafka"><a class="link" href="#proc-accessing-kafka-using-loadbalancers-deployment-configuration-kafka">Accessing Kafka using loadbalancers</a></h7>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -4203,8 +4043,93 @@ If you enabled any authentication, you will also need to configure SASL or TLS a
 </ul>
 </div>
 </div>
+</div>
 <div class="sect5">
-<h6 id="proc-accessing-kafka-using-nodeports-deployment-configuration-kafka"><a class="link" href="#proc-accessing-kafka-using-nodeports-deployment-configuration-kafka">Accessing Kafka using node ports</a></h6>
+<h6 id="assembly-kafka-broker-external-listeners-nodeports-deployment-configuration-kafka"><a class="link" href="#assembly-kafka-broker-external-listeners-nodeports-deployment-configuration-kafka">Node Port external listeners</a></h6>
+<div class="paragraph">
+<p>External listeners of type <code>nodeport</code> expose Kafka by using <code>NodePort</code> type <code>Services</code>.</p>
+</div>
+<div class="sect6">
+<h7 id="con-kafka-broker-external-listeners-nodeports-deployment-configuration-kafka"><a class="link" href="#con-kafka-broker-external-listeners-nodeports-deployment-configuration-kafka">Exposing Kafka using node ports</a></h7>
+<div class="paragraph">
+<p>When exposing Kafka using <code>NodePort</code> type <code>Services</code>, Kafka clients connect directly to the nodes of Kubernetes.
+You must enable access to the ports on the Kubernetes nodes for each client (for example, in firewalls or security groups).
+Each Kafka broker pod is then accessible on a separate port.
+Additional <code>NodePort</code> type <code>Service</code> is created to serve as a Kafka bootstrap address.</p>
+</div>
+<div class="paragraph">
+<p>When configuring the advertised addresses for the Kafka broker pods, Strimzi uses the address of the node on which the given pod is running.
+When selecting the node address, the different address types are used with the following priority:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>ExternalDNS</p>
+</li>
+<li>
+<p>ExternalIP</p>
+</li>
+<li>
+<p>Hostname</p>
+</li>
+<li>
+<p>InternalDNS</p>
+</li>
+<li>
+<p>InternalIP</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>By default, TLS encryption is enabled.
+To disable it, set the <code>tls</code> field to <code>false</code>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+TLS hostname verification is not currently supported when exposing Kafka clusters using node ports.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>By default, the port numbers used for the bootstrap and broker services are automatically assigned by Kubernetes.
+However, you can override the assigned node ports by specifying the requested port numbers in the <code>overrides</code> property.
+Strimzi does not perform any validation on the requested ports; you must ensure that they are free and available for use.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of an external listener configured with overrides for node ports</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs"># ...
+listeners:
+  external:
+    type: nodeport
+    tls: true
+    authentication:
+      type: tls
+    overrides:
+      bootstrap:
+        nodePort: 32100
+      brokers:
+      - broker: 0
+        nodePort: 32000
+      - broker: 1
+        nodePort: 32001
+      - broker: 2
+        nodePort: 32002
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For more information on using node ports to access Kafka, see <a href="#proc-accessing-kafka-using-nodeports-deployment-configuration-kafka">Accessing Kafka using node ports</a>.</p>
+</div>
+</div>
+<div class="sect6">
+<h7 id="proc-accessing-kafka-using-nodeports-deployment-configuration-kafka"><a class="link" href="#proc-accessing-kafka-using-nodeports-deployment-configuration-kafka">Accessing Kafka using node ports</a></h7>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -4329,8 +4254,112 @@ If you enabled any authentication, you will also need to configure SASL or TLS a
 </ul>
 </div>
 </div>
+</div>
 <div class="sect5">
-<h6 id="proc-accessing-kafka-using-ingress-deployment-configuration-kafka"><a class="link" href="#proc-accessing-kafka-using-ingress-deployment-configuration-kafka">Accessing Kafka using ingress</a></h6>
+<h6 id="assembly-kafka-broker-external-listeners-ingressdeployment-configuration-kafka"><a class="link" href="#assembly-kafka-broker-external-listeners-ingressdeployment-configuration-kafka">Kubernetes Ingress external listeners</a></h6>
+<div class="paragraph">
+<p>External listeners of type <code>ingress</code> exposes Kafka by using Kubernetes <code>Ingress</code> and the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a>.</p>
+</div>
+<div class="sect6">
+<h7 id="con-kafka-broker-external-listeners-ingress-deployment-configuration-kafka"><a class="link" href="#con-kafka-broker-external-listeners-ingress-deployment-configuration-kafka">Exposing Kafka using Kubernetes <code>Ingress</code></a></h7>
+<div class="paragraph">
+<p>When exposing Kafka using using Kubernetes <code>Ingress</code> and the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a>, a dedicated <code>Ingress</code> resource is created for every Kafka broker pod.
+An additional <code>Ingress</code> resource is created to serve as a Kafka bootstrap address.
+Kafka clients can use these <code>Ingress</code> resources to connect to Kafka on port 443.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+External listeners using <code>Ingress</code> have been currently tested only with the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Strimzi uses the TLS passthrough feature of the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a>.
+Make sure TLS passthrough is enabled in your <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a> deployment.
+For more information about enabling TLS passthrough see <a href="https://kubernetes.github.io/ingress-nginx/user-guide/tls/#ssl-passthrough">TLS passthrough documentation</a>.
+Because it is using the TLS passthrough functionality, TLS encryption cannot be disabled when exposing Kafka using <code>Ingress</code>.</p>
+</div>
+<div class="paragraph">
+<p>The Ingress controller does not assign any hostnames automatically.
+You have to specify the hostnames which should be used by the bootstrap and per-broker services in the <code>spec.kafka.listeners.external.configuration</code> section.
+You also have to make sure that the hostnames resolve to the Ingress endpoints.
+Strimzi will not perform any validation that the requested hosts are available and properly routed to the Ingress endpoints.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of an external listener of type <code>ingress</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs"># ...
+listeners:
+  external:
+    type: ingress
+    authentication:
+      type: tls
+    configuration:
+      bootstrap:
+        host: bootstrap.myingress.com
+      brokers:
+      - broker: 0
+        host: broker-0.myingress.com
+      - broker: 1
+        host: broker-1.myingress.com
+      - broker: 2
+        host: broker-2.myingress.com
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For more information on using <code>Ingress</code> to access Kafka, see <a href="#proc-accessing-kafka-using-ingress-deployment-configuration-kafka">Accessing Kafka using ingress</a>.</p>
+</div>
+</div>
+<div class="sect6">
+<h7 id="customizing_the_dns_names_of_external_ingress_listeners"><a class="link" href="#customizing_the_dns_names_of_external_ingress_listeners">Customizing the DNS names of external ingress listeners</a></h7>
+<div class="paragraph">
+<p>On <code>ingress</code> listeners, you can use the <code>dnsAnnotations</code> property to add additional annotations to the ingress resources.
+You can use these annotations to instrument DNS tooling such as <a href="https://github.com/kubernetes-incubator/external-dns" target="_blank" rel="noopener">External DNS</a>, which automatically assigns DNS names to the ingress resources.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of an external listener of type <code>ingress</code> using <a href="https://github.com/kubernetes-incubator/external-dns" target="_blank" rel="noopener">External DNS</a> annotations</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs"># ...
+listeners:
+  external:
+    type: ingress
+    authentication:
+      type: tls
+    configuration:
+      bootstrap:
+        dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: bootstrap.myingress.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+        host: bootstrap.myingress.com
+      brokers:
+      - broker: 0
+        dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: broker-0.myingress.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+        host: broker-0.myingress.com
+      - broker: 1
+        dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: broker-1.myingress.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+        host: broker-1.myingress.com
+      - broker: 2
+        dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: broker-2.myingress.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+        host: broker-2.myingress.com
+# ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect6">
+<h7 id="proc-accessing-kafka-using-ingress-deployment-configuration-kafka"><a class="link" href="#proc-accessing-kafka-using-ingress-deployment-configuration-kafka">Accessing Kafka using ingress</a></h7>
 <div class="paragraph">
 <p>This procedure shows how to access Strimzi Kafka clusters from outside of Kubernetes using Ingress.</p>
 </div>
@@ -4420,6 +4449,7 @@ Connect with your client to the host you specified in the configuration on port 
 </div>
 </div>
 </div>
+</div>
 <div class="sect4">
 <h5 id="assembly-kafka-broker-listener-network-policies-deployment-configuration-kafka"><a class="link" href="#assembly-kafka-broker-listener-network-policies-deployment-configuration-kafka">Network policies</a></h5>
 <div class="paragraph">
@@ -4482,7 +4512,7 @@ The application pods must be running in the same namespace as the Kafka broker.<
 </ul>
 </div>
 <div class="paragraph">
-<p>The syntax of the <code>networkPolicyPeers</code> field is the same as the <code>from</code> field in the <code>NetworkPolicy</code> resource in {KubernetesName}.
+<p>The syntax of the <code>networkPolicyPeers</code> field is the same as the <code>from</code> field in <code>NetworkPolicy</code> resources.
 For more information about the schema, see <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#networkpolicypeer-v1-networking-k8s-io" target="_blank" rel="noopener">NetworkPolicyPeer API reference</a> and the <a href="#type-KafkaListeners-reference"><code>KafkaListeners</code> schema reference</a>.</p>
 </div>
 <div class="admonitionblock note">
@@ -4492,7 +4522,7 @@ For more information about the schema, see <a href="https://kubernetes.io/docs/r
 <div class="title">Note</div>
 </td>
 <td class="content">
-Your configuration of Kubernetes must support Ingress NetworkPolicies in order to use network policies in Strimzi.
+Your configuration of Kubernetes must support ingress NetworkPolicies in order to use network policies in Strimzi.
 </td>
 </tr>
 </table>
@@ -14309,7 +14339,7 @@ For example:</p>
 <div class="sect3">
 <h4 id="using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i"><a class="link" href="#using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i">3.3.15. Creating a container image using OpenShift builds and Source-to-Image</a></h4>
 <div class="paragraph">
-<p>You can use {OpenShiftName} <a href="https://docs.okd.io/3.9/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a> and the  <a href="https://docs.okd.io/3.9/creating_images/s2i.html" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images. An OpenShift build takes a builder image with S2I support, together with source code and binaries provided by the user, and uses them to build a new container image. Once built, container images are stored in {OpenShiftName}'s local container image repository and are available for use in deployments.</p>
+<p>You can use OpenShift <a href="https://docs.okd.io/3.9/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a> and the  <a href="https://docs.okd.io/3.9/creating_images/s2i.html" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images. An OpenShift build takes a builder image with S2I support, together with source code and binaries provided by the user, and uses them to build a new container image. Once built, container images are stored in OpenShift&#8217;s local container image repository and are available for use in deployments.</p>
 </div>
 <div class="paragraph">
 <p>A Kafka Connect builder image with S2I support is provided on the <a href="https://hub.docker.com/u/strimzi" target="_blank" rel="noopener">Docker Hub</a> as part of the <code>strimzi/kafka:latest-kafka-2.2.1</code> image. This S2I image takes your binaries (with plug-ins and connectors) and stores them in the <code>/tmp/kafka-plugins/s2i</code> directory. It creates a new Kafka Connect image from this directory, which can then be used with the Kafka Connect deployment. When started using the enhanced image, Kafka Connect loads any third-party plug-ins from the <code>/tmp/kafka-plugins/s2i</code> directory.</p>
@@ -25058,7 +25088,7 @@ If you require further support on configuring and running Prometheus or Grafana 
 <p>We describe how you can use the <a href="https://github.com/coreos/prometheus-operator" target="_blank" rel="noopener">CoreOS Prometheus Operator</a> to run a Prometheus server that is suitable for use in production environments, but with the correct configuration you can run any Prometheus server.</p>
 </div>
 <div class="paragraph">
-<p>The Strimzi repository contains <a href="https://github.com/strimzi/strimzi-kafka-operator/tree/master/metrics/examples/prometheus/install" target="_blank" rel="noopener">configuration files</a> for the Prometheus server. When you apply these configuration files, the following resources are created in your {KubernetesName} cluster and managed by the Prometheus Operator:</p>
+<p>The Strimzi repository contains <a href="https://github.com/strimzi/strimzi-kafka-operator/tree/master/metrics/examples/prometheus/install" target="_blank" rel="noopener">configuration files</a> for the Prometheus server. When you apply these configuration files, the following resources are created in your Kubernetes cluster and managed by the Prometheus Operator:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -25096,7 +25126,7 @@ If you require further support on configuring and running Prometheus or Grafana 
 </td>
 <td class="content">
 <div class="paragraph">
-<p>The Prometheus server configuration uses the {KubernetesName} service discovery feature in order to discover the pods in the cluster from which it gets metrics.  For this feature to work correctly, the service account used for running the Prometheus service pod must have access to the API server so it can retrieve the pod list.</p>
+<p>The Prometheus server configuration uses service discovery to discover the pods in the cluster from which it gets metrics.  For this feature to work correctly, the service account used for running the Prometheus service pod must have access to the API server so it can retrieve the pod list.</p>
 </div>
 <div class="paragraph">
 <p>For more information, see <a href="https://kubernetes.io/docs/concepts/services-networking/service/#discovering-services" target="_blank" rel="noopener">Discovering services</a>.</p>
