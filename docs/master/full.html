@@ -645,19 +645,21 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#deploying-the-topic-operator-str">4.2. Topic Operator</a>
 <ul class="sectlevel3">
 <li><a href="#what-the-topic-operator-does-deploying">4.2.1. Overview of the Topic Operator component</a></li>
-<li><a href="#how-the-topic-operator-works-deploying">4.2.2. Understanding the Topic Operator</a></li>
-<li><a href="#deploying-the-topic-operator-using-the-cluster-operator-deploying">4.2.3. Deploying the Topic Operator using the Cluster Operator</a></li>
-<li><a href="#proc-topic-operator-with-resource-requests-limits-deploying">4.2.4. Configuring the Topic Operator with resource requests and limits</a></li>
-<li><a href="#deploying-the-topic-operator-standalone-deploying">4.2.5. Deploying the standalone Topic Operator</a></li>
-<li><a href="#topic-operator-environment-deploying">4.2.6. Topic Operator environment</a></li>
+<li><a href="#con-topic-operator-cluster-label-deploying">4.2.2. Identifying a Kafka cluster for topic handling</a></li>
+<li><a href="#how-the-topic-operator-works-deploying">4.2.3. Understanding the Topic Operator</a></li>
+<li><a href="#deploying-the-topic-operator-using-the-cluster-operator-deploying">4.2.4. Deploying the Topic Operator using the Cluster Operator</a></li>
+<li><a href="#proc-topic-operator-with-resource-requests-limits-deploying">4.2.5. Configuring the Topic Operator with resource requests and limits</a></li>
+<li><a href="#deploying-the-topic-operator-standalone-deploying">4.2.6. Deploying the standalone Topic Operator</a></li>
+<li><a href="#topic-operator-environment-deploying">4.2.7. Topic Operator environment</a></li>
 </ul>
 </li>
 <li><a href="#assembly-user-operator-str">4.3. User Operator</a>
 <ul class="sectlevel3">
 <li><a href="#con-what-the-user-operator-does-deploying-uo">4.3.1. Overview of the User Operator component</a></li>
-<li><a href="#proc-deploying-the-user-operator-using-the-cluster-operator-deploying-uo">4.3.2. Deploying the User Operator using the Cluster Operator</a></li>
-<li><a href="#proc-user-operator-with-resource-requests-limits-deploying-uo">4.3.3. Configuring the User Operator with resource requests and limits</a></li>
-<li><a href="#proc-deploying-the-user-operator-standalone-deploying-uo">4.3.4. Deploying the standalone User Operator</a></li>
+<li><a href="#con-user-operator-cluster-label-deploying-uo">4.3.2. Identifying a Kafka cluster for user handling</a></li>
+<li><a href="#proc-deploying-the-user-operator-using-the-cluster-operator-deploying-uo">4.3.3. Deploying the User Operator using the Cluster Operator</a></li>
+<li><a href="#proc-user-operator-with-resource-requests-limits-deploying-uo">4.3.4. Configuring the User Operator with resource requests and limits</a></li>
+<li><a href="#proc-deploying-the-user-operator-standalone-deploying-uo">4.3.5. Deploying the standalone User Operator</a></li>
 </ul>
 </li>
 </ul>
@@ -1220,8 +1222,8 @@ kind: KafkaTopic <b class="conum">(1)</b>
 metadata:
   name: my-topic
   labels:
-    strimzi.io/cluster: my-cluster
-spec: <b class="conum">(2)</b>
+    strimzi.io/cluster: my-cluster <b class="conum">(2)</b>
+spec: <b class="conum">(3)</b>
   partitions: 1
   replicas: 1
   config:
@@ -1235,7 +1237,13 @@ spec: <b class="conum">(2)</b>
 <p>The <code>kind</code> and <code>apiVersion</code> identify the CRD of which the custom resource is an instance.</p>
 </li>
 <li>
-<p>The spec shows the number of partitions and replicas for the topic as well as configuration for the retention period for a message to remain in the topic and the segment file size for the log.</p>
+<p>A label, applicable only to <code>KafkaTopic</code> and <code>KafkaUser</code> resources, that defines the name of the Kafka cluster (which is same as the name of the <code>Kafka</code> resource) to which a topic or user belongs.</p>
+<div class="paragraph">
+<p>The name is used by the <a href="#con-topic-operator-cluster-label-deploying">Topic Operator</a> and <a href="#con-user-operator-cluster-label-deploying-uo">User Operator</a> to identify the Kafka cluster when creating a topic or user.</p>
+</div>
+</li>
+<li>
+<p>The spec shows the number of partitions and replicas for the topic as well as the configuration parameters for the topic itself. In this example, the retention period for a message to remain in the topic and the segment file size for the log are specified.</p>
 </li>
 </ol>
 </div>
@@ -2386,7 +2394,7 @@ spec:
 <div class="sect3">
 <h4 id="con-what-the-user-operator-does-str"><a class="link" href="#con-what-the-user-operator-does-str">2.10.1. Overview of the User Operator component</a></h4>
 <div class="paragraph">
-<p>The User Operator manages Kafka users for a Kafka cluster by watching for <code>KafkaUser</code> Kubernetes resources that describe Kafka users and ensuring that they are configured properly in the Kafka cluster.
+<p>The User Operator manages Kafka users for a Kafka cluster by watching for <code>KafkaUser</code> resources that describe Kafka users and ensuring that they are configured properly in the Kafka cluster.
 For example:</p>
 </div>
 <div class="ulist">
@@ -2408,7 +2416,7 @@ Unlike the Kafka topics which might be created by applications directly in Kafka
 </div>
 <div class="paragraph">
 <p>The User Operator allows you to declare a <code>KafkaUser</code> as part of your application&#8217;s deployment.
-When the user is created, the credentials will be created in a <code>Secret</code>.
+When the user is created, the user credentials will be created in a <code>Secret</code>.
 Your application needs to use the user and its credentials for authentication and to produce or consume messages.</p>
 </div>
 <div class="paragraph">
@@ -19563,8 +19571,10 @@ spec:
 <h4 id="con-customizing-labels-and-annotations-str"><a class="link" href="#con-customizing-labels-and-annotations-str">3.6.2. Labels and Annotations</a></h4>
 <div class="paragraph">
 <p>For every resource, you can configure additional <code>Labels</code> and <code>Annotations</code>.
-<code>Labels</code> and <code>Annotations</code> are configured in the <code>metadata</code> property.
-For example:</p>
+<code>Labels</code> and <code>Annotations</code> are used to identify and organize resources, and are configured in the <code>metadata</code> property.</p>
+</div>
+<div class="paragraph">
+<p>For example:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -19583,7 +19593,7 @@ template:
 </div>
 <div class="paragraph">
 <p>The <code>labels</code> and <code>annotations</code> fields can contain any labels or annotations that do not contain the reserved string <code>strimzi.io</code>.
-Labels and annotations containing <code>strimzi.io</code> are used internally by Strimzi and cannot be configured by the user.</p>
+Labels and annotations containing <code>strimzi.io</code> are used internally by Strimzi and cannot be configured.</p>
 </div>
 </div>
 <div class="sect3">
@@ -21027,7 +21037,29 @@ Your application just needs to deal with producing or consuming from the necessa
 </div>
 </div>
 <div class="sect3">
-<h4 id="how-the-topic-operator-works-deploying"><a class="link" href="#how-the-topic-operator-works-deploying">4.2.2. Understanding the Topic Operator</a></h4>
+<h4 id="con-topic-operator-cluster-label-deploying"><a class="link" href="#con-topic-operator-cluster-label-deploying">4.2.2. Identifying a Kafka cluster for topic handling</a></h4>
+<div class="paragraph">
+<p>A <code>KafkaTopic</code> resource includes a label that defines the appropriate name of the Kafka cluster (derived from the name of the <code>Kafka</code> resource) to which it belongs.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: my-topic
+  labels:
+    strimzi.io/cluster: my-cluster</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The label is used by the Topic Operator to identify the <code>KafkaTopic</code> resource and create a new topic, and also in subsequent handling of the topic.</p>
+</div>
+<div class="paragraph">
+<p>If the label does not match the Kafka cluster, the Topic Operator cannot identify the <code>KafkaTopic</code> and the topic is not created.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="how-the-topic-operator-works-deploying"><a class="link" href="#how-the-topic-operator-works-deploying">4.2.3. Understanding the Topic Operator</a></h4>
 <div class="paragraph">
 <p>A fundamental problem that the operator has to solve is that there is no single source of truth:
 Both the <code>KafkaTopic</code> resource and the topic within Kafka can be modified independently of the operator.
@@ -21053,7 +21085,7 @@ This mitigates availability concerns, because if ZooKeeper is not running then K
 </div>
 </div>
 <div class="sect3">
-<h4 id="deploying-the-topic-operator-using-the-cluster-operator-deploying"><a class="link" href="#deploying-the-topic-operator-using-the-cluster-operator-deploying">4.2.3. Deploying the Topic Operator using the Cluster Operator</a></h4>
+<h4 id="deploying-the-topic-operator-using-the-cluster-operator-deploying"><a class="link" href="#deploying-the-topic-operator-using-the-cluster-operator-deploying">4.2.4. Deploying the Topic Operator using the Cluster Operator</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to deploy the Topic Operator using the Cluster Operator.
 If you want to use the Topic Operator with a Kafka cluster that is not managed by Strimzi, you must deploy the Topic Operator as a standalone component. For more information, see <a href="#deploying-the-topic-operator-standalone-deploying">Deploying the standalone Topic Operator</a>.</p>
@@ -21120,7 +21152,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-topic-operator-with-resource-requests-limits-deploying"><a class="link" href="#proc-topic-operator-with-resource-requests-limits-deploying">4.2.4. Configuring the Topic Operator with resource requests and limits</a></h4>
+<h4 id="proc-topic-operator-with-resource-requests-limits-deploying"><a class="link" href="#proc-topic-operator-with-resource-requests-limits-deploying">4.2.5. Configuring the Topic Operator with resource requests and limits</a></h4>
 <div class="paragraph">
 <p>You can allocate resources, such as CPU and memory, to the Topic Operator and set a limit on the amount of resources it can consume.</p>
 </div>
@@ -21189,7 +21221,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="deploying-the-topic-operator-standalone-deploying"><a class="link" href="#deploying-the-topic-operator-standalone-deploying">4.2.5. Deploying the standalone Topic Operator</a></h4>
+<h4 id="deploying-the-topic-operator-standalone-deploying"><a class="link" href="#deploying-the-topic-operator-standalone-deploying">4.2.6. Deploying the standalone Topic Operator</a></h4>
 <div class="paragraph">
 <p>Deploying the Topic Operator as a standalone component is more complicated than installing it using the Cluster Operator, but it is more flexible.
 For instance, it can operate <em>with</em> any Kafka cluster, not necessarily one deployed by the Cluster Operator.</p>
@@ -21271,7 +21303,7 @@ This could take some time if you have a slow connection to the Kubernetes and th
 </div>
 </div>
 <div class="sect3">
-<h4 id="topic-operator-environment-deploying"><a class="link" href="#topic-operator-environment-deploying">4.2.6. Topic Operator environment</a></h4>
+<h4 id="topic-operator-environment-deploying"><a class="link" href="#topic-operator-environment-deploying">4.2.7. Topic Operator environment</a></h4>
 <div class="paragraph">
 <p>When deployed standalone the Topic Operator can be configured using environment variables.</p>
 </div>
@@ -21358,12 +21390,12 @@ This variable is mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENAB
 <div class="sect2">
 <h3 id="assembly-user-operator-str"><a class="link" href="#assembly-user-operator-str">4.3. User Operator</a></h3>
 <div class="paragraph">
-<p>The User Operator provides a way of managing Kafka users via Kubernetes resources.</p>
+<p>The User Operator manages Kafka users through custom resources.</p>
 </div>
 <div class="sect3">
 <h4 id="con-what-the-user-operator-does-deploying-uo"><a class="link" href="#con-what-the-user-operator-does-deploying-uo">4.3.1. Overview of the User Operator component</a></h4>
 <div class="paragraph">
-<p>The User Operator manages Kafka users for a Kafka cluster by watching for <code>KafkaUser</code> Kubernetes resources that describe Kafka users and ensuring that they are configured properly in the Kafka cluster.
+<p>The User Operator manages Kafka users for a Kafka cluster by watching for <code>KafkaUser</code> resources that describe Kafka users and ensuring that they are configured properly in the Kafka cluster.
 For example:</p>
 </div>
 <div class="ulist">
@@ -21385,7 +21417,7 @@ Unlike the Kafka topics which might be created by applications directly in Kafka
 </div>
 <div class="paragraph">
 <p>The User Operator allows you to declare a <code>KafkaUser</code> as part of your application&#8217;s deployment.
-When the user is created, the credentials will be created in a <code>Secret</code>.
+When the user is created, the user credentials will be created in a <code>Secret</code>.
 Your application needs to use the user and its credentials for authentication and to produce or consume messages.</p>
 </div>
 <div class="paragraph">
@@ -21393,7 +21425,29 @@ Your application needs to use the user and its credentials for authentication an
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-deploying-the-user-operator-using-the-cluster-operator-deploying-uo"><a class="link" href="#proc-deploying-the-user-operator-using-the-cluster-operator-deploying-uo">4.3.2. Deploying the User Operator using the Cluster Operator</a></h4>
+<h4 id="con-user-operator-cluster-label-deploying-uo"><a class="link" href="#con-user-operator-cluster-label-deploying-uo">4.3.2. Identifying a Kafka cluster for user handling</a></h4>
+<div class="paragraph">
+<p>A <code>KafkaUser</code> resource includes a label that defines the appropriate name of the Kafka cluster (derived from the name of the <code>Kafka</code> resource) to which it belongs.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaUser
+metadata:
+  name: my-user
+  labels:
+    strimzi.io/cluster: my-cluster</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The label is used by the User Operator to identify the <code>KafkaUser</code> resource and create a new user, and also in subsequent handling of the user.</p>
+</div>
+<div class="paragraph">
+<p>If the label does not match the Kafka cluster, the User Operator cannot identify the <code>kafkaUser</code> and the user is not created.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-deploying-the-user-operator-using-the-cluster-operator-deploying-uo"><a class="link" href="#proc-deploying-the-user-operator-using-the-cluster-operator-deploying-uo">4.3.3. Deploying the User Operator using the Cluster Operator</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -21437,7 +21491,7 @@ Your application needs to use the user and its credentials for authentication an
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-user-operator-with-resource-requests-limits-deploying-uo"><a class="link" href="#proc-user-operator-with-resource-requests-limits-deploying-uo">4.3.3. Configuring the User Operator with resource requests and limits</a></h4>
+<h4 id="proc-user-operator-with-resource-requests-limits-deploying-uo"><a class="link" href="#proc-user-operator-with-resource-requests-limits-deploying-uo">4.3.4. Configuring the User Operator with resource requests and limits</a></h4>
 <div class="paragraph">
 <p>You can allocate resources, such as CPU and memory, to the User Operator and set a limit on the amount of resources it can consume.</p>
 </div>
@@ -21496,7 +21550,7 @@ The Cluster Operator will apply the changes automatically.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-deploying-the-user-operator-standalone-deploying-uo"><a class="link" href="#proc-deploying-the-user-operator-standalone-deploying-uo">4.3.4. Deploying the standalone User Operator</a></h4>
+<h4 id="proc-deploying-the-user-operator-standalone-deploying-uo"><a class="link" href="#proc-deploying-the-user-operator-standalone-deploying-uo">4.3.5. Deploying the standalone User Operator</a></h4>
 <div class="paragraph">
 <p>Deploying the User Operator as a standalone component is more complicated than installing it using the Cluster Operator, but it is more flexible.
 For instance, it can operate <em>with</em> any Kafka cluster, not only the one deployed by the Cluster Operator.</p>
@@ -21947,7 +22001,7 @@ The <code>delete.topic.enable</code> property must be set to <code>true</code> i
 <div class="sect2">
 <h3 id="con-what-the-user-operator-does-using-uo"><a class="link" href="#con-what-the-user-operator-does-using-uo">6.1. Overview of the User Operator component</a></h3>
 <div class="paragraph">
-<p>The User Operator manages Kafka users for a Kafka cluster by watching for <code>KafkaUser</code> Kubernetes resources that describe Kafka users and ensuring that they are configured properly in the Kafka cluster.
+<p>The User Operator manages Kafka users for a Kafka cluster by watching for <code>KafkaUser</code> resources that describe Kafka users and ensuring that they are configured properly in the Kafka cluster.
 For example:</p>
 </div>
 <div class="ulist">
@@ -21969,7 +22023,7 @@ Unlike the Kafka topics which might be created by applications directly in Kafka
 </div>
 <div class="paragraph">
 <p>The User Operator allows you to declare a <code>KafkaUser</code> as part of your application&#8217;s deployment.
-When the user is created, the credentials will be created in a <code>Secret</code>.
+When the user is created, the user credentials will be created in a <code>Secret</code>.
 Your application needs to use the user and its credentials for authentication and to produce or consume messages.</p>
 </div>
 <div class="paragraph">
@@ -31132,7 +31186,7 @@ It must have the value <code>plain</code> for the type <code>KafkaBridgeAuthenti
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-07-18 09:30:18 UTC
+Last updated 2019-07-18 12:50:47 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
