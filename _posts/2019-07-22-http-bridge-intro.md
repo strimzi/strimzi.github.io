@@ -17,7 +17,7 @@ This blog post will introduce the new HTTP - Apache Kafka bridge that's availabl
 Apache Kafka uses custom binary protocol, you can find more information about it, [here](https://kafka.apache.org/protocol).
 Clients are available for many different programming languages, but there are many scenarios where a standard protocol like HTTP/1.1 is more appropriate.
 
-For example, all the brokers in an Apache Kafka cluster need to be accessible to the clients.
+For example, all the brokers in an Apache Kafka cluster need to be accessible to the clients when using the native Apache Kafka ones.
 This is due to the fact that topics are partitioned and the partitions are distributed on different brokers to spread the load across the cluster.
 In order to read/write from/to all the partitions, clients need to connect to more than one broker hosting the "leader" partition.
 
@@ -245,6 +245,7 @@ In addition to deploying the bridge via a Kubernetes `Deployment`, the Cluster O
 This service has a name in the form "_bridge_name_-bridge-service" (i.e. from the above snippet it will be "my-bridge-bridge-service").
 
 It is possible to create an `Ingress` for exposing the service so that the bridge is accessible outside of the Kubernetes cluster (or a `Route` in case you are using OpenShift).
+In one of the future blog posts, I will show how it is possible with a real example.
 
 # Conclusion
 
