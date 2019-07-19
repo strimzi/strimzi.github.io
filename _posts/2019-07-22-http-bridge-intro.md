@@ -10,7 +10,7 @@ There are many client implementations for different programming languages, from 
 These libraries simplify development because they abstract the Apache Kafka protocol on the wire; every client implementation provides a simple API for sending and receiving messages, or performing administrative operations on the cluster.
 However, there are scenarios where it is not possible to use the clients, or indeed the native protocol.
 Communicating with an Apache Kafka cluster using a standard protocol like HTTP/1.1 eases development these scenarios.
-This blog post will introduce the new HTTP - Apache Kafka bridge that's available as part of the [Strimzi 0.12 release](https://github.com/strimzi/strimzi-kafka-operator/releases/)
+This blog post will introduce the new [HTTP - Apache Kafka bridge](https://github.com/strimzi/strimzi-kafka-bridge) that's available as part of the [Strimzi 0.12 release](https://github.com/strimzi/strimzi-kafka-operator/releases/)
 
 <!--more-->
 
@@ -253,3 +253,5 @@ Exposing the Apache Kafka cluster to clients using HTTP enables scenarios where 
 Such situations include resource constrained devices, network availability and security considerations.
 Interaction with the bridge is similar to the native Apache Kafka clients but using the semantics of an HTTP REST API.
 The inclusion of the HTTP Bridge in Strimzi enhances the options available to developers when building applications with Apache Kafka.
+
+If you liked this blog post, star us on [GitHub](https://github.com/strimzi/strimzi-kafka-operator) and follow us on [Twitter](https://twitter.com/strimziio) to make sure you don't miss any of our future blog posts!
