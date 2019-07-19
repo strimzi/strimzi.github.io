@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Bridging the HTTP protocol to Apache Kafka"
-date: 2019-07-22
+date: 2019-07-19
 author: paolo_patierno
 ---
 
