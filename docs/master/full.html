@@ -610,10 +610,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#assembly-kafka-bridge-tls-deployment-configuration-kafka-bridge">3.5.3. Connecting to Kafka brokers using TLS</a></li>
 <li><a href="#assembly-kafka-bridge-authentication-deployment-configuration-kafka-bridge">3.5.4. Connecting to Kafka brokers with Authentication</a></li>
 <li><a href="#assembly-kafka-bridge-configuration-deployment-configuration-kafka-bridge">3.5.5. Kafka Bridge configuration</a></li>
-<li><a href="#assembly-healthchecks-deployment-configuration-kafka-bridge">3.5.6. Healthchecks</a></li>
-<li><a href="#assembly-configuring-container-images-deployment-configuration-kafka-bridge">3.5.7. Container images</a></li>
-<li><a href="#assembly-scheduling-deployment-configuration-kafka-bridge">3.5.8. Configuring pod scheduling</a></li>
-<li><a href="#ref-list-of-kafka-bridge-resources-deployment-configuration-kafka-bridge">3.5.9. List of resources created as part of Kafka Bridge cluster</a></li>
+<li><a href="#assembly-logging-deployment-configuration-kafka-bridge">3.5.6. Logging</a></li>
+<li><a href="#assembly-healthchecks-deployment-configuration-kafka-bridge">3.5.7. Healthchecks</a></li>
+<li><a href="#assembly-configuring-container-images-deployment-configuration-kafka-bridge">3.5.8. Container images</a></li>
+<li><a href="#assembly-scheduling-deployment-configuration-kafka-bridge">3.5.9. Configuring pod scheduling</a></li>
+<li><a href="#ref-list-of-kafka-bridge-resources-deployment-configuration-kafka-bridge">3.5.10. List of resources created as part of Kafka Bridge cluster</a></li>
 </ul>
 </li>
 <li><a href="#assembly-customizing-deployments-str">3.6. Customizing deployments</a>
@@ -712,7 +713,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#data_formats_and_headers">7.5.1. Data formats and headers</a></li>
 </ul>
 </li>
-<li><a href="#ref-api-resources-kafka-bridge-str">7.6. Strimzi Kafka Bridge API resources</a></li>
+<li><a href="#con-loggers-kafka-bridge-str">7.6. Configuring loggers for the Strimzi Kafka Bridge</a></li>
+<li><a href="#ref-api-resources-kafka-bridge-str">7.7. Strimzi Kafka Bridge API resources</a></li>
 </ul>
 </li>
 <li><a href="#assembly-metrics-setup-str">8. Introducing Metrics</a>
@@ -18719,7 +18721,165 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-healthchecks-deployment-configuration-kafka-bridge"><a class="link" href="#assembly-healthchecks-deployment-configuration-kafka-bridge">3.5.6. Healthchecks</a></h4>
+<h4 id="assembly-logging-deployment-configuration-kafka-bridge"><a class="link" href="#assembly-logging-deployment-configuration-kafka-bridge">3.5.6. Logging</a></h4>
+<div class="paragraph">
+<p>This section provides information on loggers and how to configure log levels.</p>
+</div>
+<div class="paragraph">
+<p>You can set the log levels by specifying the loggers and their levels directly (inline) or use a custom (external) config map.</p>
+</div>
+<div class="sect4">
+<h5 id="ref-loggers-KafkaBridge-deployment-configuration-kafka-bridge"><a class="link" href="#ref-loggers-KafkaBridge-deployment-configuration-kafka-bridge">Kafka Bridge loggers</a></h5>
+<div class="paragraph">
+<p>Kafka Bridge has configurable loggers for each OpenAPI operation:
+Loggers are formatted as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">log4j.logger.http.openapi.operation.&lt;operation-id&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Where <code>&lt;operation-id&gt;</code> is the identifier of the specific operation.
+Following is the list of operations defined by the OpenAPI specification:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>createConsumer</code></p>
+</li>
+<li>
+<p><code>deleteConsumer</code></p>
+</li>
+<li>
+<p><code>subscribe</code></p>
+</li>
+<li>
+<p><code>unsubscribe</code></p>
+</li>
+<li>
+<p><code>poll</code></p>
+</li>
+<li>
+<p><code>assign</code></p>
+</li>
+<li>
+<p><code>commit</code></p>
+</li>
+<li>
+<p><code>send</code></p>
+</li>
+<li>
+<p><code>sendToPartition</code></p>
+</li>
+<li>
+<p><code>seekToBeginning</code></p>
+</li>
+<li>
+<p><code>seekToEnd</code></p>
+</li>
+<li>
+<p><code>seek</code></p>
+</li>
+<li>
+<p><code>healthy</code></p>
+</li>
+<li>
+<p><code>ready</code></p>
+</li>
+<li>
+<p><code>openapi</code></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="kafka-inline-logging-deployment-configuration-kafka-bridge"><a class="link" href="#kafka-inline-logging-deployment-configuration-kafka-bridge">Specifying inline logging</a></h5>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the YAML file to specify the loggers and logging level for the required components.</p>
+<div class="paragraph">
+<p>For example, the logging level here is set to INFO:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaBridge
+spec:
+  # ...
+  logging:
+    type: inline
+    loggers:
+      <em>logger.name</em>: "INFO"
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can set the log level to INFO, ERROR, WARN, TRACE, DEBUG, FATAL or OFF.</p>
+</div>
+<div class="paragraph">
+<p>For more information about the log levels, see the <a href="https://logging.apache.org/log4j/2.x/manual/customloglevels.html" target="_blank" rel="noopener">log4j manual</a>.</p>
+</div>
+</li>
+<li>
+<p>Create or update the Kafka resource in Kubernetes.</p>
+<div class="paragraph">
+<p>This can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect4">
+<h5 id="kafka-external-logging-deployment-configuration-kafka-bridge"><a class="link" href="#kafka-external-logging-deployment-configuration-kafka-bridge">Specifying an external ConfigMap for logging</a></h5>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the YAML file to specify the name of the <code>ConfigMap</code> to use for the required components. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaBridge
+spec:
+  # ...
+  logging:
+    type: external
+    name: customConfigMap
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Remember to place your custom ConfigMap under the <code>log4j.properties</code> or <code>log4j2.properties</code> key.</p>
+</div>
+</li>
+<li>
+<p>Create or update the Kafka resource in Kubernetes.</p>
+<div class="paragraph">
+<p>This can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Garbage collector (GC) logging can also be enabled (or disabled). For more information on GC, see <a href="#ref-jvm-options-deployment-configuration-kafka-bridge">[ref-jvm-options-deployment-configuration-kafka-bridge]</a></p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-healthchecks-deployment-configuration-kafka-bridge"><a class="link" href="#assembly-healthchecks-deployment-configuration-kafka-bridge">3.5.7. Healthchecks</a></h4>
 <div class="paragraph">
 <p>Healthchecks are periodical tests which verify the health of an application.
 When a Healthcheck probe fails, Kubernetes assumes that the application is not healthy and attempts to fix it.</p>
@@ -18874,7 +19034,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-configuring-container-images-deployment-configuration-kafka-bridge"><a class="link" href="#assembly-configuring-container-images-deployment-configuration-kafka-bridge">3.5.7. Container images</a></h4>
+<h4 id="assembly-configuring-container-images-deployment-configuration-kafka-bridge"><a class="link" href="#assembly-configuring-container-images-deployment-configuration-kafka-bridge">3.5.8. Container images</a></h4>
 <div class="paragraph">
 <p>Strimzi allows you to configure container images which will be used for its components.
 Overriding container images is recommended only in special situations, where you need to use a different container registry.
@@ -19157,7 +19317,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-scheduling-deployment-configuration-kafka-bridge"><a class="link" href="#assembly-scheduling-deployment-configuration-kafka-bridge">3.5.8. Configuring pod scheduling</a></h4>
+<h4 id="assembly-scheduling-deployment-configuration-kafka-bridge"><a class="link" href="#assembly-scheduling-deployment-configuration-kafka-bridge">3.5.9. Configuring pod scheduling</a></h4>
 <div id="con-scheduling-deployment-configuration-kafka-bridge" class="admonitionblock important">
 <table>
 <tr>
@@ -19612,7 +19772,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-list-of-kafka-bridge-resources-deployment-configuration-kafka-bridge"><a class="link" href="#ref-list-of-kafka-bridge-resources-deployment-configuration-kafka-bridge">3.5.9. List of resources created as part of Kafka Bridge cluster</a></h4>
+<h4 id="ref-list-of-kafka-bridge-resources-deployment-configuration-kafka-bridge"><a class="link" href="#ref-list-of-kafka-bridge-resources-deployment-configuration-kafka-bridge">3.5.10. List of resources created as part of Kafka Bridge cluster</a></h4>
 <div class="paragraph">
 <p>The following resources are created by the Cluster Operator in the Kubernetes cluster:</p>
 </div>
@@ -23310,7 +23470,90 @@ For the full list of REST API endpoints and descriptions, including example requ
 </div>
 </div>
 <div class="sect2">
-<h3 id="ref-api-resources-kafka-bridge-str"><a class="link" href="#ref-api-resources-kafka-bridge-str">7.6. Strimzi Kafka Bridge API resources</a></h3>
+<h3 id="con-loggers-kafka-bridge-str"><a class="link" href="#con-loggers-kafka-bridge-str">7.6. Configuring loggers for the Strimzi Kafka Bridge</a></h3>
+<div class="paragraph">
+<p>The Strimzi Kafka bridge allows you to set a different log level for each operation that is defined by the related OpenAPI specification.</p>
+</div>
+<div class="paragraph">
+<p>Each operation has a corresponding API endpoint through which the bridge receives requests from HTTP clients.
+You can change the log level on each endpoint to produce more or less fine-grained logging information about the incoming and outgoing HTTP requests.</p>
+</div>
+<div class="paragraph">
+<p>Loggers are defined in the <code>log4j.properties</code> file, which has the following default configuration for <code>healthy</code> and <code>ready</code> endpoints:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">log4j.logger.http.openapi.operation.healthy=WARN, out
+log4j.additivity.http.openapi.operation.healthy=false
+log4j.logger.http.openapi.operation.ready=WARN, out
+log4j.additivity.http.openapi.operation.ready=false</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The log level of all other operations is set to <code>INFO</code> by default.
+Loggers are formatted as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">log4j.logger.http.openapi.operation.&lt;operation-id&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Where <code>&lt;operation-id&gt;</code> is the identifier of the specific operation.
+Following is the list of operations defined by the OpenAPI specification:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>createConsumer</code></p>
+</li>
+<li>
+<p><code>deleteConsumer</code></p>
+</li>
+<li>
+<p><code>subscribe</code></p>
+</li>
+<li>
+<p><code>unsubscribe</code></p>
+</li>
+<li>
+<p><code>poll</code></p>
+</li>
+<li>
+<p><code>assign</code></p>
+</li>
+<li>
+<p><code>commit</code></p>
+</li>
+<li>
+<p><code>send</code></p>
+</li>
+<li>
+<p><code>sendToPartition</code></p>
+</li>
+<li>
+<p><code>seekToBeginning</code></p>
+</li>
+<li>
+<p><code>seekToEnd</code></p>
+</li>
+<li>
+<p><code>seek</code></p>
+</li>
+<li>
+<p><code>healthy</code></p>
+</li>
+<li>
+<p><code>ready</code></p>
+</li>
+<li>
+<p><code>openapi</code></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="ref-api-resources-kafka-bridge-str"><a class="link" href="#ref-api-resources-kafka-bridge-str">7.7. Strimzi Kafka Bridge API resources</a></h3>
 <div class="paragraph">
 <p>For the full list of REST API endpoints and descriptions, including example requests and responses, see <a href="https://strimzi.io/docs/bridge/0.12.0/full.html" target="_blank" rel="noopener">Kafka Bridge API reference</a>.</p>
 </div>
@@ -32081,7 +32324,7 @@ It must have the value <code>plain</code> for the type <code>KafkaBridgeAuthenti
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-07-31 10:41:11 UTC
+Last updated 2019-07-31 15:22:28 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
