@@ -2,7 +2,7 @@
 layout: post
 title:  "Hacking Strimzi for Cruise Control"
 date: 2019-08-08
-author: Adam Cattermole and Kyle Liberti
+author: kyle_liberti
 ---
 
 Cruise Control is a higly customizable Kafka partition balancing and monitoring software run in production at Linkedin. Cruise Controls’s component pluggability makes it flexible to customize for different environments. This makes it possible to extend Cruise Control to work with Strimzi in an Kubernetes environment with a reasonable amount of effort. This post will walk through how to get Cruise Control working on a Stimzi deployed Kafka cluster.
@@ -175,3 +175,7 @@ oc apply -f cruise-control-deployment.yaml
 ```
 
 # Interacting with Cruise Control API
+
+# Citations
+
+Don't forget to cite Adam Cattermole
