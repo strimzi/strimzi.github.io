@@ -58,21 +58,21 @@ metadata:
 spec:
   kafka:
     image: <kafka-image-name>
-    version: 1.0.1
-    replicas: 2
+    version: 2.0.1
+    replicas: 3
     listeners:
       plain: {}
       tls: {}
     config:
       metric.reporters: "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"
-      offsets.topic.replication.factor: 0
-      transaction.state.log.replication.factor: 0
+      offsets.topic.replication.factor: 1
+      transaction.state.log.replication.factor: 1
       transaction.state.log.min.isr: 1
-      log.message.format.version: "1.0.1"
+      log.message.format.version: "2.0.1"
     storage:
       type: ephemeral
   zookeeper:
-    replicas: 2
+    replicas: 3
     storage:
       type: ephemeral
   entityOperator:
