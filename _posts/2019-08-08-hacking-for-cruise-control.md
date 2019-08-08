@@ -5,7 +5,7 @@ date: 2019-08-08
 author: kyle_liberti
 ---
 
-Cruise Control is a higly customizable Kafka partition balancing and monitoring software run in production at Linkedin. Cruise Controls’s component pluggability makes it flexible to customize for different environments. This makes it possible to extend Cruise Control to work with Strimzi in an Kubernetes environment with a reasonable amount of effort. This post will walk through how to get Cruise Control working on a Stimzi deployed Kafka cluster.
+Cruise Control is a higly customizable Kafka partition balancing and monitoring software run in production at Linkedin. Cruise Controls’s component pluggability makes it flexible to customize for different environments. This makes it possible to extend Cruise Control to work with Strimzi in an Kubernetes environment with a reasonable amount of effort. This post will walk through how to get Cruise Control working with a Stimzi deployed Kafka cluster.
 
 # Prequisite Outline
 
@@ -46,7 +46,7 @@ RUN cd cruise-control \
 Then build the image:
 
 ```bash
-docker build Dockerfile -t <kafka-image-name>
+docker build . -t <kafka-image-name>
 ```
 
 Create a basic Kafka resource, `kafka.yaml`, then specify the Cruise Control metrics reporter in the Kafka `metrics.reporters` config:
@@ -127,7 +127,7 @@ ENTRYPOINT ["/bin/bash", "-c", "./kafka-cruise-control-start.sh config/cruisecon
 ```
 
 ```
-docker build Dockerfile -t <cruise-control-image-name>
+docker build . -t <cruise-control-image-name>
 ```
 
 Then create a Cruise Control deployment, `cruise-control-deployment.yaml`
@@ -175,6 +175,47 @@ oc apply -f cruise-control-deployment.yaml
 ```
 
 # Interacting with Cruise Control API
+
+To access the Cruise Control REST API from outside out OKD, port-forward the Cruise Control service to localhost:9095:
+
+```
+oc port-forward svc/my-cruise-control 9095:9090
+```
+
+After port forwarding the service, there are a few ways to interact with the Cruise Control API:
+
+* curl
+* cruise-control client
+* Cruise Control GUI Frontend
+
+## Using Curl
+
+```
+curl -vv -X GET -c /tmp/mycookie-jar.txt "http://127.0.0.1:9095/kafkacruisecontrol/state"
+```
+
+For more details visit the [Cruise Control Wiki](https://github.com/linkedin/cruise-control/wiki/REST-APIs)
+
+
+## Using Cruise Control Python client
+
+To install:
+
+```
+pip3 install cruise-control-client
+```
+
+To run:
+
+```
+cccli -a 127.0.0.1:9095  kafka_cluster_state
+```
+
+## Using Cruise Control Frontend
+
+Vist `http://127.0.0.1:9095` in browser
+
+![Cruise Control Frontend]({{ "/assets/2019-08-08-cruise-control-frontend.png" }})
 
 # Citations
 
