@@ -21,16 +21,20 @@ Like any proof of concept, there are a few actions to consider when putting it t
 Its worth noting that the latest Kafka version which Cruise Control supports at this time is 2.0.1. The latest version of Strimzi which supports Kafka version 2.0.1 is 0.11.4. Although its possible to run Cruise Control alongside with later versions of Kafka, 2.0.1+, it is not supported. Keep this in mind when deciding which version of Strimzi to deploy. This post will stick to using Strimzi 0.11.4, but feel free to experiment with more updated versions.
 
 # Gathering Metrics
-In order to estimate partition activity and resources, Cruise Control needs a steady source of metric data from Kafka. Fortunately, Kafka tracks all sorts of metrics and makes them all accessible through pluggable components know as `metric reporters`. Kafka metric reporters designate what, where, when, and how metrics are exported. Upon creation, metric objects are passed to metric reporters for filtering, formating, and storage. Afterwards, the metric reporters monitor the metric objects for Kafka stat updates.
+In order to estimate partition activity and resources, Cruise Control needs a steady source of metric data from Kafka. Fortunately, Kafka tracks all sorts of metrics and makes them all accessible through pluggable components know as `metric reporters`. Kafka metric reporters designate what, where, when, and how metrics are exported. 
 
 Kafka maintains two core types of metrics:
-* **Yammer metrics** For _server-side_ metrics related to brokers. These metrics are kept in a globally accessible Yammer metric registry which can be reached directly by metric reporters. 
-* **Kafka metrics**  For _client-side_ metrics related to producers, consumers, Kafka connect, and Kafka streams. These metrics are tracked in concurrent hash map and must be explicitely passed to Kafka metric reporters when created. 
+* **Yammer metrics** For _server-side_ metrics related to brokers. These metric objects are kept in a globally accessible Yammer metric registry which can be reached directly by metric reporters. 
+* **Kafka metrics** For _client-side_ metrics related to Kafka producers, consumers, connect, and streams. These metric objects are tracked in concurrent hash map and explicitely passed to metric reporters when created. 
 
-The type of metrics sent to the metric reporters, whether it be Yammer metrics, Kafka metrics, or both, is soley dependent on the implementation of the metric reporter. For example, although all of the metrics available, Yammer and Kafka metrics, are exposed via JMX, the JMX metric reporter only uses **Kafka metrics**. This is because all Yammer metrics are already exposed as JMX MBeans by default, so the JMX metric reporter only needs to wrap the Kafka metric objects as MBeans. 
+The type of metrics exposed by the metric reporters, whether it be Yammer metrics, Kafka metrics, or both, is solely dependent on the implementation of the metric reporter. For example, the Kafka JMX metric reporter only wraps **Kafka metrics** as MBeans. This is counterintuitve since it's known that Kafka exposes all of its metrics, Kafka *and* Yammer, through JMX. The reason why the Kafka JMX metric reporter doesn't wrap **Yammer metrics** as MBeans is because they are already exposed as JMX MBeans through Kafka by default.
+
+At start up, Kafka brokers will loop through a list of metric reporters supplied via the Kafka config and execute each metric reporter task on its own thread. Upon creation, metric objects are passed to metric reporters for filtering, formating, and storage. What, where, when and how this happens depends on the specific implementation of the metric reporter. Afterwards, the metric reporters monitor the metric objects for Kafka stat updates.
 
 ## Cruise Control Metric Reporter
-Cruise Control ships its own custom metric reporter, the `Cruise Control metric reporter` but must be included in `/opt/kafka/libs/` directory of every Kafka broker in order for it to work. For making the Cruise Control metric reporter available to Strimzi Kafka brokers, one can create a new Kafka image from the following Dockerfile:
+Cruise Control ships its own implementation of a Kafka metric reporter, the `Cruise Control metric reporter`. Unlike the JMX Metric reporter, the Cruise Control metric reporter filters the metric objects it receives from Kafka, stowing the metric objects related to Kafka partition monitoring into a concurrent hash map. Then, at user-defined intervals, the reporter will loop through the concurrent hash map and tranform each metric object into a Cruise Control metric object. The reporter will add information related to the the metric type, time of recording, and broker origin. Finally, the reporter will format the Cruise Control metric object into a byte array and store it into a Kafka topic designated for Cruise Control metics.
+
+Placing the Cruise Control metric reporter jar into the `/opt/kafka/libs/` directory of every Kafka broker allows Kafka to find the reporter at runtime. For the sake of simplicity, one can do this by updating the Strimzi Kafka image with the needed Cruise Control jar using the following Dockerfile:
 
 ```Dockerfile
 FROM strimzi/kafka:0.11.4-kafka-2.0.1
@@ -49,14 +53,11 @@ RUN cd cruise-control \
     && ./gradlew jar :cruise-control-metric-reporter:jar \
     && cp cruise-control-metrics-reporter/build/libs/* /opt/kafka/libs/
 ```
-
-Build the image:
-
+Then build the image:
 ```bash
 docker build . -t <kafka-image-name>
 ```
-
-Then create a basic Kafka resource referencing the new Kafka image and specifying the `CruiseControlMetricsReporter` in the Kafka config one of the `metrics.reporters` using the following `kafka.yaml` file:
+For the Cruise Control metric reporter to be activated at runtime, its package name must be listed in the `metrics.reporters` field of the Kafka config. For a Strimzi Kafka cluster, one can do this by creating a Kafka custom resource which references the new Kafka 'image' built above and the 'com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter' package name in the 'metrics.reporters' field using the following `kafka.yaml` file:
 ```yaml
 apiVersion: kafka.strimzi.io/v0alpha1
 kind: Kafka
@@ -86,13 +87,12 @@ spec:
     userOperator: {}
     topicOperator: {}
 ```
-Apply to cluster:
+Then apply the Kafka custom resource to the cluster:
 
 ```bash
 oc apply -f kafka.yaml
 ```
-
-After recieving metric objects directly from Kafka, the cruise control metric reporter will filter out undesired metric objects, and store the remaining in a concurrent hash map. Then, at periodic intervals designated by the user, the reporter will loop through the concurrent hash map and wrap each metric object's value into a Cruise Control Metric object. The reporter will add information like the metric type, time of when the metric value was recorded, and the broker id of where the metric was taken from. Finally, then Cruise Control metric object is formatted into a byte array and stored back into Kafka within a topic designated for cruise control metics.
+The 'metrics.reporters' field can take a list of comma-separated metric reporter package names. At runtime, Kafka will loop through this list and instantiate these metric reporters to run concurrently.
 
 # Accessing Zookeeper
 
