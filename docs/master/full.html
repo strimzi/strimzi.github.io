@@ -596,11 +596,12 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#assembly-kafka-mirror-maker-configuration-deployment-configuration-kafka-mirror-maker">3.4.10. Kafka Mirror Maker configuration</a></li>
 <li><a href="#assembly-resource-limits-and-requests-deployment-configuration-kafka-mirror-maker">3.4.11. CPU and memory resources</a></li>
 <li><a href="#assembly-logging-deployment-configuration-kafka-mirror-maker">3.4.12. Logging</a></li>
-<li><a href="#assembly-metrics-deployment-configuration-kafka-mirror-maker">3.4.13. Prometheus metrics</a></li>
-<li><a href="#assembly-jvm-options-deployment-configuration-kafka-mirror-maker">3.4.14. JVM Options</a></li>
-<li><a href="#assembly-configuring-container-images-deployment-configuration-kafka-mirror-maker">3.4.15. Container images</a></li>
-<li><a href="#assembly-scheduling-deployment-configuration-kafka-mirror-maker">3.4.16. Configuring pod scheduling</a></li>
-<li><a href="#ref-list-of-kafka-mirror-maker-resources-deployment-configuration-kafka-mirror-maker">3.4.17. List of resources created as part of Kafka Mirror Maker</a></li>
+<li><a href="#assembly-healthchecks-deployment-configuration-kafka-mirror-maker">3.4.13. Healthchecks</a></li>
+<li><a href="#assembly-metrics-deployment-configuration-kafka-mirror-maker">3.4.14. Prometheus metrics</a></li>
+<li><a href="#assembly-jvm-options-deployment-configuration-kafka-mirror-maker">3.4.15. JVM Options</a></li>
+<li><a href="#assembly-configuring-container-images-deployment-configuration-kafka-mirror-maker">3.4.16. Container images</a></li>
+<li><a href="#assembly-scheduling-deployment-configuration-kafka-mirror-maker">3.4.17. Configuring pod scheduling</a></li>
+<li><a href="#ref-list-of-kafka-mirror-maker-resources-deployment-configuration-kafka-mirror-maker">3.4.18. List of resources created as part of Kafka Mirror Maker</a></li>
 </ul>
 </li>
 <li><a href="#assembly-deployment-configuration-kafka-bridge-str">3.5. Kafka Bridge configuration</a>
@@ -624,9 +625,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#con-customizing-template-properties-str">3.6.1. Template properties</a></li>
 <li><a href="#con-customizing-labels-and-annotations-str">3.6.2. Labels and Annotations</a></li>
 <li><a href="#con-customizing-pods-str">3.6.3. Customizing Pods</a></li>
-<li><a href="#con-customizing-image-pull-policy-str">3.6.4. Customizing the image pull policy</a></li>
-<li><a href="#con-customizing-pod-disruption-budgets-str">3.6.5. Customizing Pod Disruption Budgets</a></li>
-<li><a href="#proc-customizing-deployments-str">3.6.6. Customizing deployments</a></li>
+<li><a href="#con-customizing-containers-str">3.6.4. Customizing containers with environment variables</a></li>
+<li><a href="#con-customizing-image-pull-policy-str">3.6.5. Customizing the image pull policy</a></li>
+<li><a href="#con-customizing-pod-disruption-budgets-str">3.6.6. Customizing Pod Disruption Budgets</a></li>
+<li><a href="#proc-customizing-deployments-str">3.6.7. Customizing deployments</a></li>
 </ul>
 </li>
 </ul>
@@ -6749,6 +6751,9 @@ Both types of probes are used in Strimzi components.</p>
 <p><code>KafkaConnectS2I.spec</code></p>
 </li>
 <li>
+<p><code>KafkaMirrorMaker.spec</code></p>
+</li>
+<li>
 <p><code>KafkaBridge.spec</code></p>
 </li>
 </ul>
@@ -10702,6 +10707,9 @@ Both types of probes are used in Strimzi components.</p>
 <p><code>KafkaConnectS2I.spec</code></p>
 </li>
 <li>
+<p><code>KafkaMirrorMaker.spec</code></p>
+</li>
+<li>
 <p><code>KafkaBridge.spec</code></p>
 </li>
 </ul>
@@ -13581,6 +13589,9 @@ Both types of probes are used in Strimzi components.</p>
 </li>
 <li>
 <p><code>KafkaConnectS2I.spec</code></p>
+</li>
+<li>
+<p><code>KafkaMirrorMaker.spec</code></p>
 </li>
 <li>
 <p><code>KafkaBridge.spec</code></p>
@@ -16839,7 +16850,169 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-metrics-deployment-configuration-kafka-mirror-maker"><a class="link" href="#assembly-metrics-deployment-configuration-kafka-mirror-maker">3.4.13. Prometheus metrics</a></h4>
+<h4 id="assembly-healthchecks-deployment-configuration-kafka-mirror-maker"><a class="link" href="#assembly-healthchecks-deployment-configuration-kafka-mirror-maker">3.4.13. Healthchecks</a></h4>
+<div class="paragraph">
+<p>Healthchecks are periodical tests which verify the health of an application.
+When a Healthcheck probe fails, Kubernetes assumes that the application is not healthy and attempts to fix it.</p>
+</div>
+<div class="paragraph">
+<p>Kubernetes supports two types of Healthcheck probes:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Liveness probes</p>
+</li>
+<li>
+<p>Readiness probes</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For more details about the probes, see <a href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/" target="_blank" rel="noopener">Configure Liveness and Readiness Probes</a>.
+Both types of probes are used in Strimzi components.</p>
+</div>
+<div class="paragraph">
+<p>Users can configure selected options for liveness and readiness probes.</p>
+</div>
+<div class="sect4">
+<h5 id="ref-healthchecks-deployment-configuration-kafka-mirror-maker"><a class="link" href="#ref-healthchecks-deployment-configuration-kafka-mirror-maker">Healthcheck configurations</a></h5>
+<div class="paragraph">
+<p>Liveness and readiness probes can be configured using the <code>livenessProbe</code> and <code>readinessProbe</code> properties in following resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Kafka.spec.kafka</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.kafka.tlsSidecar</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.zookeeper.tlsSidecar</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.entityOperator.tlsSidecar</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.entityOperator.topicOperator</code></p>
+</li>
+<li>
+<p><code>Kafka.spec.entityOperator.userOperator</code></p>
+</li>
+<li>
+<p><code>KafkaConnect.spec</code></p>
+</li>
+<li>
+<p><code>KafkaConnectS2I.spec</code></p>
+</li>
+<li>
+<p><code>KafkaMirrorMaker.spec</code></p>
+</li>
+<li>
+<p><code>KafkaBridge.spec</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Both <code>livenessProbe</code> and <code>readinessProbe</code> support the following options:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>initialDelaySeconds</code></p>
+</li>
+<li>
+<p><code>timeoutSeconds</code></p>
+</li>
+<li>
+<p><code>periodSeconds</code></p>
+</li>
+<li>
+<p><code>successThreshold</code></p>
+</li>
+<li>
+<p><code>failureThreshold</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For more information about the <code>livenessProbe</code> and <code>readinessProbe</code> options, see <a href="#type-Probe-reference"><code>Probe</code> schema reference</a>.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example of liveness and readiness probe configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs"># ...
+readinessProbe:
+  initialDelaySeconds: 15
+  timeoutSeconds: 5
+livenessProbe:
+  initialDelaySeconds: 15
+  timeoutSeconds: 5
+# ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-configuring-healthchecks-deployment-configuration-kafka-mirror-maker"><a class="link" href="#proc-configuring-healthchecks-deployment-configuration-kafka-mirror-maker">Configuring healthchecks</a></h5>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>livenessProbe</code> or <code>readinessProbe</code> property in the <code>Kafka</code>, <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> resource.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    readinessProbe:
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+    livenessProbe:
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="paragraph">
+<p>This can be done using <code>kubectl apply</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-metrics-deployment-configuration-kafka-mirror-maker"><a class="link" href="#assembly-metrics-deployment-configuration-kafka-mirror-maker">3.4.14. Prometheus metrics</a></h4>
 <div class="paragraph">
 <p>Strimzi supports Prometheus metrics using <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX exporter</a> to convert the JMX metrics supported by Apache Kafka and Zookeeper to Prometheus metrics.
 When metrics are enabled, they are exposed on port 9404.</p>
@@ -16968,7 +17141,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-jvm-options-deployment-configuration-kafka-mirror-maker"><a class="link" href="#assembly-jvm-options-deployment-configuration-kafka-mirror-maker">3.4.14. JVM Options</a></h4>
+<h4 id="assembly-jvm-options-deployment-configuration-kafka-mirror-maker"><a class="link" href="#assembly-jvm-options-deployment-configuration-kafka-mirror-maker">3.4.15. JVM Options</a></h4>
 <div class="paragraph">
 <p>The following components of Strimzi run inside a Virtual Machine (VM):</p>
 </div>
@@ -17267,7 +17440,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-configuring-container-images-deployment-configuration-kafka-mirror-maker"><a class="link" href="#assembly-configuring-container-images-deployment-configuration-kafka-mirror-maker">3.4.15. Container images</a></h4>
+<h4 id="assembly-configuring-container-images-deployment-configuration-kafka-mirror-maker"><a class="link" href="#assembly-configuring-container-images-deployment-configuration-kafka-mirror-maker">3.4.16. Container images</a></h4>
 <div class="paragraph">
 <p>Strimzi allows you to configure container images which will be used for its components.
 Overriding container images is recommended only in special situations, where you need to use a different container registry.
@@ -17550,7 +17723,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-scheduling-deployment-configuration-kafka-mirror-maker"><a class="link" href="#assembly-scheduling-deployment-configuration-kafka-mirror-maker">3.4.16. Configuring pod scheduling</a></h4>
+<h4 id="assembly-scheduling-deployment-configuration-kafka-mirror-maker"><a class="link" href="#assembly-scheduling-deployment-configuration-kafka-mirror-maker">3.4.17. Configuring pod scheduling</a></h4>
 <div id="con-scheduling-deployment-configuration-kafka-mirror-maker" class="admonitionblock important">
 <table>
 <tr>
@@ -18005,7 +18178,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-list-of-kafka-mirror-maker-resources-deployment-configuration-kafka-mirror-maker"><a class="link" href="#ref-list-of-kafka-mirror-maker-resources-deployment-configuration-kafka-mirror-maker">3.4.17. List of resources created as part of Kafka Mirror Maker</a></h4>
+<h4 id="ref-list-of-kafka-mirror-maker-resources-deployment-configuration-kafka-mirror-maker"><a class="link" href="#ref-list-of-kafka-mirror-maker-resources-deployment-configuration-kafka-mirror-maker">3.4.18. List of resources created as part of Kafka Mirror Maker</a></h4>
 <div class="paragraph">
 <p>The following resources will created by the Cluster Operator in the Kubernetes cluster:</p>
 </div>
@@ -19683,6 +19856,9 @@ Both types of probes are used in Strimzi components.</p>
 <p><code>KafkaConnectS2I.spec</code></p>
 </li>
 <li>
+<p><code>KafkaMirrorMaker.spec</code></p>
+</li>
+<li>
 <p><code>KafkaBridge.spec</code></p>
 </li>
 </ul>
@@ -20661,6 +20837,10 @@ spec:
 <dd>
 <p>Configures the Pod Disruption Budget for Kafka broker <code>StatefulSet</code>.</p>
 </dd>
+<dt class="hdlist1"><code>kafkaContainer</code></dt>
+<dd>
+<p>Configures the container used to run the Kafka broker, including custom environment variables.</p>
+</dd>
 </dl>
 </div>
 <div class="paragraph">
@@ -20780,6 +20960,18 @@ template:
 <p>The <code>labels</code> and <code>annotations</code> fields can contain any labels or annotations that do not contain the reserved string <code>strimzi.io</code>.
 Labels and annotations containing <code>strimzi.io</code> are used internally by Strimzi and cannot be configured.</p>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The <code>metadata</code> property is not applicable to container templates, such as the <code>kafkaContainer</code>.
+</td>
+</tr>
+</table>
+</div>
 </div>
 <div class="sect3">
 <h4 id="con-customizing-pods-str"><a class="link" href="#con-customizing-pods-str">3.6.3. Customizing Pods</a></h4>
@@ -20857,7 +21049,44 @@ template:
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-customizing-image-pull-policy-str"><a class="link" href="#con-customizing-image-pull-policy-str">3.6.4. Customizing the image pull policy</a></h4>
+<h4 id="con-customizing-containers-str"><a class="link" href="#con-customizing-containers-str">3.6.4. Customizing containers with environment variables</a></h4>
+<div class="paragraph">
+<p>You can set custom environment variables for Kafka broker containers by using the <code>kafkaContainer</code> template property in <code>Kafka.spec.kafka</code>.
+These environment variables are defined under the <code>env</code> field as a list of objects with <code>name</code> and <code>value</code> fields.</p>
+</div>
+<div class="paragraph">
+<p>The following example shows two custom environment variables set for a Kafka broker:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs"># ...
+spec:
+    kafka:
+        template:
+            kafkaContainer:
+                env:
+                    - name: TEST_ENV_1
+                      value: test.env.one
+                    - name: TEST_ENV_2
+                      value: test.env.two
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Environment variables prefixed with <code>KAFKA_</code> are internal to Strimzi and should be avoided.
+If you set a custom environment variable that is already in use by Strimzi, it is ignored and a warning is recorded in the log.</p>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information, see <a href="#type-ContainerTemplate-reference"><code>ContainerTemplate</code> schema reference</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-customizing-image-pull-policy-str"><a class="link" href="#con-customizing-image-pull-policy-str">3.6.5. Customizing the image pull policy</a></h4>
 <div class="paragraph">
 <p>Strimzi allows you to customize the image pull policy for containers in all pods deployed by the Cluster Operator.
 The image pull policy is configured using the environment variable <code>STRIMZI_IMAGE_PULL_POLICY</code> in the Cluster Operator deployment.
@@ -20896,7 +21125,7 @@ Changing the policy will result in a rolling update of all your Kafka, Kafka Con
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-customizing-pod-disruption-budgets-str"><a class="link" href="#con-customizing-pod-disruption-budgets-str">3.6.5. Customizing Pod Disruption Budgets</a></h4>
+<h4 id="con-customizing-pod-disruption-budgets-str"><a class="link" href="#con-customizing-pod-disruption-budgets-str">3.6.6. Customizing Pod Disruption Budgets</a></h4>
 <div class="paragraph">
 <p>Strimzi creates a pod disruption budget for every new <code>StatefulSet</code> or <code>Deployment</code>.
 By default, these pod disruption budgets only allow a single pod to be unavailable at a given time by setting the <code>maxUnavailable</code> value in the`PodDisruptionBudget.spec` resource to 1.
@@ -20935,7 +21164,7 @@ template:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-customizing-deployments-str"><a class="link" href="#proc-customizing-deployments-str">3.6.6. Customizing deployments</a></h4>
+<h4 id="proc-customizing-deployments-str"><a class="link" href="#proc-customizing-deployments-str">3.6.7. Customizing deployments</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to customize <code>Labels</code> of a Kafka cluster.</p>
 </div>
@@ -29403,7 +29632,7 @@ It must have the value <code>simple</code> for the type <code>KafkaAuthorization
 <div class="sect2">
 <h3 id="type-Probe-reference"><a class="link" href="#type-Probe-reference">E.31. <code>Probe</code> schema reference</a></h3>
 <div class="paragraph">
-<p>Used in: <a href="#type-EntityTopicOperatorSpec-reference"><code>EntityTopicOperatorSpec</code></a>, <a href="#type-EntityUserOperatorSpec-reference"><code>EntityUserOperatorSpec</code></a>, <a href="#type-KafkaBridgeSpec-reference"><code>KafkaBridgeSpec</code></a>, <a href="#type-KafkaClusterSpec-reference"><code>KafkaClusterSpec</code></a>, <a href="#type-KafkaConnectS2ISpec-reference"><code>KafkaConnectS2ISpec</code></a>, <a href="#type-KafkaConnectSpec-reference"><code>KafkaConnectSpec</code></a>, <a href="#type-TlsSidecar-reference"><code>TlsSidecar</code></a>, <a href="#type-TopicOperatorSpec-reference"><code>TopicOperatorSpec</code></a>, <a href="#type-ZookeeperClusterSpec-reference"><code>ZookeeperClusterSpec</code></a></p>
+<p>Used in: <a href="#type-EntityTopicOperatorSpec-reference"><code>EntityTopicOperatorSpec</code></a>, <a href="#type-EntityUserOperatorSpec-reference"><code>EntityUserOperatorSpec</code></a>, <a href="#type-KafkaBridgeSpec-reference"><code>KafkaBridgeSpec</code></a>, <a href="#type-KafkaClusterSpec-reference"><code>KafkaClusterSpec</code></a>, <a href="#type-KafkaConnectS2ISpec-reference"><code>KafkaConnectS2ISpec</code></a>, <a href="#type-KafkaConnectSpec-reference"><code>KafkaConnectSpec</code></a>, <a href="#type-KafkaMirrorMakerSpec-reference"><code>KafkaMirrorMakerSpec</code></a>, <a href="#type-TlsSidecar-reference"><code>TlsSidecar</code></a>, <a href="#type-TopicOperatorSpec-reference"><code>TopicOperatorSpec</code></a>, <a href="#type-ZookeeperClusterSpec-reference"><code>ZookeeperClusterSpec</code></a></p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
@@ -32308,6 +32537,20 @@ It must have the value <code>transactionalId</code> for the type <code>AclRuleTr
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-KafkaMirrorMakerTemplate-reference"><code>KafkaMirrorMakerTemplate</code></a></p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">livenessProbe</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Pod liveness checking.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-Probe-reference"><code>Probe</code></a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">readinessProbe</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Pod readiness checking.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-Probe-reference"><code>Probe</code></a></p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">version</p></td>
 <td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The Kafka Mirror Maker version. Defaults to 2.3.0. Consult the user documentation to understand the process required to upgrade or downgrade the version.</p></td>
 </tr>
@@ -33157,7 +33400,7 @@ It must have the value <code>plain</code> for the type <code>KafkaBridgeAuthenti
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-08-13 12:15:10 UTC
+Last updated 2019-08-13 16:10:02 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
