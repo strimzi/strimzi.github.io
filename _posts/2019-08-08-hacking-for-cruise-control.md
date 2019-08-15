@@ -34,7 +34,7 @@ The type of metrics exposed by the metric reporters, whether it be Yammer metric
 Upon startup, every Kafka server loops through a list of metric reporters supplied via its Kafka config, executing every metric reporter on its own thread. As Kafka creates metric objects it passes them to the metric reporters threads for filtering and tracking. What, where, and how this happens to the metric objects depends on the specific implementation of the metric reporter. Afterwards, the metric reporters monitor the metric objects for stat updates from Kafka, formating and storing the changes for future export.
 
 ## Cruise Control Metric Reporter
-Cruise Control ships its own implementation of a Kafka metric reporter, the 'Cruise Control metric reporter'. Unlike the JMX Metric reporter, the Cruise Control metric reporter filters the metric objects it receives from Kafka, stowing the metric objects related to Kafka partition monitoring into a concurrent hash map. Then, at user-defined intervals, the reporter will loop through the concurrent hash map and create Cruise Control metric objects from the data provided by the metric objects. For the Cruise Control metric objects, the reporter will include information related to the the metric type, metric value, time of recording, and broker origin. Finally, the reporter will format the Cruise Control metric object into a byte array and store it into a Kafka topic designated for Cruise Control metrics.
+Cruise Control ships its own implementation of a Kafka metric reporter, the 'Cruise Control metric reporter'. Unlike the JMX metric reporter, the Cruise Control metric reporter filters the metric objects it receives from Kafka, stowing the metric objects related to Kafka partition monitoring into a concurrent hash map. Then, at user-defined intervals, the reporter will loop through the concurrent hash map and create Cruise Control metric objects from the data provided by the metric objects. For the Cruise Control metric objects, the reporter will include information related to the the metric type, metric value, time of recording, and broker origin. Finally, the reporter will format the Cruise Control metric object into a byte array and store it into a Kafka topic designated for Cruise Control metrics.
 
 Placing the Cruise Control metric reporter jar into the '/opt/kafka/libs/' directory of every Kafka broker allows Kafka to find the reporter at runtime. For the sake of simplicity, one can do this by updating the Strimzi Kafka image with the needed Cruise Control jar using the following Dockerfile:
 
@@ -98,11 +98,15 @@ The 'metrics.reporters' field can take a list of comma-separated metric reporter
 
 # Accessing Zookeeper
 
-By default, communication between Zookeeper and all other Strimzi components must be encrypted. Using a hack by Jakub Scholz, one can create a Kubernetes service which reuses the Strimzi certs to pipe unecrypted Cruise Control traffic through to Zookeeper. This removes the need to include traffic encrypting sidecars in the Cruise Control deployment.
+For operations like partition reassignments and leadership changes, Cruise Control needs to be able communicate with Zookeeper directly. Cruise Control also relies on Zookeeper for the current configuration and state of the Kafka cluster.
+
+By default, communication between Zookeeper and all other Strimzi components must be encrypted and authenticated. Using a hack by Jakub Scholz, one can get around this requirement by creating a Kubernetes service which reuses Strimzi certificates to pipe unencrypted and unauthenticated traffic to Zookeeper. This allows Cruise Control to communicate with Zookeeper without more depth configuration changes required for proper authorization and encryption.
 
 ```
 kubectl apply -f https://gist.githubusercontent.com/scholzj/6cfcf9f63f73b54eaebf60738cfdbfae/raw/068d55ac65e27779f3a5279db96bae03cea70acb/zoo-entrance.yaml
 ```
+
+**WARNING**: Allowing unauthenticated access to Zookeeper exposes sensitive Kafka metadata for reading and writing by any user. Nefarious users can exploit this information to mess up the state of the cluster by altering topic configurations or even elevate client privileges by changing ACL access rules to steal data.
 
 # Containerizing and deploying Cruise Control
 
