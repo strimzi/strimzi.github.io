@@ -1,4 +1,5 @@
 ---
+title: OKD Quickstart
 layout: default
 ---
 
@@ -22,7 +23,7 @@ oc login -u system:admin
 Next we apply the Strimzi install files, including `ClusterRoles`, `ClusterRoleBindings` and some **Custom Resource Definitions** (`CRDs`). The CRDs define the schemas used for declarative management of the Kafka cluster, Kafka topics and users.
 
 ```shell
-oc apply -f https://github.com/strimzi/strimzi-kafka-operator/releases/download/{{site.data.releases.operator[0].version}}/strimzi-cluster-operator-{{site.data.releases.operator[0].version}}.yaml -n myproject
+oc apply -n myproject -f https://github.com/strimzi/strimzi-kafka-operator/releases/download/{{site.data.releases.operator[0].version}}/strimzi-cluster-operator-{{site.data.releases.operator[0].version}}.yaml 
 ```
 
 # Provision the Apache Kafka cluster
@@ -31,23 +32,16 @@ After that we feed Strimzi with a simple **Custom Resource**, which will than gi
 
 ```shell
 # Apply the `Kafka` Cluster CR file
-oc apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{{site.data.releases.operator[0].version}}/examples/kafka/kafka-persistent-single.yaml -n myproject
+oc apply -n myproject -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{{site.data.releases.operator[0].version}}/examples/kafka/kafka-persistent-single.yaml 
 ```
 
-We can now watch the deployment on the `myproject` namesapce, and see all required pods being created:
+We now need to wait while OpenShift starts the required pods, services and so on:
 
 ```shell
-oc get pods -n myproject -w
+ocwait -n myproject wait --for=condition=Ready kafka/my-cluster --timeout=300s
 ```
 
-The installation is complete, once the `my-cluster-entity-operator` is running, like:
-
-```
-my-cluster-entity-operator-6bc7f6985c-q29p5   3/3     Running   0          44s
-my-cluster-kafka-0                            2/2     Running   1          91s
-my-cluster-zookeeper-0                        2/2     Running   0          2m30s
-strimzi-cluster-operator-78f8bf857-kpmhb      1/1     Running   0          3m10s
-```
+The above command might timeout if you're downloading images over a slow connection. If that happens you can always run it again.
 
 # Send and receive messages
 
@@ -57,7 +51,7 @@ Once the cluster is running, you can run a simple producer to send messages to K
 oc run kafka-producer -ti --image=strimzi/kafka:{{site.data.releases.operator[0].version}}-kafka-{{site.data.releases.operator[0].defaultKafkaVersion}} --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic my-topic
 ```
 
-And to receive them:
+And to receive them in a different terminal you can run:
 
 ```shell
 oc run kafka-consumer -ti --image=strimzi/kafka:{{site.data.releases.operator[0].version}}-kafka-{{site.data.releases.operator[0].defaultKafkaVersion}} --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic --from-beginning
