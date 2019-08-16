@@ -23,7 +23,7 @@ oc login -u system:admin
 Next we apply the Strimzi install files, including `ClusterRoles`, `ClusterRoleBindings` and some **Custom Resource Definitions** (`CRDs`). The CRDs define the schemas used for declarative management of the Kafka cluster, Kafka topics and users.
 
 ```shell
-oc apply -n myproject -f https://github.com/strimzi/strimzi-kafka-operator/releases/download/{{site.data.releases.operator[0].version}}/strimzi-cluster-operator-{{site.data.releases.operator[0].version}}.yaml 
+oc apply -f https://github.com/strimzi/strimzi-kafka-operator/releases/download/{{site.data.releases.operator[0].version}}/strimzi-cluster-operator-{{site.data.releases.operator[0].version}}.yaml -n myproject
 ```
 
 # Provision the Apache Kafka cluster
@@ -32,13 +32,13 @@ After that we feed Strimzi with a simple **Custom Resource**, which will than gi
 
 ```shell
 # Apply the `Kafka` Cluster CR file
-oc apply -n myproject -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{{site.data.releases.operator[0].version}}/examples/kafka/kafka-persistent-single.yaml 
+oc apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{{site.data.releases.operator[0].version}}/examples/kafka/kafka-persistent-single.yaml -n myproject 
 ```
 
 We now need to wait while OpenShift starts the required pods, services and so on:
 
 ```shell
-ocwait -n myproject wait --for=condition=Ready kafka/my-cluster --timeout=300s
+oc wait wait --for=condition=Ready kafka/my-cluster --timeout=300s -n myproject
 ```
 
 The above command might timeout if you're downloading images over a slow connection. If that happens you can always run it again.
@@ -48,13 +48,13 @@ The above command might timeout if you're downloading images over a slow connect
 Once the cluster is running, you can run a simple producer to send messages to Kafka topic (the topic will be automatically created):
 
 ```shell
-oc run kafka-producer -ti --image=strimzi/kafka:{{site.data.releases.operator[0].version}}-kafka-{{site.data.releases.operator[0].defaultKafkaVersion}} --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic my-topic
+oc -n kafka run kafka-producer -ti --image=strimzi/kafka:{{site.data.releases.operator[0].version}}-kafka-{{site.data.releases.operator[0].defaultKafkaVersion}} --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic my-topic
 ```
 
 And to receive them in a different terminal you can run:
 
 ```shell
-oc run kafka-consumer -ti --image=strimzi/kafka:{{site.data.releases.operator[0].version}}-kafka-{{site.data.releases.operator[0].defaultKafkaVersion}} --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic --from-beginning
+oc -n kafka run kafka-consumer -ti --image=strimzi/kafka:{{site.data.releases.operator[0].version}}-kafka-{{site.data.releases.operator[0].defaultKafkaVersion}} --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic --from-beginning
 ```
 
 Enjoy your Apache Kafka cluster, running on OKD!

@@ -26,7 +26,7 @@ Next we apply the Strimzi install files, including `ClusterRoles`, `ClusterRoleB
 ```shell
 curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/{{site.data.releases.operator[0].version}}/strimzi-cluster-operator-{{site.data.releases.operator[0].version}}.yaml \
   | sed 's/namespace: .*/namespace: kafka/' \
-  | kubectl -n kafka apply -f -
+  | kubectl apply -f - -n kafka 
 ```
 
 # Provision the Apache Kafka cluster
@@ -35,13 +35,13 @@ After that we feed Strimzi with a simple **Custom Resource**, which will than gi
 
 ```shell
 # Apply the `Kafka` Cluster CR file
-kubectl -n kafka apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{{site.data.releases.operator[0].version}}/examples/kafka/kafka-persistent-single.yaml 
+kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{{site.data.releases.operator[0].version}}/examples/kafka/kafka-persistent-single.yaml -n kafka 
 ```
 
 We now need to wait while Kubernetes starts the required pods, services and so on:
 
 ```shell
-kubectl -n kafka wait --for=condition=Ready kafka/my-cluster --timeout=300s
+kubectl wait --for=condition=Ready kafka/my-cluster --timeout=300s -n kafka 
 ```
 
 The above command might timeout if you're downloading images over a slow connection. If that happens you can always run it again.
