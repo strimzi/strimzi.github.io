@@ -98,15 +98,13 @@ The 'metrics.reporters' field can take a list of comma-separated metric reporter
 
 # Accessing Zookeeper
 
-For operations like partition reassignments and leadership changes, Cruise Control needs to be able communicate with Zookeeper directly. Cruise Control also relies on Zookeeper for the current configuration and state of the Kafka cluster.
-
-By default, communication between Zookeeper and all other Strimzi components must be encrypted and authenticated. Using a hack by Jakub Scholz, one can get around this requirement by creating a Kubernetes service which reuses Strimzi certificates to pipe unencrypted and unauthenticated traffic to Zookeeper. This allows Cruise Control to communicate with Zookeeper without more depth configuration changes required for proper authorization and encryption.
+Cruise Control relies on Zookeeper for the current state and configuration of the Kafka cluster. For estimating partition load, monitoring cluster state, and triggering partition reassignments, Cruise Control needs to be able communicate with Zookeeper directly. By default, communication between Zookeeper and all other Strimzi components must be encrypted and authenticated. However, using a hack by Jakub Scholz, one can get around this requirement by creating a Kubernetes service which reuses Strimzi certificates to pipe unencrypted and unauthenticated traffic to Zookeeper. This allows Cruise Control to communicate with Zookeeper without the need of proper authorization and encryption configuration via Java system properties or Stunnel sidecars.
 
 ```
 kubectl apply -f https://gist.githubusercontent.com/scholzj/6cfcf9f63f73b54eaebf60738cfdbfae/raw/068d55ac65e27779f3a5279db96bae03cea70acb/zoo-entrance.yaml
 ```
 
-**WARNING**: Allowing unauthenticated access to Zookeeper exposes sensitive Kafka metadata for reading and writing by any user. Nefarious users can exploit this information to mess up the state of the cluster by altering topic configurations or even elevate client privileges by changing ACL access rules to steal data.
+**WARNING**: Allowing unauthenticated access to Zookeeper exposes sensitive Kafka metadata for reading and writing by any user. Nefarious users can exploit this access by altering topic configurations to mess up the state of the cluster or by changing ACL access rules to elevate client privileges to steal data.
 
 # Containerizing and deploying Cruise Control
 
