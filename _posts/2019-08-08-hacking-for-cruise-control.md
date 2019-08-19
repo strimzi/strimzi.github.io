@@ -20,7 +20,7 @@ Like any proof of concept, there are a few actions to consider when putting it t
 
 # Aligning Kafka versions
 
-It's worth noting that the latest Kafka version which Cruise Control supports at this time is 2.0.1. The latest version of Strimzi which supports Kafka version 2.0.1 is 0.11.4. Although its possible to run Cruise Control alongside with later versions of Kafka, 2.0.1+, it is not supported. Keep this in mind when deciding which version of Strimzi to deploy. This post will stick to using Strimzi 0.11.4, but feel free to experiment with more updated versions.
+At this time of this post, Cruise Control officially supports Kafka version 2.0.0 but should still be compatible with later versions of Kafka. This blog post will stick to using Kafka version 2.3.0 but feel free to experiment with other Kafka versions.
 
 # Gathering Metrics
 In order to estimate partition activity and resources, Cruise Control needs a steady source of metric data from Kafka. Fortunately, Kafka tracks all sorts of metrics and makes them all accessible through pluggable components know as 'metric reporters'. Kafka metric reporters designate what, where, when, and how metrics are prepared for export. 
@@ -39,7 +39,7 @@ Cruise Control ships its own implementation of a Kafka metric reporter, the 'Cru
 Placing the Cruise Control metric reporter jar into the '/opt/kafka/libs/' directory of every Kafka broker allows Kafka to find the reporter at runtime. For the sake of simplicity, one can do this by updating the Strimzi Kafka image with the needed Cruise Control jar using the following Dockerfile:
 
 ```Dockerfile
-FROM strimzi/kafka:0.11.4-kafka-2.0.1
+FROM strimzi/kafka:0.13.0-kafka-2.3.0
 
 ENV CC_VERSION=2.0.57
 ENV JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk"
@@ -68,7 +68,7 @@ metadata:
 spec:
   kafka:
     image: <kafka-image-name>
-    version: 2.0.1
+    version: 2.3.0
     replicas: 3
     listeners:
       plain: {}
@@ -78,7 +78,7 @@ spec:
       offsets.topic.replication.factor: 1
       transaction.state.log.replication.factor: 1
       transaction.state.log.min.isr: 1
-      log.message.format.version: "2.0.1"
+      log.message.format.version: "2.3.0"
     storage:
       type: ephemeral
   zookeeper:
