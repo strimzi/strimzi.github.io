@@ -8,15 +8,14 @@ author: kyle_liberti
 Cruise Control is a higly customizable Kafka partition balancing and monitoring software run in production at Linkedin. Cruise Control’s component pluggability makes it flexible to customize for different environments. This makes it possible to extend Cruise Control to work with Strimzi in an Kubernetes environment with a reasonable amount of effort. This post will walk through how to get Cruise Control working with a Stimzi deployed Kafka cluster.
 <!--more-->
 
-
 # Prequisite Outline
 
 Like any proof of concept, there are a few actions to consider when putting it together. For getting Cruise Control to work with Strimzi these actions are: 
 
 - Aligning Kafka versions
 - Gathering Kafka Metrics
-- Accessing Zookeeper endpoint
-- Containerizing and deploying Cruise Control
+- Accessing Zookeeper
+- Deploying Cruise Control
 
 # Aligning Kafka versions
 
@@ -106,9 +105,9 @@ kubectl apply -f https://gist.githubusercontent.com/scholzj/6cfcf9f63f73b54eaebf
 
 **WARNING**: Allowing unauthenticated access to Zookeeper exposes sensitive Kafka metadata for reading and writing by any user. Nefarious users can exploit this access by altering topic configurations to mess up the state of the cluster or by changing ACL access rules to elevate client privileges to steal data.
 
-# Containerizing and deploying Cruise Control
+# Deploying Cruise Control
 
-Create a Cruise Control image
+To run on Kuberentes, Cruise Control must be formatted into a container image. One can do this using the following Dockerfile. Note that the Cruise Control configuration file, 'cruisecontrol.properties', must be altered to reference the appropriate Kafka bootstrap and Zookeeper service endpoints. In addition to pointing Cruise Control to the proper service endpoints, the Dockerfile sets up the Cruise Control GUI fontend to be available upon Cruise Control startup.
 
 ```Dockerfile
 FROM centos:7
@@ -125,27 +124,30 @@ WORKDIR cruise-control
 
 RUN ./gradlew jar copyDependantLibs
 
+# Configure Cruise Control to point to the proper Kafka and Zookeeper endpoints
 RUN sed -i 's/bootstrap.servers=.*/bootstrap.servers=my-cluster-kafka-bootstrap:9092/g' config/cruisecontrol.properties \
     && sed -i 's/zookeeper.connect=.*/zookeeper.connect=zoo-entrance:2181/g' config/cruisecontrol.properties \
     && sed -i 's/capacity.config.file=.*/capacity.config.file=config\/capacityJBOD.json/g' config/cruisecontrol.properties \
     && sed -i 's/sample.store.topic.replication.factor=.*/sample.store.topic.replication.factor=1/g' config/cruisecontrol.properties 
-   
+
+# Ensure Cruise Control log directory is writable
 RUN mkdir logs \ 
     && touch ./logs/kafkacruisecontrol.log \
     && chmod a+rw -R .
 
+# Install Cruise Control GUI Frontend
 RUN curl -L https://github.com/linkedin/cruise-control-ui/releases/download/v0.1.0/cruise-control-ui.tar.gz \
     -o /tmp/cruise-control-ui.tar.gz \
     && tar zxvf /tmp/cruise-control-ui.tar.gz
 
 ENTRYPOINT ["/bin/bash", "-c", "./kafka-cruise-control-start.sh config/cruisecontrol.properties"]
 ```
-
+Build the image:
 ```
 docker build . -t <cruise-control-image-name>
 ```
 
-Then create a Cruise Control deployment, 'cruise-control-deployment.yaml'
+Then, using the following file, 'cruise-control-deployment.yaml', create a Cruise Control deployment that references the Cruise Control image, 'cruise-control-image-name', and a Cruise Control service endpoint for enabling communication with Cruise Control from outside the Cruise Control pod.
 ```yaml
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -184,29 +186,29 @@ spec:
     name: my-cruise-control
 
 ```
-
+Apply to the cluster:
 ```bash
 kubectl apply -f cruise-control-deployment.yaml
 ```
 
 # Interacting with Cruise Control API
 
-To access the Cruise Control REST API from outside Kubernetes, port-forward the Cruise Control service to localhost:9095:
+After the Cruise Control is up and running, one can access the Cruise Control REST API from outside Kubernetes by port forwarding the Cruise Control service to 'localhost:9090'
 
 ```
-kubectl port-forward svc/my-cruise-control 9095:9090
+kubectl port-forward svc/my-cruise-control 9090:9090
 ```
 
-After port forwarding the service, there are a few ways to interact with the Cruise Control API:
+After forwarding the service, there are a few ways to interact with the Cruise Control API:
 
 * curl
 * cruise-control client
 * Cruise Control GUI Frontend
 
-## Using Curl
+## Using curl
 
 ```
-curl -vv -X GET -c /tmp/mycookie-jar.txt "http://127.0.0.1:9095/kafkacruisecontrol/state"
+curl -vv -X GET "http://127.0.0.1:9090/kafkacruisecontrol/state"
 ```
 
 For more details visit the [Cruise Control Wiki](https://github.com/linkedin/cruise-control/wiki/REST-APIs)
@@ -223,15 +225,22 @@ pip3 install cruise-control-client
 To run:
 
 ```
-cccli -a 127.0.0.1:9095  kafka_cluster_state
+cccli -a 127.0.0.1:9090  kafka_cluster_state
 ```
+
+For more details visit the [Cruise Control Wiki](https://github.com/linkedin/cruise-control/wiki/Getting-Started)
+
 
 ## Using Cruise Control Frontend
 
-Vist 'http://127.0.0.1:9095' in browser
+Vist 'http://127.0.0.1:9090' in browser
 
 ![Cruise Control Frontend]({{ "/assets/2019-08-08-cruise-control-frontend.png" }})
 
-# Citations
+# Conclusion
 
-Don't forget to cite Adam Cattermole
+Sampling Cruise Control metrics from the Kafka cluster, Cruise Control will calculate the partition resources and evaluate whether any cluster goals or resource restrictions have been violated. Upon violation, Cruise Control will notify the users when it needs manual intervention whether it be a partition rebalance, an additional broker, or configuration adjustment. Just like the metric reporter, the components that determine things like resource calculations, partition restrictions, and violation alerts are customizable. This flexibility gives users the leverage to operate their Kafka clusters more effectively, even while using Strimzi.
+
+# Acknowledgements
+
+The core content of this post is based upon the work of Adam Cattermole. Not only did Adam get Cruise Control working with Strimzi but he also provided [all the steps, Dockerfiles, and YAML files](https://github.com/adam-cattermole/cc-extra/blob/master/notes.adoc) for others to do so as well.
