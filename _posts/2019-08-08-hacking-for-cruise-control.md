@@ -5,7 +5,10 @@ date: 2019-08-08
 author: kyle_liberti
 ---
 
-Cruise Control is a highly customizable Kafka partition balancing and monitoring software run in production at Linkedin. Cruise Control’s component pluggability makes it flexible to customize for different environments. This makes it possible to extend Cruise Control to work with Strimzi in an Kubernetes environment with a reasonable amount of effort. This post will walk through how to get Cruise Control working with a Stimzi deployed Kafka cluster.
+Cruise Control is a highly customizable software tool for simplifying the monitoring and balancing of workloads across a Kafka cluster.
+The flexibility of Cruise Control makes it easy to customize for different environments and use cases.
+This makes it possible to extend Cruise Control to work with Strimzi in an Kubernetes environment with a reasonable amount of effort.
+This post will walk through how to hook Cruise Control up to a Strimzi deployed Kafka cluster.
 <!--more-->
 
 # Prerequisite Outline
@@ -53,9 +56,14 @@ RUN cd cruise-control \
     && ./gradlew jar :cruise-control-metric-reporter:jar \
     && cp cruise-control-metrics-reporter/build/libs/* /opt/kafka/libs/
 ```
-Then building the image:
+Then building and pushing the image:
 ```bash
-docker build . -t <kafka-image-name>
+# When building, tag the image with the name of a container registry 
+# that is accessible by the Kubernetes cluster.
+docker build . -t <registry>/<kafka-image-name>
+
+# Push the image to that container registry
+docker push <registry>/<kafka-image-name>
 ```
 For the Cruise Control metric reporter to be activated at runtime, its class name must be listed in the 'metrics.reporters' field of the Kafka config. For a Strimzi Kafka cluster, one can do this by creating a Kafka custom resource which references the new Kafka 'image' built above and the 'com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter' class name in the 'metrics.reporters' field using the following 'kafka.yaml' file:
 ```yaml
@@ -65,7 +73,7 @@ metadata:
   name: my-cluster
 spec:
   kafka:
-    image: <kafka-image-name>
+    image: <registry>/<kafka-image-name>
     version: 2.3.0
     replicas: 3
     listeners:
@@ -93,6 +101,8 @@ Then applying the Kafka custom resource to the cluster:
 kubectl apply -f kafka.yaml
 ```
 The 'metrics.reporters' field can take a list of comma-separated metric reporter class names. At runtime, Kafka will loop through this list and instantiate these metric reporters to run concurrently.
+
+At user-defined time windows, Cruise Control will read these reported metrics from the designated Kafka topic and use them for cluster monitoring and balancing. How to configure the connection between Cruise Control and Kafka will be described later in the post.
 
 # Accessing Zookeeper
 
@@ -141,9 +151,14 @@ RUN curl -L https://github.com/linkedin/cruise-control-ui/releases/download/v0.1
 
 ENTRYPOINT ["/bin/bash", "-c", "./kafka-cruise-control-start.sh config/cruisecontrol.properties"]
 ```
-Build the image:
-```
-docker build . -t <cruise-control-image-name>
+Build and push the image:
+```bash
+# When building, tag the image with the name of a container registry 
+# that is accessible by the Kubernetes cluster.
+docker build . -t <registry>/<cruise-control-image-name>
+
+# Push the image to that container registry
+docker push <registry>/<cruise-control-image-name>
 ```
 Then, using the following file, 'cruise-control-deployment.yaml', create a Cruise Control deployment that references the Cruise Control image, 'cruise-control-image-name', and a Cruise Control service endpoint for enabling communication with Cruise Control from outside the Cruise Control pod.
 ```yaml
@@ -163,7 +178,7 @@ spec:
     spec:
       containers:
       - name: my-cruise-control
-        image: <cruise-control-image-name>
+        image: <registry>/<cruise-control-image-name>
         imagePullPolicy: 'Always'
 ---
 apiVersion: v1
@@ -179,7 +194,7 @@ spec:
       port: 9090
       protocol: TCP
       targetPort: 9090
-  type: NodePort
+  type: ClusterIP
   selector:
     name: my-cruise-control
 
