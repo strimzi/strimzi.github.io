@@ -38,7 +38,7 @@ oc apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{{s
 We now need to wait while OpenShift starts the required pods, services and so on:
 
 ```shell
-oc wait wait --for=condition=Ready kafka/my-cluster --timeout=300s -n myproject
+oc wait kafka/my-cluster --for=condition=Ready --timeout=300s -n myproject
 ```
 
 The above command might timeout if you're downloading images over a slow connection. If that happens you can always run it again.

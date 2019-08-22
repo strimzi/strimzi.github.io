@@ -41,7 +41,7 @@ kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operato
 We now need to wait while Kubernetes starts the required pods, services and so on:
 
 ```shell
-kubectl wait --for=condition=Ready kafka/my-cluster --timeout=300s -n kafka 
+kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka 
 ```
 
 The above command might timeout if you're downloading images over a slow connection. If that happens you can always run it again.
