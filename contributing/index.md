@@ -16,7 +16,7 @@ Issues which might be a good start for new contributors are marked with the ["go
 
 The [Hacking guide](https://github.com/strimzi/strimzi-kafka-operator/blob/master/HACKING.md) describes how to build Strimzi and how to test your changes before submitting a patch or opening a PR.
 
-The [Documentation Contributor Guide](http://strimzi.io/contributing/guide/) describes how to contribute to Strimzi documentation.
+The [Documentation Contributor Guide](https://strimzi.io/contributing/guide/) describes how to contribute to Strimzi documentation.
 
 If you want to get in touch with us first before contributing, you can use:
 
