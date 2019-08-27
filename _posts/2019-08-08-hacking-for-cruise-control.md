@@ -13,18 +13,18 @@ This post will walk through how to hook Cruise Control up to a Strimzi deployed 
 
 # Prerequisite Outline
 
-Like any proof of concept, there are a few considerations and tradeoffs to think about before jumping in.
-For starters, one will need a Kafka cluster.
-At this time of this post, Cruise Control officially supports Kafka version 2.0.0 but should still be compatible with later versions of Kafka.
+There are a few considerations and tradeoffs to think about before jumping in.
+For starters, you will need a Kafka cluster.
+At the time of this post, Cruise Control officially supports Kafka version 2.0.0 but should still be compatible with later versions of Kafka.
 This blog post will stick to using Kafka version 2.3.0 but feel free to experiment with other Kafka versions.
 
-The core challenges of hacking Cruise Control to work with Strimzi are: 
+The core challenges of making Cruise Control work with Strimzi are: 
 
 - Gathering Kafka Metrics for Cruise Control consumption
 - Enabling communication between Cruise Control and Zookeeper
 - Deploying Cruise Control in Kubernetes
 
-There are many ways of approaching these hurdles but this post will attempt to address these challenges with as few steps as possible.
+We're looking at having deeper Cruise Control integration in Strimzi in the future, but this post is about how to get Cruise Control working with Strimzi today. For this reason I will address these challenges in as few steps as possible.
 
 # Gathering Metrics
 In order to estimate partition activity and resources, Cruise Control needs a steady source of metric data from Kafka.
@@ -32,15 +32,15 @@ Fortunately, Kafka tracks all sorts of metrics and makes them all accessible thr
 Kafka metric reporters designate what, where, when, and how metrics are prepared for export. 
 
 Kafka maintains two core types of metrics:
-* **Yammer metrics** For _server-side_ metrics related to brokers.
+* **Broker metrics** For _server-side_ metrics related to brokers.
 These metric objects are kept in a globally accessible Yammer metric registry which can be reached directly by metric reporters. 
-* **Kafka metrics** For _client-side_ metrics related to Kafka producers, consumers, connect, and streams.
+* **Client metrics** For _client-side_ metrics related to Kafka producers, consumers, connect, and streams.
 These metric objects are tracked in concurrent hash map and explicitly passed to metric reporters when created.
 
-The type of metrics exposed by the metric reporters, whether it be Yammer metrics, Kafka metrics, or both, is solely dependent on the implementation of the metric reporter.
-For example, the JMX metric reporter, a metric reporter provided and automatically enabled by Kafka, only wraps **Kafka metrics** as JMX MBeans.
-This is counterintuitive since it's known that Kafka exposes all of its metrics, Kafka *and* Yammer, through JMX.
-The reason why the Kafka JMX metric reporter doesn't wrap **Yammer metrics** as MBeans is because they are already exposed as JMX MBeans by Kafka by default.
+The type of metrics exposed by the metric reporters, whether it be broker metrics, client metrics, or both, is solely dependent on the implementation of the metric reporter.
+For example, the JMX metric reporter, a metric reporter provided and automatically enabled by Kafka, only wraps **client metrics** as JMX MBeans.
+This is counterintuitive since it's known that Kafka exposes all of its metrics, client *and* broker, through JMX.
+The reason why the Kafka JMX metric reporter doesn't wrap **broker metrics** as MBeans is because they are already exposed as JMX MBeans by the Yammer metric registry.
 
 Upon startup, every Kafka server loops through a list of metric reporters supplied via its Kafka config, executing every metric reporter on its own thread.
 As Kafka creates metric objects it passes them to every metric reporter thread for filtering and tracking.
@@ -55,7 +55,7 @@ For the Cruise Control metric objects, the reporter will include information rel
 Finally, the reporter will format the Cruise Control metric object into a byte array and store it into a Kafka topic designated for Cruise Control metrics.
 
 Placing the Cruise Control metric reporter jar into the '/opt/kafka/libs/' directory of every Kafka broker allows Kafka to find the reporter at runtime.
-For the sake of simplicity, one can do this by updating the Strimzi Kafka image with the needed Cruise Control jar using the following Dockerfile:
+You can do this by updating the Strimzi Kafka image with the needed Cruise Control jar using the following Dockerfile:
 
 ```Dockerfile
 # Multi-stage build requires Docker 17.05 or higher
@@ -86,7 +86,7 @@ docker build . -t <registry>/<kafka-image-name>
 docker push <registry>/<kafka-image-name>
 ```
 For the Cruise Control metric reporter to be activated at runtime, its class name must be listed in the 'metrics.reporters' field of the Kafka config.
-For a Strimzi Kafka cluster, one can do this by creating a Kafka custom resource which references the new Kafka 'image' built above and the 'com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter' class name in the 'metrics.reporters' field using the following 'kafka.yaml' file:
+For a Strimzi Kafka cluster, you can do this by creating a Kafka custom resource which references the new Kafka 'image' built above and the 'com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter' class name in the 'metrics.reporters' field using the following 'kafka.yaml' file:
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
@@ -132,7 +132,7 @@ How to configure the connection between Cruise Control and Kafka will be describ
 Cruise Control relies on Zookeeper for the current state and configuration of the Kafka cluster.
 For estimating partition load, monitoring cluster state, and triggering partition reassignments, Cruise Control needs to be able communicate with Zookeeper directly.
 By default, communication between Zookeeper and all other Strimzi components must be encrypted and authenticated.
-However, using a hack by Jakub Scholz, one can get around this requirement by creating a Kubernetes service which reuses Strimzi certificates to pipe unencrypted and unauthenticated traffic to Zookeeper. This allows Cruise Control to communicate with Zookeeper without the need of proper authorization and encryption configuration via Java system properties or Stunnel sidecars.
+However, using a hack by Jakub Scholz, you can get around this requirement by creating a Kubernetes service which reuses Strimzi certificates to pipe unencrypted and unauthenticated traffic to Zookeeper. This allows Cruise Control to communicate with Zookeeper without the need of proper authorization and encryption configuration via Java system properties or Stunnel sidecars.
 
 ```
 kubectl apply -f https://gist.githubusercontent.com/scholzj/6cfcf9f63f73b54eaebf60738cfdbfae/raw/068d55ac65e27779f3a5279db96bae03cea70acb/zoo-entrance.yaml
@@ -145,7 +145,7 @@ Nefarious users could exploit this access by altering topic configurations to me
 
 With the Kafka cluster running and the Zookeeper endpoint accessible, Cruise Control can now be started safely and begin sampling metrics and monitoring the cluster.
 To run on Kubernetes, Cruise Control must be formatted into a container image.
-One can do this using the following Dockerfile. Note that the Cruise Control configuration file, 'cruisecontrol.properties', must be altered to reference the appropriate Kafka bootstrap and Zookeeper service endpoints.
+You can do this using the following Dockerfile. Note that the Cruise Control configuration file, 'cruisecontrol.properties', must be altered to reference the appropriate Kafka bootstrap and Zookeeper service endpoints.
 In addition to pointing Cruise Control to the proper service endpoints, the Dockerfile sets up the Cruise Control GUI frontend to be available upon startup.
 
 ```Dockerfile
@@ -245,7 +245,7 @@ kubectl apply -f cruise-control-deployment.yaml
 
 # Interacting with Cruise Control API
 
-After Cruise Control is up and running, one can access the Cruise Control REST API from outside Kubernetes by port forwarding the Cruise Control service to 'localhost:9090'
+After Cruise Control is up and running, you can access the Cruise Control REST API from outside Kubernetes by port forwarding the Cruise Control service to 'localhost:9090'
 
 ```
 kubectl port-forward svc/my-cruise-control 9090:9090
@@ -291,7 +291,7 @@ Vist 'http://127.0.0.1:9090' in browser
 
 # Conclusion
 
-After gathering enough metric samples, Cruise Control will be able estimate partition resources.  Knowing the the partition load, Cruise Control will be able to evaluate whether any resource restrictions have been violated and propose more efficient partition assignments for the cluster.
+After gathering enough metric samples, Cruise Control will be able estimate partition resources.  Knowing the partition load, Cruise Control will be able to evaluate whether any resource restrictions have been violated and propose more efficient partition assignments for the cluster.
 Just like metric reporters, many of the Cruise Control's components can be tailored to fit special use cases and environments.
 Components that determine things like how resources are calculated, what resource goals are prioritized, and how anomalies are handled can all be customized by the user.
 This flexibility gives users the leverage to operate their Kafka clusters more effectively, even while using Strimzi.
