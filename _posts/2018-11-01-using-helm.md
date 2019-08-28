@@ -48,13 +48,13 @@ You can install the Strimzi Helm Chart by referencing the artifact directly from
 To reference it directly you can download the appropriate release from the Strimzi [GitHub Releases](https://github.com/strimzi/strimzi-kafka-operator/releases/) page, or provide the full URL to the Chart to a [`helm install`](https://docs.helm.sh/helm/#helm-install) command.
 
 To use the Strimzi Chart Repository you must first add the Repository to your local Helm configuration.
-Strimzi releases are published directly to their own [Helm Chart Repository](http://strimzi.io/charts/index.yaml) (located at [http://strimzi.io/charts/](http://strimzi.io/charts/index.yaml)) every release cycle.
+Strimzi releases are published directly to their own [Helm Chart Repository](https://strimzi.io/charts/index.yaml) (located at [https://strimzi.io/charts/](https://strimzi.io/charts/index.yaml)) every release cycle.
 You may optionally also download a version of the Chart and host it within your own organization's Helm Chart Repository.
 
 First add the Strimzi Chart Repository.
 
 ```bash
-helm repo add strimzi http://strimzi.io/charts/
+helm repo add strimzi https://strimzi.io/charts/
 ```
 
 Strimzi uploads a new Chart as part of the release process.
@@ -90,7 +90,7 @@ helm install strimzi/strimzi-kafka-operator \
 --version 0.8.2
 ```
 
-Once the Cluster Operator is installed you may now [install a Kafka cluster](http://strimzi.io/docs/master/#kafka-cluster-str) as you normally would.
+Once the Cluster Operator is installed you may now [install a Kafka cluster](https://strimzi.io/docs/master/#kafka-cluster-str) as you normally would.
 
 ## Installation without using Helm Tiller server
 

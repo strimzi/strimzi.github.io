@@ -11,7 +11,7 @@ We are really happy to announce the new Strimzi 0.4.0 release with a lot of fixe
 
 # Enhanced configuration
 
-Until the previous release, just a few parameters were exposed through the cluster config map so that the Kafka brokers and Zookeeper nodes configurations were limited. With this release, the `kafka-config` ([doc](http://strimzi.io/docs/0.4.0/#kafka_configuration_json_config)) and the `zookeeper-config` ([doc](http://strimzi.io/docs/0.4.0/#zookeeper_configuration_json_config)) fields were added in order to allow the user to define a full configuration through a JSON string.
+Until the previous release, just a few parameters were exposed through the cluster config map so that the Kafka brokers and Zookeeper nodes configurations were limited. With this release, the `kafka-config` ([doc](https://strimzi.io/docs/0.4.0/#kafka_configuration_json_config)) and the `zookeeper-config` ([doc](https://strimzi.io/docs/0.4.0/#zookeeper_configuration_json_config)) fields were added in order to allow the user to define a full configuration through a JSON string.
 Here's an example of the `kafka-config` field:
 
 ```json
@@ -22,7 +22,7 @@ Here's an example of the `kafka-config` field:
 }
 ```
 
-It's possible to do the same within the Kafka Connect config map using the `connect-config` field ([doc](http://strimzi.io/docs/0.4.0/#kafka_connect_configuration_json_config)).
+It's possible to do the same within the Kafka Connect config map using the `connect-config` field ([doc](https://strimzi.io/docs/0.4.0/#kafka_connect_configuration_json_config)).
 
 ```json
 {
@@ -33,7 +33,7 @@ It's possible to do the same within the Kafka Connect config map using the `conn
 
 # Resources usage configuration
 
-It's now possible to specify the Kubernetes/OpenShift resource requests and limits in terms of CPU and memory usage related to the containers running the cluster nodes. The `kafka-resources` and `zookeeper-resources` fields ([doc](http://strimzi.io/docs/0.4.0/#resources_json_config)) can be used to describe such information using a JSON string.
+It's now possible to specify the Kubernetes/OpenShift resource requests and limits in terms of CPU and memory usage related to the containers running the cluster nodes. The `kafka-resources` and `zookeeper-resources` fields ([doc](https://strimzi.io/docs/0.4.0/#resources_json_config)) can be used to describe such information using a JSON string.
 Here's an example:
 
 ```json
@@ -51,7 +51,7 @@ Here's an example:
 
 These settings can be even specified for the Topic Operator using the `resources` field within the `topic-operator-config` field available in the cluster config map; in the same way, the `resources` field is used for the Kafka Connect deployment in the related config map.
 
-It's also possible to configure JVM options through `kafka-jvmOptions` and `zookeeper-jvmOptions` fields ([doc](http://strimzi.io/docs/0.4.0/#jvm_json_config)) like the ones for specifying the initial and maximum heap size, as described in the following example.
+It's also possible to configure JVM options through `kafka-jvmOptions` and `zookeeper-jvmOptions` fields ([doc](https://strimzi.io/docs/0.4.0/#jvm_json_config)) like the ones for specifying the initial and maximum heap size, as described in the following example.
 
 ```json
 {
@@ -60,7 +60,7 @@ It's also possible to configure JVM options through `kafka-jvmOptions` and `zook
 }
 ```
 
-The Kafka Connect config map provides the same configuration through the `jvmOptions` ([doc](http://strimzi.io/docs/0.4.0/#kafka_connect_config_map_details)) field as well.
+The Kafka Connect config map provides the same configuration through the `jvmOptions` ([doc](https://strimzi.io/docs/0.4.0/#kafka_connect_config_map_details)) field as well.
 
 # New Kafka version
 
