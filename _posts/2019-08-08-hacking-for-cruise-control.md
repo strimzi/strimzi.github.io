@@ -28,8 +28,10 @@ We're looking at having deeper Cruise Control integration in Strimzi in the futu
 
 # Gathering Metrics
 In order to estimate partition activity and resources, Cruise Control needs a steady source of metric data from Kafka.
-Fortunately, Kafka tracks all sorts of metrics and makes them all accessible through pluggable components known as 'metric reporters'.
-Kafka metric reporters designate what, where, when, and how metrics are prepared for export. 
+Fortunately, Kafka tracks all sorts of metrics and makes them all accessible through pluggable components known as 'metric reporters'. 
+Kafka metric reporters designate what, where, when, and how metrics are prepared for export.
+For Cruise Control, each Kafka broker is equipped with a metric reporter that will publish a subset of the broker's metrics to a special topic. 
+Cruise Control will then consume the metrics from this topic to learn about the load experienced by each broker in the cluster.
 
 Kafka maintains two core types of metrics:
 * **Broker metrics** For _server-side_ metrics related to brokers.
@@ -38,9 +40,7 @@ These metric objects are kept in a globally accessible Yammer metric registry wh
 These metric objects are tracked in concurrent hash map and explicitly passed to metric reporters when created.
 
 The type of metrics exposed by the metric reporters, whether it be broker metrics, client metrics, or both, is solely dependent on the implementation of the metric reporter.
-For example, the JMX metric reporter, a metric reporter provided and automatically enabled by Kafka, only wraps **client metrics** as JMX MBeans.
-This is counterintuitive since it's known that Kafka exposes all of its metrics, client *and* broker, through JMX.
-The reason why the Kafka JMX metric reporter doesn't wrap **broker metrics** as MBeans is because they are already exposed as JMX MBeans by the Yammer metric registry.
+For example, since Cruise Control is primarily concerned about broker activity, the Cruise Control metrics reporter, discussed in the next section, only exposes **broker metrics**.
 
 Upon startup, every Kafka server loops through a list of metric reporters supplied via its Kafka config, executing every metric reporter on its own thread.
 As Kafka creates metric objects it passes them to every metric reporter thread for filtering and tracking.
@@ -49,7 +49,7 @@ Afterwards, the metric reporters monitor the metric objects for stat updates fro
 
 ## Cruise Control Metric Reporter
 Cruise Control ships its own implementation of a Kafka metric reporter, the 'Cruise Control metric reporter'.
-Unlike the JMX metric reporter, the Cruise Control metric reporter filters the metric objects it receives from Kafka, stowing the metric objects related to Kafka partition monitoring into a concurrent hash map.
+The Cruise Control metric reporter filters the metric objects it receives from Kafka, stowing the metric objects related to Kafka partition monitoring into a concurrent hash map.
 Then, at user-defined intervals, the reporter will loop through the concurrent hash map and create Cruise Control metric objects from the data provided by the metric objects.
 For the Cruise Control metric objects, the reporter will include information related to the metric type, value, time of recording, and broker origin.
 Finally, the reporter will format the Cruise Control metric object into a byte array and store it into a Kafka topic designated for Cruise Control metrics.
