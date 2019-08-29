@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Hacking Strimzi for Cruise Control"
-date: 2019-08-08
+date: 2019-08-29
 author: kyle_liberti
 ---
 
