@@ -33,15 +33,6 @@ Kafka metric reporters designate what, where, when, and how metrics are prepared
 For Cruise Control, each Kafka broker is equipped with a metric reporter that will publish a subset of the broker's metrics to a special topic. 
 Cruise Control will then consume the metrics from this topic to learn about the load experienced by each broker in the cluster.
 
-Kafka maintains two core types of metrics:
-* **Broker metrics** For _server-side_ metrics related to brokers.
-These metric objects are kept in a globally accessible Yammer metric registry which can be reached directly by metric reporters. 
-* **Client metrics** For _client-side_ metrics related to Kafka producers, consumers, connect, and streams.
-These metric objects are tracked in concurrent hash map and explicitly passed to metric reporters when created.
-
-The type of metrics exposed by the metric reporters, whether it be broker metrics, client metrics, or both, is solely dependent on the implementation of the metric reporter.
-For example, since Cruise Control is primarily concerned about broker activity, the Cruise Control metrics reporter, discussed in the next section, only exposes **broker metrics**.
-
 Upon startup, every Kafka server loops through a list of metric reporters supplied via its Kafka config, executing every metric reporter on its own thread.
 As Kafka creates metric objects it passes them to every metric reporter thread for filtering and tracking.
 What, where, and how this happens to the metric objects depends on the specific implementation of the metric reporter.
@@ -85,8 +76,8 @@ docker build . -t <registry>/<kafka-image-name>
 # Push the image to that container registry
 docker push <registry>/<kafka-image-name>
 ```
-For the Cruise Control metric reporter to be activated at runtime, its class name must be listed in the 'metrics.reporters' field of the Kafka config.
-For a Strimzi Kafka cluster, you can do this by creating a Kafka custom resource which references the new Kafka 'image' built above and the 'com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter' class name in the 'metrics.reporters' field using the following 'kafka.yaml' file:
+For a metric reporter to be activated at runtime, its class name must be listed in the `metrics.reporters` field of the Kafka config.
+You do this in Strimzi by creating a `Kafka` custom resource which references the new Kafka 'image' built above and the `com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter` class name in the `metrics.reporters` field using the following 'kafka.yaml' file:
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
@@ -121,7 +112,7 @@ Then applying the Kafka custom resource to the cluster:
 ```bash
 kubectl apply -f kafka.yaml
 ```
-The 'metrics.reporters' field can take a list of comma-separated metric reporter class names.
+The `metrics.reporters` field can take a list of comma-separated metric reporter class names, if you need to add others.
 At runtime, Kafka will loop through this list and instantiate these metric reporters to run concurrently.
 
 At user-defined time windows, Cruise Control will read these reported metrics from the designated Kafka topic and use them for cluster monitoring and balancing.
@@ -129,9 +120,10 @@ How to configure the connection between Cruise Control and Kafka will be describ
 
 # Accessing Zookeeper
 
-Cruise Control relies on Zookeeper for the current state and configuration of the Kafka cluster.
+Cruise Control gets the current state and configuration of the Kafka cluster from Zookeeper.
 For estimating partition load, monitoring cluster state, and triggering partition reassignments, Cruise Control needs to be able communicate with Zookeeper directly.
-By default, communication between Zookeeper and all other Strimzi components must be encrypted and authenticated.
+Communication between Zookeeper and all other Strimzi components is always encrypted and authenticated using TLS.
+This preventsCruise Control making a non-TLS connection  to Zookeeper.
 However, using a hack by Jakub Scholz, you can get around this requirement by creating a Kubernetes service which reuses Strimzi certificates to pipe unencrypted and unauthenticated traffic to Zookeeper. This allows Cruise Control to communicate with Zookeeper without the need of proper authorization and encryption configuration via Java system properties or Stunnel sidecars.
 
 ```
@@ -140,6 +132,9 @@ kubectl apply -f https://gist.githubusercontent.com/scholzj/6cfcf9f63f73b54eaebf
 
 **WARNING**: Allowing unauthenticated access to Zookeeper exposes sensitive Kafka metadata for reading and writing by any user.
 Nefarious users could exploit this access by altering topic configurations to mess up cluster state or by changing ACL access rules to elevate client privileges for stealing data.
+
+**Note**: Kafka is in the process of migrating to using the Kafka `AdminClient` instead of Zookeeper for operations like initiating replica reassignment.
+To stay compatible with future versions of Kafka, Cruise Control will need to follow these API changes.
 
 # Deploying Cruise Control
 
