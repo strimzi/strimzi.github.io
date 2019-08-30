@@ -134,7 +134,6 @@ kubectl apply -f https://gist.githubusercontent.com/scholzj/6cfcf9f63f73b54eaebf
 Nefarious users could exploit this access by altering topic configurations to mess up cluster state or by changing ACL access rules to elevate client privileges for stealing data.
 
 **Note**: Kafka is in the process of migrating to using the Kafka `AdminClient` instead of Zookeeper for operations like initiating replica reassignment.
-To stay compatible with future versions of Kafka, Cruise Control will need to follow these API changes.
 
 # Deploying Cruise Control
 
