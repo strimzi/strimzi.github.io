@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Hacking Strimzi for Cruise Control"
-date: 2019-08-29
+date: 2019-09-03
 author: kyle_liberti
 ---
 
@@ -27,6 +27,7 @@ The core challenges of making Cruise Control work with Strimzi are:
 We're looking at having deeper Cruise Control integration in Strimzi in the future, but this post is about how to get Cruise Control working with Strimzi today. For this reason I will address these challenges in as few steps as possible.
 
 # Gathering Metrics
+
 In order to estimate partition activity and resources, Cruise Control needs a steady source of metric data from Kafka.
 Fortunately, Kafka tracks all sorts of metrics and makes them all accessible through pluggable components known as 'metric reporters'. 
 Kafka metric reporters designate what, where, when, and how metrics are prepared for export.
@@ -39,8 +40,9 @@ What, where, and how this happens to the metric objects depends on the specific 
 Afterwards, the metric reporters monitor the metric objects for stat updates from Kafka, formatting and storing the changes for future export.
 
 ## Cruise Control Metric Reporter
+
 Cruise Control ships its own implementation of a Kafka metric reporter, the 'Cruise Control metric reporter'.
-The Cruise Control metric reporter filters the metric objects it receives from Kafka, stowing the metric objects related to Kafka partition monitoring into a concurrent hash map.
+The Cruise Control metric reporter filters the metric objects it receives from Kafka, storing the metric objects related to Kafka partition monitoring into a concurrent hash map.
 Then, at user-defined intervals, the reporter will loop through the concurrent hash map and create Cruise Control metric objects from the data provided by the metric objects.
 For the Cruise Control metric objects, the reporter will include information related to the metric type, value, time of recording, and broker origin.
 Finally, the reporter will format the Cruise Control metric object into a byte array and store it into a Kafka topic designated for Cruise Control metrics.
@@ -123,7 +125,7 @@ How to configure the connection between Cruise Control and Kafka will be describ
 Cruise Control gets the current state and configuration of the Kafka cluster from Zookeeper.
 For estimating partition load, monitoring cluster state, and triggering partition reassignments, Cruise Control needs to be able communicate with Zookeeper directly.
 Communication between Zookeeper and all other Strimzi components is always encrypted and authenticated using TLS.
-This preventsCruise Control making a non-TLS connection  to Zookeeper.
+This prevents Cruise Control making a non-TLS connection  to Zookeeper.
 However, using a hack by Jakub Scholz, you can get around this requirement by creating a Kubernetes service which reuses Strimzi certificates to pipe unencrypted and unauthenticated traffic to Zookeeper. This allows Cruise Control to communicate with Zookeeper without the need of proper authorization and encryption configuration via Java system properties or Stunnel sidecars.
 
 ```
