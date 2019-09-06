@@ -57,3 +57,9 @@ The project roadmap describing our future plans can be found in our [GitHub proj
 # License
 
 Strimzi is licensed under the [Apache License, Version 2.0](/LICENSE)
+
+<div style="vertical-align: center; border-top: 1px solid #e8e8e8; padding-top: 1ex;">
+    <h2>Strimzi is a <a href="http://cncf.io">Cloud Native Computing Foundation</a> sandbox project</h2>
+    <br />
+    <img src="assets/cncf-color.png">
+</div>
