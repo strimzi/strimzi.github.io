@@ -23680,37 +23680,94 @@ data:
 <h4 id="authorization"><a class="link" href="#authorization">6.8.2. Authorization</a></h4>
 <div class="paragraph">
 <p>Authorization is configured using the <code>authorization</code> property in <code>KafkaUser.spec</code>.
-The authorization type enabled for this user will be specified using the <code>type</code> field.
-Currently, the only supported authorization type is the Simple authorization.</p>
+The authorization type enabled for a user is specified using the <code>type</code> field.
+Currently, the only supported authorization type is simple authorization.</p>
 </div>
 <div class="paragraph">
-<p>When no authorization is specified, the User Operator will not provision any access rights for the user.</p>
+<p>If no authorization is specified, the User Operator does not provision any access rights for the user.</p>
 </div>
 <div class="sect4">
-<h5 id="simple_authorization_2"><a class="link" href="#simple_authorization_2">Simple Authorization</a></h5>
+<h5 id="simple_authorization_2"><a class="link" href="#simple_authorization_2">Simple authorization</a></h5>
 <div class="paragraph">
-<p>To use Simple Authorization, set the <code>type</code> property to <code>simple</code>.
-Simple authorization uses the <code>SimpleAclAuthorizer</code> plugin.
-<code>SimpleAclAuthorizer</code> is the default authorization plugin which is part of Apache Kafka.
-Simple Authorization allows you to specify list of ACL rules in the <code>acls</code> property.</p>
+<p>Simple authorization uses the default Kafka authorization plugin, <code>SimpleAclAuthorizer</code>.</p>
 </div>
 <div class="paragraph">
-<p>The <code>acls</code> property should contain a list of <code>AclRule</code> objects.
-<code>AclRule</code> specifies the access rights whcih will be granted to the user.
-The <code>AclRule</code> object contains following properties:</p>
+<p>To use simple authorization, set the <code>type</code> property to <code>simple</code> in <code>KafkaUser.spec</code>.</p>
+</div>
+<div class="paragraph">
+<div class="title">ACL rules</div>
+<p><code>SimpleAclAuthorizer</code> uses ACL rules to manage access to Kafka brokers.</p>
+</div>
+<div class="paragraph">
+<p>ACL rules grant access rights to the user, which you specify in the <code>acls</code> property.</p>
+</div>
+<div class="paragraph">
+<p>An <code>AclRule</code> is specified as a set of properties:</p>
 </div>
 <div class="dlist">
 <dl>
+<dt class="hdlist1"><code>resource</code></dt>
+<dd>
+<p>The <code>resource</code> property specifies the resource that the rule applies to.</p>
+<div class="openblock">
+<div class="content">
+<div class="paragraph">
+<p>Simple authorization supports four resource types, which are specified in the <code>type</code> property:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Topics (<code>topic</code>)</p>
+</li>
+<li>
+<p>Consumer Groups (<code>group</code>)</p>
+</li>
+<li>
+<p>Clusters (<code>cluster</code>)</p>
+</li>
+<li>
+<p>Transactional IDs (<code>transactionalId</code>)</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>For Topic, Group, and Transactional ID resources you can specify the name of the resource the rule applies to in the <code>name</code> property.</p>
+</div>
+<div class="paragraph">
+<p>Cluster type resources have no name.</p>
+</div>
+<div class="paragraph">
+<p>A name is specified as a <code>literal</code> or a <code>prefix</code> using the <code>patternType</code> property.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Literal names are taken exactly as they are specified in the <code>name</code> field.</p>
+</li>
+<li>
+<p>Prefix names use the value from the <code>name</code> as a prefix, and will apply the rule to all resources with names starting with the value.</p>
+</li>
+</ul>
+</div>
+</dd>
 <dt class="hdlist1"><code>type</code></dt>
 <dd>
-<p>Specifies the type of the ACL rule.
-The type can be either <code>allow</code> or <code>deny</code>.
-The <code>type</code> field is optional and when not specified, the ACL rule will be treated as <code>allow</code> rule.</p>
+<p>The <code>type</code> property specifies the type of ACL rule, <code>allow</code> or <code>deny</code>.</p>
+<div class="paragraph">
+<p>The <code>type</code> field is optional.
+If <code>type</code> is unspecified, the ACL rule is treated as an <code>allow</code> rule.</p>
+</div>
 </dd>
 <dt class="hdlist1"><code>operation</code></dt>
 <dd>
-<p>Specifies the operation which will be allowed or denied.
-Following operations are supported:</p>
+<p>The <code>operation</code> specifies the operation to allow or deny.</p>
+<div class="openblock">
+<div class="content">
+<div class="paragraph">
+<p>The following operations are supported:</p>
+</div>
 <div class="ulist">
 <ul>
 <li>
@@ -23745,67 +23802,27 @@ Following operations are supported:</p>
 </li>
 <li>
 <p>DescribeConfigs</p>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Not every operation can be combined with every resource.
-</td>
-</tr>
-</table>
-</div>
 </li>
 </ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Only certain operations work with each resource.</p>
+</div>
+<div class="paragraph">
+<p>For more details about <code>SimpleAclAuthorizer</code>, ACLs and supported combinations of resources and operations, see <a href="http://kafka.apache.org/documentation/#security_authz" target="_blank" rel="noopener">Authorization and ACLs</a>.</p>
 </div>
 </dd>
 <dt class="hdlist1"><code>host</code></dt>
 <dd>
-<p>Specifies a remote host from which is the rule allowed or denied.
-Use <code>*</code> to allow or deny the operation from all hosts.
-The <code>host</code> field is optional and when not specified, the value <code>*</code> will be used as default.</p>
-</dd>
-<dt class="hdlist1"><code>resource</code></dt>
-<dd>
-<p>Specifies the resource for which the rule applies.
-Simple Authorization supports four different resource types:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>Topics</p>
-</li>
-<li>
-<p>Consumer Groups</p>
-</li>
-<li>
-<p>Clusters</p>
-</li>
-<li>
-<p>Transactional IDs</p>
+<p>The <code>host</code> property specifies a remote host from which the rule is allowed or denied.</p>
 <div class="paragraph">
-<p>The resource type can be specified in the <code>type</code> property.
-Use <code>topic</code> for Topics, <code>group</code> for Consumer Groups, <code>cluster</code> for clusters, and <code>transactionalId</code> for Transactional IDs.</p>
-</div>
-<div class="paragraph">
-<p>Additionally, Topic, Group, and Transactional ID resources allow you to specify the name of the resource for which the rule applies.
-The name can be specified in the <code>name</code> property.
-The name can be either specified as literal or as a prefix.
-To specify the name as literal, set the <code>patternType</code> property to the value <code>literal</code>.
-Literal names will be taken exactly as they are specified in the <code>name</code> field.
-To specify the name as a prefix, set the <code>patternType</code> property to the value <code>prefix</code>.
-Prefix type names will use the value from the <code>name</code> only a prefix and will apply the rule to all resources with names starting with the value.
-The cluster type resources have no name.</p>
-</div>
-</li>
-</ul>
+<p>Use an asterisk (<code>*</code>) to allow or deny the operation from all hosts.
+The <code>host</code> field is optional. If <code>host</code> is unspecified, the <code>*</code> value is used by default.</p>
 </div>
 </dd>
 </dl>
-</div>
-<div class="paragraph">
-<p>For more details about <code>SimpleAclAuthorizer</code>, its ACL rules and the allowed combinations of resources and operations, see <a href="http://kafka.apache.org/documentation/#security_authz" target="_blank" rel="noopener">Authorization and ACLs</a>.</p>
 </div>
 <div class="paragraph">
 <p>For more information about the <code>AclRule</code> object, see <a href="#type-AclRule-reference"><code>AclRule</code> schema reference</a>.</p>
@@ -23840,6 +23857,15 @@ spec:
           patternType: prefix
         operation: Read</code></pre>
 </div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="super_user_access_to_kafka_brokers"><a class="link" href="#super_user_access_to_kafka_brokers">Super user access to Kafka brokers</a></h5>
+<div class="paragraph">
+<p>If a user is added to a list of super users in a Kafka broker configuration, the user is allowed unlimited access to the cluster regardless of any authorization constraints defined in ACLs.</p>
+</div>
+<div class="paragraph">
+<p>For more information on configuring super users, see <a href="#assembly-kafka-authentication-and-authorization-deployment-configuration-kafka">authentication and authorization</a> of Kafka brokers.</p>
 </div>
 </div>
 </div>
