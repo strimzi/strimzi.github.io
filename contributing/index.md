@@ -20,5 +20,5 @@ The [Documentation Contributor Guide](https://strimzi.io/contributing/guide/) de
 
 If you want to get in touch with us first before contributing, you can use:
 
-* [Strimzi mailing list](https://www.redhat.com/mailman/listinfo/strimzi)
-* [Strimzi Slack workspace](https://join.slack.com/t/strimzi/shared_invite/enQtMzU2Mjk3NTgxMzE5LTYyMTUwMGNlMDQwMzBhOGI4YmY4MjhiMDgyNjA5OTk2MTFiYjc4M2Q3NGU1YTFjOWRiMzM2NGMwNDUwMjBlNDY)
+* [#strimzi channel on CNCF Slack](https://slack.cncf.io/)
+* [Strimzi Dev mailing list](https://lists.cncf.io/g/cncf-strimzi-dev/topics)

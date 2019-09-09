@@ -42,8 +42,8 @@ Documentation for all releases can be found in the [Documentation](/documentatio
 
 If you encounter any issues while using Strimzi, you can get help using:
 
-* [Strimzi mailing list](https://www.redhat.com/mailman/listinfo/strimzi)
-* [Strimzi Slack workspace](https://join.slack.com/t/strimzi/shared_invite/enQtMzU2Mjk3NTgxMzE5LTYyMTUwMGNlMDQwMzBhOGI4YmY4MjhiMDgyNjA5OTk2MTFiYjc4M2Q3NGU1YTFjOWRiMzM2NGMwNDUwMjBlNDY)
+* [#strimzi channel on CNCF Slack](https://slack.cncf.io/)
+* [Strimzi Users mailing list](https://lists.cncf.io/g/cncf-strimzi-users/topics)
 
 # Contributing
 
