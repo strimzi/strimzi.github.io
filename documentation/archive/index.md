@@ -19,5 +19,5 @@ layout: default
 ## Strimzi Kafka bridge
 
 {% for item in site.data.releases.bridge -%}
-* [{{item.version}}](/docs/{{item.version}}/)
+* [{{item.version}}](/docs/bridge/{{item.version}}/)
 {% endfor -%}
