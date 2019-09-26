@@ -28,7 +28,7 @@ oc apply -f https://github.com/strimzi/strimzi-kafka-operator/releases/download/
 
 # Provision the Apache Kafka cluster
 
-After that we feed Strimzi with a simple **Custom Resource**, which will than give you a small persistent Apache Kafka Cluster with one node for each, Apache Zookeeper and Apache Kafka:
+After that we feed Strimzi with a simple **Custom Resource**, which will then give you a small persistent Apache Kafka Cluster with one node for each, Apache Zookeeper and Apache Kafka:
 
 ```shell
 # Apply the `Kafka` Cluster CR file
