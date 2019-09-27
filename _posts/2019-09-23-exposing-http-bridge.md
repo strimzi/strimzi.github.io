@@ -36,7 +36,7 @@ spec:
 This declaration assumes that the Kafka cluster deployed by the Strimzi Cluster Operator is named `my-cluster` otherwise you have to change the `bootstrapServers` accordingly.
 All the configuration parameters for the consumer and producer part of the bridge are the default ones defined by the Apache Kafka documentation.
 
-Just run the following command in order to apply this custom resource and allowing the Strimzi Cluster Operator to deploy the HTTP bridge for you.
+Just run the following command in order to apply this custom resource allowing the Strimzi Cluster Operator to deploy the HTTP bridge for you.
 
 ```shell
 kubectl apply -f examples/kafka-bridge/kafka-bridge.yaml
@@ -89,7 +89,7 @@ If the bridge is reachable through the Ingress, it will return an HTTP response 
 
 Assuming that the Kafka brokers have topic auto creation enabled, we can start immediately to send messages through the `/topic/{topicname}` endpoint exposed by the HTTP bridge.
 
-The HTTP request payload is always JSON but the message values can be JSON or binary (encoded in base64 because you are sending binary data in a JSON payload so encoding in a string format is needed).
+The HTTP request payload is always a JSON but the message values can be JSON or binary (encoded in base64 because you are sending binary data in a JSON payload so encoding in a string format is needed).
 
 ```shell
 curl -X POST \
@@ -109,8 +109,8 @@ curl -X POST \
 }'
 ```
 
-After writing the messages into the topic, the bridge replies with an HTTP status code `200 OK` and a JSON paylod describing in which partition and offset the messages are written.
-In this case, the auto created topic has just one partition.
+After writing the messages into the topic, the bridge replies with an HTTP status code `200 OK` and a JSON paylod describing in which partition and at which offset the messages are written.
+In this case, the auto created topic has just one partition and the reply can look like the following one.
 
 ```json
 { 
@@ -130,7 +130,8 @@ In this case, the auto created topic has just one partition.
 # Consuming messages
 
 Consuming messages is not so simple as producing because there are several steps to do which involve different endpoints.
-First of all, creating a consumer through the `/consumers/{groupid}` endpoint doing an HTTP POST with a body containing some of the supported configuration parameters, the name of the consumer and the data format to receive (JSON or binary).
+First of all, creating a consumer through the `/consumers/{groupid}` endpoint doing an HTTP POST with a body containing some of the supported configuration parameters, the name of the consumer and the data format (JSON or binary).
+In the following snippet, we are going to create a consumer named `my-consumer` and joining the consumer group `my-group`.
 
 ```shell
 curl -X POST http://my-bridge.io/consumers/my-group \
@@ -143,7 +144,7 @@ curl -X POST http://my-bridge.io/consumers/my-group \
   }'
 ```
 
-After creating a corresponding native Kafka consumer connected to the Kafka cluster, the bridge replies with an HTTP status code `200 OK` and a JSON payload containing the URI that the HTTP client has to use in order to interact with such a consumer for subscribing and receiving messages from topic.
+After creating a corresponding native Kafka consumer connected to the Kafka cluster, the bridge replies with an HTTP status code `200 OK` and a JSON payload containing the URI that the HTTP client has to use in order to interact with such a consumer for subscribing and receiving messages from topics.
 
 ```json
 { 
@@ -156,6 +157,7 @@ After creating a corresponding native Kafka consumer connected to the Kafka clus
 
 The most used way for a Kafka consumer to get messages from a topic is to subscribe to that topic as part of a consumer group and getting partitions assigned automatically.
 Using the HTTP bridge, it's possible through an HTTP POST to the `/consumers/{groupid}/instances/{name}/subscription` endpoint providing in a JSON formatted payload the list of topics to subscribe to or a topics pattern.
+With the following snippet, the consumer is subscribing to the `my-topic` topic.
 
 ```shell
 curl -X POST http://my-bridge.io/consumers/my-group/instances/my-consumer/subscription \
@@ -172,7 +174,7 @@ In this case, the bridge just replies with an HTTP status code `200 OK` with an 
 # Consuming messages
 
 The action of consuming messages from a Kafka topic is done with a "poll" operation when we talk about native Kafka consumer.
-Tipically, A Kafka application has a "poll" loop where the poll operation is called every cycle for getting next messages.
+Tipically, A Kafka application has a "poll" loop where the poll operation is called every cycle for getting new messages.
 The HTTP bridge provides the same action through the `/consumers/{groupid}/instances/{name}/records` endpoint.
 Doing an HTTP GET against the above endpoint, actually does a "poll" for getting the messages from the already subscribed topics.
 The first "poll" operation after the subscription doesn't always return records because it just starts the join operation of the consumer to the group and the rebalancing in order to get partitions assigned; doing a next poll actually can return messages if there are any in the topic.
@@ -212,6 +214,11 @@ curl -X DELETE http://my-bridge.io/consumers/my-group/instances/my-consumer
 ```
 
 When the consumer is deleted, the bridge replies with an HTTP status code `204 No Content`.
+If the client application doesn't do that, the bridge will delete "stale" consumers which doesn't send HTTP request for long time (the timeout is configurable).
+
+# Exposing on OpenShift using Route
+
+TBD
 
 # Conclusion
 
