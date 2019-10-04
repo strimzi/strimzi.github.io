@@ -759,8 +759,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#assembly-kafka-exporter-str">9. Kafka Exporter</a>
 <ul class="sectlevel2">
-<li><a href="#con-metrics-kafka-exporter-lagstr">9.1. Consumer lag</a></li>
-<li><a href="#con-metrics-kafka-exporter-alertsstr">9.2. Kafka Exporter alerting rule examples</a></li>
+<li><a href="#con-metrics-kafka-exporter-lag-str">9.1. Consumer lag</a></li>
+<li><a href="#con-metrics-kafka-exporter-alerts-str">9.2. Kafka Exporter alerting rule examples</a></li>
 <li><a href="#ref-metrics-kafka-exporter-str">9.3. Kafka Exporter metrics</a></li>
 <li><a href="#proc-kafka-exporter-enabling-str">9.4. Enabling the Kafka Exporter Grafana dashboard</a></li>
 </ul>
@@ -25049,6 +25049,9 @@ Kafka Exporter is provided with Strimzi for deployment with a Kafka cluster to e
 <div class="paragraph">
 <p>Lag data is exposed as Prometheus metrics, which can then be presented in Grafana for analysis.</p>
 </div>
+<div class="paragraph">
+<p>If you are already using Prometheus and Grafana for monitoring of built-in Kafka metrics, you can configure Prometheus to also scrape the Kafka Exporter Prometheus endpoint.</p>
+</div>
 <div class="ulist">
 <div class="title">Additional resources</div>
 <ul>
@@ -25058,10 +25061,11 @@ Kafka Exporter is provided with Strimzi for deployment with a Kafka cluster to e
 </ul>
 </div>
 <div class="sect2">
-<h3 id="con-metrics-kafka-exporter-lagstr"><a class="link" href="#con-metrics-kafka-exporter-lagstr">9.1. Consumer lag</a></h3>
+<h3 id="con-metrics-kafka-exporter-lag-str"><a class="link" href="#con-metrics-kafka-exporter-lag-str">9.1. Consumer lag</a></h3>
 <div class="paragraph">
 <p>Consumer lag indicates the difference in the rate of production and consumption of messages.
-Specifically, consumer lag indicates the delay between a Kafka broker writing a message created by a producer and the rate in which it is picked up by a consumer.</p>
+Specifically, consumer lag for a given consumer group indicates the delay between the last message in the partition and the message being currently picked up by that consumer.
+The lag reflects the position of the consumer offset in relation to the end of the partition log.</p>
 </div>
 <div class="paragraph">
 <p>This difference is sometimes referred to as the <em>delta</em> between the producer offset and consumer offset, the read and write positions in the Kafka broker topic partitions.</p>
@@ -25072,10 +25076,10 @@ Specifically, consumer lag indicates the delay between a Kafka broker writing a 
 <div class="paragraph">
 <div class="title">The importance of monitoring consumer lag</div>
 <p>For applications that rely on the processing of (near) real-time data, it is critical to monitor consumer lag to check that it does not become too big.
-The bigger the lag becomes, the further the process moves from the real-time processing objective.</p>
+The greater the lag becomes, the further the process moves from the real-time processing objective.</p>
 </div>
 <div class="paragraph">
-<p>The lag, for example, might be a result of consuming too much old data that has not been purged, or through unplanned shutdowns.</p>
+<p>Consumer lag, for example, might be a result of consuming too much old data that has not been purged, or through unplanned shutdowns.</p>
 </div>
 <div class="paragraph">
 <div class="title">Reducing consumer lag</div>
@@ -25092,19 +25096,16 @@ The bigger the lag becomes, the further the process moves from the real-time pro
 <li>
 <p>Adding more disk capacity to increase the message buffer</p>
 </li>
-<li>
-<p>Dropping messages</p>
-</li>
 </ul>
 </div>
 <div class="paragraph">
 <p>Actions to reduce consumer lag depend on the underlying infrastructure and the use cases Strimzi is supporting.
-For instance, the potential impact of lag on broker performance can determine whether consumers are configured to use a disk cache or read from an actual disk.
+For instance, a lagging consumer is less likely to benefit from the broker being able to service a fetch request from its disk cache.
 And in certain cases, it might be acceptable to automatically drop messages until a consumer has caught up.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="con-metrics-kafka-exporter-alertsstr"><a class="link" href="#con-metrics-kafka-exporter-alertsstr">9.2. Kafka Exporter alerting rule examples</a></h3>
+<h3 id="con-metrics-kafka-exporter-alerts-str"><a class="link" href="#con-metrics-kafka-exporter-alerts-str">9.2. Kafka Exporter alerting rule examples</a></h3>
 <div class="paragraph">
 <p>If you performed the steps to introduce metrics to your deployment, you will already have your Kafka cluster configured to use the alert notification rules that support Kafka Exporter.</p>
 </div>
@@ -25252,7 +25253,7 @@ The delay might be a result of a configuration issue preventing a producer from 
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>kafka_consumergroup_lag</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Current approximate lag for a ConsumerGroup at a topic partition</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Current approximate lag for a consumer group at a topic partition</p></td>
 </tr>
 </tbody>
 </table>
@@ -25304,8 +25305,11 @@ If you are accessing the user interface for the first time, see <a href="#assemb
 </li>
 </ol>
 </div>
-<div class="ulist">
+<div class="paragraph">
 <div class="title">Kafka Exporter Grafana charts</div>
+<p>From the metrics, you can create charts to display:</p>
+</div>
+<div class="ulist">
 <ul>
 <li>
 <p>Message in per second (from topics)</p>
@@ -25317,13 +25321,13 @@ If you are accessing the user interface for the first time, see <a href="#assemb
 <p>Lag by consumer group</p>
 </li>
 <li>
-<p>Message consume per minute (by consumer groups)</p>
+<p>Messages consumed per minute (by consumer groups)</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
 <p>Use the Grafana charts to analyze lag and to check if actions to reduce lag are having an impact on an affected consumer group.
-If, for example, Kafka brokers are adjusted to reduce lag, the dashboard will show the  <em>Lag by consumer group</em> chart going down and the <em>Message consume per minute</em> chart going up.</p>
+If, for example, Kafka brokers are adjusted to reduce lag, the dashboard will show the  <em>Lag by consumer group</em> chart going down and the <em>Messages consumed per minute</em> chart going up.</p>
 </div>
 </div>
 </div>
@@ -33485,7 +33489,7 @@ It must have the value <code>transactionalId</code> for the type <code>AclRuleTr
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-10-03 21:15:18 UTC
+Last updated 2019-10-04 08:33:15 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
