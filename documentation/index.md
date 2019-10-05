@@ -8,8 +8,7 @@ layout: default
 
 ### Quick Start guide
 
-<!--* [{{site.data.releases.operator[0].version}} - latest stable release](/docs/latest/)-->
-* [Master](/docs/master/)
+* [Master](/docs/quickstart/master/)
 
 ### Using Strimzi
 
