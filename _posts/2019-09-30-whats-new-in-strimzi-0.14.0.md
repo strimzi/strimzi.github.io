@@ -18,7 +18,7 @@ We even have a dedicated operator for managing users - which we conveniently cal
 It supports authentication using TLS client certificates and usernames and passwords.
 It also supports authorization using the `SimpleAclAuthorizer` which is part of Apache Kafka.
 All of this is managed using `KafkaUser` custom resources directly inside your Kubernetes cluster.
-The User Operator works very well in many situations and many users find it convenient to manage their Kafka clusster access in this way.
+The User Operator works very well in many situations and many users find it convenient to manage their Kafka cluster access in this way.
 But there are many situations when you do not want to manage your Kafka users separately from all other users.
 
 One of the reasons might be that you want to have all users managed inside a single system.
