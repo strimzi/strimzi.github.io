@@ -59,7 +59,7 @@ One such integration is for the Java based Apache Kafka clients and we will use 
 
 OpenTracing has a [contributions project](https://github.com/opentracing-contrib/java-kafka-client) which already adds tracing support to the Consumer and Producer APIs.
 It will take care of managing the tracing spans, adding the trace IDs to the records when they are sent or reading them from the records which are received.
-It has two way how to enable tracing:
+It has two ways how to enable tracing:
 * Using wrappers around the `KafkaConsumer` and `KafkaProducer` classes
 * Using `Interceptor` classes
 
@@ -168,13 +168,13 @@ template:
   mirrorMakerContainer:
     env:
     - name: JAEGER_SERVICE_NAME
-        value: my-mirror-maker
+      value: my-mirror-maker
     - name: JAEGER_AGENT_HOST
-        value: my-jaeger-agent
+      value: my-jaeger-agent
     - name: JAEGER_SAMPLER_TYPE
-        value: const
+      value: const
     - name: JAEGER_SAMPLER_PARAM
-        value: "1"
+      value: "1"
 # ...
 ```
 
@@ -201,8 +201,8 @@ They can use the global tracer created and registered by Strimzi to push the tra
 ## Kafka brokers
 
 There is currently no tracing support in the Kafka brokers.
-But the tracing information which is stored in the headers of the Kafka messages will be will be of course delivered to the consumers.
-So while there will be no specific spans when the message arrived tot he broker and was sent out of the broker.
+But the tracing information which is stored in the headers of the Kafka messages will be of course delivered to the consumers.
+So while there will be no specific spans when the message arrived to the broker and was sent out of the broker.
 But you will still be able to see when did the producer send the message and when did the consumer received it.
 
 ## Tracing in other clients
@@ -312,7 +312,7 @@ The producer sends a new message every second with a simple _Hello World_ payloa
 The streams application will get the messages send by the producer and send them to another topic with the text in the payload being reversed.
 And the consumer will be just receiving the reversed messages from the streams applications.
 
-The sampling in the example clients is configured to sample every single message, so we should not need to wait until
+The sampling in the example clients is configured to sample every single message, so we should not need to wait until the _Nth_ message to get the traces.
 So once the client examples get up and running, we can check their traces in the Jaeger UI.
 In the initial query window, select the service `hello-world-producer` and click on the _Find Traces_ button.
 You should see bunch of traces including a chart with their latencies.
