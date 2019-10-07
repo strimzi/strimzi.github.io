@@ -586,9 +586,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#assembly-deployment-configuration-kafka-mirror-maker-str">3.4. Kafka Mirror Maker configuration</a>
 <ul class="sectlevel3">
 <li><a href="#configuring-kafka-mirror-maker-deployment-configuration-kafka-mirror-maker">3.4.1. Configuring Kafka Mirror Maker</a></li>
-<li><a href="#assembly-access-configuration-kafka-mirror-maker-deployment-configuration-kafka-mirror-maker">3.4.2. Configuring Kafka Mirror Maker encryption and authentication</a></li>
-<li><a href="#con-configuring-mirror-maker-deployment-configuration-kafka-mirror-maker">3.4.3. Kafka Mirror Maker configuration properties</a></li>
-<li><a href="#ref-list-of-kafka-mirror-maker-resources-deployment-configuration-kafka-mirror-maker">3.4.4. List of resources created as part of Kafka Mirror Maker</a></li>
+<li><a href="#con-configuring-mirror-maker-deployment-configuration-kafka-mirror-maker">3.4.2. Kafka Mirror Maker configuration properties</a></li>
+<li><a href="#ref-list-of-kafka-mirror-maker-resources-deployment-configuration-kafka-mirror-maker">3.4.3. List of resources created as part of Kafka Mirror Maker</a></li>
 </ul>
 </li>
 <li><a href="#assembly-deployment-configuration-kafka-bridge-str">3.5. Kafka Bridge configuration</a>
@@ -15619,9 +15618,6 @@ The name of the build is the same as the name of the deployed Kafka Connect clus
 <li>
 <p><a href="#configuring-kafka-mirror-maker-deployment-configuration-kafka-mirror-maker">Configuring Kafka Mirror Maker</a></p>
 </li>
-<li>
-<p><a href="#assembly-access-configuration-kafka-mirror-maker-deployment-configuration-kafka-mirror-maker">Configuring Kafka Mirror Maker encryption and authentication</a></p>
-</li>
 </ul>
 </div>
 <div class="paragraph">
@@ -15658,9 +15654,6 @@ This provides a convenient mechanism for resources to be labeled as required.
 <div class="paragraph">
 <p>You can configure access control for producers and consumers using TLS or SASL authentication.
 This procedure shows a configuration that uses TLS encryption and authentication on the consumer and producer side.</p>
-</div>
-<div class="paragraph">
-<p>For more information on configuring access control for Kafka Mirror Maker, see <a href="#assembly-access-configuration-kafka-mirror-maker-deployment-configuration-kafka-mirror-maker">Configuring Kafka Mirror Maker access control</a>.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -15788,10 +15781,10 @@ spec:
 <p>The offset auto-commit interval in milliseconds.</p>
 </li>
 <li>
-<p>TLS encryption with key names under which TLS certificates are stored in X.509 format for consumer or producer.</p>
+<p>TLS encryption with key names under which TLS certificates are stored in X.509 format for consumer or producer. For more details see <a href="#type-KafkaMirrorMakerTls-reference"><code>KafkaMirrorMakerTls</code> schema reference</a>.</p>
 </li>
 <li>
-<p>Authentication for consumer or producer, using the TLS mechanism, as shown here, or a SASL-based SCRAM-SHA-512 or PLAIN mechanism.</p>
+<p>Authentication for consumer or producer, using the <a href="#type-KafkaClientAuthenticationTls-reference">TLS mechanism</a>, as shown here, using <a href="#type-KafkaClientAuthenticationOAuth-reference">OAuth bearer tokens</a>, or a SASL-based <a href="#type-KafkaClientAuthenticationScramSha512-reference">SCRAM-SHA-512</a> or <a href="#type-KafkaClientAuthenticationPlain-reference">PLAIN</a> mechanism.</p>
 </li>
 <li>
 <p>Kafka configuration options for consumer and producer.</p>
@@ -15850,349 +15843,7 @@ With the <code>abortOnSendFailure</code> property set to <code>false</code>, the
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-access-configuration-kafka-mirror-maker-deployment-configuration-kafka-mirror-maker"><a class="link" href="#assembly-access-configuration-kafka-mirror-maker-deployment-configuration-kafka-mirror-maker">3.4.2. Configuring Kafka Mirror Maker encryption and authentication</a></h4>
-<div class="paragraph">
-<p>Configure Kafka Mirror Maker encryption and authentication using supported mechanisms:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>TLS encryption</p>
-</li>
-<li>
-<p>Authentication:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>TLS client authentication</p>
-</li>
-<li>
-<p>SASL SCRAM-SHA-512 and PLAIN authentication</p>
-<div class="paragraph">
-<p>For more information on the supported authentication mechanisms, see <a href="#con-kafka-mirror-maker-authentication-deployment-configuration-kafka-mirror-maker">Authentication</a>.</p>
-</div>
-</li>
-</ul>
-</div>
-</li>
-</ul>
-</div>
-<div class="sect4">
-<h5 id="proc-configuring-kafka-mirror-maker-tls-deployment-configuration-kafka-mirror-maker"><a class="link" href="#proc-configuring-kafka-mirror-maker-tls-deployment-configuration-kafka-mirror-maker">Configuring TLS encryption in Kafka Mirror Maker</a></h5>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p><a href="#cluster-operator-str">Strimzi and Kafka is deployed</a></p>
-</li>
-<li>
-<p>Source and target Kafka clusters are available</p>
-</li>
-<li>
-<p>If they exist, the name of the <code>Secret</code> for the certificate used for TLS Server Authentication and the key under which the certificate is stored in the <code>Secret</code></p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Procedure</div>
-<p>As the Kafka Mirror Maker connects to two Kafka clusters (source and target), you can choose to configure TLS for one or both of the clusters.
-The following steps describe how to configure TLS on the consumer side for connecting to the source Kafka cluster:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>(Optional) If they do not already exist, prepare the TLS certificate used for authentication in a file and create a <code>Secret</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl create secret generic <em>&lt;my-secret&gt;</em> --from-file=<em>&lt;my-file.crt&gt;</em></code></pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The secrets created by the Cluster Operator for Kafka cluster may be used directly.
-</td>
-</tr>
-</table>
-</div>
-</li>
-<li>
-<p>Edit the <code>KafkaMirrorMaker.spec.consumer.tls</code> property.</p>
-<div class="listingblock">
-<div class="title">An example showing TLS configuration with multiple certificates</div>
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
-kind: KafkaMirrorMaker
-metadata:
-  name: my-mirror-maker
-spec:
-  # ...
-  consumer:
-    tls:
-      trustedCertificates:
-        - secretName: my-source-secret
-          certificate: ca.crt
-        - secretName: my-other-source-secret
-          certificate: certificate.crt
-  # ...
-  producer:
-    tls:
-      trustedCertificates:
-        - secretName: my-target-secret
-          certificate: ca.crt
-        - secretName: my-other-target-secret
-          certificate: certificate.crt
-  # ...</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>When multiple certificates are stored in the same secret, it can be listed multiple times.</p>
-</div>
-<div class="listingblock">
-<div class="title">An example showing TLS configuration with multiple certificates from the same secret</div>
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
-kind: KafkaMirrorMaker
-metadata:
-  name: my-mirror-maker
-spec:
-  # ...
-  consumer:
-    tls:
-      trustedCertificates:
-        - secretName: my-source-secret
-          certificate: ca.crt
-        - secretName: my-source-secret
-          certificate: ca2.crt
-  # ...
-  producer:
-    tls:
-      trustedCertificates:
-        - secretName: my-target-secret
-          certificate: ca.crt
-        - secretName: my-target-secret
-          certificate: ca2.crt
-  # ...</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Create or update the resource:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
-</div>
-</div>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>Repeat the above steps for configuring TLS on the target Kafka cluster.
-In this case, the secret containing the certificate has to be configured in the <code>KafkaMirrorMaker.spec.producer.tls</code> property.</p>
-</div>
-</div>
-<div class="sect4">
-<h5 id="proc-configuring-kafka-mirror-maker-authentication-tls-deployment-configuration-kafka-mirror-maker"><a class="link" href="#proc-configuring-kafka-mirror-maker-authentication-tls-deployment-configuration-kafka-mirror-maker">Configuring TLS client authentication in Kafka Mirror Maker</a></h5>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>Source and target Kafka clusters are available</p>
-</li>
-<li>
-<p>A running Cluster Operator with a <code>tls</code> listener with <code>tls</code> authentication enabled</p>
-</li>
-<li>
-<p>If they exist, the name of the <code>Secret</code> with the public and private keys used for TLS Client Authentication, and the keys under which they are stored in the <code>Secret</code></p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Procedure</div>
-<p>As the Kafka Mirror Maker connects to two Kafka clusters (source and target), you can choose to configure TLS client authentication for one or both of the clusters.
-The following steps describe how to configure TLS client authentication on the consumer side for connecting to the source Kafka cluster:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>(Optional) If they do not already exist, prepare the keys used for authentication in a file and create the <code>Secret</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl create secret generic <em>&lt;my-secret&gt;</em> --from-file=<em>&lt;my-public.crt&gt;</em> --from-file=<em>&lt;my-private.key&gt;</em></code></pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Secrets created by the User Operator may be used.
-</td>
-</tr>
-</table>
-</div>
-</li>
-<li>
-<p>Edit the <code>KafkaMirrorMaker.spec.consumer.authentication</code> property.</p>
-<div class="listingblock">
-<div class="title">An example TLS client authentication configuration</div>
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
-kind: KafkaMirrorMaker
-metadata:
-  name: my-mirror-maker
-spec:
-  # ...
-  consumer:
-    authentication:
-      type: tls
-      certificateAndKey:
-        secretName: my-source-secret
-        certificate: public.crt
-        key: private.key
-  # ...
-  producer:
-    authentication:
-      type: tls
-      certificateAndKey:
-        secretName: my-target-secret
-        certificate: public.crt
-        key: private.key
-  # ...</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Create or update the resource:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
-</div>
-</div>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>Repeat the above steps for configuring TLS client authentication on the target Kafka cluster.
-In this case, the secret containing the certificate has to be configured in the <code>KafkaMirrorMaker.spec.producer.authentication</code> property.</p>
-</div>
-</div>
-<div class="sect4">
-<h5 id="proc-configuring-kafka-mirror-maker-authentication-scram-sha-512-deployment-configuration-kafka-mirror-maker"><a class="link" href="#proc-configuring-kafka-mirror-maker-authentication-scram-sha-512-deployment-configuration-kafka-mirror-maker">Configuring SASL authentication in Kafka Mirror Maker</a></h5>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>Source and target Kafka clusters are available</p>
-</li>
-<li>
-<p>A running Cluster Operator with a <code>listener</code> configured for SCRAM-SHA-512 authentication</p>
-</li>
-<li>
-<p>Username to be used for authentication</p>
-</li>
-<li>
-<p>If they exist, the name of the <code>Secret</code> with the password used for authentication, and the key under which it is stored in the <code>Secret</code></p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Procedure</div>
-<p>As the Kafka Mirror Maker connects to two Kafka clusters (source and target), you can choose to configure SCRAM-SHA-512 authentication for one or both of the clusters.
-The following steps describe how to configure SCRAM-SHA-512 authentication on the consumer side for connecting to the source Kafka cluster.</p>
-</div>
-<div class="paragraph">
-<p>If you want to use SASL PLAIN authentication, the steps are the same as shown here but you set the <code>authentication.type</code> property to <code>plain</code>.</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>(Optional) If they do not already exist, prepare a file with the password used for authentication and create the <code>Secret</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">echo -n '<em>&lt;password&gt;</em>' &gt; <em>&lt;my-password.txt&gt;</em>
-kubectl create secret generic <em>&lt;my-secret&gt;</em> --from-file=<em>&lt;my-password.txt&gt;</em></code></pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Secrets created by the User Operator may be used.
-</td>
-</tr>
-</table>
-</div>
-</li>
-<li>
-<p>Edit the <code>KafkaMirrorMaker.spec.consumer.authentication</code> property.</p>
-<div class="listingblock">
-<div class="title">An example SCRAM-SHA-512 client authentication configuration</div>
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
-kind: KafkaMirrorMaker
-metadata:
-  name: my-mirror-maker
-spec:
-  # ...
-  consumer:
-    authentication:
-      type: scram-sha-512
-      username: my-source-user
-      passwordSecret:
-        secretName: my-source-user
-        password: my-source-password-key
-  # ...
-  producer:
-    authentication:
-      type: scram-sha-512
-      username: my-producer-user
-      passwordSecret:
-        secretName: my-producer-user
-        password: my-producer-password-key
-  # ...</code></pre>
-</div>
-</div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-Do not specify the actual password in the <code>password</code> field.
-</td>
-</tr>
-</table>
-</div>
-</li>
-<li>
-<p>Create or update the resource:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
-</div>
-</div>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>Repeat the above steps for configuring SCRAM-SHA-512 authentication on the target Kafka cluster.
-In this case, the secret containing the certificate has to be configured in the <code>KafkaMirrorMaker.spec.producer.authentication</code> property.</p>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="con-configuring-mirror-maker-deployment-configuration-kafka-mirror-maker"><a class="link" href="#con-configuring-mirror-maker-deployment-configuration-kafka-mirror-maker">3.4.3. Kafka Mirror Maker configuration properties</a></h4>
+<h4 id="con-configuring-mirror-maker-deployment-configuration-kafka-mirror-maker"><a class="link" href="#con-configuring-mirror-maker-deployment-configuration-kafka-mirror-maker">3.4.2. Kafka Mirror Maker configuration properties</a></h4>
 <div class="paragraph">
 <p>Use the <code>spec</code> configuration properties of the <code>KafkaMirrorMaker</code> resource to set up your Mirror Maker deployment.</p>
 </div>
@@ -16296,143 +15947,6 @@ The time interval is set in milliseconds, with a default value of 60,000.</p>
 </div>
 <div class="paragraph">
 <p>If the <code>abortOnSendFailure</code> option is set to <code>false</code>, message sending errors are ignored.</p>
-</div>
-</div>
-<div class="sect4">
-<h5 id="con-kafka-mirror-maker-tls-deployment-configuration-kafka-mirror-maker"><a class="link" href="#con-kafka-mirror-maker-tls-deployment-configuration-kafka-mirror-maker">TLS encryption</a></h5>
-<div class="paragraph">
-<p>Use the <code>consumer.tls</code> and <code>producer.tls</code> properties to configure TLS encryption for the consumer and producer.</p>
-</div>
-<div class="paragraph">
-<p>By default, Kafka Mirror Maker will try to connect to Kafka brokers in source and target clusters using a plain text connection.
-To use TLS encryption, use the <code>tls</code> property to provide a list of secrets with key names under which the certificates are stored in X.509 format.</p>
-</div>
-<div class="paragraph">
-<p>See <a href="#proc-configuring-kafka-mirror-maker-tls-deployment-configuration-kafka-mirror-maker">Configuring TLS encryption in Kafka Mirror Maker</a></p>
-</div>
-</div>
-<div class="sect4">
-<h5 id="con-kafka-mirror-maker-authentication-deployment-configuration-kafka-mirror-maker"><a class="link" href="#con-kafka-mirror-maker-authentication-deployment-configuration-kafka-mirror-maker">Authentication</a></h5>
-<div class="paragraph">
-<p>Use the <code>consumer.authentication</code> and <code>producer.authentication</code> properties to configure authentication for the consumer and producer.</p>
-</div>
-<div class="paragraph">
-<p>By default, Kafka Mirror Maker will try to connect to Kafka brokers without any authentication.</p>
-</div>
-<div class="paragraph">
-<p>Use <code>authentication.type</code> to set the authentication mechanism, and add additional configuration details depending on the mechanism.</p>
-</div>
-<div class="paragraph">
-<p>You can use different authentication mechanisms for the Kafka Mirror Maker consumer and producer.</p>
-</div>
-<div class="sect5">
-<h6 id="tls_client_authentication_4"><a class="link" href="#tls_client_authentication_4">TLS Client Authentication</a></h6>
-<div class="paragraph">
-<p>Use <code>type:tls</code> to configure Kafka Mirror Maker to use TLS authentication.</p>
-</div>
-<div class="paragraph">
-<p>TLS client authentication uses a TLS certificate to authenticate.
-The certificate is specified in the <code>certificateAndKey</code> property and is always loaded from a Kubernetes secret.
-In the secret, the certificate must be stored in X509 format under two different keys: public and private.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-TLS client authentication can be used only with TLS connections.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>For more information on configuring TLS encryption and authentication, see:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="#proc-configuring-kafka-mirror-maker-tls-deployment-configuration-kafka-mirror-maker">Configuring TLS encryption in Kafka Mirror Maker</a></p>
-</li>
-<li>
-<p><a href="#proc-configuring-kafka-mirror-maker-authentication-tls-deployment-configuration-kafka-mirror-maker">Configuring TLS client authentication in Kafka Mirror Maker</a></p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect5">
-<h6 id="scram_sha_512_authentication"><a class="link" href="#scram_sha_512_authentication">SCRAM-SHA-512 authentication</a></h6>
-<div class="paragraph">
-<p>Use <code>type:scram-sha-512</code> to configure Kafka Mirror Maker to use SCRAM-SHA-512 authentication.</p>
-</div>
-<div class="paragraph">
-<p>The broker listener to which clients will connect must also be configured to use SASL SCRAM-SHA-512 authentication.
-This authentication mechanism requires a username and password.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Specify the username in the <code>username</code> property.</p>
-</li>
-<li>
-<p>In the <code>passwordSecret</code> property, specify a link to a <code>Secret</code> containing the password.
-The <code>secretName</code> property contains the name of the <code>Secret</code> and the <code>password</code> property contains the name of the key under which the password is stored inside the <code>Secret</code>.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>For more information on configuring SASL SCRAM-SHA-512 authentication, see <a href="#proc-configuring-kafka-mirror-maker-authentication-scram-sha-512-deployment-configuration-kafka-mirror-maker">Configuring SCRAM-SHA-512 authentication in Kafka Mirror Maker</a>.</p>
-</div>
-</div>
-<div class="sect5">
-<h6 id="plain_authentication"><a class="link" href="#plain_authentication">PLAIN authentication</a></h6>
-<div class="paragraph">
-<p>Use <code>type:plain</code> to configure Kafka Mirror Maker to use PLAIN authentication.</p>
-</div>
-<div class="paragraph">
-<p>The broker listener to which clients will connect must also be configured to use SASL PLAIN authentication.
-This authentication mechanism requires a username and password.</p>
-</div>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Warning</div>
-</td>
-<td class="content">
-The SASL PLAIN mechanism will transfer the username and password across the network in cleartext.
-Only use SASL PLAIN authentication if TLS encryption is enabled.
-</td>
-</tr>
-</table>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Specify the username in the <code>username</code> property.</p>
-</li>
-<li>
-<p>In the <code>passwordSecret</code> property, specify a link to a <code>Secret</code> containing the password.
-The <code>secretName</code> property contains the name of the <code>Secret</code> and the <code>password</code> property contains the name of the key under which the password is stored inside the <code>Secret</code>.</p>
-</li>
-</ul>
-</div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-Do not specify the actual password in the <code>password</code> field.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>The configuration steps are the same as described in <a href="#proc-configuring-kafka-mirror-maker-authentication-scram-sha-512-deployment-configuration-kafka-mirror-maker">Configuring SCRAM-SHA-512 authentication in Kafka Mirror Maker</a>.</p>
-</div>
 </div>
 </div>
 <div class="sect4">
@@ -16801,7 +16315,7 @@ However, if the configured image is not compatible with Strimzi images, it might
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-list-of-kafka-mirror-maker-resources-deployment-configuration-kafka-mirror-maker"><a class="link" href="#ref-list-of-kafka-mirror-maker-resources-deployment-configuration-kafka-mirror-maker">3.4.4. List of resources created as part of Kafka Mirror Maker</a></h4>
+<h4 id="ref-list-of-kafka-mirror-maker-resources-deployment-configuration-kafka-mirror-maker"><a class="link" href="#ref-list-of-kafka-mirror-maker-resources-deployment-configuration-kafka-mirror-maker">3.4.3. List of resources created as part of Kafka Mirror Maker</a></h4>
 <div class="paragraph">
 <p>The following resources are created by the Cluster Operator in the Kubernetes cluster:</p>
 </div>
@@ -17106,7 +16620,7 @@ The currently supported authentication types are:</p>
 </ul>
 </div>
 <div class="sect5">
-<h6 id="tls_client_authentication_5"><a class="link" href="#tls_client_authentication_5">TLS Client Authentication</a></h6>
+<h6 id="tls_client_authentication_4"><a class="link" href="#tls_client_authentication_4">TLS Client Authentication</a></h6>
 <div class="paragraph">
 <p>To use TLS client authentication, set the <code>type</code> property to the value <code>tls</code>.
 TLS client authentication uses a TLS certificate to authenticate.
@@ -17146,7 +16660,7 @@ spec:
 </div>
 </div>
 <div class="sect5">
-<h6 id="scram_sha_512_authentication_2"><a class="link" href="#scram_sha_512_authentication_2">SCRAM-SHA-512 authentication</a></h6>
+<h6 id="scram_sha_512_authentication"><a class="link" href="#scram_sha_512_authentication">SCRAM-SHA-512 authentication</a></h6>
 <div class="paragraph">
 <p>To configure Kafka Bridge to use SASL-based SCRAM-SHA-512 authentication, set the <code>type</code> property to <code>scram-sha-512</code>.
 This authentication mechanism requires a username and password.</p>
@@ -22655,7 +22169,7 @@ Currently, the only supported authentication mechanisms are the TLS Client Authe
 <p>When no authentication mechanism is specified, User Operator will not create the user or its credentials.</p>
 </div>
 <div class="sect4">
-<h5 id="tls_client_authentication_6"><a class="link" href="#tls_client_authentication_6">TLS Client Authentication</a></h5>
+<h5 id="tls_client_authentication_5"><a class="link" href="#tls_client_authentication_5">TLS Client Authentication</a></h5>
 <div class="paragraph">
 <p>To use TLS client authentication, set the <code>type</code> field to <code>tls</code>.</p>
 </div>
@@ -22699,7 +22213,7 @@ data:
 </div>
 </div>
 <div class="sect4">
-<h5 id="scram_sha_512_authentication_3"><a class="link" href="#scram_sha_512_authentication_3">SCRAM-SHA-512 Authentication</a></h5>
+<h5 id="scram_sha_512_authentication_2"><a class="link" href="#scram_sha_512_authentication_2">SCRAM-SHA-512 Authentication</a></h5>
 <div class="paragraph">
 <p>To use SCRAM-SHA-512 authentication mechanism, set the <code>type</code> field to <code>scram-sha-512</code>.</p>
 </div>
@@ -31468,6 +30982,35 @@ It must have the value <code>jaeger</code> for the type <code>JaegerTracing</cod
 <p>Used in: <a href="#type-KafkaBridgeSpec-reference"><code>KafkaBridgeSpec</code></a>, <a href="#type-KafkaConnectS2ISpec-reference"><code>KafkaConnectS2ISpec</code></a>, <a href="#type-KafkaConnectSpec-reference"><code>KafkaConnectSpec</code></a>, <a href="#type-KafkaMirrorMakerConsumerSpec-reference"><code>KafkaMirrorMakerConsumerSpec</code></a>, <a href="#type-KafkaMirrorMakerProducerSpec-reference"><code>KafkaMirrorMakerProducerSpec</code></a></p>
 </div>
 <div class="paragraph">
+<p>To use TLS client authentication, set the <code>type</code> property to the value <code>tls</code>.
+TLS client authentication uses a TLS certificate to authenticate.
+The certificate is specified in the <code>certificateAndKey</code> property and is always loaded from a Kubernetes secret.
+In the secret, the certificate must be stored in X509 format under two different keys: public and private.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+TLS client authentication can only be used with TLS connections.
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">An example TLS client authentication configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">authentication:
+  type: tls
+  certificateAndKey:
+    secretName: my-secret
+    certificate: public.crt
+    key: private.key</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>The <code>type</code> property is a discriminator that distinguishes the use of the type <code>KafkaClientAuthenticationTls</code> from <a href="#type-KafkaClientAuthenticationScramSha512-reference"><code>KafkaClientAuthenticationScramSha512</code></a>, <a href="#type-KafkaClientAuthenticationPlain-reference"><code>KafkaClientAuthenticationPlain</code></a>, <a href="#type-KafkaClientAuthenticationOAuth-reference"><code>KafkaClientAuthenticationOAuth</code></a>.
 It must have the value <code>tls</code> for the type <code>KafkaClientAuthenticationTls</code>.</p>
 </div>
@@ -31545,6 +31088,44 @@ It must have the value <code>tls</code> for the type <code>KafkaClientAuthentica
 <h3 id="type-KafkaClientAuthenticationScramSha512-reference"><a class="link" href="#type-KafkaClientAuthenticationScramSha512-reference">E.68. <code>KafkaClientAuthenticationScramSha512</code> schema reference</a></h3>
 <div class="paragraph">
 <p>Used in: <a href="#type-KafkaBridgeSpec-reference"><code>KafkaBridgeSpec</code></a>, <a href="#type-KafkaConnectS2ISpec-reference"><code>KafkaConnectS2ISpec</code></a>, <a href="#type-KafkaConnectSpec-reference"><code>KafkaConnectSpec</code></a>, <a href="#type-KafkaMirrorMakerConsumerSpec-reference"><code>KafkaMirrorMakerConsumerSpec</code></a>, <a href="#type-KafkaMirrorMakerProducerSpec-reference"><code>KafkaMirrorMakerProducerSpec</code></a></p>
+</div>
+<div class="paragraph">
+<p>To configure SASL-based SCRAM-SHA-512 authentication, set the <code>type</code> property to <code>scram-sha-512</code>.
+The SCRAM-SHA-512 authentication mechanism requires a username and password.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Specify the username in the <code>username</code> property.</p>
+</li>
+<li>
+<p>In the <code>passwordSecret</code> property, specify a link to a <code>Secret</code> containing the password.
+The <code>secretName</code> property contains the name of the <code>Secret</code> and the <code>password</code> property contains the name of the key under which the password is stored inside the <code>Secret</code>.</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+Do not specify the actual password in the <code>password</code> field.
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">An example SASL based SCRAM-SHA-512 client authentication configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">authentication:
+  type: scram-sha-512
+  username: my-connect
+  passwordSecret:
+    secretName: my-connect
+    password: password</code></pre>
+</div>
 </div>
 <div class="paragraph">
 <p>The <code>type</code> property is a discriminator that distinguishes the use of the type <code>KafkaClientAuthenticationScramSha512</code> from <a href="#type-KafkaClientAuthenticationTls-reference"><code>KafkaClientAuthenticationTls</code></a>, <a href="#type-KafkaClientAuthenticationPlain-reference"><code>KafkaClientAuthenticationPlain</code></a>, <a href="#type-KafkaClientAuthenticationOAuth-reference"><code>KafkaClientAuthenticationOAuth</code></a>.
@@ -31626,6 +31207,57 @@ It must have the value <code>scram-sha-512</code> for the type <code>KafkaClient
 <p>Used in: <a href="#type-KafkaBridgeSpec-reference"><code>KafkaBridgeSpec</code></a>, <a href="#type-KafkaConnectS2ISpec-reference"><code>KafkaConnectS2ISpec</code></a>, <a href="#type-KafkaConnectSpec-reference"><code>KafkaConnectSpec</code></a>, <a href="#type-KafkaMirrorMakerConsumerSpec-reference"><code>KafkaMirrorMakerConsumerSpec</code></a>, <a href="#type-KafkaMirrorMakerProducerSpec-reference"><code>KafkaMirrorMakerProducerSpec</code></a></p>
 </div>
 <div class="paragraph">
+<p>To configure SASL-based PLAIN authentication, set the <code>type</code> property to <code>plain</code>.
+SASL PLAIN authentication mechanism requires a username and password.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+The SASL PLAIN mechanism will transfer the username and password across the network in cleartext.
+Only use SASL PLAIN authentication if TLS encryption is enabled.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Specify the username in the <code>username</code> property.</p>
+</li>
+<li>
+<p>In the <code>passwordSecret</code> property, specify a link to a <code>Secret</code> containing the password.
+The <code>secretName</code> property contains the name of such a <code>Secret</code> and the <code>password</code> property contains the name of the key under which the password is stored inside the <code>Secret</code>.</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+Do not specify the actual password in the <code>password</code> field.
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">An example SASL based PLAIN client authentication configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">authentication:
+  type: plain
+  username: my-connect
+  passwordSecret:
+    secretName: my-connect
+    password: password</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>The <code>type</code> property is a discriminator that distinguishes the use of the type <code>KafkaClientAuthenticationPlain</code> from <a href="#type-KafkaClientAuthenticationTls-reference"><code>KafkaClientAuthenticationTls</code></a>, <a href="#type-KafkaClientAuthenticationScramSha512-reference"><code>KafkaClientAuthenticationScramSha512</code></a>, <a href="#type-KafkaClientAuthenticationOAuth-reference"><code>KafkaClientAuthenticationOAuth</code></a>.
 It must have the value <code>plain</code> for the type <code>KafkaClientAuthenticationPlain</code>.</p>
 </div>
@@ -31669,6 +31301,119 @@ It must have the value <code>plain</code> for the type <code>KafkaClientAuthenti
 <h3 id="type-KafkaClientAuthenticationOAuth-reference"><a class="link" href="#type-KafkaClientAuthenticationOAuth-reference">E.71. <code>KafkaClientAuthenticationOAuth</code> schema reference</a></h3>
 <div class="paragraph">
 <p>Used in: <a href="#type-KafkaBridgeSpec-reference"><code>KafkaBridgeSpec</code></a>, <a href="#type-KafkaConnectS2ISpec-reference"><code>KafkaConnectS2ISpec</code></a>, <a href="#type-KafkaConnectSpec-reference"><code>KafkaConnectSpec</code></a>, <a href="#type-KafkaMirrorMakerConsumerSpec-reference"><code>KafkaMirrorMakerConsumerSpec</code></a>, <a href="#type-KafkaMirrorMakerProducerSpec-reference"><code>KafkaMirrorMakerProducerSpec</code></a></p>
+</div>
+<div class="paragraph">
+<p>To use OAuth client authentication, set the <code>type</code> property to the value <code>oauth</code>.
+OAuth authentication can be configured using:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Client ID and secret</p>
+</li>
+<li>
+<p>Client ID and refresh token</p>
+</li>
+<li>
+<p>Access token</p>
+</li>
+<li>
+<p>TLS</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Client ID and secret</div>
+<p>You can configure the address of your authorization server in the <code>tokenEndpointUri</code> property together with the client ID and client secret used in authentication.
+The OAuth client will connect to the OAuth server, authenticate using the client ID and secret and get an access token which it will use to authenticate with the Kafka broker.
+In the <code>clientSecret</code> property, specify a link to a <code>Secret</code> containing the client secret.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example of OAuth client authentication using client ID and client secret</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">authentication:
+  type: oauth
+  tokenEndpointUri: https://sso.myproject.svc:8443/auth/realms/internal/protocol/openid-connect/token
+  clientId: my-client-id
+  clientSecret:
+    secretName: my-client-oauth-secret
+    key: client-secret</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Client ID and refresh token</div>
+<p>You can configure the address of your OAuth server in the <code>tokenEndpointUri</code> property together with the OAuth client ID and refresh token.
+The OAuth client will connect to the OAuth server, authenticate using the client ID and refresh token and get an access token which it will use to authenticate with the Kafka broker.
+In the <code>refreshToken</code> property, specify a link to a <code>Secret</code> containing the refresh token.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example of OAuth client authentication using client ID and refresh token</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">authentication:
+  type: oauth
+  tokenEndpointUri: https://sso.myproject.svc:8443/auth/realms/internal/protocol/openid-connect/token
+  clientId: my-client-id
+  refreshToken:
+    secretName: my-refresh-token-secret
+    key: refresh-token</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Access token</div>
+<p>You can configure the access token used for authentication with the Kafka broker directly.
+In this case, you do not specify the <code>tokenEndpointUri</code>.
+In the <code>accessToken</code> property, specify a link to a <code>Secret</code> containing the access token.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example of OAuth client authentication using only an access token</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">authentication:
+  type: oauth
+  accessToken:
+    secretName: my-access-token-secret
+    key: access-token</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">TLS</div>
+<p>Accessing the OAuth server using the HTTPS protocol does not require any additional configuration as long as the TLS certificates used by it are signed by a trusted certification authority and its hostname is listed in the certificate.</p>
+</div>
+<div class="paragraph">
+<p>If your OAuth server is using certificates which are self-signed or are signed by a certification authority which is not trusted, you can configure a list of trusted certificates in the custom resoruce.
+The <code>tlsTrustedCertificates</code> property contains a list of secrets with key names under which the certificates are stored.
+The certificates must be stored in X509 format.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example of TLS certificates provided</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">authentication:
+  type: oauth
+  tokenEndpointUri: https://sso.myproject.svc:8443/auth/realms/internal/protocol/openid-connect/token
+  clientId: my-client-id
+  refreshToken:
+    secretName: my-refresh-token-secret
+    key: refresh-token
+  tlsTrustedCertificates:
+    - secretName: oauth-server-ca
+      certificate: tls.crt</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The OAuth client will by default verify that the hostname of your OAuth server matches either the certificate subject or one of the alternative DNS names.
+If it is not required, you can disable the hostname verification.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example of disabled TLS hostname verification</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">authentication:
+  type: oauth
+  tokenEndpointUri: https://sso.myproject.svc:8443/auth/realms/internal/protocol/openid-connect/token
+  clientId: my-client-id
+  refreshToken:
+    secretName: my-refresh-token-secret
+    key: refresh-token
+  disableTlsHostnameVerification: true</code></pre>
+</div>
 </div>
 <div class="paragraph">
 <p>The <code>type</code> property is a discriminator that distinguishes the use of the type <code>KafkaClientAuthenticationOAuth</code> from <a href="#type-KafkaClientAuthenticationTls-reference"><code>KafkaClientAuthenticationTls</code></a>, <a href="#type-KafkaClientAuthenticationScramSha512-reference"><code>KafkaClientAuthenticationScramSha512</code></a>, <a href="#type-KafkaClientAuthenticationPlain-reference"><code>KafkaClientAuthenticationPlain</code></a>.
@@ -32965,6 +32710,19 @@ It must have the value <code>transactionalId</code> for the type <code>AclRuleTr
 <div class="paragraph">
 <p>Used in: <a href="#type-KafkaMirrorMakerConsumerSpec-reference"><code>KafkaMirrorMakerConsumerSpec</code></a>, <a href="#type-KafkaMirrorMakerProducerSpec-reference"><code>KafkaMirrorMakerProducerSpec</code></a></p>
 </div>
+<div class="paragraph">
+<p>Use the <code>tls</code> property to configure TLS encryption.
+Provide a list of secrets with key names under which the certificates are stored in X.509 format.</p>
+</div>
+<div class="listingblock">
+<div class="title">An example TLS encryption configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">tls:
+  trustedCertificates:
+    - secretName: my-cluster-cluster-ca-cert
+      certificate: ca.crt</code></pre>
+</div>
+</div>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 50%;">
@@ -33489,7 +33247,7 @@ It must have the value <code>transactionalId</code> for the type <code>AclRuleTr
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-10-07 12:05:11 UTC
+Last updated 2019-10-07 12:51:47 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
