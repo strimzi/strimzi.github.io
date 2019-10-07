@@ -1,8 +1,8 @@
 ---
-title: Strimzi Documentation (Master)
+title: Using Strimzi (Master)
 layout: default
 ---
 
-<h1>Strimzi Documentation (Master)</h1>
+<h1>Using Strimzi (Master)</h1>
 
 {% include_relative master.html %}

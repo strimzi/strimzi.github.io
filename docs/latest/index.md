@@ -1,8 +1,8 @@
 ---
-title: Strimzi Documentation (Latest)
+title: Using Strimzi (Latest)
 layout: default
 ---
 
-<h1>Strimzi Documentation (Latest)</h1>
+<h1>Using Strimzi (Latest)</h1>
 
 {% include_relative latest.html %}
