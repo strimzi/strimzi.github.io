@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Strimzi, Apache Kafka and Tracing"
-date: 2019-10-07
+date: 2019-10-08
 author: jakub_scholz
 ---
 
@@ -330,16 +330,16 @@ That happens when some traces have not yet been delivered and processed by Jaege
 But if the missing spans don't appear later, it might also indicate that the message got lost somewhere on its way to the end consumer.
 A chart on the top of the search results shows the latencies of the traces which were found.
 
-[![Query result]({{ "/assets/2019-10-07-tracing-query-simple.png" }})](/assets/2019-10-07-tracing-query-simple.png)
+[![Query result]({{ "/assets/2019-10-08-tracing-query-simple.png" }})](/assets/2019-10-08-tracing-query-simple.png)
 
 You can click on an individual trace to find more details about it.
 That will, by default, show a timeline graph with the different spans and how long they took.
 
-[![Timeline graph]({{ "/assets/2019-10-07-tracing-timeline-simple.png" }})](/assets/2019-10-07-tracing-timeline-simple.png)
+[![Timeline graph]({{ "/assets/2019-10-08-tracing-timeline-simple.png" }})](/assets/2019-10-08-tracing-timeline-simple.png)
 
 You can also switch to the trace graph, which shows the dependency between the different services which the message went through.
 
-[![Trace graph]({{ "/assets/2019-10-07-tracing-trace-graph-simple.png" }})](/assets/2019-10-07-tracing-trace-graph-simple.png)
+[![Trace graph]({{ "/assets/2019-10-08-tracing-trace-graph-simple.png" }})](/assets/2019-10-08-tracing-trace-graph-simple.png)
 
 ### Mirror Maker
 
@@ -489,11 +489,11 @@ And once you check the Kafka connect logs, you should see there messages like th
 Checking the Jaeger UI, you should now see the spans from Kafka Connect (when it receives the message) and the Echo Sink connector when it logs the message.
 The following screenshots show what you should see at the end of our little demo.
 
-[![Query result]({{ "/assets/2019-10-07-tracing-query-full.png" }})](/assets/2019-10-07-tracing-query-full.png)
+[![Query result]({{ "/assets/2019-10-08-tracing-query-full.png" }})](/assets/2019-10-08-tracing-query-full.png)
 
-[![Timeline graph]({{ "/assets/2019-10-07-tracing-timeline-full.png" }})](/assets/2019-10-07-tracing-timeline-full.png)
+[![Timeline graph]({{ "/assets/2019-10-08-tracing-timeline-full.png" }})](/assets/2019-10-08-tracing-timeline-full.png)
 
-[![Trace graph]({{ "/assets/2019-10-07-tracing-trace-graph-full.png" }})](/assets/2019-10-07-tracing-trace-graph-full.png)
+[![Trace graph]({{ "/assets/2019-10-08-tracing-trace-graph-full.png" }})](/assets/2019-10-08-tracing-trace-graph-full.png)
 
 ## Next steps
 
