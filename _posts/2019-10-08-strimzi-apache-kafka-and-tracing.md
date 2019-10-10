@@ -20,7 +20,7 @@ Tracing can help address important aspects of complex systems:
 * Analyze and monitor the dependencies between (micro)services.
 
 Apache Kafka is often used as a backbone of micro-service based architectures.
-Events might flow in our out of your system using Kafka Connect.
+Events might flow in or out of your system using Kafka Connect.
 They will be processed and exchanged between Kafka consumers and producers or maybe using the Kafka Streams API.
 They might also be mirrored between smaller Kafka clusters or data centers using Mirror Maker.
 Support for tracing is important because it can help you to monitor the flow of the events, discover performance bottlenecks or errors and more.
