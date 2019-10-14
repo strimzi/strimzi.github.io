@@ -68,7 +68,7 @@ But not as a JMX or Prometheus metric.
 
 Consumer lag in particular is very important because it allows you to monitor the delay between the offset consumed by your consumers and the offset of the most recently added messages.
 When the lag is growing, it indicates that the consumers are slower than the producers and they are falling behind.
-If you applications are supposed to work in near time, you might need to do with it.
+If your applications are supposed to work in near real-time, you will need to do something to rectify the situation.
 
 Having the consumer lag in your Grafana dashboards and being able to configure alerts based on it will make it much easier to monitor your Kafka based applications.
 That is the reason why we added support for [Kafka Exporter](https://github.com/danielqsj/kafka_exporter).
