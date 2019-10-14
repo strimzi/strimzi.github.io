@@ -45,7 +45,7 @@ Apart from integrating the JMX Exporter we also provide Grafana dashboards and s
 
 [![Kafka dashboard]({{ "/assets/2019-10-14-kafka-dashboard.png" }})](/assets/2019-10-14-kafka-dashboard.png)
 
-To enable the JMX Exporter in Strimzi, you have to specify the `metrics` section in the Strimzi custom resources.
+To enable the JMX Exporter in Strimzi, you have to specify the `metrics` section in the Strimzi `Kafka`, `KafkaConnect` and `KafkaConnectS2I` custom resources.
 This section configures the JMX exporter and tells it how the JMX metrics should be converted to the Prometheus metrics.
 There are different ways to configure the JMX Exporter.
 And while you are of course free to configure it according to your needs, it is important to follow our configuration if you want to use our dashboards and alerting rules.
@@ -53,7 +53,7 @@ And while you are of course free to configure it according to your needs, it is 
 [![Zookeeper dashboard]({{ "/assets/2019-10-14-zookeeper-dashboard.png" }})](/assets/2019-10-14-kafka-dashboard.png)
 
 The Prometheus support, dashboards and sample alerting rules do not only work with Kafka brokers.
-They also support Kafka Connect, Kafka Mirror Maker and Apache Zookeeper.
+They also support Kafka Connect and Apache Zookeeper.
 All the files needed for Prometheus monitoring can be found in the [`metrics` folder](https://github.com/strimzi/strimzi-kafka-operator/tree/master/metrics/examples) in our GitHub repository.
 You can also follow our [documentation](https://strimzi.io/docs/latest/full.html#assembly-metrics-setup-str) which will not only help you with our dashboards but also with setting up Prometheus, Prometheus AlertManager and Grafana.
 
