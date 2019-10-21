@@ -5,11 +5,11 @@ date: 2019-10-2X
 author: marko_strukelj
 ---
 
-With Strimzi 0.14 we have added an additional authentication option to the standard set supported by Kafka brokers.
-Your Kafka clients can now authenticate to Kafka brokers using OAuth 2.0 token based authentication.
+In Strimzi 0.14 we have added an additional authentication option to the standard set supported by Kafka brokers.
+Your Kafka clients can now use OAuth 2.0 token-based authentication when establishing a session to Kafka broker.
 With this kind of authentication Kafka clients and brokers talk to a central OAuth 2.0 compliant authorization server. 
 Clients use the authorization server to obtain access tokens, or are configured with access tokens issued by the server.
-Brokers communicate with authorization server to validate the access tokens presented by clients, thus confirming their identities.
+Brokers communicate with authorization server to validate the tokens presented by clients, thus confirming their identities.
 In this model user creation does not happen on Kafka brokers any more.
 Rather, users are typically managed through identity providers exposed over LDAP.
 Strimzi client components like Kafka Bridge, Kafka Connect, and Kafka Mirror Maker can be configured with OAuth 2.0 authentication through custom resource definitions.
