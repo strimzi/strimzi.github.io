@@ -2,7 +2,7 @@
 layout: post
 title:  "Kafka authentication using OAuth 2.0"
 date: 2019-10-2X
-author: Marko Strukelj
+author: marko_strukelj
 ---
 
 With Strimzi 0.14 we have added an additional authentication option to the standard set supported by Kafka brokers.
