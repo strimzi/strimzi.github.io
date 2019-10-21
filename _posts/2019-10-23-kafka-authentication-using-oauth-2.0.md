@@ -415,8 +415,9 @@ When Strimzi creates a Kafka cluster, it also creates a CA certificate which it 
 
 For a cluster called 'my-cluster' the CA certificate is available as a secret called 'my-cluster-cluster-ca-cert'.
 
-In order to allow clients to connect we need to export this certificate and package it in client truststore.
+In order to allow clients to connect, we need to export this certificate and package it in client truststore.
 
+You can read more about Strimzi CAs in our [Security documentation](https://strimzi.io/docs/latest/#security-str)
     
     kubectl get secret my-cluster-cluster-ca-cert -n kafka -o yaml | grep ca.crt | awk '{print $2}' | base64 --decode > kafka.crt
     
@@ -428,6 +429,14 @@ In order to allow clients to connect we need to export this certificate and pack
     keytool -keystore kafka-client-truststore.p12 -storetype PKCS12 -alias kafka -storepass $PASSWORD -keypass $PASSWORD -import -file kafka.crt -noprompt
     
     kubectl create secret generic kafka-client-truststore -n clients --from-file=./kafka-client-truststore.p12
+
+Now, that we have the client truststore available, we can define the pod. 
+Note, the environment variables that we set. 
+
+CLASSPATH puts the necessary Strimzi OAuth 2.0 client libraries on the classpath when running Kafka CLI tools.
+These libraries are already present in Strimzi Kafka image.
+
+OAUTH_TOKEN_ENDPOINT_URI tells the OAuth 2.0 client library where to connect to retrieve an access token from authorization server.
     
 ```
 cat > kafka-client.yaml << EOF
@@ -457,18 +466,18 @@ spec:
 EOF
 ```
 
-Here we have configured the pod with a startup command that will loop indefinitely.
+Here, we have configured the pod with a startup command that will run indefinitely.
 This way we can execute other processes in the same pod while the initial shell script is running - keeping the pod alive.
 
 Let's start the pod:
 
     kubectl apply -n clients -f kafka-client.yaml
 
-We can now start another process in the same pod:
+We can now start an interactive shell process in the same pod:
 
     kubectl exec -n clients -ti kafka-client-shell /bin/bash
 
-We enter an interactive shell session inside the 'kafka-client-shell' pod.
+Let's start a CLI producer again, this time configuring it to use OAuth 2.0 over TLS for authentication.
 
     export OAUTH_CLIENT_ID=kafka-producer
     export OAUTH_CLIENT_SECRET=<SECRET_FOR_KAFKA_PRODUCER_WE_TOOK_NOTE_OF_IN_KEYCLOAK_CONSOLE>
@@ -480,7 +489,7 @@ We enter an interactive shell session inside the 'kafka-client-shell' pod.
           --producer-property 'sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;' \
           --producer-property 'sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler' 
 
-If you get a warning about credentials expiring really soon you probably forgot to configure a longer access token lifespan, as instructed in 'Setting up Keycloak' section.
+If you get a warning about credentials expiring really soon, you probably forgot to configure a longer access token lifespan, as instructed in [Setting up Keycloak](#setting-up-keycloak) section.
 
 One question we haven't answered yet is if authentication is in fact mandatory or if can we connect by using only TLS - without the client actually authenticating.
 
@@ -505,7 +514,8 @@ Let's fix that with proper authentication configuration:
           --consumer-property 'sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;' \
           --consumer-property 'sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler' 
 
-Now, all should work as expected. Our client should receive all the messages in the topic.
+Now, all should work as expected.
+Our client should receive all the messages in the topic, and if we keep it running would receive any additional produced messages.
 
 
 
