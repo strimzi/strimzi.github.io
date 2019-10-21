@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Kafka authentication using OAuth 2.0"
-date: 2019-10-20
+date: 2019-10-23
 author: marko_strukelj
 ---
 
@@ -424,7 +424,7 @@ For a cluster called 'my-cluster' the CA certificate is available as a secret ca
 
 In order to allow clients to connect, we need to export this certificate and package it in client truststore.
 
-You can read more about Strimzi CAs in our [Security documentation](https://strimzi.io/docs/latest/#security-str)
+You can read more about Strimzi CAs in our [Security documentation](https://strimzi.io/docs/master/#assembly-oauth-str)
     
     kubectl get secret my-cluster-cluster-ca-cert -n kafka -o yaml | grep ca.crt | awk '{print $2}' | base64 --decode > kafka.crt
     
@@ -438,7 +438,8 @@ You can read more about Strimzi CAs in our [Security documentation](https://stri
     kubectl create secret generic kafka-client-truststore -n clients --from-file=./kafka-client-truststore.p12
 
 Now, that we have the client truststore available, we can define the pod. 
-Note, the environment variables that we set. 
+
+Note the environment variables that we set. 
 
 CLASSPATH puts the necessary Strimzi OAuth 2.0 client libraries on the classpath when running Kafka CLI tools.
 These libraries are already present in Strimzi Kafka image.
@@ -533,5 +534,5 @@ OAuth 2.0 token-based authentication allows you to use central management of use
 What we have implemented thus far is initial support for authentication. 
 For next steps, we are looking at roles-based authorization, which could be used instead of the default ACL based authorization to centrally manage not only user identities, but also the permissions they have on Kafka resources.
 
-OAuth2 support is part of Strimzi 0.14, and you can use it with Strimzi brokers, connectors, Mirror Maker and your custom Kafka client applications.
+OAuth2 support is part of Strimzi 0.14, and you can use it with Strimzi brokers, Kafka Mirror Maker, Kafka Connect, Kafka Bridge, and with your custom Kafka client applications.
 Give it a try, and let us know what you think.
