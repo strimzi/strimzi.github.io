@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Kafka authentication using OAuth 2.0"
-date: 2019-10-2X
+date: 2019-10-20
 author: marko_strukelj
 ---
 
@@ -86,8 +86,8 @@ openssl genrsa -out keycloak.key 2048
 # prepare certificate configuration 
 # On your system the location of the file may be elsewhere.
 # You may try:
+#     /etc/pki/tls/openssl.cnf
 #     /usr/local/ssl/openssl.cnf
-#     /usr/lib/ssl/openssl.cnf
 #     
 cp /etc/ssl/openssl.cnf ssl.cnf
 cat >> ssl.cnf << EOF
@@ -226,6 +226,8 @@ Leave `Client Authenticator` set to `Client Id and Secret`, and take note of the
 
 What we've done here is configure the kafka-broker 'client' in a way that it can directly authenticate with Keycloak in its own name, using its own Client ID and Secret, and at the same time can't be used for browser based login by other users.
 This is a typical 'client' configuration for microservices, regardless of whether they are acting as application clients, or application servers. 
+
+![Create Client in Keycloak Console](/assets/2019-10-23-keycloak.png)
 
 All Kafka brokers will share the same 'client' configuration since they are just different instances of the same service.
 
