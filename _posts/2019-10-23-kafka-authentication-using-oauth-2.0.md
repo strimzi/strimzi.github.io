@@ -51,7 +51,7 @@ The result of authenticating is a time-limited token which the user passes aroun
 Let's see how this works. As our OAuth 2.0 compliant authorization server we will use a basic setup of Keycloak with TLS support.
 We'll then configure a Kafka cluster with OAuth 2.0 support, and an example Kafka producer, and Kafka consumer client applications, that will use OAuth 2.0 to authenticate. 
 
-Since Strimzi is all about Kubernetes, we assume that you have a Kubernetes cluster available.
+We'll assume that you have a Kubernetes cluster available in order to explain this this works for Strimzi, but the oauth support can be used with non-Strimzi Kafka installations too.
  
 If you are using `minikube` on your local machine, make sure to start `minikube tunnel` in another terminal in order for LoadBalancer services to get their externals IPs assigned:
 
