@@ -24,9 +24,10 @@ You can use TLS with client certificates to establish a secure channel and authe
 Another option is to separately configure TLS for connection encryption and integrity, but use a specific SASL protocol for authentication.
 
 There are several SASL based protocols you can use.
-One option is to use SASL PLAINTEXT to authenticate with username and password.
-Another option is to use SASL SCRAM which is also username and password based, but rather than storing clear text passwords it stores salted hashes.
-These two implementations both store usernames and credentials in ZooKeeper.
+One option is to use SASL PLAIN to authenticate with username and password.
+Another option is to use SASL SCRAM which is also username and password based, but rather than communicating, and storing clear text passwords, salted hashes are used.
+These two implementations both store usernames and some form of credentials in ZooKeeper.
+They require secure connection between Kafka clients and brokers, but also between Kafka brokers and ZooKeeper nodes.
 
 A more advanced, enterprise-ready solution is to use SASL GSSAPI mechanism which provides support for Kerberos. 
 That typically uses a central LDAP server for managing users, and permissions.
@@ -207,8 +208,9 @@ Now, open it in your browser (you'll need to add a certificate exception because
     open https://$KEYCLOAK:8443/auth
 
 
-In OAuth 2.0 all applications communicating with the authorization server are known as 'clients', and act either as application clients, or as application servers (resource servers).
-Each `client` has to be configured on the server.
+In OAuth 2 terminology your application servers (Kafka brokers in our case) are called 'resource servers' - they are the ones requiring authentication.
+However, when your application servers and clients talk to the OAuth 2.0 authorization server, they are all considered 'clients'.
+Each `client` has to be configured on the authorization server.
 
 We'll manually configure a `client` for Kafka broker - we'll simply call it 'kafka-broker'.
 
@@ -250,7 +252,7 @@ Note, that secrets in the exported file get lost, and if you ever perform `Impor
 
 ## Installing Strimzi
 
-Before we can start a Kafka cluster we first have to install the custom resource definitions (CRDs) for Strimzi.
+Before we can start a Kafka cluster we first have to install the custom resource definitions (CRDs) and the Kubernetes operators provided by Strimzi.
 
 The default installation assumes that the namespace where Kafka cluster is deployed is called 'myproject'.
 However, we will assume here that kafka cluster is running in 'kafka' namespace.
@@ -275,6 +277,8 @@ NOTE: If you're using RBAC you may first need to grant current user ('developer'
 Or, if you're on GCP:
 
     kubectl create clusterrolebinding cluster-admin-binding --clusterrole cluster-admin --user $(gcloud config get-value account)
+
+You might need to do something similar in other environments as well.
 
 
 ## Configuring Kafka brokers in Strimzi
