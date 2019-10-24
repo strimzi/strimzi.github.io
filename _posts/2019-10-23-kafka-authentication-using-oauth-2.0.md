@@ -79,7 +79,8 @@ We'll set the certificate's common name to `keycloak`, but add `keycloak.keycloa
 openssl genrsa -out ca.key 2048
 
 # create CA certificate
-openssl req -x509 -new -nodes -sha256 -days 3650 -subj "/CN=example.com" -key ca.key -out ca.crt
+openssl req -x509 -new -nodes -sha256 -days 3650 -subj "/CN=example.com" \
+  -key ca.key -out ca.crt
 
 # create keycloak server private key
 openssl genrsa -out keycloak.key 2048
@@ -107,7 +108,8 @@ openssl req -new -sha256 \
   -out keycloak.csr
 
 # Generate the final keycloak certificate, signed by CA
-openssl x509 -req -extfile ssl.cnf -extensions SAN -in keycloak.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out keycloak.crt -days 365 -sha256
+openssl x509 -req -extfile ssl.cnf -extensions SAN -in keycloak.csr -CA ca.crt \
+  -CAkey ca.key -CAcreateserial -out keycloak.crt -days 365 -sha256
 
 ```
 
@@ -120,7 +122,8 @@ First, create a new namespace for Keycloak:
     
 Then, add the secret:
 
-    kubectl create secret tls tls-keys --cert=./keycloak.crt --key=./keycloak.key -n keycloak
+    kubectl create secret tls tls-keys -n keycloak \
+      --cert=./keycloak.crt --key=./keycloak.key
 
 And let's deploy the Keycloak server using the Keycloak project's docker image from Docker Hub:
 
@@ -276,7 +279,8 @@ NOTE: If you're using RBAC you may first need to grant current user ('developer'
 
 Or, if you're on GCP:
 
-    kubectl create clusterrolebinding cluster-admin-binding --clusterrole cluster-admin --user $(gcloud config get-value account)
+    kubectl create clusterrolebinding cluster-admin-binding \
+      --clusterrole cluster-admin --user $(gcloud config get-value account)
 
 You might need to do something similar in other environments as well.
 
@@ -294,8 +298,9 @@ Let's use a Bash feature that allows us to by-pass history if prefixing command 
 
 Now, let's create a secret:
 
-     export BROKER_SECRET=<SECRET_FOR_KAFKA_BROKER_WE_TOOK_NOTE_OF_IN_KEYCLOAK_CONSOLE>
-    kubectl create secret generic broker-oauth-secret -n kafka --from-literal=secret=$BROKER_SECRET
+     export BROKER_SECRET=<SECRET_FOR_KAFKA_BROKER_FROM_KEYCLOAK_CONSOLE>
+    kubectl create secret generic broker-oauth-secret -n kafka \
+      --from-literal=secret=$BROKER_SECRET
 
 We also need to provide a truststore for TLS connectivity to Keycloak - as a `Secret`.
 
@@ -380,37 +385,36 @@ Let's create a new namespace for clients:
     
 We'll use the Strimzi Kafka image so we have all the dependent libraries already present in the image.
 
-We can configure and start the producer in a single line:
-
-     export PRODUCER_SECRET=<SECRET_FOR_KAFKA_PRODUCER_WE_TOOK_NOTE_OF_IN_KEYCLOAK_CONSOLE>
-     export CONSUMER_SECRET=<SECRET_FOR_KAFKA_CONSUMER_WE_TOOK_NOTE_OF_IN_KEYCLOAK_CONSOLE>
-
-
 Let's first connect to PLAINTEXT Kafka broker on 9092, to confirm that kafka is up, and that we can connect with the client application:
 
-    kubectl -n clients run kafka-producer -ti --image=strimzi/kafka:0.14.0-kafka-2.3.0 --rm=true --restart=Never \
-      -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap.kafka:9092 --topic my-topic
+    kubectl -n clients run kafka-producer -ti --rm=true --restart=Never \
+      --image=strimzi/kafka:0.14.0-kafka-2.3.0 -- bin/kafka-console-producer.sh \
+        --broker-list my-cluster-kafka-bootstrap.kafka:9092 --topic my-topic
 
 Type a few lines of text. Each ENTER will send a message to Kafka broker. Type CTRL-C to quit.
 
 Now read the messages using Kafka consumer:
 
-    kubectl -n clients run kafka-consumer -ti --image=strimzi/kafka:0.14.0-kafka-2.3.0 --rm=true --restart=Never \
-      -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap.kafka:9092 --topic my-topic --from-beginning      
+    kubectl -n clients run kafka-consumer -ti --rm=true --restart=Never \
+      --image=strimzi/kafka:0.14.0-kafka-2.3.0 -- bin/kafka-console-consumer.sh \
+        --bootstrap-server my-cluster-kafka-bootstrap.kafka:9092 --topic my-topic \
+        --from-beginning      
 
 You should get the messages from the previous step.
 
 Now, let's try the TLS listener on port 9093 which is configured with SASL_SSL + OAUTHBEARER support - it should require a TLS based session.
 The following should fail, because the default PLAINTEXT connection is used rather than SASL_SSL:
  
-    kubectl -n clients run kafka-producer -ti --image=strimzi/kafka:0.14.0-kafka-2.3.0 --rm=true --restart=Never \
-      -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap.kafka:9093 --topic my-topic
+    kubectl -n clients run kafka-producer -ti --rm=true --restart=Never \
+     --image=strimzi/kafka:0.14.0-kafka-2.3.0 -- bin/kafka-console-producer.sh \
+       --broker-list my-cluster-kafka-bootstrap.kafka:9093 --topic my-topic
 
-Let's try just using TLS without OAuth 2.0, to see if authentication is required or optional:
+Then, let's try just using TLS without OAuth 2.0, to see if authentication is required or optional:
       
-    kubectl -n clients run kafka-producer -ti --image=strimzi/kafka:0.14.0-kafka-2.3.0 --rm=true --restart=Never \
-      -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap.kafka:9093 --topic my-topic \
-      --producer-property 'security.protocol=SSL'
+    kubectl -n clients run kafka-producer -ti --rm=true --restart=Never \
+      --image=strimzi/kafka:0.14.0-kafka-2.3.0 -- bin/kafka-console-producer.sh \
+        --broker-list my-cluster-kafka-bootstrap.kafka:9093 --topic my-topic \
+        --producer-property 'security.protocol=SSL'
 
 We get authentication error - SSL handshake failed, meaning creation of SSL connection failed even before any attempt of further communication.
 The reason is that the server certificate is not trusted by the client.
@@ -427,19 +431,23 @@ When Strimzi creates a Kafka cluster, it also creates a CA certificate which it 
 For a cluster called 'my-cluster' the CA certificate is available as a secret called 'my-cluster-cluster-ca-cert'.
 
 In order to allow clients to connect, we need to export this certificate and package it in client truststore.
-
-You can read more about Strimzi CAs in our [Security documentation](https://strimzi.io/docs/master/#assembly-oauth-str)
     
-    kubectl get secret my-cluster-cluster-ca-cert -n kafka -o yaml | grep ca.crt | awk '{print $2}' | base64 --decode > kafka.crt
+    kubectl get secret my-cluster-cluster-ca-cert -n kafka -o yaml \
+      | grep ca.crt | awk '{print $2}' | base64 --decode > kafka.crt
     
     # inspect the certificate
     #openssl x509 -text -noout -in kafka.crt
 
      export PASSWORD=truststorepassword
-    keytool -keystore kafka-client-truststore.p12 -storetype PKCS12 -alias ca -storepass $PASSWORD -keypass $PASSWORD -import -file ca.crt -noprompt
-    keytool -keystore kafka-client-truststore.p12 -storetype PKCS12 -alias kafka -storepass $PASSWORD -keypass $PASSWORD -import -file kafka.crt -noprompt
+    keytool -keystore kafka-client-truststore.p12 -storetype PKCS12 -alias ca \
+      -storepass $PASSWORD -keypass $PASSWORD -import -file ca.crt -noprompt
+    keytool -keystore kafka-client-truststore.p12 -storetype PKCS12 -alias kafka \
+      -storepass $PASSWORD -keypass $PASSWORD -import -file kafka.crt -noprompt
     
-    kubectl create secret generic kafka-client-truststore -n clients --from-file=./kafka-client-truststore.p12
+    kubectl create secret generic kafka-client-truststore -n clients \
+      --from-file=./kafka-client-truststore.p12
+
+You can read more about Strimzi CAs in our [Security documentation](https://strimzi.io/docs/master/#assembly-oauth-str)
 
 Now, that we have the client truststore available, we can define the pod. 
 
@@ -492,14 +500,19 @@ We can now start an interactive shell process in the same pod:
 Let's start a CLI producer again, this time configuring it to use OAuth 2.0 over TLS for authentication.
 
     export OAUTH_CLIENT_ID=kafka-producer
-    export OAUTH_CLIENT_SECRET=<SECRET_FOR_KAFKA_PRODUCER_WE_TOOK_NOTE_OF_IN_KEYCLOAK_CONSOLE>
+    export OAUTH_CLIENT_SECRET=<SECRET_FOR_KAFKA_PRODUCER_FROM_KEYCLOAK_CONSOLE>
     export PASSWORD=truststorepassword
-    export KAFKA_OPTS="-Djavax.net.ssl.trustStore=/opt/kafka/certificates/kafka-client-truststore.p12 -Djavax.net.ssl.trustStorePassword=$PASSWORD -Djavax.net.ssl.trustStoreType=PKCS12"
-    bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap.kafka:9093 --topic my-topic \
-          --producer-property 'security.protocol=SASL_SSL' \
-          --producer-property 'sasl.mechanism=OAUTHBEARER' \
-          --producer-property 'sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;' \
-          --producer-property 'sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler' 
+    export KAFKA_OPTS=" \
+      -Djavax.net.ssl.trustStore=/opt/kafka/certificates/kafka-client-truststore.p12 \
+      -Djavax.net.ssl.trustStorePassword=$PASSWORD \
+      -Djavax.net.ssl.trustStoreType=PKCS12"
+      
+    bin/kafka-console-producer.sh --broker-list \
+      my-cluster-kafka-bootstrap.kafka:9093 --topic my-topic \
+      --producer-property 'security.protocol=SASL_SSL' \
+      --producer-property 'sasl.mechanism=OAUTHBEARER' \
+      --producer-property 'sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;' \
+      --producer-property 'sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler' 
 
 If you get a warning about credentials expiring really soon, you probably forgot to configure a longer access token lifespan, as instructed in [Setting up Keycloak](#setting-up-keycloak) section.
 
@@ -508,23 +521,33 @@ One question we haven't answered yet is if authentication is in fact mandatory o
 Let's try with the consumer this time.
 
     export PASSWORD=truststorepassword
-    export KAFKA_OPTS="-Djavax.net.ssl.trustStore=/opt/kafka/certificates/kafka-client-truststore.p12 -Djavax.net.ssl.trustStorePassword=$PASSWORD -Djavax.net.ssl.trustStoreType=PKCS12"
-    bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap.kafka:9093 --topic my-topic --from-beginning \
-          --consumer-property 'security.protocol=SSL'
+    export KAFKA_OPTS=" \
+      -Djavax.net.ssl.trustStore=/opt/kafka/certificates/kafka-client-truststore.p12 \
+      -Djavax.net.ssl.trustStorePassword=$PASSWORD \
+      -Djavax.net.ssl.trustStoreType=PKCS12"
+      
+    bin/kafka-console-consumer.sh --bootstrap-server /
+      my-cluster-kafka-bootstrap.kafka:9093 --topic my-topic --from-beginning \
+      --consumer-property 'security.protocol=SSL'
 
 We should get a disconnected error. In the Kafka broker log we should see 'Failed authentication' error message.
 
 Let's fix that with proper authentication configuration:
 
     export OAUTH_CLIENT_ID=kafka-consumer
-    export OAUTH_CLIENT_SECRET=<SECRET_FOR_KAFKA_CONSUMER_WE_TOOK_NOTE_OF_IN_KEYCLOAK_CONSOLE>
+    export OAUTH_CLIENT_SECRET=<SECRET_FOR_KAFKA_CONSUMER_FROM_KEYCLOAK_CONSOLE>
     export PASSWORD=truststorepassword
-    export KAFKA_OPTS="-Djavax.net.ssl.trustStore=/opt/kafka/certificates/kafka-client-truststore.p12 -Djavax.net.ssl.trustStorePassword=$PASSWORD -Djavax.net.ssl.trustStoreType=PKCS12"
-    bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap.kafka:9093 --topic my-topic --from-beginning \
-          --consumer-property 'security.protocol=SASL_SSL' \
-          --consumer-property 'sasl.mechanism=OAUTHBEARER' \
-          --consumer-property 'sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;' \
-          --consumer-property 'sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler' 
+    export KAFKA_OPTS=" \
+      -Djavax.net.ssl.trustStore=/opt/kafka/certificates/kafka-client-truststore.p12 \
+      -Djavax.net.ssl.trustStorePassword=$PASSWORD \
+      -Djavax.net.ssl.trustStoreType=PKCS12"
+      
+    bin/kafka-console-consumer.sh --bootstrap-server \
+      my-cluster-kafka-bootstrap.kafka:9093 --topic my-topic --from-beginning \
+      --consumer-property 'security.protocol=SASL_SSL' \
+      --consumer-property 'sasl.mechanism=OAUTHBEARER' \
+      --consumer-property 'sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;' \
+      --consumer-property 'sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler' 
 
 Now, all should work as expected.
 Our client should receive all the messages in the topic, and if we keep it running would receive any additional produced messages.
