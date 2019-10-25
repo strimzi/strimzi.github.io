@@ -1,11 +1,11 @@
 ---
 layout: post
 title:  "Kafka authentication using OAuth 2.0"
-date: 2019-10-23
+date: 2019-10-25
 author: marko_strukelj
 ---
 
-In Strimzi 0.14 we have added an additional authentication option to the standard set supported by Kafka brokers.
+In Strimzi 0.14.0 we have added an additional authentication option to the standard set supported by Kafka brokers.
 Your Kafka clients can now use OAuth 2.0 token-based authentication when establishing a session to a Kafka broker.
 With this kind of authentication Kafka clients and brokers talk to a central OAuth 2.0 compliant authorization server. 
 Clients use the authorization server to obtain access tokens, or are configured with access tokens issued by the server.
@@ -60,7 +60,7 @@ If you are using `minikube` on your local machine, make sure to start `minikube 
 
 If you're wondering, an example of the tested `minikube` configuration is to run it as:
 
-    minikube start --vm-driver hyperkit --memory=4096 --cpus=4
+    minikube start --memory=4096 --cpus=4
 
 
 ## Setting up Keycloak
@@ -232,7 +232,7 @@ Leave `Client Authenticator` set to `Client Id and Secret`, and take note of the
 What we've done here is configure the kafka-broker 'client' in a way that it can directly authenticate with Keycloak in its own name, using its own Client ID and Secret, and at the same time can't be used for browser based login by other users.
 This is a typical 'client' configuration for microservices, regardless of whether they are acting as application clients, or application servers. 
 
-![Create Client in Keycloak Console](/assets/2019-10-23-keycloak.png)
+![Create Client in Keycloak Console](/assets/2019-10-25-keycloak.png)
 
 All Kafka brokers will share the same 'client' configuration since they are just different instances of the same service.
 
@@ -563,3 +563,5 @@ For next steps, we are looking at roles-based authorization, which could be used
 
 OAuth2 support is part of Strimzi 0.14, and you can use it with Strimzi brokers, Kafka Mirror Maker, Kafka Connect, Kafka Bridge, and with your custom Kafka client applications.
 Give it a try, and let us know what you think.
+
+If you like Strimzi, star us on GitHub and follow us on Twitter to make sure you don't miss any of our future blog posts!
