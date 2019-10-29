@@ -1740,7 +1740,7 @@ USER 1001</code></pre>
 <li>
 <p>Edit the <code>KafkaConnect.spec.image</code> property of the <code>KafkaConnect</code> custom resource.</p>
 <div class="paragraph">
-<p>If set, this property overrides the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code> variable in the Cluster Operator.</p>
+<p>If set, this property overrides the <code>STRIMZI_KAFKA_CONNECT_IMAGES</code> variable in the Cluster Operator.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1758,7 +1758,7 @@ spec:
 </div>
 </li>
 <li>
-<p>In the <code>install/cluster-operator/050-Deployment-strimzi-cluster-operator.yaml</code> file, edit the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code> variable to point to the new container image and reinstall the Cluster Operator.</p>
+<p>In the <code>install/cluster-operator/050-Deployment-strimzi-cluster-operator.yaml</code> file, edit the <code>STRIMZI_KAFKA_CONNECT_IMAGES</code> variable to point to the new container image, and then reinstall the Cluster Operator.</p>
 </li>
 </ul>
 </div>
@@ -1772,7 +1772,7 @@ spec:
 <p>For more information on the <code>KafkaConnect.spec.image property</code>, see <a href="#assembly-configuring-container-images-deployment-configuration-kafka-connect">Container images</a>.</p>
 </li>
 <li>
-<p>For more information on the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code> variable, see <a href="#ref-operators-cluster-operator-configuration-deploying-co">Cluster Operator Configuration</a>.</p>
+<p>For more information on the <code>STRIMZI_KAFKA_CONNECT_IMAGES</code> variable, see <a href="#ref-operators-cluster-operator-configuration-deploying-co">Cluster Operator Configuration</a>.</p>
 </li>
 </ul>
 </div>
@@ -6962,7 +6962,7 @@ If the configured image is not compatible with Strimzi images, it might not work
 <div class="sect4">
 <h5 id="ref-configuring-container-images-deployment-configuration-kafka"><a class="link" href="#ref-configuring-container-images-deployment-configuration-kafka">Container image configurations</a></h5>
 <div class="paragraph">
-<p>Container image which should be used for given components can be specified using the <code>image</code> property in:</p>
+<p>You can specify which container image to use for each component using the <code>image</code> property in the following resources:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -6999,25 +6999,58 @@ If the configured image is not compatible with Strimzi images, it might not work
 </ul>
 </div>
 <div class="sect5">
-<h6 id="configuring_the_kafka_spec_kafka_image_property"><a class="link" href="#configuring_the_kafka_spec_kafka_image_property">Configuring the <code>Kafka.spec.kafka.image</code> property</a></h6>
+<h6 id="configuring_the_image_property_for_kafka_kafka_connect_and_kafka_mirror_maker"><a class="link" href="#configuring_the_image_property_for_kafka_kafka_connect_and_kafka_mirror_maker">Configuring the <code>image</code> property for Kafka, Kafka Connect, and Kafka Mirror Maker</a></h6>
 <div class="paragraph">
-<p>The <code>Kafka.spec.kafka.image</code> property functions differently from the others, because Strimzi supports multiple versions of Kafka, each requiring the own image.
-The <code>STRIMZI_KAFKA_IMAGES</code> environment variable of the Cluster Operator configuration is used to provide a mapping between Kafka versions and the corresponding images.
-This is used in combination with the <code>Kafka.spec.kafka.image</code> and <code>Kafka.spec.kafka.version</code> properties as follows:</p>
+<p>Kafka, Kafka Connect (including Kafka Connect with S2I support), and Kafka Mirror Maker support multiple versions of Kafka.
+Each component requires its own image.
+The default images for the different Kafka versions are configured in the following environment variables:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>If neither <code>Kafka.spec.kafka.image</code> nor <code>Kafka.spec.kafka.version</code> are given in the custom resource then the <code>version</code> will default to the  Cluster Operator&#8217;s default Kafka version, and the image will be the one corresponding to this version in the <code>STRIMZI_KAFKA_IMAGES</code>.</p>
+<p><code>STRIMZI_KAFKA_IMAGES</code></p>
 </li>
 <li>
-<p>If <code>Kafka.spec.kafka.image</code> is given but <code>Kafka.spec.kafka.version</code> is not then the given image will be used and the <code>version</code> will be assumed to be the  Cluster Operator&#8217;s default Kafka version.</p>
+<p><code>STRIMZI_KAFKA_CONNECT_IMAGES</code></p>
 </li>
 <li>
-<p>If <code>Kafka.spec.kafka.version</code> is given but <code>Kafka.spec.kafka.image</code> is not then image will be the one corresponding to this version in the <code>STRIMZI_KAFKA_IMAGES</code>.</p>
+<p><code>STRIMZI_KAFKA_CONNECT_S2I_IMAGES</code></p>
 </li>
 <li>
-<p>Both <code>Kafka.spec.kafka.version</code> and <code>Kafka.spec.kafka.image</code> are given the given image will be used, and it will be assumed to contain a Kafka broker with the given version.</p>
+<p><code>STRIMZI_KAFKA_MIRROR_MAKER_IMAGES</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These environment variables contain mappings between the Kafka versions and their corresponding images.
+The mappings are used together with the <code>image</code> and <code>version</code> properties:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If neither <code>image</code> nor <code>version</code> are given in the custom resource then the <code>version</code> will default to the Cluster Operator&#8217;s default Kafka version, and the image will be the one corresponding to this version in the environment variable.</p>
+</li>
+<li>
+<p>If <code>image</code> is given but <code>version</code> is not, then the given image is used and the <code>version</code> is assumed to be the Cluster Operator&#8217;s default Kafka version.</p>
+</li>
+<li>
+<p>If <code>version</code> is given but <code>image</code> is not, then the image that corresponds to the given version in the environment variable is used.</p>
+</li>
+<li>
+<p>If both <code>version</code> and <code>image</code> are given, then the given image is used. The image is assumed to contain a Kafka image with the given version.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>image</code> and <code>version</code> for the different components can be configured in the following properties:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>For Kafka in <code>spec.kafka.image</code> and <code>spec.kafka.version</code>.</p>
+</li>
+<li>
+<p>For Kafka Connect, Kafka Connect S2I, and Kafka Mirror Maker in <code>spec.image</code> and <code>spec.version</code>.</p>
 </li>
 </ul>
 </div>
@@ -7028,8 +7061,9 @@ This is used in combination with the <code>Kafka.spec.kafka.image</code> and <co
 <div class="title">Warning</div>
 </td>
 <td class="content">
-It is best to provide just <code>Kafka.spec.kafka.version</code> and leave the <code>Kafka.spec.kafka.image</code> property unspecified.
-This reduces the chances of making a mistake in configuring the <code>Kafka</code> resource. If you need to change the images used for different versions of Kafka, it is better to configure the Cluster Operator&#8217;s <code>STRIMZI_KAFKA_IMAGES</code> environment variable.
+It is recommended to provide only the <code>version</code> and leave the <code>image</code> property unspecified.
+This reduces the chance of making a mistake when configuring the custom resource.
+If you need to change the images used for different versions of Kafka, it is preferable to configure the Cluster Operator&#8217;s environment variables.
 </td>
 </tr>
 </table>
@@ -7123,11 +7157,11 @@ If the <code>image</code> name is not defined in the Cluster Operator configurat
 </div>
 </li>
 <li>
-<p>For Kafka Connect:</p>
+<p>For Kafka Exporter:</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_EXPORTER_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
 </li>
 <li>
 <p><code>strimzi/kafka:latest-kafka-2.3.0</code> container image.</p>
@@ -7136,14 +7170,27 @@ If the <code>image</code> name is not defined in the Cluster Operator configurat
 </div>
 </li>
 <li>
-<p>For Kafka Connect with Source2image support:</p>
+<p>For Kafka Bridge:</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_S2I_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_BRIDGE_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
 </li>
 <li>
-<p><code>strimzi/kafka:latest-kafka-2.3.0</code> container image.</p>
+<p><code>strimzi/kafka-bridge:latest</code> container image.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>For Kafka broker initializer:</p>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_INIT_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+</li>
+<li>
+<p><code>strimzi/operator:latest</code> container image.</p>
 </li>
 </ol>
 </div>
@@ -11118,7 +11165,7 @@ If the configured image is not compatible with Strimzi images, it might not work
 <div class="sect4">
 <h5 id="ref-configuring-container-images-deployment-configuration-kafka-connect"><a class="link" href="#ref-configuring-container-images-deployment-configuration-kafka-connect">Container image configurations</a></h5>
 <div class="paragraph">
-<p>Container image which should be used for given components can be specified using the <code>image</code> property in:</p>
+<p>You can specify which container image to use for each component using the <code>image</code> property in the following resources:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -11155,25 +11202,58 @@ If the configured image is not compatible with Strimzi images, it might not work
 </ul>
 </div>
 <div class="sect5">
-<h6 id="configuring_the_kafka_spec_kafka_image_property_2"><a class="link" href="#configuring_the_kafka_spec_kafka_image_property_2">Configuring the <code>Kafka.spec.kafka.image</code> property</a></h6>
+<h6 id="configuring_the_image_property_for_kafka_kafka_connect_and_kafka_mirror_maker_2"><a class="link" href="#configuring_the_image_property_for_kafka_kafka_connect_and_kafka_mirror_maker_2">Configuring the <code>image</code> property for Kafka, Kafka Connect, and Kafka Mirror Maker</a></h6>
 <div class="paragraph">
-<p>The <code>Kafka.spec.kafka.image</code> property functions differently from the others, because Strimzi supports multiple versions of Kafka, each requiring the own image.
-The <code>STRIMZI_KAFKA_IMAGES</code> environment variable of the Cluster Operator configuration is used to provide a mapping between Kafka versions and the corresponding images.
-This is used in combination with the <code>Kafka.spec.kafka.image</code> and <code>Kafka.spec.kafka.version</code> properties as follows:</p>
+<p>Kafka, Kafka Connect (including Kafka Connect with S2I support), and Kafka Mirror Maker support multiple versions of Kafka.
+Each component requires its own image.
+The default images for the different Kafka versions are configured in the following environment variables:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>If neither <code>Kafka.spec.kafka.image</code> nor <code>Kafka.spec.kafka.version</code> are given in the custom resource then the <code>version</code> will default to the  Cluster Operator&#8217;s default Kafka version, and the image will be the one corresponding to this version in the <code>STRIMZI_KAFKA_IMAGES</code>.</p>
+<p><code>STRIMZI_KAFKA_IMAGES</code></p>
 </li>
 <li>
-<p>If <code>Kafka.spec.kafka.image</code> is given but <code>Kafka.spec.kafka.version</code> is not then the given image will be used and the <code>version</code> will be assumed to be the  Cluster Operator&#8217;s default Kafka version.</p>
+<p><code>STRIMZI_KAFKA_CONNECT_IMAGES</code></p>
 </li>
 <li>
-<p>If <code>Kafka.spec.kafka.version</code> is given but <code>Kafka.spec.kafka.image</code> is not then image will be the one corresponding to this version in the <code>STRIMZI_KAFKA_IMAGES</code>.</p>
+<p><code>STRIMZI_KAFKA_CONNECT_S2I_IMAGES</code></p>
 </li>
 <li>
-<p>Both <code>Kafka.spec.kafka.version</code> and <code>Kafka.spec.kafka.image</code> are given the given image will be used, and it will be assumed to contain a Kafka broker with the given version.</p>
+<p><code>STRIMZI_KAFKA_MIRROR_MAKER_IMAGES</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These environment variables contain mappings between the Kafka versions and their corresponding images.
+The mappings are used together with the <code>image</code> and <code>version</code> properties:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If neither <code>image</code> nor <code>version</code> are given in the custom resource then the <code>version</code> will default to the Cluster Operator&#8217;s default Kafka version, and the image will be the one corresponding to this version in the environment variable.</p>
+</li>
+<li>
+<p>If <code>image</code> is given but <code>version</code> is not, then the given image is used and the <code>version</code> is assumed to be the Cluster Operator&#8217;s default Kafka version.</p>
+</li>
+<li>
+<p>If <code>version</code> is given but <code>image</code> is not, then the image that corresponds to the given version in the environment variable is used.</p>
+</li>
+<li>
+<p>If both <code>version</code> and <code>image</code> are given, then the given image is used. The image is assumed to contain a Kafka image with the given version.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>image</code> and <code>version</code> for the different components can be configured in the following properties:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>For Kafka in <code>spec.kafka.image</code> and <code>spec.kafka.version</code>.</p>
+</li>
+<li>
+<p>For Kafka Connect, Kafka Connect S2I, and Kafka Mirror Maker in <code>spec.image</code> and <code>spec.version</code>.</p>
 </li>
 </ul>
 </div>
@@ -11184,8 +11264,9 @@ This is used in combination with the <code>Kafka.spec.kafka.image</code> and <co
 <div class="title">Warning</div>
 </td>
 <td class="content">
-It is best to provide just <code>Kafka.spec.kafka.version</code> and leave the <code>Kafka.spec.kafka.image</code> property unspecified.
-This reduces the chances of making a mistake in configuring the <code>Kafka</code> resource. If you need to change the images used for different versions of Kafka, it is better to configure the Cluster Operator&#8217;s <code>STRIMZI_KAFKA_IMAGES</code> environment variable.
+It is recommended to provide only the <code>version</code> and leave the <code>image</code> property unspecified.
+This reduces the chance of making a mistake when configuring the custom resource.
+If you need to change the images used for different versions of Kafka, it is preferable to configure the Cluster Operator&#8217;s environment variables.
 </td>
 </tr>
 </table>
@@ -11279,11 +11360,11 @@ If the <code>image</code> name is not defined in the Cluster Operator configurat
 </div>
 </li>
 <li>
-<p>For Kafka Connect:</p>
+<p>For Kafka Exporter:</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_EXPORTER_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
 </li>
 <li>
 <p><code>strimzi/kafka:latest-kafka-2.3.0</code> container image.</p>
@@ -11292,14 +11373,27 @@ If the <code>image</code> name is not defined in the Cluster Operator configurat
 </div>
 </li>
 <li>
-<p>For Kafka Connect with Source2image support:</p>
+<p>For Kafka Bridge:</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_S2I_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_BRIDGE_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
 </li>
 <li>
-<p><code>strimzi/kafka:latest-kafka-2.3.0</code> container image.</p>
+<p><code>strimzi/kafka-bridge:latest</code> container image.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>For Kafka broker initializer:</p>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_INIT_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+</li>
+<li>
+<p><code>strimzi/operator:latest</code> container image.</p>
 </li>
 </ol>
 </div>
@@ -14065,7 +14159,7 @@ If the configured image is not compatible with Strimzi images, it might not work
 <div class="sect4">
 <h5 id="ref-configuring-container-images-deployment-configuration-kafka-connect-s2i"><a class="link" href="#ref-configuring-container-images-deployment-configuration-kafka-connect-s2i">Container image configurations</a></h5>
 <div class="paragraph">
-<p>Container image which should be used for given components can be specified using the <code>image</code> property in:</p>
+<p>You can specify which container image to use for each component using the <code>image</code> property in the following resources:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -14102,25 +14196,58 @@ If the configured image is not compatible with Strimzi images, it might not work
 </ul>
 </div>
 <div class="sect5">
-<h6 id="configuring_the_kafka_spec_kafka_image_property_3"><a class="link" href="#configuring_the_kafka_spec_kafka_image_property_3">Configuring the <code>Kafka.spec.kafka.image</code> property</a></h6>
+<h6 id="configuring_the_image_property_for_kafka_kafka_connect_and_kafka_mirror_maker_3"><a class="link" href="#configuring_the_image_property_for_kafka_kafka_connect_and_kafka_mirror_maker_3">Configuring the <code>image</code> property for Kafka, Kafka Connect, and Kafka Mirror Maker</a></h6>
 <div class="paragraph">
-<p>The <code>Kafka.spec.kafka.image</code> property functions differently from the others, because Strimzi supports multiple versions of Kafka, each requiring the own image.
-The <code>STRIMZI_KAFKA_IMAGES</code> environment variable of the Cluster Operator configuration is used to provide a mapping between Kafka versions and the corresponding images.
-This is used in combination with the <code>Kafka.spec.kafka.image</code> and <code>Kafka.spec.kafka.version</code> properties as follows:</p>
+<p>Kafka, Kafka Connect (including Kafka Connect with S2I support), and Kafka Mirror Maker support multiple versions of Kafka.
+Each component requires its own image.
+The default images for the different Kafka versions are configured in the following environment variables:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>If neither <code>Kafka.spec.kafka.image</code> nor <code>Kafka.spec.kafka.version</code> are given in the custom resource then the <code>version</code> will default to the  Cluster Operator&#8217;s default Kafka version, and the image will be the one corresponding to this version in the <code>STRIMZI_KAFKA_IMAGES</code>.</p>
+<p><code>STRIMZI_KAFKA_IMAGES</code></p>
 </li>
 <li>
-<p>If <code>Kafka.spec.kafka.image</code> is given but <code>Kafka.spec.kafka.version</code> is not then the given image will be used and the <code>version</code> will be assumed to be the  Cluster Operator&#8217;s default Kafka version.</p>
+<p><code>STRIMZI_KAFKA_CONNECT_IMAGES</code></p>
 </li>
 <li>
-<p>If <code>Kafka.spec.kafka.version</code> is given but <code>Kafka.spec.kafka.image</code> is not then image will be the one corresponding to this version in the <code>STRIMZI_KAFKA_IMAGES</code>.</p>
+<p><code>STRIMZI_KAFKA_CONNECT_S2I_IMAGES</code></p>
 </li>
 <li>
-<p>Both <code>Kafka.spec.kafka.version</code> and <code>Kafka.spec.kafka.image</code> are given the given image will be used, and it will be assumed to contain a Kafka broker with the given version.</p>
+<p><code>STRIMZI_KAFKA_MIRROR_MAKER_IMAGES</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These environment variables contain mappings between the Kafka versions and their corresponding images.
+The mappings are used together with the <code>image</code> and <code>version</code> properties:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If neither <code>image</code> nor <code>version</code> are given in the custom resource then the <code>version</code> will default to the Cluster Operator&#8217;s default Kafka version, and the image will be the one corresponding to this version in the environment variable.</p>
+</li>
+<li>
+<p>If <code>image</code> is given but <code>version</code> is not, then the given image is used and the <code>version</code> is assumed to be the Cluster Operator&#8217;s default Kafka version.</p>
+</li>
+<li>
+<p>If <code>version</code> is given but <code>image</code> is not, then the image that corresponds to the given version in the environment variable is used.</p>
+</li>
+<li>
+<p>If both <code>version</code> and <code>image</code> are given, then the given image is used. The image is assumed to contain a Kafka image with the given version.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>image</code> and <code>version</code> for the different components can be configured in the following properties:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>For Kafka in <code>spec.kafka.image</code> and <code>spec.kafka.version</code>.</p>
+</li>
+<li>
+<p>For Kafka Connect, Kafka Connect S2I, and Kafka Mirror Maker in <code>spec.image</code> and <code>spec.version</code>.</p>
 </li>
 </ul>
 </div>
@@ -14131,8 +14258,9 @@ This is used in combination with the <code>Kafka.spec.kafka.image</code> and <co
 <div class="title">Warning</div>
 </td>
 <td class="content">
-It is best to provide just <code>Kafka.spec.kafka.version</code> and leave the <code>Kafka.spec.kafka.image</code> property unspecified.
-This reduces the chances of making a mistake in configuring the <code>Kafka</code> resource. If you need to change the images used for different versions of Kafka, it is better to configure the Cluster Operator&#8217;s <code>STRIMZI_KAFKA_IMAGES</code> environment variable.
+It is recommended to provide only the <code>version</code> and leave the <code>image</code> property unspecified.
+This reduces the chance of making a mistake when configuring the custom resource.
+If you need to change the images used for different versions of Kafka, it is preferable to configure the Cluster Operator&#8217;s environment variables.
 </td>
 </tr>
 </table>
@@ -14226,11 +14354,11 @@ If the <code>image</code> name is not defined in the Cluster Operator configurat
 </div>
 </li>
 <li>
-<p>For Kafka Connect:</p>
+<p>For Kafka Exporter:</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_EXPORTER_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
 </li>
 <li>
 <p><code>strimzi/kafka:latest-kafka-2.3.0</code> container image.</p>
@@ -14239,14 +14367,27 @@ If the <code>image</code> name is not defined in the Cluster Operator configurat
 </div>
 </li>
 <li>
-<p>For Kafka Connect with Source2image support:</p>
+<p>For Kafka Bridge:</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_S2I_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_BRIDGE_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
 </li>
 <li>
-<p><code>strimzi/kafka:latest-kafka-2.3.0</code> container image.</p>
+<p><code>strimzi/kafka-bridge:latest</code> container image.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>For Kafka broker initializer:</p>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_INIT_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+</li>
+<li>
+<p><code>strimzi/operator:latest</code> container image.</p>
 </li>
 </ol>
 </div>
@@ -17741,7 +17882,7 @@ If the configured image is not compatible with Strimzi images, it might not work
 <div class="sect4">
 <h5 id="ref-configuring-container-images-deployment-configuration-kafka-bridge"><a class="link" href="#ref-configuring-container-images-deployment-configuration-kafka-bridge">Container image configurations</a></h5>
 <div class="paragraph">
-<p>Container image which should be used for given components can be specified using the <code>image</code> property in:</p>
+<p>You can specify which container image to use for each component using the <code>image</code> property in the following resources:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -17778,25 +17919,58 @@ If the configured image is not compatible with Strimzi images, it might not work
 </ul>
 </div>
 <div class="sect5">
-<h6 id="configuring_the_kafka_spec_kafka_image_property_4"><a class="link" href="#configuring_the_kafka_spec_kafka_image_property_4">Configuring the <code>Kafka.spec.kafka.image</code> property</a></h6>
+<h6 id="configuring_the_image_property_for_kafka_kafka_connect_and_kafka_mirror_maker_4"><a class="link" href="#configuring_the_image_property_for_kafka_kafka_connect_and_kafka_mirror_maker_4">Configuring the <code>image</code> property for Kafka, Kafka Connect, and Kafka Mirror Maker</a></h6>
 <div class="paragraph">
-<p>The <code>Kafka.spec.kafka.image</code> property functions differently from the others, because Strimzi supports multiple versions of Kafka, each requiring the own image.
-The <code>STRIMZI_KAFKA_IMAGES</code> environment variable of the Cluster Operator configuration is used to provide a mapping between Kafka versions and the corresponding images.
-This is used in combination with the <code>Kafka.spec.kafka.image</code> and <code>Kafka.spec.kafka.version</code> properties as follows:</p>
+<p>Kafka, Kafka Connect (including Kafka Connect with S2I support), and Kafka Mirror Maker support multiple versions of Kafka.
+Each component requires its own image.
+The default images for the different Kafka versions are configured in the following environment variables:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>If neither <code>Kafka.spec.kafka.image</code> nor <code>Kafka.spec.kafka.version</code> are given in the custom resource then the <code>version</code> will default to the  Cluster Operator&#8217;s default Kafka version, and the image will be the one corresponding to this version in the <code>STRIMZI_KAFKA_IMAGES</code>.</p>
+<p><code>STRIMZI_KAFKA_IMAGES</code></p>
 </li>
 <li>
-<p>If <code>Kafka.spec.kafka.image</code> is given but <code>Kafka.spec.kafka.version</code> is not then the given image will be used and the <code>version</code> will be assumed to be the  Cluster Operator&#8217;s default Kafka version.</p>
+<p><code>STRIMZI_KAFKA_CONNECT_IMAGES</code></p>
 </li>
 <li>
-<p>If <code>Kafka.spec.kafka.version</code> is given but <code>Kafka.spec.kafka.image</code> is not then image will be the one corresponding to this version in the <code>STRIMZI_KAFKA_IMAGES</code>.</p>
+<p><code>STRIMZI_KAFKA_CONNECT_S2I_IMAGES</code></p>
 </li>
 <li>
-<p>Both <code>Kafka.spec.kafka.version</code> and <code>Kafka.spec.kafka.image</code> are given the given image will be used, and it will be assumed to contain a Kafka broker with the given version.</p>
+<p><code>STRIMZI_KAFKA_MIRROR_MAKER_IMAGES</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These environment variables contain mappings between the Kafka versions and their corresponding images.
+The mappings are used together with the <code>image</code> and <code>version</code> properties:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If neither <code>image</code> nor <code>version</code> are given in the custom resource then the <code>version</code> will default to the Cluster Operator&#8217;s default Kafka version, and the image will be the one corresponding to this version in the environment variable.</p>
+</li>
+<li>
+<p>If <code>image</code> is given but <code>version</code> is not, then the given image is used and the <code>version</code> is assumed to be the Cluster Operator&#8217;s default Kafka version.</p>
+</li>
+<li>
+<p>If <code>version</code> is given but <code>image</code> is not, then the image that corresponds to the given version in the environment variable is used.</p>
+</li>
+<li>
+<p>If both <code>version</code> and <code>image</code> are given, then the given image is used. The image is assumed to contain a Kafka image with the given version.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>image</code> and <code>version</code> for the different components can be configured in the following properties:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>For Kafka in <code>spec.kafka.image</code> and <code>spec.kafka.version</code>.</p>
+</li>
+<li>
+<p>For Kafka Connect, Kafka Connect S2I, and Kafka Mirror Maker in <code>spec.image</code> and <code>spec.version</code>.</p>
 </li>
 </ul>
 </div>
@@ -17807,8 +17981,9 @@ This is used in combination with the <code>Kafka.spec.kafka.image</code> and <co
 <div class="title">Warning</div>
 </td>
 <td class="content">
-It is best to provide just <code>Kafka.spec.kafka.version</code> and leave the <code>Kafka.spec.kafka.image</code> property unspecified.
-This reduces the chances of making a mistake in configuring the <code>Kafka</code> resource. If you need to change the images used for different versions of Kafka, it is better to configure the Cluster Operator&#8217;s <code>STRIMZI_KAFKA_IMAGES</code> environment variable.
+It is recommended to provide only the <code>version</code> and leave the <code>image</code> property unspecified.
+This reduces the chance of making a mistake when configuring the custom resource.
+If you need to change the images used for different versions of Kafka, it is preferable to configure the Cluster Operator&#8217;s environment variables.
 </td>
 </tr>
 </table>
@@ -17902,11 +18077,11 @@ If the <code>image</code> name is not defined in the Cluster Operator configurat
 </div>
 </li>
 <li>
-<p>For Kafka Connect:</p>
+<p>For Kafka Exporter:</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_EXPORTER_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
 </li>
 <li>
 <p><code>strimzi/kafka:latest-kafka-2.3.0</code> container image.</p>
@@ -17915,14 +18090,27 @@ If the <code>image</code> name is not defined in the Cluster Operator configurat
 </div>
 </li>
 <li>
-<p>For Kafka Connect with Source2image support:</p>
+<p>For Kafka Bridge:</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_CONNECT_S2I_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_BRIDGE_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
 </li>
 <li>
-<p><code>strimzi/kafka:latest-kafka-2.3.0</code> container image.</p>
+<p><code>strimzi/kafka-bridge:latest</code> container image.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>For Kafka broker initializer:</p>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Container image specified in the <code>STRIMZI_DEFAULT_KAFKA_INIT_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
+</li>
+<li>
+<p><code>strimzi/operator:latest</code> container image.</p>
 </li>
 </ol>
 </div>
