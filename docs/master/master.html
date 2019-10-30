@@ -341,9 +341,9 @@
 <li><a href="#proc-instrumenting-kafka-streams-with-tracers-str">9.3.2. Instrumenting Kafka Streams applications for tracing</a></li>
 </ul>
 </li>
-<li><a href="#assembly-setting-up-tracing-mirror-maker-connect-str">9.4. Setting up tracing for Mirror Maker and Kafka Connect</a>
+<li><a href="#assembly-setting-up-tracing-mirror-maker-connect-bridge-str">9.4. Setting up tracing for Mirror Maker, Kafka Connect, and the Kafka Bridge</a>
 <ul class="sectlevel3">
-<li><a href="#proc-enabling-tracing-in-connect-mirror-maker-resources-str">9.4.1. Enabling tracing in Mirror Maker and Kafka Connect resources</a></li>
+<li><a href="#proc-enabling-tracing-in-connect-mirror-maker-bridge-resources-str">9.4.1. Enabling tracing in Mirror Maker, Kafka Connect, and Kafka Bridge resources</a></li>
 </ul>
 </li>
 </ul>
@@ -25144,7 +25144,7 @@ The name of the Grafana pod is different for each user.
 <p>You <em>instrument</em> Kafka Producer, Consumer, and Streams API applications for distributed tracing using an OpenTracing client library. This involves adding instrumentation code to these clients, which monitors the execution of individual transactions in order to generate trace data.</p>
 </li>
 <li>
-<p>Distributed tracing support is built in to the Kafka Connect and Mirror Maker components of Strimzi. To configure these components for distributed tracing, you configure and update the relevant custom resources.</p>
+<p>Distributed tracing support is built in to the Kafka Connect, Mirror Maker, and Kafka Bridge components of Strimzi. To configure these components for distributed tracing, you configure and update the relevant custom resources.</p>
 </li>
 </ul>
 </div>
@@ -25185,7 +25185,7 @@ Distributed tracing is not supported for Kafka brokers.
 <p>When instrumented, applications generate <em>traces</em> for individual transactions. Traces are composed of <em>spans</em>, which define specific units of work.</p>
 </div>
 <div class="paragraph">
-<p>To simplify the instrumentation of Kafka Producer, Consumer, and Streams API applications, Strimzi includes the <a href="https://github.com/opentracing-contrib/java-kafka-client/blob/master/README.md" target="_blank" rel="noopener">OpenTracing Apache Kafka Client Instrumentation</a> library.</p>
+<p>To simplify the instrumentation of the Kafka Bridge and Kafka Producer, Consumer, and Streams API applications, Strimzi includes the <a href="https://github.com/opentracing-contrib/java-kafka-client/blob/master/README.md" target="_blank" rel="noopener">OpenTracing Apache Kafka Client Instrumentation</a> library.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -25220,10 +25220,13 @@ The OpenTracing project is merging with the OpenCensus project. The new, combine
 <li>
 <p>Mirror Maker</p>
 </li>
+<li>
+<p>The Strimzi Kafka Bridge</p>
+</li>
 </ul>
 </div>
 <div class="paragraph">
-<p>You enable and configure distributed tracing for these components by setting template configuration properties in the relevant custom resource (for example, <code>KafkaConnect</code>).</p>
+<p>You enable and configure distributed tracing for these components by setting template configuration properties in the relevant custom resource (for example, <code>KafkaConnect</code> and <code>KafkaBridge</code>).</p>
 </div>
 <div class="paragraph">
 <p>To enable distributed tracing in Kafka Producer, Consumer, and Streams API applications, you can instrument application code using the OpenTracing Apache Kafka Client Instrumentation library.
@@ -25248,7 +25251,7 @@ When instrumented, these clients generate traces for messages (for example, when
 <p><a href="#proc-instrumenting-kafka-streams-with-tracers-str">Instrument Kafka Streams applications for tracing</a></p>
 </li>
 <li>
-<p><a href="#assembly-setting-up-tracing-mirror-maker-connect-str">Set up tracing for Mirror Maker and Kafka Connect</a></p>
+<p><a href="#assembly-setting-up-tracing-mirror-maker-connect-bridge-str">Set up tracing for Mirror Maker, Kafka Connect, and the Kafka Bridge</a></p>
 </li>
 </ul>
 </div>
@@ -25706,34 +25709,44 @@ streams.start();</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-setting-up-tracing-mirror-maker-connect-str"><a class="link" href="#assembly-setting-up-tracing-mirror-maker-connect-str">9.4. Setting up tracing for Mirror Maker and Kafka Connect</a></h3>
+<h3 id="assembly-setting-up-tracing-mirror-maker-connect-bridge-str"><a class="link" href="#assembly-setting-up-tracing-mirror-maker-connect-bridge-str">9.4. Setting up tracing for Mirror Maker, Kafka Connect, and the Kafka Bridge</a></h3>
 <div class="paragraph">
-<p>Distributed tracing is supported for Mirror Maker and Kafka Connect (including Kafka Connect with Source2Image support).</p>
+<p>Distributed tracing is supported for Mirror Maker, Kafka Connect (including Kafka Connect with Source2Image support), and the Strimzi Kafka Bridge.</p>
 </div>
 <div class="paragraph">
+<div class="title">Tracing in Mirror Maker</div>
 <p>For Mirror Maker, messages are traced from the source cluster to the target cluster; the trace data records messages entering and leaving the Mirror Maker component.</p>
 </div>
 <div class="paragraph">
+<div class="title">Tracing in Kafka Connect</div>
 <p>Only messages produced and consumed by Kafka Connect itself are traced. To trace messages sent between Kafka Connect and external systems, you must configure tracing in the connectors for those systems. For more information, see <a href="#assembly-deployment-configuration-kafka-connect-str">Kafka Connect cluster configuration</a>.</p>
 </div>
-<div class="sect3">
-<h4 id="proc-enabling-tracing-in-connect-mirror-maker-resources-str"><a class="link" href="#proc-enabling-tracing-in-connect-mirror-maker-resources-str">9.4.1. Enabling tracing in Mirror Maker and Kafka Connect resources</a></h4>
 <div class="paragraph">
-<p>Update the configuration of <code>KafkaMirrorMaker</code>, <code>KafkaConnect</code>, and <code>KafkaConnectS2I</code> custom resources to specify and configure a Jaeger tracer service for each resource. Updating a tracing-enabled resource in your Kubernetes cluster triggers two events:</p>
+<div class="title">Tracing in the Kafka Bridge</div>
+<p>Messages produced and consumed by the Kafka Bridge are traced. Incoming HTTP requests from client applications to send and receive messages through the Kafka Bridge are also traced.
+In order to have end-to-end tracing, you must configure tracing in your HTTP clients.</p>
+</div>
+<div class="sect3">
+<h4 id="proc-enabling-tracing-in-connect-mirror-maker-bridge-resources-str"><a class="link" href="#proc-enabling-tracing-in-connect-mirror-maker-bridge-resources-str">9.4.1. Enabling tracing in Mirror Maker, Kafka Connect, and Kafka Bridge resources</a></h4>
+<div class="paragraph">
+<p>Update the configuration of <code>KafkaMirrorMaker</code>, <code>KafkaConnect</code>, <code>KafkaConnectS2I</code>, and <code>KafkaBridge</code> custom resources to specify and configure a Jaeger tracer service for each resource. Updating a tracing-enabled resource in your Kubernetes cluster triggers two events:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Interceptor classes are updated in the integrated consumers and producers in Mirror Maker or Kafka Connect.</p>
+<p>Interceptor classes are updated in the integrated consumers and producers in Mirror Maker, Kafka Connect, or the Strimzi Kafka Bridge.</p>
 </li>
 <li>
-<p>The tracing agent initializes a Jaeger tracer based on the tracing configuration defined in the resource.</p>
+<p>For Mirror Maker and Kafka Connect, the tracing agent initializes a Jaeger tracer based on the tracing configuration defined in the resource.</p>
+</li>
+<li>
+<p>For the Kafka Bridge, a Jaeger tracer based on the tracing configuration defined in the resource is initialized by the Kafka Bridge itself.</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
 <div class="title">Procedure</div>
-<p>Perform these steps for each <code>KafkaMirrorMaker</code>, <code>KafkaConnect</code>, and <code>KafkaConnectS2I</code> resource.</p>
+<p>Perform these steps for each <code>KafkaMirrorMaker</code>, <code>KafkaConnect</code>, <code>KafkaConnectS2I</code>, and <code>KafkaBridge</code> resource.</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -25775,6 +25788,29 @@ spec:
   #...
   template:
     mirrorMakerContainer:
+      env:
+        - name: JAEGER_SERVICE_NAME
+          value: my-jaeger-service
+        - name: JAEGER_AGENT_HOST
+          value: jaeger-agent-name
+        - name: JAEGER_AGENT_PORT
+          value: "6831"
+  tracing:
+    type: jaeger
+#...</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Jaeger tracer configuration for the Kafka Bridge</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaBridge
+metadata:
+  name: my-bridge
+spec:
+  #...
+  template:
+    bridgeContainer:
       env:
         - name: JAEGER_SERVICE_NAME
           value: my-jaeger-service
