@@ -55,7 +55,7 @@ There are many different Ingress controllers and Kubernetes already provides two
 > If your cluster is running using Minikube, an NGINX ingress controller is provided as an addon that you can enable with the command `minikube addons enable ingress` before starting the cluster.
 
 Basically, the external traffic reaches the controller which routes the traffic itself based on the rules specified by the `Ingress` resource.
-What you need in this case is creating an `Ingress` resource defining the rule for routing the HTTP traffic to the Strimzi Kafka Bridge.
+In this case, you need to create an `Ingress` resource defining the rule for routing the HTTP traffic to the Strimzi Kafka Bridge.
 
 ```yaml
 apiVersion: extensions/v1beta1
