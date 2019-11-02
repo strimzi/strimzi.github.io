@@ -45,7 +45,7 @@ kubectl apply -f examples/kafka-bridge/kafka-bridge.yaml
 # Create a Kubernetes Ingress
 
 An `Ingress` is a Kubernetes resource for allowing external access via HTTP/HTTPS to internal services, like the HTTP bridge.
-Even if you can create an `Ingress` resource, it is possible that it could not work out of the box.
+Even if you can create an `Ingress` resource, it is possible that it might not work out of the box.
 In order to have an Ingress working properly, an Ingress controller is needed to be running in the cluster.
 There are many different Ingress controllers and Kubernetes already provides two of them:
 
