@@ -14,7 +14,7 @@ We will also show real examples using `curl` commands.
 
 <!--more-->
 
-Before starting with the bridge, the main prerequisite is having a Kubernetes cluster and an Apache Kafka cluster already deployed on top of it using the Strimzi Cluster Operator; to do so you can find information in the official documentation.
+Before starting with the bridge, the main prerequisite is having a Kubernetes cluster and an Apache Kafka cluster already deployed on top of it using the Strimzi Cluster Operator; to do so you can find information in the official [documentation](https://strimzi.io/docs/quickstart/master/).
 
 # Deploy the HTTP bridge
 
@@ -52,9 +52,9 @@ There are many different Ingress controllers and Kubernetes already provides two
 * [NGINX controller](https://github.com/kubernetes/ingress-nginx)
 * [GCE controller](https://github.com/kubernetes/ingress-gce) for the Google Cloud Platform
 
-> If your cluster is running using Minikube, an NGINX ingress controller is provided as an addon that you can enable with the command `minikube addons enable ingress` before starting the cluster.
+> If your cluster is running using Minikube, an NGINX ingress controller is provided as an addon that you can enable with the command `minikube addons enable ingress` before starting the cluster; it's in charge of deploying an NGINX reverse proxy pod.
 
-Basically, the external traffic reaches the controller which routes the traffic itself based on the rules specified by the `Ingress` resource.
+Basically, the external traffic reaches the NGINX reverse proxy which routes the traffic itself based on the rules specified by the `Ingress` resource.
 In this case, you need to create an `Ingress` resource defining the rule for routing the HTTP traffic to the Strimzi Kafka Bridge.
 
 ```yaml
@@ -84,6 +84,17 @@ curl -v GET http://my-bridge.io/healthy
 ```
 
 If the bridge is reachable through the Ingress, it will return an HTTP response with status code `200 OK` but an empty body.
+Following an example of the output.
+
+```shell
+> GET /healthy HTTP/1.1
+> Host: my-bridge.io:80
+> User-Agent: curl/7.61.1
+> Accept: */*
+> 
+< HTTP/1.1 200 OK
+< content-length: 0
+```
 
 # Producing messages
 
@@ -204,6 +215,32 @@ When messages are available, the bridge replies with an HTTP status code `200 OK
 ]
 ```
 
+## Committing offsets
+
+The consumer was created disabling the `enable.auto.commit` configuration parameter.
+It means that the consumer has to commit the messages offsets by itself without leveraging the periodic auto-commit feature provided by the native Kafka consumer running on the bridge.
+The HTTP bridge provides the `/consumers/{groupid}/instances/{name}/offsets` endpoint to do so.
+The consumer has to send a HTTP POST on this endpoint providing a colleaction of topics, partitions and related offsets to commit in JSON format inside the payload.
+
+```
+curl -X POST http://my-bridge.io/consumers/my-group/instances/my-consumer/offsets \
+  -H 'content-type: application/vnd.kafka.v2+json' \
+  -d '{
+    "offsets": [
+        {
+            "topic": "my-topic",
+            "partition": 0,
+            "offset": 2
+        }
+    ]
+}'
+```
+
+> Other than committing a specific offset, the consumer can also send the HTTP POST request on the same endpoint but with an empty payload.
+Because no request body is submitted, offsets are committed for all the records that have been received by the consumer.
+
+When the offsets are committed, the bridge replies with an HTTP status code `204 NO CONTENT`.
+
 # Deleting a consumer
 
 After creating and using a consumer, when it is not needed anymore, it is important to delete a consumer for freeing resources on the bridge.
@@ -214,7 +251,8 @@ curl -X DELETE http://my-bridge.io/consumers/my-group/instances/my-consumer
 ```
 
 When the consumer is deleted, the bridge replies with an HTTP status code `204 No Content`.
-If the client application doesn't do that, the bridge will delete "stale" consumers which doesn't send HTTP request for long time (the timeout is configurable).
+If the client application doesn't do that, the bridge is able to delete "stale" consumers which doesn't send HTTP request for long time (the timeout is configurable through the `http.timeoutSeconds` parameter in the bridge configuration).
+Anyway, by default, this feature is disabled so the client application has to take care to delete HTTP consumers properly.
 
 # Exposing on OpenShift using Route
 
