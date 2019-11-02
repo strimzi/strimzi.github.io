@@ -34,7 +34,7 @@ spec:
 ```
 
 This declaration assumes that the Kafka cluster deployed by the Strimzi Cluster Operator is named `my-cluster` otherwise you have to change the `bootstrapServers` accordingly.
-All the configuration parameters for the consumer and producer part of the bridge are the default ones defined by the Apache Kafka documentation.
+All the configuration parameters for the consumer and producer parts of the bridge are the default ones defined by the Apache Kafka documentation.
 
 Just run the following command in order to apply this custom resource allowing the Strimzi Cluster Operator to deploy the HTTP bridge for you.
 
