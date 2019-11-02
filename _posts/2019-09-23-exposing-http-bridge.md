@@ -73,7 +73,7 @@ spec:
           servicePort: 8080
 ```
 
-When the above resource is created, the Strimzi Kafka Bridge is reachable through the `my-bridge.io` host so you can interact with it using different HTTP methods at the address `http://my-bridge.io:80/<endpoint>` where `<endpoint>` is one of the REST endpoints exposed by the bridge for sending and receiving messages, subscribing to topics and so on.
+When the above resource is created, the Strimzi Kafka Bridge is reachable through the `my-bridge.io` host, so you can interact with it using different HTTP methods at the address `http://my-bridge.io:80/<endpoint>` where `<endpoint>` is one of the REST endpoints exposed by the bridge for sending and receiving messages, subscribing to topics and so on.
 
 > If your cluster is running using Minikube, don't forget to update your local `/etc/hosts` file adding a line as `<minikubeip> my-bridge.io` where you can get the `<minikubeip>` by running the command `minikube ip` first.
 
