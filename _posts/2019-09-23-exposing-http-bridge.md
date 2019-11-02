@@ -220,7 +220,7 @@ If the client application doesn't do that, the bridge will delete "stale" consum
 
 If you are running an OpenShift cluster (for example using Minishift locally), it is possible to expose the Strimzi HTTP bridge using a `Route`.
 An OpenShift Route actually works as a Kubernetes Ingress adding features like TLS re-encryption, TLS passthrough, generated pattern-based hostnames and more but it is OpenShift specific.
-What you need in this case is creating a `Route` resource as the following snippet.
+What you need in this case is to create a `Route` resource as shown in the following snippet.
 
 ```yaml
 apiVersion: v1
