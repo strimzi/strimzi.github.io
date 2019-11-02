@@ -7,7 +7,7 @@ author: paolo_patierno
 
 In the previous blog [post](2019-07-22-http-bridge-intro.md), we introduced the new Strimzi HTTP bridge component.
 Using the bridge, it is possible to interact with an Apache Kafka cluster through the HTTP/1.1 protocol instead of the native Kafka protocol.
-We already covered how it is really simple to deploy the bridge through the new `KafkaBridge` custom resource and via the Strimzi Cluster Operator.
+We already covered how simple it is to deploy the bridge through the new `KafkaBridge` custom resource and via the Strimzi Cluster Operator.
 We also covered all the REST endpoints that the bridge provides as an API for consumers and producers.
 What we are going to describe in this blog post is how it is possible to expose the bridge outside of the Kubernetes (or OpenShift) cluster, where it is running alongside the Kafka cluster.
 We will also show real examples using the `curl` command.
