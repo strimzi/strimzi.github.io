@@ -155,7 +155,7 @@ After creating a corresponding native Kafka consumer connected to the Kafka clus
 
 # Subscribing to the topic
 
-The most used way for a Kafka consumer to get messages from a topic is to subscribe to that topic as part of a consumer group and getting partitions assigned automatically.
+The most common way for a Kafka consumer to get messages from a topic is to subscribe to that topic as part of a consumer group and have partitions assigned automatically.
 Using the HTTP bridge, it's possible through an HTTP POST to the `/consumers/{groupid}/instances/{name}/subscription` endpoint providing in a JSON formatted payload the list of topics to subscribe to or a topics pattern.
 With the following snippet, the consumer is subscribing to the `my-topic` topic.
 
