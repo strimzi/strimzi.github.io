@@ -263,7 +263,7 @@ oc expose service my-bridge-bridge-service
 
 # Conclusion
 
-Using a command line tool as "curl", a UI based as "Postman" or an HTTP based application developed in your preferred programming language, it is really simple to interact with an Apache Kafka cluster using the HTTP/1.1 protocol thanks to the Strimzi Kafka bridge.
+Using a command line tool such as "curl", a UI such as "Postman" or an HTTP based application developed in your preferred programming language, it is really simple to interact with an Apache Kafka cluster using the HTTP/1.1 protocol thanks to the Strimzi Kafka bridge.
 This blog post has showed how it is possible with a few and simple operations for both producing and consuming messages.
 Of course, the bridge provides more operations than the basic ones as for example seeking the position inside a topic partition, sending messages to a specific partition, committing offsets and more.
 
