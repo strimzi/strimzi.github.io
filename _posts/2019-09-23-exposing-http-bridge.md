@@ -10,7 +10,7 @@ Using the bridge, it is possible to interact with an Apache Kafka cluster throug
 We already covered how simple it is to deploy the bridge through the new `KafkaBridge` custom resource and via the Strimzi Cluster Operator.
 We also covered all the REST endpoints that the bridge provides as an API for consumers and producers.
 In this blog post we are going to describe how to expose the bridge outside of the Kubernetes (or OpenShift) cluster, where it is running alongside the Kafka cluster.
-We will also show real examples using the `curl` command.
+We will also show real examples using `curl` commands.
 
 <!--more-->
 
