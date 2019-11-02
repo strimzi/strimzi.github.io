@@ -110,7 +110,7 @@ curl -X POST \
 ```
 
 After writing the messages into the topic, the bridge replies with an HTTP status code `200 OK` and a JSON paylod describing in which partition and at which offset the messages are written.
-In this case, the auto created topic has just one partition and the reply can look like the following one.
+In this case, the auto-created topic has just one partition, so the response will look something like this:
 
 ```json
 { 
