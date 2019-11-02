@@ -130,7 +130,7 @@ In this case, the auto-created topic has just one partition, so the response wil
 # Consuming messages
 
 Consuming messages is not so simple as producing because there are several steps to do which involve different endpoints.
-First of all, creating a consumer through the `/consumers/{groupid}` endpoint doing an HTTP POST with a body containing some of the supported configuration parameters, the name of the consumer and the data format (JSON or binary).
+First of all, you create a consumer through the `/consumers/{groupid}` endpoint by sending an HTTP POST with a body containing some of the supported configuration parameters, the name of the consumer and the data format (JSON or binary).
 In the following snippet, we are going to create a consumer named `my-consumer` and joining the consumer group `my-group`.
 
 ```shell
