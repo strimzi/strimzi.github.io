@@ -174,7 +174,7 @@ In this case, the bridge just replies with an HTTP status code `200 OK` with an 
 # Consuming messages
 
 The action of consuming messages from a Kafka topic is done with a "poll" operation when we talk about native Kafka consumer.
-Tipically, A Kafka application has a "poll" loop where the poll operation is called every cycle for getting new messages.
+Typically, a Kafka application has a "poll" loop where the poll operation is called every cycle for getting new messages.
 The HTTP bridge provides the same action through the `/consumers/{groupid}/instances/{name}/records` endpoint.
 Doing an HTTP GET against the above endpoint, actually does a "poll" for getting the messages from the already subscribed topics.
 The first "poll" operation after the subscription doesn't always return records because it just starts the join operation of the consumer to the group and the rebalancing in order to get partitions assigned; doing a next poll actually can return messages if there are any in the topic.
