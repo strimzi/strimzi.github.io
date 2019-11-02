@@ -183,7 +183,7 @@ The first "poll" operation after the subscription doesn't always return records 
 curl -X GET http://my-bridge.io/consumers/my-group/instances/my-consumer/records \
   -H 'accept: application/vnd.kafka.json.v2+json'
 ```
-When messages are available, the bridge replies with an HTTP status code `200 OK` and the JSON body containes such a messages.
+When messages are available, the bridge replies with an HTTP status code `200 OK` and the JSON body contains the messages.
 
 ```json
 [ 
