@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Exposing your Apache Kafka cluster through the HTTP bridge"
-date: 2019-10-18
+date: 2019-11-04
 author: paolo_patierno
 ---
 
