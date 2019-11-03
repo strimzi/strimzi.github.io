@@ -5,7 +5,7 @@ date: 2019-10-18
 author: paolo_patierno
 ---
 
-In the previous blog [post](2019-07-22-http-bridge-intro.md), we introduced the new Strimzi HTTP bridge component.
+In the previous blog [post](2019-07-22-http-bridge-intro.md) about HTTP Bridge, we introduced the new Strimzi HTTP bridge component.
 Using the bridge, it is possible to interact with an Apache Kafka cluster through the HTTP/1.1 protocol instead of the native Kafka protocol.
 We already covered how simple it is to deploy the bridge through the new `KafkaBridge` custom resource and via the Strimzi Cluster Operator.
 We also covered all the REST endpoints that the bridge provides as an API for consumers and producers.
@@ -75,7 +75,7 @@ spec:
 
 When the above resource is created, the Strimzi Kafka Bridge is reachable through the `my-bridge.io` host, so you can interact with it using different HTTP methods at the address `http://my-bridge.io:80/<endpoint>` where `<endpoint>` is one of the REST endpoints exposed by the bridge for sending and receiving messages, subscribing to topics and so on.
 
-> If your cluster is running using Minikube, don't forget to update your local `/etc/hosts` file adding a line as `<minikubeip> my-bridge.io` where you can get the `<minikubeip>` by running the command `minikube ip` first.
+> If your cluster is running using Minikube, you can use the `nip.io` service to reach the brigde. The bridge address will be like `<minikubeip>.nip.io` where you can get the `<minikubeip>` by running the command `minikube ip` first.
 
 In order to verify that the Ingress is working properly, try to hit the `/healthy` endpoint of the bridge with the following `curl` command.
 
