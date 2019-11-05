@@ -8,7 +8,7 @@ layout: default
 This assumes that you have the latest version of the `minikube` binary, which you can get [here](https://kubernetes.io/docs/setup/minikube/#installation).
 
 ```shell
-minikube start
+minikube start --memory=4096 # 2GB default memory isn't always enough
 ```
 
 > NOTE: Make sure to start `minikube` with your configured VM. If need help look at the [documentation](https://kubernetes.io/docs/setup/minikube/#quickstart) for more.
