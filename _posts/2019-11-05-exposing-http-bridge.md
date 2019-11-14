@@ -5,7 +5,7 @@ date: 2019-11-05
 author: paolo_patierno
 ---
 
-In the previous blog [post](2019-07-22-http-bridge-intro.md) about HTTP Bridge, we introduced the new Strimzi HTTP bridge component.
+In the previous blog [post](https://strimzi.io/2019/07/19/http-bridge-intro.html) about HTTP Bridge, we introduced the new Strimzi HTTP bridge component.
 Using the bridge, it is possible to interact with an Apache Kafka cluster through the HTTP/1.1 protocol instead of the native Kafka protocol.
 We already covered how simple it is to deploy the bridge through the new `KafkaBridge` custom resource and via the Strimzi Cluster Operator.
 We also covered all the REST endpoints that the bridge provides as an API for consumers and producers.
