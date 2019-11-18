@@ -1,11 +1,11 @@
 ---
 layout: post
 title:  "Strimzi at KubeCon+CloudNativeCon in San Diego"
-date: 2019-11-17
+date: 2019-11-18
 author: strimzi_developers
 ---
 
-From Tuesday, most of the Cloud Native and Kubernetes world meets in San Diego for the [KubeCon+CloudNativeCon conference](https://events19.linuxfoundation.org/events/kubecon-cloudnativecon-north-america-2019/) organized by Cloud Native Computing Foundation (CNCF). 
+This week, most of the Cloud Native and Kubernetes world meets in San Diego for the [KubeCon+CloudNativeCon conference](https://events19.linuxfoundation.org/events/kubecon-cloudnativecon-north-america-2019/) organized by Cloud Native Computing Foundation (CNCF). 
 As a CNCF Sandbox project, Strimzi will, of course, be represented there as well.
 Read more to learn how to meet Strimzi maintainers and see Strimzi demos.
 
