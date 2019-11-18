@@ -1,0 +1,704 @@
+---
+layout: post
+title:  "Deploying Debezium using the new KafkaConnector resource"
+date: 2019-11-01
+author: tom_bentley
+---
+
+We frequently talk about Strimzi offering users a "Kubernetes-native" Kafka experience.
+By this we mean that it's possible to manage Kafka brokers, connect clusters, topics and users as resources in Kubernetes.
+As well as the convenience of sticking in the Kubernetes development paradigm, 
+the benefits of declarative configuration also apply: 
+Your infrastructure is now just code so it can be stored in version control, be peer reviewed and be deployed along with the application that needs it; 
+all of this while keeping your organisation's existing tools and processes.
+
+Which is great, but for too long our Kafka Connect story wasn't quite as "Kubernetes-native" as it could have been.
+While we had a `KafkaConnect` resource to configure a Kafka Connect _cluster_ you still had to use the Kafka Connect REST API to actually create a _connector_ within it.
+While this wasn't especially difficult using something like `curl`, it stood out because everything else could be done using `kubectl` and it meant that connectors didn't fit into our Kubernetes-native vision.
+
+With the help of a contribution from the community, Strimzi now supports a `KafkaConnector` custom resource and the rest of this blog post is going to explain how to use it using [Debezium](https://debezium.io) as an example. 
+And as if that wasn't enough, there's some awesome ASCII art.
+
+<!--more-->
+
+# Debezi-what?
+
+If you've not heard of Debezium before it is an open source project for applying [Change Data Capture](https://en.wikipedia.org/wiki/Change_data_capture) (CDC) pattern to your applications using Kafka.
+
+But what is CDC? You probable have several databases in your organization; silos full of business-critical data.
+While you can query those databases any time you want, the essence of your business revolves around how that data gets modified.
+Those modifications trigger, and are triggered by, real world business events (e.g. a phone call from a customer, or a successful payment or whatever)
+In order to reflect this, modern application architectures are frequently event-based. 
+And so asking for the _current state_ of some tables is not enough; what these architectures need is a stream of _events representing modifications_ to those tables.
+That's what CDC is: Capturing the changes to the state data as event data.
+
+Concretely, Debezium works with a number of common DBMSs (MySQL, MongoDB, PostgreSQL, Oracle, SQL Server and Cassandra) and runs as a source connector within a Kafka Connect cluster.
+How Debezium works on the database side depends which database it's using.
+For example for MySQL it reads the commit log in order to know what transaction are happening, but for MongoDB it hooks into the native replication mechanism.
+In any case, the changes get represented as JSON events (using a common schema) which are sent to a Kafka.
+
+It should be apparent, then, that Debezium provides a route for getting events out of database applications (which otherwise might not expose any kind of event-based API) and make them available to Kafka applications.
+
+So that's what Debezium _is_ and what it _does_. Its role in this blog post is just to be an example connector to use with the `KafkaConnector` which is new in Strimzi 0.15.0.
+
+Let's get cracking with the walkthrough...
+
+# Fire up MySQL
+
+Let's follow the steps from the [Debezium tutorial](https://debezium.io/documentation/reference/0.10/tutorial.html) for getting a demo MySQL server up and running.
+
+First we fire up the database server in a Docker container:
+
+```shell
+docker run -it --rm --name mysql -p 3306:3306 \
+  -e MYSQL_ROOT_PASSWORD=debezium -e MYSQL_USER=mysqluser \
+  -e MYSQL_PASSWORD=mysqlpw debezium/example-mysql:0.10
+```
+
+Once we see the following we know the server is up and running:
+
+```shell
+...
+017-09-21T07:18:50.824629Z 0 [Note] mysqld: ready for connections.
+Version: '5.7.19-log'  socket: '/var/run/mysqld/mysqld.sock'  port: 3306  MySQL Community Server (GPL)
+```
+
+Then we can run the command line client:
+
+```shell
+docker run -it --rm --name mysqlterm --link mysql --rm mysql:5.7 sh \
+  -c 'exec mysql -h"$MYSQL_PORT_3306_TCP_ADDR" \
+  -P"$MYSQL_PORT_3306_TCP_PORT" \
+  -uroot -p"$MYSQL_ENV_MYSQL_ROOT_PASSWORD"'
+```
+
+At the `mysql>` prompt we can switch to the "inventory" database and show the tables in it:
+
+```shell
+mysql> use inventory;
+mysql> show tables;
+```
+
+The output will look like this:
+
+```shell
++---------------------+
+| Tables_in_inventory |
++---------------------+
+| customers           |
+| orders              |
+| products            |
+| products_on_hand    |
++---------------------+
+4 rows in set (0.00 sec)
+```
+
+> Don't worry, this isn't the awesome ascii art.
+
+If you want, you can have a poke around this demo database, but when you're done leave this mySQL client running in its own terminal window, so you can come back to it later.
+
+# Create a Kafka cluster
+
+Now we can follow some of the [Strimzi quickstart](https://strimzi.io/quickstarts/minikube/) to create a Kafka cluster running inside `minikube`.
+
+First start minikube:
+
+```shell
+minikube start --memory=4096
+```
+
+When the command finishes you can create a namespace for the resources we're going to create:
+
+```shell
+kubectl create namespace kafka
+```
+
+Then install the cluster operator and associated resources:
+
+```shell
+curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.15.0/strimzi-cluster-operator-0.15.0.yaml \
+  | sed 's/namespace: .*/namespace: kafka/' \
+  | kubectl apply -f - -n kafka 
+```
+
+And spin up a Kafka cluster, waiting until it's ready:
+
+```shell
+kubectl -n kafka \
+    apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.15.0/examples/kafka/kafka-persistent-single.yaml \
+  && kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka
+```
+
+What we've got so far looks like this
+
+<pre style="line-height: 1.2 !important;"><code>
+┌────────────────────────────────┐         ┌────────────────────────────────┐
+│ minikube, namespace: kafka     │         │ docker                         │
+│                                │         │                                │
+│ Kafka                          │         │ MySQL                          │
+│  name: my-cluster              │         │                                │
+│                                │         └────────────────────────────────┘
+│ KafkaConnect                   │
+│  name: my-connect              │
+│                                │
+└────────────────────────────────┘
+</code></pre>
+
+> Don't worry, the ASCII art gets a lot better than this!
+
+What's missing from this picture is Kafka Connect in the minikube box.
+
+# Kafka Connect image
+
+The next step is to [create a Strimzi Kafka Connect image](https://strimzi.io/docs/master/#creating-new-image-from-base-str) with the Debezium connector jar file. 
+
+First download and extract the Debezium MySQL connector archive
+```shell
+curl https://repo1.maven.org/maven2/io/debezium/debezium-connector-mysql/0.10.0.Final/debezium-connector-mysql-0.10.0.Final-plugin.tar.gz \
+| tar xvz
+```
+
+Prepare a `Dockerfile` which adds those connector files to the Strimzi Kafka Connect image
+
+```shell
+cat <<EOF >Dockerfile
+FROM strimzi/kafka:latest-kafka-2.3.0
+USER root:root
+EXEC mkdir -p /opt/kafka/plugins/debezium
+COPY ./debezium-connector-mysql/ /opt/kafka/plugins/debezium/
+USER 1001
+EOF
+```
+
+Then build the image from that `Dockerfile` and push it to dockerhub.
+
+```shell
+# You can use your own dockerhub organization
+export DOCKER_ORG=tjbentley
+docker build . -t ${DOCKER_ORG}/connect-debezium
+docker push ${DOCKER_ORG}/connect-debezium
+```
+
+
+# Create the Connect cluster
+
+Now we can create a `KafkaConnect` cluster in Kubernetes:
+
+```shell
+cat <<EOF | kubectl apply -f -
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster
+  annotations:
+  # use-connector-resources configures this KafkaConnect
+  # to use KafkaConnector resources to avoid
+  # needing to call the Connect REST API directly
+    strimzi.io/use-connector-resources: "true"
+spec:
+  image: ${DOCKER_ORG}/connect-debezium
+  replicas: 1
+  bootstrapServers: my-cluster-kafka-bootstrap:9093
+  tls:
+    trustedCertificates:
+      - secretName: my-cluster-cluster-ca-cert
+        certificate: ca.crt
+EOF
+```
+
+It's worth pointing out a couple of things about the above resource:
+
+* The `strimzi.io/use-connector-resources: "true"` annotation tells the cluster operator that this `KafkaConnect` is managed via `KafkaConnector` resources.
+* The `spec.image` is the image we just created with `docker`.
+
+
+# Create the connector
+
+The last piece is to create the `KafkaConnector` resource configured to connect to our "inventory" database in MySQL.
+
+Here's what the `KafkaConnector` resource looks like:
+
+
+```shell
+cat | kubectl apply -f - << EOF
+apiVersion: "kafka.strimzi.io/v1alpha1"
+kind: "KafkaConnector"
+metadata:
+  name: "inventory-connector"
+  labels:
+    strimzi.io/cluster: my-connect-cluster
+spec:
+  class: io.debezium.connector.mysql.MySqlConnector
+  tasksMax: 1
+  config:
+    database.hostname: 192.168.99.1
+    database.port: "3306"
+    database.user: "debezium"
+    database.password: "dbz" 
+    database.server.id: "184054"
+    database.server.name: "dbserver1"
+    database.whitelist: "inventory"
+    database.history.kafka.bootstrap.servers: "my-cluster-kafka-bootstrap:9092"
+    database.history.kafka.topic: "schema-changes.inventory"
+    include.schema.changes: "true" 
+EOF
+```
+
+In `metadata.labels`, `strimzi.io/cluster` names the `KafkaConnect` cluster which this connector will be created in.
+
+The `spec.class` names the Debezium MySQL connector and `spec.tasksMax` can be 1 because that's all this connector ever uses.
+
+The `spec.config` object contains the rest of the connector configuration.
+The [Debezium documentation](https://debezium.io/documentation/reference/0.10/connectors/mysql.html#connector-properties) explains the available properties, but it's worth calling out some specifically:
+* I'm using `database.hostname: 192.168.99.1` as IP address for connecting to MySQL because I'm using `minikube` with the virtualbox VM driver
+  If you're using a different VM drvier with `minikube` you might need a different IP address.
+* The `database.port: "3306"` works because of the `-p 3306:3306` argument we used when we started up the MySQL server.
+* The `database.whitelist: "inventory"` basically tells Debezium to only watch the `inventory` database.
+* The `database.history.kafka.topic: "schema-changes.inventory"` configured Debezium to use the `schema-changes.inventory` topic to store the database schema history.
+
+A while after you've created this connector you can have a look at its `status`, using `kubectl get kctr inventory-connector -o yaml`:
+
+```
+...
+status:
+  conditions:
+  - lastTransitionTime: "2019-11-18T15:01:53.135Z"
+    status: "True"
+    type: Ready
+  observedGeneration: 1
+```
+
+This tells us that the connector is running within the `KafkaConnect` cluster we created in the last step.
+
+
+To summarise, we've now the complete picture with the connector talking to MySQL:
+
+<pre style="line-height: 1.2 !important;"><code>
+┌────────────────────────────────┐         ┌────────────────────────────────┐
+│ minikube, namespace: kafka     │         │ docker                         │
+│                                │         │                                │
+│ Kafka                          │     ┏━━━┿━▶ MySQL                        │
+│  name: my-cluster              │     ┃   │                                │
+│                                │     ┃   └────────────────────────────────┘
+│ KafkaConnect                   │     ┃
+│  name: my-connect              │     ┃
+│                                │     ┃
+│ KafkaConnector                 │     ┃
+│  name: inventory-connector ◀━━━┿━━━━━┛
+│                                │
+└────────────────────────────────┘
+</code></pre>
+
+> OK, I admit it: I was lying about the ASCII art being awesome.
+
+
+# Showtime!
+
+If you list the topics, for example using `kubectl exec my-cluster-kafka-0 -c kafka -i -t -- bin/kafka-topics.sh --zookeeper '' --list` you should see:
+
+```
+__consumer_offsets
+connect-cluster-configs
+connect-cluster-offsets
+connect-cluster-status
+dbserver1
+dbserver1.inventory.addresses
+dbserver1.inventory.customers
+dbserver1.inventory.geom
+dbserver1.inventory.orders
+dbserver1.inventory.products
+dbserver1.inventory.products_on_hand
+schema-changes.inventory
+```
+
+The `connect-cluster-*` topics are the usual internal Kafka Connect topics.
+Debezium has created a topic for the server itself (`dbserver1`), and one for each table within the `inventory` database.
+
+Let's start consuming from one of those change topics:
+
+```
+kubectl exec my-cluster-kafka-0 -c kafka -i -t -- \
+bin/kafka-console-consumer.sh \
+--bootstrap-server my-cluster-kafka-bootstrap:9092 \
+--topic dbserver1.inventory.customers
+```
+
+
+Back in the terminal window we left open with the MySQL command line client running we can make some changes to the data. First let's see the existing customers:
+
+```
+mysql> SELECT * FROM customers;
++------+------------+-----------+-----------------------+
+| id   | first_name | last_name | email                 |
++------+------------+-----------+-----------------------+
+| 1001 | Sally      | Thomas    | sally.thomas@acme.com |
+| 1002 | George     | Bailey    | gbailey@foobar.com    |
+| 1003 | Edward     | Walker    | ed@walker.com         |
+| 1004 | Anne       | Kretchmar | annek@noanswer.org    |
++------+------------+-----------+-----------------------+
+4 rows in set (0.00 sec)
+```
+
+Now let's change the `first_name` of the last customer:
+
+```
+mysql> UPDATE customers SET first_name='Anne Marie' WHERE id=1004;
+```
+
+Switching terminal window again we should be able to see this name change event in the `dbserver1.inventory.customers` topic:
+
+```
+{"schema":{"type":"struct","fields":[{"type":"struct","fields":[{"type":"int32","optional":false,"field":"id"},{"type":"string","optional":false,"field":"first_name"},{"type":"string","optional":false,"field":"last_name"},{"type":"string","optional":false,"field":"email"}],"optional":true,"name":"dbserver1.inventory.customers.Value","field":"before"},{"type":"struct","fields":[{"type":"int32","optional":false,"field":"id"},{"type":"string","optional":false,"field":"first_name"},{"type":"string","optional":false,"field":"last_name"},{"type":"string","optional":false,"field":"email"}],"optional":true,"name":"dbserver1.inventory.customers.Value","field":"after"},{"type":"struct","fields":[{"type":"string","optional":false,"field":"version"},{"type":"string","optional":false,"field":"connector"},{"type":"string","optional":false,"field":"name"},{"type":"int64","optional":false,"field":"ts_ms"},{"type":"string","optional":true,"name":"io.debezium.data.Enum","version":1,"parameters":{"allowed":"true,last,false"},"default":"false","field":"snapshot"},{"type":"string","optional":false,"field":"db"},{"type":"string","optional":true,"field":"table"},{"type":"int64","optional":false,"field":"server_id"},{"type":"string","optional":true,"field":"gtid"},{"type":"string","optional":false,"field":"file"},{"type":"int64","optional":false,"field":"pos"},{"type":"int32","optional":false,"field":"row"},{"type":"int64","optional":true,"field":"thread"},{"type":"string","optional":true,"field":"query"}],"optional":false,"name":"io.debezium.connector.mysql.Source","field":"source"},{"type":"string","optional":false,"field":"op"},{"type":"int64","optional":true,"field":"ts_ms"}],"optional":false,"name":"dbserver1.inventory.customers.Envelope"},"payload":{"before":{"id":1004,"first_name":"Anne","last_name":"Kretchmar","email":"annek@noanswer.org"},"after":{"id":1004,"first_name":"Anne Mary","last_name":"Kretchmar","email":"annek@noanswer.org"},"source":{"version":"0.10.0.Final","connector":"mysql","name":"dbserver1","ts_ms":1574090237000,"snapshot":"false","db":"inventory","table":"customers","server_id":223344,"gtid":null,"file":"mysql-bin.000003","pos":4311,"row":0,"thread":3,"query":null},"op":"u","ts_ms":1574090237089}}
+```
+
+which is rather a lot of JSON, but if we reformat it (e.g. using copying, paste and `jq`) we see:
+
+```json
+{
+  "schema": {
+    "type": "struct",
+    "fields": [
+      {
+        "type": "struct",
+        "fields": [
+          {
+            "type": "int32",
+            "optional": false,
+            "field": "id"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "first_name"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "last_name"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "email"
+          }
+        ],
+        "optional": true,
+        "name": "dbserver1.inventory.customers.Value",
+        "field": "before"
+      },
+      {
+        "type": "struct",
+        "fields": [
+          {
+            "type": "int32",
+            "optional": false,
+            "field": "id"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "first_name"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "last_name"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "email"
+          }
+        ],
+        "optional": true,
+        "name": "dbserver1.inventory.customers.Value",
+        "field": "after"
+      },
+      {
+        "type": "struct",
+        "fields": [
+          {
+            "type": "string",
+            "optional": false,
+            "field": "version"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "connector"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "name"
+          },
+          {
+            "type": "int64",
+            "optional": false,
+            "field": "ts_ms"
+          },
+          {
+            "type": "string",
+            "optional": true,
+            "name": "io.debezium.data.Enum",
+            "version": 1,
+            "parameters": {
+              "allowed": "true,last,false"
+            },
+            "default": "false",
+            "field": "snapshot"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "db"
+          },
+          {
+            "type": "string",
+            "optional": true,
+            "field": "table"
+          },
+          {
+            "type": "int64",
+            "optional": false,
+            "field": "server_id"
+          },
+          {
+            "type": "string",
+            "optional": true,
+            "field": "gtid"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "file"
+          },
+          {
+            "type": "int64",
+            "optional": false,
+            "field": "pos"
+          },
+          {
+            "type": "int32",
+            "optional": false,
+            "field": "row"
+          },
+          {
+            "type": "int64",
+            "optional": true,
+            "field": "thread"
+          },
+          {
+            "type": "string",
+            "optional": true,
+            "field": "query"
+          }
+        ],
+        "optional": false,
+        "name": "io.debezium.connector.mysql.Source",
+        "field": "source"
+      },
+      {
+        "type": "string",
+        "optional": false,
+        "field": "op"
+      },
+      {
+        "type": "int64",
+        "optional": true,
+        "field": "ts_ms"
+      }
+    ],
+    "optional": false,
+    "name": "dbserver1.inventory.customers.Envelope"
+  },
+  "payload": {
+    "before": {
+      "id": 1004,
+      "first_name": "Anne",
+      "last_name": "Kretchmar",
+      "email": "annek@noanswer.org"
+    },
+    "after": {
+      "id": 1004,
+      "first_name": "Anne Mary",
+      "last_name": "Kretchmar",
+      "email": "annek@noanswer.org"
+    },
+    "source": {
+      "version": "0.10.0.Final",
+      "connector": "mysql",
+      "name": "dbserver1",
+      "ts_ms": 1574090237000,
+      "snapshot": "false",
+      "db": "inventory",
+      "table": "customers",
+      "server_id": 223344,
+      "gtid": null,
+      "file": "mysql-bin.000003",
+      "pos": 4311,
+      "row": 0,
+      "thread": 3,
+      "query": null
+    },
+    "op": "u",
+    "ts_ms": 1574090237089
+  }
+}
+```
+
+The `schema` object is just describing the schema of the rest of the event.
+
+What's more interesting for this post is the `payload`. Working backwards we have:
+* `ts_ms` is the timestamp of when change happened.,
+* `op` tells us this was an `u`pdate (an insert would be `c` and a delete would be `d`) 
+* the `source` which tells us exactly which table of which database in which server got changed.
+* `before` and `after` are pretty self-explanatory, describing the row before and after the update.
+
+You can of course experiment with inserting and deleting rows in different tables (remember, there's a topic for each table).
+
+But what about that `dbserver1` topic which I glossed over? If we look at the messages in there 
+(using `k exec my-cluster-kafka-0 -c kafka -i -t -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic dbserver1 --from-beginning`) 
+we can see records representing the DDL which was used (when the docker image was created) to create the database.
+For example:
+
+```json
+{
+  "schema": {
+    "type": "struct",
+    "fields": [
+      {
+        "type": "struct",
+        "fields": [
+          {
+            "type": "string",
+            "optional": false,
+            "field": "version"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "connector"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "name"
+          },
+          {
+            "type": "int64",
+            "optional": false,
+            "field": "ts_ms"
+          },
+          {
+            "type": "string",
+            "optional": true,
+            "name": "io.debezium.data.Enum",
+            "version": 1,
+            "parameters": {
+              "allowed": "true,last,false"
+            },
+            "default": "false",
+            "field": "snapshot"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "db"
+          },
+          {
+            "type": "string",
+            "optional": true,
+            "field": "table"
+          },
+          {
+            "type": "int64",
+            "optional": false,
+            "field": "server_id"
+          },
+          {
+            "type": "string",
+            "optional": true,
+            "field": "gtid"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "file"
+          },
+          {
+            "type": "int64",
+            "optional": false,
+            "field": "pos"
+          },
+          {
+            "type": "int32",
+            "optional": false,
+            "field": "row"
+          },
+          {
+            "type": "int64",
+            "optional": true,
+            "field": "thread"
+          },
+          {
+            "type": "string",
+            "optional": true,
+            "field": "query"
+          }
+        ],
+        "optional": false,
+        "name": "io.debezium.connector.mysql.Source",
+        "field": "source"
+      },
+      {
+        "type": "string",
+        "optional": false,
+        "field": "databaseName"
+      },
+      {
+        "type": "string",
+        "optional": false,
+        "field": "ddl"
+      }
+    ],
+    "optional": false,
+    "name": "io.debezium.connector.mysql.SchemaChangeValue"
+  },
+  "payload": {
+    "source": {
+      "version": "0.10.0.Final",
+      "connector": "mysql",
+      "name": "dbserver1",
+      "ts_ms": 0,
+      "snapshot": "true",
+      "db": "inventory",
+      "table": "products_on_hand",
+      "server_id": 0,
+      "gtid": null,
+      "file": "mysql-bin.000003",
+      "pos": 2324,
+      "row": 0,
+      "thread": null,
+      "query": null
+    },
+    "databaseName": "inventory",
+    "ddl": "CREATE TABLE `products_on_hand` (\n  `product_id` int(11) NOT NULL,\n  `quantity` int(11) NOT NULL,\n  PRIMARY KEY (`product_id`),\n  CONSTRAINT `products_on_hand_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=latin1"
+  }
+}
+```
+
+Again we have a `schema` and `payload`. This time the `payload` has:
+
+* `source`, like before,
+* `databaseName`, which tells us which database this record is for 
+* the `ddl` string tells us how the `products_on_hand` table was created.
+
+# Conclusion
+
+In this post we've learned that Strimzi now supports a `KafkaConnector` custom resource which you can use to define connectors.
+We've demonstrated this generic functionality using the Debezium connector as an example.
+By creating a `KafkaConnector` resource, linked to our `KafkaConnect` cluster via the `strimzi.io/cluster` label, we were able to observe changes made in a MySQL database as records in a Kafka topic.
+And finally, we've been left with a feeling of disappointment about the unfulfilled promise of awesome ASCII art.
+
+
