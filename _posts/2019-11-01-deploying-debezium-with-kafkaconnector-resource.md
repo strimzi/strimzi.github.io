@@ -5,18 +5,11 @@ date: 2019-11-01
 author: tom_bentley
 ---
 
-We frequently talk about Strimzi offering users a "Kubernetes-native" Kafka experience.
-By this we mean that it's possible to manage Kafka brokers, connect clusters, topics and users as resources in Kubernetes.
-As well as the convenience of sticking in the Kubernetes development paradigm, 
-the benefits of declarative configuration also apply: 
-Your infrastructure is now just code so it can be stored in version control, be peer reviewed and be deployed along with the application that needs it; 
-all of this while keeping your organisation's existing tools and processes.
-
-Which is great, but for too long our Kafka Connect story wasn't quite as "Kubernetes-native" as it could have been.
-While we had a `KafkaConnect` resource to configure a Kafka Connect _cluster_ you still had to use the Kafka Connect REST API to actually create a _connector_ within it.
+For too long our Kafka Connect story hasn't quite as "Kubernetes-native" as it could have been.
+We had a `KafkaConnect` resource to configure a Kafka Connect _cluster_ but you still had to use the Kafka Connect REST API to actually create a _connector_ within it.
 While this wasn't especially difficult using something like `curl`, it stood out because everything else could be done using `kubectl` and it meant that connectors didn't fit into our Kubernetes-native vision.
-
 With the help of a contribution from the community, Strimzi now supports a `KafkaConnector` custom resource and the rest of this blog post is going to explain how to use it using [Debezium](https://debezium.io) as an example. 
+
 And as if that wasn't enough, there's some awesome ASCII art.
 
 <!--more-->
