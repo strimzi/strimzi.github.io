@@ -11,7 +11,7 @@ Read more to learn how to meet Strimzi maintainers and see Strimzi demos.
 
 <!--more-->
 
-If you are attending KubeCon, you have two opportunities to see live demo of Strimzi in the mini-theather at Red Hat Booth (#D1):
+If you are attending KubeCon, you have two opportunities to see live demo of Strimzi in the mini-theatre at Red Hat Booth (#D1):
 * On **Tuesday at 3:50pm**
 * On **Thursday at 11:10am**
 
