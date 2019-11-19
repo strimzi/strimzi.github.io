@@ -201,7 +201,7 @@ EOF
 
 It's worth pointing out a couple of things about the above resource:
 
-* The `strimzi.io/use-connector-resources: "true"` annotation tells the cluster operator that this `KafkaConnect` will be managed using `KafkaConnector` resources.
+* The `strimzi.io/use-connector-resources: "true"` annotation tells the cluster operator that `KafkaConnector` resources will be used to configure connectors within this Kafka Connect cluster.
 * The `spec.image` is the image we just created with `docker`.
 
 
