@@ -78,12 +78,14 @@ The output will look like this:
 +---------------------+
 | Tables_in_inventory |
 +---------------------+
+| addresses           |
 | customers           |
+| geom                |
 | orders              |
 | products            |
 | products_on_hand    |
 +---------------------+
-4 rows in set (0.00 sec)
+6 rows in set (0.01 sec)
 ```
 
 > Don't worry, this isn't the awesome ASCII art.
