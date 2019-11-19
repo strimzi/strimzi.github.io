@@ -28,7 +28,7 @@ That's what CDC is: Capturing the changes to the state data as event data.
 Concretely, Debezium works with a number of common DBMSs (MySQL, MongoDB, PostgreSQL, Oracle, SQL Server and Cassandra) and runs as a source connector within a Kafka Connect cluster.
 How Debezium works on the database side depends which database it's using.
 For example for MySQL it reads the commit log in order to know what transactions are happening, but for MongoDB it hooks into the native replication mechanism.
-In any case, the changes get represented as JSON events (using a common schema) which are sent to a Kafka.
+In any case, the changes get represented by default as JSON events (other serializations are also possible) which are sent to Kafka.
 
 It should be apparent, then, that Debezium provides a route for getting events out of database applications (which otherwise might not expose any kind of event-based API) and make them available to Kafka applications.
 
@@ -48,7 +48,7 @@ docker run -it --rm --name mysql -p 3306:3306 \
   -e MYSQL_PASSWORD=mysqlpw debezium/example-mysql:0.10
 ```
 
-Once we see the following we know the server is up and running:
+Once we see the following we know the server is ready:
 
 ```shell
 ...
@@ -143,7 +143,7 @@ What's missing from this picture is Kafka Connect in the minikube box.
 
 # Kafka Connect image
 
-The next step is to [create a Strimzi Kafka Connect image](https://strimzi.io/docs/master/#creating-new-image-from-base-str) with the Debezium connector jar file. 
+The next step is to [create a Strimzi Kafka Connect image](https://strimzi.io/docs/master/#creating-new-image-from-base-str) which includes the Debezium MySQL connector and its dependencies.
 
 First download and extract the Debezium MySQL connector archive
 ```shell
@@ -201,7 +201,7 @@ EOF
 
 It's worth pointing out a couple of things about the above resource:
 
-* The `strimzi.io/use-connector-resources: "true"` annotation tells the cluster operator that this `KafkaConnect` is managed via `KafkaConnector` resources.
+* The `strimzi.io/use-connector-resources: "true"` annotation tells the cluster operator that this `KafkaConnect` will be managed using `KafkaConnector` resources.
 * The `spec.image` is the image we just created with `docker`.
 
 
