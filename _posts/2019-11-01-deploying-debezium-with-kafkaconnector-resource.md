@@ -16,7 +16,7 @@ And as if that wasn't enough, there's some awesome ASCII art.
 
 # Debezi-what?
 
-If you've not heard of Debezium before it is an open source project for applying [Change Data Capture](https://en.wikipedia.org/wiki/Change_data_capture) (CDC) pattern to your applications using Kafka.
+If you've not heard of Debezium before it is an open source project for applying the [Change Data Capture](https://en.wikipedia.org/wiki/Change_data_capture) (CDC) pattern to your applications using Kafka.
 
 But what is CDC? You probable have several databases in your organization; silos full of business-critical data.
 While you can query those databases any time you want, the essence of your business revolves around how that data gets modified.
@@ -27,7 +27,7 @@ That's what CDC is: Capturing the changes to the state data as event data.
 
 Concretely, Debezium works with a number of common DBMSs (MySQL, MongoDB, PostgreSQL, Oracle, SQL Server and Cassandra) and runs as a source connector within a Kafka Connect cluster.
 How Debezium works on the database side depends which database it's using.
-For example for MySQL it reads the commit log in order to know what transaction are happening, but for MongoDB it hooks into the native replication mechanism.
+For example for MySQL it reads the commit log in order to know what transactions are happening, but for MongoDB it hooks into the native replication mechanism.
 In any case, the changes get represented as JSON events (using a common schema) which are sent to a Kafka.
 
 It should be apparent, then, that Debezium provides a route for getting events out of database applications (which otherwise might not expose any kind of event-based API) and make them available to Kafka applications.
@@ -86,9 +86,9 @@ The output will look like this:
 4 rows in set (0.00 sec)
 ```
 
-> Don't worry, this isn't the awesome ascii art.
+> Don't worry, this isn't the awesome ASCII art.
 
-If you want, you can have a poke around this demo database, but when you're done leave this mySQL client running in its own terminal window, so you can come back to it later.
+If you want, you can have a poke around this demo database, but when you're done leave this MySQL client running in its own terminal window, so you can come back to it later.
 
 # Create a Kafka cluster
 
@@ -244,7 +244,7 @@ The `spec.class` names the Debezium MySQL connector and `spec.tasksMax` can be 1
 The `spec.config` object contains the rest of the connector configuration.
 The [Debezium documentation](https://debezium.io/documentation/reference/0.10/connectors/mysql.html#connector-properties) explains the available properties, but it's worth calling out some specifically:
 * I'm using `database.hostname: 192.168.99.1` as IP address for connecting to MySQL because I'm using `minikube` with the virtualbox VM driver
-  If you're using a different VM drvier with `minikube` you might need a different IP address.
+  If you're using a different VM driver with `minikube` you might need a different IP address.
 * The `database.port: "3306"` works because of the `-p 3306:3306` argument we used when we started up the MySQL server.
 * The `database.whitelist: "inventory"` basically tells Debezium to only watch the `inventory` database.
 * The `database.history.kafka.topic: "schema-changes.inventory"` configured Debezium to use the `schema-changes.inventory` topic to store the database schema history.
@@ -540,10 +540,10 @@ which is rather a lot of JSON, but if we reformat it (e.g. using copying, paste 
 }
 ```
 
-The `schema` object is just describing the schema of the rest of the event.
+The `schema` object is describing the schema of the actual event payload.
 
-What's more interesting for this post is the `payload`. Working backwards we have:
-* `ts_ms` is the timestamp of when change happened.,
+What's more interesting for this post is the `payload` itself. Working backwards we have:
+* `ts_ms` is the timestamp of when the change happened
 * `op` tells us this was an `u`pdate (an insert would be `c` and a delete would be `d`) 
 * the `source` which tells us exactly which table of which database in which server got changed.
 * `before` and `after` are pretty self-explanatory, describing the row before and after the update.
