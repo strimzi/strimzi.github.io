@@ -5,12 +5,11 @@ date: 2019-11-01
 author: tom_bentley
 ---
 
-For too long our Kafka Connect story hasn't quite as "Kubernetes-native" as it could have been.
+For too long our Kafka Connect story hasn't been quite as "Kubernetes-native" as it could have been.
 We had a `KafkaConnect` resource to configure a Kafka Connect _cluster_ but you still had to use the Kafka Connect REST API to actually create a _connector_ within it.
 While this wasn't especially difficult using something like `curl`, it stood out because everything else could be done using `kubectl` and it meant that connectors didn't fit into our Kubernetes-native vision.
 With the help of a contribution from the community, Strimzi now supports a `KafkaConnector` custom resource and the rest of this blog post is going to explain how to use it using [Debezium](https://debezium.io) as an example. 
-
-And as if that wasn't enough, there's some awesome ASCII art.
+As if that wasn't enough, there's some awesome ASCII art to help explain how it all fits together. So read on to find out about this new Kubernetes-native way of managing connectors.
 
 <!--more-->
 
