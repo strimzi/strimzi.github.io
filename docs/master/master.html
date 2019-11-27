@@ -183,6 +183,11 @@
 <li><a href="#proc-customizing-deployments-str">3.7.7. Customizing deployments</a></li>
 </ul>
 </li>
+<li><a href="#external-logging_str">3.8. External logging</a>
+<ul class="sectlevel3">
+<li><a href="#creating-configmap_str">3.8.1. Creating a ConfigMap for logging</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#assembly-operators-str">4. Operators</a>
@@ -20116,6 +20121,129 @@ spec:
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl edit <em>Resource</em> <em>ClusterName</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="external-logging_str"><a class="link" href="#external-logging_str">3.8. External logging</a></h3>
+<div class="paragraph">
+<p>When setting the logging levels for a resource, you can specify them <em>inline</em> directly in the <code>spec.logging</code> property of the resource YAML:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  logging:
+    type: inline
+    loggers:
+      kafka.root.logger: "INFO"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or you can specify <em>external</em> logging:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  logging:
+    type: external
+    name: <em>customConfigMap</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>With external logging, logging properties are defined in a ConfigMap.
+The name of the ConfigMap is referenced in the <code>spec.logging.name</code> property.</p>
+</div>
+<div class="paragraph">
+<p>The advantages of using a ConfigMap are that the logging properties are maintained in one place and are accessible to more than one resource.</p>
+</div>
+<div class="sect3">
+<h4 id="creating-configmap_str"><a class="link" href="#creating-configmap_str">3.8.1. Creating a ConfigMap for logging</a></h4>
+<div class="paragraph">
+<p>To use a ConfigMap to define logging properties, you create the ConfigMap and then reference it as part of the logging definition in the <code>spec</code> of a resource.</p>
+</div>
+<div class="paragraph">
+<p>The ConfigMap must contain the appropriate logging configuration.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>log4j.properties</code> for Kafka components, ZooKeeper, and the Kafka Bridge</p>
+</li>
+<li>
+<p><code>log4j2.properties</code> for the Topic Operator and User Operator</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The configuration must be placed under these properties.</p>
+</div>
+<div class="paragraph">
+<p>Here we demonstrate how a ConfigMap defines a root logger for a Kafka resource.</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Create the ConfigMap.</p>
+<div class="paragraph">
+<p>You can create the ConfigMap as a YAML file or from a properties file using <code>kubectl</code> at the command line.</p>
+</div>
+<div class="paragraph">
+<p>ConfigMap example with a root logger definition for Kafka:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">kind: ConfigMap
+apiVersion: kafka.strimzi.io/v1beta1
+metadata:
+  name: logging-configmap
+data:
+  log4j.properties:
+    kafka.root.logger="INFO"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>From the command line, using a properties file:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl create configmap logging-configmap --from-file=log4j.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The properties file defines the logging configuration:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="text" class="language-text hljs"># Define the root logger
+kafka.root.logger="INFO"
+# ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Define <em>external</em> logging in the <code>spec</code> of the resource, setting the <code>logging.name</code> to the name of the ConfigMap.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">spec:
+  # ...
+  logging:
+    type: external
+    name: logging-configmap</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f kafka.yaml</code></pre>
 </div>
 </div>
 </li>
