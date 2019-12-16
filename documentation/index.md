@@ -6,6 +6,10 @@ layout: default
 
 ## Strimzi Kafka operators
 
+### Overview guide
+
+* [Master](/docs/overview/master/)
+
 ### Quick Start guide
 
 * [{{site.data.releases.operator[0].version}} - latest stable release](/docs/quickstart/latest/)
