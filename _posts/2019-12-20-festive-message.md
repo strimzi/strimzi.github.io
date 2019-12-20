@@ -22,7 +22,7 @@ Next year, Strimzi will accelerate and we are looking forward to adding support 
 
 * Cluster rebalancing using [Cruise Control](https://github.com/linkedin/cruise-control)
 * An Operator for handling Kafka Connect connectors as native Kubernetes resources
-* Enabling ZooKeeper rolling upgrade
+* Supporting upgrade to ZooKeeper to 3.5.x
 * Support for replication using MirrorMaker2
 
 We are also proud of the non-technical achievements Strimzi made during the year, especially being accepted into the [Cloud Native Computing Foundation](https://www.cncf.io/).
