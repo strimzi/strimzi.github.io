@@ -14,7 +14,7 @@ Many features have been added during the year, some of the key ones:
 
 * Storage - resizing persistent volumes and support for JBOD (including adding and removing volumes)
 * Monitoring - support for [Jaeger](https://www.jaegertracing.io/) tracing, [Prometheus](https://prometheus.io/) metrics and exposing consumer lag using [Kafka Exporter](https://github.com/danielqsj/kafka_exporter)
-* Support for Oauth2 authentication
+* Support for OAuth2 authentication
 * HTTP access through the Bridge
 * New mechanisms for off-cluster access
 
@@ -30,7 +30,7 @@ As part of this we also developed the first governance rules for Strimzi.
 This saw, Tom Bentley, Paolo Patierno and Jakub Scholz became the initial group of *maintainers*. 
 They work tirelessly to both review code and provide guidance to new contributors. 
 
-Strimzi was presented and demoed at a number of conferences during the year - Kubecon, Kafka Summit, Red Hat Summit and ContainerDays to name a few. 
+Strimzi was presented and demoed at a number of conferences during the year - KubeCon, Kafka Summit, Red Hat Summit and ContainerDays to name a few. 
 We will be on the road again in 2020 so hope to meet more of you in person! 
 We saw Strimzi reach 1000 stars on GitHub which was amazing. 
 That is far more than we ever imagined when we started the project.
