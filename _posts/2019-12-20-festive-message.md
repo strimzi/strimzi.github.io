@@ -26,7 +26,7 @@ In the coming year Strimzi will accelerate and we are looking forward to adding 
 * Support for replication using MirrorMaker2
 
 We are also proud of the non-technical achievements Strimzi made during the year, especially being accepted into the [Cloud Native Computing Foundation](https://www.cncf.io/). 
-As part of this we also developed the first governance rules for Strimzi.  
+As part of this we also developed the first governance rules for Strimzi.
 This saw, Tom Bentley, Paolo Patierno and Jakub Scholz became the initial group of *maintainers*. 
 They work tirelessly to both review code and provide guidance to new contributors. 
 
