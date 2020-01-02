@@ -131,10 +131,10 @@ my-cluster-zookeeper-nodes            ClusterIP   None           <none>        2
 ```
 
 In my case, the node ports are:
-* `32200`
-* `31208`
-* `31983`
-* `32279`
+* `my-cluster-kafka-0` has port `31208`
+* `my-cluster-kafka-1` has port `31983`
+* `my-cluster-kafka-2` has port `32279`
+* `my-cluster-kafka-external-bootstrap` has port `32200`
 
 ### Creating and configuring the NLB
 
@@ -214,7 +214,7 @@ Select the same instances as you did for the bootstrap target and save them.
 
 In the same way we need to add two more target groups for brokers 1 and 2.
 Now with the target groups ready, we have to register them with the listeners.
-To do that, go to back to the _Load Balancers_ section, select the load balancer we created and in the detail go to the _Listeners_ tab.
+To do that, go back to the _Load Balancers_ section, select the load balancer we created and in the detail go to the _Listeners_ tab.
 Select the listener for port `19092` and press the _Edit_ button.
 
 [![Check the listeners]({{ "/assets/2020-01-06-nlb-listeners-tab.png" }})](/assets/2020-01-06-nlb-listeners-tab.png)
@@ -281,7 +281,7 @@ Since we configured the Kafka cluster with node ports, it will by default use th
 We need to reconfigure the advertised address to route the traffic through the load balancer.
 To do so, we will need to grab the load balancer address from the AWS console.
 In my case, the address is `my-cluster-kafka-36203843994a2519.elb.us-east-1.amazonaws.com`.
-To configure the advertised address, we will need to edit the Kafka custom resource and set the [advertised listener overrides](https://strimzi.io/docs/latest/full.html#con-kafka-broker-external-listeners-addresses-deployment-configuration-kafka) to the load balancer address and to the listener ports (in our case `9093`, `9094` and `9095`):
+To configure the advertised address, we will need to edit the Kafka custom resource and set the [advertised listener overrides](https://strimzi.io/docs/latest/full.html#con-kafka-broker-external-listeners-addresses-deployment-configuration-kafka) to the load balancer address and to the listener ports (in our case `19092`, `29092` and `39092`):
 
 ```yaml
 # ...
@@ -319,7 +319,7 @@ World
 
 ## Are there any real advantages?
 
-When it comes to Strimzi and Kafka, the main advantages of the Network load balancers over the Classic LBs would  probably be the price and the possibility of using a single load balancer instance for many listeners.
+When it comes to Strimzi and Kafka, the main advantages of the Network load balancers over the Classic load balancers would probably be the price and the possibility of using a single load balancer instance for many listeners.
 
 However, there are also some disadvantages:
 
