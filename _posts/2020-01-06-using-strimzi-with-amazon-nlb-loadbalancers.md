@@ -5,24 +5,24 @@ date: 2019-12-29
 author: jakub_scholz
 ---
 
-Strimzi supports providing access to Apache Kafka using load balancers.
+Strimzi supports accessing Apache Kafka using load balancers.
 We already have a [full blog post](https://strimzi.io/2019/05/13/accessing-kafka-part-4.html) dedicated to load balancers.
 But when running Strimzi on Amazon AWS, it will by default use the so called _Classic Load Balancers_.
 A lot of users seem to be asking about using the newer _Network Load Balancers_ with Strimzi and Kafka.
-So in this blog post we will have a look whether and how Strimzi could work with Network load balancers.
+So in this blog post we will look at whether and how Strimzi could work with Network load balancers.
 
 <!--more-->
 
 ## Network Load Balancers
 
-Amazon AWS supports currently three different types of load balancers:
+Amazon AWS currently supports three different types of load balancers:
 * Classic Load Balancers
 * Application Load Balancers
 * and Network Load Balancers (NLB)
 
-Application load balancer is Layer 7 load balancer and is best suited for load balancing HTTP and HTTPS traffic.
-That makes is not suitable for use with Apache Kafka.
-But both Classic and Network load balancers are Layer 4 load balancers (Classic load balancer supports also some Layer 7 load balancing of HTTP / HTTPS) which are well suited for load balancing TCP connections including those from Apache Kafka clients.
+The Application Load Balancer is a Layer 7 load balancer and is best suited for HTTP and HTTPS traffic.
+That makes it unsuitable for use with Apache Kafka.
+Both Classic and Network Load Balancers are Layer 4 load balancers (Classic load balancer supports also some Layer 7 load balancing of HTTP / HTTPS) which are well suited for load balancing TCP connections including those from Apache Kafka clients.
 
 Network load balancer was added to Amazon AWS only later and has some additional features which are not supported by the older Classic load balancer.
 For example:
@@ -31,16 +31,16 @@ For example:
 * Preserving of source IP address
 * Load balancing multiple listeners / ports on the same instance
 
-Especially the last feature is interesting for use with Apache Kafka.
+The last feature is especially interesting for use with Apache Kafka.
 It allows you to have only one load balancer to handle the whole Kafka cluster.
 With the Classic load balancer you would need a dedicated load balancer instance for each broker plus one additional instance for the bootstrap service.
 
 Also the pricing is slightly different.
 With the Classic load balancer, you pay $0.025 per hour (per instance) plus $0.008 for each processed GB of data.
-With the Network load balancer, you pay $0.0225 per hour (per instance) plus $0.006 per a so called _LCU-hour_.
-LCU-hour is a unit of scale for the load balancer.
+With the Network load balancer, you pay $0.0225 per hour (per instance) plus $0.006 per an "LCU-hour".
+The LCU-hour is a unit of scale for the load balancer.
 One LCU hour includes 800 new TCP connections per second, 100,000 active TCP connections and 1 GB of processed data.
-While the pricing model is a little bit different, the NLB should be in most cases cheaper to use that the Classic load balancer.
+While the pricing model is a little bit different, the NLB should be in most cases cheaper to use than the Classic load balancer.
 _(The prices are for the US East region)_
 
 _For more detailed information about the different load balancer types in Amazon AWS and their pricing, please check the [AWS documentation](https://aws.amazon.com/elasticloadbalancing/features/)._
@@ -48,10 +48,10 @@ _For more detailed information about the different load balancer types in Amazon
 ## Using Strimzi with Network Load Balancer
 
 In Kubernetes, when you create a service with type `Loadbalancer`, it will by default create the Classic Load Balancer.
-For each service with given type it will create a separate load balancer instance.
-It is easy to change the type of the load balancer using a simple annotation set on the service.
+For each service with a given type it will create a separate load balancer instance.
+It is easy to change the type of the load balancer by setting an annotation on the service.
 To create a Network Load balancer, the Kubernetes service needs to have the annotation `service.beta.kubernetes.io/aws-load-balancer-type` set to the value `nlb`.
-For more details about the annotation see [Kubernetes documentation](https://kubernetes.io/docs/concepts/services-networking/service/#aws-nlb-support).
+For more details about the annotation see the [Kubernetes documentation](https://kubernetes.io/docs/concepts/services-networking/service/#aws-nlb-support).
 
 You can set the annotation easily in Strimzi using the [template feature](https://strimzi.io/docs/latest/full.html#assembly-customizing-deployments-str):
 
@@ -87,19 +87,19 @@ Hello
 World
 ```
 
-## Single Network Load Balancer for the whole Apache Kafka cluster
+## Having a single Network Load Balancer for the whole Apache Kafka cluster
 
 But what if we want to share a single load balancer instance for all services?
-I didn't found any way how to tell Kubernetes to create only single NLB instance and share it with multiple services.
+I didn't find any way of telling Kubernetes to create only a single NLB instance and share it with multiple services.
 So we will need to approach this a little differently.
 When you expose a Kubernetes service with load balancer, it essentially creates a node ports on your Kubernetes workers and configures the load balancer to forward the data to the right node port.
-So to workaround the limitations we can do the same manually.
+So to work around the limitations we can do the same manually.
 We can:
 * Expose Apache Kafka using node ports
-* Create NLB and configure it to route the data to the node port services
+* Create a single NLB and configure it to route the data to the node port services
 * Configure the advertised addresses in Apache Kafka to use the NLB address instead of the node addresses and node ports
 
-Let's look in detail on each of these steps.
+Let's look in detail at each of these steps.
 
 ### Exposing Apache Kafka with node ports
 
@@ -146,7 +146,7 @@ In the wizard, select a _Network Load Balancer_:
 
 And configure the details of the load balancer:
 * Pick your own name for the load balancer. 
-I named it `my-cluster-kafka`.
+I named mine `my-cluster-kafka`.
 * Create one listener for each broker plus one additional as bootstrap. 
 All listeners should use the TCP protocol. 
 My Kafka cluster has 3 brokers, so I configured 4 listeners on ports `9092`, `19092`, `29092` and `39092`.
@@ -156,9 +156,9 @@ Once you are finished, click _Next: ..._.
 
 [![Configure listeners, VPC and subnets]({{ "/assets/2020-01-06-nlb-create-wizard-listeners.png" }})](/assets/2020-01-06-nlb-create-wizard-listeners.png)
 
-We can skip the security configuration since we do not use any TLS listeners and just click _Next: ..._ again to move to routing configuration:
+We can skip the security configuration since we do not use any TLS listeners and just click _Next: ..._ again to move to the routing configuration:
 * Name the first _Target Group_ which will be used for the bootstrap service. 
-I named it `my-cluster-bootstrap`.
+I named mine `my-cluster-bootstrap`.
 * Select the target type as _Instance_.
 * Select the _TCP_ protocol.
 * As port, use the port number of the bootstrap service.
@@ -179,21 +179,21 @@ After you selected the nodes, press the _Next: ..._ button, review the NLB and i
 
 [![Review the new Network load balancer before creating it]({{ "/assets/2020-01-06-nlb-create-wizard-review.png" }})](/assets/2020-01-06-nlb-create-wizard-review.png)
 
-Now you should see the load balancer being provisioned.
-That takes normally few minutes and when it is done the _State_ changes to _active_.
+You should now see the load balancer being provisioned.
+That normally takes a few minutes and when it is done the _State_ changes to _active_.
 
 [![Wait for the load balancer provisioning to finish]({{ "/assets/2020-01-06-nlb-provisioning.png" }})](/assets/2020-01-06-nlb-provisioning.png)
 
 However, in the wizard, we created only the target group for the bootstrap service.
 We will need to create the target groups also for the different brokers.
 That can be done in the _Target Groups_ section of the EC2 dashboard.
-When you go there, you should already see the bootstrap target group there.
+You should already see the bootstrap target group there.
 
 [![Overview of the target groups]({{ "/assets/2020-01-06-nlb-target-groups.png" }})](/assets/2020-01-06-nlb-target-groups.png)
 
-Click the _Create Target Group_ button and in the wizard fill in following fields:
+Click the _Create Target Group_ button and in the wizard fill in the following fields:
 * Enter the name for your target group. 
-I my case I used `my-custer-kafka-0`.
+In my case I used `my-custer-kafka-0`.
 * Select the _Target type_ as _Instance_.
 * Select _TCP_ as _Protocol_.
 * As a _Port_, use the node port of your broker service with index 0. 
@@ -202,7 +202,7 @@ In my case it is `31208`.
 
 [![Create additional target groups]({{ "/assets/2020-01-06-nlb-create-target-group.png" }})](/assets/2020-01-06-nlb-create-target-group.png)
 
-After you filled in all the fields, press the _Create_ button to create the target group.
+After you have filled in all the fields, press the _Create_ button to create the target group.
 Once the target group is created, we have to register the target instances with it.
 In the _Targets_ tab in the details of the selected target group, press the _Edit_ button to register new targets
 
@@ -224,7 +224,7 @@ Repeat this for the listeners `29092` and `39092` and configure them to forward 
 
 [![Edit the listeners]({{ "/assets/2020-01-06-nlb-edit-listener.png" }})](/assets/2020-01-06-nlb-edit-listener.png)
 
-Last thing we need to do is to go and configure the security groups of the Kubernetes worker nodes to allow traffic from the clients and from the load balancer.
+The last thing we need to do is to configure the security groups of the Kubernetes worker nodes to allow traffic from the clients and from the load balancer.
 We will need to first find out the internal IP address(es) of our load balancer to get the health checks to work.
 You can find them in the _Network Interfaces_ section of the EC2 dashboard.
 You should see there one or more network interfaces of the load balancer we created.
@@ -252,18 +252,18 @@ First we need to add rules for the load balancer:
 * _Type_ set as _Custom TCP_
 * _Protocol_ set as _TCP_
 * In _Port range_ enter the node port number
-* In _Source_ select _Custom_ and enter the IP address of the network interface in the CIDR notation - for example as `10.0.1.27/32`.
+* In _Source_ select _Custom_ and enter the IP address of the network interface in CIDR notation - for example as `10.0.1.27/32`.
 
 These rules need to be added for each network listener IP and each node port.
-So in my case with 3 brokers plus the bootstrap service and 3 network interfaces, I will need to add in total 12 rules.
+So in my case with 3 brokers plus the bootstrap service and 3 network interfaces, I will need to add 12 rules in total.
 If you are lazy like me and doing this only on your test cluster, you can also use a CIDR range such as `10.0.0.0/16` to add all network interfaces in one rule.
 You can also specify a range for the node ports instead of configuring them one by one.
 
 After enabling the load balancer to talk with the node ports, we will also need to allow the clients to talk with the brokers.
-Unlike the Classic Load Balancer, the Network Load Balancer doesn't have it's own security group to configure the clients which can access it separately.
+Unlike the Classic Load Balancer, the Network Load Balancer doesn't have its own security group to configure the clients which can access it separately.
 The client IP addresses need to be configured directly in the EC2 security group.
 Therefore we need to add the same rules as we added for the load balancer also for the client. 
-The only different is that this time instead of the load balancer IP address we have to use the CIDR range from which our clients will connect.
+The only difference is that this time, instead of the load balancer IP address, we have to use the CIDR range from which our clients will connect.
 In my case, the client will connect from `88.208.0.0/16`.
 
 [![Add the security group rules]({{ "/assets/2020-01-06-nlb-security-group-rules.png" }})](/assets/2020-01-06-nlb-security-group-rules.png)
@@ -272,7 +272,7 @@ Once you have all the rules prepared, don't forget to press the _Save_ button to
 Once you save the rules, we should have the Network load balancer prepared.
 But we still need to configure the Kafka broker to use the load balancer as the advertised address.
 
-_Note: the Network load balancer can be of course configures also using the different AWS command line tools._
+_Note: the Network load balancer can also be configured using the different AWS command line tools._
 
 ### Configuring the advertised addresses
 
@@ -319,30 +319,30 @@ World
 
 ## Are there any real advantages?
 
-When it comes to Strimzi and Kafka, the main advantages of the Network load balancers over the Classic LBs would be probably the price and the possibility to use a single load balancer instance for many listeners.
+When it comes to Strimzi and Kafka, the main advantages of the Network load balancers over the Classic LBs would  probably be the price and the possibility of using a single load balancer instance for many listeners.
 
 However, there are also some disadvantages:
 
 * Getting Kubernetes to create NLB load balancers for you using the annotation is easy.
-But it will create dedicated instance for each service.
+But it will create a dedicated instance for each service.
 While that works well, the cost savings might not be as big as with one shared load balancer instance.
 
-* If you decide to use single NLB instance for multiple Kubernetes services, you need to configure it your self. 
+* If you decide to use a single NLB instance for multiple Kubernetes services, you need to configure it yourself. 
 And it is not just the initial configuration described in this blog post. 
-If you decide to use this in your production environment, you will need to make sure that the configuration is updated when your cluster changes.
-New Kubernetes worker nodes will need to be registered with the load balancer target groups.
+If you decided to use this in your production environment, you would need to make sure that the configuration is updated when your cluster changes.
+New Kubernetes worker nodes would need to be registered with the load balancer target groups.
 New listeners and target groups would need to be added when you add brokers to your Kafka cluster.
-So you will probably need to develop some additional tooling to make sure these changes are done automatically.
+So you would probably need to develop some additional tooling to make sure these changes are done automatically.
 
-* With Kafka, the only service which is actually using some load balancing is the bootstrap service which round-robins around all the brokers which are part of the cluster.
+* With Kafka, the only service which is actually benefiting from load balancing is the bootstrap service which round-robins around all the brokers in the cluster.
 The other services which are used to connect the clients directly to a specific Kafka broker do not need any load balancer.
-From my experience, lot of users used the Classic load balancers as an additional layer of isolation between their clients and the Kubernetes nodes.
+From my experience, lots of users have Classic load balancers as an additional layer of isolation between their clients and the Kubernetes nodes.
 The Classic load balancers have their own security group and don't need you to expose your nodes directly to the clients as when using node ports.
 But the Network load balancer does not work like this.
 It requires you to open the node ports directly on the Kubernetes worker nodes - so the nodes need to be exposed to the clients.
 So the additional isolation layer is gone when using network load balancers.
 
-Overall, the additional effort for using and maintaining the Network load balancers seems to be quite hight.
+Overall, the additional effort for using and maintaining the Network load balancers seems to be quite high.
 If you want, you can use them with Strimzi and Apache Kafka.
 But before you decide to do so, you should carefully consider whether the advantages are really worth it or whether you should be maybe using node ports directly.
 With node ports you could avoid the more complicated configuration and save the costs for the load balancers completely.
