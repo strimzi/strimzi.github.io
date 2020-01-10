@@ -480,6 +480,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel3">
 <li><a href="#deploying-kafka-connect-str">2.5.1. Deploying Kafka Connect to your cluster</a></li>
 <li><a href="#using-kafka-connect-with-plug-ins-str">2.5.2. Extending Kafka Connect with connector plug-ins</a></li>
+<li><a href="#con-creating-managing-connectors-str">2.5.3. Creating and managing connectors</a></li>
+<li><a href="#proc-deploying-kafkaconnector-str">2.5.4. Deploying a <code>KafkaConnector</code> resource to Kafka Connect</a></li>
 </ul>
 </li>
 <li><a href="#kafka-mirror-maker-str">2.6. Kafka Mirror Maker</a>
@@ -565,7 +567,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#assembly-configuring-container-images-deployment-configuration-kafka-connect">3.2.11. Container images</a></li>
 <li><a href="#assembly-scheduling-deployment-configuration-kafka-connect">3.2.12. Configuring pod scheduling</a></li>
 <li><a href="#assembly-kafka-connect-external-configuration-deployment-configuration-kafka-connect">3.2.13. Using external configuration and secrets</a></li>
-<li><a href="#ref-list-of-kafka-connect-resources-deployment-configuration-kafka-connect">3.2.14. List of resources created as part of Kafka Connect cluster</a></li>
+<li><a href="#proc-enabling-kafkaconnectors-deployment-configuration-kafka-connect">3.2.14. Enabling <code>KafkaConnector</code> resources</a></li>
+<li><a href="#ref-list-of-kafka-connect-resources-deployment-configuration-kafka-connect">3.2.15. List of resources created as part of Kafka Connect cluster</a></li>
 </ul>
 </li>
 <li><a href="#assembly-deployment-configuration-kafka-connect-s2i-str">3.3. Kafka Connect cluster with Source2Image support</a>
@@ -583,8 +586,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#assembly-configuring-container-images-deployment-configuration-kafka-connect-s2i">3.3.11. Container images</a></li>
 <li><a href="#assembly-scheduling-deployment-configuration-kafka-connect-s2i">3.3.12. Configuring pod scheduling</a></li>
 <li><a href="#assembly-kafka-connect-external-configuration-deployment-configuration-kafka-connect-s2i">3.3.13. Using external configuration and secrets</a></li>
-<li><a href="#ref-list-of-kafka-connect-s2i-resources-deployment-configuration-kafka-connect-s2i">3.3.14. List of resources created as part of Kafka Connect cluster with Source2Image support</a></li>
-<li><a href="#using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i">3.3.15. Creating a container image using OpenShift builds and Source-to-Image</a></li>
+<li><a href="#proc-enabling-kafkaconnectors-deployment-configuration-kafka-connect-s2i">3.3.14. Enabling <code>KafkaConnector</code> resources</a></li>
+<li><a href="#ref-list-of-kafka-connect-s2i-resources-deployment-configuration-kafka-connect-s2i">3.3.15. List of resources created as part of Kafka Connect cluster with Source2Image support</a></li>
+<li><a href="#using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i">3.3.16. Creating a container image using OpenShift builds and Source-to-Image</a></li>
 </ul>
 </li>
 <li><a href="#assembly-deployment-configuration-kafka-mirror-maker-str">3.4. Kafka Mirror Maker configuration</a>
@@ -1474,6 +1478,11 @@ status:
 <td class="tableblock halign-left valign-top"><p class="tableblock">The Kafka Connect cluster with Source-to-Image support, if deployed.</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaConnector</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-KafkaConnectorStatus-reference"><code>KafkaConnectorStatus</code> schema reference</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaConnector</code> resources, if deployed.</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaMirrorMaker</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-KafkaMirrorMakerStatus-reference"><code>KafkaMirrorMakerStatus</code> schema reference</a></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The Kafka MirrorMaker tool, if deployed.</p></td>
@@ -1710,7 +1719,7 @@ Strimzi provides example YAML files to make the deployment process easier.
 </table>
 </div>
 <div class="paragraph">
-<p>The Cluster Operator watches the following resources:</p>
+<p>The Cluster Operator watches for changes to the following resources:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -1722,6 +1731,9 @@ Strimzi provides example YAML files to make the deployment process easier.
 </li>
 <li>
 <p><code>KafkaConnectS2I</code> for the Kafka Connect cluster with Source2Image support.</p>
+</li>
+<li>
+<p><code>KafkaConnector</code> for creating and managing connectors in a Kafka Connect cluster.</p>
 </li>
 <li>
 <p><code>KafkaMirrorMaker</code> for the Kafka Mirror Maker instance.</p>
@@ -2129,15 +2141,27 @@ metadata:
 <p><a href="https://kafka.apache.org/documentation/#connect" target="_blank" rel="noopener">Kafka Connect</a> is a tool for streaming data between Apache Kafka and external systems. It provides a framework for moving large amounts of data into and out of your Kafka cluster while maintaining scalability and reliability. Kafka Connect is typically used to integrate Kafka with external databases and storage and messaging systems.</p>
 </div>
 <div class="paragraph">
-<p>You can use Kafka Connect to:</p>
+<p>In Kafka Connect, a <em>source connector</em> is a runtime entity that fetches data from an external system and feeds it to Kafka as messages. A <em>sink connector</em> is a runtime entity that fetches messages from Kafka topics and feeds them to an external system. The workload of connectors is divided into <em>tasks</em>. Tasks are distributed among nodes (also called <em>workers</em>), which form a <em>Connect cluster</em>. This allows the message flow to be highly scalable and reliable.</p>
+</div>
+<div class="paragraph">
+<p>Each connector is an instance of a particular <em>connector class</em> that knows how to communicate with the relevant external system in terms of messages. Connectors are available for many external systems, or you can develop your own.</p>
+</div>
+<div class="paragraph">
+<p>The term <em>connector</em> is used interchangably to mean a connector instance running within a Kafka Connect cluster, or a connector class. This guide uses the term <em>connector</em> when the meaning is clear from the context.</p>
+</div>
+<div class="paragraph">
+<p>Strimzi allows you to:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Build connector plug-ins (as JAR files) for your Kafka cluster</p>
+<p>Create a Kafka Connect image containing the connectors you want</p>
 </li>
 <li>
-<p>Run connectors</p>
+<p>Deploy and manage a Kafka Connect cluster running within Kubernetes using a <code>KafkaConnect</code> resource</p>
+</li>
+<li>
+<p>Run connectors within your Kafka Connect cluster, optionally managed using <code>KafkaConnector</code> resources</p>
 </li>
 </ul>
 </div>
@@ -2167,14 +2191,26 @@ metadata:
 </tbody>
 </table>
 <div class="paragraph">
-<p>In Strimzi, you can use the Cluster Operator to deploy a Kafka Connect to your Kubernetes cluster.
-OpenShift also supports Kafka Connect Source-2-Image (S2I) clusters.</p>
+<p>To use other connector classes, you need to prepare connector images by following one of these procedures:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#creating-new-image-from-base-str">Creating a Docker image from the Kafka Connect base image</a></p>
+</li>
+<li>
+<p><a href="#using-openshift-s2i-create-image-str">Creating a container image using OpenShift builds and Source-to-Image</a> (OpenShift only)</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
-<p>A Kafka Connect cluster is implemented as a <code>Deployment</code> with a configurable number of workers. The Kafka Connect REST API is available on port 8083, as the <code>&lt;connect-cluster-name&gt;-connect-api</code> service.</p>
+<p>The Cluster Operator can use images that you create to deploy a Kafka Connect cluster to your Kubernetes cluster.</p>
 </div>
 <div class="paragraph">
-<p>For more information on deploying a Kafka Connect S2I cluster on OpenShift, see <a href="#using-openshift-s2i-create-image-str">Creating a container image using OpenShift builds and Source-to-Image</a>.</p>
+<p>A Kafka Connect cluster is implemented as a <code>Deployment</code> with a configurable number of workers.</p>
+</div>
+<div class="paragraph">
+<p>You can <a href="#con-creating-managing-connectors-str">create and manage connectors</a> using <code>KafkaConnector</code> resources or manually using the Kafka Connect REST API, which is available on port 8083 as the <code>&lt;connect-cluster-name&gt;-connect-api</code> service. The operations supported by the REST API are described in the <a href="https://kafka.apache.org/documentation/#connect_rest" target="_blank" rel="noopener">Apache Kafka documentation</a>.</p>
 </div>
 <div class="sect3">
 <h4 id="deploying-kafka-connect-str"><a class="link" href="#deploying-kafka-connect-str">2.5.1. Deploying Kafka Connect to your cluster</a></h4>
@@ -2398,6 +2434,161 @@ The name of the build is the same as the name of the deployed Kafka Connect clus
 </li>
 </ol>
 </div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-creating-managing-connectors-str"><a class="link" href="#con-creating-managing-connectors-str">2.5.3. Creating and managing connectors</a></h4>
+<div class="paragraph">
+<p>When you have created a container image for your connector plug-in, you need to create a connector instance in your Kafka Connect cluster. You can then configure, monitor, and manage a running connector instance. For example, you can:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Check the status of a connector instance</p>
+</li>
+<li>
+<p>Increase or decrease the number of tasks for a connector instance</p>
+</li>
+<li>
+<p>Restart failed tasks</p>
+</li>
+<li>
+<p>Pause a connector instance</p>
+</li>
+<li>
+<p>Delete a connector instance</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Strimzi provides two APIs for creating and managing connectors:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>KafkaConnector</code> resources (referred to as <code>KafkaConnectors</code>)</p>
+</li>
+<li>
+<p>Kafka Connect REST API</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Currently, <code>KafkaConnectors</code> do not support restarting failed tasks. You need to use the Kafka Connect REST API to do this.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect4">
+<h5 id="kafkaconnector_resources"><a class="link" href="#kafkaconnector_resources"><code>KafkaConnector</code> resources</a></h5>
+<div class="paragraph">
+<p><code>KafkaConnectors</code> allow you to create and manage connector instances for Kafka Connect in a Kubernetes-native way, so an HTTP client such as cURL is not required.
+Like other Kafka resources, you declare a connector’s desired state in a <code>KafkaConnector</code> YAML file that is deployed to your Kubernetes cluster to create the connector instance.</p>
+</div>
+<div class="paragraph">
+<p>You manage a running connector instance by updating its corresponding <code>KafkaConnector</code>, and then applying the updates. You remove a connector by deleting its corresponding <code>KafkaConnector</code>.</p>
+</div>
+<div class="paragraph">
+<p>To ensure compatibility with earlier versions of Strimzi, <code>KafkaConnectors</code> are disabled by default. To enable them for a Kafka Connect cluster, you must use annotations on the <code>KafkaConnect</code> resource. For instructions, see <a href="#proc-enabling-kafkaconnectors-deployment-configuration-kafka-connect">Enabling <code>KafkaConnector</code> resources</a>.</p>
+</div>
+<div class="paragraph">
+<p>When <code>KafkaConnectors</code> are enabled, the Cluster Operator begins to watch for them. It updates the configurations of running connector instances to match the configurations defined in their <code>KafkaConnectors</code>.</p>
+</div>
+<div class="paragraph">
+<p>Strimzi includes an example <code>KafkaConnector</code>, named <code>examples/connector/source-connector.yaml</code>. You can use this example to create and manage a <code>FileStreamSourceConnector</code>.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="availability_of_the_kafka_connect_rest_api"><a class="link" href="#availability_of_the_kafka_connect_rest_api">Availability of the Kafka Connect REST API</a></h5>
+<div class="paragraph">
+<p>The Kafka Connect REST API is available on port 8083 as the <code>&lt;connect-cluster-name&gt;-connect-api</code> service.</p>
+</div>
+<div class="paragraph">
+<p>If <code>KafkaConnectors</code> are enabled, manual changes made directly using the Kafka Connect REST API are reverted by the Cluster Operator.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-deploying-kafkaconnector-str"><a class="link" href="#proc-deploying-kafkaconnector-str">2.5.4. Deploying a <code>KafkaConnector</code> resource to Kafka Connect</a></h4>
+<div class="paragraph">
+<p>Deploy the example <code>KafkaConnector</code> to a Kafka Connect cluster. The example YAML will create a <code>FileStreamSourceConnector</code> to send each line of the license file to Kafka as a message in a topic named <code>my-topic</code>.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Kafka Connect deployment in which <a href="#proc-enabling-kafkaconnectors-deployment-configuration-kafka-connect"><code>KafkaConnectors</code> are enabled</a></p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>examples/connector/source-connector.yaml</code> file:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1alpha1
+kind: `KafkaConnector`
+metadata:
+  name: my-source-connector <b class="conum">(1)</b>
+  labels:
+    strimzi.io/cluster: my-connect-cluster <b class="conum">(2)</b>
+spec:
+  class: org.apache.kafka.connect.file.FileStreamSourceConnector <b class="conum">(3)</b>
+  tasksMax: 2 <b class="conum">(4)</b>
+  config: <b class="conum">(5)</b>
+    file: "/opt/kafka/LICENSE"
+    topic: my-topic
+    # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Enter a name for the <code>KafkaConnector</code> resource. This will be used as the name of the connector within Kafka Connect. You can choose any name that is valid for a Kubernetes resource.</p>
+</li>
+<li>
+<p>Enter the name of the Kafka Connect cluster in which to create the connector.</p>
+</li>
+<li>
+<p>The name or alias of the connector class. This should be present in the image being used by the Kafka Connect cluster.</p>
+</li>
+<li>
+<p>The maximum number of tasks that the connector can create.</p>
+</li>
+<li>
+<p>Configuration settings for the connector. Available configuration options depend on the connector class.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Create the <code>KafkaConnector</code> in your Kubernetes cluster:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc apply -f examples/connector/source-connector.yaml</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Check that the resource was created:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">oc get all --selector strimzi.io/cluster: my-connect-cluster -o name</code></pre>
+</div>
+</div>
+</li>
+</ol>
 </div>
 </div>
 </div>
@@ -9955,10 +10146,10 @@ This provides a convenient mechanism for resources to be labeled as required.</p
 <div class="sect3">
 <h4 id="assembly-kafka-connect-replicas-deployment-configuration-kafka-connect"><a class="link" href="#assembly-kafka-connect-replicas-deployment-configuration-kafka-connect">3.2.1. Replicas</a></h4>
 <div class="paragraph">
-<p>Kafka Connect clusters can run multiple of nodes.
+<p>Kafka Connect clusters can consist of one or more nodes.
 The number of nodes is defined in the <code>KafkaConnect</code> and <code>KafkaConnectS2I</code> resources.
 Running a Kafka Connect cluster with multiple nodes can provide better availability and scalability.
-However, when running Kafka Connect on Kubernetes it is not absolutely necessary to run multiple nodes of Kafka Connect for high availability.
+However, when running Kafka Connect on Kubernetes it is not necessary to run multiple nodes of Kafka Connect for high availability.
 If a node where Kafka Connect is deployed to crashes, Kubernetes will automatically reschedule the Kafka Connect pod to a different node.
 However, running Kafka Connect with multiple nodes can provide faster failover times, because the other nodes will be up and running already.</p>
 </div>
@@ -12542,16 +12733,13 @@ spec:
 <div class="sect3">
 <h4 id="assembly-kafka-connect-external-configuration-deployment-configuration-kafka-connect"><a class="link" href="#assembly-kafka-connect-external-configuration-deployment-configuration-kafka-connect">3.2.13. Using external configuration and secrets</a></h4>
 <div class="paragraph">
-<p>Kafka Connect connectors are configured using an HTTP REST interface.
-The connector configuration is passed to Kafka Connect as part of an HTTP request and stored within Kafka itself.</p>
+<p>Connectors are created, reconfigured, and deleted using the Kafka Connect HTTP REST interface, or by using <code>KafkaConnectors</code>. For more information on these methods, see <a href="#con-creating-managing-connectors-str">Creating and managing connectors</a>. The connector configuration is passed to Kafka Connect as part of an HTTP request and stored within Kafka itself.</p>
 </div>
 <div class="paragraph">
-<p>Some parts of the configuration of a Kafka Connect connector can be externalized using ConfigMaps or Secrets.
+<p>ConfigMaps and Secrets are standard Kubernetes resources used for storing configurations and confidential data.
+Whichever method you use to manage connectors, you can use ConfigMaps and Secrets to configure certain elements of a connector.
 You can then reference the configuration values in HTTP REST commands (this keeps the configuration separate and more secure, if needed).
 This method applies especially to confidential data, such as usernames, passwords, or certificates.</p>
-</div>
-<div class="paragraph">
-<p>ConfigMaps and Secrets are standard Kubernetes resources used for storing of configurations and confidential data.</p>
 </div>
 <div class="sect4">
 <h5 id="con-kafka-connect-external-configuration-deployment-configuration-kafka-connect"><a class="link" href="#con-kafka-connect-external-configuration-deployment-configuration-kafka-connect">Storing connector configurations externally</a></h5>
@@ -12855,7 +13043,66 @@ For example:</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-list-of-kafka-connect-resources-deployment-configuration-kafka-connect"><a class="link" href="#ref-list-of-kafka-connect-resources-deployment-configuration-kafka-connect">3.2.14. List of resources created as part of Kafka Connect cluster</a></h4>
+<h4 id="proc-enabling-kafkaconnectors-deployment-configuration-kafka-connect"><a class="link" href="#proc-enabling-kafkaconnectors-deployment-configuration-kafka-connect">3.2.14. Enabling <code>KafkaConnector</code> resources</a></h4>
+<div class="paragraph">
+<p>To enable <code>KafkaConnectors</code> for a Kafka Connect cluster, add the <code>strimzi.io/use-connector-resources</code> annotation to the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> custom resource.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> resource. Add the <code>strimzi.io/use-connector-resources</code> annotation. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster
+  annotations:
+    strimzi.io/use-connector-resources: "true"
+spec:
+  # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource using <code>kubectl apply</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f kafka-connect.yaml</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#con-creating-managing-connectors-str">Creating and managing connectors</a></p>
+</li>
+<li>
+<p><a href="#proc-deploying-kafkaconnector-str">Deploying a <code>KafkaConnector</code> resource to Kafka Connect</a></p>
+</li>
+<li>
+<p><a href="#type-KafkaConnect-reference"><code>KafkaConnect</code> schema reference</a></p>
+</li>
+<li>
+<p><a href="#type-KafkaConnectS2I-reference"><code>KafkaConnectS2I</code> schema reference</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="ref-list-of-kafka-connect-resources-deployment-configuration-kafka-connect"><a class="link" href="#ref-list-of-kafka-connect-resources-deployment-configuration-kafka-connect">3.2.15. List of resources created as part of Kafka Connect cluster</a></h4>
 <div class="paragraph">
 <p>The following resources will created by the Cluster Operator in the Kubernetes cluster:</p>
 </div>
@@ -12891,10 +13138,10 @@ This provides a convenient mechanism for resources to be labeled as required.</p
 <div class="sect3">
 <h4 id="assembly-kafka-connect-replicas-deployment-configuration-kafka-connect-s2i"><a class="link" href="#assembly-kafka-connect-replicas-deployment-configuration-kafka-connect-s2i">3.3.1. Replicas</a></h4>
 <div class="paragraph">
-<p>Kafka Connect clusters can run multiple of nodes.
+<p>Kafka Connect clusters can consist of one or more nodes.
 The number of nodes is defined in the <code>KafkaConnect</code> and <code>KafkaConnectS2I</code> resources.
 Running a Kafka Connect cluster with multiple nodes can provide better availability and scalability.
-However, when running Kafka Connect on Kubernetes it is not absolutely necessary to run multiple nodes of Kafka Connect for high availability.
+However, when running Kafka Connect on Kubernetes it is not necessary to run multiple nodes of Kafka Connect for high availability.
 If a node where Kafka Connect is deployed to crashes, Kubernetes will automatically reschedule the Kafka Connect pod to a different node.
 However, running Kafka Connect with multiple nodes can provide faster failover times, because the other nodes will be up and running already.</p>
 </div>
@@ -15478,16 +15725,13 @@ spec:
 <div class="sect3">
 <h4 id="assembly-kafka-connect-external-configuration-deployment-configuration-kafka-connect-s2i"><a class="link" href="#assembly-kafka-connect-external-configuration-deployment-configuration-kafka-connect-s2i">3.3.13. Using external configuration and secrets</a></h4>
 <div class="paragraph">
-<p>Kafka Connect connectors are configured using an HTTP REST interface.
-The connector configuration is passed to Kafka Connect as part of an HTTP request and stored within Kafka itself.</p>
+<p>Connectors are created, reconfigured, and deleted using the Kafka Connect HTTP REST interface, or by using <code>KafkaConnectors</code>. For more information on these methods, see <a href="#con-creating-managing-connectors-str">Creating and managing connectors</a>. The connector configuration is passed to Kafka Connect as part of an HTTP request and stored within Kafka itself.</p>
 </div>
 <div class="paragraph">
-<p>Some parts of the configuration of a Kafka Connect connector can be externalized using ConfigMaps or Secrets.
+<p>ConfigMaps and Secrets are standard Kubernetes resources used for storing configurations and confidential data.
+Whichever method you use to manage connectors, you can use ConfigMaps and Secrets to configure certain elements of a connector.
 You can then reference the configuration values in HTTP REST commands (this keeps the configuration separate and more secure, if needed).
 This method applies especially to confidential data, such as usernames, passwords, or certificates.</p>
-</div>
-<div class="paragraph">
-<p>ConfigMaps and Secrets are standard Kubernetes resources used for storing of configurations and confidential data.</p>
 </div>
 <div class="sect4">
 <h5 id="con-kafka-connect-external-configuration-deployment-configuration-kafka-connect-s2i"><a class="link" href="#con-kafka-connect-external-configuration-deployment-configuration-kafka-connect-s2i">Storing connector configurations externally</a></h5>
@@ -15791,7 +16035,66 @@ For example:</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-list-of-kafka-connect-s2i-resources-deployment-configuration-kafka-connect-s2i"><a class="link" href="#ref-list-of-kafka-connect-s2i-resources-deployment-configuration-kafka-connect-s2i">3.3.14. List of resources created as part of Kafka Connect cluster with Source2Image support</a></h4>
+<h4 id="proc-enabling-kafkaconnectors-deployment-configuration-kafka-connect-s2i"><a class="link" href="#proc-enabling-kafkaconnectors-deployment-configuration-kafka-connect-s2i">3.3.14. Enabling <code>KafkaConnector</code> resources</a></h4>
+<div class="paragraph">
+<p>To enable <code>KafkaConnectors</code> for a Kafka Connect cluster, add the <code>strimzi.io/use-connector-resources</code> annotation to the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> custom resource.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> resource. Add the <code>strimzi.io/use-connector-resources</code> annotation. For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster
+  annotations:
+    strimzi.io/use-connector-resources: "true"
+spec:
+  # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create or update the resource using <code>kubectl apply</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f kafka-connect.yaml</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#con-creating-managing-connectors-str">Creating and managing connectors</a></p>
+</li>
+<li>
+<p><a href="#proc-deploying-kafkaconnector-str">Deploying a <code>KafkaConnector</code> resource to Kafka Connect</a></p>
+</li>
+<li>
+<p><a href="#type-KafkaConnect-reference"><code>KafkaConnect</code> schema reference</a></p>
+</li>
+<li>
+<p><a href="#type-KafkaConnectS2I-reference"><code>KafkaConnectS2I</code> schema reference</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="ref-list-of-kafka-connect-s2i-resources-deployment-configuration-kafka-connect-s2i"><a class="link" href="#ref-list-of-kafka-connect-s2i-resources-deployment-configuration-kafka-connect-s2i">3.3.15. List of resources created as part of Kafka Connect cluster with Source2Image support</a></h4>
 <div class="paragraph">
 <p>The following resources will created by the Cluster Operator in the Kubernetes cluster:</p>
 </div>
@@ -15829,7 +16132,7 @@ For example:</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i"><a class="link" href="#using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i">3.3.15. Creating a container image using OpenShift builds and Source-to-Image</a></h4>
+<h4 id="using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i"><a class="link" href="#using-openshift-s2i-create-image-deployment-configuration-kafka-connect-s2i">3.3.16. Creating a container image using OpenShift builds and Source-to-Image</a></h4>
 <div class="paragraph">
 <p>You can use OpenShift <a href="https://docs.okd.io/3.9/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a> and the <a href="https://docs.okd.io/3.9/creating_images/s2i.html" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images. An OpenShift build takes a builder image with S2I support, together with source code and binaries provided by the user, and uses them to build a new container image. Once built, container images are stored in OpenShift&#8217;s local container image repository and are available for use in deployments.</p>
 </div>
@@ -20277,6 +20580,9 @@ template:
 <p>The <code>labels</code> and <code>annotations</code> fields can contain any labels or annotations that do not contain the reserved string <code>strimzi.io</code>.
 Labels and annotations containing <code>strimzi.io</code> are used internally by Strimzi and cannot be configured.</p>
 </div>
+<div class="paragraph">
+<p>For Kafka Connect, annotations on the <code>KafkaConnect</code> resource are used to enable the creation and management of connectors using <code>KafkaConnector</code> resources. For more information, see <a href="#proc-enabling-kafkaconnectors-deployment-configuration-kafka-connect">Enabling <code>KafkaConnector</code> resources</a>.</p>
+</div>
 <div class="admonitionblock note">
 <table>
 <tr>
@@ -20928,7 +21234,7 @@ Strimzi provides example YAML files to make the deployment process easier.
 </table>
 </div>
 <div class="paragraph">
-<p>The Cluster Operator watches the following resources:</p>
+<p>The Cluster Operator watches for changes to the following resources:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -20940,6 +21246,9 @@ Strimzi provides example YAML files to make the deployment process easier.
 </li>
 <li>
 <p><code>KafkaConnectS2I</code> for the Kafka Connect cluster with Source2Image support.</p>
+</li>
+<li>
+<p><code>KafkaConnector</code> for creating and managing connectors in a Kafka Connect cluster.</p>
 </li>
 <li>
 <p><code>KafkaMirrorMaker</code> for the Kafka Mirror Maker instance.</p>
@@ -35883,7 +36192,7 @@ Provide a list of secrets with key names under which the certificates are stored
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-01-10 20:18:53 UTC
+Last updated 2020-01-10 21:14:59 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
