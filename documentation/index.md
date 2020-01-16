@@ -8,6 +8,7 @@ layout: default
 
 ### Overview guide
 
+* [{{site.data.releases.operator[0].version}} - latest stable release](/docs/overview/latest/)
 * [Master](/docs/overview/master/)
 
 ### Quick Start guide

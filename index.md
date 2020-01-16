@@ -33,6 +33,7 @@ All releases can be found in the [Downloads](/downloads) page.
 
 # Documentation
 
+* [Strimzi Kafka operators: Overview Guide - latest stable version ({{site.data.releases.operator[0].version}})](/docs/overview/latest/)
 * [Strimzi Kafka operators: Quick Start Guide - latest stable version ({{site.data.releases.operator[0].version}})](/docs/quickstart/latest/)
 * [Strimzi Kafka operators: Using Strimzi - latest stable version ({{site.data.releases.operator[0].version}})](/docs/latest/)
 * [Strimzi Kafka bridge - latest stable version ({{site.data.releases.bridge[0].version}})](/docs/bridge/latest/)
