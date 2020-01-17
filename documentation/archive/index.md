@@ -7,6 +7,7 @@ layout: default
 ## Strimzi Kafka operators
 
 {% for item in site.data.releases.operator -%}
+
 ### {{item.version}}
 
 {% if item.overview_book == true -%}
@@ -19,12 +20,13 @@ layout: default
 
 {% if item.using_book == true and item.version != "0.1.0" -%}
 * [Using Strimzi](/docs/{{item.version}}/)
+
 {% else -%}
 * [Using Strimzi](/docs/0.1.0/README.md)
+
 {% endif -%}
 
 {% endfor -%}
-
 
 ## Strimzi Kafka bridge
 
