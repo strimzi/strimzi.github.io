@@ -7,13 +7,25 @@ layout: default
 ## Strimzi Kafka operators
 
 {% for item in site.data.releases.operator -%}
-{% if item.version != "0.1.0" -%}
-* [{{item.version}}](/docs/{{item.version}}/)
-{% else -%}
-* [0.1.0](/docs/0.1.0/README.md)
-{% endif -%}
-{% endfor -%}
+### {{item.version}}
 
+{% if item.overview_book == "true" -%}
+* [Overview Guide](/docs/overview/{{item.version}}/)
+{% endif -%}
+
+{% if item.quickstart_book == "true" -%}
+* [Quick Start Guide](/docs/quickstart/{{item.version}}/)
+{% endif -%}
+
+{% if item.using_book == "true" -%}
+{% if item.version != "0.1.0" -%}
+* [Using Strimzi](/docs/{{item.version}}/)
+{% else -%}
+* [Using Strimzi](/docs/0.1.0/README.md)
+{% endif -%}
+{% endif -%}
+
+{% endfor -%}
 
 
 ## Strimzi Kafka bridge
