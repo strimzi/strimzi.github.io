@@ -15,9 +15,9 @@ As if that wasn't enough, there's some awesome ASCII art to help explain how it 
 
 # Debezi-what?
 
-If you've not heard of Debezium before it is an open source project for applying the [Change Data Capture](https://en.wikipedia.org/wiki/Change_data_capture) (CDC) pattern to your applications using Kafka.
+If you haven't heard of Debezium before, it is an open source project for applying the [Change Data Capture](https://en.wikipedia.org/wiki/Change_data_capture) (CDC) pattern to your applications using Kafka.
 
-But what is CDC? You probable have several databases in your organization; silos full of business-critical data.
+But what is CDC? You probably have several databases in your organization; silos full of business-critical data.
 While you can query those databases any time you want, the essence of your business revolves around how that data gets modified.
 Those modifications trigger, and are triggered by, real world business events (e.g. a phone call from a customer, or a successful payment or whatever)
 In order to reflect this, modern application architectures are frequently event-based. 
@@ -31,31 +31,31 @@ In any case, the changes get represented by default as JSON events (other serial
 
 It should be apparent, then, that Debezium provides a route for getting events out of database applications (which otherwise might not expose any kind of event-based API) and make them available to Kafka applications.
 
-So that's what Debezium _is_ and what it _does_. Its role in this blog post is just to be an example connector to use with the `KafkaConnector` which is new in Strimzi 0.15.0.
+So that's what Debezium _is_ and what it _does_. Its role in this blog post is just to be an example connector to use with the `KafkaConnector` which is new in Strimzi 0.16.
 
 Let's get cracking with the walkthrough...
 
 # Fire up MySQL
 
-Let's follow the steps from the [Debezium tutorial](https://debezium.io/documentation/reference/0.10/tutorial.html) for getting a demo MySQL server up and running.
+Let's follow the steps from the [Debezium tutorial](https://debezium.io/documentation/reference/1.0/tutorial.html) for getting a demo MySQL server up and running.
 
 First we fire up the database server in a Docker container:
 
 ```shell
 docker run -it --rm --name mysql -p 3306:3306 \
   -e MYSQL_ROOT_PASSWORD=debezium -e MYSQL_USER=mysqluser \
-  -e MYSQL_PASSWORD=mysqlpw debezium/example-mysql:0.10
+  -e MYSQL_PASSWORD=mysqlpw debezium/example-mysql:1.0
 ```
 
 Once we see the following we know the server is ready:
 
 ```shell
 ...
-017-09-21T07:18:50.824629Z 0 [Note] mysqld: ready for connections.
-Version: '5.7.19-log'  socket: '/var/run/mysqld/mysqld.sock'  port: 3306  MySQL Community Server (GPL)
+2020-01-24T12:20:18.183194Z 0 [Note] mysqld: ready for connections.
+Version: '5.7.29-log'  socket: '/var/run/mysqld/mysqld.sock'  port: 3306  MySQL Community Server (GPL)
 ```
 
-Then we can run the command line client:
+Then, in another terminal, we can run the command line client:
 
 ```shell
 docker run -it --rm --name mysqlterm --link mysql --rm mysql:5.7 sh \
@@ -110,7 +110,7 @@ kubectl create namespace kafka
 Then install the cluster operator and associated resources:
 
 ```shell
-curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.15.0/strimzi-cluster-operator-0.15.0.yaml \
+curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.16.1/strimzi-cluster-operator-0.16.1.yaml \
   | sed 's/namespace: .*/namespace: kafka/' \
   | kubectl apply -f - -n kafka 
 ```
@@ -119,9 +119,11 @@ And spin up a Kafka cluster, waiting until it's ready:
 
 ```shell
 kubectl -n kafka \
-    apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.15.0/examples/kafka/kafka-persistent-single.yaml \
+    apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/0.16.1/examples/kafka/kafka-persistent-single.yaml \
   && kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka
 ```
+
+This can take a while, depending on the speed of your connection.
 
 What we've got so far looks like this
 
@@ -132,8 +134,8 @@ What we've got so far looks like this
 │ Kafka                          │         │ MySQL                          │
 │  name: my-cluster              │         │                                │
 │                                │         └────────────────────────────────┘
-│ KafkaConnect                   │
-│  name: my-connect              │
+│                                │
+│                                │
 │                                │
 └────────────────────────────────┘
 </code></pre>
@@ -148,7 +150,7 @@ The next step is to [create a Strimzi Kafka Connect image](https://strimzi.io/do
 
 First download and extract the Debezium MySQL connector archive
 ```shell
-curl https://repo1.maven.org/maven2/io/debezium/debezium-connector-mysql/0.10.0.Final/debezium-connector-mysql-0.10.0.Final-plugin.tar.gz \
+curl https://repo1.maven.org/maven2/io/debezium/debezium-connector-mysql/1.0.0.Final/debezium-connector-mysql-1.0.0.Final-plugin.tar.gz \
 | tar xvz
 ```
 
@@ -156,9 +158,9 @@ Prepare a `Dockerfile` which adds those connector files to the Strimzi Kafka Con
 
 ```shell
 cat <<EOF >Dockerfile
-FROM strimzi/kafka:latest-kafka-2.3.0
+FROM strimzi/kafka:0.16.1-kafka-2.4.0
 USER root:root
-EXEC mkdir -p /opt/kafka/plugins/debezium
+RUN mkdir -p /opt/kafka/plugins/debezium
 COPY ./debezium-connector-mysql/ /opt/kafka/plugins/debezium/
 USER 1001
 EOF
@@ -173,13 +175,32 @@ docker build . -t ${DOCKER_ORG}/connect-debezium
 docker push ${DOCKER_ORG}/connect-debezium
 ```
 
+# Secure the database credentials
+
+To make this a bit more realistic we're going to use Kafka's `config.providers` mechanism to avoid having to pass secret information over Kafka Connect REST interface (which uses unencrypted HTTP).
+We'll to use a Kubernetes `Secret` called `my-sql-credentials` to store the database credentials. 
+This will be mounted as a secret volume within the connect pods.
+We can then configure the connector with the path to this file. 
+
+Let's create the secret:
+
+```shell
+cat <<EOF > debezium-mysql-credentials.properties
+mysql_username: debezium
+mysql_password: dbz
+EOF
+kubectl -n kafka create secret generic my-sql-credentials \
+  --from-file=debezium-mysql-credentials.properties
+rm debezium-mysql-credentials.properties
+
+```
 
 # Create the Connect cluster
 
 Now we can create a `KafkaConnect` cluster in Kubernetes:
 
 ```shell
-cat <<EOF | kubectl apply -f -
+cat <<EOF | kubectl -n kafka apply -f -
 apiVersion: kafka.strimzi.io/v1beta1
 kind: KafkaConnect
 metadata:
@@ -197,13 +218,27 @@ spec:
     trustedCertificates:
       - secretName: my-cluster-cluster-ca-cert
         certificate: ca.crt
+  config:
+    config.storage.replication.factor: 1
+    offset.storage.replication.factor: 1
+    status.storage.replication.factor: 1
+    config.providers: file
+    config.providers.file.class: org.apache.kafka.common.config.provider.FileConfigProvider
+  externalConfiguration:
+    volumes:
+      - name: connector-config
+        secret:
+          secretName: my-sql-credentials
+
 EOF
 ```
 
 It's worth pointing out a couple of things about the above resource:
 
-* The `strimzi.io/use-connector-resources: "true"` annotation tells the cluster operator that `KafkaConnector` resources will be used to configure connectors within this Kafka Connect cluster.
-* The `spec.image` is the image we just created with `docker`.
+* In the `metadata.annotations` the `strimzi.io/use-connector-resources: "true"` annotation tells the cluster operator that `KafkaConnector` resources will be used to configure connectors within this Kafka Connect cluster.
+* The `spec.image` is the image we created with `docker`.
+* In the `config` we're using replication factor 1 because we created a single-broker Kafka cluster.
+* In the `externalConfiguration` we're referencing the secret we just created.
 
 
 # Create the connector
@@ -214,7 +249,7 @@ Here's what the `KafkaConnector` resource looks like:
 
 
 ```shell
-cat | kubectl apply -f - << EOF
+cat | kubectl -n kafka apply -f - << EOF
 apiVersion: "kafka.strimzi.io/v1alpha1"
 kind: "KafkaConnector"
 metadata:
@@ -227,8 +262,8 @@ spec:
   config:
     database.hostname: 192.168.99.1
     database.port: "3306"
-    database.user: "debezium"
-    database.password: "dbz" 
+    database.user: "\${file:/opt/kafka/external-configuration/connector-config/debezium-mysql-credentials.properties:mysql_username}"
+    database.password: "\${file:/opt/kafka/external-configuration/connector-config/debezium-mysql-credentials.properties:mysql_password}"
     database.server.id: "184054"
     database.server.name: "dbserver1"
     database.whitelist: "inventory"
@@ -237,18 +272,22 @@ spec:
     include.schema.changes: "true" 
 EOF
 ```
+**TODO** Remove password from the config once it's configured in the Connect cluster
+
 
 In `metadata.labels`, `strimzi.io/cluster` names the `KafkaConnect` cluster which this connector will be created in.
 
-The `spec.class` names the Debezium MySQL connector and `spec.tasksMax` can be 1 because that's all this connector ever uses.
+The `spec.class` names the Debezium MySQL connector and `spec.tasksMax` must be 1 because that's all this connector ever uses.
 
 The `spec.config` object contains the rest of the connector configuration.
 The [Debezium documentation](https://debezium.io/documentation/reference/0.10/connectors/mysql.html#connector-properties) explains the available properties, but it's worth calling out some specifically:
 * I'm using `database.hostname: 192.168.99.1` as IP address for connecting to MySQL because I'm using `minikube` with the virtualbox VM driver
   If you're using a different VM driver with `minikube` you might need a different IP address.
 * The `database.port: "3306"` works because of the `-p 3306:3306` argument we used when we started up the MySQL server.
+* The `${file:...}` used for the `database.user` and `database.password` is a placeholder which gets replaced with the referenced property from the given file in the secret we created.
 * The `database.whitelist: "inventory"` basically tells Debezium to only watch the `inventory` database.
 * The `database.history.kafka.topic: "schema-changes.inventory"` configured Debezium to use the `schema-changes.inventory` topic to store the database schema history.
+
 
 A while after you've created this connector you can have a look at its `status`, using `kubectl get kctr inventory-connector -o yaml`:
 
@@ -256,10 +295,21 @@ A while after you've created this connector you can have a look at its `status`,
 ...
 status:
   conditions:
-  - lastTransitionTime: "2019-11-18T15:01:53.135Z"
+  - lastTransitionTime: "2020-01-24T14:28:32.406Z"
     status: "True"
     type: Ready
-  observedGeneration: 1
+  connectorStatus:
+    connector:
+      state: RUNNING
+      worker_id: 172.17.0.9:8083
+    name: inventory-connector
+    tasks:
+    - id: 0
+      state: RUNNING
+      worker_id: 172.17.0.9:8083
+    type: source
+  observedGeneration: 3
+
 ```
 
 This tells us that the connector is running within the `KafkaConnect` cluster we created in the last step.
@@ -288,7 +338,7 @@ To summarise, we've now the complete picture with the connector talking to MySQL
 
 # Showtime!
 
-If you list the topics, for example using `kubectl exec my-cluster-kafka-0 -c kafka -i -t -- bin/kafka-topics.sh --zookeeper '' --list` you should see:
+If you list the topics, for example using `kubectl -n kafka exec my-cluster-kafka-0 -c kafka -i -t -- bin/kafka-topics.sh --bootstrap-server localhost:9092 --list` you should see:
 
 ```
 __consumer_offsets
@@ -311,14 +361,14 @@ Debezium has created a topic for the server itself (`dbserver1`), and one for ea
 Let's start consuming from one of those change topics:
 
 ```
-kubectl exec my-cluster-kafka-0 -c kafka -i -t -- \
-bin/kafka-console-consumer.sh \
---bootstrap-server my-cluster-kafka-bootstrap:9092 \
---topic dbserver1.inventory.customers
+kubectl -n kafka exec my-cluster-kafka-0 -c kafka -i -t -- \
+  bin/kafka-console-consumer.sh \
+    --bootstrap-server localhost:9092 \
+    --topic dbserver1.inventory.customers 
 ```
 
-
-Back in the terminal window we left open with the MySQL command line client running we can make some changes to the data. First let's see the existing customers:
+This will block waiting for records/messages. To produce those messages we have to make some changes in the database. 
+So back in the terminal window we left open with the MySQL command line client running we can make some changes to the data. First let's see the existing customers:
 
 ```
 mysql> SELECT * FROM customers;
@@ -552,7 +602,7 @@ What's more interesting for this post is the `payload` itself. Working backwards
 You can of course experiment with inserting and deleting rows in different tables (remember, there's a topic for each table).
 
 But what about that `dbserver1` topic which I glossed over? If we look at the messages in there 
-(using `k exec my-cluster-kafka-0 -c kafka -i -t -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic dbserver1 --from-beginning`) 
+(using `kubectl -n kafka exec my-cluster-kafka-0 -c kafka -i -t -- bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic dbserver1 --from-beginning`) 
 we can see records representing the DDL which was used (when the docker image was created) to create the database.
 For example:
 
