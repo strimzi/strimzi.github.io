@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Deploying Debezium using the new KafkaConnector resource"
-date: 2019-11-01
+date: 2020-01-27
 author: tom_bentley
 ---
 
@@ -249,7 +249,7 @@ Here's what the `KafkaConnector` resource looks like:
 
 
 ```shell
-cat | kubectl -n kafka apply -f - << EOF
+cat | kubectl -n kafka apply -f - << 'EOF'
 apiVersion: "kafka.strimzi.io/v1alpha1"
 kind: "KafkaConnector"
 metadata:
@@ -262,8 +262,8 @@ spec:
   config:
     database.hostname: 192.168.99.1
     database.port: "3306"
-    database.user: "\${file:/opt/kafka/external-configuration/connector-config/debezium-mysql-credentials.properties:mysql_username}"
-    database.password: "\${file:/opt/kafka/external-configuration/connector-config/debezium-mysql-credentials.properties:mysql_password}"
+    database.user: "${file:/opt/kafka/external-configuration/connector-config/debezium-mysql-credentials.properties:mysql_username}"
+    database.password: "${file:/opt/kafka/external-configuration/connector-config/debezium-mysql-credentials.properties:mysql_password}"
     database.server.id: "184054"
     database.server.name: "dbserver1"
     database.whitelist: "inventory"
@@ -272,8 +272,6 @@ spec:
     include.schema.changes: "true" 
 EOF
 ```
-**TODO** Remove password from the config once it's configured in the Connect cluster
-
 
 In `metadata.labels`, `strimzi.io/cluster` names the `KafkaConnect` cluster which this connector will be created in.
 
@@ -284,15 +282,15 @@ The [Debezium documentation](https://debezium.io/documentation/reference/0.10/co
 * I'm using `database.hostname: 192.168.99.1` as IP address for connecting to MySQL because I'm using `minikube` with the virtualbox VM driver
   If you're using a different VM driver with `minikube` you might need a different IP address.
 * The `database.port: "3306"` works because of the `-p 3306:3306` argument we used when we started up the MySQL server.
-* The `${file:...}` used for the `database.user` and `database.password` is a placeholder which gets replaced with the referenced property from the given file in the secret we created.
+* The `${file:...}` used for the `database.user` and `database.password` is a placeholder which gets replaced with the referenced property from the given file in the secret we created. 
 * The `database.whitelist: "inventory"` basically tells Debezium to only watch the `inventory` database.
 * The `database.history.kafka.topic: "schema-changes.inventory"` configured Debezium to use the `schema-changes.inventory` topic to store the database schema history.
 
 
 A while after you've created this connector you can have a look at its `status`, using `kubectl get kctr inventory-connector -o yaml`:
 
-```
-...
+```yaml
+#...
 status:
   conditions:
   - lastTransitionTime: "2020-01-24T14:28:32.406Z"
@@ -360,7 +358,7 @@ Debezium has created a topic for the server itself (`dbserver1`), and one for ea
 
 Let's start consuming from one of those change topics:
 
-```
+```shell
 kubectl -n kafka exec my-cluster-kafka-0 -c kafka -i -t -- \
   bin/kafka-console-consumer.sh \
     --bootstrap-server localhost:9092 \
@@ -570,7 +568,7 @@ which is rather a lot of JSON, but if we reformat it (e.g. using copying, paste 
       "email": "annek@noanswer.org"
     },
     "source": {
-      "version": "0.10.0.Final",
+      "version": "1.0.0.Final",
       "connector": "mysql",
       "name": "dbserver1",
       "ts_ms": 1574090237000,
@@ -711,7 +709,7 @@ For example:
   },
   "payload": {
     "source": {
-      "version": "0.10.0.Final",
+      "version": "1.0.0.Final",
       "connector": "mysql",
       "name": "dbserver1",
       "ts_ms": 0,
