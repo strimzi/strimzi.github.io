@@ -886,8 +886,19 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#proc-upgrade-kafka-user-resources-str">13.6. Upgrading Kafka User resources</a></li>
 </ul>
 </li>
-<li><a href="#uninstalling-str">14. Uninstalling Strimzi</a></li>
-<li><a href="#proc-accessing-resource-status-str">15. Checking the status of a custom resource</a></li>
+<li><a href="#configuration-points_str">14. Managing Strimzi</a>
+<ul class="sectlevel2">
+<li><a href="#proc-accessing-resource-status-str">14.1. Checking the status of a custom resource</a></li>
+<li><a href="#cluster-recovery_str">14.2. Recovering a cluster from persistent volumes</a>
+<ul class="sectlevel3">
+<li><a href="#namespace-deletion_str">14.2.1. Recovery from namespace deletion</a></li>
+<li><a href="#cluster-loss_str">14.2.2. Recovery from loss of a Kubernetes cluster</a></li>
+<li><a href="#cluster-recovery-volume_str">14.2.3. Recovering a cluster from persistent volumes</a></li>
+</ul>
+</li>
+<li><a href="#uninstalling-str">14.3. Uninstalling Strimzi</a></li>
+</ul>
+</li>
 <li><a href="#frequently_asked_questions">Appendix A: Frequently Asked Questions</a>
 <ul class="sectlevel2">
 <li><a href="#cluster_operator">A.1. Cluster Operator</a>
@@ -2822,7 +2833,7 @@ spec:
 </div>
 </li>
 <li>
-<p>Configure the Topic Operator using the fields described in <a href="#type-EntityTopicOperatorSpec-reference"><code>EntityTopicOperatorSpec</code> schema reference</a>.</p>
+<p>Configure the Topic Operator using the properties described in <a href="#type-EntityTopicOperatorSpec-reference"><code>EntityTopicOperatorSpec</code> schema reference</a>.</p>
 </li>
 <li>
 <p>Create or update the Kafka resource in Kubernetes.</p>
@@ -3672,7 +3683,7 @@ Other fields from the storage configuration are currently not supported.</p>
 </div>
 </div>
 <div class="sect5">
-<h6 id="persistent_volume_claim_naming"><a class="link" href="#persistent_volume_claim_naming">Persistent Volume Claim naming</a></h6>
+<h6 id="pvc-naming"><a class="link" href="#pvc-naming">Persistent Volume Claim naming</a></h6>
 <div class="paragraph">
 <p>When persistent storage is used, it creates Persistent Volume Claims with the following names:</p>
 </div>
@@ -3835,7 +3846,7 @@ storage:
 </div>
 </div>
 <div class="sect5">
-<h6 id="jbod_and_persistent_volume_claims"><a class="link" href="#jbod_and_persistent_volume_claims">JBOD and Persistent Volume Claims</a></h6>
+<h6 id="jbod-pvc"><a class="link" href="#jbod-pvc">JBOD and Persistent Volume Claims</a></h6>
 <div class="paragraph">
 <p>When persistent storage is used to declare JBOD volumes, the naming scheme of the resulting Persistent Volume Claims is as follows:</p>
 </div>
@@ -6199,7 +6210,7 @@ spec:
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl exec -ti <em>my-cluster</em>-kafka-0 -- bin/kafka-topics.sh --list --zookeeper localhost:2181</code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl exec -it <em>my-cluster</em>-kafka-0 -- bin/kafka-topics.sh --list --zookeeper localhost:2181</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -6418,7 +6429,7 @@ For more details, see <a href="#con-entity-operator-logging-deployment-configura
 </dl>
 </div>
 <div class="listingblock">
-<div class="title">Example of Topic Operator configuration</div>
+<div class="title">Example of User Operator configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
@@ -22785,7 +22796,7 @@ spec:
 </div>
 </li>
 <li>
-<p>Configure the Topic Operator using the fields described in <a href="#type-EntityTopicOperatorSpec-reference"><code>EntityTopicOperatorSpec</code> schema reference</a>.</p>
+<p>Configure the Topic Operator using the properties described in <a href="#type-EntityTopicOperatorSpec-reference"><code>EntityTopicOperatorSpec</code> schema reference</a>.</p>
 </li>
 <li>
 <p>Create or update the Kafka resource in Kubernetes.</p>
@@ -29971,8 +29982,451 @@ The upgrade of resources <em>must</em> be performed after <a href="#assembly-upg
 </div>
 </div>
 <div class="sect1">
-<h2 id="uninstalling-str"><a class="link" href="#uninstalling-str">14. Uninstalling Strimzi</a></h2>
+<h2 id="configuration-points_str"><a class="link" href="#configuration-points_str">14. Managing Strimzi</a></h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>This chapter covers tasks to maintain a deployment of Strimzi.</p>
+</div>
+<div class="sect2">
+<h3 id="proc-accessing-resource-status-str"><a class="link" href="#proc-accessing-resource-status-str">14.1. Checking the status of a custom resource</a></h3>
+<div class="paragraph">
+<p>This procedure describes how to find the status of a custom resource.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Kubernetes cluster.</p>
+</li>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Procedure</div>
+<ul>
+<li>
+<p>Specify the custom resource and use the <code>-o jsonpath</code> option to apply a standard JSONPath expression to select the <code>status</code> property:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get kafka <em>&lt;kafka_resource_name&gt;</em> -o jsonpath='{.status}'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This expression returns all the status information for the specified custom resource. You can use dot notation, such as <code>status.listeners</code> or <code>status.observedGeneration</code>, to fine-tune the status information you wish to see.</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#con-custom-resources-status-str">Strimzi custom resource status</a></p>
+</li>
+<li>
+<p>For more information about using JSONPath, see <a href="https://kubernetes.io/docs/reference/kubectl/jsonpath/" target="_blank" rel="noopener">JSONPath support</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="cluster-recovery_str"><a class="link" href="#cluster-recovery_str">14.2. Recovering a cluster from persistent volumes</a></h3>
+<div class="paragraph">
+<p>You can recover a Kafka cluster from persistent volumes (PVs) if they are still present.</p>
+</div>
+<div class="paragraph">
+<p>You might want to do this, for example, after:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A namespace was deleted unintentionally</p>
+</li>
+<li>
+<p>A whole Kubernetes cluster is lost, but the PVs remain in the infrastructure</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="namespace-deletion_str"><a class="link" href="#namespace-deletion_str">14.2.1. Recovery from namespace deletion</a></h4>
+<div class="paragraph">
+<p>Recovery from namespace deletion is possible because of the relationship between persistent volumes and namespaces.
+A <code>PersistentVolume</code> (PV) is a storage resource that lives outside of a namespace.
+A PV is mounted into a Kafka pod using a <code>PersistentVolumeClaim</code> (PVC), which lives inside a namespace.</p>
+</div>
+<div class="paragraph">
+<p>The reclaim policy for a PV tells a cluster how to act when a namespace is deleted.
+If the reclaim policy is set as:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><em>Delete</em> (default), PVs are deleted when PVCs are deleted within a namespace</p>
+</li>
+<li>
+<p><em>Retain</em>, PVs are not deleted when a namespace is deleted</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>To ensure that you can recover from a PV if a namespace is deleted unintentionally, the policy must be reset from <em>Delete</em> to <em>Retain</em>.
+You can also configure the <code>StorageClass</code> property used for dynamic volume allocation so that it creates the volumes with the appropriate reclaim policy.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If you are using <em>Retain</em> as the reclaim policy, but you want to delete an entire cluster, you need to delete the PVs manually.
+Otherwise they will not be deleted, and may cause unnecessary expenditure on resources.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="cluster-loss_str"><a class="link" href="#cluster-loss_str">14.2.2. Recovery from loss of a Kubernetes cluster</a></h4>
+<div class="paragraph">
+<p>When a cluster is lost, you can use the data from disks/volumes to recover the cluster if they were preserved within the infrastructure.
+The recovery procedure is the same as with namespace deletion, assuming PVs can be recovered and they were created manually.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="cluster-recovery-volume_str"><a class="link" href="#cluster-recovery-volume_str">14.2.3. Recovering a cluster from persistent volumes</a></h4>
+<div class="paragraph">
+<p>This procedure describes how to recover a deleted cluster from persistent volumes (PVs).</p>
+</div>
+<div class="paragraph">
+<p>In this situation, the Topic Operator identifies that topics exist in Kafka, but the <code>KafkaTopic</code> resources do not exist.</p>
+</div>
+<div class="paragraph">
+<p>When you get to the step to recreate your cluster, you have two options:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Use <em>Option 1</em> when you can recover all <code>KafkaTopic</code> resources.</p>
+<div class="paragraph">
+<p>The <code>KafkaTopic</code> resources must therefore be recovered before the cluster is started so that the corresponding topics are not deleted by the Topic Operator.</p>
+</div>
+</li>
+<li>
+<p>Use <em>Option 2</em> when you are unable to recover all <code>KafkaTopic</code> resources.</p>
+<div class="paragraph">
+<p>This time you deploy your cluster without the Topic Operator, delete the Topic Operator data in ZooKeeper, and then redeploy it so that the Topic Operator can recreate the <code>KafkaTopic</code> resources from the corresponding topics.</p>
+</div>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If the Topic Operator is not deployed, you only need to recover the <code>PersistentVolumeClaim</code> (PVC) resources.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<div class="title">Before you begin</div>
+<p>In this procedure, it is essential that PVs are mounted into the correct PVC to avoid data corruption.
+A <code>volumeName</code> is specified for the PVC and this must match the name of the PV.</p>
+</div>
+<div class="paragraph">
+<p>For more information, see:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="ref-persistent-storage-str.html#pvc-naming">Persistent Volume Claim naming</a></p>
+</li>
+<li>
+<p><a href="ref-jbod-storage-str.html#jbod-pvc">JBOD and Persistent Volume Claims</a></p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The procedure does not include recovery of <code>KafkaUser</code> resources, which must be recreated manually.
+If passwords and certificates need to be retained, secrets myst be recreated before creating the <code>KafkaUser</code> resources.
+</td>
+</tr>
+</table>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Check information on the PVs in the cluster:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get pv</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Information is presented for PVs with data.</p>
+</div>
+<div class="paragraph">
+<p>Example output showing columns important to this procedure:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">NAME                                         RECLAIM    POLICY CLAIM
+pvc-5e9c5c7f-3317-11ea-a650-06e1eadd9a4c ... Retain ... myproject/data-my-cluster-zookeeper-1
+pvc-5e9cc72d-3317-11ea-97b0-0aef8816c7ea ... Retain ... myproject/data-my-cluster-zookeeper-0
+pvc-5ead43d1-3317-11ea-97b0-0aef8816c7ea ... Retain ... myproject/data-my-cluster-zookeeper-2
+pvc-7e1f67f9-3317-11ea-a650-06e1eadd9a4c ... Retain ... myproject/data-0-my-cluster-kafka-0
+pvc-7e21042e-3317-11ea-9786-02deaf9aa87e ... Retain ... myproject/data-0-my-cluster-kafka-1
+pvc-7e226978-3317-11ea-97b0-0aef8816c7ea ... Retain ... myproject/data-0-my-cluster-kafka-2</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><em>NAME</em> shows the name of each PV.</p>
+</li>
+<li>
+<p><em>RECLAIM POLICY</em> shows that PVs are <em>retained</em>.</p>
+</li>
+<li>
+<p><em>CLAIM</em> shows the link to the original PVCs.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Recreate the original namespace:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl create namespace <em>myproject</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Recreate the original PVC resource specifications, linking the PVCs to the appropriate PV:</p>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-0-my-cluster-kafka-0
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: gp2-retain
+  volumeMode: Filesystem
+  volumeName: <strong>pvc-7e1f67f9-3317-11ea-a650-06e1eadd9a4c</strong></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Edit the PV specifications to delete the <code>claimRef</code> properties that bound the original PVC.</p>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    kubernetes.io/createdby: aws-ebs-dynamic-provisioner
+    pv.kubernetes.io/bound-by-controller: "yes"
+    pv.kubernetes.io/provisioned-by: kubernetes.io/aws-ebs
+  creationTimestamp: "&lt;date&gt;"
+  finalizers:
+  - kubernetes.io/pv-protection
+  labels:
+    failure-domain.beta.kubernetes.io/region: eu-west-1
+    failure-domain.beta.kubernetes.io/zone: eu-west-1c
+  name: pvc-7e226978-3317-11ea-97b0-0aef8816c7ea
+  resourceVersion: "39431"
+  selfLink: /api/v1/persistentvolumes/pvc-7e226978-3317-11ea-97b0-0aef8816c7ea
+  uid: 7efe6b0d-3317-11ea-a650-06e1eadd9a4c
+spec:
+  accessModes:
+  - ReadWriteOnce
+  awsElasticBlockStore:
+    fsType: xfs
+    volumeID: aws://eu-west-1c/vol-09db3141656d1c258
+  capacity:
+    storage: 100Gi
+  <strong>claimRef:</strong>
+    <strong>apiVersion: v1</strong>
+    <strong>kind: PersistentVolumeClaim</strong>
+    <strong>name: data-0-my-cluster-kafka-2</strong>
+    <strong>namespace: myproject</strong>
+    <strong>resourceVersion: "39113"</strong>
+    <strong>uid: 54be1c60-3319-11ea-97b0-0aef8816c7ea</strong>
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: failure-domain.beta.kubernetes.io/zone
+          operator: In
+          values:
+          - eu-west-1c
+        - key: failure-domain.beta.kubernetes.io/region
+          operator: In
+          values:
+          - eu-west-1
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: gp2-retain
+  volumeMode: Filesystem</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In the example, the following properties are deleted:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">claimRef:
+  apiVersion: v1
+  kind: PersistentVolumeClaim
+  name: data-0-my-cluster-kafka-2
+  namespace: myproject
+  resourceVersion: "39113"
+  uid: 54be1c60-3319-11ea-97b0-0aef8816c7ea</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Deploy the Cluster Operator.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f install/cluster-operator -n <em>my-project</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Recreate your cluster.</p>
+<div class="paragraph">
+<p>Follow the steps depending on whether or not you have all the <code>KafkaTopic</code> resources needed to recreate your cluster.</p>
+</div>
+<div class="openblock">
+<div class="content">
+<div class="paragraph">
+<p><strong><em>Option 1</em></strong>: If you have <strong>all</strong> the <code>KafkaTopic</code> resources that existed before you lost your cluster, including internal topics such as committed offsets from <code>__consumer_offsets</code>:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Recreate all <code>KafkaTopic</code> resources.</p>
+<div class="paragraph">
+<p>It is essential that you recreate the resources before deploying the cluster, or the Topic Operator will delete the topics.</p>
+</div>
+</li>
+<li>
+<p>Deploy the Kafka cluster.</p>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>kafka.yaml</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="openblock">
+<div class="content">
+<div class="paragraph">
+<p><strong><em>Option 2</em></strong>: If you do not have all the <code>KafkaTopic</code> resources that existed before you lost your cluster:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Deploy the Kafka cluster, as with the first option, but without the Topic Operator by removing the <code>topicOperator</code> property from the Kafka resource before deploying.</p>
+<div class="paragraph">
+<p>If you include the Topic Operator in the deployment, the Topic Operator will delete all the topics.</p>
+</div>
+</li>
+<li>
+<p>Run an <code>exec</code> command to one of the Kafka broker pods to open the ZooKeeper shell script.</p>
+<div class="paragraph">
+<p>For example, where <em>my-cluster-kafka-0</em> is the name of the broker pod:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl exec <em>my-cluster-kafka-0</em> bin/zookeeper-shell.sh localhost:2181</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Delete the whole <code>/strimzi</code> path to remove the Topic Operator storage:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">deleteall /strimzi</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Enable the Topic Operator by redeploying the Kafka cluster with the <code>topicOperator</code> property to recreate the <code>KafkaTopic</code> resources.</p>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  #...
+  entityOperator:
+    <strong>topicOperator: {}</strong> <b class="conum">(1)</b>
+    #...</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Here we show the default configuration, which has no additional properties.
+You specify the required configuration using the properties described in <a href="#type-EntityTopicOperatorSpec-reference"><code>EntityTopicOperatorSpec</code> schema reference</a>.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Verify the recovery by listing the <code>KafkaTopic</code> resources:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get KafkaTopic</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="uninstalling-str"><a class="link" href="#uninstalling-str">14.3. Uninstalling Strimzi</a></h3>
 <div class="paragraph">
 <p>This procedure describes how to uninstall Strimzi and remove resources related to the deployment.</p>
 </div>
@@ -30024,51 +30478,6 @@ Deleting <code>CustomResourceDefinitions</code> results in the garbage collectio
 </li>
 </ol>
 </div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="proc-accessing-resource-status-str"><a class="link" href="#proc-accessing-resource-status-str">15. Checking the status of a custom resource</a></h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>This procedure describes how to find the status of a custom resource.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>A Kubernetes cluster.</p>
-</li>
-<li>
-<p>The Cluster Operator is running.</p>
-</li>
-</ul>
-</div>
-<div class="ulist">
-<div class="title">Procedure</div>
-<ul>
-<li>
-<p>Specify the custom resource and use the <code>-o jsonpath</code> option to apply a standard JSONPath expression to select the <code>status</code> property:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get kafka <em>&lt;kafka_resource_name&gt;</em> -o jsonpath='{.status}'</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This expression returns all the status information for the specified custom resource. You can use dot notation, such as <code>status.listeners</code> or <code>status.observedGeneration</code>, to fine-tune the status information you wish to see.</p>
-</div>
-</li>
-</ul>
-</div>
-<div class="ulist">
-<div class="title">Additional resources</div>
-<ul>
-<li>
-<p><a href="#con-custom-resources-status-str">Strimzi custom resource status</a></p>
-</li>
-<li>
-<p>For more information about using JSONPath, see <a href="https://kubernetes.io/docs/reference/kubectl/jsonpath/" target="_blank" rel="noopener">JSONPath support</a>.</p>
-</li>
-</ul>
 </div>
 </div>
 </div>
@@ -36564,7 +36973,7 @@ Provide a list of secrets with key names under which the certificates are stored
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-01-23 23:12:45 UTC
+Last updated 2020-01-26 11:55:05 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
