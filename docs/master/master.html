@@ -379,7 +379,8 @@
 <li><a href="#certificate-authorities-str">11.1. Certificate Authorities</a>
 <ul class="sectlevel3">
 <li><a href="#ca_certificates">11.1.1. CA certificates</a></li>
-<li><a href="#validity_periods">11.1.2. Validity periods</a></li>
+<li><a href="#validity_periods_of_ca_certificates">11.1.2. Validity periods of CA certificates</a></li>
+<li><a href="#installing-your-own-ca-certificates-str">11.1.3. Installing your own CA certificates</a></li>
 </ul>
 </li>
 <li><a href="#certificates-and-secrets-str">11.2. Secrets</a>
@@ -390,25 +391,31 @@
 <li><a href="#user_secrets">11.2.4. User Secrets</a></li>
 </ul>
 </li>
-<li><a href="#installing-your-own-ca-certificates-str">11.3. Installing your own CA certificates</a></li>
-<li><a href="#con-certificate-renewal-str">11.4. Certificate renewal</a>
+<li><a href="#con-certificate-renewal-str">11.3. Certificate renewal</a>
 <ul class="sectlevel3">
-<li><a href="#renewal_process_with_generated_cas">11.4.1. Renewal process with generated CAs</a></li>
-<li><a href="#client_applications">11.4.2. Client applications</a></li>
+<li><a href="#renewal_process_with_generated_cas">11.3.1. Renewal process with generated CAs</a></li>
+<li><a href="#client_applications">11.3.2. Client applications</a></li>
+<li><a href="#proc-renewing-ca-certs-manually-str">11.3.3. Renewing CA certificates manually</a></li>
+<li><a href="#renewing-your-own-ca-certificates-str">11.3.4. Renewing your own CA certificates</a></li>
 </ul>
 </li>
-<li><a href="#proc-renewing-ca-certs-manually-str">11.5. Renewing CA certificates manually</a></li>
-<li><a href="#proc-replacing-private-keys-str">11.6. Replacing private keys</a></li>
-<li><a href="#tls-connections-str">11.7. TLS connections</a>
+<li><a href="#proc-replacing-private-keys-str">11.4. Replacing private keys</a></li>
+<li><a href="#tls-connections-str">11.5. TLS connections</a>
 <ul class="sectlevel3">
-<li><a href="#zookeeper_communication">11.7.1. ZooKeeper communication</a></li>
-<li><a href="#kafka_interbroker_communication">11.7.2. Kafka interbroker communication</a></li>
-<li><a href="#topic_and_user_operators">11.7.3. Topic and User Operators</a></li>
-<li><a href="#kafka_client_connections">11.7.4. Kafka Client connections</a></li>
+<li><a href="#zookeeper_communication">11.5.1. ZooKeeper communication</a></li>
+<li><a href="#kafka_interbroker_communication">11.5.2. Kafka interbroker communication</a></li>
+<li><a href="#topic_and_user_operators">11.5.3. Topic and User Operators</a></li>
+<li><a href="#kafka_client_connections">11.5.4. Kafka Client connections</a></li>
 </ul>
 </li>
-<li><a href="#configuring-internal-clients-to-trust-cluster-ca-str">11.8. Configuring internal clients to trust the cluster CA</a></li>
-<li><a href="#configuring-external-clients-to-trust-cluster-ca-str">11.9. Configuring external clients to trust the cluster CA</a></li>
+<li><a href="#configuring-internal-clients-to-trust-cluster-ca-str">11.6. Configuring internal clients to trust the cluster CA</a></li>
+<li><a href="#configuring-external-clients-to-trust-cluster-ca-str">11.7. Configuring external clients to trust the cluster CA</a></li>
+<li><a href="#kafka-listener-certificates-str">11.8. Kafka listener certificates</a>
+<ul class="sectlevel3">
+<li><a href="#proc-installing-certs-per-listener-str">11.8.1. Providing your own Kafka listener certificates</a></li>
+<li><a href="#ref-alternative-subjects-certs-for-listeners-str">11.8.2. Alternative subjects in server certificates for Kafka listeners</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#assembly-upgrade-str">12. Strimzi and Kafka upgrades</a>
@@ -2775,21 +2782,26 @@ spec:
         type: route
         authentication:
           type: tls
-    authorization: <b class="conum">(9)</b>
+        configuration:
+          brokerCertChainAndKey: <b class="conum">(9)</b>
+            secretName: my-secret
+            certificate: my-certificate.crt
+            key: my-key.key
+    authorization: <b class="conum">(10)</b>
       type: simple
-    config: <b class="conum">(10)</b>
+    config: <b class="conum">(11)</b>
       auto.create.topics.enable: "false"
       offsets.topic.replication.factor: 3
       transaction.state.log.replication.factor: 3
       transaction.state.log.min.isr: 2
-    storage: <b class="conum">(11)</b>
-      type: persistent-claim <b class="conum">(12)</b>
-      size: 10000Gi <b class="conum">(13)</b>
-    rack: <b class="conum">(14)</b>
+    storage: <b class="conum">(12)</b>
+      type: persistent-claim <b class="conum">(13)</b>
+      size: 10000Gi <b class="conum">(14)</b>
+    rack: <b class="conum">(15)</b>
       topologyKey: failure-domain.beta.kubernetes.io/zone
-    metrics: <b class="conum">(15)</b>
+    metrics: <b class="conum">(16)</b>
       lowercaseOutputName: true
-      rules: <b class="conum">(16)</b>
+      rules: <b class="conum">(17)</b>
       # Special cases and very specific rules
       - pattern : kafka.server&lt;type=(.+), name=(.+), clientId=(.+), topic=(.+), partition=(.*)&gt;&lt;&gt;Value
         name: kafka_server_$1_$2
@@ -2799,7 +2811,7 @@ spec:
           topic: "$4"
           partition: "$5"
         # ...
-  zookeeper: <b class="conum">(17)</b>
+  zookeeper: <b class="conum">(18)</b>
     replicas: 3
     resources:
       requests:
@@ -2816,7 +2828,7 @@ spec:
       size: 1000Gi
     metrics:
       # ...
-  entityOperator: <b class="conum">(18)</b>
+  entityOperator: <b class="conum">(19)</b>
     topicOperator:
       resources:
         requests:
@@ -2833,7 +2845,7 @@ spec:
         limits:
           memory: 512Mi
           cpu: "1"
-  kafkaExporter: <b class="conum">(19)</b>
+  kafkaExporter: <b class="conum">(20)</b>
     # ...</code></pre>
 </div>
 </div>
@@ -2862,6 +2874,9 @@ spec:
 </li>
 <li>
 <p>External listener configuration specifies <a href="#assembly-kafka-broker-external-listeners-deployment-configuration-kafka">how the Kafka cluster is exposed outside Kubernetes, such as through a <code>route</code>, <code>loadbalancer</code> or <code>nodeport</code></a>.</p>
+</li>
+<li>
+<p>Optional configuration for a <a href="#kafka-listener-certificates-str">Kafka listener certificate</a> managed by an external Certificate Authority. The <code>brokerCertChainAndKey</code> property specifies a <code>Secret</code> that holds a server certificate and a public key. Kafka listener certificates can also be configured for TLS listeners.</p>
 </li>
 <li>
 <p>Authorization <a href="#ref-kafka-authorization-deployment-configuration-kafka">enables <code>simple</code> authorization on the Kafka broker using the <code>SimpleAclAuthorizer</code> Kafka plugin</a>.</p>
@@ -3883,15 +3898,15 @@ spec:
 <h4 id="assembly-configuring-kafka-broker-listeners-deployment-configuration-kafka"><a class="link" href="#assembly-configuring-kafka-broker-listeners-deployment-configuration-kafka">3.1.6. Kafka broker listeners</a></h4>
 <div class="paragraph">
 <p>You can configure the listeners enabled in Kafka brokers.
-The following types of listener are supported:</p>
+The following types of listeners are supported:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Plain listener on port 9092 (without encryption)</p>
+<p>Plain listener on port 9092 (without TLS encryption)</p>
 </li>
 <li>
-<p>TLS listener on port 9093 (with encryption)</p>
+<p>TLS listener on port 9093 (with TLS encryption)</p>
 </li>
 <li>
 <p>External listener on port 9094 for access from outside of Kubernetes</p>
@@ -3902,6 +3917,11 @@ The following types of listener are supported:</p>
 <div class="title">OAuth 2.0</div>
 <p>If you are using OAuth 2.0 token-based authentication, you can configure the listeners to connect to your authorization server.
 For more information, see <a href="#assembly-oauth-str">Using OAuth 2.0 token-based authentication</a>.</p>
+</div>
+<div class="paragraph">
+<div class="title">Listener certificates</div>
+<p>You can provide your own server certificates, called <em>Kafka listener certificates</em>, for TLS listeners or external listeners which have TLS encryption enabled.
+For more information, see <a href="#kafka-listener-certificates-str">Kafka listener certificates</a>.</p>
 </div>
 <div class="sect4">
 <h5 id="con-kafka-listeners-deployment-configuration-kafka"><a class="link" href="#con-kafka-listeners-deployment-configuration-kafka">Kafka listeners</a></h5>
@@ -27028,8 +27048,13 @@ Communication between Kafka clients and Kafka brokers is encrypted according to 
 For the Kafka and Strimzi components, TLS certificates are also used for authentication.</p>
 </div>
 <div class="paragraph">
-<p>The Cluster Operator automatically sets up TLS certificates to enable encryption and authentication within your cluster.
-It also sets up other TLS certificates if you want to enable encryption or TLS authentication between Kafka brokers and clients.</p>
+<p>The Cluster Operator automatically sets up and renews TLS certificates to enable encryption and authentication within your cluster.
+It also sets up other TLS certificates if you want to enable encryption or TLS authentication between Kafka brokers and clients.
+Certificates provided by users are not renewed.</p>
+</div>
+<div class="paragraph">
+<p>You can provide your own server certificates, called <em>Kafka listener certificates</em>, for TLS listeners or external listeners which have TLS encryption enabled.
+For more information, see <a href="#kafka-listener-certificates-str">Kafka listener certificates</a>.</p>
 </div>
 <div class="imageblock">
 <div class="content">
@@ -27041,26 +27066,36 @@ It also sets up other TLS certificates if you want to enable encryption or TLS a
 <h3 id="certificate-authorities-str"><a class="link" href="#certificate-authorities-str">11.1. Certificate Authorities</a></h3>
 <div class="paragraph">
 <p>To support encryption, each Strimzi component needs its own private keys and public key certificates.
-All component certificates are signed by a Certificate Authority (CA) called the <em>cluster CA</em>.</p>
+All component certificates are signed by an internal Certificate Authority (CA) called the <em>cluster CA</em>.</p>
 </div>
 <div class="paragraph">
-<p>Similarly, each Kafka client application connecting using TLS client authentication needs private keys and certificates.
-The <em>clients CA</em> is used to sign the certificates for the Kafka clients.</p>
+<p>Similarly, each Kafka client application connecting to Strimzi using TLS client authentication needs to provide private keys and certificates.
+A second internal CA, named the <em>clients CA</em>, is used to sign certificates for the Kafka clients.</p>
 </div>
 <div class="sect3">
 <h4 id="ca_certificates"><a class="link" href="#ca_certificates">11.1.1. CA certificates</a></h4>
 <div class="paragraph">
-<p>Each CA has a self-signed public key certificate.</p>
+<p>Both the cluster CA and clients CA have a self-signed public key certificate.</p>
 </div>
 <div class="paragraph">
-<p>Kafka brokers are configured to trust certificates signed by either the clients CA or the cluster CA. Components to which clients do not need to connect, such as ZooKeeper, only trust certificates signed by the cluster CA. Client applications that perform mutual TLS authentication have to trust the certificates signed by the cluster CA.</p>
+<p>Kafka brokers are configured to trust certificates signed by either the cluster CA or clients CA.
+Components that clients do not need to connect to, such as ZooKeeper, only trust certificates signed by the cluster CA.
+Unless TLS encryption for external listeners is disabled, client applications must trust certificates signed by the cluster CA.
+This is also true for client applications that perform <a href="#con-mutual-tls-authentication-using-uo">mutual TLS authentication</a>.</p>
 </div>
 <div class="paragraph">
-<p>By default, Strimzi generates and renews CA certificates automatically. You can configure the management of CA certificates in the <code>Kafka.spec.clusterCa</code> and <code>Kafka.spec.clientsCa</code> objects.</p>
+<p>By default, Strimzi automatically generates and renews CA certificates issued by the cluster CA or clients CA.
+You can configure the management of these CA certificates in the <code>Kafka.spec.clusterCa</code> and <code>Kafka.spec.clientsCa</code> objects.
+Certificates provided by users are not renewed.</p>
+</div>
+<div class="paragraph">
+<p>You can provide your own CA certificates for the cluster CA or clients CA.
+For more information, see <a href="#installing-your-own-ca-certificates-str">Installing your own CA certificates</a>.
+If you provide your own certificates, you must manually renew them when needed.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="validity_periods"><a class="link" href="#validity_periods">11.1.2. Validity periods</a></h4>
+<h4 id="validity_periods_of_ca_certificates"><a class="link" href="#validity_periods_of_ca_certificates">11.1.2. Validity periods of CA certificates</a></h4>
 <div class="paragraph">
 <p>CA certificate validity periods are expressed as a number of days after certificate generation.
 You can configure the validity period of:</p>
@@ -27072,6 +27107,114 @@ You can configure the validity period of:</p>
 </li>
 <li>
 <p>Client CA certificates in <code>Kafka.spec.clientsCa.validityDays</code></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="installing-your-own-ca-certificates-str"><a class="link" href="#installing-your-own-ca-certificates-str">11.1.3. Installing your own CA certificates</a></h4>
+<div class="paragraph">
+<p>This procedure describes how to install your own CA certificates and private keys instead of using CA certificates and private keys generated by the Cluster Operator.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+<li>
+<p>A Kafka cluster is not yet deployed.</p>
+</li>
+<li>
+<p>Your own X.509 certificates and keys in PEM format for the cluster CA or clients CA.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>If you want to use a cluster or clients CA which is not a Root CA, you have to include the whole chain in the certificate file.
+The chain should be in the following order:</p>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The cluster or clients CA</p>
+</li>
+<li>
+<p>One or more intermediate CAs</p>
+</li>
+<li>
+<p>The root CA</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>All CAs in the chain should be configured as a CA in the X509v3 Basic Constraints.</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Put your CA certificate in the corresponding <code>Secret</code> (<code><em>&lt;cluster&gt;</em>-cluster-ca-cert</code> for the cluster CA or <code><em>&lt;cluster&gt;</em>-clients-ca-cert</code> for the clients CA):</p>
+<div class="paragraph">
+<p>Run the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs"># Delete any existing secret (ignore "Not Exists" errors)
+kubectl delete secret <em>&lt;ca-cert-secret&gt;</em>
+# Create and label the new secret
+kubectl create secret generic <em>&lt;ca-cert-secret&gt;</em> --from-file=ca.crt=<em>&lt;ca-cert-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Put your CA key in the corresponding <code>Secret</code> (<code><em>&lt;cluster&gt;</em>-cluster-ca</code> for the cluster CA or <code><em>&lt;cluster&gt;</em>-clients-ca</code> for the clients CA):</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs"># Delete the existing secret
+kubectl delete secret <em>&lt;ca-key-secret&gt;</em>
+# Create the new one
+kubectl create secret generic <em>&lt;ca-key-secret&gt;</em> --from-file=ca.key=<em>&lt;ca-key-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Label both <code>Secrets</code> with the labels <code>strimzi.io/kind=Kafka</code> and <code>strimzi.io/cluster=<em>&lt;my-cluster&gt;</em></code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl label secret <em>&lt;ca-cert-secret&gt;</em> strimzi.io/kind=Kafka strimzi.io/cluster=<em>&lt;my-cluster&gt;</em>
+kubectl label secret <em>&lt;ca-key-secret&gt;</em> strimzi.io/kind=Kafka strimzi.io/cluster=<em>&lt;my-cluster&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create the <code>Kafka</code> resource for your cluster, configuring either the <code>Kafka.spec.clusterCa</code> or the <code>Kafka.spec.clientsCa</code> object to <em>not</em> use generated CAs:</p>
+<div class="listingblock">
+<div class="title">Example fragment <code>Kafka</code> resource configuring the cluster CA to use certificates you supply for yourself</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">kind: Kafka
+version: kafka.strimzi.io/v1beta1
+spec:
+  # ...
+  clusterCa:
+    generateCertificateAuthority: false</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For the procedure for renewing CA certificates you have previously installed, see <a href="#renewing-your-own-ca-certificates-str">Renewing your own CA certificates</a>.</p>
+</li>
+<li>
+<p><a href="#proc-installing-certs-per-listener-str">Providing your own Kafka listener certificates</a>.</p>
 </li>
 </ul>
 </div>
@@ -27329,106 +27472,7 @@ You can enforce this using Kubernetes role-based access controls if necessary.
 </div>
 </div>
 <div class="sect2">
-<h3 id="installing-your-own-ca-certificates-str"><a class="link" href="#installing-your-own-ca-certificates-str">11.3. Installing your own CA certificates</a></h3>
-<div class="paragraph">
-<p>This procedure describes how to install your own CA certificates and private keys instead of using CA certificates and private keys generated by the Cluster Operator.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>The Cluster Operator is running.</p>
-</li>
-<li>
-<p>A Kafka cluster is not yet deployed.</p>
-</li>
-<li>
-<p>Your own X.509 certificates and keys in PEM format for the cluster CA or clients CA.</p>
-<div class="ulist">
-<ul>
-<li>
-<p>If you want to use a cluster or clients CA which is not a Root CA, you have to include the whole chain in the certificate file.
-The chain should be in the following order:</p>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>The cluster or clients CA</p>
-</li>
-<li>
-<p>One or more intermediate CAs</p>
-</li>
-<li>
-<p>The root CA</p>
-</li>
-</ol>
-</div>
-</li>
-<li>
-<p>All CAs in the chain should be configured as a CA in the X509v3 Basic Constraints.</p>
-</li>
-</ul>
-</div>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Put your CA certificate in the corresponding <code>Secret</code> (<code><em>&lt;cluster&gt;</em>-cluster-ca-cert</code> for the cluster CA or <code><em>&lt;cluster&gt;</em>-clients-ca-cert</code> for the clients CA):</p>
-<div class="paragraph">
-<p>Run the following commands:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs"># Delete any existing secret (ignore "Not Exists" errors)
-kubectl delete secret <em>&lt;ca-cert-secret&gt;</em>
-# Create and label the new one
-kubectl create secret generic <em>&lt;ca-cert-secret&gt;</em> --from-file=ca.crt=<em>&lt;ca-cert-file&gt;</em></code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Put your CA key in the corresponding <code>Secret</code> (<code><em>&lt;cluster&gt;</em>-cluster-ca</code> for the cluster CA or <code><em>&lt;cluster&gt;</em>-clients-ca</code> for the clients CA)
-Run the following commands:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs"># Delete the existing secret
-kubectl delete secret <em>&lt;ca-key-secret&gt;</em>
-# Create the new one
-kubectl create secret generic <em>&lt;ca-key-secret&gt;</em> --from-file=ca.key=<em>&lt;ca-key-file&gt;</em></code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Label both <code>Secrets</code> with labels <code>strimzi.io/kind=Kafka</code> and <code>strimzi.io/cluster=<em>&lt;my-cluster&gt;</em></code>:
-Run the following commands:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl label secret <em>&lt;ca-cert-secret&gt;</em> strimzi.io/kind=Kafka strimzi.io/cluster=<em>&lt;my-cluster&gt;</em>
-kubectl label secret <em>&lt;ca-key-secret&gt;</em> strimzi.io/kind=Kafka strimzi.io/cluster=<em>&lt;my-cluster&gt;</em></code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Create the <code>Kafka</code> resource for your cluster, configuring either the <code>Kafka.spec.clusterCa</code> or the <code>Kafka.spec.clientsCa</code> object to <em>not</em> use generated CAs:</p>
-<div class="listingblock">
-<div class="title">Example fragment <code>Kafka</code> resource configuring the cluster CA to use certificates you supply for yourself</div>
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">kind: Kafka
-version: kafka.strimzi.io/v1beta1
-spec:
-  # ...
-  clusterCa:
-    generateCertificateAuthority: false</code></pre>
-</div>
-</div>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect2">
-<h3 id="con-certificate-renewal-str"><a class="link" href="#con-certificate-renewal-str">11.4. Certificate renewal</a></h3>
+<h3 id="con-certificate-renewal-str"><a class="link" href="#con-certificate-renewal-str">11.3. Certificate renewal</a></h3>
 <div class="paragraph">
 <p>The cluster CA and clients CA certificates are only valid for a limited time period, known as the validity period.
 This is usually defined as a number of days since the certificate was generated.
@@ -27457,7 +27501,7 @@ The renewal period is measured backwards, from the expiry date of the current ce
 <p>The behavior of the Cluster Operator during the renewal period depends on whether the relevant setting is enabled, in either <code>Kafka.spec.clusterCa.generateCertificateAuthority</code> or <code>Kafka.spec.clientsCa.generateCertificateAuthority</code>.</p>
 </div>
 <div class="sect3">
-<h4 id="renewal_process_with_generated_cas"><a class="link" href="#renewal_process_with_generated_cas">11.4.1. Renewal process with generated CAs</a></h4>
+<h4 id="renewal_process_with_generated_cas"><a class="link" href="#renewal_process_with_generated_cas">11.3.1. Renewal process with generated CAs</a></h4>
 <div class="paragraph">
 <p>The Cluster Operator performs the following process to renew CA certificates:</p>
 </div>
@@ -27483,7 +27527,7 @@ This is not strictly necessary because the signing key has not changed, but it k
 </div>
 </div>
 <div class="sect3">
-<h4 id="client_applications"><a class="link" href="#client_applications">11.4.2. Client applications</a></h4>
+<h4 id="client_applications"><a class="link" href="#client_applications">11.3.2. Client applications</a></h4>
 <div class="paragraph">
 <p>The Cluster Operator is not aware of the client applications using the Kafka cluster.</p>
 </div>
@@ -27520,9 +27564,8 @@ Failure to do this by the end of the renewal period could result in client appli
 </div>
 </div>
 </div>
-</div>
-<div class="sect2">
-<h3 id="proc-renewing-ca-certs-manually-str"><a class="link" href="#proc-renewing-ca-certs-manually-str">11.5. Renewing CA certificates manually</a></h3>
+<div class="sect3">
+<h4 id="proc-renewing-ca-certs-manually-str"><a class="link" href="#proc-renewing-ca-certs-manually-str">11.3.3. Renewing CA certificates manually</a></h4>
 <div class="paragraph">
 <p>Unless the <code>Kafka.spec.clusterCa.generateCertificateAuthority</code> and <code>Kafka.spec.clientsCa.generateCertificateAuthority</code> objects are set to <code>false</code>, the cluster and clients CA certificates will auto-renew at the start of their respective certificate renewal periods.
 You can manually renew one or both of these certificates before the certificate renewal period starts, if required for security reasons.
@@ -27595,8 +27638,118 @@ If maintenance time windows are configured, the Cluster Operator will generate t
 </ul>
 </div>
 </div>
+<div class="sect3">
+<h4 id="renewing-your-own-ca-certificates-str"><a class="link" href="#renewing-your-own-ca-certificates-str">11.3.4. Renewing your own CA certificates</a></h4>
+<div class="paragraph">
+<p>This procedure describes how to renew CA certificates and private keys that you previously installed.
+You will need to follow this procedure during the renewal period in order to replace CA certificates which will soon expire.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+<li>
+<p>A Kafka cluster in which you previously installed your own CA certificates and private keys.</p>
+</li>
+<li>
+<p>New cluster and clients X.509 certificates and keys in PEM format. These could be generated using <code>openssl</code> using a command such as:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">openssl req -x509 -new -days <em>&lt;validity&gt;</em> --nodes -out ca.crt -keyout ca.key</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Establish what CA certificates already exist in the <code>Secret</code>:</p>
+<div class="paragraph">
+<p>Use the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl describe secret <em>&lt;ca-cert-secret&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Prepare a directory containing the existing CA certificates in the secret.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">mkdir new-ca-cert-secret
+cd new-ca-cert-secret</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For each certificate <em>&lt;ca-certificate&gt;</em> from the previous step, run:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs"># Fetch the existing secret
+kubectl get secret <em>&lt;ca-cert-secret&gt;</em> -o 'jsonpath={.data.<em>&lt;ca-certificate&gt;</em>}' | base64 -d &gt; <em>&lt;ca-certificate&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Rename the old <code>ca.crt</code> file to <code>ca_&lt;date&gt;_.crt</code>, where <em>&lt;date&gt;</em> is the certificate expiry date in the format <em>&lt;year&gt;</em>-<em>&lt;month&gt;</em>-<em>&lt;day&gt;_T</em>&lt;hour&gt;_-<em>&lt;minute&gt;</em>-_&lt;second&gt;_Z, for example <code>ca-2018-09-27T17-32-00Z.crt</code>.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">mv ca.crt ca-$(date -u -d$(openssl x509 -enddate -noout -in ca.crt | sed 's/.*=//') +'%Y-%m-%dT%H-%M-%SZ').crt</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Copy the new CA certificate into the directory, naming it <code>ca.crt</code></p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">cp <em>&lt;path-to-new-cert&gt;</em> ca.crt</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Replace the CA certificate <code>Secret</code>  (<code><em>&lt;cluster&gt;</em>-cluster-ca</code> or <code><em>&lt;cluster&gt;</em>-clients-ca</code>).
+This can be done using the following commands:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs"># Delete the existing secret
+kubectl delete secret <em>&lt;ca-cert-secret&gt;</em>
+# Re-create the secret with the new private key
+kubectl create secret generic <em>&lt;ca-cert-secret&gt;</em> --from-file=.</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can now delete the directory you created:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">cd ..
+rm -r new-ca-cert-secret</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Replace the CA key <code>Secret</code> (<code><em>&lt;cluster&gt;</em>-cluster-ca</code> or <code><em>&lt;cluster&gt;</em>-clients-ca</code>).
+This can be done using the following commands:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs"># Delete the existing secret
+kubectl delete secret <em>&lt;ca-key-secret&gt;</em>
+# Re-create the secret with the new private key
+kubectl create secret generic <em>&lt;ca-key-secret&gt;</em> --from-file=ca.key=<em>&lt;ca-key-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
 <div class="sect2">
-<h3 id="proc-replacing-private-keys-str"><a class="link" href="#proc-replacing-private-keys-str">11.6. Replacing private keys</a></h3>
+<h3 id="proc-replacing-private-keys-str"><a class="link" href="#proc-replacing-private-keys-str">11.4. Replacing private keys</a></h3>
 <div class="paragraph">
 <p>You can replace the private keys used by the cluster CA and clients CA certificates.
 When a private key is replaced, the Cluster Operator generates a new CA certificate for the new private key.</p>
@@ -27678,9 +27831,9 @@ When a private key is replaced, the Cluster Operator generates a new CA certific
 </div>
 </div>
 <div class="sect2">
-<h3 id="tls-connections-str"><a class="link" href="#tls-connections-str">11.7. TLS connections</a></h3>
+<h3 id="tls-connections-str"><a class="link" href="#tls-connections-str">11.5. TLS connections</a></h3>
 <div class="sect3">
-<h4 id="zookeeper_communication"><a class="link" href="#zookeeper_communication">11.7.1. ZooKeeper communication</a></h4>
+<h4 id="zookeeper_communication"><a class="link" href="#zookeeper_communication">11.5.1. ZooKeeper communication</a></h4>
 <div class="paragraph">
 <p>ZooKeeper does not support TLS itself.
 By deploying a TLS sidecar within every ZooKeeper pod, the Cluster Operator is able to provide data encryption and authentication between ZooKeeper nodes in a cluster.
@@ -27692,7 +27845,7 @@ The TLS sidecar then proxies all ZooKeeper traffic, TLS decrypting data upon ent
 </div>
 </div>
 <div class="sect3">
-<h4 id="kafka_interbroker_communication"><a class="link" href="#kafka_interbroker_communication">11.7.2. Kafka interbroker communication</a></h4>
+<h4 id="kafka_interbroker_communication"><a class="link" href="#kafka_interbroker_communication">11.5.2. Kafka interbroker communication</a></h4>
 <div class="paragraph">
 <p>Communication between Kafka brokers is done through an internal listener on port 9091, which is encrypted by default and not accessible to Kafka clients.</p>
 </div>
@@ -27701,13 +27854,13 @@ The TLS sidecar then proxies all ZooKeeper traffic, TLS decrypting data upon ent
 </div>
 </div>
 <div class="sect3">
-<h4 id="topic_and_user_operators"><a class="link" href="#topic_and_user_operators">11.7.3. Topic and User Operators</a></h4>
+<h4 id="topic_and_user_operators"><a class="link" href="#topic_and_user_operators">11.5.3. Topic and User Operators</a></h4>
 <div class="paragraph">
 <p>Like the Cluster Operator, the Topic and User Operators each use a TLS sidecar when communicating with ZooKeeper. The Topic Operator connects to Kafka brokers on port 9091.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="kafka_client_connections"><a class="link" href="#kafka_client_connections">11.7.4. Kafka Client connections</a></h4>
+<h4 id="kafka_client_connections"><a class="link" href="#kafka_client_connections">11.5.4. Kafka Client connections</a></h4>
 <div class="paragraph">
 <p>Encrypted communication between Kafka brokers and clients running within the same Kubernetes cluster can be provided by configuring the <code>spec.kafka.listeners.tls</code> listener, which listens on port 9093.</p>
 </div>
@@ -27729,7 +27882,7 @@ Unencrypted client communication with brokers can be configured by <code>spec.ka
 </div>
 </div>
 <div class="sect2">
-<h3 id="configuring-internal-clients-to-trust-cluster-ca-str"><a class="link" href="#configuring-internal-clients-to-trust-cluster-ca-str">11.8. Configuring internal clients to trust the cluster CA</a></h3>
+<h3 id="configuring-internal-clients-to-trust-cluster-ca-str"><a class="link" href="#configuring-internal-clients-to-trust-cluster-ca-str">11.6. Configuring internal clients to trust the cluster CA</a></h3>
 <div class="paragraph">
 <p>This procedure describes how to configure a Kafka client that resides inside the Kubernetes cluster — connecting to the <code>tls</code> listener on port 9093 — to trust the cluster CA certificate.</p>
 </div>
@@ -27875,7 +28028,7 @@ spec:
 </div>
 </div>
 <div class="sect2">
-<h3 id="configuring-external-clients-to-trust-cluster-ca-str"><a class="link" href="#configuring-external-clients-to-trust-cluster-ca-str">11.9. Configuring external clients to trust the cluster CA</a></h3>
+<h3 id="configuring-external-clients-to-trust-cluster-ca-str"><a class="link" href="#configuring-external-clients-to-trust-cluster-ca-str">11.7. Configuring external clients to trust the cluster CA</a></h3>
 <div class="paragraph">
 <p>This procedure describes how to configure a Kafka client that resides outside the Kubernetes cluster – connecting to the <code>external</code> listener on port 9094 – to trust the cluster CA certificate.
 Follow this procedure when setting up the client and during the renewal period, when the old clients CA certificate is replaced.</p>
@@ -27978,6 +28131,253 @@ Clients must add <em>all</em> of them to their truststores.
 <p>Use the certificate with clients that use certificates in X.509 format.</p>
 </li>
 </ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="kafka-listener-certificates-str"><a class="link" href="#kafka-listener-certificates-str">11.8. Kafka listener certificates</a></h3>
+<div class="paragraph">
+<p>You can provide your own server certificates and public keys for the following types of listeners:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>TLS listeners for inter-cluster communication</p>
+</li>
+<li>
+<p>External listeners (<code>route</code>, <code>loadbalancer</code>, <code>ingress</code>, and <code>nodeport</code> types) which have TLS encryption enabled, for communication between Kafka clients and Kafka brokers</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These user-provided certificates are called <em>Kafka listener certificates</em>.</p>
+</div>
+<div class="paragraph">
+<p>Providing Kafka listener certificates for external listeners allows you to leverage existing security infrastructure, such as your organization&#8217;s private CA or a public CA.
+Kafka clients will connect to Kafka brokers using Kafka listener certificates rather than certificates signed by the cluster CA or clients CA.</p>
+</div>
+<div class="paragraph">
+<p>You must manually renew Kafka listener certificates when needed.</p>
+</div>
+<div class="sect3">
+<h4 id="proc-installing-certs-per-listener-str"><a class="link" href="#proc-installing-certs-per-listener-str">11.8.1. Providing your own Kafka listener certificates</a></h4>
+<div class="paragraph">
+<p>This procedure shows how to configure a listener to use your own public key and server certificate, called a <a href="#kafka-listener-certificates-str">Kafka listener certificate</a>.</p>
+</div>
+<div class="paragraph">
+<p>Your client applications should use the CA public key as a trusted certificate in order to verify the identity of the Kafka broker.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Kubernetes cluster.</p>
+</li>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+<li>
+<p>For each listener, a compatible server certificate signed by an external CA.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Provide an X.509 certificate in PEM format.</p>
+</li>
+<li>
+<p>Specify the correct Subject Alternative Names (SANs) for each listener.
+For more information, see <a href="#ref-alternative-subjects-certs-for-listeners-str">Alternative subjects in server certificates for Kafka listeners</a>.</p>
+</li>
+<li>
+<p>You can provide a certificate that includes the whole CA chain in the certificate file.</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Create a <code>Secret</code> containing your public key and server certificate:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl create secret generic <em>my-secret</em> --from-file=<em>my-listener-key.key</em> --from-file=<em>my-listener-certificate.crt</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Edit the <code>Kafka</code> resource for your cluster. Configure the listener to use your <code>Secret</code>, certificate file, and public key file in the <code>configuration.brokerCertChainAndKey</code> property.</p>
+<div class="listingblock">
+<div class="title">Example configuration for a <code>loadbalancer</code> external listener with TLS encryption enabled</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs"># ...
+listeners:
+  plain: {}
+  external:
+    type: loadbalancer
+    configuration:
+      brokerCertChainAndKey:
+        secretName: my-secret
+        certificate: my-listener-certificate.crt
+        key: my-listener-key.key
+    tls: true
+    authentication:
+      type: tls
+# ...</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example configuration for a TLS listener</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs"># ...
+listeners:
+  plain: {}
+  tls:
+    configuration:
+      brokerCertChainAndKey:
+        secretName: my-secret
+        certificate: my-listener-certificate.pem
+        key: my-listener-key.key
+    authentication:
+      type: tls
+# ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Apply the new configuration to create or update the resource:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>kafka.yaml</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The Cluster Operator starts a rolling update of the Kafka cluster, which updates the configuration of the listeners.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+A rolling update is also started if you update a Kafka listener certificate in a <code>Secret</code> that is already used by a TLS or external listener.
+</td>
+</tr>
+</table>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#ref-alternative-subjects-certs-for-listeners-str">Alternative subjects in server certificates for Kafka listeners</a></p>
+</li>
+<li>
+<p><a href="#type-KafkaListeners-reference"><code>KafkaListeners</code> schema reference</a></p>
+</li>
+<li>
+<p><a href="#kafka-listener-certificates-str">Kafka listener certificates</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="ref-alternative-subjects-certs-for-listeners-str"><a class="link" href="#ref-alternative-subjects-certs-for-listeners-str">11.8.2. Alternative subjects in server certificates for Kafka listeners</a></h4>
+<div class="paragraph">
+<p>In order to use TLS hostname verification with your own <a href="#kafka-listener-certificates-str">Kafka listener certificates</a>, you must use the correct Subject Alternative Names (SANs) for each listener. The certificate SANs must specify hostnames for:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>All of the Kafka brokers in your cluster</p>
+</li>
+<li>
+<p>The Kafka cluster bootstrap service</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>You can use wildcard certificates if they are supported by your CA.</p>
+</div>
+<div class="sect4">
+<h5 id="tls_listener_san_examples"><a class="link" href="#tls_listener_san_examples">TLS listener SAN examples</a></h5>
+<div class="paragraph">
+<p>Use the following examples to help you specify hostnames of the SANs in your certificates for TLS listeners.</p>
+</div>
+<div class="listingblock">
+<div class="title">Wildcards example</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">//Kafka brokers
+*.<em>&lt;cluster-name&gt;</em>-kafka-brokers
+*.<em>&lt;cluster-name&gt;</em>-kafka-brokers.<em>&lt;namespace&gt;</em>.svc
+
+// Bootstrap service
+<em>&lt;cluster-name&gt;</em>-kafka-bootstrap
+<em>&lt;cluster-name&gt;</em>-kafka-bootstrap.<em>&lt;namespace&gt;</em>.svc</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Non-wildcards example</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">// Kafka brokers
+<em>&lt;cluster-name&gt;</em>-kafka-0.<em>&lt;cluster-name&gt;</em>-kafka-brokers
+<em>&lt;cluster-name&gt;</em>-kafka-0.<em>&lt;cluster-name&gt;</em>-kafka-brokers.<em>&lt;namespace&gt;</em>.svc
+<em>&lt;cluster-name&gt;</em>-kafka-1.<em>&lt;cluster-name&gt;</em>-kafka-brokers
+<em>&lt;cluster-name&gt;</em>-kafka-1.<em>&lt;cluster-name&gt;</em>-kafka-brokers.<em>&lt;namespace&gt;</em>.svc
+# ...
+
+// Bootstrap service
+<em>&lt;cluster-name&gt;</em>-kafka-bootstrap
+<em>&lt;cluster-name&gt;</em>-kafka-bootstrap.<em>&lt;namespace&gt;</em>.svc</code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="external_listener_san_examples"><a class="link" href="#external_listener_san_examples">External listener SAN examples</a></h5>
+<div class="paragraph">
+<p>For external listeners which have TLS encryption enabled, the hostnames you need to specify in certificates depends on the external listener <code>type</code>.</p>
+</div>
+<table class="tableblock frame-all grid-all stripes-none stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">External listener type</th>
+<th class="tableblock halign-left valign-top">In the SANs, specify&#8230;&#8203;</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Route</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Addresses of all Kafka broker <code>Routes</code> and the address of the bootstrap <code>Route</code>.</p>
+<p class="tableblock">You can use a matching wildcard name.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>loadbalancer</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Addresses of all Kafka broker <code>loadbalancers</code> and the bootstrap <code>loadbalancer</code> address.</p>
+<p class="tableblock">You can use a matching wildcard name.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>NodePort</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Addresses of all Kubernetes worker nodes that the Kafka broker pods might be scheduled to.</p>
+<p class="tableblock">You can use a matching wildcard name.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#proc-installing-certs-per-listener-str">Providing your own Kafka listener certificates</a></p>
+</li>
+</ul>
+</div>
+</div>
 </div>
 </div>
 </div>
