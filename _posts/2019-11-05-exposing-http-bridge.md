@@ -98,7 +98,7 @@ Following an example of the output.
 
 # Producing messages
 
-Assuming that the Kafka brokers have topic auto creation enabled, we can start immediately to send messages through the `/topic/{topicname}` endpoint exposed by the HTTP bridge.
+Assuming that the Kafka brokers have topic auto creation enabled, we can start immediately to send messages through the `/topics/{topicname}` endpoint exposed by the HTTP bridge.
 
 The HTTP request payload is always a JSON but the message values can be JSON or binary (encoded in base64 because you are sending binary data in a JSON payload so encoding in a string format is needed).
 
