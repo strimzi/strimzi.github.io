@@ -602,13 +602,13 @@ By implementing knowledge of Kafka operations in code, Kafka administration task
 <div class="ulist">
 <ul>
 <li>
-<p>Created, the Operator creates the topic</p>
+<p>Created, the Topic Operator creates the topic</p>
 </li>
 <li>
-<p>Deleted, the Operator deletes the topic</p>
+<p>Deleted, the Topic Operator deletes the topic</p>
 </li>
 <li>
-<p>Changed, the Operator updates the topic</p>
+<p>Changed, the Topic Operator updates the topic</p>
 </li>
 </ul>
 </div>
@@ -639,33 +639,40 @@ Your application just needs to deal with producing or consuming from the necessa
 <div class="sect2">
 <h3 id="overview-concepts-user-operator-str"><a class="link" href="#overview-concepts-user-operator-str">4.3. User Operator</a></h3>
 <div class="paragraph">
-<p>The User Operator manages Kafka users for a Kafka cluster by watching for <code>KafkaUser</code> resources that describe Kafka users and ensuring that they are configured properly in the Kafka cluster.
-For example:</p>
+<p>The User Operator manages Kafka users for a Kafka cluster by watching for <code>KafkaUser</code> resources that describe Kafka users,
+and ensuring that they are configured properly in the Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>For example, if a <code>KafkaUser</code> is:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>if a <code>KafkaUser</code> is created, the User Operator will create the user it describes</p>
+<p>Created, the User Operator creates the user it describes</p>
 </li>
 <li>
-<p>if a <code>KafkaUser</code> is deleted, the User Operator will delete the user it describes</p>
+<p>Deleted, the User Operator deletes the user it describes</p>
 </li>
 <li>
-<p>if a <code>KafkaUser</code> is changed, the User Operator will update the user it describes</p>
+<p>Changed, the User Operator updates the user it describes</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
 <p>Unlike the Topic Operator, the User Operator does not sync any changes from the Kafka cluster with the Kubernetes resources.
-Unlike the Kafka topics which might be created by applications directly in Kafka, it is not expected that the users will be managed directly in the Kafka cluster in parallel with the User Operator.</p>
+Kafka topics can be created by applications directly in Kafka, but it is not expected that the users will be managed directly in the Kafka cluster in parallel with the User Operator.</p>
 </div>
 <div class="paragraph">
-<p>The User Operator allows you to declare a <code>KafkaUser</code> as part of your application&#8217;s deployment.
-When the user is created, the user credentials are created in a <code>Secret</code>.
+<p>The User Operator allows you to declare a <code>KafkaUser</code> resource as part of your application&#8217;s deployment.
+You can specify the authentication and authorization mechanism for the user.
+You can also configure <em>user quotas</em> that control usage of Kafka resources to ensure, for example, that a user does not monopolize access to a broker.</p>
+</div>
+<div class="paragraph">
+<p>When the user is created, the user credentials are created in a <code>Secret</code>.
 Your application needs to use the user and its credentials for authentication and to produce or consume messages.</p>
 </div>
 <div class="paragraph">
-<p>In addition to managing credentials for authentication, the User Operator also manages authorization rules by including a description of the user&#8217;s rights in the <code>KafkaUser</code> declaration.</p>
+<p>In addition to managing credentials for authentication, the User Operator also manages authorization rules by including a description of the user&#8217;s access rights in the <code>KafkaUser</code> declaration.</p>
 </div>
 </div>
 </div>
@@ -744,6 +751,9 @@ spec:
 <dt class="hdlist1">CPU and memory resources</dt>
 <dd>
 <p>You request CPU and memory resources for components. Limits specify the maximum resources that can be consumed by a given container.</p>
+<div class="paragraph">
+<p>Resource requests and limits for the Topic Operator and User Operator are set in the <code>Kafka</code> resource.</p>
+</div>
 </dd>
 <dt class="hdlist1">Logging</dt>
 <dd>
@@ -896,6 +906,13 @@ Three types of data storage are supported:</p>
 </div>
 </div>
 </dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>If you are using <a href="#security-configuration-authentication_str">OAuth 2.0 for token-based authentication</a>, you can configure listeners to use the authorization server.</p>
+</div>
+<div class="dlist">
+<dl>
 <dt class="hdlist1">Rack awareness</dt>
 <dd>
 <p>Rack awareness is a configuration feature that distributes Kafka broker pods and topic replicas across <em>racks</em>, which represent data centers or racks in data centers, or availability zones.</p>
@@ -1073,7 +1090,7 @@ The external source data must reference specific topics that will store the mess
 </div>
 </div>
 <div class="paragraph">
-<p>You can add other connectors using connector plugins, which are a set of JAR files that define the implementation required to connect to certain type of external system.</p>
+<p>You can add other connectors using connector plugins, which are a set of JAR files that define the implementation required to connect to certain types of external system.</p>
 </div>
 <div class="paragraph">
 <p>You create a custom Kafka Connect image that uses new Kafka Connect plugins.</p>
@@ -1090,6 +1107,47 @@ The external source data must reference specific topics that will store the mess
 <p>OpenShift <a href="https://docs.okd.io/3.9/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a> and the <a href="https://docs.okd.io/3.9/creating_images/s2i.html" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images</p>
 </li>
 </ul>
+</div>
+<h4 id="managing_connectors" class="discrete">Managing connectors</h4>
+<div class="paragraph">
+<p>You can use the <code>KafkaConnector</code> resource or the <a href="https://kafka.apache.org/documentation/#connect_rest">Kafka Connect REST API</a> to create and manage connector instances in a Kafka Connect cluster.
+The <code>KafkaConnector</code> resource offers a Kubernetes-native approach, and is managed by the Cluster Operator.</p>
+</div>
+<div class="paragraph">
+<p>The <code>spec</code> for the <code>KafkaConnector</code> resource specifies the connector class and configuration settings, as well as the maximum number of connector <em>tasks</em> to handle the data.</p>
+</div>
+<h4 id="example_yaml_showing_kafkaconnector_configuration" class="discrete">Example YAML showing KafkaConnector configuration</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnector
+metadata:
+  name: my-source-connector
+  labels:
+    strimzi.io/cluster: my-connect-cluster
+spec:
+  class: org.apache.kafka.connect.file.FileStreamSourceConnector
+  tasksMax: 2
+  config:
+    file: "/opt/kafka/LICENSE"
+    topic: my-topic
+    # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You enable <code>KafkaConnectors</code> by adding an annotation to the <code>KafkaConnect</code> resource.</p>
+</div>
+<h4 id="example_yaml_showing_annotation_to_enable_kafkaconnector" class="discrete">Example YAML showing annotation to enable KafkaConnector</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnect
+metadata:
+  name: my-connect
+  annotations:
+    strimzi.io/use-connector-resources: "true"
+  # ...</code></pre>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -1179,7 +1237,12 @@ TLS is specified for external clients when configuring an external listener.</p>
 </div>
 <div class="paragraph">
 <p>Strimzi components and Kafka clients use digital certificates for encryption.
-The Cluster Operator sets up certificates to enable encryption within the Kafka cluster.</p>
+The Cluster Operator sets up certificates to enable encryption within the Kafka cluster.
+You can provide your own server certificates, referred to as <em>Kafka listener certificates</em>,
+for communication between Kafka clients and Kafka brokers, and inter-cluster communication.</p>
+</div>
+<div class="paragraph">
+<p>Strimzi uses <em>Secrets</em> to store the certificates and private keys required for TLS in PEM and PKCS #12 format.</p>
 </div>
 <div class="paragraph">
 <p>A TLS Certificate Authority (CA) issues certificates to authenticate the identity of a component.
