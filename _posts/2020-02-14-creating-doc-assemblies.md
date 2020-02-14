@@ -19,7 +19,7 @@ The kind you want to return to. And we want you to help us make it that way.
 Before making your highly appreciated contribution to the Strimzi documentation, there are a couple of things worth noting.
 The Strimzi documentation is written in **AsciiDoc** using a **modular** structure -- a lightweight language and a logical structure aimed at making the documentation easier to update and manage.
 
-### Super simple Asciidoc format
+### Super simple AsciiDoc format
 
 AsciiDoc is a lightweight markup language similar to markdown.
 Like markdown, the syntax used to format the content can be picked up in minutes.
@@ -122,7 +122,7 @@ include::modules/con-oauth-config.adoc[leveloffset=+1]
 include::modules/con-oauth-server-examples.adoc[leveloffset=+1]
 ````
 
-I grouped the procedures in the [con-oauth-config.adoc](https://github.com/strimzi/strimzi-kafka-operator/blob/master/documentation/modules/oauth/con-oauth-config.adoc) file, as the order is important:
+I grouped the procedures in the [`con-oauth-config.adoc`](https://github.com/strimzi/strimzi-kafka-operator/blob/master/documentation/modules/oauth/con-oauth-config.adoc) file, as the order is important:
 
 ````
 include::proc-oauth-server-config.adoc[leveloffset=+1]
@@ -131,7 +131,7 @@ include::proc-oauth-client-config.adoc[leveloffset=+1]
 include::proc-oauth-kafka-config.adoc[leveloffset=+1]
 ````
 
-When you’ve created your assembly and the modules it contains, you can add it to any guide that needs it with an include statement:
+When you’ve created your assembly, and the modules it contains, you can add it to any guide that needs it with an include statement:
 
 ````
 include::oauth/assembly-oauth.adoc[leveloffset=+1]
@@ -140,8 +140,8 @@ include::oauth/assembly-oauth.adoc[leveloffset=+1]
 You can add the include statement in the `master.adoc` file used to build the guide, or nest the assembly in another assembly. Think of the assembly as a plugin.
 
 I needed to decide where I wanted to position this information in the Strimzi documentation.
-The best place was with the Deployment Configuration content of the Using Strimzi guide,
-so I added the assembly as a nested assembly to the [Deployment Configuration assembly (assembly-deployment-configuration.adoc)](https://github.com/strimzi/strimzi-kafka-operator/blob/master/documentation/assemblies/assembly-deployment-configuration.adoc).
+The best place was with the _Deployment Configuration_ content of the _Using Strimzi_ guide,
+so I added the assembly as a nested assembly to the [Deployment Configuration assembly (`assembly-deployment-configuration.adoc`)](https://github.com/strimzi/strimzi-kafka-operator/blob/master/documentation/assemblies/assembly-deployment-configuration.adoc).
 It might not stay there, but that’s where it sits for now.
 Anything’s possible with assemblies!
 You might see the structure of the documentation evolve as we introduce new guides or find other ways to present information.
