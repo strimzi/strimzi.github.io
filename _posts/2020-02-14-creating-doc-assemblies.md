@@ -17,19 +17,19 @@ The kind you want to return to. And we want you to help us make it that way.
 <!--more-->
 
 Before making your highly appreciated contribution to the Strimzi documentation, there are a couple of things worth noting.
-The Strimzi documentation is written in AsciiDoc using a modular structure -- a lightweight language and a logical structure aimed at making the documentation easier to update and manage.
+The Strimzi documentation is written in **AsciiDoc** using a **modular** structure -- a lightweight language and a logical structure aimed at making the documentation easier to update and manage.
 
-### Super simple asciidoc format
+### Super simple Asciidoc format
 
-Asciidoc is a lightweight markup language similar to markdown.
+AsciiDoc is a lightweight markup language similar to markdown.
 Like markdown, the syntax used to format the content can be picked up in minutes.
 We do have guidelines in the [Strimzi Documentation Contributor Guide](https://strimzi.io/contributing/guide/#style-guide),
-but Asciidoctor also provides an excellent [asciidoc quick reference](https://asciidoctor.org/docs/asciidoc-syntax-quick-reference/).
+but Asciidoctor also provides an excellent [Asciidoc quick reference](https://asciidoctor.org/docs/asciidoc-syntax-quick-reference/).
 If that’s too much to absorb,
 I’m sure you’ll quickly get the gist by copying what you see in the Strimzi files.
 
-You can use any text editor to work with Asciidoc,
-but if you are on the hunt for a decent editor geared to working with Asciidoc, I think [Atom](https://atom.io/) takes some beating.
+You can use any text editor to work with AsciiDoc,
+but if you are on the hunt for a decent editor geared to working with AsciiDoc, I think [Atom](https://atom.io/) takes some beating.
 
 You can use [Asciidoctor](https://asciidoctor.org/) to build the Strimzi guides locally, or you can use the [make tooling supplied with the documentation](https://strimzi.io/contributing/guide/#make-tooling).
 
@@ -41,11 +41,11 @@ Thrive in structure or drown in chaos, as they say.
 
 However, it might not be immediately noticeable what the structure represents.
 Essentially, it’s a reflection of the modular approach taken with the documentation.
-You will see folders for guides (using, quickstart, overview), and folders for the files that provide the content for one or more of these guides -- assemblies and modules.
+You will see folders for guides (*Using*, *Quickstart*, *Overview*), and folders for the files that provide the content for one or more of these guides -- *assemblies* and *modules*.
 
 Modularization separates concepts from tasks, then wraps them into an assembly.
 An assembly represents a user story.
-The assembly should answer a question -- the what, why and how of doing something specific.
+The assembly should answer a question -- the *what*, *why* and *how* of doing something specific.
 As such, the assembly represents a self-contained unit of content that should be understood in isolation.
 
 If you want to read more on modularization of documentation,
@@ -60,11 +60,11 @@ I worked on the assembly locally, and then pushed the content to the Strimzi rep
 A new assembly requires:
 
 1. [An assembly file](https://github.com/strimzi/strimzi-kafka-operator/blob/master/documentation/assemblies/oauth/assembly-oauth.adoc)
-2. [Modules to contain the content](https://github.com/strimzi/strimzi-kafka-operator/tree/master/documentation/modules/oauth)
+2. [Modules that contain the content](https://github.com/strimzi/strimzi-kafka-operator/tree/master/documentation/modules/oauth)
 
-So, the first thing I did was create the assembly (assembly-oauth.adoc) that would house the concepts and tasks related to OAuth 2.0.
+So, the first thing I did was create the assembly (`assembly-oauth.adoc`) that would house the concepts and tasks related to OAuth 2.0.
 The assembly [describes how to use OAuth 2.0 token-based authentication](https://github.com/strimzi/strimzi-kafka-operator/blob/master/documentation/assemblies/oauth/assembly-oauth.adoc).
-This sits in its own oauth category folder under the assemblies folder.
+This sits in its own oauth category folder (`oauth`) under the assemblies folder.
 Categories make it easier to find related material.
 
 ````
@@ -88,7 +88,7 @@ We also add a comment to list the files that include an assembly or module:
 = Using {oauth} token-based authentication
 ````
 
-The {context} suffix in the ID is a variable that is set at the master.adoc or assembly level,
+The _{context}_ suffix in the ID is a variable that is set at the `master.adoc` or assembly level,
 and is used to avoid duplication errors at build time when an assembly or module is reused.
 
 I could now build up the modules for the assembly. Again, I created a category for the modules, but this time under modules.
@@ -109,9 +109,9 @@ documentation
            └── proc-oauth-server-config.adoc
  ````
 
-The concepts files are prefixed with con and the procedures with proc to distinguish them. The concepts files provide context and an overview of what Oauth 2.0 is and how it operates. The split between the files is where the content naturally moves on to a new topic. Procedures describe a specific task related to Oauth 2.0. It might help to think of each of these files as representing a title in the table of contents.
+The concepts files are prefixed with *con* and the procedures with *proc* to distinguish them. (A reference file gets a *ref*.) The concepts files provide context and an overview of what Oauth 2.0 is and how it operates. The split between the files is where the content naturally moves on to a new topic. Procedures describe a specific task related to Oauth 2.0. It might help to think of each of these files as representing a title in the table of contents.
 
-With my draft content written, I added the modules to the assembly. I created a symlink to ../modules/oauth from assemblies/oauth to make it easier to navigate related content in Atom, but also to simplify the includes for the content I added to the assembly:
+With my draft content written, I added the modules to the assembly. I created a symlink to `../modules/oauth` from `assemblies/oauth` to make it easier to navigate related content in Atom, but also to simplify the includes for the content I added to the assembly:
 
 ````
 include::modules/con-oauth-authentication-flow.adoc[leveloffset=+1]
@@ -137,7 +137,7 @@ When you’ve created your assembly and the modules it contains, you can add it 
 include::oauth/assembly-oauth.adoc[leveloffset=+1]
 ````
 
-You can add the include statement in the master.adoc file used to build the guide, or nest the assembly in another assembly. Think of the assembly as a plugin.
+You can add the include statement in the `master.adoc` file used to build the guide, or nest the assembly in another assembly. Think of the assembly as a plugin.
 
 I needed to decide where I wanted to position this information in the Strimzi documentation.
 The best place was with the Deployment Configuration content of the Using Strimzi guide,
