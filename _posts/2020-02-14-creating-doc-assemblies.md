@@ -74,7 +74,8 @@ documentation
             └── assembly-oauth.adoc
 ````
 
-Assemblies are kept separate from the modules that form the content -- the concepts, procedures, and reference files.
+Assemblies are kept separate from the modules that form the content.
+Modules can include _concepts_ to provide understanding, _procedures_ to describe the steps to accomplish certain tasks, and related _reference_ data or information, often in lists or tables.
 
 As with each file that’s added to the documentation,
 the assembly file required a title and an ID that’s used whenever a cross-reference to the file is needed.
