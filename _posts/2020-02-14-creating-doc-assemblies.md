@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Creating Strimzi documentation assemblies"
-date: 2020-14-02
+date: 2020-02-14
 author: paul_mellor
 ---
 
