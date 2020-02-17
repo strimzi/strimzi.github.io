@@ -110,7 +110,7 @@ documentation
            └── proc-oauth-server-config.adoc
  ````
 
-The concepts files are prefixed with *con* and the procedures with *proc* to distinguish them. (A reference file gets a *ref*.) The concepts files provide context and an overview of what Oauth 2.0 is and how it operates. The split between the files is where the content naturally moves on to a new topic. Procedures describe a specific task related to Oauth 2.0. It might help to think of each of these files as representing a title in the table of contents.
+The concept files are prefixed with *con* and the procedures with *proc* to distinguish them. (A reference file gets a *ref*.) The concepts files provide context and an overview of what Oauth 2.0 is and how it operates. The split between the files is where the content naturally moves on to a new topic. Procedures describe a specific task related to Oauth 2.0. It might help to think of each of these files as representing a title in the table of contents.
 
 With my draft content written, I added the modules to the assembly. I created a symlink to `../modules/oauth` from `assemblies/oauth` to make it easier to navigate related content in Atom, but also to simplify the includes for the content I added to the assembly:
 
