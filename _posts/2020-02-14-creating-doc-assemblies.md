@@ -7,8 +7,8 @@ author: paul_mellor
 
 Good documentation tells you exactly how to do that thing you want to do as clearly as possible.
 And it's a beautiful thing. Some say it’s a rare thing. Actually, there is a lot of great documentation around.
-But great documentation tends to be invisible, quietly doing it’s job without being noticed.
-You step through that perfectly written procedure and move on.
+But great documentation tends to be invisible, quietly doing its job without being noticed.
+You step through that entirely accurate and perfectly written procedure and move on.
 Bad documentation, on the other hand, is far easier to notice. And once noticed, it is consequently ignored.  
 
 We want the Strimzi documentation to be the great (invisible) kind.
@@ -55,7 +55,7 @@ take a look at this [reference guide](https://redhat-documentation.github.io/mod
 
 Okay, so how do you go about creating a new assembly?
 Let’s take a look at a specific assembly I added to the Strimzi documentation to describe support for OAuth 2.0.
-I worked on the assembly locally, and then pushed the content to the Strimzi repo as a merge request.
+I worked on the assembly locally, and then pushed the content to the Strimzi repo as a pull request.
 
 A new assembly requires:
 
@@ -148,7 +148,7 @@ Anything’s possible with assemblies!
 You might see the structure of the documentation evolve as we introduce new guides or find other ways to present information.
 
 After checking that the new assembly was included correctly in the build,
-I was able to push up my new assembly to the Strimzi repo as a merge request, where it could be reviewed before merging in.
+I was able to push up my new assembly to the Strimzi repo as a pull request, where it could be reviewed before merging in.
 But that’s never the end of the story...
 
 ## Editing Strimzi documentation
