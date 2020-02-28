@@ -155,6 +155,7 @@
 <li><a href="#configuring-kafka-mirror-maker-deployment-configuration-kafka-mirror-maker">3.4.1. Configuring Kafka MirrorMaker</a></li>
 <li><a href="#con-configuring-mirror-maker-deployment-configuration-kafka-mirror-maker">3.4.2. Kafka MirrorMaker configuration properties</a></li>
 <li><a href="#ref-list-of-kafka-mirror-maker-resources-deployment-configuration-kafka-mirror-maker">3.4.3. List of resources created as part of Kafka MirrorMaker</a></li>
+<li><a href="#assembly-mirrormaker-deployment-configuration-kafka-mirror-maker">3.4.4. Using Strimzi with MirrorMaker 2.0.</a></li>
 </ul>
 </li>
 <li><a href="#assembly-deployment-configuration-kafka-bridge-str">3.5. Kafka Bridge configuration</a>
@@ -15952,10 +15953,18 @@ The name of the build is the same as the name of the deployed Kafka Connect clus
 <div class="sect2">
 <h3 id="assembly-deployment-configuration-kafka-mirror-maker-str"><a class="link" href="#assembly-deployment-configuration-kafka-mirror-maker-str">3.4. Kafka MirrorMaker configuration</a></h3>
 <div class="paragraph">
-<p>This chapter describes how to configure the <code>KafkaMirrorMaker</code> resource to support a Kafka MirrorMaker deployment in your cluster.</p>
+<p>This chapter describes how to configure a Kafka MirrorMaker deployment in your Strimzi cluster to replicate data between Kafka clusters.</p>
 </div>
 <div class="paragraph">
-<p>The following procedures show how the resource is configured:</p>
+<p>You can use Strimzi with MirrorMaker or MirrorMaker 2.0.
+MirrorMaker 2.0 is the latest version, and offers a more efficient way to mirror data between Kafka clusters.</p>
+</div>
+<h4 id="mirrormaker" class="discrete">MirrorMaker</h4>
+<div class="paragraph">
+<p>If you are using MirrorMaker, you configure the <code>KafkaMirrorMaker</code> resource.</p>
+</div>
+<div class="paragraph">
+<p>The following procedure shows how the resource is configured:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -15989,6 +15998,40 @@ This provides a convenient mechanism for resources to be labeled as required.
 </td>
 </tr>
 </table>
+</div>
+<h4 id="mirrormaker_2_0" class="discrete">MirrorMaker 2.0</h4>
+<div class="paragraph">
+<p>If you are using MirrorMaker 2.0, you configure the <code>KafkaMirrorMaker2</code> resource.</p>
+</div>
+<div class="paragraph">
+<p>MirrorMaker 2.0 introduces an entirely new way of replicating data between clusters.</p>
+</div>
+<div class="paragraph">
+<p>As a result, the resource configuration differs from the previous version of MirrorMaker.
+If you choose to use MirrorMaker 2.0, there is currently no legacy support, so any resources must be manually converted into the new format.</p>
+</div>
+<div class="paragraph">
+<p>How MirrorMaker 2.0 replicates data is described here:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#con-mirrormaker-deployment-configuration-kafka-mirror-maker">MirrorMaker 2.0 data replication</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The following procedure shows how the resource is configured for MirrorMaker 2.0:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#proc-mirrormaker-replication-deployment-configuration-kafka-mirror-maker">Synchronizing data between Kafka clusters</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The full schema of the <code>KafkaMirrorMaker2</code> resource is described in the <a href="#type-KafkaMirrorMaker2-reference">KafkaMirrorMaker2 schema reference</a>.</p>
 </div>
 <div class="sect3">
 <h4 id="configuring-kafka-mirror-maker-deployment-configuration-kafka-mirror-maker"><a class="link" href="#configuring-kafka-mirror-maker-deployment-configuration-kafka-mirror-maker">3.4.1. Configuring Kafka MirrorMaker</a></h4>
@@ -16682,6 +16725,448 @@ However, if the configured image is not compatible with Strimzi images, it might
 <p>Pod Disruption Budget configured for the Kafka MirrorMaker worker nodes.</p>
 </dd>
 </dl>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-mirrormaker-deployment-configuration-kafka-mirror-maker"><a class="link" href="#assembly-mirrormaker-deployment-configuration-kafka-mirror-maker">3.4.4. Using Strimzi with MirrorMaker 2.0.</a></h4>
+<div class="paragraph">
+<p>This section describes using Strimzi with MirrorMaker 2.0.</p>
+</div>
+<div class="paragraph">
+<p>MirrorMaker 2.0 is used to replicate data between two or more active Kafka clusters, within or across data centers.</p>
+</div>
+<div class="paragraph">
+<p>Data replication across clusters supports scenarios that require:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Recovery of data in the event of a system failure</p>
+</li>
+<li>
+<p>Aggregation of data for analysis</p>
+</li>
+<li>
+<p>Restriction of data access to a specific cluster</p>
+</li>
+<li>
+<p>Provision of data at a specific location to improve latency</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+MirrorMaker 2.0 has features not supported by the previous version of MirrorMaker.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect4">
+<h5 id="con-mirrormaker-deployment-configuration-kafka-mirror-maker"><a class="link" href="#con-mirrormaker-deployment-configuration-kafka-mirror-maker">MirrorMaker 2.0 data replication</a></h5>
+<div class="paragraph">
+<p>MirrorMaker 2.0 consumes messages from a source Kafka cluster and writes them to a target Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>MirrorMaker 2.0 uses:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Source cluster configuration to consume data from the source cluster</p>
+</li>
+<li>
+<p>Target cluster configuration to output data to the target cluster</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>MirrorMaker 2.0 is based on the Kafka Connect framework, <em>connectors</em> managing the transfer of data between clusters.
+A MirrorMaker 2.0 <code>MirrorSourceConnector</code> replicates topics from a source cluster to a target cluster.</p>
+</div>
+<div class="paragraph">
+<p>The process of <em>mirroring</em> data from one cluster to another cluster is asynchronous.
+The recommended pattern is for messages to be produced locally alongside the source Kafka cluster, then consumed remotely close to the target Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>MirrorMaker 2.0 can be used with more than one source cluster.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/mirrormaker.png" alt="MirrorMaker 2.0 replication">
+</div>
+<div class="title">Figure 1. Replication across two clusters</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="cluster_configuration"><a class="link" href="#cluster_configuration">Cluster configuration</a></h5>
+<div class="paragraph">
+<p>You can use MirrorMaker 2.0 in <em>active/passive</em> or <em>active/active</em> cluster configurations.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>In an <em>active/passive</em> configuration, the data from an active cluster is replicated in a passive cluster, which remains on standby, for example, for data recovery in the event of system failure.</p>
+</li>
+<li>
+<p>In an <em>active/active</em> configuration, both clusters are active and provide the same data simultaneously, which is useful if you want to make the same data available locally in different geographical locations.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The expectation is that producers and consumers connect to active clusters only.</p>
+</div>
+<div class="sect5">
+<h6 id="bidirectional_replication"><a class="link" href="#bidirectional_replication">Bidirectional replication</a></h6>
+<div class="paragraph">
+<p>The MirrorMaker 2.0 architecture supports bidirectional replication in an <em>active/active</em> cluster configuration.
+A MirrorMaker 2.0 cluster is required at each target destination.</p>
+</div>
+<div class="paragraph">
+<p>Each cluster replicates the data of the other cluster using the concept of <em>source</em> and <em>remote</em> topics.
+As the same topics are stored in each cluster, remote topics are automatically renamed by MirrorMaker 2.0 to represent the source cluster.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/mirrormaker-renaming.png" alt="MirrorMaker 2.0 bidirectional architecture">
+</div>
+<div class="title">Figure 2. Topic renaming</div>
+</div>
+<div class="paragraph">
+<p>By flagging the originating cluster, topics are not replicated back to that cluster.</p>
+</div>
+<div class="paragraph">
+<p>The concept of replication through <em>remote</em> topics is useful when configuring an architecture that requires data aggregation.
+Consumers can subscribe to source and remote topics within the same cluster, without the need for a separate aggregation cluster.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="topic_configuration_synchronization"><a class="link" href="#topic_configuration_synchronization">Topic configuration synchronization</a></h6>
+<div class="paragraph">
+<p>Topic configuration is automatically synchronized between source and target clusters.
+By synchronizing configuration properties, the need for rebalancing is reduced.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="acl_rules_synchronization"><a class="link" href="#acl_rules_synchronization">ACL rules synchronization</a></h6>
+<div class="paragraph">
+<p>ACL access to remote topics is possible if you are <strong>not</strong> using the User Operator.</p>
+</div>
+<div class="paragraph">
+<p>If <code>SimpleAclAuthorizer</code> is being used, without the User Operator, ACL rules that manage access to brokers also apply to remote topics.
+Users that can read a source topic can read its remote equivalent.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+OAuth 2.0 authorization does not support access to remote topics in this way.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect5">
+<h6 id="data_integrity"><a class="link" href="#data_integrity">Data integrity</a></h6>
+<div class="paragraph">
+<p>MirrorMaker 2.0 monitors source topics and propagates any configuration changes to remote topics, checking for and creating missing partitions.
+Only MirrorMaker 2.0 can write to remote topics.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="offset_tracking"><a class="link" href="#offset_tracking">Offset tracking</a></h6>
+<div class="paragraph">
+<p>MirrorMaker 2.0 tracks offsets for consumer groups using <em>internal topics</em>.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The <em>offset sync</em> topic maps the source and target offsets for replicated topic partitions from record metadata</p>
+</li>
+<li>
+<p>The <em>checkpoint</em> topic maps the last committed offset in the source and target cluster for replicated topic partitions in each consumer group</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Offsets for the <em>checkpoint</em> topic are tracked at predetermined intervals through configuration.
+Both topics enable replication to be fully restored from the correct offset position on failover.</p>
+</div>
+<div class="paragraph">
+<p>MirrorMaker 2.0 uses its <code>MirrorCheckpointConnector</code> to emit <em>checkpoints</em> for offset tracking.</p>
+</div>
+</div>
+<div class="sect5">
+<h6 id="connectivity_checks"><a class="link" href="#connectivity_checks">Connectivity checks</a></h6>
+<div class="paragraph">
+<p>A <em>heartbeat</em> internal topic checks connectivity between clusters.</p>
+</div>
+<div class="paragraph">
+<p>The <em>heartbeat</em> topic is replicated from the source cluster.</p>
+</div>
+<div class="paragraph">
+<p>Target clusters use the topic to check:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The connector managing connectivity between clusters is running</p>
+</li>
+<li>
+<p>The source cluster is available</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>MirrorMaker 2.0 uses its <code>MirrorHeartbeatConnector</code> to emit <em>heartbeats</em> that perform these checks.</p>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-mirrormaker-replication-deployment-configuration-kafka-mirror-maker"><a class="link" href="#proc-mirrormaker-replication-deployment-configuration-kafka-mirror-maker">Synchronizing data between Kafka clusters using MirrorMaker 2.0</a></h5>
+<div class="paragraph">
+<p>Use MirrorMaker 2.0 to synchronize data between Kafka clusters through configuration.</p>
+</div>
+<div class="paragraph">
+<p>The previous version of MirrorMaker continues to be supported.
+If you wish to use the resources configured for the previous version,
+they must be updated to the format supported by MirrorMaker 2.0.</p>
+</div>
+<div class="paragraph">
+<p>The configuration must specify:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Each Kafka cluster</p>
+</li>
+<li>
+<p>Connection information for each cluster, including TLS authentication</p>
+</li>
+<li>
+<p>The replication flow and direction</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Cluster to cluster</p>
+</li>
+<li>
+<p>Topic to topic</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Use the properties of the <code>KafkaMirrorMaker2</code> resource to configure your Kafka MirrorMaker 2.0 deployment.</p>
+</div>
+<div class="paragraph">
+<p>MirrorMaker 2.0 provides default configuration values for properties such as replication factors.
+A minimal configuration, with defaults left unchanged, would be something like this example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirrorMaker2
+metadata:
+  name: my-mirror-maker2
+  spec:
+    version: 2.4.0
+    connectCluster: "my-cluster-target"
+    clusters:
+    - alias: "my-cluster-source"
+      bootstrapServers: my-cluster-source-kafka-bootstrap:9092
+    - alias: "my-cluster-target"
+      bootstrapServers: my-cluster-target-kafka-bootstrap:9092
+    mirrors:
+    - sourceCluster: "my-cluster-source"
+      targetCluster: "my-cluster-target"
+      sourceConnector: {}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can configure access control for source and target clusters using TLS or SASL authentication.
+This procedure shows a configuration that uses TLS encryption and authentication for the source and target cluster.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p><a href="#cluster-operator-str">Strimzi and Kafka is deployed</a></p>
+</li>
+<li>
+<p>Source and target Kafka clusters are available</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>spec</code> properties for the <code>KafkaMirrorMaker2</code> resource.</p>
+<div class="paragraph">
+<p>The properties you can configure are shown in this example configuration:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirrorMaker2
+metadata:
+  name: my-mirror-maker2
+spec:
+  version: 2.4.0 <b class="conum">(1)</b>
+  replicas: 3 <b class="conum">(2)</b>
+  connectCluster: "my-cluster-target" <b class="conum">(3)</b>
+  clusters: <b class="conum">(4)</b>
+  - alias: "my-cluster-source" <b class="conum">(5)</b>
+    authentication: <b class="conum">(6)</b>
+      certificateAndKey:
+        certificate: source.crt
+        key: source.key
+        secretName: my-user-source
+      type: tls
+    bootstrapServers: my-cluster-source-kafka-bootstrap:9092 <b class="conum">(7)</b>
+    tls: <b class="conum">(8)</b>
+      trustedCertificates:
+      - certificate: ca.crt
+        secretName: my-cluster-source-cluster-ca-cert
+  - alias: "my-cluster-target" <b class="conum">(9)</b>
+    authentication: <b class="conum">(10)</b>
+      certificateAndKey:
+        certificate: target.crt
+        key: target.key
+        secretName: my-user-target
+      type: tls
+    bootstrapServers: my-cluster-target-kafka-bootstrap:9092 <b class="conum">(11)</b>
+    config: <b class="conum">(12)</b>
+      config.storage.replication.factor: 1
+      offset.storage.replication.factor: 1
+      status.storage.replication.factor: 1
+    tls: <b class="conum">(13)</b>
+      trustedCertificates:
+      - certificate: ca.crt
+        secretName: my-cluster-target-cluster-ca-cert
+  mirrors: <b class="conum">(14)</b>
+  - sourceCluster: "my-cluster-source" <b class="conum">(15)</b>
+    targetCluster: "my-cluster-target" <b class="conum">(16)</b>
+    sourceConnector: <b class="conum">(17)</b>
+      config:
+        replication.factor: 1 <b class="conum">(18)</b>
+        offset-syncs.topic.replication.factor: 1 <b class="conum">(19)</b>
+        sync.topic.acls.enabled: "false" <b class="conum">(20)</b>
+    heartbeatConnector: <b class="conum">(21)</b>
+      config:
+        heartbeats.topic.replication.factor: 1 <b class="conum">(22)</b>
+    checkpointConnector: <b class="conum">(23)</b>
+      config:
+        checkpoints.topic.replication.factor: 1 <b class="conum">(24)</b>
+    topicsPattern: ".*" <b class="conum">(25)</b>
+    groupsPattern: "group1|group2|group3" <b class="conum">(26)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The Kafka Connect version.</p>
+</li>
+<li>
+<p>The number of replica nodes.</p>
+</li>
+<li>
+<p>The cluster alias for Kafka Connect.</p>
+</li>
+<li>
+<p>Specification for the Kafka clusters being synchronized.</p>
+</li>
+<li>
+<p>The cluster alias for the source Kafka cluster.</p>
+</li>
+<li>
+<p>Authentication for the source cluster, using the <a href="#type-KafkaClientAuthenticationTls-reference">TLS mechanism</a>, as shown here, using <a href="#type-KafkaClientAuthenticationOAuth-reference">OAuth bearer tokens</a>, or a SASL-based <a href="#type-KafkaClientAuthenticationScramSha512-reference">SCRAM-SHA-512</a> or <a href="#type-KafkaClientAuthenticationPlain-reference">PLAIN</a> mechanism.</p>
+</li>
+<li>
+<p>Bootstrap server for connection to the source Kafka cluster.</p>
+</li>
+<li>
+<p>TLS encryption with key names under which TLS certificates are stored in X.509 format for the source Kafka cluster. For more details see <a href="#type-KafkaMirrorMaker2Tls-reference"><code>KafkaMirrorMaker2Tls</code> schema reference</a>.</p>
+</li>
+<li>
+<p>The cluster alias for the target Kafka cluster.</p>
+</li>
+<li>
+<p>Authentication for the target Kafka cluster is configured in the same way as for the source Kafka cluster.</p>
+</li>
+<li>
+<p>Bootstrap server for connection to the target Kafka cluster.</p>
+</li>
+<li>
+<p><a href="#assembly-kafka-connect-configuration-deployment-configuration-kafka-connect">Kafka Connect configuration</a>.
+Standard Apache Kafka configuration may be provided, restricted to those properties not managed directly by Strimzi.</p>
+</li>
+<li>
+<p>TLS encryption for the target Kafka cluster is configured in the same way as for the source Kafka cluster.</p>
+</li>
+<li>
+<p>MirrorMaker 2.0 connectors.</p>
+</li>
+<li>
+<p>The alias of the source cluster used by the MirrorMaker 2.0 connectors.</p>
+</li>
+<li>
+<p>The alias of the target cluster used by the MirrorMaker 2.0 connectors.</p>
+</li>
+<li>
+<p>The configuration for the <code>MirrorSourceConnector</code> that creates remote topics. The <code>config</code> overrides the default configuration options.</p>
+</li>
+<li>
+<p>The replication factor for mirrored topics created at the target cluster.</p>
+</li>
+<li>
+<p>The replication factor for the <code>MirrorSourceConnector</code> <code>offset-syncs</code> internal topic that maps the offsets of the source and target clusters.</p>
+</li>
+<li>
+<p>When enabled, ACLs are applied to synchronized topics. The default is <code>true</code>.</p>
+</li>
+<li>
+<p>The configuration for the <code>MirrorHeartbeatConnector</code> that performs connectivity checks. The <code>config</code> overrides the default configuration options.</p>
+</li>
+<li>
+<p>The replication factor for the heartbeat topic created at the target cluster.</p>
+</li>
+<li>
+<p>The configuration for the <code>MirrorCheckpointConnector</code> that tracks offsets. The <code>config</code> overrides the default configuration options.</p>
+</li>
+<li>
+<p>The replication factor for the checkpoints topic created at the target cluster.</p>
+</li>
+<li>
+<p>Topic replication from the source cluster defined as regular expression patterns. Here we request all topics.</p>
+</li>
+<li>
+<p>Consumer group replication from the source cluster defined as regular expression patterns. Here we request three consumer groups by name.
+You can use comma-separated lists.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Create or update the resource:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>&lt;your-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
 </div>
 </div>
 </div>
@@ -27461,7 +27946,7 @@ For more information, see <a href="#kafka-listener-certificates-str">Kafka liste
 <div class="content">
 <img src="images/secure_communication.png" alt="Secure Communication">
 </div>
-<div class="title">Figure 1. Example architecture diagram of the communication secured by TLS.</div>
+<div class="title">Figure 3. Example architecture diagram of the communication secured by TLS.</div>
 </div>
 <div class="sect2">
 <h3 id="certificate-authorities-str"><a class="link" href="#certificate-authorities-str">11.1. Certificate Authorities</a></h3>
