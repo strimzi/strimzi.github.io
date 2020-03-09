@@ -208,7 +208,7 @@ Often, people get confused by the idea of _replicas_ and _replication through Mi
 that's why you'll see replication between clusters referred to as _mirroring_.
 Just thought I'd bring that up in case I've been inconsistent in this post.
 
-If you don't want to leave the defaults, you can also include configuration for the **_MirrorMaker 2.0 connectors_** -- remember, we're based on Kafka Connect now -- and related **_internal topics_** that manage the transfer and synchronization of data between the clusters.
+If you don't want to leave the defaults, you can also include configuration for the **_MirrorMaker 2.0 connectors_** and related **_internal topics_**.
 
 The `config` overrides the default configuration options, so here we alter the replication factors for the **_internal topics_**.
 You can see the full `spec` options in the [KafkaMirrorMaker2 schema reference](https://strimzi.io/docs/master/#type-KafkaMirrorMaker2-reference).
