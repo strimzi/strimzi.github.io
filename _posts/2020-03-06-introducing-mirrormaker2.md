@@ -37,7 +37,7 @@ Different to the previous version of MirrorMaker, radically different, but diffe
 In fact, once you know the essentials, setting up is rather straightforward.
 
 Using Strimzi, you just need to work out how you want to configure a `KafkaMirrorMaker2` resource, which will define your MirrorMaker 2.0 deployment.
-I'll look a bit more at configuring the `KafkaMirrorMaker2` resource later on.
+We'll look a bit more at configuring the `KafkaMirrorMaker2` resource later on.
 
 First, something you'll be keen to know.
 Is the sequal better than the original?
@@ -110,27 +110,25 @@ Strategies such as using timestamps can be adopted, but it adds complexity.
 Poof! These issues entirely disappear with MirrorMaker 2.0.
 Instead, we get simplicity and sophistication through the `MirrorCheckpointConnector`.
 
-`MirrorCheckpointConnector`
-: `MirrorCheckpointConnector` tracks and maps offsets for consumer groups using an _offset sync_ topic and _checkpoint_ topic.
-: The _offset sync_ topic maps the source and target offsets for replicated topic partitions from record metadata.
-: A _checkpoint_ is emitted from each source cluster and replicated in the target cluster through the _checkpoint_ topic.
-: The _checkpoint_ topic maps the last committed offset in the source and target cluster for replicated topic partitions in each consumer group.
+`MirrorCheckpointConnector` tracks and maps offsets for consumer groups using an _offset sync_ topic and _checkpoint_ topic.
+The _offset sync_ topic maps the source and target offsets for replicated topic partitions from record metadata.
+A _checkpoint_ is emitted from each source cluster and replicated in the target cluster through the _checkpoint_ topic.
+The _checkpoint_ topic maps the last committed offset in the source and target cluster for replicated topic partitions in each consumer group.
 
 ### Checking the connection
 
 The old way of checking that MirrorMaker was working was by using standard Kubernetes _healthcheck_ probes to know when MirrorMaker can accept traffic and when it needs a restart.
 MirrorMaker 2.0 periodically checks on the connection through its dedicated `MirrorHeartbeatConnector`.
 
-`MirrorHeartbeatConnector`
-: `MirrorHeartbeatConnector` periodically checks connectivity between clusters using the _heartbeat_ topic.
-: A _heartbeat_ is emitted from each source cluster and replicated in the target cluster through the _heartbeat_ topic.
-: The _heartbeat_ topic is used to check that the source cluster is available and the clusters are connected.
+`MirrorHeartbeatConnector` periodically checks connectivity between clusters using the _heartbeat_ topic.
+A _heartbeat_ is emitted from each source cluster and replicated in the target cluster through the _heartbeat_ topic.
+The _heartbeat_ topic is used to check that the source cluster is available and the clusters are connected.
 
 ### Unleashing MirrorMaker 2.0
 
 Okay, so let's look at how you might approach the configuration of a MirrorMaker 2.0 deployment with the `KafkaMirrorMaker2` resource.
 
-When you define your MirrorMaker 2.0 configuration to set up a connection, you specify the _Source Kafka cluster_ and _target Kafka cluster_, and the bootstrap servers for connection.
+When you define your MirrorMaker 2.0 configuration to set up a connection, you specify the `sourceCluster` and `targetCluster`, and the `bootstrapServers` for connection.
 
 If you're sticking with defaults, you don't need to specify much more.
 Here's a minimum configuration for MirrorMaker 2.0:
@@ -204,14 +202,13 @@ spec:
         secretName: my-cluster-target-cluster-ca-cert
 ```
 
-Often, people get confused by the idea of _replicas_ and _replication through MirrorMaker_,
-that's why you'll see replication between clusters referred to as _mirroring_.
+People can be confused by the idea of _replicas_ and _replication_ through MirrorMaker,
+that's why you'll see replication between clusters often referred to as _mirroring_.
 Just thought I'd bring that up in case I've been inconsistent in this post.
 
 If you don't want to leave the defaults, you can also include configuration for the **_MirrorMaker 2.0 connectors_** and related **_internal topics_**.
 
-The `config` overrides the default configuration options, so here we alter the replication factors for the **_internal topics_**.
-You can see the full `spec` options in the [KafkaMirrorMaker2 schema reference](https://strimzi.io/docs/master/#type-KafkaMirrorMaker2-reference).
+The `config` overrides the default configuration options, so here we alter the replication factors for the **_internal topics_**:
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1alpha1
@@ -233,6 +230,8 @@ metadata:
         checkpoints.topic.replication.factor: 1
 ```
 
+You can see the full `spec` options in the [KafkaMirrorMaker2 schema reference](https://strimzi.io/docs/master/#type-KafkaMirrorMaker2-reference).
+
 If, at this point, you're wondering what happens if you're using the old version of MirrorMaker.
 It's still supported, but you will need to updated to the format supported by MirrorMaker 2.0.
 
@@ -241,7 +240,7 @@ It's still supported, but you will need to updated to the format supported by Mi
 Apache understood that MirrorMaker was due an overhaul [[KIP-382: MirrorMaker 2.0](https://cwiki.apache.org/confluence/display/KAFKA/KIP-382%3A+MirrorMaker+2.0)].
 They identified the key issues with using the original MirrorMaker -- manual topic configuration, the lack of support for _active/active_ replication, and the inability to track offsets -- and eradicated them with MirrorMaker 2.0.
 The changes are bold, particularly moving to a Kafka Connect foundation.
-But the new design works so much better for backup and disaster recovery.
+But the new design works so much better, particularly for backup and disaster recovery.
 
 I hope this post has persuaded you of the benefits of MirrorMaker 2.0.
 With the release of Strimzi 0.17, you get example files to be able to try it.
