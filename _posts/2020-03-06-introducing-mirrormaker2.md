@@ -40,7 +40,7 @@ Using Strimzi, you just need to work out how you want to configure a `KafkaMirro
 We'll look a bit more at configuring the `KafkaMirrorMaker2` resource later on.
 
 First, something you'll be keen to know.
-Is the sequal better than the original?
+Is the sequel better than the original?
 Well, how does **_bidirectional replication_** sound?
 And what about **_topic configuration synchronization_**  and **_offset tracking_**?
 Pretty good, right?
@@ -101,7 +101,7 @@ The need for rebalancing vanishes.
 ### Offset tracking and mapping
 
 In the old version of MirrorMaker, the offset of the source topic in the target cluster begins when the replication begins.
-The `__consumer-offset topic` is not mirrored.
+The `__consumer_offsets` topic is not mirrored.
 So offsets of the source topic and its replicated equivalent can have two entirely different positions.
 This can be problematic in a failover situation.
 How to find the offset in the target cluster?
