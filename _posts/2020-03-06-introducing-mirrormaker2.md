@@ -36,7 +36,7 @@ MirrorMaker 2.0 **_connectors_** -- remember, we're based on Kafka Connect now -
 Different to the previous version of MirrorMaker, radically different, but different doesn't mean more complicated here.
 In fact, once you know the essentials, setting up is rather straightforward.
 
-Using Strimzi, you just need to work out how you want to configure a `KafkaMirrorMaker2` resource, which will define your MirrorMaker 2.0 deployment.
+Using Strimzi, you just need to work out how you want to configure a `KafkaMirrorMaker2` resource, which will define your Kafka Connect deployment and start running a set of MirrorMaker 2.0 connectors.
 We'll look a bit more at configuring the `KafkaMirrorMaker2` resource later on.
 
 First, something you'll be keen to know.
@@ -52,7 +52,7 @@ This is MirrorMaker unleashed, ready to fulfill the potential we always knew it 
 In the previous version of MirrorMaker, the topic name in the source cluster is automatically created in the downstream cluster.
 Fine, to a point.
 But there is no distinction between _Topic-1.Partition-1_ in the source cluster and _Topic-1.Partition-1_ in the target cluster.
-Essentially, you are limited to _active/passive_ synchonization.
+Essentially, you are limited to _active/passive_ synchronization.
 MirrorMaker 2.0 solves this by introducing the concept of _remote_ topics.
 
 _Remote_ topics are created from the originating cluster by the `MirrorSourceConnector`.
@@ -76,25 +76,24 @@ For this, you need a MirrorMaker 2.0 cluster at each destination.
 
 ### Self-regulating topic replication
 
-Topic replication and consumer group replication is defined using regular expression patterns to _whitelist_ or _blacklist_ topics and consumer groups:
+Topic replication is defined using regular expression patterns to _whitelist_ or _blacklist_ topics:
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1alpha1
 kind: KafkaMirrorMaker2
 metadata:
   name: my-mirror-maker2
-  spec:
-    # ...
-    topicsPattern: ".*"
-    groupsPattern: "group1|group2|group3"
+spec:
+  # ...
+  topicsPattern: ".*"
 ```
 
-You use `topicsBlacklistPattern` and ` groupsBlacklistPattern` if you want to use blacklists.
+You use `topicsBlacklistPattern` if you want to use blacklists.
 
-Pretty similar to before, but previously topic configuration was not replicated.
+Pretty similar to before, but previously topic _configuration_ was not replicated.
 The target cluster had to be manually maintained to match topic configuration changes in the source cluster.
 
-This time the topic configuration is now automatically synchronized between source and target clusters through configuration properties.
+This time the topic configuration is automatically synchronized between source and target clusters through configuration properties.
 Configuration changes are propagated to remote topics so that new topics and partitions are detected and created.
 The need for rebalancing vanishes.
 
@@ -110,10 +109,27 @@ Strategies such as using timestamps can be adopted, but it adds complexity.
 Poof! These issues entirely disappear with MirrorMaker 2.0.
 Instead, we get simplicity and sophistication through the `MirrorCheckpointConnector`.
 
-`MirrorCheckpointConnector` tracks and maps offsets for consumer groups using an _offset sync_ topic and _checkpoint_ topic.
+`MirrorCheckpointConnector` tracks and maps offsets for specified consumer groups using an _offset sync_ topic and _checkpoint_ topic.
 The _offset sync_ topic maps the source and target offsets for replicated topic partitions from record metadata.
 A _checkpoint_ is emitted from each source cluster and replicated in the target cluster through the _checkpoint_ topic.
 The _checkpoint_ topic maps the last committed offset in the source and target cluster for replicated topic partitions in each consumer group.
+
+If you want automatic failover, you can add Kafka's new `RemoteClusterUtils.java` utility class to your consumers.
+The class translates translates the consumer group offset from the source cluster to the corresponding offset for the target cluster.
+
+The consumer groups tracked by `MirrorCheckpointConnector` are dependent on those defined in a _whitelist_ or _blacklist_:
+
+```yaml
+apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirrorMaker2
+metadata:
+  name: my-mirror-maker2
+spec:
+  # ...
+  groupsPattern: "group1|group2|group3"
+```
+
+You use `groupsBlacklistPattern` if you want to use blacklists.
 
 ### Checking the connection
 
@@ -138,18 +154,18 @@ apiVersion: kafka.strimzi.io/v1alpha1
 kind: KafkaMirrorMaker2
 metadata:
   name: my-mirror-maker2
-  spec:
-    version: 2.4.0
-    connectCluster: "my-cluster-target"
-    clusters:
-    - alias: "my-cluster-source"
-      bootstrapServers: my-cluster-source-kafka-bootstrap:9092
-    - alias: "my-cluster-target"
-      bootstrapServers: my-cluster-target-kafka-bootstrap:9092
-    mirrors:
-    - sourceCluster: "my-cluster-source"
-      targetCluster: "my-cluster-target"
-      sourceConnector: {}
+spec:
+  version: 2.4.0
+  connectCluster: "my-cluster-target"
+  clusters:
+  - alias: "my-cluster-source"
+    bootstrapServers: my-cluster-source-kafka-bootstrap:9092
+  - alias: "my-cluster-target"
+    bootstrapServers: my-cluster-target-kafka-bootstrap:9092
+  mirrors:
+  - sourceCluster: "my-cluster-source"
+    targetCluster: "my-cluster-target"
+    sourceConnector: {}
 ```
 
 Note that the `spec` includes the Kafka Connect version and cluster alias with the `connectCluster` value,
@@ -167,6 +183,7 @@ Here we create 3 replica nodes and use TLS authentication.
 apiVersion: kafka.strimzi.io/v1alpha1
 kind: KafkaMirrorMaker2
 metadata:
+  name: my-mirror-maker2
 spec:
   version: {DefaultKafkaVersion}
   replicas: 3
@@ -185,7 +202,7 @@ spec:
       - certificate: ca.crt
         secretName: my-cluster-source-cluster-ca-cert
   - alias: "my-cluster-target"
-    authentication: <10>
+    authentication:
       certificateAndKey:
         certificate: target.crt
         key: target.key
@@ -214,26 +231,30 @@ The `config` overrides the default configuration options, so here we alter the r
 apiVersion: kafka.strimzi.io/v1alpha1
 kind: KafkaMirrorMaker2
 metadata:
-  spec:
+  name: my-mirror-maker2
+spec:
+# ...
+  mirrors:
   # ...
-    mirrors:
-    # ...
-    sourceConnector:
-      config:
-        replication.factor: 1
-        offset-syncs.topic.replication.factor: 1
-    heartbeatConnector:
-      config:
-        heartbeats.topic.replication.factor: 1
-    checkpointConnector:
-      config:
-        checkpoints.topic.replication.factor: 1
+  sourceConnector:
+    config:
+      replication.factor: 1
+      offset-syncs.topic.replication.factor: 1
+  heartbeatConnector:
+    config:
+      heartbeats.topic.replication.factor: 1
+  checkpointConnector:
+    config:
+      checkpoints.topic.replication.factor: 1
 ```
 
 You can see the full `spec` options in the [KafkaMirrorMaker2 schema reference](https://strimzi.io/docs/master/#type-KafkaMirrorMaker2-reference).
 
-If, at this point, you're wondering what happens if you're using the old version of MirrorMaker.
-It's still supported, but you will need to updated to the format supported by MirrorMaker 2.0.
+If, at this point, you're wondering what happens if you're using the old version of MirrorMaker,
+it's still supported.
+And there are also plans to have a _legacy mode_ in MirrorMaker 2.0 that creates topics without the cluster prefix,
+and doesn't do the topic configuration mirroring.
+Basically, turning off the main differences between the original and the new version of MirrorMaker.
 
 ### Embrace change
 
