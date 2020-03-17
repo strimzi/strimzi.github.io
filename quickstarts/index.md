@@ -10,3 +10,4 @@ Below are a few quickstart documents for different environments, that walk you t
 
 * [Minikube](/quickstarts/minikube/)
 * [OKD](/quickstarts/okd)
+* [Kubernetes Kind](/quickstarts/kind)
