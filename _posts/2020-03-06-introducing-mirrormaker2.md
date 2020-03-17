@@ -115,7 +115,7 @@ A _checkpoint_ is emitted from each source cluster and replicated in the target 
 The _checkpoint_ topic maps the last committed offset in the source and target cluster for replicated topic partitions in each consumer group.
 
 If you want automatic failover, you can add Kafka's new `RemoteClusterUtils.java` utility class to your consumers.
-The class translates translates the consumer group offset from the source cluster to the corresponding offset for the target cluster.
+The class translates the consumer group offset from the source cluster to the corresponding offset for the target cluster.
 
 The consumer groups tracked by `MirrorCheckpointConnector` are dependent on those defined in a _whitelist_ or _blacklist_:
 
