@@ -37,7 +37,6 @@ Make sure to assign at least 2 CPUs, and preferably 4 Gb or more of RAM. Consult
 This will start a local development cluster of [Kubernetes Kind](https://github.com/kubernetes-sigs/kind) which installs as a single docker container.
 
 ```shell
-# Install kind
 kind create cluster
 ```
 
@@ -72,7 +71,6 @@ You can also follow the operator's log:
 kubectl logs `kubectl get pod -n kafka | grep strimzi-cluster-operator | awk '{print $1}'` -n kafka -f
 ```
 
-
 # Provision the Apache Kafka cluster
 
 After that we feed Strimzi with a simple **Custom Resource**, which will then give you a small persistent Apache Kafka Cluster with one node for each, Apache Zookeeper and Apache Kafka:
@@ -104,4 +102,4 @@ And to receive them in a different terminal you can run:
 kubectl -n kafka run kafka-consumer -ti --image=strimzi/kafka:{{site.data.releases.operator[0].version}}-kafka-{{site.data.releases.operator[0].defaultKafkaVersion}} --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic --from-beginning
 ```
 
-Enjoy your Apache Kafka cluster, running on Minikube!
+Enjoy your Apache Kafka cluster, running on Kind!
