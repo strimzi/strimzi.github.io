@@ -3,6 +3,14 @@ title: Kubernes Kind Quickstart
 layout: default
 ---
 
+Kubernetes Kind is a single-node Kubernetes cluster implemented as a single Docker image that runs as a container.
+It was primarily designed for testing Kubernetes itself, but may be used for local development or CI.
+
+When using a local install of Minikube or Minishift, the Kubernetes cluster is started inside a virtual machine, running a Linux kernel and a Docker daemon, consuming extra CPU and RAM.
+
+Kind, on the other hand, requires no additional VM - it simply runs as a linux container with a set of processes using the same Linux kernel used by your Docker daemon.
+For this reason it is faster to start, and consumes less CPU, and RAM than the alternatives.
+
 # Installing the dependencies
 
 This quickstart assumes that you have the latest version of the `kind` binary, which you can get [here](https://github.com/kubernetes-sigs/kind/releases).
@@ -10,7 +18,7 @@ This quickstart assumes that you have the latest version of the `kind` binary, w
 Kind requires a running Docker Daemon. There are different Docker options depending on your host platform.
 You can follow the instructions [here](https://docs.docker.com/get-docker/).
 
-You'll also need `kubectl` binary, which you can get by following the instruction [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
+You'll also need `kubectl` binary, which you can get by following the instructions [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
 
 Once you have all the binaries installed, and a Docker daemon running, make sure everything works:
 
@@ -30,7 +38,6 @@ kubectl version
 
 If your Docker Daemon runs as a VM you'll most likely need to configure how much memory the VM should have, how many CPUs, how much disk space, and swap size.
 Make sure to assign at least 2 CPUs, and preferably 4 Gb or more of RAM. Consult Docker documentation for you platform.
-
 
 # Starting Kubernetes cluster
 
