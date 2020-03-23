@@ -30,7 +30,6 @@ The governance of the project is defined in the [GOVERNANCE.md](https://github.c
 So as to be transparant and to ensure that all potential maintainers are judged fairly and consistently the following criteria should be taken into account in electing new maintainers:
 
 ## Criteria
-Some evidence of the following are given particular weight:
 
 * Sustained contributions over at least 3 months ideally including non-trivial PRs.
 * An area of developing expertise. This includes the HTTP Bridge and Oauth components. The candidate does not have to be the _go-to_ expert, but they should have a more than superficial understanding of at least one area. For example:
@@ -40,9 +39,6 @@ Some evidence of the following are given particular weight:
     - System tests
     - Documentation
 * Reviewing other contributors' PRs (not just for trivial errors, such as typos, but also guiding contributors on "big picture" aspects such as the future direction of the project).
-
-These criteria are also beneficial: 
-
 * Contributing to different aspects of the project and community. For example it’s not enough to just implement features. We should also consider:
     - Bug reporting, triage and fixing
     - Addressing technical debt (in code, testing and documentation).
