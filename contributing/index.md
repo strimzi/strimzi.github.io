@@ -33,7 +33,7 @@ So as to be transparant and to ensure that all potential maintainers are judged 
 Some evidence of the following are given particular weight:
 
 * Sustained contributions over at least 3 months ideally including non-trivial PRs.
-* An area of developing expertise. The candidate does not have to be the _go-to_ expert, but they should have a more than superficial understanding of at least one area. For example:
+* An area of developing expertise. This includes the HTTP Bridge and Oauth components. The candidate does not have to be the _go-to_ expert, but they should have a more than superficial understanding of at least one area. For example:
     - A particular operator
     - Some Kubernetes concern (CRDs, API, JSON Schema, and so on)
     - Some associated bit of Kafka technology in which the project has a strategic interest (Cruise Control, for example)
@@ -50,6 +50,6 @@ These criteria are also beneficial:
     - Helping users, for example on GitHub, the mailing list, Slack, Stack Overflow, and so on.   
     - Promotion of Strimzi, for example by blogging, speaking at conferences, and so on.
 * An understanding of the overall architecture/structure of the codebase.
-* Knowing when to ask for help or seek consensus.
+* Knowing when to ask for help or seek consensus (being a maintainer is not a licence to merge "at will" whatever you chose).
 * An indication of being committed to the long term success of the project.
 
