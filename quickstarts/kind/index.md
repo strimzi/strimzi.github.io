@@ -37,7 +37,7 @@ kubectl version
 # Configuring the Docker daemon
 
 If your Docker Daemon runs as a VM you'll most likely need to configure how much memory the VM should have, how many CPUs, how much disk space, and swap size.
-Make sure to assign at least 2 CPUs, and preferably 4 Gb or more of RAM. Consult the Docker documentation for you platform.
+Make sure to assign at least 2 CPUs, and preferably 4 Gb or more of RAM. Consult the Docker documentation for you platform how to configure these settings.
 
 # Starting Kubernetes cluster
 
