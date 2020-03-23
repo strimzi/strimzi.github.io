@@ -9,7 +9,7 @@ Apache Kafka MirrorMaker replicates data between two Kafka clusters, within or a
 MirrorMaker takes messages from a source Kafka cluster and writes them to a target Kafka cluster,
 which makes it a very useful tool for those wanting to ensure the availability and consistency of their enterprise data.
 And who doesn't?
-Typical scenarios where you might consider MirrorMaker are for disaster recovery and increased throughput.
+Typical scenarios where you might consider MirrorMaker are for disaster recovery and data aggregation.
 
 With the release of Strimzi 0.17, things become a little more interesting with the introduction of support for MirrorMaker 2.0.
 MirrorMaker 2.0 represents a significant shift in the way you synchronize data between replicated Kafka clusters,
@@ -28,10 +28,11 @@ With MirrorMaker 2.0 deployed with Strimzi, you identify your source and target 
 You then configure and deploy MirrorMaker 2.0 to make the connection between those clusters.
 
 This image shows a single source cluster, but you can have multiple source clusters.
+Something that was not possible with old MirrorMaker.
 
 ![Connecting clusters with MirrorMaker 2.0](/assets/2020-03-12-mirrormaker.png)
 
-MirrorMaker 2.0 **_connectors_** -- remember, we're based on Kafka Connect now -- and related **_internal topics_** help manage the transfer and synchronization of data between the clusters.
+MirrorMaker 2.0 _connectors_ -- remember, we're based on Kafka Connect now -- and related _internal topics_ help manage the transfer and synchronization of data between the clusters.
 
 Different to the previous version of MirrorMaker, radically different, but different doesn't mean more complicated here.
 In fact, once you know the essentials, setting up is rather straightforward.
@@ -102,7 +103,7 @@ The need for rebalancing vanishes.
 In the old version of MirrorMaker, the offset of the source topic in the target cluster begins when the replication begins.
 The `__consumer_offsets` topic is not mirrored.
 So offsets of the source topic and its replicated equivalent can have two entirely different positions.
-This can be problematic in a failover situation.
+This was often problematic in a failover situation.
 How to find the offset in the target cluster?
 Strategies such as using timestamps can be adopted, but it adds complexity.
 
@@ -114,7 +115,15 @@ The _offset sync_ topic maps the source and target offsets for replicated topic 
 A _checkpoint_ is emitted from each source cluster and replicated in the target cluster through the _checkpoint_ topic.
 The _checkpoint_ topic maps the last committed offset in the source and target cluster for replicated topic partitions in each consumer group.
 
-If you want automatic failover, you can add Kafka's new `RemoteClusterUtils.java` utility class to your consumers.
+If you want automatic failover, you can use Kafka's new `RemoteClusterUtils.java` utility class by adding `connect-mirror-client` as a dependency to your consumers.
+
+```xml
+<dependency>
+    <groupId>org.apache.kafka</groupId>
+    <artifactId>connect-mirror-client</artifactId>
+    <version>2.4.0</version>
+</dependency>
+```
 The class translates the consumer group offset from the source cluster to the corresponding offset for the target cluster.
 
 The consumer groups tracked by `MirrorCheckpointConnector` are dependent on those defined in a _whitelist_ or _blacklist_:
@@ -188,8 +197,8 @@ spec:
   version: {DefaultKafkaVersion}
   replicas: 3
   connectCluster: "my-cluster-target"
-    clusters:
-    - alias: "my-cluster-source"
+  clusters:
+  - alias: "my-cluster-source"
     authentication:
       certificateAndKey:
         certificate: source.crt
@@ -216,16 +225,16 @@ spec:
     tls:
       trustedCertificates:
       - certificate: ca.crt
-        secretName: my-cluster-target-cluster-ca-cert
+      secretName: my-cluster-target-cluster-ca-cert
 ```
 
 People can be confused by the idea of _replicas_ and _replication_ through MirrorMaker,
-that's why you'll see replication between clusters often referred to as _mirroring_.
-Just thought I'd bring that up in case I've been inconsistent in this post.
+that's why you'll see replication between clusters often referred to as _mirroring_ so that it's not confused with
+the `replicas` that represent the nodes replicated in a deployment.
 
-If you don't want to leave the defaults, you can also include configuration for the **_MirrorMaker 2.0 connectors_** and related **_internal topics_**.
+If you don't want to leave the defaults, you can also include configuration for the _MirrorMaker 2.0 connectors_ and related _internal topics_.
 
-The `config` overrides the default configuration options, so here we alter the replication factors for the **_internal topics_**:
+The `config` overrides the default configuration options, so here we alter the replication factors for the _internal topics_:
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1alpha1
@@ -248,7 +257,7 @@ spec:
       checkpoints.topic.replication.factor: 1
 ```
 
-You can see the full `spec` options in the [KafkaMirrorMaker2 schema reference](https://strimzi.io/docs/master/#type-KafkaMirrorMaker2-reference).
+You can see the full `spec` options in the [KafkaMirrorMaker2 schema reference](https://strimzi.io/docs/latest/#type-KafkaMirrorMaker2-reference).
 
 If, at this point, you're wondering what happens if you're using the old version of MirrorMaker,
 it's still supported.
@@ -258,7 +267,7 @@ Basically, turning off the main differences between the original and the new ver
 
 ### Embrace change
 
-Apache understood that MirrorMaker was due an overhaul [[KIP-382: MirrorMaker 2.0](https://cwiki.apache.org/confluence/display/KAFKA/KIP-382%3A+MirrorMaker+2.0)].
+The Apache Kafka community understood that MirrorMaker was due an overhaul [[KIP-382: MirrorMaker 2.0](https://cwiki.apache.org/confluence/display/KAFKA/KIP-382%3A+MirrorMaker+2.0)].
 They identified the key issues with using the original MirrorMaker -- manual topic configuration, the lack of support for _active/active_ replication, and the inability to track offsets -- and eradicated them with MirrorMaker 2.0.
 The changes are bold, particularly moving to a Kafka Connect foundation.
 But the new design works so much better, particularly for backup and disaster recovery.
