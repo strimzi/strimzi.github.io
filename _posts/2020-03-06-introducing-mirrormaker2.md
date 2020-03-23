@@ -268,7 +268,7 @@ Basically, turning off the main differences between the original and the new ver
 ### Embrace change
 
 The Apache Kafka community understood that MirrorMaker was due an overhaul [[KIP-382: MirrorMaker 2.0](https://cwiki.apache.org/confluence/display/KAFKA/KIP-382%3A+MirrorMaker+2.0)].
-They identified the key issues with using the original MirrorMaker -- manual topic configuration, the lack of support for _active/active_ replication, and the inability to track offsets -- and eradicated them with MirrorMaker 2.0.
+Key issues with using the original MirrorMaker were identified -- manual topic configuration, the lack of support for _active/active_ replication, and the inability to track offsets -- and eradicated with MirrorMaker 2.0.
 The changes are bold, particularly moving to a Kafka Connect foundation.
 But the new design works so much better, particularly for backup and disaster recovery.
 
