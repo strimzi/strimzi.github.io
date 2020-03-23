@@ -3,13 +3,13 @@ title: Kubernes Kind Quickstart
 layout: default
 ---
 
-Kubernetes Kind is a single-node Kubernetes cluster implemented as a single Docker image that runs as a container.
+Kubernetes Kind is a Kubernetes cluster implemented as a single Docker image that runs as a container.
 It was primarily designed for testing Kubernetes itself, but may be used for local development or CI.
 
 When using a local install of Minikube or Minishift, the Kubernetes cluster is started inside a virtual machine, running a Linux kernel and a Docker daemon, consuming extra CPU and RAM.
 
 Kind, on the other hand, requires no additional VM - it simply runs as a linux container with a set of processes using the same Linux kernel used by your Docker daemon.
-For this reason it is faster to start, and consumes less CPU and RAM than the alternatives.
+For this reason it is faster to start, and consumes less CPU and RAM than the alternatives, which is especially noticeable when running a Docker daemon natively on a Linux host.
 
 # Installing the dependencies
 
@@ -81,7 +81,7 @@ kubectl logs `kubectl get pod -n kafka -o name | grep strimzi-cluster-operator` 
 
 # Provision the Apache Kafka cluster
 
-After that we feed Strimzi with a simple **Custom Resource**, which will then give you a small persistent Apache Kafka Cluster with one node for each, Apache Zookeeper and Apache Kafka:
+Then we create a new Kafka custom resource, which will give us a small persistent Apache Kafka Cluster with one node for each - Apache Zookeeper and Apache Kafka:
 
 ```shell
 # Apply the `Kafka` Cluster CR file
