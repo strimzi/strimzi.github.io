@@ -86,7 +86,11 @@ metadata:
   name: my-mirror-maker2
 spec:
   # ...
-  topicsPattern: ".*"
+  mirrors:
+  - sourceCluster: "my-cluster-source"
+    targetCluster: "my-cluster-target"
+    topicsPattern: ".*"
+    # ...
 ```
 
 You use `topicsBlacklistPattern` if you want to use blacklists.
@@ -135,7 +139,11 @@ metadata:
   name: my-mirror-maker2
 spec:
   # ...
-  groupsPattern: "group1|group2|group3"
+  mirrors:
+  - sourceCluster: "my-cluster-source"
+    targetCluster: "my-cluster-target"
+    groupsPattern: "group1|group2|group3"
+    # ...
 ```
 
 You use `groupsBlacklistPattern` if you want to use blacklists.
