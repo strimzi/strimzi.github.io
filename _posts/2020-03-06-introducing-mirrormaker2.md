@@ -154,8 +154,9 @@ The old way of checking that MirrorMaker was working was by using standard Kuber
 MirrorMaker 2.0 periodically checks on the connection through its dedicated `MirrorHeartbeatConnector`.
 
 `MirrorHeartbeatConnector` periodically checks connectivity between clusters using the _heartbeat_ topic.
-A _heartbeat_ is emitted from each source cluster and replicated in the target cluster through the _heartbeat_ topic.
-The _heartbeat_ topic is used to check that the source cluster is available and the clusters are connected.
+A _heartbeat_ is emitted from each remote (source) cluster and mirrored to the target cluster by the `MirrorSourceConnector` as a _heartbeat_ topic.
+The _heartbeat_ topic makes it easy to check that the source cluster is available and the clusters are connected.
+If things go wrong, the _heartbeat_ topic offset positions and time stamps can help with recovery and diagnosis.  
 
 ### Unleashing MirrorMaker 2.0
 
