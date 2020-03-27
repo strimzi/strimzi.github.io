@@ -5,7 +5,7 @@ date: 2020-03-12
 author: paul_mellor
 ---
 
-Apache Kafka MirrorMaker replicates data between two Kafka clusters, within or across data centers.
+Apache Kafka MirrorMaker replicates data across two Kafka clusters, within or across data centers.
 MirrorMaker takes messages from a source Kafka cluster and writes them to a target Kafka cluster,
 which makes it a very useful tool for those wanting to ensure the availability and consistency of their enterprise data.
 And who doesn't?
@@ -19,48 +19,47 @@ promising a more dynamic and automated approach to topic replication between clu
 
 ### MirrorMaker 2.0 - the Kafka Connect(ion)
 
-The previous version of MirrorMaker relies on configuration of a _source producer_ and _target consumer_ pair to synchronize Kafka clusters.
-
-MirrorMaker 2.0 is based on Kafka Connect, which is a bit of a game changer.
-For a start, there is no longer a need to configure producers and consumers to make your connection.
-
-With MirrorMaker 2.0 deployed with Strimzi, you identify your source and target clusters.
-You then configure and deploy MirrorMaker 2.0 to make the connection between those clusters.
-
-This image shows a single source cluster, but you can have multiple source clusters.
-Something that was not possible with old MirrorMaker.
-
-![Connecting clusters with MirrorMaker 2.0](/assets/2020-03-12-mirrormaker.png)
-
-MirrorMaker 2.0 _connectors_ -- remember, we're based on Kafka Connect now -- and related _internal topics_ help manage the transfer and synchronization of data between the clusters.
-
-Different to the previous version of MirrorMaker, radically different, but different doesn't mean more complicated here.
-In fact, once you know the essentials, setting up is rather straightforward.
-
-Using Strimzi, you just need to work out how you want to configure a `KafkaMirrorMaker2` resource, which will define your Kafka Connect deployment and start running a set of MirrorMaker 2.0 connectors.
-We'll look a bit more at configuring the `KafkaMirrorMaker2` resource later on.
-
-First, something you'll be keen to know.
+Before we get into some of the implementation detail, there's something you'll be keen to know about Mirror Maker 2.0.
 Is the sequel better than the original?
 Well, how does **_bidirectional replication_** sound?
 And what about **_topic configuration synchronization_**  and **_offset tracking_**?
 Pretty good, right?
 
-This is MirrorMaker unleashed, ready to fulfill the potential we always knew it had.
+This is MirrorMaker ready to fulfill the potential we always knew it had.
+
+The previous version of MirrorMaker relies on configuration of a _source consumer_ and _target producer_ pair to synchronize Kafka clusters.
+
+MirrorMaker 2.0 is instead based on Kafka Connect, which is a bit of a game changer.
+For a start, there is no longer a need to configure producers and consumers to make your connection.
+
+Using MirrorMaker 2.0, you just need to identify your source and target clusters.
+You then configure and deploy MirrorMaker 2.0 to make the connection between those clusters.
+
+This image shows a single source cluster, but you can have multiple source clusters, which is something that was not possible with old MirrorMaker.
+
+![Connecting clusters with MirrorMaker 2.0](/assets/2020-03-12-mirrormaker.png)
+
+MirrorMaker 2.0 _connectors_ -- remember, we're based on Kafka Connect now -- and related _internal topics_ (_offset sync_, _checkpoint_ and _heartbeat_) help manage the transfer and synchronization of data between the clusters.
+
+Using Strimzi, you configure a `KafkaMirrorMaker2` resource to define the Kafka Connect deployment, including the connection details of the source and target clusters, and start running a set of MirrorMaker 2.0 connectors to make the connection.
+
+Different to the previous version of MirrorMaker, radically different, but different doesn't mean more complicated here.
+In fact, once you know the essentials, setting up is rather straightforward.
 
 ### Bidirectional opportunities
 
 In the previous version of MirrorMaker, the topic name in the source cluster is automatically created in the downstream cluster.
 Fine, to a point.
 But there is no distinction between _Topic-1.Partition-1_ in the source cluster and _Topic-1.Partition-1_ in the target cluster.
-Essentially, you are limited to _active/passive_ synchronization.
+Essentially, you are limited to _active/passive_ synchronization, because _active/active_ replication would cause an infinite loop.
 MirrorMaker 2.0 solves this by introducing the concept of _remote_ topics.
 
 _Remote_ topics are created from the originating cluster by the `MirrorSourceConnector`.
-They are distinguished by automatic renaming that appends the name of cluster to the name of the topic.
+They are distinguished by automatic renaming that prepends the name of cluster to the name of the topic.
 Our _Topic-1.Partition-1_ from the source cluster becomes the never-to-be-confused _Cluster-1-Topic-1.Partition-1_ in the target cluster.
+A consumer in the target cluster can consume _Topic-1.Partition-1_ and  _Cluster-1-Topic-1.Partition-1_ and maintain unambiguous consumer offsets.
 
-As you can see here, _remote_ topics can be easily identified so that they are not returned to the source cluster.
+As you can see here, _remote_ topics can be easily identified, so there's no possibility of messages being sent back and forth in a loop.
 
 ![Topic renaming with MirrorMaker 2.0](/assets/2020-03-12-mirrormaker-renaming.png)
 
@@ -73,7 +72,7 @@ Particularly if we want to create a bidirectional configuration.
 
 The approach to topic renaming opens up a world of bidirectional opportunities.
 You can now have an _active/active_ cluster configuration that feeds data to and from each cluster.
-For this, you need a MirrorMaker 2.0 cluster at each destination.
+For this, you need a MirrorMaker 2.0 cluster at each destination, as shown in the previous image.
 
 ### Self-regulating topic replication
 
@@ -95,23 +94,25 @@ spec:
 
 You use `topicsBlacklistPattern` if you want to use blacklists.
 
-Pretty similar to before, but previously topic _configuration_ was not replicated.
-The target cluster had to be manually maintained to match topic configuration changes in the source cluster.
+This is pretty similar to MirrorMaker, but previously topic _configuration_ was not replicated.
 
-This time the topic configuration is automatically synchronized between source and target clusters through configuration properties.
+The target cluster had to be manually maintained to match topic configuration changes in the source cluster.
+Something easily overlooked, and typically requiring users to build their own automation to achieve at scale.
+
+With MirrorMaker 2.0, the topic configuration is automatically synchronized between source and target clusters according to the topics defined in the `MirrorMaker2` custom resource.
 Configuration changes are propagated to remote topics so that new topics and partitions are detected and created.
-The need for rebalancing vanishes.
+By keeping topic properties synchronized, the need for consumer rebalancing due to topic changes is greatly reduced.
 
 ### Offset tracking and mapping
 
-In the old version of MirrorMaker, the offset of the source topic in the target cluster begins when the replication begins.
+In the previous version of MirrorMaker, the consumer offset of the source topic in the target cluster begins when the replication begins.
 The `__consumer_offsets` topic is not mirrored.
 So offsets of the source topic and its replicated equivalent can have two entirely different positions.
 This was often problematic in a failover situation.
 How to find the offset in the target cluster?
 Strategies such as using timestamps can be adopted, but it adds complexity.
 
-Poof! These issues entirely disappear with MirrorMaker 2.0.
+These issues entirely disappear with MirrorMaker 2.0.
 Instead, we get simplicity and sophistication through the `MirrorCheckpointConnector`.
 
 `MirrorCheckpointConnector` tracks and maps offsets for specified consumer groups using an _offset sync_ topic and _checkpoint_ topic.
@@ -150,7 +151,7 @@ You use `groupsBlacklistPattern` if you want to use blacklists.
 
 ### Checking the connection
 
-The old way of checking that MirrorMaker was working was by using standard Kubernetes _healthcheck_ probes to know when MirrorMaker can accept traffic and when it needs a restart.
+The old way of checking that MirrorMaker was working, on Kubernetes at least, was by using standard Kubernetes _healthcheck_ probes to know when MirrorMaker can accept traffic and when it needs a restart.
 MirrorMaker 2.0 periodically checks on the connection through its dedicated `MirrorHeartbeatConnector`.
 
 `MirrorHeartbeatConnector` periodically checks connectivity between clusters using the _heartbeat_ topic.
