@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Introducing MirrorMaker 2.0 to Strimzi"
-date: 2020-03-12
+date: 2020-03-30
 author: paul_mellor
 ---
 
@@ -37,7 +37,7 @@ You then configure and deploy MirrorMaker 2.0 to make the connection between tho
 
 This image shows a single source cluster, but you can have multiple source clusters, which is something that was not possible with old MirrorMaker.
 
-![Connecting clusters with MirrorMaker 2.0](/assets/2020-03-12-mirrormaker.png)
+![Connecting clusters with MirrorMaker 2.0](/assets/2020-03-30-mirrormaker.png)
 
 MirrorMaker 2.0 _connectors_ -- remember, we're based on Kafka Connect now -- and related _internal topics_ (_offset sync_, _checkpoint_ and _heartbeat_) help manage the transfer and synchronization of data between the clusters.
 
@@ -61,7 +61,7 @@ A consumer in the target cluster can consume _Topic-1.Partition-1_ and  _Cluster
 
 As you can see here, _remote_ topics can be easily identified, so there's no possibility of messages being sent back and forth in a loop.
 
-![Topic renaming with MirrorMaker 2.0](/assets/2020-03-12-mirrormaker-renaming.png)
+![Topic renaming with MirrorMaker 2.0](/assets/2020-03-30-mirrormaker-renaming.png)
 
 Why _remote_ topic and not just _source_ topic?
 Because each source cluster can also be a target cluster in a bidirectional configuration.
