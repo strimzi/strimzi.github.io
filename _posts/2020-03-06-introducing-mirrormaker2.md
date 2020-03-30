@@ -154,8 +154,9 @@ You use `groupsBlacklistPattern` if you want to use blacklists.
 The old way of checking that MirrorMaker was working, on Kubernetes at least, was by using standard Kubernetes _healthcheck_ probes to know when MirrorMaker can accept traffic and when it needs a restart.
 MirrorMaker 2.0 periodically checks on the connection through its dedicated `MirrorHeartbeatConnector`.
 
-`MirrorHeartbeatConnector` periodically checks connectivity between clusters using the _heartbeat_ topic.
-A _heartbeat_ is emitted from each remote (source) cluster and mirrored to the target cluster by the `MirrorSourceConnector` as a _heartbeat_ topic.
+`MirrorHeartbeatConnector` periodically checks connectivity between clusters.
+A _heartbeat_ is emitted from each remote (source) cluster and a _heartbeat_ topic is created on a target cluster.
+If you have MirrorMaker 2.0 at both the remote and target location, a _heartbeat_ emitted locally by the `MirrorHeartbeatConnector` is treated like any remote topic and mirrored by the `MirrorSourceConnector` at the target cluster.
 The _heartbeat_ topic makes it easy to check that the source cluster is available and the clusters are connected.
 If things go wrong, the _heartbeat_ topic offset positions and time stamps can help with recovery and diagnosis.  
 
