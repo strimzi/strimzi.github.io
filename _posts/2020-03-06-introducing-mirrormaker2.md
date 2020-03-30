@@ -155,9 +155,9 @@ The old way of checking that MirrorMaker was working, on Kubernetes at least, wa
 MirrorMaker 2.0 periodically checks on the connection through its dedicated `MirrorHeartbeatConnector`.
 
 `MirrorHeartbeatConnector` periodically checks connectivity between clusters.
-A _heartbeat_ is emitted from each remote (source) cluster and a _heartbeat_ topic is created on a target cluster.
-If you have MirrorMaker 2.0 at both the remote and target location, a _heartbeat_ emitted locally by the `MirrorHeartbeatConnector` is treated like any remote topic and mirrored by the `MirrorSourceConnector` at the target cluster.
-The _heartbeat_ topic makes it easy to check that the source cluster is available and the clusters are connected.
+A _heartbeat_ is produced every second by the `MirrorHeartbeatConnector` into a _heartbeat_ topic that is created on the local cluster.
+If you have MirrorMaker 2.0 at both the remote and local locations, the _heartbeat_ emitted at the remote location by the `MirrorHeartbeatConnector` is treated like any remote topic and mirrored by the `MirrorSourceConnector` at the local cluster.
+The _heartbeat_ topic makes it easy to check that the remote cluster is available and the clusters are connected.
 If things go wrong, the _heartbeat_ topic offset positions and time stamps can help with recovery and diagnosis.  
 
 ### Unleashing MirrorMaker 2.0
