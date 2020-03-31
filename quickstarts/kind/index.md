@@ -11,6 +11,8 @@ When using a local install of Minikube or Minishift, the Kubernetes cluster is s
 Kind, on the other hand, requires no additional VM - it simply runs as a linux container with a set of processes using the same Linux kernel used by your Docker daemon.
 For this reason it is faster to start, and consumes less CPU and RAM than the alternatives, which is especially noticeable when running a Docker daemon natively on a Linux host.
 
+_Note: Kubernetes Kind does currently not support node ports or load balancers. You will not be able to easily access your Kafka cluster from outside of the Kubernetes environment. If you need access from outside, we recommend to use Minikube instead._
+
 # Installing the dependencies
 
 This quickstart assumes that you have the latest version of the `kind` binary, which you can get [here](https://github.com/kubernetes-sigs/kind/releases).
