@@ -49,7 +49,7 @@ Most of the controllers rely on a load balancer or node port service which will 
 Once the traffic reaches the controller, the controller will route it based in the rules specified in the Ingress resource to the different services and pods.
 The controller itself usually also runs as yet another application inside the Kubernetes cluster.
 
-![Accessing applications using NGINX Ingress Controller]({{ "/assets/2019-05-23-ingress-controller.png" }})
+![Accessing applications using NGINX Ingress Controller]({{ "/assets/images/posts/2019-05-23-ingress-controller.png" }})
 
 Some of the controllers are tailored for a specific public cloud - for example the [AWS ALB Ingress Controller](https://github.com/kubernetes-sigs/aws-alb-ingress-controller) provisions the AWS Application Load Balancer to do the routing instead of doing it inside some pod in your Kubernetes cluster.
 
@@ -82,13 +82,13 @@ Strimzi cannot generate it for you, because it does not know which DNS addresses
 If you want to try it for example on Minikube or in other environments where you don't have any managed DNS service to add the hosts for the Kafka cluster, you can use one of the wildcard DNS services such as [nip.io](https://nip.io/) or [xip.io](http://xip.io/) and set it to point to the IP address of your Ingress controller.
 For example `broker-0.<minikube-ip-address>.nip.io`.
 
-![Kafka clients connecting through Ingress controller]({{ "/assets/2019-05-23-connecting-through-ingress.png" }})
+![Kafka clients connecting through Ingress controller]({{ "/assets/images/posts/2019-05-23-connecting-through-ingress.png" }})
 
 The way Strimzi uses Ingress to expose Kafka should already be familiar to you from the previous blog posts.
 We create one service as a bootstrap service and additional services for individual access to each of the Kafka brokers in your cluster.
 For each of these services we will also create one Ingress resource with the corresponding TLS passthrough rule.
 
-![Accessing Kafka using Ingress]({{ "/assets/2019-05-23-ingress-access.png" }})
+![Accessing Kafka using Ingress]({{ "/assets/images/posts/2019-05-23-ingress-access.png" }})
 
 When configuring Strimzi to use Ingress, you have to specify the type of the external listener as `ingress` and specify the ingress hosts used for the different brokers as well as for bootstrap in the `configuration` field:
 

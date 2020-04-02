@@ -27,7 +27,7 @@ The objective here is always the same : providing a way to run an Apache Kafka c
 
 The current first early release (the [0.1.0](https://github.com/strimzi/strimzi/releases/tag/0.1.0)) provides all the YAML resources needed for deploying the Apache Kafka cluster in terms of StatefulSets (used for the broker and Zookeeper nodes), Services (for having the nodes able to communicate each other and reachable by the clients), Persistent Volume Claims (for storing Kafka logs other then supporting “ephemeral” storage with emptyDir) and finally metrics support in order to get metrics data from the cluster through [Prometheus](https://prometheus.io/) and showing them in a [Grafana](https://grafana.com/) dashboard.
 
-![Strimzi on OpenShift]({{ "/assets/2018-02-25-strimzi-openshift.png" }})
+![Strimzi on OpenShift]({{ "/assets/images/posts/blog2018-02-25-strimzi-openshift.png" }})
 
 Other than that, Strimzi provides a way for deploying Kafka Connect as well alongside a Kafka cluster. In order to simplify the addition of new connectors when running on OpenShift, the deployment leverage some unique OpenShift features like “Builds” and “S2I” images.
 

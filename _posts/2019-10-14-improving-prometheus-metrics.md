@@ -43,14 +43,14 @@ But since our aim in the Strimzi project is to offer a Kubernetes-native experie
 To help with that, we use the [Prometheus JMX Exporter](https://github.com/prometheus/jmx_exporter) project which takes the JMX metrics and exposes them as Prometheus endpoint.
 Apart from integrating the JMX Exporter we also provide Grafana dashboards and sample Prometheus alerting rules which you can use and adapt to your own needs.
 
-[![Kafka dashboard]({{ "/assets/2019-10-14-kafka-dashboard.png" }})](/assets/2019-10-14-kafka-dashboard.png)
+[![Kafka dashboard]({{ "/assets/images/posts/2019-10-14-kafka-dashboard.png" }})](/assets/images/posts/2019-10-14-kafka-dashboard.png)
 
 To enable the JMX Exporter in Strimzi, you have to specify the `metrics` section in the Strimzi `Kafka`, `KafkaConnect` and `KafkaConnectS2I` custom resources.
 This section configures the JMX exporter and tells it how the JMX metrics should be converted to the Prometheus metrics.
 There are different ways to configure the JMX Exporter.
 And while you are of course free to configure it according to your needs, it is important to follow our configuration if you want to use our dashboards and alerting rules.
 
-[![Zookeeper dashboard]({{ "/assets/2019-10-14-zookeeper-dashboard.png" }})](/assets/2019-10-14-kafka-dashboard.png)
+[![Zookeeper dashboard]({{ "/assets/images/posts/2019-10-14-zookeeper-dashboard.png" }})](/assets/images/posts/2019-10-14-kafka-dashboard.png)
 
 The Prometheus support, dashboards and sample alerting rules do not only work with Kafka brokers.
 They also support Kafka Connect and Apache Zookeeper.
@@ -116,7 +116,7 @@ It also provides a lot of additional details about consumer groups and topics.
 * Information about partitions which do not have their leader on the preferred node.
 All these metrics can be used in alerts and dashboards.
 
-[![Kafka Exporter dashboard]({{ "/assets/2019-10-14-kafka-exporter-dashboard.png" }})](/assets/2019-10-14-kafka-exporter-dashboard.png)
+[![Kafka Exporter dashboard]({{ "/assets/images/posts/2019-10-14-kafka-exporter-dashboard.png" }})](/assets/images/posts/2019-10-14-kafka-exporter-dashboard.png)
 
 Once you have the Kafka Exporter deployed, you can start scraping the metrics it provides.
 We also provide a new Grafana dashboard and alert rules which work with the new metrics.

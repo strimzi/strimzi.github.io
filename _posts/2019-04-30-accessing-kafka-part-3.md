@@ -74,7 +74,7 @@ The Strimzi Kafka operator will also create a `Route` resource for each of these
 That will expose them using the HAProxy router.
 The DNS addresses assigned to these routes will be used by Strimzi to configure the advertised addresses in the different Kafka brokers.
 
-![Accessing Kafka using per-pod routes]({{ "/assets/2019-04-30-per-pod-routes.png" }})
+![Accessing Kafka using per-pod routes]({{ "/assets/images/posts/2019-04-30-per-pod-routes.png" }})
 
 Kafka clients will connect to the bootstrap route which will route them through the bootstrap service to one of the brokers.
 From this broker, they will get the metadata which will contain the DNS names of the per-broker routes.
