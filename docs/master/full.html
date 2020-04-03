@@ -686,6 +686,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#proc-deploying-the-user-operator-standalone-deploying-uo">4.3.5. Deploying the standalone User Operator</a></li>
 </ul>
 </li>
+<li><a href="#assembly-operators-monitoring-str">4.4. Monitoring Operators</a>
+<ul class="sectlevel3">
+<li><a href="#con-operators-prometheus-metrics-str">4.4.1. Prometheus metrics</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#using-the-topic-operator-str">5. Using the Topic Operator</a>
@@ -24198,6 +24203,38 @@ This could take some time if you have a slow connection to the Kubernetes and th
 </div>
 </div>
 </div>
+<div class="sect2">
+<h3 id="assembly-operators-monitoring-str"><a class="link" href="#assembly-operators-monitoring-str">4.4. Monitoring Operators</a></h3>
+<div class="sect3">
+<h4 id="con-operators-prometheus-metrics-str"><a class="link" href="#con-operators-prometheus-metrics-str">4.4.1. Prometheus metrics</a></h4>
+<div class="paragraph">
+<p>Strimzi operators expose Prometheus metrics.
+The metrics are automatically enabled and contain information about:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Number of reconciliations</p>
+</li>
+<li>
+<p>Number of Custom Resources the operator is processing</p>
+</li>
+<li>
+<p>Duration of reconciliations</p>
+</li>
+<li>
+<p>JVM metrics from the operators</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Additionally, we provide an example Grafana dashboard.</p>
+</div>
+<div class="paragraph">
+<p>For more information about Prometheus, see the <a href="#assembly-metrics-setup-str">introduction to metrics</a>.</p>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -26387,7 +26424,7 @@ You can also use the <a href="https://strimzi.io/docs/bridge/latest/#_seektobegi
 <h2 id="assembly-metrics-setup-str"><a class="link" href="#assembly-metrics-setup-str">8. Introducing Metrics</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>This section describes how to monitor Strimzi Kafka, ZooKeeper and Kafka Connect clusters using Prometheus to provide monitoring data for example Grafana dashboards.</p>
+<p>This section describes how to monitor Strimzi Kafka, ZooKeeper, Kafka Connect, and Kafka Mirror Maker2 clusters using Prometheus to provide monitoring data for example Grafana dashboards.</p>
 </div>
 <div class="paragraph">
 <p>In order to run the example Grafana dashboards, you must:</p>
@@ -26423,6 +26460,21 @@ If you require further support on configuring and running Prometheus or Grafana 
 <p>When you have Prometheus and Grafana enabled, you can also use Kafka Exporter to provide additional monitoring related to consumer lag.
 For more information, see <a href="#assembly-kafka-exporter-str">Kafka Exporter</a>.</p>
 </div>
+<div class="paragraph">
+<div class="title">Operators</div>
+<p>Prometheus and Grafana can be also used to monitor the operators.
+The example Grafana dashboard for operators provides:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Information about the operator such as the number of reconciliations or number of Custom Resources they are processing</p>
+</li>
+<li>
+<p>JVM metrics from the operators</p>
+</li>
+</ul>
+</div>
 <div class="ulist">
 <div class="title">Additional resources</div>
 <ul>
@@ -26453,7 +26505,9 @@ For more information, see <a href="#assembly-kafka-exporter-str">Kafka Exporter<
 ├── grafana-dashboards <b class="conum">(2)</b>
 │   ├── strimzi-kafka-connect.json
 │   ├── strimzi-kafka.json
-│   └── strimzi-zookeeper.json
+│   ├── strimzi-zookeeper.json
+│   ├── strimzi-kafka-mirror-maker-2.json
+│   ├── strimzi-operators.json
 │   └── strimzi-kafka-exporter.json <b class="conum">(3)</b>
 ├── kafka-connect-metrics.yaml <b class="conum">(4)</b>
 ├── kafka-metrics.yaml <b class="conum">(5)</b>
@@ -26465,7 +26519,8 @@ For more information, see <a href="#assembly-kafka-exporter-str">Kafka Exporter<
     ├── alert-manager.yaml <b class="conum">(8)</b>
     ├── prometheus-rules.yaml <b class="conum">(9)</b>
     ├── prometheus.yaml <b class="conum">(10)</b>
-    └── strimzi-service-monitor.yaml <b class="conum">(11)</b></code></pre>
+    ├── strimzi-pod-monitor.yaml <b class="conum">(11)</b>
+    └── strimzi-service-monitor.yaml <b class="conum">(12)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -26474,10 +26529,10 @@ For more information, see <a href="#assembly-kafka-exporter-str">Kafka Exporter<
 <p>Installation file for the Grafana image</p>
 </li>
 <li>
-<p>Grafana dashboard configuration</p>
+<p>Grafana dashboards</p>
 </li>
 <li>
-<p>Grafana dashboard configuration specific to <a href="#assembly-kafka-exporter-str">Kafka Exporter</a></p>
+<p>Grafana dashboard specific to <a href="#assembly-kafka-exporter-str">Kafka Exporter</a></p>
 </li>
 <li>
 <p>Metrics configuration that defines Prometheus JMX Exporter relabeling rules for Kafka Connect</p>
@@ -26501,7 +26556,10 @@ For more information, see <a href="#assembly-kafka-exporter-str">Kafka Exporter<
 <p>Installation file for the Prometheus image</p>
 </li>
 <li>
-<p>Prometheus job definitions to scrape metrics data</p>
+<p>Prometheus job definitions to scrape metrics data from pods</p>
+</li>
+<li>
+<p>Prometheus job definitions to scrape metrics data from services</p>
 </li>
 </ol>
 </div>
@@ -26663,6 +26721,9 @@ We show metrics configuration using <code>kafka-metrics.yaml</code> in this sect
 </li>
 <li>
 <p><code>prometheus-rules.yaml</code></p>
+</li>
+<li>
+<p><code>strimzi-pod-monitor.yaml</code></p>
 </li>
 <li>
 <p><code>strimzi-service-monitor.yaml</code></p>
@@ -26865,7 +26926,12 @@ By default, the Prometheus Operator only supports jobs that include an <code>end
 </div>
 </li>
 <li>
-<p>Edit the <code>ServiceMonitor</code> resource in <code>strimzi-service-monitor.yaml</code> to define Prometheus jobs that will scrape the metrics data.</p>
+<p>Edit the <code>ServiceMonitor</code> resource in <code>strimzi-service-monitor.yaml</code> to define Prometheus jobs that will scrape the metrics data from services.
+<code>ServiceMonitor</code> is used to scrape metrics through services and is used for Apache Kafka, ZooKeeper.</p>
+</li>
+<li>
+<p>Edit the <code>PodMonitor</code> resource in <code>strimzi-pod-monitor.yaml</code> to define Prometheus jobs that will scrape the metrics data from pods.
+<code>PodMonitor</code> is used to scrape data directly from pods and is used for Operators.</p>
 </li>
 <li>
 <p>To use another role:</p>
@@ -26890,6 +26956,7 @@ By default, the Prometheus Operator only supports jobs that include an <code>end
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f strimzi-service-monitor.yaml
+kubectl apply -f strimzi-pod-monitor.yaml
 kubectl apply -f prometheus-rules.yaml
 kubectl apply -f prometheus.yaml</code></pre>
 </div>
@@ -27151,6 +27218,12 @@ An alert is raised when this value is lower than 5GiB., providing information on
 </li>
 <li>
 <p><code>strimzi-kafka-mirror-maker-2.json</code></p>
+</li>
+<li>
+<p><code>strimzi-kafka-exporter.json</code></p>
+</li>
+<li>
+<p><code>strimzi-operators.json</code></p>
 </li>
 </ul>
 </div>
@@ -39077,7 +39150,7 @@ Provide a list of secrets with key names under which the certificates are stored
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-04-03 08:53:07 UTC
+Last updated 2020-04-03 10:05:55 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
