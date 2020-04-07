@@ -885,6 +885,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#con-versions-and-images-str">12.4.1. Kafka version and image mappings</a></li>
 <li><a href="#con-strategies-for-upgrading-clients-str">12.4.2. Strategies for upgrading clients</a></li>
 <li><a href="#proc-upgrading-brokers-newer-kafka-str">12.4.3. Upgrading Kafka brokers and client applications</a></li>
+<li><a href="#proc-upgrading-consumers-streams-cooperative-rebalancing_str">12.4.4. Upgrading consumers and Kafka Streams applications to cooperative rebalancing</a></li>
 </ul>
 </li>
 <li><a href="#assembly-downgrading-kafka-versions-str">12.5. Downgrading Kafka</a>
@@ -30500,6 +30501,88 @@ spec:
 </ul>
 </div>
 </div>
+<div class="sect3">
+<h4 id="proc-upgrading-consumers-streams-cooperative-rebalancing_str"><a class="link" href="#proc-upgrading-consumers-streams-cooperative-rebalancing_str">12.4.4. Upgrading consumers and Kafka Streams applications to cooperative rebalancing</a></h4>
+<div class="paragraph">
+<p>You can upgrade Kafka consumers and Kafka Streams applications to use the <em>incremental cooperative rebalance</em> protocol for partition rebalances instead of the default <em>eager rebalance</em> protocol. The new protocol was added in Kafka 2.4.0.</p>
+</div>
+<div class="paragraph">
+<p>Consumers keep their partition assignments in a cooperative rebalance and only revoke them at the end of the process, if needed to achieve a balanced cluster. This reduces the unavailability of the consumer group or Kafka Streams application.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Upgrading to the incremental cooperative rebalance protocol is optional. The eager rebalance protocol is still supported.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>You have <a href="#proc-upgrading-brokers-newer-kafka-str">upgraded Kafka brokers and client applications</a> to Kafka 2.4.0.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Procedure</div>
+<p><strong>To upgrade a Kafka consumer to use the incremental cooperative rebalance protocol:</strong></p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Replace the Kafka clients <code>.jar</code> file with the new version.</p>
+</li>
+<li>
+<p>In the consumer configuration, append <code>cooperative-sticky</code> to the <code>partition.assignment.strategy</code>. For example, if the <code>range</code> strategy is set, change the configuration to <code>range, cooperative-sticky</code>.</p>
+</li>
+<li>
+<p>Restart each consumer in the group in turn, waiting for the consumer to rejoin the group after each restart.</p>
+</li>
+<li>
+<p>Reconfigure each consumer in the group by removing the earlier <code>partition.assignment.strategy</code> from the consumer configuration, leaving only the <code>cooperative-sticky</code> strategy.</p>
+</li>
+<li>
+<p>Restart each consumer in the group in turn, waiting for the consumer to rejoin the group after each restart.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p><strong>To upgrade a Kafka Streams application to use the incremental cooperative rebalance protocol:</strong></p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Replace the Kafka Streams <code>.jar</code> file with the new version.</p>
+</li>
+<li>
+<p>In the Kafka Streams configuration, set the <code>upgrade.from</code> configuration parameter to the Kafka version you are upgrading from (for example, 2.3).</p>
+</li>
+<li>
+<p>Restart each of the stream processors (nodes) in turn.</p>
+</li>
+<li>
+<p>Remove the <code>upgrade.from</code> configuration parameter from the Kafka Streams configuration.</p>
+</li>
+<li>
+<p>Restart each consumer in the group in turn.</p>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="https://kafka.apache.org/documentation/#upgrade_240_notable" target="_blank" rel="noopener">Notable changes in 2.4.0</a> in the Apache Kafka documentation.</p>
+</li>
+</ul>
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="assembly-downgrading-kafka-versions-str"><a class="link" href="#assembly-downgrading-kafka-versions-str">12.5. Downgrading Kafka</a></h3>
@@ -39162,7 +39245,7 @@ Provide a list of secrets with key names under which the certificates are stored
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-04-07 13:21:23 UTC
+Last updated 2020-04-07 21:08:20 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
