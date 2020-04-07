@@ -283,7 +283,7 @@ For more details visit the [Cruise Control Wiki](https://github.com/linkedin/cru
 
 Vist 'http://127.0.0.1:9090' in browser
 
-![Cruise Control Frontend]({{ "/assets/2019-08-08-cruise-control-frontend.png" }})
+![Cruise Control Frontend]({{ "/assets/images/posts/2019-08-08-cruise-control-frontend.png" }})
 
 # Conclusion
 

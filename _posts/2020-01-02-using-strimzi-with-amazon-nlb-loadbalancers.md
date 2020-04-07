@@ -142,7 +142,7 @@ Next, we have to create the Network load balancer.
 In the Amazon AWS console, go to the _Load Balancer_ section of the EC2 dashboard and create a new load balancer with the _Create Load Balancer_ button.
 In the wizard, select a _Network Load Balancer_:
 
-[![Selecting the load balancer type]({{ "/assets/2020-01-02-nlb-create-wizard-type.png" }})](/assets/2020-01-02-nlb-create-wizard-type.png)
+[![Selecting the load balancer type]({{ "/assets/images/posts/2020-01-02-nlb-create-wizard-type.png" }})](/assets/images/posts/2020-01-02-nlb-create-wizard-type.png)
 
 And configure the details of the load balancer:
 * Pick your own name for the load balancer. 
@@ -154,7 +154,7 @@ My Kafka cluster has 3 brokers, so I configured 4 listeners on ports `9092`, `19
 
 Once you are finished, click _Next: ..._.
 
-[![Configure listeners, VPC and subnets]({{ "/assets/2020-01-02-nlb-create-wizard-listeners.png" }})](/assets/2020-01-02-nlb-create-wizard-listeners.png)
+[![Configure listeners, VPC and subnets]({{ "/assets/images/posts/2020-01-02-nlb-create-wizard-listeners.png" }})](/assets/images/posts/2020-01-02-nlb-create-wizard-listeners.png)
 
 We can skip the security configuration since we do not use any TLS listeners and just click _Next: ..._ again to move to the routing configuration:
 * Name the first _Target Group_ which will be used for the bootstrap service. 
@@ -166,30 +166,30 @@ In my case `32200`.
 
 And press the _Next: ..._ button.
 
-[![Configure target group]({{ "/assets/2020-01-02-nlb-create-wizard-target-group.png" }})](/assets/2020-01-02-nlb-create-wizard-target-group.png)
+[![Configure target group]({{ "/assets/images/posts/2020-01-02-nlb-create-wizard-target-group.png" }})](/assets/images/posts/2020-01-02-nlb-create-wizard-target-group.png)
 
 Now we have to register the target instances:
 * Select the nodes where your Kafka cluster might run. 
 This could be all your worker nodes or only some of them if you use node selectors to run Kafka only on some dedicated nodes.
 * Press the _Add to registered_ button.
 
-[![Register Kubernetes nodes]({{ "/assets/2020-01-02-nlb-create-wizard-register-targets.png" }})](/assets/2020-01-02-nlb-create-wizard-register-targets.png)
+[![Register Kubernetes nodes]({{ "/assets/images/posts/2020-01-02-nlb-create-wizard-register-targets.png" }})](/assets/images/posts/2020-01-02-nlb-create-wizard-register-targets.png)
 
 After you selected the nodes, press the _Next: ..._ button, review the NLB and if everything looks ok, press the _Create_ button to confirm the creation.
 
-[![Review the new Network load balancer before creating it]({{ "/assets/2020-01-02-nlb-create-wizard-review.png" }})](/assets/2020-01-02-nlb-create-wizard-review.png)
+[![Review the new Network load balancer before creating it]({{ "/assets/images/posts/2020-01-02-nlb-create-wizard-review.png" }})](/assets/images/posts/2020-01-02-nlb-create-wizard-review.png)
 
 You should now see the load balancer being provisioned.
 That normally takes a few minutes and when it is done the _State_ changes to _active_.
 
-[![Wait for the load balancer provisioning to finish]({{ "/assets/2020-01-02-nlb-provisioning.png" }})](/assets/2020-01-02-nlb-provisioning.png)
+[![Wait for the load balancer provisioning to finish]({{ "/assets/images/posts/2020-01-02-nlb-provisioning.png" }})](/assets/images/posts/2020-01-02-nlb-provisioning.png)
 
 However, in the wizard, we created only the target group for the bootstrap service.
 We will need to create the target groups also for the different brokers.
 That can be done in the _Target Groups_ section of the EC2 dashboard.
 You should already see the bootstrap target group there.
 
-[![Overview of the target groups]({{ "/assets/2020-01-02-nlb-target-groups.png" }})](/assets/2020-01-02-nlb-target-groups.png)
+[![Overview of the target groups]({{ "/assets/images/posts/2020-01-02-nlb-target-groups.png" }})](/assets/images/posts/2020-01-02-nlb-target-groups.png)
 
 Click the _Create Target Group_ button and in the wizard fill in the following fields:
 * Enter the name for your target group. 
@@ -200,29 +200,29 @@ In my case I used `my-custer-kafka-0`.
 In my case it is `31208`.
 * And select the VPC where your Kafka cluster runs.
 
-[![Create additional target groups]({{ "/assets/2020-01-02-nlb-create-target-group.png" }})](/assets/2020-01-02-nlb-create-target-group.png)
+[![Create additional target groups]({{ "/assets/images/posts/2020-01-02-nlb-create-target-group.png" }})](/assets/images/posts/2020-01-02-nlb-create-target-group.png)
 
 After you have filled in all the fields, press the _Create_ button to create the target group.
 Once the target group is created, we have to register the target instances with it.
 In the _Targets_ tab in the details of the selected target group, press the _Edit_ button to register new targets
 
-[![Check the target group registered instances]({{ "/assets/2020-01-02-nlb-target-group-targets.png" }})](/assets/2020-01-02-nlb-target-group-targets.png)
+[![Check the target group registered instances]({{ "/assets/images/posts/2020-01-02-nlb-target-group-targets.png" }})](/assets/images/posts/2020-01-02-nlb-target-group-targets.png)
 
 Select the same instances as you did for the bootstrap target and save them.
 
-[![Register new instances]({{ "/assets/2020-01-02-nlb-create-target-group-register-targets.png" }})](/assets/2020-01-02-nlb-create-target-group-register-targets.png)
+[![Register new instances]({{ "/assets/images/posts/2020-01-02-nlb-create-target-group-register-targets.png" }})](/assets/images/posts/2020-01-02-nlb-create-target-group-register-targets.png)
 
 In the same way we need to add two more target groups for brokers 1 and 2.
 Now with the target groups ready, we have to register them with the listeners.
 To do that, go back to the _Load Balancers_ section, select the load balancer we created and in the detail go to the _Listeners_ tab.
 Select the listener for port `19092` and press the _Edit_ button.
 
-[![Check the listeners]({{ "/assets/2020-01-02-nlb-listeners-tab.png" }})](/assets/2020-01-02-nlb-listeners-tab.png)
+[![Check the listeners]({{ "/assets/images/posts/2020-01-02-nlb-listeners-tab.png" }})](/assets/images/posts/2020-01-02-nlb-listeners-tab.png)
 
 In the window for editing the listener, first delete the bootstrap target group which is selected there, than select new _Forward_ rule to the target group for the broker 0 and click the _Update_ button.
 Repeat this for the listeners `29092` and `39092` and configure them to forward traffic to the target groups for brokers `1` and `2`
 
-[![Edit the listeners]({{ "/assets/2020-01-02-nlb-edit-listener.png" }})](/assets/2020-01-02-nlb-edit-listener.png)
+[![Edit the listeners]({{ "/assets/images/posts/2020-01-02-nlb-edit-listener.png" }})](/assets/images/posts/2020-01-02-nlb-edit-listener.png)
 
 The last thing we need to do is to configure the security groups of the Kubernetes worker nodes to allow traffic from the clients and from the load balancer.
 We will need to first find out the internal IP address(es) of our load balancer to get the health checks to work.
@@ -237,14 +237,14 @@ Note these addresses for all your network interfaces. In my case it was:
 * `10.0.0.210`
 * `10.0.2.117`
 
-[![Find the network interfaces]({{ "/assets/2020-01-02-nlb-network-interfaces.png" }})](/assets/2020-01-02-nlb-network-interfaces.png)
+[![Find the network interfaces]({{ "/assets/images/posts/2020-01-02-nlb-network-interfaces.png" }})](/assets/images/posts/2020-01-02-nlb-network-interfaces.png)
 
 Now we have to go to the _Security Groups_ section and edit the security group used by your Kubernetes worker nodes.
 In my case, it is just one security group for all nodes called `my-kubernetes`.
 But it might be different in your case depending on how you deployed your Kubernetes cluster.
 In the security group detail, select the _Inbound_ tab and click the _Edit_ button.
 
-[![Edit the security groups]({{ "/assets/2020-01-02-nlb-security-groups.png" }})](/assets/2020-01-02-nlb-security-groups.png)
+[![Edit the security groups]({{ "/assets/images/posts/2020-01-02-nlb-security-groups.png" }})](/assets/images/posts/2020-01-02-nlb-security-groups.png)
 
 We will need to add several new rules here for each node port.
 Press the _Add rule_ button to add a new rule.
@@ -266,7 +266,7 @@ Therefore we need to add the same rules as we added for the load balancer also f
 The only difference is that this time, instead of the load balancer IP address, we have to use the CIDR range from which our clients will connect.
 In my case, the client will connect from `88.208.0.0/16`.
 
-[![Add the security group rules]({{ "/assets/2020-01-02-nlb-security-group-rules.png" }})](/assets/2020-01-02-nlb-security-group-rules.png)
+[![Add the security group rules]({{ "/assets/images/posts/2020-01-02-nlb-security-group-rules.png" }})](/assets/images/posts/2020-01-02-nlb-security-group-rules.png)
 
 Once you have all the rules prepared, don't forget to press the _Save_ button to save the changes.
 Once you save the rules, we should have the Network load balancer prepared.

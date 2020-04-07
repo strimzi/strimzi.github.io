@@ -162,7 +162,7 @@ That’s right, you’re not going to ignore it and hope someone else picks it u
 
 The easiest way to update the content is to click the edit icon on the page that needs updating and start [editing in your fork of the Strimzi repository](https://help.github.com/en/github/managing-files-in-a-repository/editing-files-in-another-users-repository).
 
-![Doc edit from Git](/assets/2020-02-14-doc-edit.png)
+![Doc edit from Git](/assets/images/posts/2020-02-14-doc-edit.png)
 
 Request your change.
 And don’t worry about refining your prose or perfecting a turn of phrase.

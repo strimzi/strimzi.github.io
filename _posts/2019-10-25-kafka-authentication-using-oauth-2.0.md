@@ -232,7 +232,7 @@ Leave `Client Authenticator` set to `Client Id and Secret`, and take note of the
 What we've done here is configure the kafka-broker 'client' in a way that it can directly authenticate with Keycloak in its own name, using its own Client ID and Secret, and at the same time can't be used for browser based login by other users.
 This is a typical 'client' configuration for microservices, regardless of whether they are acting as application clients, or application servers. 
 
-![Create Client in Keycloak Console](/assets/2019-10-25-keycloak.png)
+![Create Client in Keycloak Console](/assets/images/posts/2019-10-25-keycloak.png)
 
 All Kafka brokers will share the same 'client' configuration since they are just different instances of the same service.
 
