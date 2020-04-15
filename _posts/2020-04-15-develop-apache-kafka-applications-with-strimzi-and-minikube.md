@@ -16,6 +16,4 @@ Watch our video to get started.
 
 <!--more-->
 
-<div class="width-12-12 width-12-12-m">
-<iframe src="https://www.youtube.com/embed/4bKSPrENDQQ" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-</div>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/4bKSPrENDQQ" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
