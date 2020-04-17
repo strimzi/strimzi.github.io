@@ -512,7 +512,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <p>This guide is intended as a starting point for building an understanding of Strimzi.
 The guide introduces some of the key concepts behind Kafka, which is central to Strimzi, explaining briefly the purpose of Kafka components.
 Configuration points are outlined, including options to secure and monitor Kafka.
-A Strimzi distribution provides the files to deploy and manage a Kafka cluster, as well as example files for configuration and monitoring of your deployment.</p>
+A distribution of Strimzi provides the files to deploy and manage a Kafka cluster, as well as example files for configuration and monitoring of your deployment.</p>
 </div>
 <div class="paragraph">
 <p>A typical Kafka deployment is described, as well as the tools used to deploy and manage Kafka.</p>
@@ -1397,11 +1397,107 @@ spec:
 <p>To set up MirrorMaker, a source and target (destination) Kafka cluster must be running.</p>
 </div>
 <div class="paragraph">
-<p>You can use Strimzi with MirrorMaker or MirrorMaker 2.0.</p>
+<p>You can use Strimzi with MirrorMaker 2.0, although the earlier version of MirrorMaker continues to be supported.</p>
+</div>
+<h4 id="mirrormaker_2_0" class="discrete">MirrorMaker 2.0</h4>
+<div class="paragraph">
+<p>MirrorMaker 2.0 is based on the Kafka Connect framework, <em>connectors</em> managing the transfer of data between clusters.</p>
+</div>
+<div class="paragraph">
+<p>MirrorMaker 2.0 uses:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Source cluster configuration to consume data from the source cluster</p>
+</li>
+<li>
+<p>Target cluster configuration to output data to the target cluster</p>
+</li>
+</ul>
+</div>
+<h5 id="cluster_configuration" class="discrete">Cluster configuration</h5>
+<div class="paragraph">
+<p>You configure a <code>KafkaMirrorMaker2</code> custom resource to define the Kafka Connect deployment, including the connection details of the source and target clusters,
+and then run a set of MirrorMaker 2.0 connectors to make the connection.</p>
+</div>
+<div class="paragraph">
+<p>Topic configuration is automatically synchronized between the source and target clusters according to the topics defined in the <code>KafkaMirrorMaker2</code> custom resource.
+Configuration changes are propagated to remote topics so that new topics and partitions are detected and created.
+Topic replication is defined using regular expression patterns to <em>whitelist</em> or <em>blacklist</em> topics.</p>
+</div>
+<div class="paragraph">
+<p>The following MirrorMaker 2.0 connectors and related internal topics help manage the transfer and synchronization of data between the clusters.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">MirrorSourceConnector</dt>
+<dd>
+<p>A <em>MirrorSourceConnector</em> creates remote topics from the source cluster.</p>
+</dd>
+<dt class="hdlist1">MirrorCheckpointConnector</dt>
+<dd>
+<p>A <em>MirrorCheckpointConnector</em> tracks and maps offsets for specified consumer groups using an <em>offset sync</em> topic and <em>checkpoint</em> topic.
+The offset sync topic maps the source and target offsets for replicated topic partitions from record metadata.
+A checkpoint is emitted from each source cluster and replicated in the target cluster through the checkpoint topic.
+The checkpoint topic maps the last committed offset in the source and target cluster for replicated topic partitions in each consumer group.</p>
+</dd>
+<dt class="hdlist1">MirrorHeartbeatConnector</dt>
+<dd>
+<p>A <em>MirrorHeartbeatConnector</em> periodically checks connectivity between clusters.
+A heartbeat is produced every second by the MirrorHeartbeatConnector into a <em>heartbeat</em> topic that is created on the local cluster.
+If you have MirrorMaker 2.0 at both the remote and local locations, the heartbeat emitted at the remote location by the MirrorHeartbeatConnector is treated like any remote topic and mirrored by the MirrorSourceConnector at the local cluster.
+The heartbeat topic makes it easy to check that the remote cluster is available and the clusters are connected.
+If things go wrong, the heartbeat topic offset positions and time stamps can help with recovery and diagnosis.</p>
+</dd>
+</dl>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/mirrormaker.png" alt="MirrorMaker 2.0 replication">
+</div>
+<div class="title">Figure 1. Replication across two clusters</div>
+</div>
+<h5 id="bidirectional_replication_across_two_clusters" class="discrete">Bidirectional replication across two clusters</h5>
+<div class="paragraph">
+<p>The MirrorMaker 2.0 architecture supports bidirectional replication in an <em>active/active</em> cluster configuration,
+so both clusters are active and provide the same data simultaneously.
+A MirrorMaker 2.0 cluster is required at each target destination.
+Remote topics are distinguished by automatic renaming that prepends the name of cluster to the name of the topic.
+This is useful if you want to make the same data available locally in different geographical locations.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/mirrormaker-renaming.png" alt="MirrorMaker 2.0 bidirectional architecture">
+</div>
+<div class="title">Figure 2. Bidirectional replication</div>
+</div>
+<h5 id="example_yaml_showing_mirrormaker_2_0_configuration" class="discrete">Example YAML showing MirrorMaker 2.0 configuration</h5>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">  apiVersion: kafka.strimzi.io/v1alpha1
+  kind: KafkaMirrorMaker2
+  metadata:
+    name: my-mirror-maker2
+    spec:
+      version: 2.4.0
+      connectCluster: "my-cluster-target"
+      clusters:
+      - alias: "my-cluster-source"
+        bootstrapServers: my-cluster-source-kafka-bootstrap:9092
+      - alias: "my-cluster-target"
+        bootstrapServers: my-cluster-target-kafka-bootstrap:9092
+      mirrors:
+      - sourceCluster: "my-cluster-source"
+        targetCluster: "my-cluster-target"
+        sourceConnector: {}
+      topicsPattern: ".*"
+      groupsPattern: "group1|group2|group3"</code></pre>
+</div>
 </div>
 <h4 id="mirrormaker" class="discrete">MirrorMaker</h4>
 <div class="paragraph">
-<p>MirrorMaker uses producers and consumers to replicate data across clusters.</p>
+<p>The earlier version of MirrorMaker uses producers and consumers to replicate data across clusters.</p>
 </div>
 <div class="paragraph">
 <p>MirrorMaker uses:</p>
@@ -1422,38 +1518,7 @@ spec:
 <div class="paragraph">
 <p>A <em>whitelist</em> defines the topics to mirror from a source to a target cluster.</p>
 </div>
-<h4 id="mirrormaker_2_0" class="discrete">MirrorMaker 2.0</h4>
-<div class="paragraph">
-<p>MirrorMaker 2.0 is based on the Kafka Connect framework, <em>connectors</em> managing the transfer of data between clusters.</p>
-</div>
-<div class="paragraph">
-<p>MirrorMaker 2.0 uses:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Source cluster configuration to consume data from the source cluster</p>
-</li>
-<li>
-<p>Target cluster configuration to output data to the target cluster</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>A MirrorMaker 2.0 <code>MirrorSourceConnector</code> custom resource replicates topics from a source cluster to a target cluster.</p>
-</div>
-<div class="imageblock">
-<div class="content">
-<img src="images/mirrormaker.png" alt="MirrorMaker 2.0 replication">
-</div>
-<div class="title">Figure 1. Replication across two clusters</div>
-</div>
-<div class="paragraph">
-<p>The MirrorMaker 2.0 architecture supports bidirectional replication in an <em>active/active</em> cluster configuration,
-so both clusters are active and provide the same data simultaneously. A MirrorMaker 2.0 cluster is required at each target destination.
-This is useful if you want to make the same data available locally in different geographical locations.</p>
-</div>
-<h4 id="key_consumer_configuration" class="discrete">Key Consumer configuration</h4>
+<h5 id="key_consumer_configuration" class="discrete">Key Consumer configuration</h5>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Consumer group identifier</dt>
@@ -1470,7 +1535,7 @@ This is useful if you want to make the same data available locally in different 
 </dd>
 </dl>
 </div>
-<h4 id="key_producer_configuration" class="discrete">Key Producer configuration</h4>
+<h5 id="key_producer_configuration" class="discrete">Key Producer configuration</h5>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Cancel option for send failure</dt>
@@ -1479,7 +1544,7 @@ This is useful if you want to make the same data available locally in different 
 </dd>
 </dl>
 </div>
-<h4 id="example_yaml_showing_mirrormaker_configuration" class="discrete">Example YAML showing MirrorMaker configuration</h4>
+<h5 id="example_yaml_showing_mirrormaker_configuration" class="discrete">Example YAML showing MirrorMaker configuration</h5>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
@@ -1913,7 +1978,7 @@ Clients are configured with a tracing profile, and a tracer is initialized for t
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-04-17 18:24:36 UTC
+Last updated 2020-04-17 20:02:49 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
