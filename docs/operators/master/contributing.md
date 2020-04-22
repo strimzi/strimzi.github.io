@@ -5,4 +5,4 @@ layout: default
 
 <h1>Strimzi Documentation Contributor Guide</h1>
 
-{% include_relative contributing.html %}
+{% include_relative contributing-book.html %}
