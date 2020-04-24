@@ -5,11 +5,11 @@ const fetch = require('node-fetch')
 exports.handler = async function(event, context) {
   try {
     const namespace = event.queryStringParameters["namespace"]
-    if (namespace === undefined || namespace === null || namespace === "")  {
-      console.log("Namespace is empty or not specified")
-      throw "Namespace is empty or not specified"
+    if (namespace === undefined || namespace === null || namespace === '')  {
+      console.log('Namespace is empty or not specified')
+      throw 'Namespace is empty or not specified'
     } else {
-      console.log("Preparing install files for namespace " + namespace)
+      console.log('Preparing install files for namespace ' + namespace)
     }
     
     const response = await fetch('https://strimzi.io/install/latest')
@@ -21,7 +21,7 @@ exports.handler = async function(event, context) {
 
     return {
       statusCode: 200,
-      body: data.replace("/namespace: myproject/g", "namespace: " + namespace)
+      body: data.replace(new RegExp('namespace: myproject', 'g'), 'namespace: ' + namespace)
     }
   } catch (err) {
     console.log(err) // output to netlify function log
