@@ -7,7 +7,7 @@ exports.handler = async function(event, context) {
     const namespace = event.queryStringParameters["namespace"]
     if (namespace === undefined || namespace === null || namespace === '')  {
       console.log('Namespace is empty or not specified')
-      throw 'Namespace is empty or not specified'
+      throw "Namespace is empty or not specified"
     } else {
       console.log('Preparing install files for namespace ' + namespace)
     }
