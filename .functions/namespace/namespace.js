@@ -5,11 +5,11 @@ const fetch = require('node-fetch')
 exports.handler = async function(event, context) {
   try {
     const namespace = event.queryStringParameters["namespace"]
-    console.log("Preparing install files for namespace " + namespace)
-
-    if (namespace === undefined || namespace === null || str === "")  {
-      consoler.log("Namespace is empty or not specified")
+    if (namespace === undefined || namespace === null || namespace === "")  {
+      console.log("Namespace is empty or not specified")
       throw "Namespace is empty or not specified"
+    } else {
+      console.log("Preparing install files for namespace " + namespace)
     }
     
     const response = await fetch('https://strimzi.io/install/latest')
