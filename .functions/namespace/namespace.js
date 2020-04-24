@@ -6,6 +6,11 @@ exports.handler = async function(event, context) {
   try {
     const namespace = event.queryStringParameters["namespace"]
     console.log("Preparing install files for namespace " + namespace)
+
+    if (namespace === undefined || namespace === null || str === "")  {
+      consoler.log("Namespace is empty or not specified")
+      throw "Namespace is empty or not specified"
+    }
     
     const response = await fetch('https://strimzi.io/install/latest')
     if (!response.ok) {
@@ -16,7 +21,7 @@ exports.handler = async function(event, context) {
 
     return {
       statusCode: 200,
-      body: data.replace("namespace: myproject", "namespace: " + namespace)
+      body: data.replace("/namespace: myproject/g", "namespace: " + namespace)
     }
   } catch (err) {
     console.log(err) // output to netlify function log
