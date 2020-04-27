@@ -5515,12 +5515,15 @@ If you enabled any authentication, you will also need to configure SASL or TLS a
 <div class="paragraph">
 <p>When exposing Kafka using <code>NodePort</code> type <code>Services</code>, Kafka clients connect directly to the nodes of Kubernetes.
 You must enable access to the ports on the Kubernetes nodes for each client (for example, in firewalls or security groups).
-Each Kafka broker pod is then accessible on a separate port.
-Additional <code>NodePort</code> type <code>Service</code> is created to serve as a Kafka bootstrap address.</p>
+Each Kafka broker pod is then accessible on a separate port.</p>
+</div>
+<div class="paragraph">
+<p>An additional <code>NodePort</code> type of service is created to serve as a Kafka bootstrap address.</p>
 </div>
 <div class="paragraph">
 <p>When configuring the advertised addresses for the Kafka broker pods, Strimzi uses the address of the node on which the given pod is running.
-When selecting the node address, the different address types are used with the following priority:</p>
+Nodes often have multiple addresses.
+The address type used is based on the first type found in the following order of priority:</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -5540,6 +5543,33 @@ When selecting the node address, the different address types are used with the f
 <p>InternalIP</p>
 </li>
 </ol>
+</div>
+<div class="paragraph">
+<p>You can use the <code>preferredAddressType</code> property in your listener configuration to specify the first address type checked as the node address.
+This property is useful, for example, if your deployment does not have DNS support, or you only want to expose a broker internally through an internal DNS or IP address.
+If an address of this type is found, it is used.
+If the preferred address type is not found, Strimzi proceeds through the types in the standard order of priority.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of an external listener configured with a preferred address type</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    listeners:
+      external:
+        type: nodeport
+        tls: true
+        authentication:
+          type: tls
+        configuration:
+          preferredAddressType: InternalDNS
+    # ...
+  zookeeper:
+    # ...</code></pre>
+</div>
 </div>
 <div class="paragraph">
 <p>By default, TLS encryption is enabled.
@@ -5629,6 +5659,13 @@ listeners:
 </div>
 <div class="sect6">
 <h7 id="proc-accessing-kafka-using-nodeports-deployment-configuration-kafka"><a class="link" href="#proc-accessing-kafka-using-nodeports-deployment-configuration-kafka">Accessing Kafka using node ports</a></h7>
+<div class="paragraph">
+<p>This procedure describes how to access a Strimzi Kafka cluster from an external client using node ports.</p>
+</div>
+<div class="paragraph">
+<p>To connect to a broker, you need the hostname (advertised address) and port number for the Kafka <em>bootstrap</em> address,
+as well as the certificate used for authentication.</p>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -5644,9 +5681,9 @@ listeners:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Deploy Kafka cluster with an external listener enabled and configured to the type <code>nodeport</code>.</p>
+<p>Deploy the Kafka cluster with an external listener enabled and configured to the type <code>nodeport</code>.</p>
 <div class="paragraph">
-<p>An example configuration with an external listener configured to use node ports:</p>
+<p>For example:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -5659,18 +5696,32 @@ spec:
       external:
         type: nodeport
         tls: true
-        # ...
+        authentication:
+          type: tls
+        configuration:
+          brokerCertChainAndKey: <b class="conum">(1)</b>
+            secretName: my-secret
+            certificate: my-certificate.crt
+            key: my-key.key
+          preferredAddressType: InternalDNS <b class="conum">(2)</b>
     # ...
   zookeeper:
     # ...</code></pre>
 </div>
 </div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Optional configuration for a <a href="#kafka-listener-certificates-str">Kafka listener certificate</a> managed by an external Certificate Authority. The <code>brokerCertChainAndKey</code> property specifies a <code>Secret</code> that holds a server certificate and a private key. Kafka listener certificates can also be configured for TLS listeners.</p>
+</li>
+<li>
+<p>Optional configuration to <a href="#con-kafka-broker-external-listeners-nodeports-deployment-configuration-kafka">specify a preference for the first address type used by Strimzi as the node address</a>.</p>
+</li>
+</ol>
+</div>
 </li>
 <li>
 <p>Create or update the resource.</p>
-<div class="paragraph">
-<p>This can be done using <code>kubectl apply</code>:</p>
-</div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>your-file</em></code></pre>
@@ -5679,23 +5730,17 @@ spec:
 </li>
 <li>
 <p>Find the port number of the bootstrap service.</p>
-<div class="paragraph">
-<p>This can be done using <code>kubectl get</code>:</p>
-</div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get service <em>cluster-name</em>-kafka-external-bootstrap -o=jsonpath='{.spec.ports[0].nodePort}{"\n"}'</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The port should be used in the Kafka <em>bootstrap</em> address.</p>
+<p>The port is used in the Kafka <em>bootstrap</em> address.</p>
 </div>
 </li>
 <li>
 <p>Find the address of the Kubernetes node.</p>
-<div class="paragraph">
-<p>This can be done using <code>kubectl get</code>:</p>
-</div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get node <em>node-name</em> -o=jsonpath='{range .status.addresses[*]}{.type}{"\t"}{.address}{"\n"}'</code></pre>
@@ -5704,8 +5749,10 @@ spec:
 <div class="paragraph">
 <p>If several different addresses are returned, select the address type you want based on the following order:</p>
 </div>
-<div class="olist loweralpha">
-<ol class="loweralpha" type="a">
+<div class="openblock">
+<div class="content">
+<div class="olist arabic">
+<ol class="arabic">
 <li>
 <p>ExternalDNS</p>
 </li>
@@ -5720,18 +5767,17 @@ spec:
 </li>
 <li>
 <p>InternalIP</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
 <div class="paragraph">
 <p>Use the address with the port found in the previous step in the Kafka <em>bootstrap</em> address.</p>
 </div>
 </li>
-</ol>
-</div>
-</li>
 <li>
 <p>Unless TLS encryption was disabled, extract the public certificate of the broker certification authority.</p>
-<div class="paragraph">
-<p>This can be done using <code>kubectl get</code>:</p>
-</div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get secret <em>cluster-name</em>-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
@@ -36734,7 +36780,7 @@ Provide a list of secrets with key names under which the certificates are stored
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-04-25 14:53:18 UTC
+Last updated 2020-04-27 14:49:07 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
