@@ -1,8 +1,6 @@
 ---
-title: Strimzi Kafka Bridge Documentation ({{site.data.releases.bridge[0].version}})
+title: Strimzi Kafka Bridge Documentation (!LATEST_BRIDGE_VERSION!)
 layout: default
 ---
-
-<h1>Strimzi Kafka Bridge Documentation ({{site.data.releases.bridge[0].version}})</h1>
 
 {% include_relative latest.html %}

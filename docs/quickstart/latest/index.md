@@ -1,8 +1,6 @@
 ---
-title: Strimzi Quick Start Guide ({{site.data.releases.operator[0].version}})
+title: Strimzi Quick Start Guide (!LATEST_OPERATOR_VERSION!)
 layout: default
 ---
-
-<h1>Strimzi Quick Start Guide ({{site.data.releases.operator[0].version}})</h1>
 
 {% include_relative latest.html %}
