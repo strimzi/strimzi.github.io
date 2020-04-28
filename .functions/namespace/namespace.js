@@ -29,9 +29,11 @@ exports.handler = async function(event, context) {
     const fixedRbacNamespaces = data.replace(new RegExp('namespace: myproject', 'g'), 'namespace: ' + namespace)
     let fixedAllNamespaces = String()
     yaml.safeLoadAll(fixedRbacNamespaces, function (doc) {
-      console.log('Document: ' + doc);
-      doc.metadata['namespace'] = namespace;
-      fixedAllNamespaces += yaml.safeDump(doc);
+      if (document !== null)  {
+        console.log('Document: ' + doc);
+        doc.metadata['namespace'] = namespace;
+        fixedAllNamespaces += yaml.safeDump(doc);
+      }
     });
     
     // Replace the namspace: myproject for namespace: whatever
