@@ -29,13 +29,16 @@ exports.handler = async function(event, context) {
     const fixedRbacNamespaces = data.replace(new RegExp('namespace: myproject', 'g'), 'namespace: ' + namespace)
     let fixedAllNamespaces = String()
     yaml.safeLoadAll(fixedRbacNamespaces, function (doc) {
-      if (doc !== null
-        && doc.kind != "ClusterRole" 
-        && doc.kind != "ClusterRoleBinding"
-        && doc.kind != "CustomResourceDefinition")  {
-          // Set namespace only for namespaced resources
+      if (doc !== null) {
+        // Set namespace only for namespaced resources
+        if (doc.kind != "ClusterRole" 
+              && doc.kind != "ClusterRoleBinding"
+              && doc.kind != "CustomResourceDefinition")  {
           doc.metadata['namespace'] = namespace;
-          fixedAllNamespaces += yaml.safeDump(doc);
+        }
+
+        fixedAllNamespaces += "\n---\n";
+        fixedAllNamespaces += yaml.safeDump(doc);
       }
     });
     
