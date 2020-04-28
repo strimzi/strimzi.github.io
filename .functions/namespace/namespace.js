@@ -37,8 +37,7 @@ exports.handler = async function(event, context) {
           doc.metadata['namespace'] = namespace;
         }
 
-        fixedAllNamespaces += "\n---\n";
-        fixedAllNamespaces += yaml.safeDump(doc);
+        fixedAllNamespaces += "\n---\n" + yaml.safeDump(doc);
       }
     });
     
