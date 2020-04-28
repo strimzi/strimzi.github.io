@@ -1,22 +1,22 @@
 /* eslint-disable */
 
-const fetch = require('node-fetch')
+const fetch = require('node-fetch');
 const yaml = require('js-yaml');
 
 exports.handler = async function(event, context) {
   try {
     // Get and validate the namespace parameter
-    const namespace = event.queryStringParameters["namespace"]
+    const namespace = event.queryStringParameters["namespace"];
     
     if (namespace === undefined || namespace === null || namespace === '')  {
-      console.log('Namespace is empty or not specified')
-      throw "Namespace is empty or not specified"
+      console.log('Namespace is empty or not specified');
+      throw "Namespace is empty or not specified";
     } else {
-      console.log('Preparing install files for namespace ' + namespace)
+      console.log('Preparing install files for namespace ' + namespace);
     }
     
     // Fetch the latest installation YAMLs
-    const response = await fetch('https://strimzi.io/install/latest')
+    const response = await fetch('https://strimzi.io/install/latest');
     
     if (!response.ok) {
       // NOT res.status >= 200 && res.status < 300
@@ -29,8 +29,9 @@ exports.handler = async function(event, context) {
     const fixedRbacNamespaces = data.replace(new RegExp('namespace: myproject', 'g'), 'namespace: ' + namespace)
     let fixedAllNamespaces = String()
     yaml.safeLoadAll(fixedRbacNamespaces, function (doc) {
-      doc.metadata.namespace = namespace
-      fixedAllNamespaces += yaml.safeDump(doc)
+      console.log('Document: ' + doc);
+      doc.metadata['namespace'] = namespace;
+      fixedAllNamespaces += yaml.safeDump(doc);
     });
     
     // Replace the namspace: myproject for namespace: whatever
@@ -40,7 +41,7 @@ exports.handler = async function(event, context) {
     }
   } catch (err) {
     // Handle errors
-    console.log('Some error occured: ' + err)
+    console.log('Some error occured: ' + err);
     return {
       statusCode: 500,
       body: err
