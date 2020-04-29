@@ -1,8 +1,6 @@
 ---
-title: Using Strimzi (Latest)
+title: Using Strimzi (!LATEST_OPERATOR_VERSION!)
 layout: default
 ---
-
-<h1>Using Strimzi (Latest)</h1>
 
 {% include_relative latest.html %}

@@ -1,8 +1,6 @@
 ---
-title: Strimzi Quick Start Guide (Latest stable)
+title: Strimzi Quick Start Guide (!LATEST_OPERATOR_VERSION!)
 layout: default
 ---
-
-<h1>Strimzi Quick Start Guide (Latest stable)</h1>
 
 {% include_relative latest.html %}
