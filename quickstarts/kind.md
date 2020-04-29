@@ -73,7 +73,7 @@ kubectl get pod -n kafka --watch
 
 You can also follow the operator's log:
 ```shell
-kubectl logs `kubectl get pod -n kafka -o name | grep strimzi-cluster-operator` -n kafka -f
+kubectl logs deployment/strimzi-cluster-operator -n kafka -f
 ```
 
 # Provision the Apache Kafka cluster
