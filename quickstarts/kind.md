@@ -55,9 +55,7 @@ kubectl create namespace kafka
 Next we apply the Strimzi install files, including `ClusterRoles`, `ClusterRoleBindings` and some **Custom Resource Definitions** (`CRDs`). The CRDs define the schemas used for declarative management of the Kafka cluster, Kafka topics and users.
 
 ```shell
-curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/{{site.data.releases.operator[0].version}}/strimzi-cluster-operator-{{site.data.releases.operator[0].version}}.yaml \
-  | sed 's/namespace: .*/namespace: kafka/' \
-  | kubectl apply -f - -n kafka 
+kubectl apply -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
 ```
 
 This will be familiar if you've installed Strimzi on things like minikube before.
@@ -82,7 +80,7 @@ Then we create a new Kafka custom resource, which will give us a small persisten
 
 ```shell
 # Apply the `Kafka` Cluster CR file
-kubectl apply -f https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/{{site.data.releases.operator[0].version}}/examples/kafka/kafka-persistent-single.yaml -n kafka 
+kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka 
 ```
 
 We now need to wait while Kubernetes starts the required pods, services and so on:
