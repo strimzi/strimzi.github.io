@@ -21,7 +21,6 @@ Once you have all the binaries installed, and a Docker daemon running, make sure
 
 ```shell
 # Validate docker installation
-docker ps
 docker version
 
 # Validate kind
