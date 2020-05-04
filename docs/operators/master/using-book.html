@@ -375,20 +375,25 @@
 </li>
 <li><a href="#configuration-points_str">11. Managing Strimzi</a>
 <ul class="sectlevel2">
-<li><a href="#resource-status-access_str">11.1. Checking the status of a custom resource</a>
+<li><a href="#proc-add-service-discovery-str">11.1. Discovering services using labels and annotations</a>
 <ul class="sectlevel3">
-<li><a href="#con-custom-resources-status-str">11.1.1. Strimzi custom resource status information</a></li>
-<li><a href="#proc-accessing-resource-status-str">11.1.2. Finding the status of a custom resource</a></li>
+<li><a href="#returning_connection_details_on_services">11.1.1. Returning connection details on services</a></li>
 </ul>
 </li>
-<li><a href="#cluster-recovery_str">11.2. Recovering a cluster from persistent volumes</a>
+<li><a href="#resource-status-access_str">11.2. Checking the status of a custom resource</a>
 <ul class="sectlevel3">
-<li><a href="#namespace-deletion_str">11.2.1. Recovery from namespace deletion</a></li>
-<li><a href="#cluster-loss_str">11.2.2. Recovery from loss of a Kubernetes cluster</a></li>
-<li><a href="#cluster-recovery-volume_str">11.2.3. Recovering a deleted cluster from persistent volumes</a></li>
+<li><a href="#con-custom-resources-status-str">11.2.1. Strimzi custom resource status information</a></li>
+<li><a href="#proc-accessing-resource-status-str">11.2.2. Finding the status of a custom resource</a></li>
 </ul>
 </li>
-<li><a href="#uninstalling-str">11.3. Uninstalling Strimzi</a></li>
+<li><a href="#cluster-recovery_str">11.3. Recovering a cluster from persistent volumes</a>
+<ul class="sectlevel3">
+<li><a href="#namespace-deletion_str">11.3.1. Recovery from namespace deletion</a></li>
+<li><a href="#cluster-loss_str">11.3.2. Recovery from loss of a Kubernetes cluster</a></li>
+<li><a href="#cluster-recovery-volume_str">11.3.3. Recovering a deleted cluster from persistent volumes</a></li>
+</ul>
+</li>
+<li><a href="#uninstalling-str">11.4. Uninstalling Strimzi</a></li>
 </ul>
 </li>
 <li><a href="#appendix-faq_str">Appendix A: Frequently asked questions</a>
@@ -28693,12 +28698,102 @@ A rolling update is also started if you update a Kafka listener certificate in a
 <p>This chapter covers tasks to maintain a deployment of Strimzi.</p>
 </div>
 <div class="sect2">
-<h3 id="resource-status-access_str"><a class="link" href="#resource-status-access_str">11.1. Checking the status of a custom resource</a></h3>
+<h3 id="proc-add-service-discovery-str"><a class="link" href="#proc-add-service-discovery-str">11.1. Discovering services using labels and annotations</a></h3>
+<div class="paragraph">
+<p>Service discovery makes it easier for client applications running in the same Kubernetes cluster as Strimzi to interact with a Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>A <em>service discovery</em> label and annotation is generated for services used to access the Kafka cluster:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Internal Kafka bootstrap service</p>
+</li>
+<li>
+<p>HTTP Bridge service</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The label helps to make the service discoverable, and the annotation provides connection details that a client application can use to make the connection.</p>
+</div>
+<div class="paragraph">
+<p>The service discovery label, <code>strimzi.io/discovery</code>, is set as <code>true</code> for the <code>Service</code> resources.
+The service discovery annotation has the same key, providing connection details in JSON format for each service.</p>
+</div>
+<h4 id="example_internal_kafka_bootstrap_service" class="discrete">Example internal Kafka bootstrap service</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    strimzi.io/discovery: |-
+      [ {
+        "port" : 9092,
+        "tls" : false,
+        "protocol" : "kafka",
+        "auth" : "scram-sha-512"
+      }, {
+        "port" : 9093,
+        "tls" : true,
+        "protocol" : "kafka",
+        "auth" : "tls"
+      } ]
+  labels:
+    strimzi.io/cluster: my-cluster
+    strimzi.io/discovery: "true"
+    strimzi.io/kind: Kafka
+    strimzi.io/name: my-cluster-kafka-bootstrap
+  name: my-cluster-kafka-bootstrap
+spec:
+  #...</code></pre>
+</div>
+</div>
+<h4 id="example_http_bridge_service" class="discrete">Example HTTP Bridge service</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    strimzi.io/discovery: |-
+      [ {
+        "port" : 8080,
+        "tls" : false,
+        "auth" : "none",
+        "protocol" : "http"
+      } ]
+  labels:
+    strimzi.io/cluster: my-bridge
+    strimzi.io/discovery: "true"
+    strimzi.io/kind: KafkaBridge
+    strimzi.io/name: my-bridge-bridge-service</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="returning_connection_details_on_services"><a class="link" href="#returning_connection_details_on_services">11.1.1. Returning connection details on services</a></h4>
+<div class="paragraph">
+<p>You can find the services by specifying the discovery label when fetching services from the command line or a corresponding API call.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">kubectl get service -l strimzi.io/discovery=true</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The connection details are returned when retrieving the service discovery label.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="resource-status-access_str"><a class="link" href="#resource-status-access_str">11.2. Checking the status of a custom resource</a></h3>
 <div class="paragraph">
 <p>The <code>status</code> property of a Strimzi custom resource publishes information about the resource to users and tools that need it.</p>
 </div>
 <div class="sect3">
-<h4 id="con-custom-resources-status-str"><a class="link" href="#con-custom-resources-status-str">11.1.1. Strimzi custom resource status information</a></h4>
+<h4 id="con-custom-resources-status-str"><a class="link" href="#con-custom-resources-status-str">11.2.1. Strimzi custom resource status information</a></h4>
 <div class="paragraph">
 <p>Several resources have a <code>status</code> property, as described in the following table.</p>
 </div>
@@ -28886,7 +28981,7 @@ The Kafka bootstrap addresses listed in the status do not signify that those end
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-accessing-resource-status-str"><a class="link" href="#proc-accessing-resource-status-str">11.1.2. Finding the status of a custom resource</a></h4>
+<h4 id="proc-accessing-resource-status-str"><a class="link" href="#proc-accessing-resource-status-str">11.2.2. Finding the status of a custom resource</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to find the status of a custom resource.</p>
 </div>
@@ -28931,7 +29026,7 @@ The Kafka bootstrap addresses listed in the status do not signify that those end
 </div>
 </div>
 <div class="sect2">
-<h3 id="cluster-recovery_str"><a class="link" href="#cluster-recovery_str">11.2. Recovering a cluster from persistent volumes</a></h3>
+<h3 id="cluster-recovery_str"><a class="link" href="#cluster-recovery_str">11.3. Recovering a cluster from persistent volumes</a></h3>
 <div class="paragraph">
 <p>You can recover a Kafka cluster from persistent volumes (PVs) if they are still present.</p>
 </div>
@@ -28949,7 +29044,7 @@ The Kafka bootstrap addresses listed in the status do not signify that those end
 </ul>
 </div>
 <div class="sect3">
-<h4 id="namespace-deletion_str"><a class="link" href="#namespace-deletion_str">11.2.1. Recovery from namespace deletion</a></h4>
+<h4 id="namespace-deletion_str"><a class="link" href="#namespace-deletion_str">11.3.1. Recovery from namespace deletion</a></h4>
 <div class="paragraph">
 <p>Recovery from namespace deletion is possible because of the relationship between persistent volumes and namespaces.
 A <code>PersistentVolume</code> (PV) is a storage resource that lives outside of a namespace.
@@ -29027,14 +29122,14 @@ Otherwise they will not be deleted, and may cause unnecessary expenditure on res
 </div>
 </div>
 <div class="sect3">
-<h4 id="cluster-loss_str"><a class="link" href="#cluster-loss_str">11.2.2. Recovery from loss of a Kubernetes cluster</a></h4>
+<h4 id="cluster-loss_str"><a class="link" href="#cluster-loss_str">11.3.2. Recovery from loss of a Kubernetes cluster</a></h4>
 <div class="paragraph">
 <p>When a cluster is lost, you can use the data from disks/volumes to recover the cluster if they were preserved within the infrastructure.
 The recovery procedure is the same as with namespace deletion, assuming PVs can be recovered and they were created manually.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="cluster-recovery-volume_str"><a class="link" href="#cluster-recovery-volume_str">11.2.3. Recovering a deleted cluster from persistent volumes</a></h4>
+<h4 id="cluster-recovery-volume_str"><a class="link" href="#cluster-recovery-volume_str">11.3.3. Recovering a deleted cluster from persistent volumes</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to recover a deleted cluster from persistent volumes (PVs).</p>
 </div>
@@ -29364,7 +29459,7 @@ You specify the required configuration using the properties described in <a href
 </div>
 </div>
 <div class="sect2">
-<h3 id="uninstalling-str"><a class="link" href="#uninstalling-str">11.3. Uninstalling Strimzi</a></h3>
+<h3 id="uninstalling-str"><a class="link" href="#uninstalling-str">11.4. Uninstalling Strimzi</a></h3>
 <div class="paragraph">
 <p>This procedure describes how to uninstall Strimzi and remove resources related to the deployment.</p>
 </div>
