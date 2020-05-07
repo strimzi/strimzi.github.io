@@ -7,11 +7,7 @@ author: sjwoodman
 
 Apache Camel is the leading Open Source integration framework enabling users to connect to applications which consume and produce data. 
 The project has just [released](https://camel.apache.org/blog/Camel-Kafka-connector-release-0.1.0/) a set of connectors which can be used to leverage the broad ecosystem of Camel in Kafka Connect. 
-In this post we'll demontrate how you can use these connectors in Strimzi to leverage the broad and mature ecosystem of Camel connectors, enlarging your integration possibilities beyond the systems covered by Kafka Connect Connectors alone.
-
-The Apache Camel project has just [released](https://camel.apache.org/blog/Camel-Kafka-connector-release-0.1.0/) a set of connectors which can be used to leverage the broad ecosystem of Camel in Kafka Connect. 
-Apache Camel is the leading Open Source integration framework enabling users to connect to applications which consume and produce data. 
-Camel enables a wide range of enterprise integration patterns and has connectors for over [300 different systems](https://camel.apache.org/components/latest/index.html) - from ActiveMQ to ZooKeeper.  
+In this post we'll demonstrate how you can use these connectors in Strimzi to leverage the broad and mature ecosystem of [Camel connectors](https://camel.apache.org/components/latest/index.html), enlarging your integration possibilities beyond the systems covered by Kafka Connect Connectors alone.
 
 ![Camel and Strimzi](/assets/images/posts/2020-05-07-CamelandStrimziLogos.png)
 
