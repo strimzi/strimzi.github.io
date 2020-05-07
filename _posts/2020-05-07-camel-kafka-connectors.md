@@ -7,7 +7,7 @@ author: sjwoodman
 
 The Apache Camel project has just [released](https://camel.apache.org/blog/Camel-Kafka-connector-release-0.1.0/) a set of connectors which can be used to leverage the broad ecosystem of Camel in Kafka Connect. 
 Apache Camel is the leading Open Source integration framework enabling users to connect to applications which consume and produce data. 
-Camel enables a wide range of enterprise integration patterns and has connectors for over 300 different systems - from ActiveMQ to ZooKeeper.  
+Camel enables a wide range of enterprise integration patterns and has connectors for over [300 different systems](https://camel.apache.org/components/latest/index.html) - from ActiveMQ to ZooKeeper.  
 
 ![Camel and Strimzi](/assets/images/posts/2020-05-07-CamelandStrimziLogos.png)
 
@@ -54,8 +54,8 @@ docker push <docker-org>/camel-kafkaconnect
 
 Telegram requires a token to authenticate to the API. 
 Other connectors may require usernames and passwords or different types of keys. 
-It is possible to include these directly in the KafkaConnector CustomResource. 
-However, that is clearly not very secure as any user who has read access to the CustomResource could extract the credentials. 
+It is possible to include these directly in the KafkaConnector custom resource. 
+However, that is clearly not very secure as any user who has read access to the custom resource could extract the credentials. 
 In order to secure the token we will add it to a Kubernetes `Secret` which will be mounted into the Connector pods. 
 
 Note: For instructions on how to create a bot and API key see the [Telegram documentation](https://core.telegram.org/bots).
@@ -69,9 +69,9 @@ kubectl -n kafka create secret generic telegram-credentials \
 ```
 
 Strimzi provides two options for managing Kafka Connectors - either the Connect REST API or via an Operator. 
-We will use the latter so need to add the `strimzi.io/use-connector-resources: "true"` annotation to the `KafkaConnect` CustomResource which enables this mode. 
+We will use the latter so need to add the `strimzi.io/use-connector-resources: "true"` annotation to the `KafkaConnect` custom resource which enables this mode. 
 The secret will be loaded using Kafka's `config.providers` mechanism so set the `spec.config.config.providers.file.class` to the `FileConfigProvider`. 
-Strimzi will take care of loading the secret into the container based on the `externalConfiguration` section of the CustomResource.
+Strimzi will take care of loading the secret into the container based on the `externalConfiguration` section of the custom resource.
 
 Make sure to replace the `spec.image` with the image you built in the previous step.
 
@@ -107,7 +107,7 @@ EOF
 
 ### Configure and Deploy the Connector
 
-Kafka Connect is now running (you can inspect the CustomResources or logs with the usual `kubectl get kakfaconnect …` commands).
+Kafka Connect is now running (you can inspect the custom resources or logs with the usual `kubectl get kakfaconnect …` commands).
 
 The final step is to configure the Telegram connector. 
 Kafka Connects supports message transformations and this Connector has been configured to extract the text from the Telegram message and transform it into a String. 
@@ -157,7 +157,7 @@ If the transform had not been applied, the entire message including all the head
 Future versions of the Camel Kafka Connectors will support additional options such as converting the messages into JSON and other formats.
 
 This post has shown how it is possible to use the Camel Kafka Connectors with Strimzi to connect to third party systems. 
-It was not necessary to write any code or send any cURL requests, simply include the jars in the Kafka Connect image and configure using CustomResources. 
+It was not necessary to write any code or send any cURL requests, simply include the jars in the Kafka Connect image and configure using custom resources. 
 With over [300 connectors available](https://camel.apache.org/camel-kafka-connector/latest/connectors.html), the Camel Kafka Connect project provides connectivity to most popular applications. 
 The project is moving very quickly, continually adding features which will enhance the Kafka ecosystem.
 
