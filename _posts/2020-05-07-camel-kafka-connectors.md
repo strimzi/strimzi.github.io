@@ -23,7 +23,7 @@ Assuming you already have a Strimzi cluster running, there are three steps which
 In this example we will use the Camel Kafka Connector for the Telegram instant messaging service - a [full list of the available connectors](https://camel.apache.org/camel-kafka-connector/latest/connectors.html) is in the documentation. 
 The example will consume messages sent to a Telegram app and forward them to a Kafka topic. 
 
-###Add the Camel Telegram Connector to the Kafka Connect image
+## Add the Camel Telegram Connector to the Kafka Connect image
 
 Download the [latest version](https://repo1.maven.org/maven2/org/apache/camel/kafkaconnector/camel-telegram-kafka-connector/0.1.0/camel-telegram-kafka-connector-0.1.0-package.tar.gz) of the Camel Telegram Connector from Maven Central (0.1.0 at the time of writing).
 
@@ -50,7 +50,7 @@ docker build . -t <docker-org>/camel-kafkaconnect
 docker push <docker-org>/camel-kafkaconnect
 ```
 
-###Start a Kafka Connect Cluster with the Operator managing the Connectors. 
+## Start a Kafka Connect Cluster with the Operator managing the Connectors. 
 
 Telegram requires a token to authenticate to the API. 
 Other connectors may require usernames and passwords or different types of keys. 
@@ -105,7 +105,7 @@ spec:
 EOF
 ```
 
-###Configure and Deploy the Connector
+## Configure and Deploy the Connector
 
 Kafka Connect is now running (you can inspect the CustomResources or logs with the usual `kubectl get kakfaconnect …` commands).
 
