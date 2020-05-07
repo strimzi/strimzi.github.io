@@ -15,12 +15,12 @@ Camel enables a wide range of enterprise integration patterns and has connectors
 
 It is true that a range of connectors already exist for Kafka Connect but these vary in maturity and license. 
 Some are mature and well maintained, whereas others lack provenance and there is little effort in standardising on configuration options. 
-The new Camel connectors offer new options - the ability to connect to a wealth of external applications with the maturity and maintenance which comes from the Camel community. 
+The new Camel Kafka connectors offer new options - the ability to connect to a wealth of external applications with the maturity and maintenance which comes from the Camel community. 
 
 Using these connectors with Strimzi is made easy by using the Kafka Connector Operator which was released in Strimzi 0.16. 
 Assuming you already have a Strimzi cluster running, there are three steps which are needed. 
 
-In this example we will use the Camel Connector for the Telegram instant messaging service - a [full list of the available connectors](https://camel.apache.org/camel-kafka-connector/latest/connectors.html) is in the documentation. 
+In this example we will use the Camel Kafka Connector for the Telegram instant messaging service - a [full list of the available connectors](https://camel.apache.org/camel-kafka-connector/latest/connectors.html) is in the documentation. 
 The example will consume messages sent to a Telegram app and forward them to a Kafka topic. 
 
 ###Add the Camel Telegram Connector to the Kafka Connect image
