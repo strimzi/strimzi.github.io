@@ -5,6 +5,10 @@ date: 2020-05-07
 author: sjwoodman
 ---
 
+Apache Camel is the leading Open Source integration framework enabling users to connect to applications which consume and produce data. 
+The project has just [released](https://camel.apache.org/blog/Camel-Kafka-connector-release-0.1.0/) a set of connectors which can be used to leverage the broad ecosystem of Camel in Kafka Connect. 
+In this post we'll demontrate how you can use these connectors in Strimzi to leverage the broad and mature ecosystem of Camel connectors, enlarging your integration possibilities beyond the systems covered by Kafka Connect Connectors alone.
+
 The Apache Camel project has just [released](https://camel.apache.org/blog/Camel-Kafka-connector-release-0.1.0/) a set of connectors which can be used to leverage the broad ecosystem of Camel in Kafka Connect. 
 Apache Camel is the leading Open Source integration framework enabling users to connect to applications which consume and produce data. 
 Camel enables a wide range of enterprise integration patterns and has connectors for over [300 different systems](https://camel.apache.org/components/latest/index.html) - from ActiveMQ to ZooKeeper.  
@@ -13,7 +17,7 @@ Camel enables a wide range of enterprise integration patterns and has connectors
 
 <!--more-->
 
-It is true that a range of connectors already exist for Kafka Connect but these vary in maturity and license. 
+There are already many connectors for Kafka Connect, of varying maturity and license. 
 Some are mature and well maintained, whereas others lack provenance and there is little effort in standardising on configuration options. 
 The new Camel Kafka connectors offer new options - the ability to connect to a wealth of external applications with the maturity and maintenance which comes from the Camel community. 
 
@@ -23,11 +27,14 @@ Assuming you already have a Strimzi cluster running, there are three steps which
 In this example we will use the Camel Kafka Connector for the Telegram instant messaging service - a [full list of the available connectors](https://camel.apache.org/camel-kafka-connector/latest/connectors.html) is in the documentation. 
 The example will consume messages sent to a Telegram app and forward them to a Kafka topic. 
 
-### Add the Camel Telegram Connector to the Kafka Connect image
+### Adding the Camel Telegram Connector to the Kafka Connect image
 
 Download the [latest version](https://repo1.maven.org/maven2/org/apache/camel/kafkaconnector/camel-telegram-kafka-connector/0.1.0/camel-telegram-kafka-connector-0.1.0-package.tar.gz) of the Camel Telegram Connector from Maven Central (0.1.0 at the time of writing).
 
-Note: This will build a Kafka Connect image with just the Camel Telegram Connector in. It is also possible to [build an image](https://camel.apache.org/camel-kafka-connector/latest/try-it-out-on-openshift-with-strimzi.html) which contains all of the Camel Connectors. This involves building from the source and results in a larger image. However, it does have the benefit of being able to use a single Connect image to interact with multiple external systems.
+Note: In this step we are building a Kafka Connect image with just the Camel Telegram Connector in. 
+It is also possible to [build an image](https://camel.apache.org/camel-kafka-connector/latest/try-it-out-on-openshift-with-strimzi.html) which contains _all_ of the Camel Connectors. 
+Doing that involves building from the source code and results in a larger image. 
+However, it does have the benefit of being able to use a single Connect image to interact with multiple external systems.
 
 Add the connectors to the Kafka Connect by creating a new image from this dockerfile. If you are running on OpenShift you can use the [Connect S2I feature](https://camel.apache.org/camel-kafka-connector/latest/try-it-out-on-openshift-with-strimzi.html) instead of this step.
 
@@ -50,7 +57,7 @@ docker build . -t <docker-org>/camel-kafkaconnect
 docker push <docker-org>/camel-kafkaconnect
 ```
 
-### Start a Kafka Connect Cluster with the Operator managing the Connectors. 
+### Starting a Kafka Connect Cluster with the Operator managing the Connectors. 
 
 Telegram requires a token to authenticate to the API. 
 Other connectors may require usernames and passwords or different types of keys. 
@@ -105,12 +112,12 @@ spec:
 EOF
 ```
 
-### Configure and Deploy the Connector
+### Configuring and Deploy the Connector
 
-Kafka Connect is now running (you can inspect the custom resources or logs with the usual `kubectl get kakfaconnect …` commands).
+Kafka Connect is now running (you can inspect the custom resources or logs with the usual `kubectl get kafkaconnect …` commands).
 
 The final step is to configure the Telegram connector. 
-Kafka Connects supports message transformations and this Connector has been configured to extract the text from the Telegram message and transform it into a String. 
+Kafka Connect supports message transformations and this Connector has been configured to extract the text from the Telegram message and transform it into a String. 
 The authorisation token has also been added as a reference to the file which will be mounted into the pod by the Operator.
 
 
@@ -156,8 +163,10 @@ These messages can now be consumed by whichever applications are interested in t
 If the transform had not been applied, the entire message including all the headers would have been sent to Kafka. 
 Future versions of the Camel Kafka Connectors will support additional options such as converting the messages into JSON and other formats.
 
+### Conclusion
+
 This post has shown how it is possible to use the Camel Kafka Connectors with Strimzi to connect to third party systems. 
-It was not necessary to write any code or send any cURL requests, simply include the jars in the Kafka Connect image and configure using custom resources. 
+It was not necessary to write any code or send any `cURL` requests, simply include the jars in the Kafka Connect image and configure using custom resources. 
 With over [300 connectors available](https://camel.apache.org/camel-kafka-connector/latest/connectors.html), the Camel Kafka Connect project provides connectivity to most popular applications. 
 The project is moving very quickly, continually adding features which will enhance the Kafka ecosystem.
 
