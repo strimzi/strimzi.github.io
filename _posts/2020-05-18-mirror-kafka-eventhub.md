@@ -6,7 +6,7 @@ author: paolo_patierno
 ---
 
 Let's imagine to have a software architecture based on Apache Kafka running on an on-premise Kubernetes or OpenShift installation and managed by the Strimzi operators.
-All the services are able to communicate each other exchanging messages through a set of topics.
+All the services are able to communicate with each other exchanging messages through a set of topics.
 At some point there is a new requirement to fullfil: all messages, sent to a specific topic, have to trigger some processing in the cloud via Microsoft Azure Functions already connected to an Azure Event Hub instance.
 It is a third party application already in place that we need to integrate with our own system.
 In order to avoid the producer applications to connect both the on-premise Apache Kafka cluster and to Azure Event Hub, which provides a Kafka protocol head, and sending each message twice, the best solution could be just mirroring the topic.
@@ -23,7 +23,7 @@ Before starting to deploy the different components, let's take a look at how the
 On one side there is a Kubernetes or OpenShift cluster where an Apache Kafka cluster is deployed and managed via the Strimzi operators as well as the Kafka Mirror Maker instance.
 An application, running on the same cluster, produces messages to an Apache Kafka topic and all the data are consumed by Kafka Mirror Maker in order to be mirrored to the remote Azure Event Hub instance.
 
-On the other side there is the Azure Event Hub namespace, on the Microsoft Cloud, where an Event Hub is filled by the messages mirrored from the corresponding Apache Kafka topic.
+On the other side there is the Azure Event Hub namespace, on the Microsoft Azure Cloud, where an Event Hub is filled by the messages mirrored from the corresponding Apache Kafka topic.
 This messages trigger the Azure Functions platform to do the actual processing.
 For people who don't know about Azure Event Hub, it could be a little bit confusing and not really clear what an Event Hub "namespace" or just an Event Hub mean and how to compare them to an Apache Kafka cluster and topic; it will be clarified in the Event Hub related paragraph of this blog post.
 
@@ -93,6 +93,11 @@ Where `<eventhubs-namespace>` has to be replaced with the actual Event Hub names
 
 ### Configure Kafka Mirror Maker
 
+When mirroring messages from a source Apache Kafka cluster to a target one, the usual paradigm is deploying in the Kafka Mirror Maker instance alongside the target cluster.
+It means consuming remotely and producing locally.
+In this integration scenario, it is not possible because there is no way to deploy Kafka Mirror Maker alongside the Event Hub namespace that is the target cluster.
+For this reason, the paradigm will be slightly different, deploying Kafka Mirror Maker alongside the source Apache Kafka cluster where we have more control.
+
 The first step is storing the Event Hub authentication info into a Kubernetes `Secret` in order to be referenced in the Strimzi `KafkaMirrorMaker` custom resource for enabling the producer part to connect to the Event Hub itself.
 The following snippet shows such a `Secret` where the `$ConnectionString` hasn't to be changed while the endpoint has to be customized with the actual Event Hub connection string; save this `Secret` in a file named `eventhubs-secret.yaml`
 
@@ -103,7 +108,6 @@ metadata:
   name: eventhubssecret
 type: Opaque
 stringData:
-  eventhubsuser: $ConnectionString
   eventhubspassword: Endpoint=sb://<eventhubs-namespace>.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=<access-key>
 ```
 
@@ -142,6 +146,7 @@ spec:
 The `consumer` part just connects to the local Apache Kafka cluster running on the same Kubernetes instance.
 
 The `producer` part connects to the Event Hub namespace, through TLS and PLAIN authentication using `$ConnectionString` as username and the connection string as password provided in the already created `eventhubssecret`.
+The `tls` section is used because Event Hub connection [needs SSL](https://docs.microsoft.com/en-gb/azure/event-hubs/event-hubs-for-kafka-ecosystem-overview?WT.mc_id=devto-blog-abhishgu#security-and-authentication) with `SASL_SSL` as security protocol
 
 Create the `KafkaMirrorMaker` on the Kubernetes cluster saving the above resource into a `kafka-mirror-maker.yaml` file.
 The Strimzi cluster operator takes care of it deploying Kafka Mirror Maker using the above configuration.
@@ -212,7 +217,7 @@ On the Azure Functions application, the messages will be logged as following.
 
 ### Conclusion
 
-Integrating applications running on different platforms and different clouds is becoming quite common nowadays and the Hybrid Cloud based use cases are growing fast.
+Integrating applications running on different platforms and different clouds is becoming quite common nowadays and the hybrid cloud based use cases are growing fast.
 Back to the scenario showed in this blog post, the Apache Kafka cluster on Kubernetes or OpenShift could run on any cloud provider (Azure, Amazon, IBM, GCP) and thanks to the Strimzi operators, its deployment and management is fairly simple as well as mirroring data to other systems like Event Hub using Kafka Mirror Maker.
 
 I hope this post has persuaded you of the benefit of using Strimzi and Mirror Maker to do such an integration with Azure.
