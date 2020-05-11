@@ -5,12 +5,12 @@ date: 2020-05-18
 author: paolo_patierno
 ---
 
-Let's imagine to have a software architecture based on Apache Kafka running on an on-premise Kubernetes installation and managed by the Strimzi operators.
+Let's imagine having a software architecture based on Apache Kafka running in an on-premise Kubernetes installation and managed by the Strimzi operators.
 All the services are able to communicate with each other exchanging messages through a set of topics.
 At some point there is a new requirement to fullfil: all messages, sent to a specific topic, have to trigger some processing in the cloud via Microsoft Azure Functions already connected to an Azure Event Hub instance.
 It is a third party application already in place that we need to integrate with our own system.
-In order to avoid the producer applications to connect both the on-premise Apache Kafka cluster and to Azure Event Hub, which provides a Kafka protocol head, and sending each message twice, the best solution could be just mirroring the topic.
-This blog post is going to show how to use the Strimzi cluster operator for configuring and deploying Kafka Mirror Maker in order to mirror topics between two different systems like Apache Kafka and Azure Event Hub.
+In order to avoid the producing applications having to connect to both the on-premise Apache Kafka cluster and to Azure Event Hub, which provides a Kafka protocol head, and sending each message twice, the best solution could be just mirroring the topic.
+This blog post is going to show how to use the Strimzi cluster operator to configure and deploy Kafka Mirror Maker in order to mirror topics between two different systems like Apache Kafka and Azure Event Hub.
 
 <!--more-->
 
@@ -24,7 +24,7 @@ On one side there is a Kubernetes cluster where an Apache Kafka cluster is deplo
 An application, running on the same cluster, produces messages to an Apache Kafka topic and all the data are consumed by Kafka Mirror Maker in order to be mirrored to the remote Azure Event Hub instance.
 
 On the other side there is the Azure Event Hub namespace, on the Microsoft Azure Cloud, where an Event Hub is filled by the messages mirrored from the corresponding Apache Kafka topic.
-This messages trigger the Azure Functions platform to do the actual processing.
+These messages trigger the Azure Functions platform to do the actual processing.
 For people who don't know about Azure Event Hub, it could be a little bit confusing and not really clear what an Event Hub "namespace" or just an Event Hub mean and how to compare them to an Apache Kafka cluster and topic; it will be clarified in the Event Hub related paragraph of this blog post.
 
 For simplicity, we are going to use a simple Kafka console producer for sending data on the on-premise Apache Kafka cluster and a simple Azure Function application which actually just logs every message received from the Event Hub.
@@ -34,7 +34,7 @@ Anyway, the source code will be available at this [repo](https://github.com/ppat
 ### Strimzi operators: Apache Kafka and Mirror Maker
 
 Deploying an Apache Kafka cluster on Kubernetes using Strimzi is pretty easy.
-For this example, we are going to use `minukube` and just following the corresponding [quickstart](https://strimzi.io/quickstarts/) for deploying the Strimzi operators and provisioning the Apache Kafka cluster.
+For this example, we are going to use `minukube` and just follow the corresponding [quickstart](https://strimzi.io/quickstarts/) for deploying the Strimzi operators and provisioning the Apache Kafka cluster.
 
 After the operators and cluster are provisioned, in the `kafka` namespace, let's assume that the topic which has to be mirrored is named `testeh` and it's described through the following `KafkaTopic` resource, saved in a `kafka-topic.yaml` file.
 
@@ -59,12 +59,12 @@ Create the topic on the Kubernetes cluster.
 kubectl apply -f kafka-topic.yaml -n kafka
 ```
 
-The Strimzi topic operator takes care of this custom resource in order to create the actual topic on the Apache Kafka cluster.
+The Strimzi topic operator takes care of this custom resource, creating the topic in the Apache Kafka cluster.
 
 ### Azure Event Hub and the Apache Kafka protocol
 
 Azure Event Hub is a fully managed, real-time data ingestion service provided by Microsoft as part of its Azure cloud offer.
-The artchitectural concepts behind Event Hub are quite the same as Apache Kafka.
+The artchitectural concepts behind Event Hub are similar to Apache Kafka.
 An Event Hub is like an Apache Kafka topic and it lives inside an Event Hub namespace that is a kind of Apache Kafka cluster; an Event Hub is partitioned as well.
 Producer applications can publish messages using HTTPS and AMQP 1.0 protocols; consumer applications join consumer groups for receiving messages from the partitions, actually sharing the load across them.
 Few months ago, Azure Event Hub was enriched with an Apache Kafka protocol head (1.0 and above).
@@ -77,9 +77,9 @@ It is possible to do that following the official Microsoft documentation, using 
 ![Azure Portal: Event Hub creation](/assets/images/posts/2020-05-18-azure-portal-eventhub.png)
 
 Having the Event Hub ready is just the first step.
-In order to configure Kafka Mirror Maker for connecting to the Event Hub, we need to get the corresponding connection string for being authenticated and authorized to write on the Event Hub itself.
-Just for simplicity, we can use the already provided `RootManageSharedAccessKey` policy that enable all the rights to manage, send and listen in the Event Hub namespace in which in the `testeh` lives.
-In a real scenario, we would like to create a policy for the mirroring part in order to enable the Kafka Mirror Maker producer just to write to the Event Hub while using a different policy for the application consuming the messages with just the listen right.
+In order to configure Kafka Mirror Maker for connecting to the Event Hub, we need to get the corresponding connection string in order to be authenticated and authorized to write on the Event Hub itself.
+Just for simplicity, we can use the already provided `RootManageSharedAccessKey` policy that enables all the rights to manage, send and listen in the Event Hub namespace in which `testeh` lives.
+In a real scenario, we would like to create a policy for the mirroring part in order to enable the Kafka Mirror Maker producer just to write to the Event Hub while using a different policy, with just the permission to listen, for the application consuming the messages. 
 
 The only needed information from the above policy is the connection string which has the following format:
 
@@ -97,10 +97,10 @@ When mirroring messages from a source Apache Kafka cluster to a target one, the 
 It means consuming remotely and producing locally.
 In this integration scenario, it is not possible because there is no way to deploy Kafka Mirror Maker alongside the Event Hub namespace that is the target cluster.
 For this reason, the paradigm will be slightly different, deploying Kafka Mirror Maker alongside the source Apache Kafka cluster where we have more control.
-Anyway, it's worth mentioning that the Kubernetes cluster, where Apache Kafka runs, could be an AKS (Azure Kubernetes Service) one so as part of the same Microsoft Cloud infrastracture.
+Anyway, it's worth mentioning that the Kubernetes cluster, where Apache Kafka runs, could be an AKS (Azure Kubernetes Service) one, part of the same Microsoft Cloud infrastructure at the Event Hub.
 
-The first step is storing the Event Hub authentication info into a Kubernetes `Secret` in order to be referenced in the Strimzi `KafkaMirrorMaker` custom resource for enabling the producer part to connect to the Event Hub itself.
-The following snippet shows such a `Secret` where the `$ConnectionString` hasn't to be changed while the endpoint has to be customized with the actual Event Hub connection string; save this `Secret` in a file named `eventhubs-secret.yaml`
+The first step is storing the Event Hub authentication info into a Kubernetes `Secret` in order to be referenced in the Strimzi `KafkaMirrorMaker` custom resource to enable the producer part to connect to the Event Hub itself.
+The following snippet shows the endpoint that has to be customized with the actual Event Hub connection string; save this `Secret` in a file named `eventhubs-secret.yaml`
 
 ```yaml
 apiVersion: v1
@@ -158,7 +158,7 @@ kubectl apply -f kafka-mirror-maker.yaml -n kafka
 
 ### Produce, mirror and trigger!
 
-The application consuming the mirrored messages from Event Hub is a simple Azure Functions application which just gets and logs the message that is enough for the purpose of this demo.
+For the purpose of this demo, the application consuming the mirrored messages from Event Hub is a simple Azure Functions application which just gets and logs the message.
 
 ```java
 /**
@@ -183,11 +183,11 @@ public class StrimziEventHubTrigger {
 Even in this case the `<eventhubs-namespace>` has to be replaced with the Event Hub namespace to connect to and the `EH_CONNECTION_STRING` environment variable has to be defined in the JSON application settings file containing the connection string as already used for the Kafka Mirror Maker configuration.
 
 For more information about Azure Functions connecting to Event Hub this [link](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-event-hubs-trigger) provides really useful information.
-The application can run even locally or be published on the Azure cloud.
+The application can run locally or be published on the Azure cloud.
 
-To try the entire pipeline, we just miss sending messages and see how they are mirrored to Event Hub triggering the above function to be executed.
-To do so, just use the `kafka-console-producer` command linme tool provided by every default Apache Kafka installation.
-Start a new pod in the Kubernetes cluster for hosting the producer and types a couple of JSON messages as follow.
+To try the entire pipeline, we just miss sending messages and see how they are mirrored to Event Hub causing the above function to be executed.
+To do so, just use the `kafka-console-producer` command line tool provided with Apache Kafka.
+Start a new pod in the Kubernetes cluster for hosting the producer and type a couple of JSON messages as follows.
 
 > They have to be JSON structured messages because the default Azure Functions deserializer expects this format
 
@@ -199,7 +199,7 @@ If you don't see a command prompt, try pressing enter.
 >
 ```
 
-On the Azure Functions application, the messages will be logged as following.
+On the Azure Functions application, the messages will be logged like this:
 
 ```shell
 [09/05/2020 14:02:17] Executing 'Functions.EventHubTriggerJava1' (Reason='', Id=6c54f1df-6a3d-4acc-a89a-4078b2049ddc)
