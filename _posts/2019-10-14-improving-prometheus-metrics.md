@@ -54,7 +54,7 @@ And while you are of course free to configure it according to your needs, it is 
 
 The Prometheus support, dashboards and sample alerting rules do not only work with Kafka brokers.
 They also support Kafka Connect and Apache Zookeeper.
-All the files needed for Prometheus monitoring can be found in the [`metrics` folder](https://github.com/strimzi/strimzi-kafka-operator/tree/master/metrics/examples) in our GitHub repository.
+All the files needed for Prometheus monitoring can be found in the [`examples/metrics` folder](https://github.com/strimzi/strimzi-kafka-operator/tree/master/examples/metrics) in our GitHub repository.
 You can also follow our [documentation](https://strimzi.io/docs/latest/full.html#assembly-metrics-setup-str) which will not only help you with our dashboards but also with setting up Prometheus, Prometheus AlertManager and Grafana.
 
 ## Kafka Exporter
@@ -122,7 +122,7 @@ Once you have the Kafka Exporter deployed, you can start scraping the metrics it
 We also provide a new Grafana dashboard and alert rules which work with the new metrics.
 In 0.14.0 the dashboard we have is fairly basic.
 In 0.15.0 we will release an improved Grafana dashboard which uses more of the different metrics provided by the Kafka Exporter.
-You can find the [sample Prometheus Alerts](https://github.com/strimzi/strimzi-kafka-operator/blob/master/metrics/examples/prometheus/install/prometheus-rules.yaml) and the [Grafana dashboard](https://github.com/strimzi/strimzi-kafka-operator/blob/master/metrics/examples/grafana/strimzi-kafka-exporter.json) on our GitHub.
+You can find the [sample Prometheus Alerts](https://github.com/strimzi/strimzi-kafka-operator/blob/master/examples/metrics/prometheus-install/prometheus-rules.yaml) and the [Grafana dashboard](https://github.com/strimzi/strimzi-kafka-operator/blob/master/examples/metrics/grafana-dashboards/strimzi-kafka-exporter.json) on our GitHub.
 
 ## Conclusion
 
