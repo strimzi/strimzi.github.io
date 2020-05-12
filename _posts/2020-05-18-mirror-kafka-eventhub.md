@@ -25,7 +25,6 @@ An application, running on the same cluster, produces messages to an Apache Kafk
 
 On the other side there is the Azure Event Hub namespace, on the Microsoft Azure Cloud, where an Event Hub is filled by the messages mirrored from the corresponding Apache Kafka topic.
 These messages trigger the Azure Functions platform to do the actual processing.
-For people who don't know about Azure Event Hub, it could be a little bit confusing and not really clear what an Event Hub "namespace" or just an Event Hub mean and how to compare them to an Apache Kafka cluster and topic; it will be clarified in the Event Hub related paragraph of this blog post.
 
 For simplicity, we are going to use a simple Kafka console producer for sending data on the on-premise Apache Kafka cluster and a simple Azure Function application which actually just logs every message received from the Event Hub.
 Of course, the blog post will focus on configuring the mirroring part more than providing details about the Azure Event Hub creation or the Azure Functions application development.
@@ -67,8 +66,8 @@ Azure Event Hub is a fully managed, real-time data ingestion service provided by
 The artchitectural concepts behind Event Hub are similar to Apache Kafka.
 An Event Hub is like an Apache Kafka topic and it lives inside an Event Hub namespace that is a kind of Apache Kafka cluster; an Event Hub is partitioned as well.
 Producer applications can publish messages using HTTPS and AMQP 1.0 protocols; consumer applications join consumer groups for receiving messages from the partitions, actually sharing the load across them.
-Few months ago, Azure Event Hub was enriched with an Apache Kafka protocol head (1.0 and above).
-It enables any Apache Kafka client to connect to an Event Hub, as it was a "normal" Apache Kafka topic, for sending and receiving messages.
+A few months ago, Azure Event Hub was enriched with an Apache Kafka protocol head (1.0 and above).
+It enables any Apache Kafka client to connect to an Event Hub, as if it was a "normal" Apache Kafka topic, for sending and receiving messages.
 Leveraging this relatively new feature, it is possible to mirror data from an Apache Kafka cluster to Azure Event Hub, pretty easily using Kafka Mirror Maker.
 
 Assuming that the Apache Kafka topic to mirror is named `testeh`, we have to create a corresponding Event Hub in a related namespace.
@@ -93,7 +92,7 @@ Where `<eventhubs-namespace>` has to be replaced with the actual Event Hub names
 
 ### Configure Kafka Mirror Maker
 
-When mirroring messages from a source Apache Kafka cluster to a target one, the usual paradigm is deploying in the Kafka Mirror Maker instance alongside the target cluster.
+When mirroring messages from a source Apache Kafka cluster to a target one, the usual paradigm is deploying the Kafka Mirror Maker instance alongside the target cluster.
 It means consuming remotely and producing locally.
 In this integration scenario, it is not possible because there is no way to deploy Kafka Mirror Maker alongside the Event Hub namespace that is the target cluster.
 For this reason, the paradigm will be slightly different, deploying Kafka Mirror Maker alongside the source Apache Kafka cluster where we have more control.
