@@ -284,7 +284,8 @@
 <li><a href="#ref-cruise-control-configuration-str">8.3. Cruise Control configuration</a>
 <ul class="sectlevel3">
 <li><a href="#capacity_configuration">8.3.1. Capacity configuration</a></li>
-<li><a href="#logging_configuration">8.3.2. Logging configuration</a></li>
+<li><a href="#topic_creation_and_configuration">8.3.2. Topic creation and configuration</a></li>
+<li><a href="#logging_configuration">8.3.3. Logging configuration</a></li>
 </ul>
 </li>
 </ul>
@@ -25984,6 +25985,20 @@ Once configured, you can deploy a Cruise Control instance to your Strimzi cluste
 <p>You can configure <code>cruiseControl</code> properties as part of a deployment or redeployment of a Kafka cluster.
 Deploy one instance of Cruise Control per Kafka cluster.</p>
 </div>
+<div class="paragraph">
+<p>This procedure uses the following example file provided with Strimzi:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>examples/cruise-control/cruise-control-topic.yaml</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>This creates a <code>strimzi.cruisecontrol.metrics</code> topic in your Kafka cluster, which collects information from the Cruise Control Metrics Reporter for use in generating rebalance proposals.
+You do not need to interact with this topic after Cruise Control is deployed.</p>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -25998,6 +26013,14 @@ Deploy one instance of Cruise Control per Kafka cluster.</p>
 <div class="olist arabic">
 <div class="title">Procedure</div>
 <ol class="arabic">
+<li>
+<p>Create the Cruise Control metrics topic in your Kafka cluster:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f examples/cruise-control/cruise-control-topic.yaml</code></pre>
+</div>
+</div>
+</li>
 <li>
 <p>Edit the <code>cruiseControl</code> property of the <code>Kafka</code> resource.</p>
 <div class="paragraph">
@@ -26276,7 +26299,62 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="logging_configuration"><a class="link" href="#logging_configuration">8.3.2. Logging configuration</a></h4>
+<h4 id="topic_creation_and_configuration"><a class="link" href="#topic_creation_and_configuration">8.3.2. Topic creation and configuration</a></h4>
+<div class="paragraph">
+<p>Cruise Control requires the following three topics to be created in order to function properly:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>strimzi.cruisecontrol.partitionmetricsamples</code></p>
+</li>
+<li>
+<p><code>strimzi.cruisecontrol.modeltrainingsamples</code></p>
+</li>
+<li>
+<p><code>strimzi.cruisecontrol.metrics</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Cruise Control will create the <code>strimzi.cruisecontrol.partitionmetricsamples</code> and <code>strimzi.cruisecontrol.modeltrainingsamples</code> topics after the Cruise Control metric reporters create the <code>strimzi.cruisecontrol.metrics</code> topic.
+However, if automatic topic creation is disabled in Kafka with a configuration of <code>auto.create.topics.enable: false</code> in <code>spec.kafka.config</code> when starting a new Kafka cluster, the Cruise Control metric reporters will be unable to create the <code>strimzi.cruisecontrol.metrics</code> topic.
+In this situation, the <code>strimzi.cruisecontrol.metrics</code> topic will need to be created manually.</p>
+</div>
+<div class="paragraph">
+<p>To manually create the <code>strimzi.cruisecontrol.metrics</code> Cruise Control topic in your Kubernetes cluster:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f examples/cruise-control/cruise-control-topic.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Since log compaction may remove records needed by Cruise Control, all topics created by Cruise Control must be configured with <code>cleanup.policy=delete</code> to disable log compaction.
+Cruise Control will automatically disable log compaction for the <code>strimzi.cruisecontrol.partitionmetricsamples</code> and <code>strimzi.cruisecontrol.modeltrainingsamples</code> topics.
+The Cruise Control metric reporters will attempt to disable log compaction for the <code>strimzi.cruisecontrol.metrics</code> topic but will fail when being started with a new Kafka cluster.
+This will only become a problem when log compaction is enabled in Kafka with the setting <code>log.cleanup.policy=compact</code> in the <code>spec.kafka.config</code>.
+In this situation, log compaction will be enabled for <code>strimzi.cruisecontrol.metrics</code> topic and will need to be overridden with a <code>cleanup.policy=delete</code> in the <code>strimzi.cruisecontrol.metrics</code> KafkaTopic.</p>
+</div>
+<div class="paragraph">
+<p>Here we see an example of log compaction being disabled in a Cruise Control KafkaTopic.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: strimzi.cruisecontrol.metrics
+spec:
+  partitions: 1
+  replicas: 1
+  config:
+    cleanup.policy: delete</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="logging_configuration"><a class="link" href="#logging_configuration">8.3.3. Logging configuration</a></h4>
 <div class="paragraph">
 <p>Cruise Control has its own configurable logger:</p>
 </div>
@@ -26305,6 +26383,7 @@ If a ConfigMap is used, you set <code>logging.name</code> property to the name o
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
+# ...
 spec:
   cruiseControl:
     # ...
@@ -26320,6 +26399,7 @@ spec:
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
+# ...
 spec:
   cruiseControl:
     # ...
@@ -29572,7 +29652,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">config</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The kafka broker config. Properties with the following prefixes cannot be set: listeners, advertised., broker., listener., host.name, port, inter.broker.listener.name, sasl., ssl., security., password., principal.builder.class, log.dir, zookeeper.connect, zookeeper.set.acl, authorizer., super.usercruise.control.metrics.topic, cruise.control.metrics.reporter.bootstrap.servers (with the exception of: zookeeper.connection.timeout.ms, ssl.cipher.suites, ssl.protocol, ssl.enabled.protocols).</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The kafka broker config. Properties with the following prefixes cannot be set: listeners, advertised., broker., listener., host.name, port, inter.broker.listener.name, sasl., ssl., security., password., principal.builder.class, log.dir, zookeeper.connect, zookeeper.set.acl, authorizer., super.user, cruise.control.metrics.topic, cruise.control.metrics.reporter.bootstrap.servers (with the exception of: zookeeper.connection.timeout.ms, ssl.cipher.suites, ssl.protocol, ssl.enabled.protocols,cruise.control.metrics.topic.num.partitions, cruise.control.metrics.topic.replication.factor, cruise.control.metrics.topic.retention.ms).</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">map</p></td>
