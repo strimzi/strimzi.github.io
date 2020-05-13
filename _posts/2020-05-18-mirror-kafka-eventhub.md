@@ -70,6 +70,8 @@ A few months ago, Azure Event Hub was enriched with an Apache Kafka protocol hea
 It enables any Apache Kafka client to connect to an Event Hub, as if it was a "normal" Apache Kafka topic, for sending and receiving messages.
 Leveraging this relatively new feature, it is possible to mirror data from an Apache Kafka cluster to Azure Event Hub, pretty easily using Kafka Mirror Maker.
 
+> Whilst Kafka Mirror Maker 2 is gaining traction in the Kafka ecosystem, I faced some protocol compatibility issues with the Azure Event Hub protocol head. Therefore this post uses Kafka Mirror Maker whilst this is being investigated.
+
 Assuming that the Apache Kafka topic to mirror is named `testeh`, we have to create a corresponding Event Hub in a related namespace.
 It is possible to do that following the official Microsoft documentation, using the [Azure portal](https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-create), the [Azure CLI](https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-quickstart-cli), Azure Powershell or ARM template.
 
@@ -184,7 +186,8 @@ Even in this case the `<eventhubs-namespace>` has to be replaced with the Event 
 For more information about Azure Functions connecting to Event Hub this [link](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-event-hubs-trigger) provides really useful information.
 The application can run locally or be published on the Azure cloud.
 
-To try the entire pipeline, we just miss sending messages and see how they are mirrored to Event Hub causing the above function to be executed.
+To try the entire pipeline, the only thing left to do is to send some messages.
+Then we can see that they are mirrored to Event Hub, causing the above function to be executed.
 To do so, just use the `kafka-console-producer` command line tool provided with Apache Kafka.
 Start a new pod in the Kubernetes cluster for hosting the producer and type a couple of JSON messages as follows.
 
@@ -220,5 +223,5 @@ On the Azure Functions application, the messages will be logged like this:
 Integrating applications running on different platforms and different clouds is becoming quite common nowadays and the hybrid cloud based use cases are growing fast.
 Back to the scenario showed in this blog post, the Apache Kafka cluster on Kubernetes could run on any cloud provider (Azure, Amazon, IBM, GCP) and thanks to the Strimzi operators, its deployment and management is fairly simple as well as mirroring data to other systems like Event Hub using Kafka Mirror Maker.
 
-I hope this post has persuaded you of the benefit of using Strimzi and Mirror Maker to do such an integration with Azure.
+I hope this post has persuaded you of the benefit of using Strimzi for doing such an integration with Azure.
 Let us know what you are going to integrate!
