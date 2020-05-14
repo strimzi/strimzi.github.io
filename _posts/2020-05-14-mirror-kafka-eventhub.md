@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Mirroring from Apache Kafka to Azure Event Hub"
-date: 2020-05-18
+date: 2020-05-14
 author: paolo_patierno
 ---
 
