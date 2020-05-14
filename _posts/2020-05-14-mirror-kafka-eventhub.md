@@ -18,7 +18,7 @@ This blog post is going to show how to use the Strimzi cluster operator to confi
 
 Before starting to deploy the different components, let's take a look at how they should be integrated and the related overall architecture.
 
-![Overall architecture](/assets/images/posts/2020-05-18-kafka-mirror-eventhub.png)
+![Overall architecture](/assets/images/posts/2020-05-14-kafka-mirror-eventhub.png)
 
 On one side there is a Kubernetes cluster where an Apache Kafka cluster is deployed and managed via the Strimzi operators as well as the Kafka Mirror Maker instance.
 An application, running on the same cluster, produces messages to an Apache Kafka topic and all the data are consumed by Kafka Mirror Maker in order to be mirrored to the remote Azure Event Hub instance.
@@ -75,7 +75,7 @@ Leveraging this relatively new feature, it is possible to mirror data from an Ap
 Assuming that the Apache Kafka topic to mirror is named `testeh`, we have to create a corresponding Event Hub in a related namespace.
 It is possible to do that following the official Microsoft documentation, using the [Azure portal](https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-create), the [Azure CLI](https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-quickstart-cli), Azure Powershell or ARM template.
 
-![Azure Portal: Event Hub creation](/assets/images/posts/2020-05-18-azure-portal-eventhub.png)
+![Azure Portal: Event Hub creation](/assets/images/posts/2020-05-14-azure-portal-eventhub.png)
 
 Having the Event Hub ready is just the first step.
 In order to configure Kafka Mirror Maker for connecting to the Event Hub, we need to get the corresponding connection string in order to be authenticated and authorized to write on the Event Hub itself.
@@ -90,7 +90,7 @@ Endpoint=sb://<eventhubs-namespace>.servicebus.windows.net/;SharedAccessKeyName=
 
 Where `<eventhubs-namespace>` has to be replaced with the actual Event Hub namespace you are going to use.
 
-![Azure Portal: Event Hub connection string](/assets/images/posts/2020-05-18-connectionstring-eventhub.png)
+![Azure Portal: Event Hub connection string](/assets/images/posts/2020-05-14-connectionstring-eventhub.png)
 
 ### Configure Kafka Mirror Maker
 
