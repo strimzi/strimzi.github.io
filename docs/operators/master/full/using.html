@@ -21703,7 +21703,8 @@ Otherwise, you have two connection options for your listener configuration when 
     clientId: kafka-broker <b class="conum">(2)</b>
     clientSecret: <b class="conum">(3)</b>
       secretName: my-cluster-oauth
-      key: clientSecret</code></pre>
+      key: clientSecret
+    userNameClaim: preferred_username <b class="conum">(4)</b></code></pre>
 </div>
 </div>
 </div>
@@ -21718,6 +21719,44 @@ Otherwise, you have two connection options for your listener configuration when 
 </li>
 <li>
 <p>Client Secret and client ID is used for authentication.</p>
+</li>
+<li>
+<p>The token claim (or key) that contains the actual user name in the token. The user name is the <em>principal</em> used to identify the user. The <code>userNameClaim</code> value will depend on the authorization server used.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Depending on how you apply OAuth 2.0 authentication, and the type of authorization server, there are additional (optional) configuration settings you can use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">  # ...
+  authentication:
+    type: oauth
+    # ...
+    checkIssuer: false <b class="conum">(1)</b>
+    fallbackUserNameClaim: client_id <b class="conum">(2)</b>
+    fallbackUserNamePrefix: client-account- <b class="conum">(3)</b>
+    validTokenType: bearer <b class="conum">(4)</b>
+    userInfoEndpointUri: &lt;<em>https://&lt;auth-server-address&gt;/auth/realms/external/protocol/openid-connect/userinfo</em>&gt; <b class="conum">(5)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>If your authorization server does not provide an <code>iss</code> claim, it is not possible to perform an issuer check. In this situation, set <code>checkIssuer</code> to <code>false</code> and do not specify a <code>validIssuerUri</code>. Default is <code>true</code>.</p>
+</li>
+<li>
+<p>An authorization server may not provide a single attribute to identify both regular users and clients. A client authenticating in its own name might provide a <code>client_id</code>. But a user authenticating using a username and password, to obtain a refresh token or an access token, might provide a <code>username</code> attribute in addition to a <code>client_id</code>. Use this fallback option to specify the username claim (attribute) to use if a primary user id attribute is not available.</p>
+</li>
+<li>
+<p>In situations where <code>fallbackUserNameClaim</code> is applicable, it may also be necessary to prevent name collisions between the values of the username claim, and those of the fallback username claim. Consider a situation where a client called <code>producer</code> exists, but also a regular user called <code>producer</code> exists. In order to differentiate between the two, you can use this property to add a prefix to the user id of the client.</p>
+</li>
+<li>
+<p>(Only applicable when using <code>introspectionEndpointUri</code>) Depending on the authorization server you are using, the Introspection Endpoint may or may not return the <code>token_type</code> attribute., or it may contain different values. You can specify a valid token type value that the response from the Introspection Endpoint has to contain.</p>
+</li>
+<li>
+<p>(Only applicable when using <code>introspectionEndpointUri</code>) The authorization server may be configured or implemented in such a way to not provide any identifiable information in an Introspection Endpoint response. In order to obtain the user id, you can configure the URI of the User Info Endpoint as a fallback. The <code>userNameClaim</code>, <code>fallbackUserNameClaim</code>, and <code>fallbackUserNamePrefix</code> settings are applied to the response of User Info Endpoint.</p>
 </li>
 </ol>
 </div>
@@ -21998,7 +22037,8 @@ spec:
     # ...
     disableTlsHostnameVerification: true <b class="conum">(1)</b>
     checkAccessTokenType: false <b class="conum">(2)</b>
-    accessTokenIsJwt: false <b class="conum">(3)</b></code></pre>
+    accessTokenIsJwt: false <b class="conum">(3)</b>
+    scope: any <b class="conum">(4)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -22011,6 +22051,9 @@ spec:
 </li>
 <li>
 <p>If you are using opaque tokens, you can apply <code>accessTokenIsJwt: false</code> so that access tokens are not treated as JWT tokens.</p>
+</li>
+<li>
+<p>If the authorization server requires the client to specify the <code>scope</code> when requesting the token from the token endpoint, you can provide it - in this case it is <code>any</code>.</p>
 </li>
 </ol>
 </div>
@@ -30551,14 +30594,21 @@ It must have the value <code>oauth</code> for the type <code>KafkaListenerAuthen
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">accessTokenIsJwt</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Configure whether the access token should be treated as JWT. This should be set to <code>false</code> if the authorization server returns opaque tokens. Defaults to <code>true</code>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Configure whether the access token is treated as JWT. This must be set to <code>false</code> if the authorization server returns opaque tokens. Defaults to <code>true</code>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">checkAccessTokenType</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Configure whether the access token type check should be performed or not. This should be set to <code>false</code> if the authorization server does not include 'typ' claim in JWT token. Defaults to <code>true</code>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Configure whether the access token type check is performed or not. This should be set to <code>false</code> if the authorization server does not include 'typ' claim in JWT token. Defaults to <code>true</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">checkIssuer</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Enable or disable issuer checking. By default issuer is checked using the value configured by <code>validIssuerUri</code>. Default value is <code>true</code>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
@@ -30590,6 +30640,20 @@ It must have the value <code>oauth</code> for the type <code>KafkaListenerAuthen
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fallbackUserNameClaim</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The fallback username claim to be used for the user id if the claim specified by <code>userNameClaim</code> is not present. This is useful when <code>client_credentials</code> authentication only results in the client id being provided in another claim. It only takes effect if <code>userNameClaim</code> is set.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fallbackUserNamePrefix</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The prefix to use with the value of <code>fallbackUserNameClaim</code> to construct the user id. This only takes effect if <code>fallbackUserNameClaim</code> is true, and the value is present for the claim. Mapping usernames and client ids into the same user id space is useful in preventing name collisions.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">introspectionEndpointUri</p></td>
@@ -30634,8 +30698,15 @@ It must have the value <code>oauth</code> for the type <code>KafkaListenerAuthen
 <td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">userInfoEndpointUri</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">URI of the User Info Endpoint to use as a fallback to obtaining the user id when the Introspection Endpoint does not return information that can be used for the user id.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">userNameClaim</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Name of the claim from the authentication token which will be used as the user principal. Defaults to <code>sub</code>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Name of the claim from the JWT authentication token, Introspection Endpoint response or User Info Endpoint response which will be used to extract the user id. Defaults to <code>sub</code>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
@@ -30643,6 +30714,13 @@ It must have the value <code>oauth</code> for the type <code>KafkaListenerAuthen
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">validIssuerUri</p></td>
 <td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">URI of the token issuer used for authentication.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">validTokenType</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Valid value for the <code>token_type</code> attribute returned by the Introspection Endpoint. No default value, and not checked by default.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
@@ -34623,6 +34701,13 @@ It must have the value <code>oauth</code> for the type <code>KafkaClientAuthenti
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-GenericSecretSource-reference"><code>GenericSecretSource</code></a></p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">scope</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">OAuth scope to use when authenticating against the authorization server. Some authorization servers require this to be set. The possible values depend on how authorization server is configured. By default <code>scope</code> is not specified when doing the token endpoint request.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tlsTrustedCertificates</p></td>
 <td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Trusted certificates for TLS connection to the OAuth server.</p></td>
 </tr>
@@ -37279,7 +37364,7 @@ Provide a list of secrets with key names under which the certificates are stored
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-05-14 12:35:12 UTC
+Last updated 2020-05-14 15:40:48 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
