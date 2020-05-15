@@ -654,7 +654,6 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#con-topic-operator-cluster-label-deploying">4.2.2. Identifying a Kafka cluster for topic handling</a></li>
 <li><a href="#how-the-topic-operator-works-deploying">4.2.3. Understanding the Topic Operator</a></li>
 <li><a href="#proc-topic-operator-with-resource-requests-limits-deploying">4.2.4. Configuring the Topic Operator with resource requests and limits</a></li>
-<li><a href="#topic-operator-environment-deploying">4.2.5. Topic Operator environment</a></li>
 </ul>
 </li>
 <li><a href="#assembly-user-operator-str">4.3. User Operator</a>
@@ -2753,7 +2752,53 @@ However, a standalone deployment is more flexible as the Topic Operator can oper
 <p><code>STRIMZI_NAMESPACE</code> to the Kubernetes namespace in which you want the operator to watch for  <code>KafkaTopic</code> resources.</p>
 </li>
 <li>
-<p><code>STRIMZI_JAVA_OPTS</code> <em>(optional)</em> to the Java options used for the JVM running Topic Operator. An example is <code>-Xmx=512M -Xms=256M</code>.</p>
+<p><code>STRIMZI_RESOURCE_LABELS</code> to the label selector used to identify the <code>KafkaTopic</code> resources managed by the operator.</p>
+</li>
+<li>
+<p><code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code> to specify the interval between periodic reconciliations, in milliseconds.</p>
+</li>
+<li>
+<p><code>STRIMZI_TOPIC_METADATA_MAX_ATTEMPTS</code> to specify the number of attempts at getting topic metadata from Kafka.
+The time between each attempt is defined as an exponential back-off.
+Consider increasing this value when topic creation could take more time due to the number of partitions or replicas.
+Default <code>6</code>.</p>
+</li>
+<li>
+<p><code>STRIMZI_ZOOKEEPER_SESSION_TIMEOUT_MS</code> to the ZooKeeper session timeout, in milliseconds.
+For example, <code>10000</code>.
+Default <code>20000</code> (20 seconds).</p>
+</li>
+<li>
+<p><code>STRIMZI_TOPICS_PATH</code> to the Zookeeper node path where the Topic Operator stores its metadata.
+Default <code>/strimzi/topics</code>.</p>
+</li>
+<li>
+<p><code>STRIMZI_TLS_ENABLED</code> to enable TLS support for encrypting the communication with Kafka brokers.
+Default <code>true</code>.</p>
+</li>
+<li>
+<p><code>STRIMZI_TRUSTSTORE_LOCATION</code> to the path to the truststore containing certificates for enabling TLS based communication.
+Mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>.</p>
+</li>
+<li>
+<p><code>STRIMZI_TRUSTSTORE_PASSWORD</code> to the password for accessing the truststore defined by <code>STRIMZI_TRUSTSTORE_LOCATION</code>.
+Mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>.</p>
+</li>
+<li>
+<p><code>STRIMZI_KEYSTORE_LOCATION</code> to the path to the keystore containing private keys for enabling TLS based communication.
+Mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>.</p>
+</li>
+<li>
+<p><code>STRIMZI_KEYSTORE_PASSWORD</code> to the password for accessing the keystore defined by <code>STRIMZI_KEYSTORE_LOCATION</code>.
+Mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>.</p>
+</li>
+<li>
+<p><code>STRIMZI_LOG_LEVEL</code> to the level for printing logging messages.
+The value can be set to: <code>ERROR</code>, <code>WARNING</code>, <code>INFO</code>, <code>DEBUG</code>, and <code>TRACE</code>.
+Default <code>INFO</code>.</p>
+</li>
+<li>
+<p><code>STRIMZI_JAVA_OPTS</code> <em>(optional)</em> to the Java options used for the JVM running the Topic Operator. An example is <code>-Xmx=512M -Xms=256M</code>.</p>
 </li>
 <li>
 <p><code>STRIMZI_JAVA_SYSTEM_PROPERTIES</code> <em>(optional)</em> to list the <code>-D</code> options which are set to the Topic Operator. An example is <code>-Djavax.net.debug=verbose -DpropertyName=value</code>.</p>
@@ -2802,7 +2847,7 @@ You may experience a delay with the deployment if you have a slow connection to 
 </div>
 <div class="paragraph">
 <p>A standalone deployment requires configuration of environment variables, and is more complicated than <a href="#deploying-the-user-operator-using-the-cluster-operator-str">deploying the User Operator using the Cluster Operator</a>.
-a standalone deployment is more flexible as the User Operator can operate with <em>any</em> Kafka cluster, not necessarily one deployed by the Cluster Operator.</p>
+However, a standalone deployment is more flexible as the User Operator can operate with <em>any</em> Kafka cluster, not necessarily one deployed by the Cluster Operator.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -2829,6 +2874,17 @@ a standalone deployment is more flexible as the User Operator can operate with <
 <p><code>STRIMZI_NAMESPACE</code> to the Kubernetes namespace in which you want the operator to watch for <code>KafkaUser</code> resources.</p>
 </li>
 <li>
+<p><code>STRIMZI_LABELS</code> to the label selector used to identify the <code>KafkaUser</code> resources managed by the operator.</p>
+</li>
+<li>
+<p><code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code> to specify the interval between periodic reconciliations, in milliseconds.</p>
+</li>
+<li>
+<p><code>STRIMZI_ZOOKEEPER_SESSION_TIMEOUT_MS</code> to the ZooKeeper session timeout, in milliseconds.
+For example, <code>10000</code>.
+Default <code>20000</code> (20 seconds).</p>
+</li>
+<li>
 <p><code>STRIMZI_CA_CERT_NAME</code> to point to a Kubernetes <code>Secret</code> that contains the public key of the Certificate Authority for signing new user certificates for TLS client authentication.
 The <code>Secret</code> must contain the public key of the Certificate Authority under the key <code>ca.crt</code>.</p>
 </li>
@@ -2845,6 +2901,23 @@ This environment variable is optional and should be set only if the communicatio
 <p><code>STRIMZI_EO_KEY_SECRET_NAME</code> to point to a Kubernetes <code>Secret</code> containing the private key and related certificate for TLS client authentication against the Kafka cluster.
 The <code>Secret</code> must contain the keystore with the private key and certificate under the key <code>entity-operator.p12</code>, and the related password under the key <code>entity-operator.password</code>.
 This environment variable is optional and should be set only if TLS client authentication is needed when the communication with the Kafka cluster is TLS based.</p>
+</li>
+<li>
+<p><code>STRIMZI_CA_VALIDITY</code> the validity period for the Certificate Authority.
+Default is <code>365</code> days.</p>
+</li>
+<li>
+<p><code>STRIMZI_CA_RENEWAL</code> the renewal period for the Certificate Authority.</p>
+</li>
+<li>
+<p><code>STRIMZI_LOG_LEVEL</code> to the level for printing logging messages.
+The value can be set to: <code>ERROR</code>, <code>WARNING</code>, <code>INFO</code>, <code>DEBUG</code>, and <code>TRACE</code>.
+Default <code>INFO</code>.</p>
+</li>
+<li>
+<p><code>STRIMZI_GC_LOG_ENABLED</code> to enable garbage collection (GC) logging.
+Default <code>true</code>.
+Default is <code>30</code> days to initiate certificate renewal before the old certificates expire.</p>
 </li>
 <li>
 <p><code>STRIMZI_JAVA_OPTS</code> <em>(optional)</em> to the Java options used for the JVM running User Operator. An example is <code>-Xmx=512M -Xms=256M</code>.</p>
@@ -8140,7 +8213,7 @@ To configure a JmxTrans deployment, define the following properties:</p>
 </td>
 <td class="content">
 JmxTrans will not come up enable you specify that JmxOptions on the Kafka broker.
-For more information see, <a href="#assembly-kafka-jmx-options">Kafka Jmx Options</a>
+For more information see, <a href="#assembly-jmx-options-deployment-configuration-kafka">Kafka Jmx Options</a>
 .Configuring JmxTrans output definitions
 </td>
 </tr>
@@ -24345,95 +24418,6 @@ spec:
 </ul>
 </div>
 </div>
-<div class="sect3">
-<h4 id="topic-operator-environment-deploying"><a class="link" href="#topic-operator-environment-deploying">4.2.5. Topic Operator environment</a></h4>
-<div class="paragraph">
-<p>When deployed standalone the Topic Operator can be configured using environment variables.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The Topic Operator should be configured using the <code>Kafka.spec.entityOperator.topicOperator</code> property when deployed by the Cluster Operator.
-</td>
-</tr>
-</table>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1"><code>STRIMZI_RESOURCE_LABELS</code></dt>
-<dd>
-<p>The label selector used to identify <code>KafkaTopics</code> to be managed by the operator.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_ZOOKEEPER_SESSION_TIMEOUT_MS</code></dt>
-<dd>
-<p>The ZooKeeper session timeout, in milliseconds.
-For example, <code>10000</code>.
-Default <code>20000</code> (20 seconds).</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_KAFKA_BOOTSTRAP_SERVERS</code></dt>
-<dd>
-<p>The list of Kafka bootstrap servers.
-This variable is mandatory.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_ZOOKEEPER_CONNECT</code></dt>
-<dd>
-<p>The ZooKeeper connection information.
-This variable is mandatory.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code></dt>
-<dd>
-<p>The interval between periodic reconciliations, in milliseconds.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_TOPIC_METADATA_MAX_ATTEMPTS</code></dt>
-<dd>
-<p>The number of attempts at getting topic metadata from Kafka.
-The time between each attempt is defined as an exponential back-off.
-Consider increasing this value when topic creation could take more time due to the number of partitions or replicas.
-Default <code>6</code>.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_TOPICS_PATH</code></dt>
-<dd>
-<p>The Zookeeper node path where the Topic Operator will store its metadata.
-Default <code>/strimzi/topics</code></p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_LOG_LEVEL</code></dt>
-<dd>
-<p>The level for printing logging messages.
-The value can be set to: <code>ERROR</code>, <code>WARNING</code>, <code>INFO</code>, <code>DEBUG</code>, and <code>TRACE</code>.
-Default <code>INFO</code>.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_TLS_ENABLED</code></dt>
-<dd>
-<p>For enabling the TLS support so encrypting the communication with Kafka brokers.
-Default <code>true</code>.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_TRUSTSTORE_LOCATION</code></dt>
-<dd>
-<p>The path to the truststore containing certificates for enabling TLS based communication.
-This variable is mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_TRUSTSTORE_PASSWORD</code></dt>
-<dd>
-<p>The password for accessing the truststore defined by <code>STRIMZI_TRUSTSTORE_LOCATION</code>.
-This variable is mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_KEYSTORE_LOCATION</code></dt>
-<dd>
-<p>The path to the keystore containing private keys for enabling TLS based communication.
-This variable is mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_KEYSTORE_PASSWORD</code></dt>
-<dd>
-<p>The password for accessing the keystore defined by <code>STRIMZI_KEYSTORE_LOCATION</code>.
-This variable is mandatory only if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>.</p>
-</dd>
-</dl>
-</div>
-</div>
 </div>
 <div class="sect2">
 <h3 id="assembly-user-operator-str"><a class="link" href="#assembly-user-operator-str">4.3. User Operator</a></h3>
@@ -37486,7 +37470,7 @@ Provide a list of secrets with key names under which the certificates are stored
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-05-15 14:04:08 UTC
+Last updated 2020-05-15 16:41:23 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
