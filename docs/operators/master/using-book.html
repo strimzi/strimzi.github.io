@@ -13614,7 +13614,11 @@ spec:
 </div>
 </li>
 <li>
-<p>Use the values from the mounted properties file in your JSON payload with connector configuration.
+<p>Configure your connector</p>
+<div class="ulist">
+<ul>
+<li>
+<p>If you are using the Kafka Connect HTTP REST interface, use the values from the mounted properties file in your JSON payload with connector configuration.
 For example:</p>
 <div class="listingblock">
 <div class="content">
@@ -13623,13 +13627,36 @@ For example:</p>
    "config":{
       "connector.class":"MyDbConnector",
       "tasks.max":"3",
-      "database": "my-postgresql:5432"
+      "database": "my-postgresql:5432",
       "username":"${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbUsername}",
       "password":"${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbPassword}",
       # ...
    }
 }</code></pre>
 </div>
+</div>
+</li>
+<li>
+<p>If you are using a <code>KafkaConnector</code> resource, use the values from the mounted properties file in the <code>spec.config</code> section of your custom resource.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnector
+metadata:
+  name: my-connector
+  # ...
+spec:
+  class: "MyDbConnector"
+  tasksMax: 3
+  config:
+    database: "my-postgresql:5432"
+    username: "${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbUsername}"
+    password: "${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbPassword}"</code></pre>
+</div>
+</div>
+</li>
+</ul>
 </div>
 </li>
 </ol>
@@ -16855,7 +16882,11 @@ spec:
 </div>
 </li>
 <li>
-<p>Use the values from the mounted properties file in your JSON payload with connector configuration.
+<p>Configure your connector</p>
+<div class="ulist">
+<ul>
+<li>
+<p>If you are using the Kafka Connect HTTP REST interface, use the values from the mounted properties file in your JSON payload with connector configuration.
 For example:</p>
 <div class="listingblock">
 <div class="content">
@@ -16864,13 +16895,36 @@ For example:</p>
    "config":{
       "connector.class":"MyDbConnector",
       "tasks.max":"3",
-      "database": "my-postgresql:5432"
+      "database": "my-postgresql:5432",
       "username":"${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbUsername}",
       "password":"${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbPassword}",
       # ...
    }
 }</code></pre>
 </div>
+</div>
+</li>
+<li>
+<p>If you are using a <code>KafkaConnector</code> resource, use the values from the mounted properties file in the <code>spec.config</code> section of your custom resource.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnector
+metadata:
+  name: my-connector
+  # ...
+spec:
+  class: "MyDbConnector"
+  tasksMax: 3
+  config:
+    database: "my-postgresql:5432"
+    username: "${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbUsername}"
+    password: "${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbPassword}"</code></pre>
+</div>
+</div>
+</li>
+</ul>
 </div>
 </li>
 </ol>
@@ -24335,7 +24389,34 @@ The <code>KafkaTopic.spec.partitions</code> cannot be decreased.
 <div class="sect2">
 <h3 id="changing-a-topic-str"><a class="link" href="#changing-a-topic-str">5.3. Changing a topic</a></h3>
 <div class="paragraph">
-<p>This procedure describes how to change the configuration of an existing Kafka topic by using a <code>KafkaTopic</code> Kubernetes resource.</p>
+<p>This procedure describes how to change the configuration of an existing Kafka topic by using a <code>KafkaTopic</code> resource.</p>
+</div>
+<div class="paragraph">
+<div class="title">Before you start</div>
+<p>It is important that you consider the following before making your changes:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Kafka does <em>not</em> support making the following changes through the <code>KafkaTopic</code> resource:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Changing topic names using <code>spec.topicName</code></p>
+</li>
+<li>
+<p>Decreasing partition size using <code>spec.partitions</code></p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>You cannot change the number of replicas initially specified using <code>spec.replicas</code>.</p>
+</li>
+<li>
+<p>Increasing <code>spec.partitions</code> for topics with keys will change how records are partitioned, which can be particularly problematic when the topic uses <em>semantic partitioning</em>.</p>
+</li>
+</ul>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -24356,8 +24437,10 @@ The <code>KafkaTopic.spec.partitions</code> cannot be decreased.
 <ol class="arabic">
 <li>
 <p>Prepare a file containing the desired <code>KafkaTopic</code></p>
+<div class="paragraph">
+<p>For example:</p>
+</div>
 <div class="listingblock">
-<div class="title">An example <code>KafkaTopic</code></div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
 kind: KafkaTopic
@@ -24382,36 +24465,9 @@ You can get the current version of the resource using <code>kubectl get kafkatop
 </tr>
 </table>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Changing topic names using the <code>KafkaTopic.spec.topicName</code> variable and decreasing partition size using the <code>KafkaTopic.spec.partitions</code> variable is not supported by Kafka.
-</td>
-</tr>
-</table>
-</div>
-<div class="admonitionblock caution">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Caution</div>
-</td>
-<td class="content">
-Increasing <code>spec.partitions</code> for topics with keys will change how records are partitioned, which can be particularly problematic when the topic uses <em>semantic partitioning</em>.
-</td>
-</tr>
-</table>
-</div>
 </li>
 <li>
-<p>Update the <code>KafkaTopic</code> resource in Kubernetes.</p>
-<div class="paragraph">
-<p>This can be done using <code>kubectl apply</code>:</p>
-</div>
+<p>Apply the changes to the deployment of your <code>KafkaTopic</code> resource.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>your-file</em></code></pre>
