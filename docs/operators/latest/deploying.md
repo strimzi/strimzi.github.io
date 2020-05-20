@@ -1,5 +1,5 @@
 ---
-title: Deploying Strimzi ((!LATEST_BRIDGE_VERSION!))
+title: Deploying Strimzi (!LATEST_BRIDGE_VERSION!)
 layout: default
 ---
 
