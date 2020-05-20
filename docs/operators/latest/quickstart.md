@@ -1,5 +1,5 @@
 ---
-title: Strimzi Quick Start guide (!LATEST_BRIDGE_VERSION!)
+title: Strimzi Quick Start guide (!LATEST_OPERATOR_VERSION!)
 layout: default
 ---
 

@@ -1,5 +1,5 @@
 ---
-title: Strimzi Overview guide (!LATEST_BRIDGE_VERSION!)
+title: Strimzi Overview guide (!LATEST_OPERATOR_VERSION!)
 layout: default
 ---
 
