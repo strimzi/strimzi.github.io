@@ -512,7 +512,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <p>This guide is intended as a starting point for building an understanding of Strimzi.
 The guide introduces some of the key concepts behind Kafka, which is central to Strimzi, explaining briefly the purpose of Kafka components.
 Configuration points are outlined, including options to secure and monitor Kafka.
-A Strimzi distribution provides the files to deploy and manage a Kafka cluster, as well as example files for configuration and monitoring of your deployment.</p>
+A distribution of Strimzi provides the files to deploy and manage a Kafka cluster, as well as example files for configuration and monitoring of your deployment.</p>
 </div>
 <div class="paragraph">
 <p>A typical Kafka deployment is described, as well as the tools used to deploy and manage Kafka.</p>
@@ -836,6 +836,10 @@ Connectors are plugins that provide the connection configuration needed.</p>
 <dd>
 <p>Kafka Exporter extracts data for analysis as Prometheus metrics, primarily data relating to offsets, consumer groups, consumer lag and topics. Consumer lag is the delay between the last message written to a partition and the message currently being picked up from that partition by a consumer</p>
 </dd>
+<dt class="hdlist1">Cruise Control</dt>
+<dd>
+<p>Cruise Control monitors and balances data across a Kafka cluster.</p>
+</dd>
 </dl>
 </div>
 </div>
@@ -931,7 +935,7 @@ External clients can access the Kafka Bridge through an OpenShift Route, a loadb
 <h2 id="overview-components_str"><a class="link" href="#overview-components_str">4. Strimzi Operators</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Having discussed the basics of Kafka, we can now look at how Strimzi supports Kafka using <em>Operators</em> to deploy and manage the components and dependencies of Kafka to Kubernetes.</p>
+<p>Strimzi supports Kafka using <em>Operators</em> to deploy and manage the components and dependencies of Kafka to Kubernetes.</p>
 </div>
 <div class="paragraph">
 <p>Operators are a method of packaging, deploying, and managing a Kubernetes application.
@@ -977,7 +981,7 @@ By implementing knowledge of Kafka operations in code, Kafka administration task
 <div class="ulist">
 <ul>
 <li>
-<p>Kafka (including ZooKeeper, Entity Operator and Kafka Exporter)</p>
+<p>Kafka (including ZooKeeper, Entity Operator, Kafka Exporter, and Cruise Control)</p>
 </li>
 <li>
 <p>Kafka Connect</p>
@@ -1125,12 +1129,16 @@ Your application needs to use the user and its credentials for authentication an
 <div class="sectionbody">
 <div class="paragraph">
 <p>A deployment of Kafka components to a Kubernetes cluster using Strimzi is highly configurable through the application of custom resources.
-Custom resources are created as instances of the APIs added by CRDs to extend Kubernetes resources.</p>
+Custom resources are created as instances of APIs added by Custom resource definitions (CRDs) to extend Kubernetes resources.</p>
 </div>
 <div class="paragraph">
-<p>CRDs act as configuration instructions to describe the custom resources in a Kubernetes cluster, and are provided with Strimzi for each Kafka component used in a deployment.
+<p>CRDs act as configuration instructions to describe the custom resources in a Kubernetes cluster,
+and are provided with Strimzi for each Kafka component used in a deployment, as well as users and topics.
 CRDs and custom resources are defined as YAML files.
 Example YAML files are provided with the Strimzi distribution.</p>
+</div>
+<div class="paragraph">
+<p>CRDs also allow Strimzi resources to benefit from native Kubernetes features like CLI accessibility and configuration validation.</p>
 </div>
 <div class="paragraph">
 <p>In this chapter we look at how Kafka components are configured through custom resources, starting with common configuration points and then important configuration considerations specific to components.</p>
@@ -1397,11 +1405,107 @@ spec:
 <p>To set up MirrorMaker, a source and target (destination) Kafka cluster must be running.</p>
 </div>
 <div class="paragraph">
-<p>You can use Strimzi with MirrorMaker or MirrorMaker 2.0.</p>
+<p>You can use Strimzi with MirrorMaker 2.0, although the earlier version of MirrorMaker continues to be supported.</p>
+</div>
+<h4 id="mirrormaker_2_0" class="discrete">MirrorMaker 2.0</h4>
+<div class="paragraph">
+<p>MirrorMaker 2.0 is based on the Kafka Connect framework, <em>connectors</em> managing the transfer of data between clusters.</p>
+</div>
+<div class="paragraph">
+<p>MirrorMaker 2.0 uses:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Source cluster configuration to consume data from the source cluster</p>
+</li>
+<li>
+<p>Target cluster configuration to output data to the target cluster</p>
+</li>
+</ul>
+</div>
+<h5 id="cluster_configuration" class="discrete">Cluster configuration</h5>
+<div class="paragraph">
+<p>You configure a <code>KafkaMirrorMaker2</code> custom resource to define the Kafka Connect deployment, including the connection details of the source and target clusters,
+and then run a set of MirrorMaker 2.0 connectors to make the connection.</p>
+</div>
+<div class="paragraph">
+<p>Topic configuration is automatically synchronized between the source and target clusters according to the topics defined in the <code>KafkaMirrorMaker2</code> custom resource.
+Configuration changes are propagated to remote topics so that new topics and partitions are detected and created.
+Topic replication is defined using regular expression patterns to <em>whitelist</em> or <em>blacklist</em> topics.</p>
+</div>
+<div class="paragraph">
+<p>The following MirrorMaker 2.0 connectors and related internal topics help manage the transfer and synchronization of data between the clusters.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">MirrorSourceConnector</dt>
+<dd>
+<p>A <em>MirrorSourceConnector</em> creates remote topics from the source cluster.</p>
+</dd>
+<dt class="hdlist1">MirrorCheckpointConnector</dt>
+<dd>
+<p>A <em>MirrorCheckpointConnector</em> tracks and maps offsets for specified consumer groups using an <em>offset sync</em> topic and <em>checkpoint</em> topic.
+The offset sync topic maps the source and target offsets for replicated topic partitions from record metadata.
+A checkpoint is emitted from each source cluster and replicated in the target cluster through the checkpoint topic.
+The checkpoint topic maps the last committed offset in the source and target cluster for replicated topic partitions in each consumer group.</p>
+</dd>
+<dt class="hdlist1">MirrorHeartbeatConnector</dt>
+<dd>
+<p>A <em>MirrorHeartbeatConnector</em> periodically checks connectivity between clusters.
+A heartbeat is produced every second by the MirrorHeartbeatConnector into a <em>heartbeat</em> topic that is created on the local cluster.
+If you have MirrorMaker 2.0 at both the remote and local locations, the heartbeat emitted at the remote location by the MirrorHeartbeatConnector is treated like any remote topic and mirrored by the MirrorSourceConnector at the local cluster.
+The heartbeat topic makes it easy to check that the remote cluster is available and the clusters are connected.
+If things go wrong, the heartbeat topic offset positions and time stamps can help with recovery and diagnosis.</p>
+</dd>
+</dl>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/mirrormaker.png" alt="MirrorMaker 2.0 replication">
+</div>
+<div class="title">Figure 1. Replication across two clusters</div>
+</div>
+<h5 id="bidirectional_replication_across_two_clusters" class="discrete">Bidirectional replication across two clusters</h5>
+<div class="paragraph">
+<p>The MirrorMaker 2.0 architecture supports bidirectional replication in an <em>active/active</em> cluster configuration,
+so both clusters are active and provide the same data simultaneously.
+A MirrorMaker 2.0 cluster is required at each target destination.
+Remote topics are distinguished by automatic renaming that prepends the name of cluster to the name of the topic.
+This is useful if you want to make the same data available locally in different geographical locations.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/mirrormaker-renaming.png" alt="MirrorMaker 2.0 bidirectional architecture">
+</div>
+<div class="title">Figure 2. Bidirectional replication</div>
+</div>
+<h5 id="example_yaml_showing_mirrormaker_2_0_configuration" class="discrete">Example YAML showing MirrorMaker 2.0 configuration</h5>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">  apiVersion: kafka.strimzi.io/v1alpha1
+  kind: KafkaMirrorMaker2
+  metadata:
+    name: my-mirror-maker2
+    spec:
+      version: 2.5.0
+      connectCluster: "my-cluster-target"
+      clusters:
+      - alias: "my-cluster-source"
+        bootstrapServers: my-cluster-source-kafka-bootstrap:9092
+      - alias: "my-cluster-target"
+        bootstrapServers: my-cluster-target-kafka-bootstrap:9092
+      mirrors:
+      - sourceCluster: "my-cluster-source"
+        targetCluster: "my-cluster-target"
+        sourceConnector: {}
+      topicsPattern: ".*"
+      groupsPattern: "group1|group2|group3"</code></pre>
+</div>
 </div>
 <h4 id="mirrormaker" class="discrete">MirrorMaker</h4>
 <div class="paragraph">
-<p>MirrorMaker uses producers and consumers to replicate data across clusters.</p>
+<p>The earlier version of MirrorMaker uses producers and consumers to replicate data across clusters.</p>
 </div>
 <div class="paragraph">
 <p>MirrorMaker uses:</p>
@@ -1422,38 +1526,7 @@ spec:
 <div class="paragraph">
 <p>A <em>whitelist</em> defines the topics to mirror from a source to a target cluster.</p>
 </div>
-<h4 id="mirrormaker_2_0" class="discrete">MirrorMaker 2.0</h4>
-<div class="paragraph">
-<p>MirrorMaker 2.0 is based on the Kafka Connect framework, <em>connectors</em> managing the transfer of data between clusters.</p>
-</div>
-<div class="paragraph">
-<p>MirrorMaker 2.0 uses:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Source cluster configuration to consume data from the source cluster</p>
-</li>
-<li>
-<p>Target cluster configuration to output data to the target cluster</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>A MirrorMaker 2.0 <code>MirrorSourceConnector</code> custom resource replicates topics from a source cluster to a target cluster.</p>
-</div>
-<div class="imageblock">
-<div class="content">
-<img src="images/mirrormaker.png" alt="MirrorMaker 2.0 replication">
-</div>
-<div class="title">Figure 1. Replication across two clusters</div>
-</div>
-<div class="paragraph">
-<p>The MirrorMaker 2.0 architecture supports bidirectional replication in an <em>active/active</em> cluster configuration,
-so both clusters are active and provide the same data simultaneously. A MirrorMaker 2.0 cluster is required at each target destination.
-This is useful if you want to make the same data available locally in different geographical locations.</p>
-</div>
-<h4 id="key_consumer_configuration" class="discrete">Key Consumer configuration</h4>
+<h5 id="key_consumer_configuration" class="discrete">Key Consumer configuration</h5>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Consumer group identifier</dt>
@@ -1470,7 +1543,7 @@ This is useful if you want to make the same data available locally in different 
 </dd>
 </dl>
 </div>
-<h4 id="key_producer_configuration" class="discrete">Key Producer configuration</h4>
+<h5 id="key_producer_configuration" class="discrete">Key Producer configuration</h5>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Cancel option for send failure</dt>
@@ -1479,7 +1552,7 @@ This is useful if you want to make the same data available locally in different 
 </dd>
 </dl>
 </div>
-<h4 id="example_yaml_showing_mirrormaker_configuration" class="discrete">Example YAML showing MirrorMaker configuration</h4>
+<h5 id="example_yaml_showing_mirrormaker_configuration" class="discrete">Example YAML showing MirrorMaker configuration</h5>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
@@ -1913,7 +1986,7 @@ Clients are configured with a tracing profile, and a tracer is initialized for t
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-01-27 22:10:01 +0100
+Last updated 2020-05-04 00:22:19 +0200
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
