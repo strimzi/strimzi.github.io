@@ -3329,14 +3329,17 @@ spec:
       offsets.topic.replication.factor: 3
       transaction.state.log.replication.factor: 3
       transaction.state.log.min.isr: 2
-    storage: <b class="conum">(12)</b>
-      type: persistent-claim <b class="conum">(13)</b>
-      size: 10000Gi <b class="conum">(14)</b>
-    rack: <b class="conum">(15)</b>
+      ssl.cipher.suites: "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" <b class="conum">(12)</b>
+      ssl.enabled.protocols: "TLSv1.2"
+      ssl.protocol: "TLSv1.2"
+    storage: <b class="conum">(13)</b>
+      type: persistent-claim <b class="conum">(14)</b>
+      size: 10000Gi <b class="conum">(15)</b>
+    rack: <b class="conum">(16)</b>
       topologyKey: failure-domain.beta.kubernetes.io/zone
-    metrics: <b class="conum">(16)</b>
+    metrics: <b class="conum">(17)</b>
       lowercaseOutputName: true
-      rules: <b class="conum">(17)</b>
+      rules: <b class="conum">(18)</b>
       # Special cases and very specific rules
       - pattern : kafka.server&lt;type=(.+), name=(.+), clientId=(.+), topic=(.+), partition=(.*)&gt;&lt;&gt;Value
         name: kafka_server_$1_$2
@@ -3346,7 +3349,7 @@ spec:
           topic: "$4"
           partition: "$5"
         # ...
-  zookeeper: <b class="conum">(18)</b>
+  zookeeper: <b class="conum">(19)</b>
     replicas: 3
     resources:
       requests:
@@ -3363,7 +3366,7 @@ spec:
       size: 1000Gi
     metrics:
       # ...
-  entityOperator: <b class="conum">(19)</b>
+  entityOperator: <b class="conum">(20)</b>
     topicOperator:
       resources:
         requests:
@@ -3380,9 +3383,9 @@ spec:
         limits:
           memory: 512Mi
           cpu: "1"
-  kafkaExporter: <b class="conum">(20)</b>
+  kafkaExporter: <b class="conum">(21)</b>
     # ...
-  cruiseControl: <b class="conum">(21)</b>
+  cruiseControl: <b class="conum">(22)</b>
     # ...</code></pre>
 </div>
 </div>
@@ -3420,6 +3423,9 @@ spec:
 </li>
 <li>
 <p>Config specifies the broker configuration. <a href="#ref-kafka-broker-configuration-deployment-configuration-kafka">Standard Apache Kafka configuration may be provided, restricted to those properties not managed directly by Strimzi</a>.</p>
+</li>
+<li>
+<p><a href="#ref-kafka-broker-configuration-deployment-configuration-kafka">SSL properties for external listeners to run with a specific <em>cipher suite</em> for a TLS version</a>.</p>
 </li>
 <li>
 <p>Storage is <a href="#assembly-storage-deployment-configuration-kafka">configured as <code>ephemeral</code>, <code>persistent-claim</code> or <code>jbod</code></a>.</p>
@@ -4371,8 +4377,12 @@ Specifically, you are prevented from modifying all configuration options with ke
 <p>If the <code>config</code> property specifies a restricted option, it is ignored and a warning message is printed to the Cluster Operator log file.
 All other supported options are passed to Kafka.</p>
 </div>
+<div class="paragraph">
+<p>Use the three allowed <code>ssl</code> configuration options to run external listeners with a specific <em>cipher suite</em> for a TLS version.
+A <em>cipher suite</em> combines algorithms for secure connection and data transfer.</p>
+</div>
 <div class="listingblock">
-<div class="title">An example Kafka broker configuration</div>
+<div class="title">Example Kafka broker configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
@@ -4397,8 +4407,26 @@ spec:
       socket.receive.buffer.bytes: 102400
       socket.request.max.bytes: 104857600
       group.initial.rebalance.delay.ms: 0
+      ssl.cipher.suites: "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" <b class="conum">(1)</b>
+      ssl.enabled.protocols: "TLSv1.2" <b class="conum">(2)</b>
+      ssl.protocol: "TLSv1.2" <b class="conum">(3)</b>
     # ...</code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The cipher suite for TLS using a combination of <code>ECDHE</code> key exchange mechanism, <code>RSA</code> authentication algorithm,
+<code>AES</code> bulk encyption algorithm and <code>SHA384</code> MAC algorithm.</p>
+</li>
+<li>
+<p>The SSl protocol <code>TLSv1.2</code> is enabled.</p>
+</li>
+<li>
+<p>Specifies the <code>TLSv1.2</code> protocol to generate the SSL context.
+Allowed values are <code>TLSv1.1</code> and <code>TLSv1.2</code>.</p>
+</li>
+</ol>
 </div>
 </div>
 <div class="sect4">
@@ -6305,8 +6333,12 @@ In such cases, the configuration in the <code>Kafka.spec.zookeeper.config</code>
 <div class="paragraph">
 <p>These options will be automatically configured when they are not present in the <code>Kafka.spec.zookeeper.config</code> property.</p>
 </div>
+<div class="paragraph">
+<p>Use the three allowed <code>ssl</code> configuration options to run external listeners with a specific <em>cipher suite</em> for a TLS version.
+A <em>cipher suite</em> combines algorithms for secure connection and data transfer.</p>
+</div>
 <div class="listingblock">
-<div class="title">An example showing ZooKeeper configuration</div>
+<div class="title">Example ZooKeeper configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
@@ -6318,8 +6350,26 @@ spec:
     config:
       autopurge.snapRetainCount: 3
       autopurge.purgeInterval: 1
+      ssl.cipher.suites: "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" <b class="conum">(1)</b>
+      ssl.enabled.protocols: "TLSv1.2" <b class="conum">(2)</b>
+      ssl.protocol: "TLSv1.2" <b class="conum">(3)</b>
     # ...</code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The cipher suite for TLS using a combination of <code>ECDHE</code> key exchange mechanism, <code>RSA</code> authentication algorithm,
+<code>AES</code> bulk encyption algorithm and <code>SHA384</code> MAC algorithm.</p>
+</li>
+<li>
+<p>The SSl protocol <code>TLSv1.2</code> is enabled.</p>
+</li>
+<li>
+<p>Specifies the <code>TLSv1.2</code> protocol to generate the SSL context.
+Allowed values are <code>TLSv1.1</code> and <code>TLSv1.2</code>.</p>
+</li>
+</ol>
 </div>
 </div>
 <div class="sect4">
@@ -11209,6 +11259,10 @@ In this circumstance, fix the configuration in the <code>KafkaConnect.spec.confi
 <div class="paragraph">
 <p>These options are automatically configured in case they are not present in the <code>KafkaConnect.spec.config</code> or <code>KafkaConnectS2I.spec.config</code> properties.</p>
 </div>
+<div class="paragraph">
+<p>Use the three allowed <code>ssl</code> configuration options to run external listeners with a specific <em>cipher suite</em> for a TLS version.
+A <em>cipher suite</em> combines algorithms for secure connection and data transfer.</p>
+</div>
 <div class="listingblock">
 <div class="title">Example Kafka Connect configuration</div>
 <div class="content">
@@ -11230,8 +11284,26 @@ spec:
     config.storage.replication.factor: 3
     offset.storage.replication.factor: 3
     status.storage.replication.factor: 3
+    ssl.cipher.suites: "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" <b class="conum">(1)</b>
+    ssl.enabled.protocols: "TLSv1.2" <b class="conum">(2)</b>
+    ssl.protocol: "TLSv1.2" <b class="conum">(3)</b>
   # ...</code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The cipher suite for TLS using a combination of <code>ECDHE</code> key exchange mechanism, <code>RSA</code> authentication algorithm,
+<code>AES</code> bulk encyption algorithm and <code>SHA384</code> MAC algorithm.</p>
+</li>
+<li>
+<p>The SSl protocol <code>TLSv1.2</code> is enabled.</p>
+</li>
+<li>
+<p>Specifies the <code>TLSv1.2</code> protocol to generate the SSL context.
+Allowed values are <code>TLSv1.1</code> and <code>TLSv1.2</code>.</p>
+</li>
+</ol>
 </div>
 </div>
 <div class="sect4">
@@ -14477,6 +14549,10 @@ In this circumstance, fix the configuration in the <code>KafkaConnect.spec.confi
 <div class="paragraph">
 <p>These options are automatically configured in case they are not present in the <code>KafkaConnect.spec.config</code> or <code>KafkaConnectS2I.spec.config</code> properties.</p>
 </div>
+<div class="paragraph">
+<p>Use the three allowed <code>ssl</code> configuration options to run external listeners with a specific <em>cipher suite</em> for a TLS version.
+A <em>cipher suite</em> combines algorithms for secure connection and data transfer.</p>
+</div>
 <div class="listingblock">
 <div class="title">Example Kafka Connect configuration</div>
 <div class="content">
@@ -14498,8 +14574,26 @@ spec:
     config.storage.replication.factor: 3
     offset.storage.replication.factor: 3
     status.storage.replication.factor: 3
+    ssl.cipher.suites: "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" <b class="conum">(1)</b>
+    ssl.enabled.protocols: "TLSv1.2" <b class="conum">(2)</b>
+    ssl.protocol: "TLSv1.2" <b class="conum">(3)</b>
   # ...</code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The cipher suite for TLS using a combination of <code>ECDHE</code> key exchange mechanism, <code>RSA</code> authentication algorithm,
+<code>AES</code> bulk encyption algorithm and <code>SHA384</code> MAC algorithm.</p>
+</li>
+<li>
+<p>The SSl protocol <code>TLSv1.2</code> is enabled.</p>
+</li>
+<li>
+<p>Specifies the <code>TLSv1.2</code> protocol to generate the SSL context.
+Allowed values are <code>TLSv1.1</code> and <code>TLSv1.2</code>.</p>
+</li>
+</ol>
 </div>
 </div>
 <div class="sect4">
@@ -17180,9 +17274,12 @@ spec:
     config: <b class="conum">(8)</b>
       max.poll.records: 100
       receive.buffer.bytes: 32768
+      ssl.cipher.suites: "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" <b class="conum">(9)</b>
+      ssl.enabled.protocols: "TLSv1.2"
+      ssl.protocol: "TLSv1.2"
   producer:
     bootstrapServers: my-target-cluster-kafka-bootstrap:9092
-    abortOnSendFailure: false <b class="conum">(9)</b>
+    abortOnSendFailure: false <b class="conum">(10)</b>
     tls:
       trustedCertificates:
       - secretName: my-target-cluster-ca-cert
@@ -17196,25 +17293,28 @@ spec:
     config:
       compression.type: gzip
       batch.size: 8192
-  whitelist: "my-topic|other-topic" <b class="conum">(10)</b>
-  resources: <b class="conum">(11)</b>
+      ssl.cipher.suites: "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" <b class="conum">(11)</b>
+      ssl.enabled.protocols: "TLSv1.2"
+      ssl.protocol: "TLSv1.2"
+  whitelist: "my-topic|other-topic" <b class="conum">(12)</b>
+  resources: <b class="conum">(13)</b>
     requests:
       cpu: "1"
       memory: 2Gi
     limits:
       cpu: "2"
       memory: 2Gi
-  logging: <b class="conum">(12)</b>
+  logging: <b class="conum">(14)</b>
     type: inline
     loggers:
       mirrormaker.root.logger: "INFO"
-  readinessProbe: <b class="conum">(13)</b>
+  readinessProbe: <b class="conum">(15)</b>
     initialDelaySeconds: 15
     timeoutSeconds: 5
   livenessProbe:
     initialDelaySeconds: 15
     timeoutSeconds: 5
-  metrics: <b class="conum">(14)</b>
+  metrics: <b class="conum">(16)</b>
     lowercaseOutputName: true
     rules:
       - pattern: "kafka.server&lt;type=(.+), name=(.+)PerSec\\w*&gt;&lt;&gt;Count"
@@ -17224,23 +17324,23 @@ spec:
         name: "kafka_server_$1_$2_total"
         labels:
           topic: "$3"
-  jvmOptions: <b class="conum">(15)</b>
+  jvmOptions: <b class="conum">(17)</b>
     "-Xmx": "1g"
     "-Xms": "1g"
-  image: my-org/my-image:latest <b class="conum">(16)</b>
-  template: <b class="conum">(17)</b>
-      pod:
-        affinity:
-          podAntiAffinity:
-            requiredDuringSchedulingIgnoredDuringExecution:
-              - labelSelector:
-                  matchExpressions:
-                    - key: application
-                      operator: In
-                      values:
-                        - postgresql
-                        - mongodb
-                topologyKey: "kubernetes.io/hostname"</code></pre>
+  image: my-org/my-image:latest <b class="conum">(18)</b>
+  template: <b class="conum">(19)</b>
+    pod:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: application
+                    operator: In
+                    values:
+                      - postgresql
+                      - mongodb
+              topologyKey: "kubernetes.io/hostname"</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -17270,7 +17370,13 @@ spec:
 <p>Kafka configuration options for consumer and producer.</p>
 </li>
 <li>
+<p><a href="#type-KafkaMirrorMakerConsumerSpec-reference">SSL properties for external listeners to run with a specific <em>cipher suite</em> for a TLS version</a>.</p>
+</li>
+<li>
 <p>If set to <code>true</code>, Kafka MirrorMaker will exit and the container will restart following a send failure for a message.</p>
+</li>
+<li>
+<p><a href="#type-KafkaMirrorMakerProducerSpec-reference">SSL properties for external listeners to run with a specific <em>cipher suite</em> for a TLS version</a>.</p>
 </li>
 <li>
 <p>Topics mirrored from source to target Kafka cluster.</p>
@@ -18143,26 +18249,29 @@ spec:
       config.storage.replication.factor: 1
       offset.storage.replication.factor: 1
       status.storage.replication.factor: 1
-    tls: <b class="conum">(13)</b>
+      ssl.cipher.suites: "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" <b class="conum">(13)</b>
+      ssl.enabled.protocols: "TLSv1.2"
+      ssl.protocol: "TLSv1.2"
+    tls: <b class="conum">(14)</b>
       trustedCertificates:
       - certificate: ca.crt
         secretName: my-cluster-target-cluster-ca-cert
-  mirrors: <b class="conum">(14)</b>
-  - sourceCluster: "my-cluster-source" <b class="conum">(15)</b>
-    targetCluster: "my-cluster-target" <b class="conum">(16)</b>
-    sourceConnector: <b class="conum">(17)</b>
+  mirrors: <b class="conum">(15)</b>
+  - sourceCluster: "my-cluster-source" <b class="conum">(16)</b>
+    targetCluster: "my-cluster-target" <b class="conum">(17)</b>
+    sourceConnector: <b class="conum">(18)</b>
       config:
-        replication.factor: 1 <b class="conum">(18)</b>
-        offset-syncs.topic.replication.factor: 1 <b class="conum">(19)</b>
-        sync.topic.acls.enabled: "false" <b class="conum">(20)</b>
-    heartbeatConnector: <b class="conum">(21)</b>
+        replication.factor: 1 <b class="conum">(19)</b>
+        offset-syncs.topic.replication.factor: 1 <b class="conum">(20)</b>
+        sync.topic.acls.enabled: "false" <b class="conum">(21)</b>
+    heartbeatConnector: <b class="conum">(22)</b>
       config:
-        heartbeats.topic.replication.factor: 1 <b class="conum">(22)</b>
-    checkpointConnector: <b class="conum">(23)</b>
+        heartbeats.topic.replication.factor: 1 <b class="conum">(23)</b>
+    checkpointConnector: <b class="conum">(24)</b>
       config:
-        checkpoints.topic.replication.factor: 1 <b class="conum">(24)</b>
-    topicsPattern: ".*" <b class="conum">(25)</b>
-    groupsPattern: "group1|group2|group3" <b class="conum">(26)</b></code></pre>
+        checkpoints.topic.replication.factor: 1 <b class="conum">(25)</b>
+    topicsPattern: ".*" <b class="conum">(26)</b>
+    groupsPattern: "group1|group2|group3" <b class="conum">(27)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -18203,6 +18312,9 @@ spec:
 <li>
 <p><a href="#assembly-kafka-connect-configuration-deployment-configuration-kafka-connect">Kafka Connect configuration</a>.
 Standard Apache Kafka configuration may be provided, restricted to those properties not managed directly by Strimzi.</p>
+</li>
+<li>
+<p><a href="#type-KafkaMirrorMaker2ClusterSpec-reference">SSL properties for external listeners to run with a specific <em>cipher suite</em> for a TLS version</a>.</p>
 </li>
 <li>
 <p>TLS encryption for the target Kafka cluster is configured in the same way as for the source Kafka cluster.</p>
@@ -18931,6 +19043,10 @@ In this circumstance, fix the configuration in the <code>KafkaBridge.spec.consum
 </tr>
 </table>
 </div>
+<div class="paragraph">
+<p>Use the three allowed <code>ssl</code> configuration options to run external listeners with a specific <em>cipher suite</em> for a TLS version.
+A <em>cipher suite</em> combines algorithms for secure connection and data transfer.</p>
+</div>
 <div class="listingblock">
 <div class="title">Example Kafka Bridge consumer configuration</div>
 <div class="content">
@@ -18944,8 +19060,26 @@ spec:
     config:
       auto.offset.reset: earliest
       enable.auto.commit: true
-  # ...</code></pre>
+      ssl.cipher.suites: "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" <b class="conum">(1)</b>
+      ssl.enabled.protocols: "TLSv1.2" <b class="conum">(2)</b>
+      ssl.protocol: "TLSv1.2" <b class="conum">(3)</b>
+    # ...</code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The cipher suite for TLS using a combination of <code>ECDHE</code> key exchange mechanism, <code>RSA</code> authentication algorithm,
+<code>AES</code> bulk encyption algorithm and <code>SHA384</code> MAC algorithm.</p>
+</li>
+<li>
+<p>The SSl protocol <code>TLSv1.2</code> is enabled.</p>
+</li>
+<li>
+<p>Specifies the <code>TLSv1.2</code> protocol to generate the SSL context.
+Allowed values are <code>TLSv1.1</code> and <code>TLSv1.2</code>.</p>
+</li>
+</ol>
 </div>
 </div>
 <div class="sect4">
@@ -19002,6 +19136,10 @@ In this circumstance, fix the configuration in the <code>KafkaBridge.spec.produc
 </tr>
 </table>
 </div>
+<div class="paragraph">
+<p>Use the three allowed <code>ssl</code> configuration options to run external listeners with a specific <em>cipher suite</em> for a TLS version.
+A <em>cipher suite</em> combines algorithms for secure connection and data transfer.</p>
+</div>
 <div class="listingblock">
 <div class="title">Example Kafka Bridge producer configuration</div>
 <div class="content">
@@ -19015,8 +19153,26 @@ spec:
     config:
       acks: 1
       delivery.timeout.ms: 300000
-  # ...</code></pre>
+      ssl.cipher.suites: "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" <b class="conum">(1)</b>
+      ssl.enabled.protocols: "TLSv1.2" <b class="conum">(2)</b>
+      ssl.protocol: "TLSv1.2" <b class="conum">(3)</b>
+    # ...</code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The cipher suite for TLS using a combination of <code>ECDHE</code> key exchange mechanism, <code>RSA</code> authentication algorithm,
+<code>AES</code> bulk encyption algorithm and <code>SHA384</code> MAC algorithm.</p>
+</li>
+<li>
+<p>The SSl protocol <code>TLSv1.2</code> is enabled.</p>
+</li>
+<li>
+<p>Specifies the <code>TLSv1.2</code> protocol to generate the SSL context.
+Allowed values are <code>TLSv1.1</code> and <code>TLSv1.2</code>.</p>
+</li>
+</ol>
 </div>
 </div>
 <div class="sect4">
@@ -30631,7 +30787,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">config</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The kafka broker config. Properties with the following prefixes cannot be set: listeners, advertised., broker., listener., host.name, port, inter.broker.listener.name, sasl., ssl., security., password., principal.builder.class, log.dir, zookeeper.connect, zookeeper.set.acl, authorizer., super.user, cruise.control.metrics.topic, cruise.control.metrics.reporter.bootstrap.servers (with the exception of: zookeeper.connection.timeout.ms, ssl.cipher.suites, ssl.protocol, ssl.enabled.protocols,cruise.control.metrics.topic.num.partitions, cruise.control.metrics.topic.replication.factor, cruise.control.metrics.topic.retention.ms).</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Kafka broker config properties with the following prefixes cannot be set: listeners, advertised., broker., listener., host.name, port, inter.broker.listener.name, sasl., ssl., security., password., principal.builder.class, log.dir, zookeeper.connect, zookeeper.set.acl, authorizer., super.user, cruise.control.metrics.topic, cruise.control.metrics.reporter.bootstrap.servers (with the exception of: zookeeper.connection.timeout.ms, ssl.cipher.suites, ssl.protocol, ssl.enabled.protocols,cruise.control.metrics.topic.num.partitions, cruise.control.metrics.topic.replication.factor, cruise.control.metrics.topic.retention.ms).</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">map</p></td>
@@ -36580,6 +36736,36 @@ By using a network limiting quota, it is possible to prevent this situation from
 <div class="paragraph">
 <p>Used in: <a href="#type-KafkaMirrorMakerSpec-reference"><code>KafkaMirrorMakerSpec</code></a></p>
 </div>
+<div class="paragraph">
+<p>Use the three allowed <code>ssl</code> configuration options to run external listeners with a specific <em>cipher suite</em> for a TLS version.
+A <em>cipher suite</em> combines algorithms for secure connection and data transfer.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example SSL configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">spec:
+  consumer:
+    config:
+      ssl.cipher.suites: "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" <b class="conum">(1)</b>
+      ssl.enabled.protocols: "TLSv1.2" <b class="conum">(2)</b>
+      ssl.protocol: "TLSv1.2" <b class="conum">(3)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The cipher suite for TLS using a combination of <code>ECDHE</code> key exchange mechanism, <code>RSA</code> authentication algorithm,
+<code>AES</code> bulk encyption algorithm and <code>SHA384</code> MAC algorithm.</p>
+</li>
+<li>
+<p>The SSl protocol <code>TLSv1.2</code> is enabled.</p>
+</li>
+<li>
+<p>Specifies the <code>TLSv1.2</code> protocol to generate the SSL context.
+Allowed values are <code>TLSv1.1</code> and <code>TLSv1.2</code>.</p>
+</li>
+</ol>
+</div>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 50%;">
@@ -36688,6 +36874,36 @@ Provide a list of secrets with key names under which the certificates are stored
 <h3 id="type-KafkaMirrorMakerProducerSpec-reference"><a class="link" href="#type-KafkaMirrorMakerProducerSpec-reference">B.116. <code>KafkaMirrorMakerProducerSpec</code> schema reference</a></h3>
 <div class="paragraph">
 <p>Used in: <a href="#type-KafkaMirrorMakerSpec-reference"><code>KafkaMirrorMakerSpec</code></a></p>
+</div>
+<div class="paragraph">
+<p>Use the three allowed <code>ssl</code> configuration options to run external listeners with a specific <em>cipher suite</em> for a TLS version.
+A <em>cipher suite</em> combines algorithms for secure connection and data transfer.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example SSL configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">spec:
+  producer:
+    config:
+      ssl.cipher.suites: "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" <b class="conum">(1)</b>
+      ssl.enabled.protocols: "TLSv1.2" <b class="conum">(2)</b>
+      ssl.protocol: "TLSv1.2" <b class="conum">(3)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The cipher suite for TLS using a combination of <code>ECDHE</code> key exchange mechanism, <code>RSA</code> authentication algorithm,
+<code>AES</code> bulk encyption algorithm and <code>SHA384</code> MAC algorithm.</p>
+</li>
+<li>
+<p>The SSl protocol <code>TLSv1.2</code> is enabled.</p>
+</li>
+<li>
+<p>Specifies the <code>TLSv1.2</code> protocol to generate the SSL context.
+Allowed values are <code>TLSv1.1</code> and <code>TLSv1.2</code>.</p>
+</li>
+</ol>
 </div>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
@@ -37523,6 +37739,36 @@ Provide a list of secrets with key names under which the certificates are stored
 <h3 id="type-KafkaMirrorMaker2ClusterSpec-reference"><a class="link" href="#type-KafkaMirrorMaker2ClusterSpec-reference">B.133. <code>KafkaMirrorMaker2ClusterSpec</code> schema reference</a></h3>
 <div class="paragraph">
 <p>Used in: <a href="#type-KafkaMirrorMaker2Spec-reference"><code>KafkaMirrorMaker2Spec</code></a></p>
+</div>
+<div class="paragraph">
+<p>Use the three allowed <code>ssl</code> configuration options to run external listeners with a specific <em>cipher suite</em> for a TLS version.
+A <em>cipher suite</em> combines algorithms for secure connection and data transfer.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example SSL configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">spec:
+  clusters:
+    config:
+      ssl.cipher.suites: "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" <b class="conum">(1)</b>
+      ssl.enabled.protocols: "TLSv1.2" <b class="conum">(2)</b>
+      ssl.protocol: "TLSv1.2" <b class="conum">(3)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The cipher suite for TLS using a combination of <code>ECDHE</code> key exchange mechanism, <code>RSA</code> authentication algorithm,
+<code>AES</code> bulk encyption algorithm and <code>SHA384</code> MAC algorithm.</p>
+</li>
+<li>
+<p>The SSl protocol <code>TLSv1.2</code> is enabled.</p>
+</li>
+<li>
+<p>Specifies the <code>TLSv1.2</code> protocol to generate the SSL context.
+Allowed values are <code>TLSv1.1</code> and <code>TLSv1.2</code>.</p>
+</li>
+</ol>
 </div>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
