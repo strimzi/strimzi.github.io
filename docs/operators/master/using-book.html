@@ -287,19 +287,13 @@
 </li>
 </ul>
 </li>
-<li><a href="#cruise-control-concepts-str">8. Cruise Control</a>
+<li><a href="#cruise-control-concepts-str">8. Cruise Control for cluster rebalancing</a>
 <ul class="sectlevel2">
 <li><a href="#con-cruise-control-overview-str">8.1. Why use Cruise Control?</a></li>
 <li><a href="#con-optimization-goals-str">8.2. Optimization goals overview</a></li>
 <li><a href="#con-optimization-proposals-str">8.3. Optimization proposals overview</a></li>
 <li><a href="#proc-deploying-cruise-control-str">8.4. Deploying Cruise Control</a></li>
-<li><a href="#ref-cruise-control-configuration-str">8.5. Cruise Control configuration</a>
-<ul class="sectlevel3">
-<li><a href="#capacity_configuration">8.5.1. Capacity configuration</a></li>
-<li><a href="#topic_creation_and_configuration">8.5.2. Topic creation and configuration</a></li>
-<li><a href="#logging_configuration">8.5.3. Logging configuration</a></li>
-</ul>
-</li>
+<li><a href="#ref-cruise-control-configuration-str">8.5. Cruise Control configuration</a></li>
 <li><a href="#proc-generating-optimization-proposals-str">8.6. Generating optimization proposals</a></li>
 <li><a href="#proc-approving-optimization-proposal-str">8.7. Approving an optimization proposal</a></li>
 <li><a href="#proc-stopping-cluster-rebalance-str">8.8. Stopping a cluster rebalance</a></li>
@@ -3491,7 +3485,7 @@ spec:
 <p>Kafka Exporter configuration, which is used <a href="#assembly-kafka-exporter-configuration-deployment-configuration-kafka">to expose data as Prometheus metrics</a>.</p>
 </li>
 <li>
-<p>Cruise Control configuration, which is used <a href="#proc-deploying-cruise-control-str">to monitor and balance data across the Kafka cluster</a>.</p>
+<p>Cruise Control configuration, which is used <a href="#cruise-control-concepts-str">to rebalance the Kafka cluster</a>.</p>
 </li>
 </ol>
 </div>
@@ -26281,13 +26275,31 @@ You can also use the <a href="https://strimzi.io/docs/bridge/latest/#_seektobegi
 </div>
 </div>
 <div class="sect1">
-<h2 id="cruise-control-concepts-str"><a class="link" href="#cruise-control-concepts-str">8. Cruise Control</a></h2>
+<h2 id="cruise-control-concepts-str"><a class="link" href="#cruise-control-concepts-str">8. Cruise Control for cluster rebalancing</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>You can deploy <a href="https://github.com/linkedin/cruise-control" target="_blank" rel="noopener">Cruise Control</a> and access a subset of its features through Strimzi custom resources.</p>
+<p>You can deploy <a href="https://github.com/linkedin/cruise-control" target="_blank" rel="noopener">Cruise Control</a> to your Strimzi cluster and use it to <em>rebalance</em> the Kafka cluster.</p>
 </div>
 <div class="paragraph">
-<p>Example YAML files for deploying Cruise Control and setting optimization goals are provided in <code>examples/cruise-control/</code>.</p>
+<p>Cruise Control is an open source system for automating Kafka operations, such as monitoring cluster workload, rebalancing a cluster based on predefined constraints, and detecting and fixing anomalies.
+It consists of four main components&#8212;&#8203;the Load Monitor, the Analyzer, the Anomaly Detector, and the Executor&#8212;&#8203;and a REST API for client interactions.
+Strimzi utilizes the REST API to support the following Cruise Control features:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Generating <em>optimization proposals</em> from multiple <em>optimization goals</em>.</p>
+</li>
+<li>
+<p>Rebalancing a Kafka cluster based on an optimization proposal.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Other Cruise Control features are not currently supported, including anomaly detection, notifications, write-your-own goals, and changing the topic replication factor.</p>
+</div>
+<div class="paragraph">
+<p>Example YAML files for Cruise Control are provided in <code>examples/cruise-control/</code>.</p>
 </div>
 <div class="sect2">
 <h3 id="con-cruise-control-overview-str"><a class="link" href="#con-cruise-control-overview-str">8.1. Why use Cruise Control?</a></h3>
@@ -26301,7 +26313,8 @@ To rebalance the cluster, administrators must monitor the load on brokers and ma
 </div>
 <div class="paragraph">
 <p>Cruise Control automates the cluster rebalancing process.
-It constructs a <em>workload model</em> of resource utilization for the cluster&#8212;&#8203;based on CPU, disk, and network load&#8212;&#8203;and generates <em>optimization proposals</em> (that you can approve or reject) for more balanced partition assignments. A set of configurable <em>optimization goals</em> is used to calculate these proposals.</p>
+It constructs a <em>workload model</em> of resource utilization for the cluster&#8212;&#8203;based on CPU, disk, and network load&#8212;&#8203;and generates optimization proposals (that you can approve or reject) for more balanced partition assignments.
+A set of configurable optimization goals is used to calculate these proposals.</p>
 </div>
 <div class="paragraph">
 <p>When you approve an optimization proposal, Cruise Control applies it to your Kafka cluster.
@@ -26324,7 +26337,7 @@ When the cluster rebalancing operation is complete, the broker pods are used mor
 <div class="paragraph">
 <p>Optimization goals are constraints on workload redistribution and resource utilization across a Kafka cluster.
 With a few exceptions, Strimzi supports all the optimization goals developed in the Cruise Control project.
-These are as follows, in descending priority order:</p>
+The supported goals, in the default descending order of priority, are as follows:</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -26375,25 +26388,23 @@ CPU goals, intra-broker disk goals, "Write your own" goals, and Kafka assigner g
 </tr>
 </table>
 </div>
+<h4 id="goals_configuration_in_strimzi_custom_resources" class="discrete">Goals configuration in Strimzi custom resources</h4>
 <div class="paragraph">
-<p>As described in the following sections, you can customize the supported optimization goals by reordering them in terms of priority, and disabling goals to exclude from optimization proposal calculations.</p>
-</div>
-<h4 id="goals_configuration_in_strimzi" class="discrete">Goals configuration in Strimzi</h4>
-<div class="paragraph">
-<p>You configure optimization goals in the <code>Kafka</code> and <code>KafkaRebalance</code> custom resources. Cruise Control has configurations for <a href="#hard-soft-goals">hard</a> optimization goals that must be satisfied, as well as <a href="#master-goals">master</a>, <a href="#default-goals">default</a>, and <a href="#user-provided-goals">user-provided</a> optimization goals.</p>
+<p>You configure optimization goals in <code>Kafka</code> and <code>KafkaRebalance</code> custom resources. Cruise Control has configurations for <a href="#hard-soft-goals"><em>hard</em></a> optimization goals that must be satisfied, as well as <a href="#master-goals"><em>master</em></a>, <a href="#default-goals"><em>default</em></a>, and <a href="#user-provided-goals"><em>user-provided</em></a> optimization goals.
+Optimization goals are subject to any <a href="#capacity-configuration"><em>capacity limits</em></a> on broker resources.</p>
 </div>
 <div class="paragraph">
 <p>The following sections describe each goal configuration in more detail.</p>
 </div>
 <h5 id="hard-soft-goals" class="discrete">Hard goals and soft goals</h5>
 <div class="paragraph">
-<p><em>Hard goals</em> are goals that <em>must</em> be satisfied in optimization proposals.
-Goals that are not hard goals are known as <em>soft goals</em>, and might not be satisfied by optimization proposals.
+<p>Hard goals are goals that <em>must</em> be satisfied in optimization proposals.
+Goals that are not configured as hard goals are known as <em>soft goals</em>.
 You can think of soft goals as <em>best effort</em> goals: they do <em>not</em> need to be satisfied in optimization proposals, but are included in optimization calculations.
 An optimization proposal that violates one or more soft goals, but satisfies all hard goals, is valid.</p>
 </div>
 <div class="paragraph">
-<p>Cruise control will calculate optimization proposals that satisfy all the hard goals and as many soft goals as possible (in their priority order).
+<p>Cruise Control will calculate optimization proposals that satisfy all the hard goals and as many soft goals as possible (in their priority order).
 An optimization proposal that does <em>not</em> satisfy all the hard goals is rejected by Cruise Control and not sent to the user for approval.</p>
 </div>
 <div class="admonitionblock note">
@@ -26410,28 +26421,90 @@ Cruise Control will ignore this goal if doing so enables all the configured hard
 </table>
 </div>
 <div class="paragraph">
-<p>In Cruise Control, six of the <a href="#master-goals">master optimization goals</a> are preset as hard goals:</p>
+<p>In Cruise Control, the following <a href="#master-goals">master optimization goals</a> are preset as hard goals:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">RackAwareGoal; ReplicaCapacityGoal; DiskCapacityGoal; NetworkInboundCapacityGoal; NetworkOutboundCapacityGoal; CpuCapacityGoal</code></pre>
+<pre class="highlightjs highlight"><code class="language-none hljs">RackAwareGoal; ReplicaCapacityGoal; DiskCapacityGoal; NetworkInboundCapacityGoal; NetworkOutboundCapacityGoal</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Hard goals are controlled in the Cruise Control deployment configuration, by editing the <code>hard.goals</code> property in <code>Kafka.spec.cruiseControl.config</code>.</p>
+<p>You configure hard goals in the Cruise Control deployment configuration, by editing the <code>hard.goals</code> property in <code>Kafka.spec.cruiseControl.config</code>.</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>To inherit the six preset hard goals from Cruise Control, do not specify the <code>hard.goals</code> property in <code>Kafka.spec.cruiseControl.config</code></p>
+<p>To inherit the preset hard goals from Cruise Control, do not specify the <code>hard.goals</code> property in <code>Kafka.spec.cruiseControl.config</code></p>
 </li>
 <li>
-<p>To change the preset hard goals, specify the desired goals in the <code>hard.goals</code> configuration option.</p>
+<p>To change the preset hard goals, specify the desired goals in the <code>hard.goals</code> property, using their fully-qualified domain names.</p>
 </li>
 </ul>
 </div>
+<div class="listingblock">
+<div class="title">Example <code>Kafka</code> configuration for hard optimization goals</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+  zookeeper:
+    # ...
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+  cruiseControl:
+    capacity:
+      networkIn: 10000KB/s
+      networkOut: 10000KB/s
+    config:
+      hard.goals: &gt;
+        com.linkedin.kafka.cruisecontrol.analyzer.goals.NetworkInboundCapacityGoal,
+        com.linkedin.kafka.cruisecontrol.analyzer.goals.NetworkOutboundCapacityGoal
+      # ...</code></pre>
+</div>
+</div>
 <div class="paragraph">
-<p>Increasing the number of hard goals will reduce the likelihood of Cruise Control generating valid optimization proposals.</p>
+<p>Increasing the number of configured hard goals will reduce the likelihood of Cruise Control generating valid optimization proposals.</p>
+</div>
+<div class="paragraph">
+<p>If <code>skipHardGoalCheck: true</code> is specified in the <code>KafkaRebalance</code> custom resource, Cruise Control does <em>not</em> check that the list of user-provided optimization goals (in <code>KafkaRebalance.spec.goals</code>) contains <em>all</em> the configured hard goals (<code>hard.goals</code>).
+Therefore, if some, but not all, of the user-provided optimization goals are in the <code>hard.goals</code> list, Cruise Control will still treat them as hard goals even if <code>skipHardGoalCheck: true</code> is specified.</p>
+</div>
+<h5 id="master-goals" class="discrete">Master optimization goals</h5>
+<div class="paragraph">
+<p>The <em>master optimization goals</em> are available to all users.
+Goals that are not listed in the master optimization goals are not available for use in Cruise Control operations.</p>
+</div>
+<div class="paragraph">
+<p>Unless you change the Cruise Control <a href="#proc-deploying-cruise-control-str">deployment configuration</a>, Strimzi will inherit the following master optimization goals from Cruise Control, in descending priority order:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">RackAwareGoal; ReplicaCapacityGoal; DiskCapacityGoal; NetworkInboundCapacityGoal; NetworkOutboundCapacityGoal; ReplicaDistributionGoal; PotentialNwOutGoal; DiskUsageDistributionGoal; NetworkInboundUsageDistributionGoal; NetworkOutboundUsageDistributionGoal; TopicReplicaDistributionGoal; LeaderReplicaDistributionGoal; LeaderBytesInDistributionGoal; PreferredLeaderElectionGoal</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Six of these goals are preset as <a href="#hard-soft-goals">hard goals</a>.</p>
+</div>
+<div class="paragraph">
+<p>To reduce complexity, we recommend that you use the inherited master optimization goals, unless you need to <em>completely</em> exclude one or more goals from use in <code>KafkaRebalance</code> resources. The priority order of the master optimization goals can be modified, if desired, in the configuration for <a href="#default-goals">default optimization goals</a>.</p>
+</div>
+<div class="paragraph">
+<p>You configure master optimization goals, if necessary, in the Cruise Control deployment configuration: <code>Kafka.spec.cruiseControl.config.goals</code></p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>To accept the inherited master optimization goals, do not specify the <code>goals</code> property in <code>Kafka.spec.cruiseControl.config</code>.</p>
+</li>
+<li>
+<p>If you need to modify the inherited master optimization goals, specify a list of goals, in descending priority order, in the <code>goals</code> configuration option.</p>
+</li>
+</ul>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -26440,42 +26513,10 @@ Cruise Control will ignore this goal if doing so enables all the configured hard
 <div class="title">Note</div>
 </td>
 <td class="content">
-If <code>skipHardGoalCheck: true</code> is specified in the <code>KafkaRebalance</code> custom resource, Cruise Control does not check that the list of user-provided optimization goals (<code>goals</code>) contains <em>all</em> the configured hard goals (<code>hard.goals</code>). Therefore, if some, but not all, of the user-provided optimization goals are in the <code>hard.goals</code> list, Cruise Control will still treat them as hard goals even if <code>skipHardGoalCheck: true</code> is specified.
+If you change the inherited master optimization goals, you must ensure that the hard goals, if configured in the <code>hard.goals</code> property in <code>Kafka.spec.cruiseControl.config</code>, are a subset of the master optimization goals that you configured. Otherwise, errors will occur when generating optimization proposals.
 </td>
 </tr>
 </table>
-</div>
-<h5 id="master-goals" class="discrete">Master optimization goals</h5>
-<div class="paragraph">
-<p>The <em>master optimization goals</em> are available to all users.
-Goals that are not listed in the master optimization goals are not available to use for Cruise Control operations.</p>
-</div>
-<div class="paragraph">
-<p>Unless you change the Cruise Control <a href="#proc-deploying-cruise-control-str">deployment configuration</a>, Strimzi will inherit the following master optimization goals from Cruise Control, in descending priority order:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">RackAwareGoal; ReplicaCapacityGoal; DiskCapacityGoal; NetworkInboundCapacityGoal; NetworkOutboundCapacityGoal; CpuCapacityGoal; ReplicaDistributionGoal; PotentialNwOutGoal; DiskUsageDistributionGoal; NetworkInboundUsageDistributionGoal; NetworkOutboundUsageDistributionGoal; CpuUsageDistributionGoal; TopicReplicaDistributionGoal; LeaderReplicaDistributionGoal; LeaderBytesInDistributionGoal; PreferredLeaderElectionGoal</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Six of these goals are preset as <a href="#hard-soft-goals">hard goals</a>.</p>
-</div>
-<div class="paragraph">
-<p>To reduce complexity, we recommend that you use the inherited master optimization goals, unless you need to <em>completely</em> exclude one or more goals from use in <code>KafkaRebalance</code> resources. The priority order of the master optimization goals can be modified, if desired, in the <a href="#default-goals">default optimization goals</a>.</p>
-</div>
-<div class="paragraph">
-<p>Master optimization goals are controlled, if needed, in the Cruise Control deployment configuration: <code>Kafka.spec.cruiseControl.config.goals</code></p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>To accept the inherited master optimization goals, do not specify the <code>goals</code> property in <code>Kafka.spec.cruiseControl.config</code>.</p>
-</li>
-<li>
-<p>If you need to modify the inherited master optimization goals, specify a list of goals in the <code>goals</code> configuration option.</p>
-</li>
-</ul>
 </div>
 <h5 id="default-goals" class="discrete">Default optimization goals</h5>
 <div class="paragraph">
@@ -26486,7 +26527,8 @@ For more information about the cached optimization proposal, see <a href="#con-o
 <p>You can override the default optimization goals by setting <a href="#user-provided-goals">user-provided optimization goals</a> in a <code>KafkaRebalance</code> custom resource.</p>
 </div>
 <div class="paragraph">
-<p>Unless you change the Cruise Control <a href="#proc-deploying-cruise-control-str">deployment configuration</a>, the default optimization goals are the same as the master optimization goals.</p>
+<p>Unless you specify <code>default.goals</code> in the Cruise Control <a href="#proc-deploying-cruise-control-str">deployment configuration</a>, the master optimization goals are used as the default optimization goals.
+In this case, the cached optimization proposal is generated using the master optimization goals.</p>
 </div>
 <div class="ulist">
 <ul>
@@ -26514,7 +26556,7 @@ spec:
   entityOperator:
     topicOperator: {}
     userOperator: {}
-  cruiseControl: {}
+  cruiseControl:
     capacity:
       networkIn: 10000KB/s
       networkOut: 10000KB/s
@@ -26526,30 +26568,23 @@ spec:
       # ...</code></pre>
 </div>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-For an example of the complete deployment configuration, see <a href="#proc-deploying-cruise-control-str">Deploying Cruise Control</a>.
-</td>
-</tr>
-</table>
-</div>
 <div class="paragraph">
 <p>If no default optimization goals are specified, the cached proposal is generated using the master optimization goals.</p>
 </div>
 <h5 id="user-provided-goals" class="discrete">User-provided optimization goals</h5>
 <div class="paragraph">
-<p><em>User-provided optimization goals</em> narrow down the default goals.
-You can set them, if required, in the <code>KafkaRebalance</code> custom resource for a particular optimization proposal: <code>KafkaRebalance.spec.goals</code></p>
+<p><em>User-provided optimization goals</em> narrow down the configured default goals for a particular optimization proposal.
+You can set them, as required, in <code>spec.goals</code> in the <code>KafkaRebalance</code> custom resource:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>KafkaRebalance.spec.goals</pre>
+</div>
 </div>
 <div class="paragraph">
-<p>They are useful for generating an optimization proposal that addresses a particular scenario.
-For example, you might want to optimize leader replica distribution across the Kafka cluster without considering goals for disk capacity or disk utilization.
-So, you create a <code>KafkaRebalance</code> custom resource containing a user-provided goal for leader replica distribution only.</p>
+<p>User-provided optimization goals can generate optimization proposals for different scenarios.
+For example, you might want to optimize leader replica distribution across the Kafka cluster without considering disk capacity or disk utilization.
+So, you create a <code>KafkaRebalance</code> custom resource containing a single user-provided goal for leader replica distribution.</p>
 </div>
 <div class="paragraph">
 <p>User-provided optimization goals must:</p>
@@ -26583,10 +26618,12 @@ So, you create a <code>KafkaRebalance</code> custom resource containing a user-p
 <h3 id="con-optimization-proposals-str"><a class="link" href="#con-optimization-proposals-str">8.3. Optimization proposals overview</a></h3>
 <div class="paragraph">
 <p>An <em>optimization proposal</em> is a summary of proposed changes that would produce a more balanced Kafka cluster, with partition workloads distributed more evenly among the brokers.
-Each optimization proposal is based on the set of <a href="#con-optimization-goals-str">optimization goals</a> that were used to generate it.</p>
+Each optimization proposal is based on the set of <a href="#con-optimization-goals-str">optimization goals</a> that was used to generate it, subject to any configured <a href="#capacity-configuration">capacity limits on broker resources</a>.</p>
 </div>
 <div class="paragraph">
-<p>Use the summary (shown in the <code>status</code> of the <code>KafkaRebalance</code> resource) to decide whether to:</p>
+<p>An optimization proposal is contained in the <code>Status.Optimization Result</code> property of a <code>KafkaRebalance</code> custom resource.
+The information provided is a summary of the full optimization proposal.
+Use the summary to decide whether to:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -26598,18 +26635,9 @@ Each optimization proposal is based on the set of <a href="#con-optimization-goa
 </li>
 </ul>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-All optimization proposals are dry runs: you cannot approve a cluster rebalance without first generating an optimization proposal.
-There is no limit to the number of optimization proposals that can be generated.
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p>All optimization proposals are <em>dry runs</em>: you cannot approve a cluster rebalance without first generating an optimization proposal.
+There is no limit to the number of optimization proposals that can be generated.</p>
 </div>
 <h4 id="cached_optimization_proposal" class="discrete">Cached optimization proposal</h4>
 <div class="paragraph">
@@ -26654,7 +26682,7 @@ Consider a shorter interval for fast changing clusters, although this increases 
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>onDemandBalancednessScoreBefore, onDemandBalancednessScoreAfter</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">A measurement of the overall <em>balancedness</em> of a Kafka Cluster, before and after the optimization proposal was generated.</p>
-<p class="tableblock">The calculation is 100 minus the sum of the <code>BalancednessScore</code> of each violated soft goal. Cruise Control assigns a <code>BalancednessScore</code> to every optimization goal based on several factors, including priority (the goal&#8217;s position in the list of <code>default.goals</code> or user-provided goals).</p>
+<p class="tableblock">The score is calculated by subtracting the sum of the <code>BalancednessScore</code> of each violated soft goal from 100. Cruise Control assigns a <code>BalancednessScore</code> to every optimization goal based on several factors, including priority&#8212;&#8203;the goal&#8217;s position in the list of <code>default.goals</code> or user-provided goals.</p>
 <p class="tableblock">The <code>Before</code> score is based on the current configuration of the Kafka cluster.
 The <code>After</code> score is based on the generated optimization proposal.</p></td>
 </tr>
@@ -26709,29 +26737,22 @@ The <code>After</code> score is based on the generated optimization proposal.</p
 <div class="sect2">
 <h3 id="proc-deploying-cruise-control-str"><a class="link" href="#proc-deploying-cruise-control-str">8.4. Deploying Cruise Control</a></h3>
 <div class="paragraph">
-<p>Cruise Control is configured using the <code>cruiseControl</code> property in the <code>Kafka</code> resource.
-Once configured, you can deploy a Cruise Control instance to your Strimzi cluster by creating or updating the <code>Kafka</code> resource.</p>
+<p>To deploy Cruise Control to your Strimzi cluster, define the configuration using the <code>cruiseControl</code> property in the <code>Kafka</code> resource, and then create or update the resource.</p>
 </div>
 <div class="paragraph">
-<p>For an overview of the <code>Kafka</code> resource, see the <a href="#ref-sample-kafka-resource-config-deployment-configuration-kafka">sample Kafka YAML configuration</a>.</p>
+<p>Deploy one instance of Cruise Control per Kafka cluster.</p>
 </div>
-<div class="paragraph">
-<p>You can configure <code>cruiseControl</code> properties as part of a deployment or redeployment of a Kafka cluster.
-Deploy one instance of Cruise Control per Kafka cluster.</p>
-</div>
-<div class="paragraph">
-<p>This procedure uses the following example file provided with Strimzi:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>examples/cruise-control/cruise-control-topic.yaml</code></p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>This creates a <code>strimzi.cruisecontrol.metrics</code> topic in your Kafka cluster, which collects information from the Cruise Control Metrics Reporter for use in generating rebalance proposals.
-You do not need to interact with this topic after Cruise Control is deployed.</p>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Step one is only required if automatic topic creation is disabled in the Kafka cluster.
+</td>
+</tr>
+</table>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -26742,13 +26763,16 @@ You do not need to interact with this topic after Cruise Control is deployed.</p
 <li>
 <p>A running Cluster Operator</p>
 </li>
+<li>
+<p>You are aware of the guidance on <a href="#auto-created-topics-logs">Auto-created topics and log compaction</a>.</p>
+</li>
 </ul>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Create the Cruise Control metrics topic in your Kafka cluster:</p>
+<p>If automatic topic creation is disabled (<code>auto.create.topics.enable: false</code> is configured in <code>spec.kafka.config</code>), first create the <code>strimzi.cruisecontrol.metrics</code> topic:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f examples/cruise-control/cruise-control-topic.yaml</code></pre>
@@ -26778,7 +26802,6 @@ spec:
          com.linkedin.kafka.cruisecontrol.analyzer.goals.RackAwareGoal,
          com.linkedin.kafka.cruisecontrol.analyzer.goals.ReplicaCapacityGoal
          # ...
-      goals: {}
       cpu.balance.threshold: 1.1
       metadata.max.age.ms: 300000
       send.buffer.bytes: 131072
@@ -26815,16 +26838,18 @@ spec:
 <div class="colist arabic">
 <ol>
 <li>
-<p>Specifies capacity limits for broker resources. For more information, see <a href="#capacity_configuration">Capacity configuration</a>.</p>
+<p>Specifies capacity limits for broker resources. For more information, see <a href="#capacity-configuration">Capacity configuration</a>.</p>
 </li>
 <li>
-<p>Defines the Cruise Control configuration, including default and enabled optimization goals. You can provide any <a href="#ref-cruise-control-configuration-str">standard configuration option</a> apart from those managed directly by Strimzi.</p>
+<p>Defines the Cruise Control configuration, including the default optimization goals (in <code>default.goals</code>) and any customizations to the master optimization goals (in <code>goals</code>) or the hard goals (in <code>hard.goals</code>).
+You can provide any <a href="#ref-cruise-control-configuration-str">standard Cruise Control configuration option</a> apart from those managed directly by Strimzi.
+For more information on configuring optimization goals, see <a href="#con-optimization-goals-str">Optimization goals overview</a>.</p>
 </li>
 <li>
 <p>CPU and memory resources reserved for Cruise Control. For more information, see <a href="#assembly-resource-limits-and-requests-deployment-configuration-kafka">CPU and memory resources</a>.</p>
 </li>
 <li>
-<p>Defined loggers and log levels added directly (inline) or indirectly (external) through a ConfigMap. A custom ConfigMap must be placed under the log4j.properties key. Cruise Control has a single logger called cruisecontrol.root.logger. You can set the log level to INFO, ERROR, WARN, TRACE, DEBUG, FATAL or OFF. For more information, see <a href="#logging_configuration">Logging configuration</a>.</p>
+<p>Defined loggers and log levels added directly (inline) or indirectly (external) through a ConfigMap. A custom ConfigMap must be placed under the log4j.properties key. Cruise Control has a single logger named <code>cruisecontrol.root.logger</code>. You can set the log level to INFO, ERROR, WARN, TRACE, DEBUG, FATAL or OFF. For more information, see <a href="#logging-configuration">Logging configuration</a>.</p>
 </li>
 <li>
 <p><a href="#assembly-customizing-deployments-str">Customization of deployment templates and pods</a>.</p>
@@ -26956,7 +26981,7 @@ Specifically, you <strong>cannot</strong> modify configuration options with keys
 </div>
 <div class="paragraph">
 <p>If restricted options are specified, they are ignored and a warning message is printed to the Cluster Operator log file.
-All supported options are passed to Cruise Control.</p>
+All the supported options are passed to Cruise Control.</p>
 </div>
 <div class="listingblock">
 <div class="title">An example Cruise Control configuration</div>
@@ -26979,12 +27004,10 @@ spec:
     # ...</code></pre>
 </div>
 </div>
-<div class="sect3">
-<h4 id="capacity_configuration"><a class="link" href="#capacity_configuration">8.5.1. Capacity configuration</a></h4>
+<h4 id="capacity-configuration" class="discrete">Capacity configuration</h4>
 <div class="paragraph">
 <p>Cruise Control uses <em>capacity limits</em> to determine if optimization goals for broker resources are being broken.
-An optimization will fail if a goal is broken, preventing the optimization from being used to generate an optimization proposal for balanced partition assignments.
-For example, an optimization that would cause a broker to exceed its CPU capacity would not be used if the <code>CpuCapacityGoal</code> is set as a hard goal.</p>
+An optimization will fail if a hard goal is broken, preventing the optimization from being used to generate an optimization proposal.</p>
 </div>
 <div class="paragraph">
 <p>You specify capacity limits for broker resources in the <code>brokerCapacity</code> property in <code>Kafka.spec.cruiseControl</code> .
@@ -27032,11 +27055,9 @@ spec:
 <div class="title">Additional resources</div>
 <p>For more information, refer to the <a href="#type-BrokerCapacity-reference"><code>BrokerCapacity</code> schema reference</a>.</p>
 </div>
-</div>
-<div class="sect3">
-<h4 id="topic_creation_and_configuration"><a class="link" href="#topic_creation_and_configuration">8.5.2. Topic creation and configuration</a></h4>
+<h4 id="auto-created-topics-logs" class="discrete">Auto-created topics and log compaction</h4>
 <div class="paragraph">
-<p>Cruise Control requires the following three topics to be created in order to function properly:</p>
+<p>Cruise Control requires the following three topics in order to work:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -27052,12 +27073,13 @@ spec:
 </ul>
 </div>
 <div class="paragraph">
-<p>Cruise Control will create the <code>strimzi.cruisecontrol.partitionmetricsamples</code> and <code>strimzi.cruisecontrol.modeltrainingsamples</code> topics after the Cruise Control metric reporters create the <code>strimzi.cruisecontrol.metrics</code> topic.
-However, if automatic topic creation is disabled in Kafka with a configuration of <code>auto.create.topics.enable: false</code> in <code>spec.kafka.config</code> when starting a new Kafka cluster, the Cruise Control metric reporters will be unable to create the <code>strimzi.cruisecontrol.metrics</code> topic.
-In this situation, the <code>strimzi.cruisecontrol.metrics</code> topic will need to be created manually.</p>
+<p>These three topics are usually auto-created by Strimzi and Cruise Control. First, the metric reporters create the <code>strimzi.cruisecontrol.metrics</code> topic.
+Then, Cruise Control creates the <code>strimzi.cruisecontrol.partitionmetricsamples</code> and <code>strimzi.cruisecontrol.modeltrainingsamples</code> topics.</p>
 </div>
 <div class="paragraph">
-<p>To manually create the <code>strimzi.cruisecontrol.metrics</code> Cruise Control topic in your Kubernetes cluster:</p>
+<p>However, if automatic topic creation is <em>disabled</em> in Kafka (<code>auto.create.topics.enable: false</code> is configured in <code>spec.kafka.config</code> when starting a new Kafka cluster) the Cruise Control metric reporters are unable to create the <code>strimzi.cruisecontrol.metrics</code> topic.
+In this situation, you need to manually create the <code>strimzi.cruisecontrol.metrics</code> topic before deploying Cruise Control.
+You can do this using the following command:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -27065,14 +27087,14 @@ In this situation, the <code>strimzi.cruisecontrol.metrics</code> topic will nee
 </div>
 </div>
 <div class="paragraph">
-<p>Since log compaction may remove records needed by Cruise Control, all topics created by Cruise Control must be configured with <code>cleanup.policy=delete</code> to disable log compaction.
+<p>Log compaction might remove records that are needed by Cruise Control; therefore, all auto-created topics must be configured with <code>cleanup.policy=delete</code> to disable log compaction.
 Cruise Control will automatically disable log compaction for the <code>strimzi.cruisecontrol.partitionmetricsamples</code> and <code>strimzi.cruisecontrol.modeltrainingsamples</code> topics.
-The Cruise Control metric reporters will attempt to disable log compaction for the <code>strimzi.cruisecontrol.metrics</code> topic but will fail when being started with a new Kafka cluster.
-This will only become a problem when log compaction is enabled in Kafka with the setting <code>log.cleanup.policy=compact</code> in the <code>spec.kafka.config</code>.
-In this situation, log compaction will be enabled for <code>strimzi.cruisecontrol.metrics</code> topic and will need to be overridden with a <code>cleanup.policy=delete</code> in the <code>strimzi.cruisecontrol.metrics</code> KafkaTopic.</p>
+The Cruise Control metric reporters attempt to disable log compaction for the <code>strimzi.cruisecontrol.metrics</code> topic, but fail if they are started with a new Kafka cluster.
+This is only a problem if log compaction is enabled in Kafka with the setting <code>log.cleanup.policy=compact</code> in <code>spec.kafka.config</code>.
+In this situation, log compaction will be enabled for the <code>strimzi.cruisecontrol.metrics</code> topic and will need to be overridden with <code>cleanup.policy=delete</code> in the <code>strimzi.cruisecontrol.metrics</code> topic.</p>
 </div>
 <div class="paragraph">
-<p>Here we see an example of log compaction being disabled in a Cruise Control KafkaTopic.</p>
+<p>Here is an example where log compaction is disabled in a topic that was auto-created by Cruise Control:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -27087,9 +27109,7 @@ spec:
     cleanup.policy: delete</code></pre>
 </div>
 </div>
-</div>
-<div class="sect3">
-<h4 id="logging_configuration"><a class="link" href="#logging_configuration">8.5.3. Logging configuration</a></h4>
+<h4 id="logging-configuration" class="discrete">Logging configuration</h4>
 <div class="paragraph">
 <p>Cruise Control has its own configurable logger:</p>
 </div>
@@ -27145,14 +27165,13 @@ spec:
 </div>
 </div>
 </div>
-</div>
 <div class="sect2">
 <h3 id="proc-generating-optimization-proposals-str"><a class="link" href="#proc-generating-optimization-proposals-str">8.6. Generating optimization proposals</a></h3>
 <div class="paragraph">
 <p>When you create or update a <code>KafkaRebalance</code> resource, Cruise Control generates an <a href="#con-optimization-proposals-str">optimization proposal</a> for the Kafka cluster based on the configured <a href="#con-optimization-goals-str">optimization goals</a>.</p>
 </div>
 <div class="paragraph">
-<p>You can then analyze the summary information in the optimization proposal and decide whether to approve it.</p>
+<p>Analyze the summary information in the optimization proposal and decide whether to approve it.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -27161,7 +27180,7 @@ spec:
 <p>You have <a href="#proc-deploying-cruise-control-str">deployed Cruise Control</a> to your Strimzi cluster.</p>
 </li>
 <li>
-<p>You have configured <a href="#con-optimization-goals-str">optimization goals</a>.</p>
+<p>You have configured <a href="#con-optimization-goals-str">optimization goals</a> and, optionally, <a href="#capacity-configuration">capacity limits on broker resources</a>.</p>
 </li>
 </ul>
 </div>
@@ -27176,7 +27195,7 @@ spec:
 <p>To use the <em>default optimization goals</em> defined in the <code>Kafka</code> resource, leave the <code>spec</code> property empty:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1alpha1
 kind: KafkaRebalance
 metadata:
   name: my-rebalance
@@ -27187,13 +27206,13 @@ spec: {}</code></pre>
 </div>
 </li>
 <li>
-<p>To set <em>user-provided optimization goals</em> instead of using the default goals, edit the <code>goals</code> property and enter one or more goals.</p>
+<p>To configure <em>user-provided optimization goals</em> instead of using the default goals, add the <code>goals</code> property and enter one or more goals.</p>
 <div class="paragraph">
-<p>In the following example, rack awareness and replica capacity are user-provided optimization goals:</p>
+<p>In the following example, rack awareness and replica capacity are configured as user-provided optimization goals:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1alpha1
 kind: KafkaRebalance
 metadata:
   name: my-rebalance
@@ -27238,7 +27257,7 @@ This might take a few minutes depending on the size of the Kafka cluster.</p>
 </li>
 <li>
 <p><code>ProposalReady</code>: The optimization proposal is ready for review and, if desired, approval.
-The status contains the optimization proposal, in the <code>status.summary</code> property of the <code>KafkaRebalance</code> resource.</p>
+The optimization proposal is contained in the <code>Status.Optimization Result</code> property of the <code>KafkaRebalance</code> resource.</p>
 </li>
 </ul>
 </div>
@@ -27278,7 +27297,8 @@ The status contains the optimization proposal, in the <code>status.summary</code
 </div>
 </div>
 <div class="paragraph">
-<p>For information about the different properties, see <a href="#contents-optimization-proposals">Contents of optimization proposals</a>.</p>
+<p>The properties in the <code>Optimization Result</code> section describe the pending cluster rebalance operation.
+For descriptions of each property, see <a href="#contents-optimization-proposals">Contents of optimization proposals</a>.</p>
 </div>
 </li>
 </ol>
@@ -27349,7 +27369,7 @@ To do so, refresh the optimization proposal to make sure it uses the latest clus
 <div class="olist loweralpha">
 <ol class="loweralpha" type="a">
 <li>
-<p>Annotate the <code>KafkaRebalance</code> resource in Kubernetes:</p>
+<p>Annotate the <code>KafkaRebalance</code> resource in Kubernetes with <code>approve</code>:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl annotate kafkarebalance <em>rebalance-cr-name</em> strimzi.io/rebalance=refresh</code></pre>
@@ -27428,10 +27448,10 @@ To do so, refresh the optimization proposal to make sure it uses the latest clus
 <p>Once started, a cluster rebalance operation might take some time to complete and affect the overall performance of the Kafka cluster.</p>
 </div>
 <div class="paragraph">
-<p>If you want to stop a cluster rebalance operation that is in progress, apply a <code>stop</code> annotation to the <code>KafkaRebalance</code> custom resource.
-This causes Cruise Control to finish the current batch of partition reassignments and then stop the rebalance.
-Any partition reassignments before this point will have been successfully applied, so the Kafka cluster will be in a different state compared to before the rebalance operation started.
-Therefore, if further rebalancing is required, you should generate a new optimization proposal.</p>
+<p>If you want to stop a cluster rebalance operation that is in progress, apply the <code>stop</code> annotation to the <code>KafkaRebalance</code> custom resource.
+This instructs Cruise Control to finish the current batch of partition reassignments and then stop the rebalance.
+When the rebalance has stopped, completed partition reassignments have already been applied; therefore, the state of the Kafka cluster is different when compared to prior to the start of the rebalance operation.
+If further rebalancing is required, you should generate a new optimization proposal.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -27471,7 +27491,7 @@ The performance of the Kafka cluster in the intermediate (stopped) state might b
 <p>Check the status of the <code>KafkaRebalance</code> resource:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get kafka kafkarebalance -o jsonpath='{.status}'</code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl describe kafkarebalance <em>rebalance-cr-name</em></code></pre>
 </div>
 </div>
 </li>
@@ -27492,12 +27512,12 @@ The performance of the Kafka cluster in the intermediate (stopped) state might b
 <div class="sect2">
 <h3 id="proc-fixing-problems-with-kafkarebalance-str"><a class="link" href="#proc-fixing-problems-with-kafkarebalance-str">8.9. Fixing problems with a <code>KafkaRebalance</code> resource</a></h3>
 <div class="paragraph">
-<p>If an issue occurs in the process of creating a <code>KafkaRebalance</code> resource, or when interacting with Cruise Control, the error is reported in the resource status, along with details of how to fix it.
+<p>If an issue occurs when creating a <code>KafkaRebalance</code> resource or interacting with Cruise Control, the error is reported in the resource status, along with details of how to fix it.
 The resource also moves to the <code>NotReady</code> state.</p>
 </div>
 <div class="paragraph">
 <p>To continue with the cluster rebalance operation, you must fix the problem in the <code>KafkaRebalance</code> resource itself.
-Problems can include the following:</p>
+Problems might include the following:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -27510,7 +27530,7 @@ Problems can include the following:</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>When you believe that you have fixed the issue, you need to add the <code>refresh</code> annotation to the resource.
+<p>After fixing the issue, you need to add the <code>refresh</code> annotation to the <code>KafkaRebalance</code> resource.
 During a “refresh”, a new optimization proposal is requested from the Cruise Control server.</p>
 </div>
 <div class="ulist">
@@ -27528,13 +27548,21 @@ During a “refresh”, a new optimization proposal is requested from the Cruise
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Get information about the error from the <code>KafkaRebalance</code> status and resolve the issue if possible.</p>
+<p>Get information about the error from the <code>KafkaRebalance</code> status:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl describe kafkarebalance <em>rebalance-cr-name</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Attempt to resolve the issue in the <code>KafkaRebalance</code> resource.</p>
 </li>
 <li>
 <p>Annotate the <code>KafkaRebalance</code> resource in Kubernetes:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl annotate kafkarebalance <em>cluster-rebalance-name</em> strimzi.io/rebalance=refresh</code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl annotate kafkarebalance <em>rebalance-cr-name</em> strimzi.io/rebalance=refresh</code></pre>
 </div>
 </div>
 </li>
