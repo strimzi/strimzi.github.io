@@ -10,6 +10,7 @@ With Apache Kafka 2.4.0, Mirror Maker 2 was released in order to overcome the li
 This blog post is a continuation of the previous one and it's going to show how to use the Strimzi cluster operator to configure and deploy Kafka Mirror Maker 2 in order to mirror topics to Azure Event Hub.
 It's not going to show everything from scratch but we assume that your Kafka cluster is already running and you have already created an Azure Eveng Hub namespace.
 If you want to know more about Mirror Maker 2 and its integration with Strimzi, you can read this [blog post](https://strimzi.io/blog/2020/03/30/introducing-mirrormaker2/).
+Anyway, the source code is available at this [repo](https://github.com/ppatierno/strimzi-eventhub).
 
 <!--more-->
 
@@ -20,7 +21,7 @@ The overall architecture with Kafka producer and consumer on both sides looks li
 
 ![Overall architecture](/assets/images/posts/2020-06-05-mirror-maker-2-eventhub.png)
 
-The topic we want to mirror data is described trough the following `KafkaTopic` resource.
+The topic we want to mirror data is described trough the following `KafkaTopic` resource and it's named `testeh`.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta1
@@ -122,11 +123,11 @@ The `tls` section is used because Event Hub connection [needs SSL](https://docs.
 
 While working with this configuration, I noticed that after a period of inactivity, so not sending messages as a steady stream, the mirroring suddenly stopped to work after a few minutes.
 After some research and multiple tries, it turned out that it's really important to set the configuration of `connections.max.idle.ms` and `metadata.max.age.ms`, for the producer, with a value less than 4 minutes.
-You could ask, from where this "magic" value comes.
+You could ask ... from where does this "magic" value come ?
 This is related to the behaviour of the Azure load balancers, in front of the Eveng Hub, which have an idle timeout setting of 4 minutes to 30 minutes.
 By default, it is set to 4 minutes.
 If a period of inactivity is longer than the timeout value, there's no guarantee that the TCP ession is maintained between the client and the cloud service.
-You can find more information on the officiale Microsoft [documentation](https://docs.microsoft.com/en-us/azure/load-balancer/load-balancer-tcp-idle-timeout#tcp-idle-timeout).
+You can find more information on the official Microsoft [documentation](https://docs.microsoft.com/en-us/azure/load-balancer/load-balancer-tcp-idle-timeout#tcp-idle-timeout).
 
 The recommended configuration parameters for connecting to Azure Event Hub are also described [here](https://github.com/Azure/azure-event-hubs-for-kafka/blob/master/CONFIGURATION.md).
 
@@ -134,20 +135,20 @@ The `mirrors` section describes what has to be mirrored and what should be the f
 In this case, the local "my-cluster" is the source and the "eventhub" is the target.
 
 Kafka Mirror Maker 2 is based on Kafka Connect and it uses a bunch of connectors for doing the mirroring, the heartbeating and the checkpointing.
-The `sourceConnector` is a specific Kafka Connect connector actually doing the mirroring, so reading from the local source cluster and making the messages available to Kafka Connect in order to mirror then to Event Hub.
+The `sourceConnector` is a specific Kafka Connect connector actually doing the mirroring, so reading from the local source cluster and making the messages available to Kafka Connect in order to mirror them to Azure Event Hub.
 The `heartbeatConnector` periodically checks connectivity between clusters.
 The `checkpointConnector` tracks and maps offsets for specified consumer groups using an offset sync topic and checkpoint topic.
 
-Create the `KafkaMirrorMaker2` on the Kubernetes cluster saving the above resource into a `kafka-mirror-maker-2.yaml` file.
+Create the `KafkaMirrorMaker2` on the Kubernetes cluster saving the above resource into a `kafka-mirror-maker-2-to-eh.yaml` file.
 The Strimzi cluster operator takes care of it deploying Kafka Mirror Maker 2 using the above configuration.
 
 ```shell
-kubectl apply -f kafka-mirror-maker-2.yaml -n kafka
+kubectl apply -f kafka-mirror-maker-2-to-eh.yaml -n kafka
 ```
 
 ### Produce, mirror and consume!
 
-For the purpose of this demo, the application consuming the mirrored messages from Event Hub is the simple `kafka-console-consumer` command line tool, provided with Apache Kafka, which needs a proper configuration as described below.
+For the purpose of this demo, the application consuming the mirrored messages from Azure Event Hub is the simple `kafka-console-consumer` command line tool, provided with Apache Kafka, which needs a proper configuration as described below.
 
 ```
 bootstrap.servers=<eventhubs-namespace>.servicebus.windows.net:9093
@@ -156,29 +157,29 @@ sasl.mechanism=PLAIN
 sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$ConnectionString" password="Endpoint=sb://<eventhubs-namespace>.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=<access-key>";
 ```
 
-Save the above properties into a `kafka_eh_properties` file and start the consumer as following.
+Save the above properties into a `kafka_eventhub.properties` file and start the consumer as following.
 
 ```shell
-bin/kafka-console-consumer.sh --bootstrap-server <eventhubs-namespace>.servicebus.windows.net:9093 --topic testeh --consumer.config kafka_eh_properties
+bin/kafka-console-consumer.sh --bootstrap-server <eventhubs-namespace>.servicebus.windows.net:9093 --topic testeh --consumer.config kafka_eventhub.properties
 ```
 
 To try the entire pipeline, the only thing left to do is to send some messages.
 To do so, just use the `kafka-console-producer` command line tool provided with Apache Kafka.
-Start a new pod in the Kubernetes cluster for hosting the producer and type a couple of JSON messages as follows.
+Start a new pod in the Kubernetes cluster for hosting the producer and type a couple of messages as follows.
 
 ```shell
 kubectl -n kafka run kafka-producer -ti --image=strimzi/kafka:0.18.0-kafka-2.5.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic testeh
 If you don't see a command prompt, try pressing enter.
->{ "id": 1, "message": "Hello from Strimzi Mirror Maker 2" }
->{ "id": 2, "message": "Here another mirrored message" }
+>"Hello from Strimzi Mirror Maker 2"
+>"Here another mirrored message"
 >
 ```
 
 On Kafka console consumer application, the messages will be logged like this:
 
 ```shell
-{ "id": 1, "message": "Hello from Strimzi Mirror Maker 2" }
-{ "id": 2, "message": "Here another mirrored message" }
+"Hello from Strimzi Mirror Maker 2"
+"Here another mirrored message"
 ```
 
 # Let's go "active-active"
@@ -188,7 +189,7 @@ There are some scenarios where it's needed having a bidirectional mirroring in o
 ![Overall active-active architecture](/assets/images/posts/2020-06-05-mirror-maker-2-eventhub-active-active.png)
 
 In the previous unidirectional use case, the producer writes to the `testeh` topic on the local Kafka cluster and it's mirrored to the `my-cluster.testeh` on Azure Event Hub from where the consumer gets messages.
-If we want to produce messages on a `testeh` event hub on Azure Event Hub namespace and mirroring this one to the local Kafka cluster, we have to setup another `KafkaMirrorMaker2` instance where source and target are switched.
+If we want to produce messages to a `testeh` event hub on Azure Event Hub namespace and mirroring this one to the local Kafka cluster, we have to setup another `KafkaMirrorMaker2` instance where source and target are switched.
 In this case the destination topic on the local Kafka cluster will be `eventhub.testeh`.
 
 ```yaml
@@ -237,20 +238,20 @@ spec:
     groupsPattern: ".*"
 ```
 
-Create the `KafkaMirrorMaker2` on the Kubernetes cluster saving the above resource into a `kafka-mirror-maker-2-eh.yaml` file.
+Create the `KafkaMirrorMaker2` on the Kubernetes cluster saving the above resource into a `kafka-mirror-maker-2-from-eh.yaml` file.
 The Strimzi cluster operator takes care of it deploying Kafka Mirror Maker 2 using the above configuration.
 
 ```shell
-kubectl apply -f kafka-mirror-maker-2-eh.yaml -n kafka
+kubectl apply -f kafka-mirror-maker-2-from-eh.yaml -n kafka
 ```
 
 In this way, we can add another producer on the Event Hub side sending messages to the `testeh` event hub.
 We can use the `kafka-console-producer` for this purpose.
 
 ```shell
-bin/kafka-console-producer.sh --bootstrap-server functiontesteh.servicebus.windows.net:9093 --topic testeh --producer.config /home/ppatiern/kafka_eh.properties
+bin/kafka-console-producer.sh --bootstrap-server functiontesteh.servicebus.windows.net:9093 --topic testeh --producer.config kafka_eventhub.properties
 If you don't see a command prompt, try pressing enter.
-> { "id": 1, "message": "Hello from Strimzi Mirror Maker 2 sent to testeh Event Hub" }
+> "Hello from Strimzi Mirror Maker 2 sent to testeh Event Hub
 >
 ```
 
@@ -259,24 +260,24 @@ The producer is in addition to the one we used in the previous paragraph which i
 ```shell
 kubectl -n kafka run kafka-producer -ti --image=strimzi/kafka:0.18.0-kafka-2.5.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic testeh
 If you don't see a command prompt, try pressing enter.
->{ "id": 1, "message": "Hello from Strimzi Mirror Maker 2 sent to testeh Kafka" }
+>"Hello from Strimzi Mirror Maker 2 sent to testeh Kafka"
 >
 ```
 
-We can also add a consumer on the local Kafka cluster getting messages on the corresponding mirrored `eventhub.testeh`.
+We can also add a consumer on the local Kafka cluster getting messages on the corresponding mirrored `eventhub.testeh` topic.
 
 ```shell
 kubectl -n kafka run kafka-consumer -ti --image=strimzi/kafka:0.18.0-kafka-2.5.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --whitelist .*testeh
-{ "id": 1, "message": "Hello from Strimzi Mirror Maker 2 sent to testeh Event Hub" }
-{ "id": 1, "message": "Hello from Strimzi Mirror Maker 2 sent to testeh Kafka" }
+"Hello from Strimzi Mirror Maker 2 sent to testeh Event Hub"
+"Hello from Strimzi Mirror Maker 2 sent to testeh Kafka"
 ```
 
 The consumer used in the previous paragrah will get both the messages as well.
 
 ```shell
-bin/kafka-console-consumer.sh --bootstrap-server <eventhubs-namespace>.servicebus.windows.net:9093 --topic testeh --consumer.config kafka_eh_properties
-{ "id": 1, "message": "Hello from Strimzi Mirror Maker 2 sent to testeh Event Hub" }
-{ "id": 1, "message": "Hello from Strimzi Mirror Maker 2 sent to testeh Kafka" }
+bin/kafka-console-consumer.sh --bootstrap-server <eventhubs-namespace>.servicebus.windows.net:9093 --topic testeh --consumer.config kafka_eventhub.properties
+"Hello from Strimzi Mirror Maker 2 sent to testeh Event Hub"
+"Hello from Strimzi Mirror Maker 2 sent to testeh Kafka"
 ```
 
 As you could have noticed, both the consumers have to subscribe to a topic pattern like `.*testeh` so that the one running locally can get messages from the local `testeh` and the mirrored `eventhub.testeh`; the other one connected to Azure Event Hub can get messages from the `testeh` event hub and the mirrored `my-cluster.testeh`.
@@ -284,6 +285,6 @@ As you could have noticed, both the consumers have to subscribe to a topic patte
 ### Conclusion
 
 Kafka Mirror Makers 2 overcomes the limitations of Mirror Maker and it allows to do an active-active mirroring.
-Thanks to its integration in Strimzi, it's even simpler setup this kind of use case with Azure Event Hub as well.
+Thanks to its integration in Strimzi, it's even simpler to setup this kind of use case with Azure Event Hub as well.
 
 Let us know what you are going to integrate!
