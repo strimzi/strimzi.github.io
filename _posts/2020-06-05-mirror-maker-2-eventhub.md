@@ -8,7 +8,7 @@ author: paolo_patierno
 In the [previous blog post](https://strimzi.io/blog/2020/05/14/mirror-kafka-eventhub/) we talked about mirroring data from an Apache Kafka cluster running on Kubernetes to Azure Event Hub, using the first version of Mirror Maker.
 With Apache Kafka 2.4.0, Mirror Maker 2 was released in order to overcome the limitations of Mirror Maker and adding more powerful features.
 This blog post is a continuation of the previous one and it's going to show how to use the Strimzi cluster operator to configure and deploy Kafka Mirror Maker 2 in order to mirror topics to Azure Event Hub.
-It's not going to show everything from scratch but we assume that your Kafka cluster is already running and you have already created an Azure Eveng Hub namespace.
+It's not going to show everything from scratch but we assume that your Kafka cluster is already running and you have already created an Azure Event Hub namespace.
 If you want to know more about Mirror Maker 2 and its integration with Strimzi, you can read this [blog post](https://strimzi.io/blog/2020/03/30/introducing-mirrormaker2/).
 The source code is available at this [repo](https://github.com/ppatierno/strimzi-eventhub).
 
@@ -72,7 +72,7 @@ The Kafka Mirror Maker 2 instance is deployed via the Strimzi cluster operator t
 apiVersion: kafka.strimzi.io/v1alpha1
 kind: KafkaMirrorMaker2
 metadata:
-  name: my-mm2-cluster
+  name: my-mm2-cluster-to-eh
 spec:
   version: 2.5.0
   replicas: 1
@@ -124,7 +124,7 @@ The `tls` section is configured as Event Hub [needs SSL](https://docs.microsoft.
 While working with this configuration, I noticed that after a period of inactivity, so not sending messages as a steady stream, the mirroring suddenly stopped after a few minutes.
 It turns out that it's really important to set the configuration of `connections.max.idle.ms` and `metadata.max.age.ms`, for the producer, with a value less than 4 minutes!
 You could ask ... from where does this "magic" value come ?
-This is related to the behaviour of the Azure load balancers, in front of the Eveng Hub, which have an idle timeout setting of 4 minutes to 30 minutes.
+This is related to the behaviour of the Azure load balancers, in front of the Event Hub, which have an idle timeout setting of 4 minutes to 30 minutes.
 By default, it is set to 4 minutes.
 If a period of inactivity is longer than the timeout value, there's no guarantee that the TCP ession is maintained between the client and the cloud service.
 You can find more information on the official Microsoft [documentation](https://docs.microsoft.com/en-us/azure/load-balancer/load-balancer-tcp-idle-timeout#tcp-idle-timeout).
@@ -155,12 +155,14 @@ bootstrap.servers=<eventhubs-namespace>.servicebus.windows.net:9093
 security.protocol=SASL_SSL
 sasl.mechanism=PLAIN
 sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$ConnectionString" password="Endpoint=sb://<eventhubs-namespace>.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=<access-key>";
+connections.max.idle.ms=180000
+metadata.max.age.ms=180000
 ```
 
 Save the above properties into a `kafka_eventhub.properties` file and start the consumer as following.
 
 ```shell
-bin/kafka-console-consumer.sh --bootstrap-server <eventhubs-namespace>.servicebus.windows.net:9093 --topic testeh --consumer.config kafka_eventhub.properties
+bin/kafka-console-consumer.sh --bootstrap-server <eventhubs-namespace>.servicebus.windows.net:9093 --topic my-cluster.testeh --consumer.config kafka_eventhub.properties
 ```
 
 To try the demo, the only thing left to do is to send some messages.
@@ -196,7 +198,7 @@ In this case the destination topic on the local Kafka cluster will be `eventhub.
 apiVersion: kafka.strimzi.io/v1alpha1
 kind: KafkaMirrorMaker2
 metadata:
-  name: my-mm2-cluster-eh
+  name: my-mm2-cluster-from-eh
 spec:
   version: 2.5.0
   replicas: 1
@@ -210,8 +212,8 @@ spec:
       config.storage.replication.factor: 1
       offset.storage.replication.factor: 1
       status.storage.replication.factor: 1
-      producer.connections.max.idle.ms: 180000
-      producer.metadata.max.age.ms: 180000
+      consumer.connections.max.idle.ms: 180000
+      consumer.metadata.max.age.ms: 180000
     authentication:
       type: plain
       username: $ConnectionString
@@ -275,7 +277,7 @@ kubectl -n kafka run kafka-consumer -ti --image=strimzi/kafka:0.18.0-kafka-2.5.0
 The consumer used in the previous paragrah will get both the messages as well.
 
 ```shell
-bin/kafka-console-consumer.sh --bootstrap-server <eventhubs-namespace>.servicebus.windows.net:9093 --topic testeh --consumer.config kafka_eventhub.properties
+bin/kafka-console-consumer.sh --bootstrap-server <eventhubs-namespace>.servicebus.windows.net:9093 --whitelist .*testeh --consumer.config kafka_eventhub.properties
 "Hello from Strimzi Mirror Maker 2 sent to testeh Event Hub"
 "Hello from Strimzi Mirror Maker 2 sent to testeh Kafka"
 ```
