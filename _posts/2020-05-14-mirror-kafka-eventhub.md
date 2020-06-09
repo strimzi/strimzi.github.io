@@ -223,5 +223,7 @@ On the Azure Functions application, the messages will be logged like this:
 Integrating applications running on different platforms and different clouds is becoming quite common nowadays and the hybrid cloud based use cases are growing fast.
 Back to the scenario showed in this blog post, the Apache Kafka cluster on Kubernetes could run on any cloud provider (Azure, Amazon, IBM, GCP) and thanks to the Strimzi operators, its deployment and management is fairly simple as well as mirroring data to other systems like Event Hub using Kafka Mirror Maker.
 
+If you want to know how to do the same using the new Kafka Mirror Maker 2 or, even better, how to set up an "active-active" mirroring architecture, you can read more on this [blog post](https://strimzi.io/blog/2020/06/09/mirror-maker-2-eventhub/).
+
 I hope this post has persuaded you of the benefit of using Strimzi for doing such an integration with Azure.
 Let us know what you are going to integrate!
