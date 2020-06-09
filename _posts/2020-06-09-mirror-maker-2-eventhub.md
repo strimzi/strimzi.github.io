@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Mirroring to Azure Event Hub evolution: using Mirror Maker 2"
-date: 2020-06-05
+date: 2020-06-09
 author: paolo_patierno
 ---
 
@@ -19,7 +19,7 @@ The source code is available at this [repo](https://github.com/ppatierno/strimzi
 Let's assume that your Apache Kafka cluster is already running on Kubernetes, in the `kafka` namespace, and you already have created the corresponding Azure Event Hub namespace.
 The overall architecture with a Kafka producer and a consumer on both sides looks like the following. 
 
-![Overall architecture](/assets/images/posts/2020-06-05-mirror-maker-2-eventhub.png)
+![Overall architecture](/assets/images/posts/2020-06-09-mirror-maker-2-eventhub.png)
 
 The topic we want to mirror data from is described trough the following `KafkaTopic` resource and it's named `testeh`.
 
@@ -188,7 +188,7 @@ On the Kafka console consumer application, the messages will be logged like this
 
 There are some scenarios where it's needed having a bidirectional mirroring in order to have producer and consumer on both sides, consuming data on the "same" topic.
 
-![Overall active-active architecture](/assets/images/posts/2020-06-05-mirror-maker-2-eventhub-active-active.png)
+![Overall active-active architecture](/assets/images/posts/2020-06-09-mirror-maker-2-eventhub-active-active.png)
 
 In the previous unidirectional use case, the producer writes to the `testeh` topic on the local Kafka cluster and it's mirrored to the `my-cluster.testeh` on Azure Event Hub from where the consumer gets messages.
 If we want to produce messages to a `testeh` event hub on Azure Event Hub namespace and mirroring this one to the local Kafka cluster, we have to setup another `KafkaMirrorMaker2` instance where source and target are switched.
