@@ -27122,18 +27122,6 @@ The <code>After</code> score is based on the generated optimization proposal.</p
 <div class="paragraph">
 <p>Deploy one instance of Cruise Control per Kafka cluster.</p>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Step one is only required if automatic topic creation is disabled in the Kafka cluster.
-</td>
-</tr>
-</table>
-</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -27143,24 +27131,13 @@ Step one is only required if automatic topic creation is disabled in the Kafka c
 <li>
 <p>A running Cluster Operator</p>
 </li>
-<li>
-<p>You are aware of the guidance on <a href="#auto-created-topics-logs">Auto-created topics and log compaction</a>.</p>
-</li>
 </ul>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>If automatic topic creation is disabled (<code>auto.create.topics.enable: false</code> is configured in <code>spec.kafka.config</code>), first create the <code>strimzi.cruisecontrol.metrics</code> topic:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f examples/cruise-control/cruise-control-topic.yaml</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Edit the <code>cruiseControl</code> property of the <code>Kafka</code> resource.</p>
+<p>Edit the <code>Kafka</code> resource and add the <code>cruiseControl</code> property.</p>
 <div class="paragraph">
 <p>The properties you can configure are shown in this example configuration:</p>
 </div>
@@ -27472,60 +27449,6 @@ spec:
 <div class="paragraph">
 <div class="title">Additional resources</div>
 <p>For more information, refer to the <a href="#type-BrokerCapacity-reference"><code>BrokerCapacity</code> schema reference</a>.</p>
-</div>
-<h4 id="auto-created-topics-logs" class="discrete">Auto-created topics and log compaction</h4>
-<div class="paragraph">
-<p>Cruise Control requires the following three topics in order to work:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>strimzi.cruisecontrol.partitionmetricsamples</code></p>
-</li>
-<li>
-<p><code>strimzi.cruisecontrol.modeltrainingsamples</code></p>
-</li>
-<li>
-<p><code>strimzi.cruisecontrol.metrics</code></p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>These three topics are usually auto-created by Strimzi and Cruise Control. First, the metric reporters create the <code>strimzi.cruisecontrol.metrics</code> topic.
-Then, Cruise Control creates the <code>strimzi.cruisecontrol.partitionmetricsamples</code> and <code>strimzi.cruisecontrol.modeltrainingsamples</code> topics.</p>
-</div>
-<div class="paragraph">
-<p>However, if automatic topic creation is <em>disabled</em> in Kafka (<code>auto.create.topics.enable: false</code> is configured in <code>spec.kafka.config</code> when starting a new Kafka cluster) the Cruise Control metric reporters are unable to create the <code>strimzi.cruisecontrol.metrics</code> topic.
-In this situation, you need to manually create the <code>strimzi.cruisecontrol.metrics</code> topic before deploying Cruise Control.
-You can do this using the following command:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f examples/cruise-control/cruise-control-topic.yaml</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Log compaction might remove records that are needed by Cruise Control; therefore, all auto-created topics must be configured with <code>cleanup.policy=delete</code> to disable log compaction.
-Cruise Control will automatically disable log compaction for the <code>strimzi.cruisecontrol.partitionmetricsamples</code> and <code>strimzi.cruisecontrol.modeltrainingsamples</code> topics.
-The Cruise Control metric reporters attempt to disable log compaction for the <code>strimzi.cruisecontrol.metrics</code> topic, but fail if they are started with a new Kafka cluster.
-This is only a problem if log compaction is enabled in Kafka with the setting <code>log.cleanup.policy=compact</code> in <code>spec.kafka.config</code>.
-In this situation, log compaction will be enabled for the <code>strimzi.cruisecontrol.metrics</code> topic and will need to be overridden with <code>cleanup.policy=delete</code> in the <code>strimzi.cruisecontrol.metrics</code> topic.</p>
-</div>
-<div class="paragraph">
-<p>Here is an example where log compaction is disabled in a topic that was auto-created by Cruise Control:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
-kind: KafkaTopic
-metadata:
-  name: strimzi.cruisecontrol.metrics
-spec:
-  partitions: 1
-  replicas: 1
-  config:
-    cleanup.policy: delete</code></pre>
-</div>
 </div>
 <h4 id="logging-configuration" class="discrete">Logging configuration</h4>
 <div class="paragraph">
@@ -38570,7 +38493,7 @@ Allowed values are <code>TLSv1.1</code> and <code>TLSv1.2</code>.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-06-10 18:46:18 UTC
+Last updated 2020-06-10 21:42:13 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
