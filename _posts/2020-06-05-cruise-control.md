@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Cluster balancing with Cruise Control"
-date: 2020-06-05
+date: 2020-06-15
 author: tom_cooper
 ---
 
