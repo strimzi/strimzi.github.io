@@ -5,6 +5,8 @@ date: 2019-09-03
 author: kyle_liberti
 ---
 
+Note: Strimzi (0.18.0) now has native support for Cruise Control. See [this blog post]({% post_url 2020-06-05-cruise-control %}) and the [official docs](https://strimzi.io/docs/operators/latest/using.html#cruise-control-concepts-str) for more information.
+
 Cruise Control is a highly customizable software tool for simplifying the monitoring and balancing of workloads across a Kafka cluster.
 The flexibility of Cruise Control makes it easy to customize for different environments and use cases.
 This makes it possible to extend Cruise Control to work with Strimzi in an Kubernetes environment with a reasonable amount of effort.
@@ -47,10 +49,10 @@ Then, at user-defined intervals, the reporter will loop through the concurrent h
 For the Cruise Control metric objects, the reporter will include information related to the metric type, value, time of recording, and broker origin.
 Finally, the reporter will format the Cruise Control metric object into a byte array and store it into a Kafka topic designated for Cruise Control metrics.
 
-Placing the Cruise Control metric reporter jar into the '/opt/kafka/libs/' directory of every Kafka broker allows Kafka to find the reporter at runtime.
+Placing the Cruise Control metric reporter jar into the `/opt/kafka/libs/` directory of every Kafka broker allows Kafka to find the reporter at runtime.
 You can do this by updating the Strimzi Kafka image with the needed Cruise Control jar using the following Dockerfile:
 
-```Dockerfile
+```docker
 # Multi-stage build requires Docker 17.05 or higher
 # --------------- Builder stage ---------------
 FROM centos:7 AS builder
@@ -69,7 +71,9 @@ RUN cd cruise-control \
 FROM strimzi/kafka:0.13.0-kafka-2.3.0
 COPY --from=builder cruise-control/cruise-control-metrics-reporter/build/libs/* /opt/kafka/libs/
 ```
+
 Then building and pushing the image:
+
 ```bash
 # When building, tag the image with the name of a container registry
 # that is accessible by the Kubernetes cluster.
@@ -78,8 +82,10 @@ docker build . -t <registry>/<kafka-image-name>
 # Push the image to that container registry
 docker push <registry>/<kafka-image-name>
 ```
+
 For a metric reporter to be activated at runtime, its class name must be listed in the `metrics.reporters` field of the Kafka config.
 You do this in Strimzi by creating a `Kafka` custom resource which references the new Kafka 'image' built above and the `com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter` class name in the `metrics.reporters` field using the following 'kafka.yaml' file:
+
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
@@ -144,7 +150,7 @@ To run on Kubernetes, Cruise Control must be formatted into a container image.
 You can do this using the following Dockerfile. Note that the Cruise Control configuration file, 'cruisecontrol.properties', must be altered to reference the appropriate Kafka bootstrap and Zookeeper service endpoints.
 In addition to pointing Cruise Control to the proper service endpoints, the Dockerfile sets up the Cruise Control GUI frontend to be available upon startup.
 
-```Dockerfile
+```docker
 # Multi-stage build requires Docker 17.05 or higher
 # --------------- Builder stage ---------------
 FROM centos:7 AS builder
@@ -187,7 +193,9 @@ RUN chmod a+rw -R .
 
 ENTRYPOINT ["/bin/bash", "-c", "./kafka-cruise-control-start.sh config/cruisecontrol.properties"]
 ```
+
 Build and push the image:
+
 ```bash
 # When building, tag the image with the name of a container registry
 # that is accessible by the Kubernetes cluster.
@@ -196,7 +204,9 @@ docker build . -t <registry>/<cruise-control-image-name>
 # Push the image to that container registry
 docker push <registry>/<cruise-control-image-name>
 ```
+
 Then, using the following file, 'cruise-control-deployment.yaml', create a Cruise Control deployment that references the Cruise Control image, 'cruise-control-image-name', and a Cruise Control service endpoint for enabling communication with Cruise Control from outside the Cruise Control pod.
+
 ```yaml
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -234,7 +244,9 @@ spec:
   selector:
     name: my-cruise-control
 ```
+
 Apply to the cluster:
+
 ```bash
 kubectl apply -f cruise-control-deployment.yaml
 ```
@@ -281,7 +293,7 @@ For more details visit the [Cruise Control Wiki](https://github.com/linkedin/cru
 
 ## Using Cruise Control Frontend
 
-Vist 'http://127.0.0.1:9090' in browser
+Visit 'http://127.0.0.1:9090' in your browser
 
 ![Cruise Control Frontend]({{ "/assets/images/posts/2019-08-08-cruise-control-frontend.png" }})
 
