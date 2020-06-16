@@ -2207,6 +2207,10 @@ You may experience a delay with the deployment if you have a slow connection to 
 <p><a href="https://kafka.apache.org/documentation/#connect" target="_blank" rel="noopener">Kafka Connect</a> is a tool for streaming data between Apache Kafka and external systems.</p>
 </div>
 <div class="paragraph">
+<p>In Strimzi, Kafka Connect is deployed in distributed mode.
+Kafka Connect can also work in standalone mode, but this is not supported by Strimzi.</p>
+</div>
+<div class="paragraph">
 <p>Using the concept of <em>connectors</em>, Kafka Connect provides a framework for moving large amounts of data into and out of your Kafka cluster while maintaining scalability and reliability.</p>
 </div>
 <div class="paragraph">
@@ -2238,7 +2242,7 @@ You may experience a delay with the deployment if you have a slow connection to 
 <div class="title">Note</div>
 </td>
 <td class="content">
-The term <em>connector</em> is used interchangably to mean a connector instance running within a Kafka Connect cluster, or a connector class.
+The term <em>connector</em> is used interchangeably to mean a connector instance running within a Kafka Connect cluster, or a connector class.
 In this guide, the term <em>connector</em> is used when the meaning is clear from the context.
 </td>
 </tr>
@@ -2351,6 +2355,18 @@ In this guide, the term <em>connector</em> is used when the meaning is clear fro
 </li>
 </ul>
 </div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+You create the configuration for connectors directly <a href="#con-creating-managing-connectors-str">using the Kafka Connect REST API or KafkaConnector custom resources</a>.
+</td>
+</tr>
+</table>
+</div>
 <div class="sect4">
 <h5 id="creating-new-image-from-base-str"><a class="link" href="#creating-new-image-from-base-str">Creating a Docker image from the Kafka Connect base image</a></h5>
 <div class="paragraph">
@@ -2383,6 +2399,45 @@ COPY ./<em>my-plugins</em>/ /opt/kafka/plugins/
 USER 1001</code></pre>
 </div>
 </div>
+<div class="listingblock">
+<div class="title">Example plug-in file</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">$ tree ./<em>my-plugins</em>/
+./<em>my-plugins</em>/
+├── debezium-connector-mongodb
+│   ├── bson-3.4.2.jar
+│   ├── CHANGELOG.md
+│   ├── CONTRIBUTE.md
+│   ├── COPYRIGHT.txt
+│   ├── debezium-connector-mongodb-0.7.1.jar
+│   ├── debezium-core-0.7.1.jar
+│   ├── LICENSE.txt
+│   ├── mongodb-driver-3.4.2.jar
+│   ├── mongodb-driver-core-3.4.2.jar
+│   └── README.md
+├── debezium-connector-mysql
+│   ├── CHANGELOG.md
+│   ├── CONTRIBUTE.md
+│   ├── COPYRIGHT.txt
+│   ├── debezium-connector-mysql-0.7.1.jar
+│   ├── debezium-core-0.7.1.jar
+│   ├── LICENSE.txt
+│   ├── mysql-binlog-connector-java-0.13.0.jar
+│   ├── mysql-connector-java-5.1.40.jar
+│   ├── README.md
+│   └── wkb-1.0.2.jar
+└── debezium-connector-postgres
+    ├── CHANGELOG.md
+    ├── CONTRIBUTE.md
+    ├── COPYRIGHT.txt
+    ├── debezium-connector-postgres-0.7.1.jar
+    ├── debezium-core-0.7.1.jar
+    ├── LICENSE.txt
+    ├── postgresql-42.0.0.jar
+    ├── protobuf-java-2.6.1.jar
+    └── README.md</code></pre>
+</div>
+</div>
 </li>
 <li>
 <p>Build the container image.</p>
@@ -2408,10 +2463,25 @@ USER 1001</code></pre>
 kind: KafkaConnect
 metadata:
   name: my-connect-cluster
-spec:
+spec: <b class="conum">(1)</b>
   #...
-  image: my-new-container-image</code></pre>
+  image: my-new-container-image <b class="conum">(2)</b>
+  config: <b class="conum">(3)</b>
+    #...</code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p><a href="#type-KafkaConnectSpec-reference">The specification for the Kafka Connect cluster</a>.</p>
+</li>
+<li>
+<p>The docker image for the pods.</p>
+</li>
+<li>
+<p>Configuration of the Kafka Connect <em>workers</em> (not connectors).</p>
+</li>
+</ol>
 </div>
 <div class="paragraph">
 <p>or</p>
