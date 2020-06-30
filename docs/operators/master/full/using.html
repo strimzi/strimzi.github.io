@@ -726,12 +726,13 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#con-cruise-control-overview-str">8.1. Why use Cruise Control?</a></li>
 <li><a href="#con-optimization-goals-str">8.2. Optimization goals overview</a></li>
 <li><a href="#con-optimization-proposals-str">8.3. Optimization proposals overview</a></li>
-<li><a href="#proc-deploying-cruise-control-str">8.4. Deploying Cruise Control</a></li>
+<li><a href="#con-rebalance-str">8.4. Rebalance performance tuning overview</a></li>
 <li><a href="#ref-cruise-control-configuration-str">8.5. Cruise Control configuration</a></li>
-<li><a href="#proc-generating-optimization-proposals-str">8.6. Generating optimization proposals</a></li>
-<li><a href="#proc-approving-optimization-proposal-str">8.7. Approving an optimization proposal</a></li>
-<li><a href="#proc-stopping-cluster-rebalance-str">8.8. Stopping a cluster rebalance</a></li>
-<li><a href="#proc-fixing-problems-with-kafkarebalance-str">8.9. Fixing problems with a <code>KafkaRebalance</code> resource</a></li>
+<li><a href="#proc-deploying-cruise-control-str">8.6. Deploying Cruise Control</a></li>
+<li><a href="#proc-generating-optimization-proposals-str">8.7. Generating optimization proposals</a></li>
+<li><a href="#proc-approving-optimization-proposal-str">8.8. Approving an optimization proposal</a></li>
+<li><a href="#proc-stopping-cluster-rebalance-str">8.9. Stopping a cluster rebalance</a></li>
+<li><a href="#proc-fixing-problems-with-kafkarebalance-str">8.10. Fixing problems with a <code>KafkaRebalance</code> resource</a></li>
 </ul>
 </li>
 <li><a href="#assembly-distributed-tracing-str">9. Distributed tracing</a>
@@ -26576,174 +26577,108 @@ The <code>After</code> score is based on the generated optimization proposal.</p
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-deploying-cruise-control-str"><a class="link" href="#proc-deploying-cruise-control-str">8.4. Deploying Cruise Control</a></h3>
+<h3 id="con-rebalance-str"><a class="link" href="#con-rebalance-str">8.4. Rebalance performance tuning overview</a></h3>
 <div class="paragraph">
-<p>To deploy Cruise Control to your Strimzi cluster, define the configuration using the <code>cruiseControl</code> property in the <code>Kafka</code> resource, and then create or update the resource.</p>
-</div>
-<div class="paragraph">
-<p>Deploy one instance of Cruise Control per Kafka cluster.</p>
+<p>When an <a href="#con-optimization-proposals-str">optimization proposal</a> is <a href="#proc-approving-optimization-proposal-str">approved</a>, the partition reassignment commands that comprise the proposal are applied to the Kafka cluster by the Cruise Control server.
+These commands consist of two types of operations:</p>
 </div>
 <div class="ulist">
-<div class="title">Prerequisites</div>
 <ul>
 <li>
-<p>A Kubernetes cluster</p>
+<p>Partition movement: Involves transferring the partition replica and its data to a new location. Partition movements can take one of two forms:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Inter-broker movement: The partition replica is moved to a log directory on a different broker.</p>
 </li>
 <li>
-<p>A running Cluster Operator</p>
+<p>Intra-broker movement: The partition replica is moved to a different log directory on the same broker.</p>
 </li>
 </ul>
 </div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
+</li>
 <li>
-<p>Edit the <code>Kafka</code> resource and add the <code>cruiseControl</code> property.</p>
+<p>Leadership movement: This involves switching the leader of the partition&#8217;s replicas.</p>
+</li>
+</ul>
+</div>
 <div class="paragraph">
-<p>The properties you can configure are shown in this example configuration:</p>
+<p>Cruise Control batches up these reassignment commands and issues them to the Kafka cluster.
+The performance of the cluster during the rebalance is affected by the number of each type of movement contained in each batch.
+Cruise Control provides several configuration options for tuning a cluster rebalance for optimal performance.</p>
 </div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
-kind: Kafka
-metadata:
-  name: my-cluster
-spec:
-  # ...
-  cruiseControl:
-    brokerCapacity: <b class="conum">(1)</b>
-      inboundNetwork: 10000KB/s
-      outboundNetwork: 10000KB/s
-      # ...
-    config: <b class="conum">(2)</b>
-      default.goals: &gt;
-         com.linkedin.kafka.cruisecontrol.analyzer.goals.RackAwareGoal,
-         com.linkedin.kafka.cruisecontrol.analyzer.goals.ReplicaCapacityGoal
-         # ...
-      cpu.balance.threshold: 1.1
-      metadata.max.age.ms: 300000
-      send.buffer.bytes: 131072
-      # ...
-    resources: <b class="conum">(3)</b>
-      requests:
-        cpu: 200m
-        memory: 64Mi
-      limits:
-        cpu: 500m
-        memory: 128Mi
-    logging: <b class="conum">(4)</b>
-        type: inline
-        loggers:
-          cruisecontrol.root.logger: "INFO"
-    template: <b class="conum">(5)</b>
-      pod:
-        metadata:
-          labels:
-            label1: value1
-        securityContext:
-          runAsUser: 1000001
-          fsGroup: 0
-        terminationGracePeriodSeconds: 120
-    readinessProbe: <b class="conum">(6)</b>
-      initialDelaySeconds: 15
-      timeoutSeconds: 5
-    livenessProbe: <b class="conum">(7)</b>
-      initialDelaySeconds: 15
-      timeoutSeconds: 5
-# ...</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Specifies capacity limits for broker resources. For more information, see <a href="#capacity-configuration">Capacity configuration</a>.</p>
-</li>
-<li>
-<p>Defines the Cruise Control configuration, including the default optimization goals (in <code>default.goals</code>) and any customizations to the master optimization goals (in <code>goals</code>) or the hard goals (in <code>hard.goals</code>).
-You can provide any <a href="#ref-cruise-control-configuration-str">standard Cruise Control configuration option</a> apart from those managed directly by Strimzi.
-For more information on configuring optimization goals, see <a href="#con-optimization-goals-str">Optimization goals overview</a>.</p>
-</li>
-<li>
-<p>CPU and memory resources reserved for Cruise Control. For more information, see <a href="#assembly-resource-limits-and-requests-deployment-configuration-kafka">CPU and memory resources</a>.</p>
-</li>
-<li>
-<p>Defined loggers and log levels added directly (inline) or indirectly (external) through a ConfigMap. A custom ConfigMap must be placed under the log4j.properties key. Cruise Control has a single logger named <code>cruisecontrol.root.logger</code>. You can set the log level to INFO, ERROR, WARN, TRACE, DEBUG, FATAL or OFF. For more information, see <a href="#logging-configuration">Logging configuration</a>.</p>
-</li>
-<li>
-<p><a href="#assembly-customizing-kubernetes-resources-str">Customization of deployment templates and pods</a>.</p>
-</li>
-<li>
-<p><a href="#assembly-healthchecks-deployment-configuration-kafka">Healthcheck readiness probes</a>.</p>
-</li>
-<li>
-<p><a href="#assembly-healthchecks-deployment-configuration-kafka">Healthcheck liveness probes</a>.</p>
-</li>
-</ol>
-</div>
-</li>
-<li>
-<p>Create or update the resource:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>kafka.yaml</em></code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Verify that Cruise Control was successfully deployed:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get deployments -l app.kubernetes.io/name=strimzi</code></pre>
-</div>
-</div>
-</li>
-</ol>
-</div>
-<h4 id="auto_created_topics" class="discrete">Auto-created topics</h4>
 <div class="paragraph">
-<p>The following table shows the three topics that are automatically created when Cruise Control is deployed. These topics are required for Cruise Control to work properly and must not be deleted or changed.</p>
+<p>You can set these <em>tuning</em> options at either the <a href="#ref-cruise-control-configuration-str">Cruise Control server</a> or <a href="#proc-generating-optimization-proposals-str">optimization proposal</a> levels:</p>
 </div>
-<table class="tableblock frame-all grid-all stripes-none stretch">
+<div class="ulist">
+<ul>
+<li>
+<p>The Cruise Control server setting can be set in the Kafka custom resource under <code>Kafka.spec.kafka.spec.cruiseControl.spec</code>.</p>
+</li>
+<li>
+<p>The individual rebalance performance configurations can be set under <code>KafkaRebalance.spec</code>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The relevant configurations are summarised below:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 20%;">
-<col style="width: 20%;">
-<col style="width: 60%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
 </colgroup>
 <thead>
 <tr>
-<th class="tableblock halign-left valign-top">Auto-created topic</th>
-<th class="tableblock halign-left valign-top">Created by</th>
-<th class="tableblock halign-left valign-top">Function</th>
+<th class="tableblock halign-left valign-top">Server Configuration</th>
+<th class="tableblock halign-left valign-top">KafkaRebalance Configuration</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Default Value</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi.cruisecontrol.metrics</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Strimzi Metrics Reporter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Stores the raw metrics from the Metrics Reporter in each Kafka broker.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>num.concurrent.partition.movements.per.broker</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>concurrentPartitionMovementsPerBroker</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The maximum number of inter-broker partition movements in each partition reassignment batch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi.cruisecontrol.partitionmetricsamples</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Cruise Control</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Stores the derived metrics for each partition. These are created by the <a href="https://github.com/linkedin/cruise-control/wiki/Overview#metric-sample-aggregator" target="_blank" rel="noopener">Metric Sample Aggregator</a>.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>num.concurrent.intra.broker.partition.movements</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>concurrentIntraBrokerPartitionMovements</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The maximum number of intra-broker partition movements in each partition reassignment batch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi.cruisecontrol.modeltrainingsamples</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Cruise Control</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Stores the metrics samples used to create the <a href="https://github.com/linkedin/cruise-control/wiki/Overview#cluster-workload-model" target="_blank" rel="noopener">Cluster Workload Model</a>.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>num.concurrent.leader.movements</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>concurrentLeaderMovements</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The maximum number of partition leadership changes in each partition reassignment batch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1000</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>default.replication.throttle</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>replicationThrottle</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The bandwidth (in bytes per second) to be assigned to the reassigning of partitions</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No Limit</p></td>
 </tr>
 </tbody>
 </table>
 <div class="paragraph">
-<p>To prevent the removal of records that are needed by Cruise Control, log compaction is disabled in the auto-created topics.</p>
+<p>Changing the default settings affects the length of time that the rebalance takes to complete, as well as the load placed on the Kafka cluster during the rebalance.
+Using lower values reduces the load but increases the amount of time taken, and vice versa.</p>
 </div>
-<div class="paragraph">
-<div class="title">What to do next</div>
-<p>After configuring and deploying Cruise Control, you can <a href="#proc-generating-optimization-proposals-str">generate optimization proposals</a>.</p>
-</div>
-<div class="paragraph">
+<div class="ulist">
 <div class="title">Additional resources</div>
-<p><a href="#type-CruiseControlTemplate-reference"><code>CruiseControlTemplate</code> schema reference</a>.</p>
+<ul>
+<li>
+<p><a href="#type-CruiseControlSpec-reference"><code>CruiseControlSpec</code> schema reference</a>.</p>
+</li>
+<li>
+<p><a href="#type-KafkaRebalanceSpec-reference"><code>KafkaRebalanceSpec</code> schema reference</a>.</p>
+</li>
+</ul>
 </div>
 </div>
 <div class="sect2">
@@ -26967,7 +26902,178 @@ spec:
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-generating-optimization-proposals-str"><a class="link" href="#proc-generating-optimization-proposals-str">8.6. Generating optimization proposals</a></h3>
+<h3 id="proc-deploying-cruise-control-str"><a class="link" href="#proc-deploying-cruise-control-str">8.6. Deploying Cruise Control</a></h3>
+<div class="paragraph">
+<p>To deploy Cruise Control to your Strimzi cluster, define the configuration using the <code>cruiseControl</code> property in the <code>Kafka</code> resource, and then create or update the resource.</p>
+</div>
+<div class="paragraph">
+<p>Deploy one instance of Cruise Control per Kafka cluster.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>Kafka</code> resource and add the <code>cruiseControl</code> property.</p>
+<div class="paragraph">
+<p>The properties you can configure are shown in this example configuration:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  # ...
+  cruiseControl:
+    brokerCapacity: <b class="conum">(1)</b>
+      inboundNetwork: 10000KB/s
+      outboundNetwork: 10000KB/s
+      # ...
+    config: <b class="conum">(2)</b>
+      default.goals: &gt;
+         com.linkedin.kafka.cruisecontrol.analyzer.goals.RackAwareGoal,
+         com.linkedin.kafka.cruisecontrol.analyzer.goals.ReplicaCapacityGoal
+         # ...
+      cpu.balance.threshold: 1.1
+      metadata.max.age.ms: 300000
+      send.buffer.bytes: 131072
+      # ...
+    resources: <b class="conum">(3)</b>
+      requests:
+        cpu: 200m
+        memory: 64Mi
+      limits:
+        cpu: 500m
+        memory: 128Mi
+    logging: <b class="conum">(4)</b>
+        type: inline
+        loggers:
+          cruisecontrol.root.logger: "INFO"
+    template: <b class="conum">(5)</b>
+      pod:
+        metadata:
+          labels:
+            label1: value1
+        securityContext:
+          runAsUser: 1000001
+          fsGroup: 0
+        terminationGracePeriodSeconds: 120
+    readinessProbe: <b class="conum">(6)</b>
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+    livenessProbe: <b class="conum">(7)</b>
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+# ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Specifies capacity limits for broker resources. For more information, see <a href="#capacity-configuration">Capacity configuration</a>.</p>
+</li>
+<li>
+<p>Defines the Cruise Control configuration, including the default optimization goals (in <code>default.goals</code>) and any customizations to the master optimization goals (in <code>goals</code>) or the hard goals (in <code>hard.goals</code>).
+You can provide any <a href="#ref-cruise-control-configuration-str">standard Cruise Control configuration option</a> apart from those managed directly by Strimzi.
+For more information on configuring optimization goals, see <a href="#con-optimization-goals-str">Optimization goals overview</a>.</p>
+</li>
+<li>
+<p>CPU and memory resources reserved for Cruise Control. For more information, see <a href="#assembly-resource-limits-and-requests-deployment-configuration-kafka">CPU and memory resources</a>.</p>
+</li>
+<li>
+<p>Defined loggers and log levels added directly (inline) or indirectly (external) through a ConfigMap. A custom ConfigMap must be placed under the log4j.properties key. Cruise Control has a single logger named <code>cruisecontrol.root.logger</code>. You can set the log level to INFO, ERROR, WARN, TRACE, DEBUG, FATAL or OFF. For more information, see <a href="#logging-configuration">Logging configuration</a>.</p>
+</li>
+<li>
+<p><a href="#assembly-customizing-kubernetes-resources-str">Customization of deployment templates and pods</a>.</p>
+</li>
+<li>
+<p><a href="#assembly-healthchecks-deployment-configuration-kafka">Healthcheck readiness probes</a>.</p>
+</li>
+<li>
+<p><a href="#assembly-healthchecks-deployment-configuration-kafka">Healthcheck liveness probes</a>.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Create or update the resource:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>kafka.yaml</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Verify that Cruise Control was successfully deployed:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get deployments -l app.kubernetes.io/name=strimzi</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<h4 id="auto_created_topics" class="discrete">Auto-created topics</h4>
+<div class="paragraph">
+<p>The following table shows the three topics that are automatically created when Cruise Control is deployed. These topics are required for Cruise Control to work properly and must not be deleted or changed.</p>
+</div>
+<table class="tableblock frame-all grid-all stripes-none stretch">
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Auto-created topic</th>
+<th class="tableblock halign-left valign-top">Created by</th>
+<th class="tableblock halign-left valign-top">Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi.cruisecontrol.metrics</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Strimzi Metrics Reporter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Stores the raw metrics from the Metrics Reporter in each Kafka broker.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi.cruisecontrol.partitionmetricsamples</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cruise Control</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Stores the derived metrics for each partition. These are created by the <a href="https://github.com/linkedin/cruise-control/wiki/Overview#metric-sample-aggregator" target="_blank" rel="noopener">Metric Sample Aggregator</a>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi.cruisecontrol.modeltrainingsamples</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cruise Control</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Stores the metrics samples used to create the <a href="https://github.com/linkedin/cruise-control/wiki/Overview#cluster-workload-model" target="_blank" rel="noopener">Cluster Workload Model</a>.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>To prevent the removal of records that are needed by Cruise Control, log compaction is disabled in the auto-created topics.</p>
+</div>
+<div class="paragraph">
+<div class="title">What to do next</div>
+<p>After configuring and deploying Cruise Control, you can <a href="#proc-generating-optimization-proposals-str">generate optimization proposals</a>.</p>
+</div>
+<div class="paragraph">
+<div class="title">Additional resources</div>
+<p><a href="#type-CruiseControlTemplate-reference"><code>CruiseControlTemplate</code> schema reference</a>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-generating-optimization-proposals-str"><a class="link" href="#proc-generating-optimization-proposals-str">8.7. Generating optimization proposals</a></h3>
 <div class="paragraph">
 <p>When you create or update a <code>KafkaRebalance</code> resource, Cruise Control generates an <a href="#con-optimization-proposals-str">optimization proposal</a> for the Kafka cluster based on the configured <a href="#con-optimization-goals-str">optimization goals</a>.</p>
 </div>
@@ -27118,7 +27224,7 @@ For descriptions of each property, see <a href="#contents-optimization-proposals
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-approving-optimization-proposal-str"><a class="link" href="#proc-approving-optimization-proposal-str">8.7. Approving an optimization proposal</a></h3>
+<h3 id="proc-approving-optimization-proposal-str"><a class="link" href="#proc-approving-optimization-proposal-str">8.8. Approving an optimization proposal</a></h3>
 <div class="paragraph">
 <p>You can approve an <a href="#con-optimization-proposals-str">optimization proposal</a> generated by Cruise Control, if its status is <code>ProposalReady</code>.
 Cruise Control will then apply the optimization proposal to the Kafka cluster, reassigning partitions to brokers and changing partition leadership.</p>
@@ -27244,7 +27350,7 @@ To do so, refresh the optimization proposal to make sure it uses the latest clus
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-stopping-cluster-rebalance-str"><a class="link" href="#proc-stopping-cluster-rebalance-str">8.8. Stopping a cluster rebalance</a></h3>
+<h3 id="proc-stopping-cluster-rebalance-str"><a class="link" href="#proc-stopping-cluster-rebalance-str">8.9. Stopping a cluster rebalance</a></h3>
 <div class="paragraph">
 <p>Once started, a cluster rebalance operation might take some time to complete and affect the overall performance of the Kafka cluster.</p>
 </div>
@@ -27311,7 +27417,7 @@ The performance of the Kafka cluster in the intermediate (stopped) state might b
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-fixing-problems-with-kafkarebalance-str"><a class="link" href="#proc-fixing-problems-with-kafkarebalance-str">8.9. Fixing problems with a <code>KafkaRebalance</code> resource</a></h3>
+<h3 id="proc-fixing-problems-with-kafkarebalance-str"><a class="link" href="#proc-fixing-problems-with-kafkarebalance-str">8.10. Fixing problems with a <code>KafkaRebalance</code> resource</a></h3>
 <div class="paragraph">
 <p>If an issue occurs when creating a <code>KafkaRebalance</code> resource or interacting with Cruise Control, the error is reported in the resource status, along with details of how to fix it.
 The resource also moves to the <code>NotReady</code> state.</p>
@@ -38218,6 +38324,34 @@ Allowed values are <code>TLSv1.1</code> and <code>TLSv1.2</code>.</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
 </tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">concurrentPartitionMovementsPerBroker</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The upper bound of ongoing partition replica movements going into/out of each broker. Default is 5.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">concurrentIntraBrokerPartitionMovements</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The upper bound of ongoing partition replica movements between disks within each broker. Default is 2.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">concurrentLeaderMovements</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The upper bound of ongoing partition leadership movements. Default is 1000.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">replicationThrottle</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The upper bound, in bytes per second, on the bandwidth used to move replicas. There is no limit by default.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -38274,7 +38408,7 @@ Allowed values are <code>TLSv1.1</code> and <code>TLSv1.2</code>.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-06-30 14:42:24 UTC
+Last updated 2020-06-30 15:41:04 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
