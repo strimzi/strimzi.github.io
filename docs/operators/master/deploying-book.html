@@ -98,6 +98,12 @@
 <li><a href="#proc-kafka-exporter-enabling-str">6.2.5. Enabling the Kafka Exporter Grafana dashboard</a></li>
 </ul>
 </li>
+<li><a href="#assembly-kafka-bridge-str">6.3. Monitor Kafka Bridge</a>
+<ul class="sectlevel3">
+<li><a href="#configuring_kafka_bridge">6.3.1. Configuring Kafka Bridge</a></li>
+<li><a href="#enabling_the_kafka_bridge_grafana_dashboard">6.3.2. Enabling the Kafka Bridge Grafana dashboard</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#assembly-upgrade-str">7. Upgrading Strimzi</a>
@@ -3018,7 +3024,7 @@ see <a href="./using.html#assembly-deployment-configuration-kafka-bridge-str" ta
 <p>This section describes how to monitor Strimzi Kafka, ZooKeeper, Kafka Connect, and Kafka MirrorMaker and MirrorMaker 2.0 clusters using Prometheus to provide monitoring data for example Grafana dashboards.</p>
 </div>
 <div class="paragraph">
-<p>Prometheus and Grafana can also used to monitor Strimzi operators.
+<p>Prometheus and Grafana can also be used to monitor Strimzi operators and <a href="#assembly-kafka-bridge-str">Kafka Bridge instances</a>.
 The example Grafana dashboard for operators provides:</p>
 </div>
 <div class="ulist">
@@ -3076,6 +3082,7 @@ If you require further support on configuring and running Prometheus or Grafana 
 │   ├── strimzi-zookeeper.json
 │   ├── strimzi-kafka-mirror-maker-2.json
 │   ├── strimzi-operators.json
+│   ├── strimzi-kafka-bridge.json
 │   └── strimzi-kafka-exporter.json <b class="conum">(3)</b>
 ├── kafka-connect-metrics.yaml <b class="conum">(4)</b>
 ├── kafka-metrics.yaml <b class="conum">(5)</b>
@@ -3782,6 +3789,9 @@ Example dashboards are provided in the <code>examples/metrics</code> directory a
 </li>
 <li>
 <p><code>strimzi-operators.json</code></p>
+</li>
+<li>
+<p><code>strimzi-kafka-bridge.json</code></p>
 </li>
 </ul>
 </div>
@@ -4627,6 +4637,151 @@ If you are accessing the user interface for the first time, see <a href="#assemb
 <div class="paragraph">
 <p>Use the Grafana charts to analyze lag and to check if actions to reduce lag are having an impact on an affected consumer group.
 If, for example, Kafka brokers are adjusted to reduce lag, the dashboard will show the  <em>Lag by consumer group</em> chart going down and the <em>Messages consumed per minute</em> chart going up.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="assembly-kafka-bridge-str"><a class="link" href="#assembly-kafka-bridge-str">6.3. Monitor Kafka Bridge</a></h3>
+<div class="paragraph">
+<p>If you are already using Prometheus and Grafana for monitoring of built-in Kafka metrics, you can configure Prometheus to also scrape the Kafka Bridge Prometheus endpoint.</p>
+</div>
+<div class="paragraph">
+<p>The example Grafana dashboard for the Kafka Bridge provides:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Information about HTTP connections and related requests to the different endpoints</p>
+</li>
+<li>
+<p>Information about the Kafka consumers and producers used by the bridge</p>
+</li>
+<li>
+<p>JVM metrics from the bridge itself</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="configuring_kafka_bridge"><a class="link" href="#configuring_kafka_bridge">6.3.1. Configuring Kafka Bridge</a></h4>
+<div class="paragraph">
+<p>You can enable the Kafka Bridge metrics in the <code>KafkaBridge</code> resource using the <code>enableMetrics</code> property.</p>
+</div>
+<div class="paragraph">
+<p>You can configure this property as part of a deployment or redeployment of the Kafka Bridge.</p>
+</div>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="paragraph">
+<p>+</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaBridge
+metadata:
+  name: my-bridge
+spec:
+  # ...
+  bootstrapServers: my-cluster-kafka:9092
+  http:
+    # ...
+  enableMetrics: true
+  # ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="enabling_the_kafka_bridge_grafana_dashboard"><a class="link" href="#enabling_the_kafka_bridge_grafana_dashboard">6.3.2. Enabling the Kafka Bridge Grafana dashboard</a></h4>
+<div class="paragraph">
+<p>If you deployed Kafka Bridge with your Kafka cluster, you can enable Grafana to present the metrics data it exposes.</p>
+</div>
+<div class="paragraph">
+<p>A Kafka Bridge dashboard is provided in the <code>examples/metrics</code> directory as a JSON file:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>strimzi-kafka-bridge.json</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>When metrics data has been collected for some time, the Kafka Bridge charts are populated.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Kafka Bridge</dt>
+<dd>
+<p>Shows metrics for:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>HTTP connections to the Kafka Bridge count</p>
+</li>
+<li>
+<p>HTTP requests being processed count</p>
+</li>
+<li>
+<p>Requests processed per second grouped by HTTP method</p>
+</li>
+<li>
+<p>The total request rate grouped by response codes (2XX, 4XX, 5XX)</p>
+</li>
+<li>
+<p>Bytes received and sent per second</p>
+</li>
+<li>
+<p>Requests for each Kafka Bridge endpoint</p>
+</li>
+<li>
+<p>Number of Kafka consumers, producers, and related opened connections used by the Kafka Bridge itself</p>
+</li>
+<li>
+<p>Kafka producer:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>The average number of records sent per second (grouped by topic)</p>
+</li>
+<li>
+<p>The number of outgoing bytes sent to all brokers per second (grouped by topic)</p>
+</li>
+<li>
+<p>The average number of records per second that resulted in errors (grouped by topic)</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Kafka consumer:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>The average number of records consumed per second (grouped by clientId-topic)</p>
+</li>
+<li>
+<p>The average number of bytes consumed per second (grouped by clientId-topic)</p>
+</li>
+<li>
+<p>Partitions assigned (grouped by clientId)</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>JVM memory used</p>
+</li>
+<li>
+<p>JVM garbage collection time</p>
+</li>
+<li>
+<p>JVM garbage collection count</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
 </div>
 </div>
 </div>
