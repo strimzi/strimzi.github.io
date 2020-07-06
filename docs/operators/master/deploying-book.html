@@ -72,9 +72,10 @@
 </li>
 </ul>
 </li>
-<li><a href="#deploy-verify_str">5. Verifying the Strimzi deployment</a>
+<li><a href="#deploy-verify_str">5. Setting up client access to the Kafka cluster</a>
 <ul class="sectlevel2">
 <li><a href="#deploying-example-clients-str">5.1. Deploying example clients</a></li>
+<li><a href="#setup-external-clients-str">5.2. Setting up access for clients outside of Kubernetes</a></li>
 </ul>
 </li>
 <li><a href="#assembly-metrics-str">6. Introducing Metrics to Kafka</a>
@@ -2922,13 +2923,24 @@ see <a href="./using.html#assembly-deployment-configuration-kafka-bridge-str" ta
 </div>
 </div>
 <div class="sect1">
-<h2 id="deploy-verify_str"><a class="link" href="#deploy-verify_str">5. Verifying the Strimzi deployment</a></h2>
+<h2 id="deploy-verify_str"><a class="link" href="#deploy-verify_str">5. Setting up client access to the Kafka cluster</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Having <a href="#deploy-tasks_str">deployed Strimzi</a>, the procedure in this section shows how to deploy example producer and consumer clients.</p>
+<p>After you have <a href="#deploy-tasks_str">deployed Strimzi</a>, the procedures in this section explain how to:</p>
 </div>
+<div class="ulist">
+<ul>
+<li>
+<p>Deploy example producer and consumer clients, which you can use to verify your deployment</p>
+</li>
+<li>
+<p>Set up external client access to the Kafka cluster</p>
 <div class="paragraph">
-<p>The procedure assumes a Strimzi is available and running in a Kubernetes cluster.</p>
+<p>The steps to set up access to the Kafka cluster for a client outside Kubernetes are more complex,
+and require familiarity with <a href="./using.html#assembly-deployment-configuration-str" target="_blank" rel="noopener">how to configure Kafka components</a>.</p>
+</div>
+</li>
+</ul>
 </div>
 <div class="sect2">
 <h3 id="deploying-example-clients-str"><a class="link" href="#deploying-example-clients-str">5.1. Deploying example clients</a></h3>
@@ -2970,6 +2982,432 @@ see <a href="./using.html#assembly-deployment-configuration-kafka-bridge-str" ta
 </li>
 <li>
 <p>Confirm that you see the incoming messages in the consumer console.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="setup-external-clients-str"><a class="link" href="#setup-external-clients-str">5.2. Setting up access for clients outside of Kubernetes</a></h3>
+<div class="paragraph">
+<p>This procedure shows how to configure client access to a Kafka cluster from outside Kubernetes.</p>
+</div>
+<div class="paragraph">
+<p>Using the address of the Kafka cluster, you can provide external access to a client on a different Kubernetes namespace or outside Kubernetes entirely.</p>
+</div>
+<div class="paragraph">
+<p>You configure an external Kafka listener to provide the access.</p>
+</div>
+<div class="paragraph">
+<p>The following external listener types are supported:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>route</code> to use OpenShift <code>Route</code> and the default HAProxy router</p>
+</li>
+<li>
+<p><code>loadbalancer</code> to use loadbalancer services</p>
+</li>
+<li>
+<p><code>nodeport</code> to use ports on Kubernetes nodes</p>
+</li>
+<li>
+<p><code>ingress</code> to use Kubernetes <em>Ingress</em> and the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The type chosen depends on your requirements, and your environment and infrastructure.
+For example, loadbalancers might not be suitable for certain infrastructure, such as bare metal, where node ports provide a better option.</p>
+</div>
+<div class="paragraph">
+<p>In this procedure:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>An external listener is configured for the Kafka cluster, with TLS encryption and authentication, and Kafka <em>simple authorization</em> is enabled.</p>
+</li>
+<li>
+<p>A <code>KafkaUser</code> is created for the client, with TLS authentication and Access Control Lists (ACLs) defined for <em>simple authorization</em>.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>You can configure your listener to use TLS or SCRAM-SHA authentication,
+both of which can be used with TLS encryption.
+If you are using an authorization server, you can use token-based <a href="./using.html#assembly-oauth-authentication_str">OAuth 2.0 authentication</a> and <a href="./using.html#assembly-oauth-authorization_str">OAuth 2.0 authorization</a>.</p>
+</div>
+<div class="paragraph">
+<p>When you configure the <code>KafkaUser</code> authentication and authorization mechanisms, ensure they match the equivalent Kafka configuration:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>KafkaUser.spec.authentication</code> matches <code>Kafka.spec.kafka.listeners.*.authentication</code></p>
+</li>
+<li>
+<p><code>KafkaUser.spec.authorization</code> matches <code>Kafka.spec.kafka.authorization</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>You should have at least one listener supporting the authentication you want to use for the <code>KafkaUser</code>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Authentication between Kafka users and Kafka brokers depends on the authentication settings for each.
+For example, it is not possible to authenticate a user with TLS if it is not also enabled in the Kafka configuration.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Strimzi operators automate the configuration process:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The Cluster Operator creates the listeners and sets up the cluster and client certificate authority (CA) certificates to enable authentication within the Kafka cluster.</p>
+</li>
+<li>
+<p>The User Operator creates the user representing the client and the security credentials used for client authentication, based on the chosen authentication type.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>In this procedure, the certificates generated by the Cluster Operator are used, but you can replace them by <a href="./using.html#installing-your-own-ca-certificates-str">installing your own certificates</a>.
+You can also configure your listener to <a href="./using.html#kafka-listener-certificates-str">use a Kafka listener certificate managed by an external Certificate Authority</a>.</p>
+</div>
+<div class="paragraph">
+<p>Certificates are available in PKCS #12 format (.p12) and PEM (.crt) formats.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Kafka cluster is available for the client</p>
+</li>
+<li>
+<p>The Cluster Operator and User Operator are running in the cluster</p>
+</li>
+<li>
+<p>A client outside the Kubernetes cluster to connect to the Kafka cluster</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Configure the Kafka cluster with an <code>external</code> Kafka listener.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Define the authentication required to access the Kafka broker through the listener</p>
+</li>
+<li>
+<p>Enable authorization on the Kafka broker</p>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    listeners: <b class="conum">(1)</b>
+      external:
+        type: <em>LISTENER-TYPE</em> <b class="conum">(2)</b>
+        tls: true <b class="conum">(3)</b>
+        authentication:
+          type: tls <b class="conum">(4)</b>
+        configuration:
+          preferredAddressType: InternalDNS <b class="conum">(5)</b>
+        overrides: <b class="conum">(6)</b>
+          # ...
+      authorization: <b class="conum">(7)</b>
+        type: simple
+        superUsers:
+          - super-user-name <b class="conum">(8)</b>
+  # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Configuration options for enabling external listeners are described in the <a href="./using.html#type-KafkaListeners-reference" target="_blank" rel="noopener">Kafka listeners schema reference</a></p>
+</li>
+<li>
+<p>External listener type specified as <code>route</code>, <code>loadbalancer</code>, <code>nodeport</code> or <code>ingress</code>.</p>
+</li>
+<li>
+<p>Enables TLS encryption on the listener. Not required for <code>route</code> listeners.</p>
+</li>
+<li>
+<p>Authentication specified as <code>tls</code>.</p>
+</li>
+<li>
+<p>(Optional, for <code>nodeport</code> listeners only) Configuration to <a href="./using.html#con-kafka-broker-external-listeners-nodeports-str">specify a preference for the first address type used by Strimzi as the node address</a>.</p>
+</li>
+<li>
+<p>(Optional, but not applicable to <code>ingress</code> listeners) Overrides customize the bootstrap and broker addresses advertised to clients.
+Strimzi automatically determines the addresses to advertise to clients.
+The addresses are automatically assigned by Kubernetes.
+Use overrides if the infrastructure on which you are running Strimzi does not provide the right address.
+Validation is not performed on overrides.
+The override configuration differs according to the external listener type,
+so you can override hosts for <code>route</code>, DNS names or IP addresses for <code>loadbalancer</code>, and node ports (shown) for <code>nodeport</code>.
+Refer to the <a href="./using.html#type-KafkaListeners-reference" target="_blank" rel="noopener">Kafka listeners schema reference</a> for more information on external listener <code>overrides</code>.</p>
+</li>
+<li>
+<p>Authorization <a href="./using.html#ref-kafka-authorization-str">enables <code>simple</code> authorization on the Kafka broker using the <code>SimpleAclAuthorizer</code> Kafka plugin</a>.</p>
+</li>
+<li>
+<p>(Optional) Super users can access all brokers regardless of any access restrictions defined in ACLs.</p>
+</li>
+</ol>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Create or update the <code>Kafka</code> resource.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>KAFKA-CONFIG-FILE</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The Kafka cluster is configured with a Kafka broker listener using TLS authentication.</p>
+</div>
+<div class="paragraph">
+<p>A service is created for each Kafka broker pod.</p>
+</div>
+<div class="paragraph">
+<p>An additional service is created to serve as the <em>bootstrap address</em> for connection to the Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>The cluster CA certificate to verify the identity of the kafka brokers is also created with the same name as the <code>Kafka</code> resource.</p>
+</div>
+</li>
+<li>
+<p>Find the bootstrap address and port from the status of the <code>Kafka</code> resource.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get kafka <em>KAFKA-CLUSTER-NAME</em> -o jsonpath='{.status.listeners[?(@.type=="external")].bootstrapServers}'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Use the bootstrap address in your Kafka client to connect to the Kafka cluster.</p>
+</div>
+</li>
+<li>
+<p>Extract the public cluster CA certificate and password from the generated <code><em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert</code> Secret.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get secret <em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.p12}' | base64 -d &gt; ca.p12</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get secret <em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.password}' | base64 -d &gt; ca.password</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Use the certificate and password in your Kafka client to connect to the Kafka cluster with TLS encryption.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Cluster CA certificates renew automatically by default. If your are using your own Kafka listener certificates,
+you will need to <a href="./using.html#renewing-your-own-ca-certificates-str">renew the certificates manually</a>.
+</td>
+</tr>
+</table>
+</div>
+</li>
+<li>
+<p>Create or modify a user representing the client that requires access to the Kafka cluster.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Specify the same authentication type as the <code>Kafka</code> listener.</p>
+</li>
+<li>
+<p>Specify the authorization ACLs for simple authorization.</p>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaUser
+metadata:
+  name: my-user
+  labels:
+    strimzi.io/cluster: my-cluster <b class="conum">(1)</b>
+spec:
+  authentication:
+    type: tls <b class="conum">(2)</b>
+  authorization:
+    type: simple
+    acls: <b class="conum">(3)</b>
+      - resource:
+          type: topic
+          name: my-topic
+          patternType: literal
+        operation: Read
+      - resource:
+          type: topic
+          name: my-topic
+          patternType: literal
+        operation: Describe
+      - resource:
+          type: group
+          name: my-group
+          patternType: literal
+        operation: Read</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The label must match the label of the Kafka cluster for the user to be created.</p>
+</li>
+<li>
+<p>Authentication specified as <code>tls</code>.</p>
+</li>
+<li>
+<p>Simple authorization requires an accompanying list of ACL rules to apply to the user.
+The rules define the operations allowed on Kafka resources based on the <em>username</em> (<code>my-user</code>).</p>
+</li>
+</ol>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Create or modify the <code>KafkaUser</code> resource.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>USER-CONFIG-FILE</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The user is created, as well as a Secret with the same name as the <code>KafkaUser</code> resource.
+The Secret contains a private and public key for TLS client authentication.</p>
+</div>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: v1
+kind: Secret
+metadata:
+  name: my-user
+  labels:
+    strimzi.io/kind: KafkaUser
+    strimzi.io/cluster: my-cluster
+type: Opaque
+data:
+  ca.crt: <em>PUBLIC-KEY-OF-THE-CLIENT-CA</em>
+  user.crt: <em>USER-CERTIFICATE-CONTAINING-PUBLIC-KEY-OF-USER</em>
+  user.key: <em>PRIVATE-KEY-OF-USER</em>
+  user.p12: <em>P12-ARCHIVE-FILE-STORING-CERTIFICATES-AND-KEYS</em>
+  user.password: <em>PASSWORD-PROTECTING-P12-ARCHIVE</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Configure your client to connect to the Kafka cluster with the properties required to make a secure connection to the Kafka cluster.</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>Add the authentication details for the public cluster certificates:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="env" class="language-env hljs">security.protocol: SSL <b class="conum">(1)</b>
+ssl.truststore.location: <em>PATH-TO/ssl/keys/truststore</em> <b class="conum">(2)</b>
+ssl.truststore.password: <em>CLUSTER-CA-CERT-PASSWORD</em> <b class="conum">(3)</b>
+ssl.truststore.type=PKCS12 <b class="conum">(4)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Enables TLS encryption (with or without TLS client authentication).</p>
+</li>
+<li>
+<p>Specifies the truststore location where the certificates were imported.</p>
+</li>
+<li>
+<p>Specifies the password for accessing the truststore. This property can be omitted if it is not needed by the truststore.</p>
+</li>
+<li>
+<p>Identifies the truststore type.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Use <code>security.protocol: SASL_SSL</code> when using SCRAM-SHA authentication over TLS.
+</td>
+</tr>
+</table>
+</div>
+</li>
+<li>
+<p>Add the bootstrap address and port for connecting to the Kafka cluster:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="env" class="language-env hljs">bootstrap.servers: <em>BOOTSTRAP-ADDRESS:PORT</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Add the authentication details for the public user certificates:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="env" class="language-env hljs">ssl.keystore.location: <em>PATH-TO/ssl/keys/user1.keystore</em> <b class="conum">(1)</b>
+ssl.keystore.password: <em>USER-CERT-PASSWORD</em> <b class="conum">(2)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Specifies the keystore location where the certificates were imported.</p>
+</li>
+<li>
+<p>Specifies the password for accessing the keystore. This property can be omitted if it is not needed by the keystore.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>The public user certificate is signed by the client CA when it is created.</p>
+</div>
+</li>
+</ol>
+</div>
 </li>
 </ol>
 </div>
