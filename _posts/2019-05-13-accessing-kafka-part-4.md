@@ -278,20 +278,20 @@ listeners:
       bootstrap:
         dnsAnnotations:
           external-dns.alpha.kubernetes.io/hostname: kafka-bootstrap.mydomain.com.
-          address: kafka-bootstrap.mydomain.com
+        address: kafka-bootstrap.mydomain.com
       brokers:
       - broker: 0
         dnsAnnotations:
           external-dns.alpha.kubernetes.io/hostname: kafka-broker-0.mydomain.com.
-          advertisedHost: kafka-broker-0.mydomain.com
+        advertisedHost: kafka-broker-0.mydomain.com
       - broker: 1
         dnsAnnotations:
           external-dns.alpha.kubernetes.io/hostname: kafka-broker-1.mydomain.com.
-          advertisedHost: kafka-broker-1.mydomain.com
+        advertisedHost: kafka-broker-1.mydomain.com
       - broker: 2
         dnsAnnotations:
           external-dns.alpha.kubernetes.io/hostname: kafka-broker-2.mydomain.com.
-          advertisedHost: kafka-broker-2.mydomain.com
+        advertisedHost: kafka-broker-2.mydomain.com
 # ...
 ```
 
