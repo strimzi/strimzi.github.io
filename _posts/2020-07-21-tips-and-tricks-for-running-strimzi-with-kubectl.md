@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Tips & Tricks for running Strimzi with `kubectl`"
+title:  "Tips & Tricks for running Strimzi with kubectl"
 date: 2020-07-21
 author: jakub_scholz
 ---
@@ -43,6 +43,7 @@ The following table shows all our resources and their short names:
 | Kafka Mirror Maker 2  | kafkamirrormaker2 | kmm2          |
 | Kafka Bridge          | kafkabridge       | kb            |
 | Kafka Rebalance       | kafkarebalance    | kr            |
+
 
 This is really handy because some of the resources have really long names. 
 So learning the short names can save a lot of time while operating Strimzi or working on new features.
