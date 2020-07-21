@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Tips & Tricks for running Strimzi with `kubectl`"
-date: 2020-07-22
+date: 2020-07-21
 author: jakub_scholz
 ---
 
