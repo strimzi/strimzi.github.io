@@ -21,7 +21,7 @@ So for example `kubectl get kafkatopics` will get you a list of all Kafka topics
 When referencing a resource types, you can use both singular and plural.
 So `kubectl get kafkas` gets you the same results as `kubectl get kafka`.
 But a lesser known feature is that you can reference custom resources with their _short name_.
-The _short name _for `Kafka` is `k`, so you can for example also run `kubectl get k` to list all your deployed `Kafka`s.
+The _short name_ for `Kafka` is `k`, so you can for example also run `kubectl get k` to list all your deployed `Kafka`s.
 
 ```
 $ kubectl get k
