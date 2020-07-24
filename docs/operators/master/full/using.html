@@ -667,20 +667,16 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#assembly-distributed-tracing-str">6. Distributed tracing</a>
 <ul class="sectlevel2">
-<li><a href="#con-overview-distributed-tracing-str">6.1. Overview of distributed tracing in Strimzi</a>
-<ul class="sectlevel3">
-<li><a href="#distributed_tracing_support_in_strimzi">6.1.1. Distributed tracing support in Strimzi</a></li>
-</ul>
-</li>
+<li><a href="#con-overview-opentracing-jaeger-str">6.1. Overview of OpenTracing and Jaeger</a></li>
 <li><a href="#assembly-setting-up-tracing-kafka-clients-str">6.2. Setting up tracing for Kafka clients</a>
 <ul class="sectlevel3">
 <li><a href="#proc-configuring-jaeger-tracer-kafka-clients-str">6.2.1. Initializing a Jaeger tracer for Kafka clients</a></li>
-<li><a href="#ref-tracing-environment-variables-str">6.2.2. Tracing environment variables</a></li>
+<li><a href="#ref-tracing-environment-variables-str">6.2.2. Environment variables for tracing</a></li>
 </ul>
 </li>
 <li><a href="#assembly-instrumenting-kafka-clients-tracers-str">6.3. Instrumenting Kafka clients with tracers</a>
 <ul class="sectlevel3">
-<li><a href="#proc-instrumenting-producers-consumers-for-opentracing-str">6.3.1. Instrumenting Kafka Producers and Consumers for tracing</a></li>
+<li><a href="#proc-instrumenting-producers-consumers-for-opentracing-str">6.3.1. Instrumenting producers and consumers for tracing</a></li>
 <li><a href="#proc-instrumenting-kafka-streams-with-tracers-str">6.3.2. Instrumenting Kafka Streams applications for tracing</a></li>
 </ul>
 </li>
@@ -22569,87 +22565,14 @@ During a “refresh”, a new optimization proposal is requested from the Cruise
 <h2 id="assembly-distributed-tracing-str"><a class="link" href="#assembly-distributed-tracing-str">6. Distributed tracing</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>This chapter outlines the support for distributed tracing in Strimzi, using Jaeger.</p>
+<p>Distributed tracing allows you to track the progress of transactions between applications in a distributed system. In a microservices architecture, tracing tracks the progress of transactions between services. Trace data is useful for monitoring application performance and investigating issues with target systems and end-user applications.</p>
 </div>
 <div class="paragraph">
-<p>How you configure distributed tracing varies by Strimzi client and component.</p>
+<p>In Strimzi, tracing facilitates the end-to-end tracking of messages: from source systems to Kafka, and then from Kafka to target systems and applications. It complements the metrics that are available to view in <a href="./deploying.html#assembly-metrics-setup-str">Grafana dashboards</a>, as well as the component loggers.</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>You <em>instrument</em> Kafka Producer, Consumer, and Streams API applications for distributed tracing using an OpenTracing client library. This involves adding instrumentation code to these clients, which monitors the execution of individual transactions in order to generate trace data.</p>
-</li>
-<li>
-<p>Distributed tracing support is built in to the Kafka Connect, MirrorMaker, and Kafka Bridge components of Strimzi. To configure these components for distributed tracing, you configure and update the relevant custom resources.</p>
-</li>
-</ul>
-</div>
+<h3 id="how_strimzi_supports_tracing" class="discrete">How Strimzi supports tracing</h3>
 <div class="paragraph">
-<p>Before configuring distributed tracing in Strimzi clients and components, you must first initialize and configure a Jaeger tracer in the Kafka cluster, as described in <a href="#proc-configuring-jaeger-tracer-kafka-clients-str">Initializing a Jaeger tracer for Kafka clients</a>.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Distributed tracing is not supported for Kafka brokers.
-</td>
-</tr>
-</table>
-</div>
-<div class="sect2">
-<h3 id="con-overview-distributed-tracing-str"><a class="link" href="#con-overview-distributed-tracing-str">6.1. Overview of distributed tracing in Strimzi</a></h3>
-<div class="paragraph">
-<p>Distributed tracing allows developers and system administrators to track the progress of transactions between applications (and services in a microservice architecture) in a distributed system. This information is useful for monitoring application performance and investigating issues with target systems and end-user applications.</p>
-</div>
-<div class="paragraph">
-<p>In Strimzi and data streaming platforms in general, distributed tracing facilitates the end-to-end tracking of messages: from source systems to the Kafka cluster and then to target systems and applications.</p>
-</div>
-<div class="paragraph">
-<p>As an aspect of system observability, distributed tracing complements the metrics that are available to view in Grafana dashboards and the available loggers for each component.</p>
-</div>
-<div class="paragraph">
-<p>For more information on Grafana dashboards, see <a href="./deploying.html#assembly-metrics-setup-str">Introducing Metrics to Kafka</a> in the <em>Deploying Strimzi</em> guide.</p>
-</div>
-<div class="paragraph">
-<div class="title">OpenTracing overview</div>
-<p>Distributed tracing in Strimzi is implemented using the open source <a href="https://opentracing.io/" target="_blank" rel="noopener">OpenTracing</a> and <a href="https://www.jaegertracing.io/" target="_blank" rel="noopener">Jaeger</a> projects.</p>
-</div>
-<div class="paragraph">
-<p>The OpenTracing specification defines APIs that developers can use to instrument applications for distributed tracing. It is independent from the tracing system.</p>
-</div>
-<div class="paragraph">
-<p>When instrumented, applications generate <em>traces</em> for individual transactions. Traces are composed of <em>spans</em>, which define specific units of work.</p>
-</div>
-<div class="paragraph">
-<p>To simplify the instrumentation of the Kafka Bridge and Kafka Producer, Consumer, and Streams API applications, Strimzi includes the <a href="https://github.com/opentracing-contrib/java-kafka-client/blob/master/README.md" target="_blank" rel="noopener">OpenTracing Apache Kafka Client Instrumentation</a> library.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The OpenTracing project is merging with the OpenCensus project. The new, combined project is named <a href="https://opentelemetry.io/" target="_blank" rel="noopener">OpenTelemetry</a>. OpenTelemetry will provide compatibility for applications that are instrumented using the OpenTracing APIs.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<div class="title">Jaeger overview</div>
-<p>Jaeger, a tracing system, is an implementation of the OpenTracing APIs used for monitoring and troubleshooting microservices-based distributed systems. It consists of four main components and provides client libraries for instrumenting applications. You can use the Jaeger user interface to visualize, query, filter, and analyze trace data.</p>
-</div>
-<div class="paragraph">
-<div class="title">An example of a query in the Jaeger user interface</div>
-<p><span class="image"><img src="images/image_con-overview-distributed-tracing.png" alt="Simple Jaeger query"></span></p>
-</div>
-<div class="sect3">
-<h4 id="distributed_tracing_support_in_strimzi"><a class="link" href="#distributed_tracing_support_in_strimzi">6.1.1. Distributed tracing support in Strimzi</a></h4>
-<div class="paragraph">
-<p>In Strimzi, distributed tracing is supported in:</p>
+<p>Support for tracing is built in to the following components:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -22660,54 +22583,70 @@ The OpenTracing project is merging with the OpenCensus project. The new, combine
 <p>MirrorMaker</p>
 </li>
 <li>
-<p>The Strimzi Kafka Bridge</p>
+<p>MirrorMaker 2.0</p>
+</li>
+<li>
+<p>Strimzi Kafka Bridge</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>You enable and configure distributed tracing for these components by setting template configuration properties in the relevant custom resource (for example, <code>KafkaConnect</code> and <code>KafkaBridge</code>).</p>
+<p>You enable and configure tracing for these components using template configuration properties in their custom resources.</p>
 </div>
 <div class="paragraph">
-<p>To enable distributed tracing in Kafka Producer, Consumer, and Streams API applications, you can instrument application code using the OpenTracing Apache Kafka Client Instrumentation library.
-When instrumented, these clients generate traces for messages (for example, when producing messages or writing offsets to the log).</p>
+<p>To enable tracing in Kafka producers, consumers, and Kafka Streams API applications, you <em>instrument</em> application code using the <a href="https://github.com/opentracing-contrib/java-kafka-client/blob/master/README.md" target="_blank" rel="noopener">OpenTracing Apache Kafka Client Instrumentation</a> library (included with Strimzi). When instrumented, clients generate trace data; for example, when producing messages or writing offsets to the log.</p>
 </div>
 <div class="paragraph">
-<p>Traces are sampled according to a sampling strategy and then visualized in the Jaeger user interface. This trace data is useful for monitoring the performance of your Kafka cluster and debugging issues with target systems and applications.</p>
+<p>Traces are sampled according to a sampling strategy and then visualized in the Jaeger user interface.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Tracing is not supported for Kafka brokers.</p>
 </div>
 <div class="paragraph">
-<div class="title">Outline of procedures</div>
-<p>To set up distributed tracing for Strimzi, follow these procedures:</p>
+<p>Setting up tracing for applications and systems beyond Strimzi is outside the scope of this chapter. To learn more about this subject, search for "inject and extract" in the <a href="https://opentracing.io/docs/overview/" target="_blank" rel="noopener">OpenTracing documentation</a>.</p>
 </div>
+</td>
+</tr>
+</table>
+</div>
+<h3 id="outline_of_procedures" class="discrete">Outline of procedures</h3>
+<div class="paragraph">
+<p>To set up tracing for Strimzi, follow these procedures in order:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Set up tracing for clients:</p>
 <div class="ulist">
 <ul>
 <li>
 <p><a href="#proc-configuring-jaeger-tracer-kafka-clients-str">Initialize a Jaeger tracer for Kafka clients</a></p>
 </li>
+</ul>
+</div>
+</li>
 <li>
-<p><a href="#proc-instrumenting-producers-consumers-for-opentracing-str">Instrument Kafka Producers and Consumers for tracing</a></p>
+<p>Instrument clients with tracers:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#proc-instrumenting-producers-consumers-for-opentracing-str">Instrument producers and consumers for tracing</a></p>
 </li>
 <li>
 <p><a href="#proc-instrumenting-kafka-streams-with-tracers-str">Instrument Kafka Streams applications for tracing</a></p>
 </li>
-<li>
-<p><a href="#assembly-setting-up-tracing-mirror-maker-connect-bridge-str">Set up tracing for MirrorMaker, Kafka Connect, and the Kafka Bridge</a></p>
-</li>
 </ul>
 </div>
-<div class="paragraph">
-<p>This chapter covers setting up distributed tracing for Strimzi clients and components only. Setting up distributed tracing for applications and systems beyond Strimzi is outside the scope of this chapter. To learn more about this subject, see the <a href="https://opentracing.io/docs/overview/" target="_blank" rel="noopener">OpenTracing documentation</a> and search for "inject and extract".</p>
-</div>
-<div class="paragraph">
-<div class="title">Before you start</div>
-<p>Before you set up distributed tracing for Strimzi, it is helpful to understand:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>The basics of OpenTracing, including key concepts such as traces, spans, and tracers. Refer to the <a href="https://opentracing.io/docs/overview/" target="_blank" rel="noopener">OpenTracing documentation</a>.</p>
 </li>
 <li>
-<p>The components of the <a href="https://www.jaegertracing.io/docs/1.18/architecture/" target="_blank" rel="noopener">Jaeger architecure</a>.</p>
+<p><a href="#assembly-setting-up-tracing-mirror-maker-connect-bridge-str">Set up tracing for MirrorMaker, Kafka Connect, and the Kafka Bridge</a></p>
 </li>
 </ul>
 </div>
@@ -22715,16 +22654,63 @@ When instrumented, these clients generate traces for messages (for example, when
 <div class="title">Prerequisites</div>
 <ul>
 <li>
-<p>The Jaeger backend components are deployed to your Kubernetes cluster. For deployment instructions, see the <a href="https://www.jaegertracing.io/docs/1.14/deployment/" target="_blank" rel="noopener">Jaeger deployment documentation</a>.</p>
+<p>The Jaeger backend components are deployed to your Kubernetes cluster. For deployment instructions, see the <a href="https://www.jaegertracing.io/docs/1.18/deployment/" target="_blank" rel="noopener">Jaeger deployment documentation</a>.</p>
 </li>
 </ul>
 </div>
+<div class="sect2">
+<h3 id="con-overview-opentracing-jaeger-str"><a class="link" href="#con-overview-opentracing-jaeger-str">6.1. Overview of OpenTracing and Jaeger</a></h3>
+<div class="paragraph">
+<p>Strimzi uses the OpenTracing and Jaeger projects.</p>
+</div>
+<div class="paragraph">
+<p>OpenTracing is an API specification that is independent from the tracing or monitoring system.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The OpenTracing APIs are used to <em>instrument</em> application code</p>
+</li>
+<li>
+<p>Instrumented applications generate <em>traces</em> for individual transactions across the distributed system</p>
+</li>
+<li>
+<p>Traces are composed of <em>spans</em> that define specific units of work over time</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Jaeger is a tracing system for microservices-based distributed systems.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Jaeger implements the OpenTracing APIs and provides client libraries for instrumentation</p>
+</li>
+<li>
+<p>The Jaeger user interface allows you to query, filter, and analyze trace data</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="images/image_con-overview-distributed-tracing.png" alt="Simple Jaeger query"></span></p>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="https://opentracing.io/" target="_blank" rel="noopener">OpenTracing</a></p>
+</li>
+<li>
+<p><a href="https://www.jaegertracing.io/" target="_blank" rel="noopener">Jaeger</a></p>
+</li>
+</ul>
 </div>
 </div>
 <div class="sect2">
 <h3 id="assembly-setting-up-tracing-kafka-clients-str"><a class="link" href="#assembly-setting-up-tracing-kafka-clients-str">6.2. Setting up tracing for Kafka clients</a></h3>
 <div class="paragraph">
-<p>This section describes how to initialize a Jaeger tracer to allow you to instrument your client applications for distributed tracing.</p>
+<p>Initialize a Jaeger tracer to instrument your client applications for distributed tracing.</p>
 </div>
 <div class="sect3">
 <h4 id="proc-configuring-jaeger-tracer-kafka-clients-str"><a class="link" href="#proc-configuring-jaeger-tracer-kafka-clients-str">6.2.1. Initializing a Jaeger tracer for Kafka clients</a></h4>
@@ -22733,7 +22719,7 @@ When instrumented, these clients generate traces for messages (for example, when
 </div>
 <div class="paragraph">
 <div class="title">Procedure</div>
-<p>Perform the following steps for each client application.</p>
+<p>In each client application:</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -22787,7 +22773,7 @@ For alternative ways to initialize a Jaeger tracer, see the <a href="https://git
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-tracing-environment-variables-str"><a class="link" href="#ref-tracing-environment-variables-str">6.2.2. Tracing environment variables</a></h4>
+<h4 id="ref-tracing-environment-variables-str"><a class="link" href="#ref-tracing-environment-variables-str">6.2.2. Environment variables for tracing</a></h4>
 <div class="paragraph">
 <p>Use these environment variables when configuring a Jaeger tracer for Kafka clients.</p>
 </div>
@@ -22835,7 +22821,7 @@ The tracing environment variables are part of the Jaeger project and are subject
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>JAEGER_ENDPOINT</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">No</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The traces endpoint. Only define this variable if the client application will bypass the <code>jaeger-agent</code> and connect directly to the <code>jaeger-collector</code>.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The <code>traces</code> endpoint. Only define this variable if the client application will bypass the <code>jaeger-agent</code> and connect directly to the <code>jaeger-collector</code>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>JAEGER_AUTH_TOKEN</code></p></td>
@@ -22875,9 +22861,31 @@ The tracing environment variables are part of the Jaeger project and are subject
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>JAEGER_SAMPLER_TYPE</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">No</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The sampling strategy to use for client traces: Constant, Probabilistic, Rate Limiting, or Remote (the default type).</p>
-<p class="tableblock">To sample all traces, use the Constant sampling strategy with a parameter of 1.</p>
-<p class="tableblock">For more information, see the <a href="https://www.jaegertracing.io/docs/1.14/sampling/#client-sampling-configuration" target="_blank" rel="noopener">Jaeger documentation</a>.</p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>The sampling strategy to use for client traces:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Constant</p>
+</li>
+<li>
+<p>Probabilistic</p>
+</li>
+<li>
+<p>Rate Limiting</p>
+</li>
+<li>
+<p>Remote (the default)</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>To sample all traces, use the Constant sampling strategy with a parameter of 1.</p>
+</div>
+<div class="paragraph">
+<p>For more information, see the <a href="https://www.jaegertracing.io/docs/1.14/sampling/#client-sampling-configuration" target="_blank" rel="noopener">Jaeger documentation</a>.</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>JAEGER_SAMPLER_PARAM</code></p></td>
@@ -22910,21 +22918,21 @@ The tracing environment variables are part of the Jaeger project and are subject
 <div class="sect2">
 <h3 id="assembly-instrumenting-kafka-clients-tracers-str"><a class="link" href="#assembly-instrumenting-kafka-clients-tracers-str">6.3. Instrumenting Kafka clients with tracers</a></h3>
 <div class="paragraph">
-<p>This section describes how to instrument Kafka Producer, Consumer, and Streams API applications for distributed tracing.</p>
+<p>Instrument Kafka producer and consumer clients, and Kafka Streams API applications for distributed tracing.</p>
 </div>
 <div class="sect3">
-<h4 id="proc-instrumenting-producers-consumers-for-opentracing-str"><a class="link" href="#proc-instrumenting-producers-consumers-for-opentracing-str">6.3.1. Instrumenting Kafka Producers and Consumers for tracing</a></h4>
+<h4 id="proc-instrumenting-producers-consumers-for-opentracing-str"><a class="link" href="#proc-instrumenting-producers-consumers-for-opentracing-str">6.3.1. Instrumenting producers and consumers for tracing</a></h4>
 <div class="paragraph">
-<p>Use a Decorator pattern or Interceptors to instrument your Java Producer and Consumer application code for distributed tracing.</p>
+<p>Use a Decorator pattern or Interceptors to instrument your Java producer and consumer application code for tracing.</p>
 </div>
 <div class="paragraph">
 <div class="title">Procedure</div>
-<p>Perform these steps in the application code of each Kafka Producer and Consumer application.</p>
+<p>In the application code of each producer and consumer application:</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Add the Maven dependency for OpenTracing to the Producer or Consumer&#8217;s <code>pom.xml</code> file.</p>
+<p>Add the Maven dependency for OpenTracing to the producer or consumer&#8217;s <code>pom.xml</code> file.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;dependency&gt;
@@ -22940,7 +22948,7 @@ The tracing environment variables are part of the Jaeger project and are subject
 <div class="ulist">
 <ul>
 <li>
-<p>If you prefer to use a Decorator pattern, use following example:</p>
+<p>To use a Decorator pattern:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">// Create an instance of the KafkaProducer:
@@ -22973,7 +22981,7 @@ SpanContext spanContext = TracingKafkaUtils.extractSpanContext(record.headers(),
 </div>
 </li>
 <li>
-<p>If you prefer to use Interceptors, use the following example:</p>
+<p>To use Interceptors:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">// Register the tracer with GlobalTracer:
@@ -23019,7 +23027,7 @@ SpanContext spanContext = TracingKafkaUtils.extractSpanContext(record.headers(),
 <p>A <em>span</em> is a logical unit of work in Jaeger, with an operation name, start time, and duration.</p>
 </div>
 <div class="paragraph">
-<p>If you use a Decorator pattern to instrument your Kafka Producer and Consumer applications, you can define custom span names by passing a <code>BiFunction</code> object as an additional argument when creating the <code>TracingKafkaProducer</code> and <code>TracingKafkaConsumer</code> objects. The OpenTracing Apache Kafka Client Instrumentation library includes several built-in span names, which are described below.</p>
+<p>To use a Decorator pattern to instrument your producer and consumer applications, define custom span names by passing a <code>BiFunction</code> object as an additional argument when creating the <code>TracingKafkaProducer</code> and <code>TracingKafkaConsumer</code> objects. The OpenTracing Apache Kafka Client Instrumentation library includes several built-in span names.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example: Using custom span names to instrument client application code in a Decorator pattern</div>
@@ -23077,7 +23085,7 @@ TracingKafkaConsumer&lt;Integer, String&gt; tracingConsumer = new TracingKafkaCo
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>CONSUMER_OPERATION_NAME, PRODUCER_OPERATION_NAME</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Returns the <code>operationName</code> as the span name: "receive" for Consumers and "send" for Producers.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Returns the <code>operationName</code> as the span name: "receive" for consumers and "send" for producers.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>CONSUMER_PREFIXED_OPERATION_NAME(String prefix), PRODUCER_PREFIXED_OPERATION_NAME(String prefix)</code></p></td>
@@ -23110,7 +23118,7 @@ TracingKafkaConsumer&lt;Integer, String&gt; tracingConsumer = new TracingKafkaCo
 </div>
 <div class="paragraph">
 <div class="title">Procedure</div>
-<p>Perform the following steps for each Kafka Streams API application.</p>
+<p>In each Kafka Streams API application:</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -23150,11 +23158,11 @@ streams.start();</code></pre>
 <div class="sect2">
 <h3 id="assembly-setting-up-tracing-mirror-maker-connect-bridge-str"><a class="link" href="#assembly-setting-up-tracing-mirror-maker-connect-bridge-str">6.4. Setting up tracing for MirrorMaker, Kafka Connect, and the Kafka Bridge</a></h3>
 <div class="paragraph">
-<p>Distributed tracing is supported for MirrorMaker, Kafka Connect (including Kafka Connect with Source2Image support), and the Strimzi Kafka Bridge.</p>
+<p>Distributed tracing is supported for MirrorMaker, MirrorMaker 2.0, Kafka Connect (including Kafka Connect with Source2Image support), and the Strimzi Kafka Bridge.</p>
 </div>
 <div class="paragraph">
-<div class="title">Tracing in MirrorMaker</div>
-<p>For MirrorMaker, messages are traced from the source cluster to the target cluster; the trace data records messages entering and leaving the MirrorMaker component.</p>
+<div class="title">Tracing in MirrorMaker and MirrorMaker 2.0</div>
+<p>For MirrorMaker and MirrorMaker 2.0, messages are traced from the source cluster to the target cluster. The trace data records messages entering and leaving the MirrorMaker or MirrorMaker 2.0 component.</p>
 </div>
 <div class="paragraph">
 <div class="title">Tracing in Kafka Connect</div>
@@ -23163,20 +23171,20 @@ streams.start();</code></pre>
 <div class="paragraph">
 <div class="title">Tracing in the Kafka Bridge</div>
 <p>Messages produced and consumed by the Kafka Bridge are traced. Incoming HTTP requests from client applications to send and receive messages through the Kafka Bridge are also traced.
-In order to have end-to-end tracing, you must configure tracing in your HTTP clients.</p>
+To have end-to-end tracing, you must configure tracing in your HTTP clients.</p>
 </div>
 <div class="sect3">
 <h4 id="proc-enabling-tracing-in-connect-mirror-maker-bridge-resources-str"><a class="link" href="#proc-enabling-tracing-in-connect-mirror-maker-bridge-resources-str">6.4.1. Enabling tracing in MirrorMaker, Kafka Connect, and Kafka Bridge resources</a></h4>
 <div class="paragraph">
-<p>Update the configuration of <code>KafkaMirrorMaker</code>, <code>KafkaConnect</code>, <code>KafkaConnectS2I</code>, and <code>KafkaBridge</code> custom resources to specify and configure a Jaeger tracer service for each resource. Updating a tracing-enabled resource in your Kubernetes cluster triggers two events:</p>
+<p>Update the configuration of <code>KafkaMirrorMaker</code>, <code>KafkaMirrorMaker2</code>, <code>KafkaConnect</code>, <code>KafkaConnectS2I</code>, and <code>KafkaBridge</code> custom resources to specify and configure a Jaeger tracer service for each resource. Updating a tracing-enabled resource in your Kubernetes cluster triggers two events:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Interceptor classes are updated in the integrated consumers and producers in MirrorMaker, Kafka Connect, or the Strimzi Kafka Bridge.</p>
+<p>Interceptor classes are updated in the integrated consumers and producers in MirrorMaker, MirrorMaker 2.0, Kafka Connect, or the Strimzi Kafka Bridge.</p>
 </li>
 <li>
-<p>For MirrorMaker and Kafka Connect, the tracing agent initializes a Jaeger tracer based on the tracing configuration defined in the resource.</p>
+<p>For MirrorMaker, MirrorMaker 2.0, and Kafka Connect, the tracing agent initializes a Jaeger tracer based on the tracing configuration defined in the resource.</p>
 </li>
 <li>
 <p>For the Kafka Bridge, a Jaeger tracer based on the tracing configuration defined in the resource is initialized by the Kafka Bridge itself.</p>
@@ -23185,7 +23193,7 @@ In order to have end-to-end tracing, you must configure tracing in your HTTP cli
 </div>
 <div class="paragraph">
 <div class="title">Procedure</div>
-<p>Perform these steps for each <code>KafkaMirrorMaker</code>, <code>KafkaConnect</code>, <code>KafkaConnectS2I</code>, and <code>KafkaBridge</code> resource.</p>
+<p>Perform these steps for each <code>KafkaMirrorMaker</code>, <code>KafkaMirrorMaker2</code>, <code>KafkaConnect</code>, <code>KafkaConnectS2I</code>, and <code>KafkaBridge</code> resource.</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -23227,6 +23235,29 @@ spec:
   #...
   template:
     mirrorMakerContainer:
+      env:
+        - name: JAEGER_SERVICE_NAME
+          value: my-jaeger-service
+        - name: JAEGER_AGENT_HOST
+          value: jaeger-agent-name
+        - name: JAEGER_AGENT_PORT
+          value: "6831"
+  tracing:
+    type: jaeger
+#...</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Jaeger tracer configuration for MirrorMaker 2.0</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaMirrorMaker2
+metadata:
+  name: my-mm2-cluster
+spec:
+  #...
+  template:
+    connectContainer:
       env:
         - name: JAEGER_SERVICE_NAME
           value: my-jaeger-service
@@ -34712,7 +34743,7 @@ In such cases, the configuration in the <code>KafkaMirrorMaker.spec.producer.con
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-07-24 08:31:15 UTC
+Last updated 2020-07-24 09:24:59 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
