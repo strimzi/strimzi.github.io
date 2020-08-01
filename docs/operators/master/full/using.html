@@ -21686,8 +21686,16 @@ These topics are excluded from the calculation of partition replica/leader movem
 <div class="sect2">
 <h3 id="con-rebalance-str"><a class="link" href="#con-rebalance-str">5.4. Rebalance performance tuning overview</a></h3>
 <div class="paragraph">
-<p>When an <a href="#con-optimization-proposals-str">optimization proposal</a> is <a href="#proc-approving-optimization-proposal-str">approved</a>, the partition reassignment commands that comprise the proposal are applied to the Kafka cluster by the Cruise Control server.
-These commands consist of two types of operations:</p>
+<p>You can adjust several performance tuning options for cluster rebalances.
+These options control how partition replica and leadership movements in a rebalance are executed, as well as the bandwidth that is allocated to a rebalance operation.</p>
+</div>
+<h4 id="partition_reassignment_commands" class="discrete">Partition reassignment commands</h4>
+<div class="paragraph">
+<p><a href="#con-optimization-proposals-str">Optimization proposals</a> are comprised of separate partition reassignment commands.
+When you <a href="#proc-approving-optimization-proposal-str">approve</a> a proposal, the Cruise Control server applies these commands to the Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>A partition reassignment command consists of either of the following types of operations:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -21710,12 +21718,40 @@ These commands consist of two types of operations:</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>Cruise Control batches up these reassignment commands and issues them to the Kafka cluster.
-The performance of the cluster during the rebalance is affected by the number of each type of movement contained in each batch.
-Cruise Control provides several configuration options for tuning a cluster rebalance for optimal performance.</p>
+<p>Cruise Control issues partition reassignment commands to the Kafka cluster in batches.
+The performance of the cluster during the rebalance is affected by the number of each type of movement contained in each batch.</p>
+</div>
+<h4 id="replica_movement_strategies" class="discrete">Replica movement strategies</h4>
+<div class="paragraph">
+<p>Cluster rebalance performance is also influenced by the <em>replica movement strategy</em> that is applied to the batches of partition reassignment commands.
+By default, Cruise Control uses the <code>BaseReplicaMovementStrategy</code>, which simply applies the commands in the order they were generated.
+However, if there are some very large partition reassignments early in the proposal, this strategy can slow down the application of the other reassignments.</p>
 </div>
 <div class="paragraph">
-<p>You can set these <em>tuning</em> options at either the <a href="#ref-cruise-control-configuration-str">Cruise Control server</a> or <a href="#proc-generating-optimization-proposals-str">optimization proposal</a> levels:</p>
+<p>Cruise Control provides three alternative replica movement strategies that can be applied to optimization proposals:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>PrioritizeSmallReplicaMovementStrategy</code>: Order reassignments in order of ascending size.</p>
+</li>
+<li>
+<p><code>PrioritizeLargeReplicaMovementStrategy</code>: Order reassignments in order of descending size.</p>
+</li>
+<li>
+<p><code>PostponeUrpReplicaMovementStrategy</code>: Prioritize reassignments for replicas of partitions which have no out-of-sync replicas.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These strategies can be configured as a sequence.
+The first strategy attempts to compare two partition reassignments using its internal logic.
+If the reassignments are equivalent, then it passes them to the next strategy in the sequence to decide the order, and so on.</p>
+</div>
+<h4 id="rebalance_tuning_options" class="discrete">Rebalance tuning options</h4>
+<div class="paragraph">
+<p>Cruise Control provides several configuration options for tuning the rebalance parameters discussed above.
+You can set these tuning options at either the <a href="#ref-cruise-control-configuration-str">Cruise Control server</a> or <a href="#proc-generating-optimization-proposals-str">optimization proposal</a> levels:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -21732,15 +21768,13 @@ Cruise Control provides several configuration options for tuning a cluster rebal
 </div>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
-<col style="width: 25%;">
-<col style="width: 25%;">
-<col style="width: 25%;">
-<col style="width: 25%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
 </colgroup>
 <thead>
 <tr>
-<th class="tableblock halign-left valign-top">Server Configuration</th>
-<th class="tableblock halign-left valign-top">KafkaRebalance Configuration</th>
+<th class="tableblock halign-left valign-top">Server / KafkaRebalance Configuration</th>
 <th class="tableblock halign-left valign-top">Description</th>
 <th class="tableblock halign-left valign-top">Default Value</th>
 </tr>
@@ -21748,27 +21782,43 @@ Cruise Control provides several configuration options for tuning a cluster rebal
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>num.concurrent.partition.movements.per.broker</code></p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The maximum number of inter-broker partition movements in each partition reassignment batch</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">5</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>concurrentPartitionMovementsPerBroker</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The maximum number of inter-broker partition movements in each partition reassignment batch</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>num.concurrent.intra.broker.partition.movements</code></p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The maximum number of intra-broker partition movements in each partition reassignment batch</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">2</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>concurrentIntraBrokerPartitionMovements</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The maximum number of intra-broker partition movements in each partition reassignment batch</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>num.concurrent.leader.movements</code></p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The maximum number of partition leadership changes in each partition reassignment batch</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">1000</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>concurrentLeaderMovements</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The maximum number of partition leadership changes in each partition reassignment batch</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">1000</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>default.replication.throttle</code></p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The bandwidth (in bytes per second) to be assigned to the reassigning of partitions</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">No Limit</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>replicationThrottle</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The bandwidth (in bytes per second) to be assigned to the reassigning of partitions</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">No Limit</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>default.replica.movement.strategies</code></p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The list of strategies (in priority order) used to determine the order in which partition reassignment commands are executed for generated proposals. Use a comma separated string for server and a YAML array for <code>KafkaRebalance</code> resources.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><code>BaseReplicaMovementStrategy</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>replicaMovementStrategies</code></p></td>
 </tr>
 </tbody>
 </table>
@@ -34758,6 +34808,13 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">integer</p></td>
 </tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">replicaMovementStrategies</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">A list of strategy class names used to determine the execution order for the replica movements in the generated optimization proposal. By default BaseReplicaMovementStrategy is used, which will execute the replica movements in the order that they were generated.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string array</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -34814,7 +34871,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-08-01 06:34:03 UTC
+Last updated 2020-08-01 09:49:42 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
