@@ -77,6 +77,8 @@ The policies are declarative and to write them it is using its own language call
 OPA can be used for policy based control of many different applications.
 It can be used with Kubernetes, APIs, SSH, CI/CD pipelines and many more.
 
+![Open Policy Agent](/assets/images/posts/2020-07-30-using-open-policy-agent-with-strimzi-and-apache-kafka-png)
+
 OPA decouples the policy decision making from enforcing the decision.
 When used with Kafka, the authorizer running inside Kafka will call OPA server to evaluate the policy based on the input from the authorizer.
 The input will be the same set of information as with any other Kafka authorizer
@@ -131,14 +133,29 @@ authorization:
   maximumCacheSize: 10000
   expireAfterMs: 60000
   superUsers:
-    - CN=fred
-    - sam
-    - CN=edward
+    - CN=henri
+    - anwar
+    - CN=wesley
 ```
 
-### Basic policies
+### Examples policies
 
-The OPA documentation already has a very basic demo for Kafka authorization: https://www.openpolicyagent.org/docs/latest/kafka-authorization/
+Explaining the basics of the Rego language and Open Policy Agent policies goes well beyond the scope of this blog post.
+Both is nicely explained in the [OPA documentation](https://www.openpolicyagent.org/docs/latest/).
+But I will show you some examples how you can use OPA with Apache Kafka to demonstrate its strength and versatility.
+The complete policy files from these examples including the instructions how to use them can be found on my [GitHub](https://github.com/scholzj/demo-opa-kafka-authorization).
+
+Additionally, the OPA documentation has a simple demo for [Kafka authorization](https://www.openpolicyagent.org/docs/latest/kafka-authorization/) as well.
+
+### Group based authorization
+
+One of the features users are asking for from time to time is group based authorization.
+This is currently not supported in Strimzi using the `simple` authorization. 
+But this example shows how it can be implemented using Open Policy Agent.
+
+
+
+
 
 
 
@@ -149,11 +166,13 @@ The OPA documentation already has a very basic demo for Kafka authorization: htt
 
 
 
+
 ## Conclusion
 
 The main advantage of OPA authorization compared to the `simple` or Keycloak authorizers is its flexibility.
 The examples from the previous section might not be exactly production grade.
 But I think they very well demonstrate how easily you can use OPA and Rego to combine data from different sources and use them for the authorization decisions.
+For writing and debugging the Rego policies, you can use the [_Rego Playground_](https://play.openpolicyagent.org/) or one of the supported [IDEs](https://www.openpolicyagent.org/docs/latest/editor-and-ide-support/).
 
 With the `simple` authorizer, you have to follow the ACL rules defined for each user and stored in ZooKeeper.
 With Keycloak, you can use the permissions defined in Keycloak.
