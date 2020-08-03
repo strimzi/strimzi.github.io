@@ -546,6 +546,12 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#enabling_the_kafka_bridge_grafana_dashboard">6.3.2. Enabling the Kafka Bridge Grafana dashboard</a></li>
 </ul>
 </li>
+<li><a href="#assembly-cruise-control-str">6.4. Monitor Cruise Control</a>
+<ul class="sectlevel3">
+<li><a href="#configuring_cruise_control">6.4.1. Configuring Cruise Control</a></li>
+<li><a href="#enabling_the_cruise_control_grafana_dashboard">6.4.2. Enabling the Cruise Control Grafana dashboard</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#assembly-upgrade-str">7. Upgrading Strimzi</a>
@@ -3984,20 +3990,22 @@ If you require further support on configuring and running Prometheus or Grafana 
 │   ├── strimzi-kafka-mirror-maker-2.json
 │   ├── strimzi-operators.json
 │   ├── strimzi-kafka-bridge.json
+│   ├── strimzi-cruise-control.json
 │   └── strimzi-kafka-exporter.json <b class="conum">(3)</b>
 ├── kafka-connect-metrics.yaml <b class="conum">(4)</b>
 ├── kafka-metrics.yaml <b class="conum">(5)</b>
 ├── kafka-mirror-maker-2-metrics.yaml <b class="conum">(6)</b>
 ├── kafka-bridge-metrics.yaml <b class="conum">(7)</b>
+├── kafka-cruise-control-metrics.yaml <b class="conum">(8)</b>
 ├── prometheus-additional-properties
-│   └── prometheus-additional.yaml <b class="conum">(8)</b>
+│   └── prometheus-additional.yaml <b class="conum">(9)</b>
 ├── prometheus-alertmanager-config
-│   └── alert-manager-config.yaml <b class="conum">(9)</b>
+│   └── alert-manager-config.yaml <b class="conum">(10)</b>
 └── prometheus-install
-    ├── alert-manager.yaml <b class="conum">(10)</b>
-    ├── prometheus-rules.yaml <b class="conum">(11)</b>
-    ├── prometheus.yaml <b class="conum">(12)</b>
-    ├── strimzi-pod-monitor.yaml <b class="conum">(13)</b></code></pre>
+    ├── alert-manager.yaml <b class="conum">(11)</b>
+    ├── prometheus-rules.yaml <b class="conum">(12)</b>
+    ├── prometheus.yaml <b class="conum">(13)</b>
+    ├── strimzi-pod-monitor.yaml <b class="conum">(14)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -4022,6 +4030,9 @@ If you require further support on configuring and running Prometheus or Grafana 
 </li>
 <li>
 <p>Kafka Bridge resource with metrics enabled</p>
+</li>
+<li>
+<p>Metrics configuration that defines Prometheus JMX Exporter relabeling rules for Cruise Control</p>
 </li>
 <li>
 <p>Configuration to add roles for service monitoring</p>
@@ -4700,6 +4711,9 @@ Example dashboards are provided in the <code>examples/metrics</code> directory a
 </li>
 <li>
 <p><code>strimzi-kafka-bridge.json</code></p>
+</li>
+<li>
+<p><code>strimzi-cruise-control.json</code></p>
 </li>
 </ul>
 </div>
@@ -5676,6 +5690,134 @@ spec:
 </li>
 </ul>
 </div>
+</li>
+<li>
+<p>JVM memory used</p>
+</li>
+<li>
+<p>JVM garbage collection time</p>
+</li>
+<li>
+<p>JVM garbage collection count</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="assembly-cruise-control-str"><a class="link" href="#assembly-cruise-control-str">6.4. Monitor Cruise Control</a></h3>
+<div class="paragraph">
+<p>If you are already using Prometheus and Grafana for monitoring of built-in Kafka metrics, you can configure Prometheus to also scrape the Cruise Control Prometheus endpoint.</p>
+</div>
+<div class="paragraph">
+<p>The example Grafana dashboard for Cruise Control provides:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Information about optimization proposals computation, goals violation, cluster balancedness, and more</p>
+</li>
+<li>
+<p>Information about REST API calls for rebalance proposals and actual rebalance operations</p>
+</li>
+<li>
+<p>JVM metrics from Cruise Control itself</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="configuring_cruise_control"><a class="link" href="#configuring_cruise_control">6.4.1. Configuring Cruise Control</a></h4>
+<div class="paragraph">
+<p>You can enable the Cruise Control metrics in the <code>Kafka</code> resource using the <code>cruiseControl.metrics</code> property that contains the JMX exporter configuration about the metrics to expose.</p>
+</div>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  # ...
+  kafka:
+    # ...
+  zookeeper:
+    # ...
+  cruiseControl:
+    metrics:
+      lowercaseOutputName: true
+      rules:
+      - pattern: kafka.cruisecontrol&lt;name=(.+)&gt;&lt;&gt;(\w+)
+        name: kafka_cruisecontrol_$1_$2
+        type: GAUGE</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="enabling_the_cruise_control_grafana_dashboard"><a class="link" href="#enabling_the_cruise_control_grafana_dashboard">6.4.2. Enabling the Cruise Control Grafana dashboard</a></h4>
+<div class="paragraph">
+<p>If you deployed Cruise Control with your Kafka cluster with the metrics enabled, you can enable Grafana to present the metrics data it exposes.</p>
+</div>
+<div class="paragraph">
+<p>A Cruise Control dashboard is provided in the <code>examples/metrics</code> directory as a JSON file:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>strimzi-cruise-control.json</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>When metrics data has been collected for some time, the Cruise Control charts are populated.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Cruise Control</dt>
+<dd>
+<p>Shows metrics for:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Number of snapshot windows that are monitored by Cruise Control</p>
+</li>
+<li>
+<p>Number of time windows considered valid because they contain enough samples to compute an optimization proposal</p>
+</li>
+<li>
+<p>Number of ongoing executions running for proposals or rebalances</p>
+</li>
+<li>
+<p>Current balancedness score of the Kafka cluster as calculated by the anomaly detector component of Cruise Control (every 5 minutes by default)</p>
+</li>
+<li>
+<p>Percentage of monitored partitions</p>
+</li>
+<li>
+<p>Number of goal violations reported by the anomaly detector (every 5 minutes by default)</p>
+</li>
+<li>
+<p>How often a disk read failure happens on the brokers</p>
+</li>
+<li>
+<p>Rate of metric sample fetch failures</p>
+</li>
+<li>
+<p>Time needed to compute an optimization proposal</p>
+</li>
+<li>
+<p>Time needed to create the cluster model</p>
+</li>
+<li>
+<p>How often a proposal request or an actual rebalance request is made through the Cruise Control REST API</p>
+</li>
+<li>
+<p>How often the overall cluster state and the user tasks state are requested through the Cruise Control REST API</p>
 </li>
 <li>
 <p>JVM memory used</p>
@@ -7355,7 +7497,7 @@ The upgrade of resources <em>must</em> be performed after <a href="#assembly-upg
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-08-02 09:28:36 UTC
+Last updated 2020-08-03 08:46:14 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
