@@ -93,7 +93,7 @@ Instead we are using an existing [OPA Plugin provided by Bisnode](https://github
 ### Configuring OPA authorizer
 
 Before we configure our Kafka cluster to use OPA, we first need to deploy the OPA server.
-If you don't use OPA yet, you can follow [this guide](https://www.openpolicyagent.org/docs/latest/deployments/#kubernetes) from the OPA documentation.
+If you do not have an OPA deployed yet, you can follow [this guide](https://www.openpolicyagent.org/docs/latest/deployments/#kubernetes) from the OPA deployment documentation.
 
 Once you have OPA running, you can configure the OPA authorizer in your `Kafka` custom resource.
 The basic configuration should look like this:
