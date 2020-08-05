@@ -6,8 +6,8 @@ author: jakub_scholz
 ---
 
 One of the new features in Strimzi 0.19.0 is support for Kafka authorization using [Open Policy Agent](https://www.openpolicyagent.org/).
-In this blog post, we will look at this feature with more detail.
-It will explain the (dis)advantages, compare it with other supported authorization methods and look at some interesting ways how to use it.
+In this blog post, we will look at this feature in more detail.
+It will explain the advantages and disadvantages of using it, compare it with other supported authorization methods and look at some interesting ways it can be used.
 
 <!--more-->
 
@@ -35,7 +35,7 @@ In newer Kafka versions it has been replaced with new Java class `AclAuthorizer`
 With `simple` authorization, you have to specify the ACL rules for each user.
 The ACL rules have to cover all operations which the user is allowed to do.
 You can use prefix or the `*` wildcard to cover multiple resource names with one ACL rule, but that is it.
-It also doesn't support any groups, so even if you have multiple users with the same rights, you need to configure the ACL rules individually for each of them.
+It also doesn't support any concept of groupings of users, so even if you have multiple users with the same rights, you need to configure the ACL rules individually for each of them.
 So you often end up with lot of different rules for each user.
 
 The main advantage of the `simple` authorization is that it is ... well ... _simple_.
@@ -64,10 +64,10 @@ The `KeycloakRBACAuthorizer` will fetch the list of granted permissions from Key
 The main advantage of Keycloak is that you can have everything managed centrally.
 Not just for Strimzi and Apache Kafka, but for all your applications which support OAuth.
 It can also handle both authentication and authorization.
-So you do not need to have different servers for authentication and authorization and all data are stored in one place.
+So you do not need to have different servers for authentication and authorization, so all access data is stored in one place.
 
 On the other hand, you will still need to run and manage Keycloak.
-So unless you already use it or at least plan to use some central authentication / authorization server anyway, this will be additional effort you would need to deal with.
+Unless you already use it or at least plan to use some central authentication / authorization server anyway, this will be additional effort you would need to deal with.
 
 ## Open Policy Agent
 
@@ -80,12 +80,12 @@ It can be used with Kubernetes, APIs, SSH, CI/CD pipelines and many more.
 ![Open Policy Agent](/assets/images/posts/2020-08-05-using-open-policy-agent-with-strimzi-and-apache-kafka.png)
 
 OPA decouples the policy decision making from enforcing the decision.
-When used with Kafka, the authorizer running inside Kafka will call OPA server to evaluate the policy based on the input from the authorizer.
+When used with Kafka, the authorizer running inside Kafka will call the OPA server to evaluate the policy based on the input from the authorizer.
 The input will be the same set of information as with any other Kafka authorizer.
 It is described in the introduction to this blog post.
 OPA will evaluate the policy and respond to the authorizer request with a decision.
 And the authorizer will either allow or deny the operation.
-The decisions are of course cached by the authorizer to make sure the performance of the Kafka cluster is not affected.
+The decisions are cached by the authorizer to make sure the performance of the Kafka cluster is not affected.
 
 We didn't developed our own OPA Authorizer for Kafka.
 Instead we are using the existing [OPA Plugin from Bisnode](https://github.com/Bisnode/opa-kafka-plugin).
@@ -96,7 +96,7 @@ Before we configure our Kafka cluster to use OPA, we first need to deploy the OP
 If you don't use OPA yet, you can follow [this guide](https://www.openpolicyagent.org/docs/latest/deployments/#kubernetes) from the OPA documentation.
 
 Once you have OPA running, you can configure the OPA authorizer in your `Kafka` custom resource.
-The basic configuration should looks like this:
+The basic configuration should look like this:
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta1
@@ -114,13 +114,12 @@ spec:
 
 For using OPA authorizer, you have to set the `type` field to `opa`.
 You also always need to configure the `url`.
-The URL will not just tell it how to connect to the OPA server.
-But it will also specify which policy and rule should be used.
+The URL will not just tell it how to connect to the OPA server, but it will also specify which policy and rule should be used.
 In the above example, we will connect to the OPA server at `http://opa.namespace.svc:8181`.
 And the `/kafka/authz/allow` part defines that we will use the `allow` decision from the policy from package `kafka.authz`.
 
-There are some additional options which are optional.
-You can configure the decision cache - its capacity and expiration.
+There is also some additional optional configuration.
+You can configure the capacity and expiration time for the decision cache.
 You can also configure super users which will be allowed everything without asking OPA for a decision.
 The full OPA authorizer configuration might look for example like this:
 
@@ -141,15 +140,15 @@ authorization:
 ### Examples policies
 
 Explaining the basics of the Rego language and Open Policy Agent policies goes well beyond the scope of this blog post.
-Both is nicely explained in the [OPA documentation](https://www.openpolicyagent.org/docs/latest/).
-But I will show you some examples how you can use OPA with Apache Kafka to demonstrate its strength and versatility.
-The complete policy files from these examples including the instructions how to use them can be found on my [GitHub](https://github.com/scholzj/demo-opa-kafka-authorization).
+Both are nicely explained in the [OPA documentation](https://www.openpolicyagent.org/docs/latest/).
+But I will show you some examples of how you can use OPA with Apache Kafka to demonstrate its strength and versatility.
+The complete policy files from these examples including the instructions on how to use them can be found on my [GitHub](https://github.com/scholzj/demo-opa-kafka-authorization).
 
 Additionally, the OPA documentation has a simple demo for [Kafka authorization](https://www.openpolicyagent.org/docs/latest/kafka-authorization/) as well.
 
 ### Group based authorization
 
-One of the features users are asking for from time to time is group based authorization.
+One of the features Strimzi users are asking for is group based authorization.
 This is currently not supported in Strimzi using the `simple` authorization. 
 But this example shows how it can be implemented using Open Policy Agent.
 
@@ -206,7 +205,7 @@ is_admin_group {
 }
 ```
 
-The group definition is again accompanied by some helper rules.
+The group definition is accompanied by some helper rules.
 Each group is defined as an array of its members.
 So we have the groups and their members hardcoded into the policy and to change them, you will need to change the policy.
 
