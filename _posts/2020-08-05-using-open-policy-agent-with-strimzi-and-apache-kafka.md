@@ -24,7 +24,7 @@ When a Kafka client tries to call some Kafka API, Kafka will pass the following 
 * User identity
 * Address from which the user connects
 
-Every authorizer implementation receives the same information and the only difference is how it evaluates it and decided whether to allow or deny the operation.
+Every authorizer implementation receives the same information and the only difference is how it evaluates it and decides whether to allow or deny the operation.
 
 ## Simple authorization
 
@@ -42,7 +42,7 @@ The main advantage of the `simple` authorization is that it is ... well ... _sim
 The ACL rules for the `simple` authorization are stored inside ZooKeeper.
 When the rules change, the Kafka brokers will be notified about the change and load the new ACLs.
 You do not need to deploy and operate any other application.
-Everything is built into the Strimzi, Kafka and ZooKeeper.
+Everything is built into Strimzi, Kafka and ZooKeeper.
 Another advantage is that it can be easily combined with all of our authentication mechanisms.
 It is also supported in the User Operator, so you can configure the ACL rules directly in the `KafkaUser` custom resources.
 So you can easily configure everything in YAML, store it in your Git repository and use GitOps to manage the resources.
@@ -56,10 +56,10 @@ But you can also use it for authorization thanks to our own `KeycloakRBACAuthori
 
 The `keycloak` authorization is based on the [Keycloak Authorization Services](https://www.keycloak.org/docs/latest/authorization_services/index.html).
 It can be used only in combination with OAuth 2.0 authentication.
-Security policies and permissions are defined in Keycloak are used to grant access to resources on Kafka brokers. 
+Security policies and permissions are defined in Keycloak and are used to grant access to resources on Kafka brokers. 
 Users and clients are matched against policies that permit access to perform specific actions on Kafka brokers.
 You can also use the _federation_ feature of Keycloak to map the policies for example against LDAP groups.
-The `KeycloakRBACAuthorizer` will fetch the list of granted permissions from Keycloak and enforce the authorization rules locally to make sure it doesn't affect the client performance.
+The `KeycloakRBACAuthorizer` will fetch the list of granted permissions from Keycloak and enforce the authorization rules locally to make sure it doesn't negatively impact performance.
 
 The main advantage of Keycloak is that you can have everything managed centrally.
 Not just for Strimzi and Apache Kafka, but for all your applications which support OAuth.
@@ -77,15 +77,15 @@ The policies are declarative and to write them it is using its own language call
 OPA can be used for policy based control of many different applications.
 It can be used with Kubernetes, APIs, SSH, CI/CD pipelines and many more.
 
-![Open Policy Agent](/assets/images/posts/2020-08-05-using-open-policy-agent-with-strimzi-and-apache-kafka-png)
+![Open Policy Agent](/assets/images/posts/2020-08-05-using-open-policy-agent-with-strimzi-and-apache-kafka.png)
 
 OPA decouples the policy decision making from enforcing the decision.
 When used with Kafka, the authorizer running inside Kafka will call OPA server to evaluate the policy based on the input from the authorizer.
-The input will be the same set of information as with any other Kafka authorizer
+The input will be the same set of information as with any other Kafka authorizer.
 It is described in the introduction to this blog post.
 OPA will evaluate the policy and respond to the authorizer request with a decision.
 And the authorizer will either allow or deny the operation.
-The decisions are of course cached by the authorizer to make sure the performance of the Kafka clients is not affected.
+The decisions are of course cached by the authorizer to make sure the performance of the Kafka cluster is not affected.
 
 We didn't developed our own OPA Authorizer for Kafka.
 Instead we are using the existing [OPA Plugin from Bisnode](https://github.com/Bisnode/opa-kafka-plugin).
@@ -108,15 +108,15 @@ spec:
     # ...
     authorization:
       type: opa
-      url: http://opa.anmespace.svc:8181/v1/data/kafka/authz/allow
+      url: http://opa.namespace.svc:8181/v1/data/kafka/authz/allow
     # ...
 ```
 
 For using OPA authorizer, you have to set the `type` field to `opa`.
 You also always need to configure the `url`.
 The URL will not just tell it how to connect to the OPA server.
-But it will also specify which policy should be used.
-In our case, we will connect to the OPA server at `http://opa.anmespace.svc:8181`.
+But it will also specify which policy and rule should be used.
+In the above example, we will connect to the OPA server at `http://opa.namespace.svc:8181`.
 And the `/kafka/authz/allow` part defines that we will use the `allow` decision from the policy from package `kafka.authz`.
 
 There are some additional options which are optional.
@@ -127,7 +127,7 @@ The full OPA authorizer configuration might look for example like this:
 ```yaml
 authorization:
   type: opa
-  url: http://opa:8181/v1/data/kafka/authz/allow
+  url: http://opa.namespace.svc:8181/v1/data/kafka/authz/allow
   allowOnError: false
   initialCacheCapacity: 1000
   maximumCacheSize: 10000
@@ -153,9 +153,9 @@ One of the features users are asking for from time to time is group based author
 This is currently not supported in Strimzi using the `simple` authorization. 
 But this example shows how it can be implemented using Open Policy Agent.
 
-We will use 3 different group: consumers, producers and admins.
+We will use 3 different groups: consumers, producers and admins.
 For each of these groups, we will need to define the set of operations they will be allowed to use.
-We will also add some helper rules to help us evaluate whether the operation we are authorizing belongs into one of these groups:
+We will also add some helper rules to help us evaluate whether the operation we are authorizing belongs into one of these groups or not:
 
 ```rego
 consumer_operations = {
@@ -207,10 +207,10 @@ is_admin_group {
 ```
 
 The group definition is again accompanied by some helper rules.
-Each group is defined as an array of it members.
+Each group is defined as an array of its members.
 So we have the groups and their members hardcoded into the policy and to change them, you will need to change the policy.
 
-Next, we will create some helper rules for evaluating whether the request we are authorizing belongs to a user who is member of one of the groups and is for access rights which belong to such group:
+Next, we will create some helper rules for evaluating whether the request we are authorizing belongs to a user who is member of one of the groups and is for operation allowed for the group:
 
 ```rego
 allow_consumer_group {
@@ -256,13 +256,13 @@ The full policy including some additional helper functions can be found on my [G
 
 ### Combining different data sources
 
-The policy described in the basic example works.
-But it is very simple.
+The policy described in the basic example above is very simple.
 It has just 3 groups which are hardcoded in the policy including their members.
 And it doesn't distinguish between different topics.
 Each consumer can consume from all topics and each producer can produce into any topic.
-Lets have a look at how we can improve the policy by using some external data.
-Because Strimzi is using custom resources for managing users and topics, lets try to use them for the authorization.
+
+Let's have a look at how we can improve the policy by using some external data.
+Because Strimzi is using custom resources for managing users and topics, let's try to use them for the authorization.
 But you can similarly improve the policy also with data from other sources.
 
 One of the components provided as part of the Open Policy Agent project is a [kube-mgmt](https://github.com/open-policy-agent/kube-mgmt) tool for running OPA on Kubernetes.
@@ -321,7 +321,7 @@ is_admin_operation {
 But we will not hardcode the groups in the policy anymore.
 Instead, we will use the `KafkaUser` and `KafkaTopic` resources to define them.
 We will use the annotation `groups` on `KafkaUser` custom resource to define into which groups does this user belong.
-In the example bellow, you can see an user `payment-processing` who belongs into groups `invoicing` and `orders`
+In the example below, you can see an user `payment-processing` who belongs into groups `invoicing` and `orders`
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta1
@@ -356,7 +356,7 @@ spec:
 ```
 
 The kube-mgmt sidecar will load these into the OPA where we can use them in our policy.
-When the authorization request is for a topic, we will match the groups into which the user belongs against the groups allowed to produce or consume from given topic:
+When the authorization request is for a topic resource, we will match the groups into which the user belongs against the groups allowed to produce or consume from given topic:
 
 ```rego
 is_consumer_group {
@@ -437,8 +437,7 @@ The full policy including some additional helper functions can be found on my [G
 ## Conclusion
 
 The main advantage of Open Policy Agent authorization compared to the `simple` or Keycloak authorizers is its flexibility.
-The examples from the previous section might not be exactly production grade.
-But I think they very well demonstrate how easily you can use OPA and Rego to combine data from different sources and use them for the authorization decisions.
+The examples from the previous sections demonstrate how easily you can use OPA and Rego to combine data from different sources and use them for the authorization decisions.
 
 With the `simple` authorizer, you have to follow the ACL rules defined for each user and stored in ZooKeeper.
 With Keycloak, you can use the permissions defined in Keycloak.
