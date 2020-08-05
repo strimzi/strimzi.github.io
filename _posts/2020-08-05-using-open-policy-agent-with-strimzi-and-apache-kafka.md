@@ -255,17 +255,15 @@ The full policy including some additional helper functions can be found on my [G
 
 ### Combining different data sources
 
-The policy described in the basic example above is very simple.
-It has just 3 groups which are hardcoded in the policy including their members.
-And it doesn't distinguish between different topics.
-Each consumer can consume from all topics and each producer can produce into any topic.
+The policy described in the basic example above is very simple, it has 3 groups which are hardcoded in the policy including their members.
+It does not distinguish between different topics, so each consumer can consume from all topics and each producer can produce to any topic.
 
 Let's have a look at how we can improve the policy by using some external data.
 Because Strimzi is using custom resources for managing users and topics, let's try to use them for the authorization.
-But you can similarly improve the policy also with data from other sources.
+You can similarly improve the policy with data from other sources.
 
 One of the components provided as part of the Open Policy Agent project is a [kube-mgmt](https://github.com/open-policy-agent/kube-mgmt) tool for running OPA on Kubernetes.
-It can be used to discover and load policies from Kubernetes ConfigMaps.
+It can be used to discover and load policies from Kubernetes `ConfigMaps`.
 But also to replicate Kubernetes resources and make them available in OPA.
 
 To enable it, we will add kube-mgmt as a sidecar container to our Open Policy Agent deployment:
@@ -317,9 +315,8 @@ is_admin_operation {
 }
 ```
 
-But we will not hardcode the groups in the policy anymore.
-Instead, we will use the `KafkaUser` and `KafkaTopic` resources to define them.
-We will use the annotation `groups` on `KafkaUser` custom resource to define into which groups does this user belong.
+But we will not hardcode the groups in the policy anymore, instead, we will use the `KafkaUser` and `KafkaTopic` custom resources to define them.
+We will use the annotation `groups` on the `KafkaUser` custom resource to define into which groups this user belongs.
 In the example below, you can see an user `payment-processing` who belongs into groups `invoicing` and `orders`
 
 ```yaml
@@ -355,7 +352,7 @@ spec:
 ```
 
 The kube-mgmt sidecar will load these into the OPA where we can use them in our policy.
-When the authorization request is for a topic resource, we will match the groups into which the user belongs against the groups allowed to produce or consume from given topic:
+When the authorization request is for a topic resource, we will match the groups into which the user belongs, against the groups allowed to produce or consume from a given topic:
 
 ```rego
 is_consumer_group {
@@ -379,8 +376,7 @@ topic_producer_groups(topic) = groups {
 }
 ```
 
-The policy above will extract the groups from the custom resource annotations.
-And see if there is any group shared between the user and the topic.
+The policy above will extract the groups from the custom resource annotations to see if there is any group shared between the user and the topic.
 If any group is in both user groups and consumer or producer groups, the user will be allowed.
 
 The admin operations are handled differently and any user who is member of the special group `admin` will be allowed to do the admin operations:
@@ -444,8 +440,8 @@ But with OPA, you can use any external data you want.
 OPA calls this _context-aware authorization and decisions_.
 You can [easily integrate](https://www.openpolicyagent.org/docs/latest/external-data/) OPA with different external data sources and use these data for the decision making to do exactly what you want.
 
-The main disadvantage is that unless you are already using OPA for other applications, you will need to run yet another application.
-But the great think is that Open Policy Agent has many integrations and can be used with many different applications and not just with Apache Kafka.
+The main disadvantage is that unless you are already using OPA for other applications, you will need to run another application.
+But the great thing is that Open Policy Agent has many integrations and can be used with many different applications and not just with Apache Kafka.
 So you will most probably quickly find a lot more use-cases for it.
 
 ## Next time
