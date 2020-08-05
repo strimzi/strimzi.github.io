@@ -34,7 +34,7 @@ In newer Kafka versions it has been replaced with new Java class `AclAuthorizer`
 
 With `simple` authorization, you have to specify the ACL rules for each user.
 The ACL rules have to cover all operations which the user is allowed to do.
-You can use prefix or the `*` wildcard to cover multiple resource names with one ACL rule, but that is it.
+You can use prefix or the `*` wildcard to cover multiple resource names with one ACL rule.
 It also doesn't support any concept of groupings of users, so even if you have multiple users with the same rights, you need to configure the ACL rules individually for each of them.
 So you often end up with lot of different rules for each user.
 
@@ -88,7 +88,7 @@ And the authorizer will either allow or deny the operation.
 The decisions are cached by the authorizer to make sure the performance of the Kafka cluster is not affected.
 
 We didn't developed our own OPA Authorizer for Kafka.
-Instead we are using the existing [OPA Plugin from Bisnode](https://github.com/Bisnode/opa-kafka-plugin).
+Instead we are using an existing [OPA Plugin provided by Bisnode](https://github.com/Bisnode/opa-kafka-plugin).
 
 ### Configuring OPA authorizer
 
