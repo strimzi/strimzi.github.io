@@ -21309,7 +21309,7 @@ When the cluster rebalancing operation is complete, the broker pods are used mor
 </div>
 <div class="paragraph">
 <p>Optimization goals are constraints on workload redistribution and resource utilization across a Kafka cluster.
-With a few exceptions, Strimzi supports all the optimization goals developed in the Cruise Control project.
+Strimzi supports most of the optimization goals developed in the Cruise Control project.
 The supported goals, in the default descending order of priority, are as follows:</p>
 </div>
 <div class="olist arabic">
@@ -21321,7 +21321,7 @@ The supported goals, in the default descending order of priority, are as follows
 <p>Replica capacity</p>
 </li>
 <li>
-<p>Capacity: Disk capacity, Network inbound capacity, Network outbound capacity, CPU capacity</p>
+<p><em>Capacity</em>: Disk capacity, Network inbound capacity, Network outbound capacity, CPU capacity</p>
 </li>
 <li>
 <p>Replica distribution</p>
@@ -21330,7 +21330,21 @@ The supported goals, in the default descending order of priority, are as follows
 <p>Potential network output</p>
 </li>
 <li>
-<p>Resource distribution: Disk utilization distribution, Network inbound utilization distribution, Network outbound utilization distribution, CPU utilization distribution</p>
+<p><em>Resource distribution</em>: Disk utilization distribution, Network inbound utilization distribution, Network outbound utilization distribution, CPU utilization distribution</p>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>The resource distribution goals are controlled using <a href="#capacity-configuration">capacity limits</a> on broker resources.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
 </li>
 <li>
 <p>Leader bytes-in rate distribution</p>
@@ -21364,7 +21378,7 @@ Intra-broker disk goals, "Write your own" goals, and Kafka assigner goals are no
 <h4 id="goals_configuration_in_strimzi_custom_resources" class="discrete">Goals configuration in Strimzi custom resources</h4>
 <div class="paragraph">
 <p>You configure optimization goals in <code>Kafka</code> and <code>KafkaRebalance</code> custom resources. Cruise Control has configurations for <a href="#hard-soft-goals">hard</a> optimization goals that must be satisfied, as well as <a href="#master-goals">master</a>, <a href="#default-goals">default</a>, and <a href="#user-provided-goals">user-provided</a> optimization goals.
-Optimization goals are subject to any <a href="#capacity-configuration">capacity limits</a> on broker resources.</p>
+Optimization goals for resource distribution (disk, network inbound, network outbound, and CPU) are subject to <a href="#capacity-configuration">capacity limits</a> on broker resources.</p>
 </div>
 <div class="paragraph">
 <p>The following sections describe each goal configuration in more detail.</p>
@@ -21457,11 +21471,11 @@ Goals that are not listed in the master optimization goals are not available for
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">RackAwareGoal; ReplicaCapacityGoal; DiskCapacityGoal; NetworkInboundCapacityGoal; NetworkOutboundCapacityGoal; CPUCapacityGoal; ReplicaDistributionGoal; PotentialNwOutGoal; DiskUsageDistributionGoal; NetworkInboundUsageDistributionGoal; NetworkOutboundUsageDistributionGoal; TopicReplicaDistributionGoal; LeaderReplicaDistributionGoal; LeaderBytesInDistributionGoal; PreferredLeaderElectionGoal</code></pre>
+<pre class="highlightjs highlight"><code class="language-none hljs">RackAwareGoal; ReplicaCapacityGoal; DiskCapacityGoal; NetworkInboundCapacityGoal; NetworkOutboundCapacityGoal; CPUCapacityGoal; ReplicaDistributionGoal; PotentialNwOutGoal; DiskUsageDistributionGoal; NetworkInboundUsageDistributionGoal; NetworkOutboundUsageDistributionGoal; CpuUsageDistributionGoal; TopicReplicaDistributionGoal; LeaderReplicaDistributionGoal; LeaderBytesInDistributionGoal; PreferredLeaderElectionGoal</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Five of these goals are preset as <a href="#hard-soft-goals">hard goals</a>.</p>
+<p>Six of these goals are preset as <a href="#hard-soft-goals">hard goals</a>.</p>
 </div>
 <div class="paragraph">
 <p>To reduce complexity, we recommend that you use the inherited master optimization goals, unless you need to <em>completely</em> exclude one or more goals from use in <code>KafkaRebalance</code> resources. The priority order of the master optimization goals can be modified, if desired, in the configuration for <a href="#default-goals">default optimization goals</a>.</p>
@@ -21547,7 +21561,7 @@ spec:
 <h5 id="user-provided-goals" class="discrete">User-provided optimization goals</h5>
 <div class="paragraph">
 <p><em>User-provided optimization goals</em> narrow down the configured default goals for a particular optimization proposal.
-You can set them, as required, in <code>spec.goals</code> in the <code>KafkaRebalance</code> custom resource:</p>
+You can set them, as required, in <code>spec.goals</code> in a <code>KafkaRebalance</code> custom resource:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -21573,7 +21587,7 @@ So, you create a <code>KafkaRebalance</code> custom resource containing a single
 </ul>
 </div>
 <div class="paragraph">
-<p>To ignore the configured hard goals in an optimization proposal, add the <code>skipHardGoalCheck: true</code> option to the <code>KafkaRebalance</code> custom resource.</p>
+<p>To ignore the configured hard goals when generating an optimization proposal, add the <code>skipHardGoalCheck: true</code> property to the <code>KafkaRebalance</code> custom resource. See <a href="#proc-generating-optimization-proposals-str">Generating optimization proposals</a>.</p>
 </div>
 <div class="ulist">
 <div class="title">Additional resources</div>
@@ -21781,7 +21795,7 @@ You can set these tuning options at either the <a href="#ref-cruise-control-conf
 <div class="ulist">
 <ul>
 <li>
-<p>The Cruise Control server setting can be set in the Kafka custom resource under <code>Kafka.spec.kafka.spec.cruiseControl.spec</code>.</p>
+<p>The Cruise Control server setting can be set in the Kafka custom resource under <code>Kafka.spec.cruiseControl.config</code>.</p>
 </li>
 <li>
 <p>The individual rebalance performance configurations can be set under <code>KafkaRebalance.spec</code>.</p>
@@ -21789,7 +21803,7 @@ You can set these tuning options at either the <a href="#ref-cruise-control-conf
 </ul>
 </div>
 <div class="paragraph">
-<p>The relevant configurations are summarised below:</p>
+<p>The relevant configurations are summarized below:</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
@@ -21799,7 +21813,7 @@ You can set these tuning options at either the <a href="#ref-cruise-control-conf
 </colgroup>
 <thead>
 <tr>
-<th class="tableblock halign-left valign-top">Server / KafkaRebalance Configuration</th>
+<th class="tableblock halign-left valign-top">Server and <code>KafkaRebalance</code> Configuration</th>
 <th class="tableblock halign-left valign-top">Description</th>
 <th class="tableblock halign-left valign-top">Default Value</th>
 </tr>
@@ -21979,11 +21993,29 @@ spec:
 </div>
 <h4 id="capacity-configuration" class="discrete">Capacity configuration</h4>
 <div class="paragraph">
-<p>Cruise Control uses <em>capacity limits</em> to determine if certain resource-based optimization goals are being broken.</p>
+<p>Cruise Control uses <em>capacity limits</em> to determine if optimization goals for resource distribution are being broken.
+There are four goals of this type:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>DiskUsageDistributionGoal</code>            - Disk utilization distribution</p>
+</li>
+<li>
+<p><code>CpuUsageDistributionGoal</code>             - CPU utilization distribution</p>
+</li>
+<li>
+<p><code>NetworkInboundUsageDistributionGoal</code>  - Network inbound utilization distribution</p>
+</li>
+<li>
+<p><code>NetworkOutboundUsageDistributionGoal</code> - Network outbound utilization distribution</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
 <p>You specify capacity limits for Kafka broker resources in the <code>brokerCapacity</code> property in <code>Kafka.spec.cruiseControl</code> .
-Capacity limits can be set for the following broker resources using the standard Kubernetes byte units K, M, G and T or their bibyte (power of two) equivalents Ki, Mi, Gi and Ti:</p>
+They are enabled by default and you can change their default values.
+Capacity limits can be set for the following broker resources, using the standard Kubernetes byte units (K, M, G and T) or their bibyte (power of two) equivalents (Ki, Mi, Gi and Ti):</p>
 </div>
 <div class="ulist">
 <ul>
@@ -22260,7 +22292,7 @@ For more information on configuring optimization goals, see <a href="#con-optimi
 <p>When you create or update a <code>KafkaRebalance</code> resource, Cruise Control generates an <a href="#con-optimization-proposals-str">optimization proposal</a> for the Kafka cluster based on the configured <a href="#con-optimization-goals-str">optimization goals</a>.</p>
 </div>
 <div class="paragraph">
-<p>Analyze the summary information in the optimization proposal and decide whether to approve it.</p>
+<p>Analyze the information in the optimization proposal and decide whether to approve it.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -22311,6 +22343,24 @@ spec:
   goals:
     - RackAwareGoal
     - ReplicaCapacityGoal</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>To ignore the configured hard goals, add the <code>skipHardGoalCheck: true</code> property:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaRebalance
+metadata:
+  name: my-rebalance
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  goals:
+    - RackAwareGoal
+    - ReplicaCapacityGoal
+skipHardGoalCheck: true</code></pre>
 </div>
 </div>
 </li>
@@ -22509,7 +22559,7 @@ To do so, refresh the optimization proposal to make sure it uses the latest clus
 <p>Rebalancing: The cluster rebalance operation is in progress.</p>
 </li>
 <li>
-<p>Ready: The cluster rebalancing operation completed successfully.</p>
+<p>Ready: The cluster rebalancing operation completed successfully. The <code>KafkaRebalance</code> custom resource cannot be reused.</p>
 </li>
 <li>
 <p>NotReady: An error occurred&#8212;&#8203;see <a href="#proc-fixing-problems-with-kafkarebalance-str">Fixing problems with a <code>KafkaRebalance</code> resource</a>.</p>
@@ -34889,7 +34939,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-08-11 14:47:49 UTC
+Last updated 2020-08-11 18:04:02 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
