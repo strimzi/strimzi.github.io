@@ -718,7 +718,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#zookeeper_communication">7.5.1. ZooKeeper communication</a></li>
 <li><a href="#kafka_interbroker_communication">7.5.2. Kafka interbroker communication</a></li>
 <li><a href="#topic_and_user_operators">7.5.3. Topic and User Operators</a></li>
-<li><a href="#kafka_client_connections">7.5.4. Kafka Client connections</a></li>
+<li><a href="#cruise_control">7.5.4. Cruise Control</a></li>
+<li><a href="#kafka_client_connections">7.5.5. Kafka Client connections</a></li>
 </ul>
 </li>
 <li><a href="#configuring-internal-clients-to-trust-cluster-ca-str">7.6. Configuring internal clients to trust the cluster CA</a></li>
@@ -4688,7 +4689,10 @@ spec:
 <div class="sect4">
 <h5 id="proc-connnecting-to-zookeeper-deployment-configuration-kafka"><a class="link" href="#proc-connnecting-to-zookeeper-deployment-configuration-kafka">Connecting to ZooKeeper from a terminal</a></h5>
 <div class="paragraph">
-<p>Open a terminal inside a Kafka container to use Kafka CLI tools that require a ZooKeeper connection.</p>
+<p>Most Kafka CLI tools can connect directly to Kafka.
+So you should under normal circumstances not need to connect to ZooKeeper.
+In case it is needed, you can follow this procedure.
+Open a terminal inside a ZooKeeper container to use Kafka CLI tools that require a ZooKeeper connection.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -4697,7 +4701,7 @@ spec:
 <p>A Kubernetes cluster is available.</p>
 </li>
 <li>
-<p>A kafka cluster is running.</p>
+<p>A Kafka cluster is running.</p>
 </li>
 <li>
 <p>The Cluster Operator is running.</p>
@@ -4714,11 +4718,11 @@ spec:
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl exec -it <em>my-cluster</em>-kafka-0 -- bin/kafka-topics.sh --list --zookeeper localhost:2181</code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl exec -it <em>my-cluster</em>-zookeeper-0 -- bin/kafka-topics.sh --list --zookeeper localhost:12181</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Be sure to use <code>localhost:2181</code>.</p>
+<p>Be sure to use <code>localhost:12181</code>.</p>
 </div>
 <div class="paragraph">
 <p>You can now run Kafka commands to ZooKeeper.</p>
@@ -5137,9 +5141,6 @@ spec:
 <ul>
 <li>
 <p><code>Kafka.spec.kafka</code></p>
-</li>
-<li>
-<p><code>Kafka.spec.kafka.tlsSidecar</code></p>
 </li>
 <li>
 <p><code>Kafka.spec.zookeeper</code></p>
@@ -5673,9 +5674,6 @@ Both types of probes are used in Strimzi components.</p>
 <ul>
 <li>
 <p><code>Kafka.spec.kafka</code></p>
-</li>
-<li>
-<p><code>Kafka.spec.kafka.tlsSidecar</code></p>
 </li>
 <li>
 <p><code>Kafka.spec.zookeeper</code></p>
@@ -6326,8 +6324,7 @@ spec:
 <h4 id="assembly-tls-sidecar-deployment-configuration-kafka"><a class="link" href="#assembly-tls-sidecar-deployment-configuration-kafka">2.1.21. TLS sidecar</a></h4>
 <div class="paragraph">
 <p>A sidecar is a container that runs in a pod but serves a supporting purpose.
-In Strimzi, the TLS sidecar uses TLS to encrypt and decrypt all communication between the various components and ZooKeeper.
-ZooKeeper does not have native TLS support.</p>
+In Strimzi, the TLS sidecar uses TLS to encrypt and decrypt all communication between the various components and ZooKeeper.</p>
 </div>
 <div class="paragraph">
 <p>The TLS sidecar is used in:</p>
@@ -6335,13 +6332,10 @@ ZooKeeper does not have native TLS support.</p>
 <div class="ulist">
 <ul>
 <li>
-<p>Kafka brokers</p>
-</li>
-<li>
-<p>ZooKeeper nodes</p>
-</li>
-<li>
 <p>Entity Operator</p>
+</li>
+<li>
+<p>Cruise Control</p>
 </li>
 </ul>
 </div>
@@ -6490,6 +6484,10 @@ metadata:
 spec:
   kafka:
     # ...
+  zookeeper:
+    # ...
+  entityOperator:
+    # ...
     tlsSidecar:
       resources:
         requests:
@@ -6499,7 +6497,16 @@ spec:
           cpu: 500m
           memory: 128Mi
     # ...
-  zookeeper:
+  cruiseControl:
+    # ...
+    tlsSidecar:
+      resources:
+        requests:
+          cpu: 200m
+          memory: 64Mi
+        limits:
+          cpu: 500m
+          memory: 128Mi
     # ...</code></pre>
 </div>
 </div>
@@ -7322,7 +7329,7 @@ It must have the following structure:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">kubectl exec <em>&lt;BrokerPod&gt;</em> -c kafka -it -- \
-  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  bin/kafka-reassign-partitions.sh --bootstrap-server localhost:9092 \
   --topics-to-move-json-file /tmp/topics.json \
   --broker-list <em>&lt;BrokerList&gt;</em> \
   --generate</code></pre>
@@ -7334,7 +7341,7 @@ It must have the following structure:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl exec <em>&lt;BrokerPod&gt;</em> -c kafka -it -- \
-  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  bin/kafka-reassign-partitions.sh --bootstrap-server localhost:9092 \
   --topics-to-move-json-file /tmp/topics.json \
   --broker-list 4,7 \
   --generate</code></pre>
@@ -7421,7 +7428,7 @@ This might cause the reassignment to take longer to complete.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl exec <em>broker-pod</em> -c kafka -it -- \
-  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  bin/kafka-reassign-partitions.sh --bootstrap-server localhost:9092 \
   --reassignment-json-file /tmp/reassignment.json \
   --execute</code></pre>
 </div>
@@ -7432,7 +7439,7 @@ This might cause the reassignment to take longer to complete.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl exec my-cluster-kafka-0 -c kafka -it -- \
-  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  bin/kafka-reassign-partitions.sh --bootstrap-server localhost:9092 \
   --reassignment-json-file /tmp/reassignment.json \
   --throttle 5000000 \
   --execute</code></pre>
@@ -7450,7 +7457,7 @@ The second JSON object is the target reassignment you have passed in your reassi
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl exec my-cluster-kafka-0 -c kafka -it -- \
-  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  bin/kafka-reassign-partitions.sh --bootstrap-server localhost:9092 \
   --reassignment-json-file /tmp/reassignment.json \
   --throttle 10000000 \
   --execute</code></pre>
@@ -7462,7 +7469,7 @@ The second JSON object is the target reassignment you have passed in your reassi
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl exec <em>broker-pod</em> -c kafka -it -- \
-  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  bin/kafka-reassign-partitions.sh --bootstrap-server localhost:9092 \
   --reassignment-json-file /tmp/reassignment.json \
   --verify</code></pre>
 </div>
@@ -7473,7 +7480,7 @@ The second JSON object is the target reassignment you have passed in your reassi
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl exec my-cluster-kafka-0 -c kafka -it -- \
-  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  bin/kafka-reassign-partitions.sh --bootstrap-server localhost:9092 \
   --reassignment-json-file /tmp/reassignment.json \
   --verify</code></pre>
 </div>
@@ -7532,7 +7539,7 @@ You can now delete the revert file if you saved the JSON for reverting the assig
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl exec <em>broker-pod</em> -c kafka -it -- \
-  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  bin/kafka-reassign-partitions.sh --bootstrap-server localhost:9092 \
   --reassignment-json-file /tmp/reassignment.json \
   --execute</code></pre>
 </div>
@@ -7543,7 +7550,7 @@ You can now delete the revert file if you saved the JSON for reverting the assig
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl exec my-cluster-kafka-0 -c kafka -it -- \
-  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  bin/kafka-reassign-partitions.sh --bootstrap-server localhost:9092 \
   --reassignment-json-file /tmp/reassignment.json \
   --throttle 5000000 \
   --execute</code></pre>
@@ -7561,7 +7568,7 @@ The second JSON object is the target reassignment you have passed in your reassi
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl exec my-cluster-kafka-0 -c kafka -it -- \
-  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  bin/kafka-reassign-partitions.sh --bootstrap-server localhost:9092 \
   --reassignment-json-file /tmp/reassignment.json \
   --throttle 10000000 \
   --execute</code></pre>
@@ -7573,7 +7580,7 @@ The second JSON object is the target reassignment you have passed in your reassi
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl exec <em>broker-pod</em> -c kafka -it -- \
-  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  bin/kafka-reassign-partitions.sh --bootstrap-server localhost:9092 \
   --reassignment-json-file /tmp/reassignment.json \
   --verify</code></pre>
 </div>
@@ -7584,7 +7591,7 @@ The second JSON object is the target reassignment you have passed in your reassi
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl exec my-cluster-kafka-0 -c kafka -it -- \
-  bin/kafka-reassign-partitions.sh --zookeeper localhost:2181 \
+  bin/kafka-reassign-partitions.sh --bootstrap-server localhost:9092 \
   --reassignment-json-file /tmp/reassignment.json \
   --verify</code></pre>
 </div>
@@ -9328,9 +9335,6 @@ spec:
 <p><code>Kafka.spec.kafka</code></p>
 </li>
 <li>
-<p><code>Kafka.spec.kafka.tlsSidecar</code></p>
-</li>
-<li>
 <p><code>Kafka.spec.zookeeper</code></p>
 </li>
 <li>
@@ -9645,9 +9649,6 @@ Both types of probes are used in Strimzi components.</p>
 <ul>
 <li>
 <p><code>Kafka.spec.kafka</code></p>
-</li>
-<li>
-<p><code>Kafka.spec.kafka.tlsSidecar</code></p>
 </li>
 <li>
 <p><code>Kafka.spec.zookeeper</code></p>
@@ -12101,9 +12102,6 @@ spec:
 <p><code>Kafka.spec.kafka</code></p>
 </li>
 <li>
-<p><code>Kafka.spec.kafka.tlsSidecar</code></p>
-</li>
-<li>
 <p><code>Kafka.spec.zookeeper</code></p>
 </li>
 <li>
@@ -12476,9 +12474,6 @@ Both types of probes are used in Strimzi components.</p>
 <ul>
 <li>
 <p><code>Kafka.spec.kafka</code></p>
-</li>
-<li>
-<p><code>Kafka.spec.kafka.tlsSidecar</code></p>
 </li>
 <li>
 <p><code>Kafka.spec.zookeeper</code></p>
@@ -15610,9 +15605,6 @@ spec:
 <p><code>Kafka.spec.kafka</code></p>
 </li>
 <li>
-<p><code>Kafka.spec.kafka.tlsSidecar</code></p>
-</li>
-<li>
 <p><code>Kafka.spec.zookeeper</code></p>
 </li>
 <li>
@@ -16155,9 +16147,6 @@ Both types of probes are used in Strimzi components.</p>
 <ul>
 <li>
 <p><code>Kafka.spec.kafka</code></p>
-</li>
-<li>
-<p><code>Kafka.spec.kafka.tlsSidecar</code></p>
 </li>
 <li>
 <p><code>Kafka.spec.zookeeper</code></p>
@@ -18496,12 +18485,6 @@ This is used when a <code>Kafka.spec.kafka.version</code> property is specified 
 <dd>
 <p>Optional, default <code>strimzi/operator:latest</code>.
 The image name to use as default for the init container started before the broker for initial configuration work (that is, rack support), if no image is specified as the <code>kafka-init-image</code> in the <a href="#assembly-configuring-container-images-deployment-configuration-kafka">Container images</a>.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_DEFAULT_TLS_SIDECAR_KAFKA_IMAGE</code></dt>
-<dd>
-<p>Optional, default <code>strimzi/kafka:latest-kafka-2.6.0</code>.
-The image name to use as the default when deploying the sidecar container which provides TLS support for Kafka,
-if no image is specified as the <code>Kafka.spec.kafka.tlsSidecar.image</code> in the <a href="#assembly-configuring-container-images-deployment-configuration-kafka">Container images</a>.</p>
 </dd>
 <dt class="hdlist1"><code>STRIMZI_KAFKA_CONNECT_IMAGES</code></dt>
 <dd>
@@ -24356,13 +24339,7 @@ When a private key is replaced, the Cluster Operator generates a new CA certific
 <div class="sect3">
 <h4 id="zookeeper_communication"><a class="link" href="#zookeeper_communication">7.5.1. ZooKeeper communication</a></h4>
 <div class="paragraph">
-<p>ZooKeeper does not support TLS itself.
-By deploying a TLS sidecar within every ZooKeeper pod, the Cluster Operator is able to provide data encryption and authentication between ZooKeeper nodes in a cluster.
-ZooKeeper only communicates with the TLS sidecar over the loopback interface.
-The TLS sidecar then proxies all ZooKeeper traffic, TLS decrypting data upon entry into a ZooKeeper pod, and TLS encrypting data upon departure from a ZooKeeper pod.</p>
-</div>
-<div class="paragraph">
-<p>This TLS encrypting <code>stunnel</code> proxy is instantiated from the <code>spec.zookeeper.stunnelImage</code> specified in the Kafka resource.</p>
+<p>Communication between the ZooKeeper nodes on all ports as well as between clients and ZooKeeper is encrypted.</p>
 </div>
 </div>
 <div class="sect3">
@@ -24371,17 +24348,25 @@ The TLS sidecar then proxies all ZooKeeper traffic, TLS decrypting data upon ent
 <p>Communication between Kafka brokers is done through an internal listener on port 9091, which is encrypted by default and not accessible to Kafka clients.</p>
 </div>
 <div class="paragraph">
-<p>Communication between Kafka brokers and ZooKeeper nodes uses a TLS sidecar, as described above.</p>
+<p>Communication between Kafka brokers and ZooKeeper nodes is also encrypted.</p>
 </div>
 </div>
 <div class="sect3">
 <h4 id="topic_and_user_operators"><a class="link" href="#topic_and_user_operators">7.5.3. Topic and User Operators</a></h4>
 <div class="paragraph">
-<p>Like the Cluster Operator, the Topic and User Operators each use a TLS sidecar when communicating with ZooKeeper. The Topic Operator connects to Kafka brokers on port 9091.</p>
+<p>All Operators use encryption for communication with both Kafka and ZooKeeper.
+In Topic and User Operators, a TLS sidecar is used when communicating with ZooKeeper.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="kafka_client_connections"><a class="link" href="#kafka_client_connections">7.5.4. Kafka Client connections</a></h4>
+<h4 id="cruise_control"><a class="link" href="#cruise_control">7.5.4. Cruise Control</a></h4>
+<div class="paragraph">
+<p>Cruise Control uses encryption for communication with both Kafka and ZooKeeper.
+A TLS sidecar is used when communicating with ZooKeeper.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="kafka_client_connections"><a class="link" href="#kafka_client_connections">7.5.5. Kafka Client connections</a></h4>
 <div class="paragraph">
 <p>Encrypted communication between Kafka brokers and clients running within the same Kubernetes cluster can be provided by configuring the <code>spec.kafka.listeners.tls</code> listener, which listens on port 9093.</p>
 </div>
@@ -26136,9 +26121,6 @@ However, if the configured image is not compatible with Strimzi images, it might
 <p><code>Kafka.spec.kafka</code></p>
 </li>
 <li>
-<p><code>Kafka.spec.kafka.tlsSidecar</code></p>
-</li>
-<li>
 <p><code>Kafka.spec.zookeeper</code></p>
 </li>
 <li>
@@ -26251,19 +26233,6 @@ If the <code>image</code> name is not defined in the Cluster Operator configurat
 </div>
 <div class="ulist">
 <ul>
-<li>
-<p>For Kafka broker TLS sidecar:</p>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Container image specified in the <code>STRIMZI_DEFAULT_TLS_SIDECAR_KAFKA_IMAGE</code> environment variable from the Cluster Operator configuration.</p>
-</li>
-<li>
-<p><code>strimzi/kafka:latest-kafka-2.6.0</code> container image.</p>
-</li>
-</ol>
-</div>
-</li>
 <li>
 <p>For Topic Operator:</p>
 <div class="olist arabic">
@@ -26855,7 +26824,7 @@ jvmOptions:
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">config</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Kafka broker config properties with the following prefixes cannot be set: listeners, advertised., broker., listener., host.name, port, inter.broker.listener.name, sasl., ssl., security., password., principal.builder.class, log.dir, zookeeper.connect, zookeeper.set.acl, authorizer., super.user, cruise.control.metrics.topic, cruise.control.metrics.reporter.bootstrap.servers (with the exception of: zookeeper.connection.timeout.ms, ssl.cipher.suites, ssl.protocol, ssl.enabled.protocols,cruise.control.metrics.topic.num.partitions, cruise.control.metrics.topic.replication.factor, cruise.control.metrics.topic.retention.ms,cruise.control.metrics.topic.auto.create.retries, cruise.control.metrics.topic.auto.create.timeout.ms).</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Kafka broker config properties with the following prefixes cannot be set: listeners, advertised., broker., listener., host.name, port, inter.broker.listener.name, sasl., ssl., security., password., principal.builder.class, log.dir, zookeeper.connect, zookeeper.set.acl, zookeeper.ssl, zookeeper.clientCnxnSocket, authorizer., super.user, cruise.control.metrics.topic, cruise.control.metrics.reporter.bootstrap.servers (with the exception of: zookeeper.connection.timeout.ms, ssl.cipher.suites, ssl.protocol, ssl.enabled.protocols,cruise.control.metrics.topic.num.partitions, cruise.control.metrics.topic.replication.factor, cruise.control.metrics.topic.retention.ms,cruise.control.metrics.topic.auto.create.retries, cruise.control.metrics.topic.auto.create.timeout.ms).</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">map</p></td>
@@ -26939,7 +26908,7 @@ jvmOptions:
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tlsSidecar</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">TLS sidecar configuration.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>tlsSidecar</code> has been deprecated.</strong> TLS sidecar configuration.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-TlsSidecar-reference"><code>TlsSidecar</code></a></p></td>
@@ -29159,7 +29128,7 @@ It must have the value <code>external</code> for the type <code>ExternalLogging<
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tlsSidecarContainer</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Template for the Kafka broker TLS sidecar container.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>tlsSidecarContainer</code> has been deprecated.</strong> Template for the Kafka broker TLS sidecar container.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-ContainerTemplate-reference"><code>ContainerTemplate</code></a></p></td>
@@ -34920,7 +34889,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-08-10 21:03:50 UTC
+Last updated 2020-08-11 14:10:16 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
