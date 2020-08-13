@@ -732,20 +732,21 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 </ul>
 </li>
-<li><a href="#configuration-points_str">8. Managing Strimzi</a>
+<li><a href="#management-tasks-str">8. Managing Strimzi</a>
 <ul class="sectlevel2">
-<li><a href="#proc-add-service-discovery-str">8.1. Discovering services using labels and annotations</a>
+<li><a href="#working-with-resources-str">8.1. Working with custom resources</a>
 <ul class="sectlevel3">
-<li><a href="#returning_connection_details_on_services">8.1.1. Returning connection details on services</a></li>
+<li><a href="#con-custom-resources-info-str">8.1.1. Performing <code>kubectl</code> operations on custom resources</a></li>
+<li><a href="#con-custom-resources-status-str">8.1.2. Strimzi custom resource status information</a></li>
+<li><a href="#proc-accessing-resource-status-str">8.1.3. Finding the status of a custom resource</a></li>
 </ul>
 </li>
-<li><a href="#resource-status-access_str">8.2. Checking the status of a custom resource</a>
+<li><a href="#proc-add-service-discovery-str">8.2. Discovering services using labels and annotations</a>
 <ul class="sectlevel3">
-<li><a href="#con-custom-resources-status-str">8.2.1. Strimzi custom resource status information</a></li>
-<li><a href="#proc-accessing-resource-status-str">8.2.2. Finding the status of a custom resource</a></li>
+<li><a href="#returning_connection_details_on_services">8.2.1. Returning connection details on services</a></li>
 </ul>
 </li>
-<li><a href="#cluster-recovery_str">8.3. Recovering a cluster from persistent volumes</a>
+<li><a href="#cluster-recovery-str">8.3. Recovering a cluster from persistent volumes</a>
 <ul class="sectlevel3">
 <li><a href="#namespace-deletion_str">8.3.1. Recovery from namespace deletion</a></li>
 <li><a href="#cluster-loss_str">8.3.2. Recovery from loss of a Kubernetes cluster</a></li>
@@ -24939,108 +24940,210 @@ A rolling update is also started if you update a Kafka listener certificate in a
 </div>
 </div>
 <div class="sect1">
-<h2 id="configuration-points_str"><a class="link" href="#configuration-points_str">8. Managing Strimzi</a></h2>
+<h2 id="management-tasks-str"><a class="link" href="#management-tasks-str">8. Managing Strimzi</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>This chapter covers tasks to maintain a deployment of Strimzi.</p>
 </div>
 <div class="sect2">
-<h3 id="proc-add-service-discovery-str"><a class="link" href="#proc-add-service-discovery-str">8.1. Discovering services using labels and annotations</a></h3>
+<h3 id="working-with-resources-str"><a class="link" href="#working-with-resources-str">8.1. Working with custom resources</a></h3>
 <div class="paragraph">
-<p>Service discovery makes it easier for client applications running in the same Kubernetes cluster as Strimzi to interact with a Kafka cluster.</p>
-</div>
-<div class="paragraph">
-<p>A <em>service discovery</em> label and annotation is generated for services used to access the Kafka cluster:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Internal Kafka bootstrap service</p>
-</li>
-<li>
-<p>HTTP Bridge service</p>
-</li>
-</ul>
+<p>You can use <code>kubectl</code> commands to retrieve information and perform other operations on Strimzi custom resources.</p>
 </div>
 <div class="paragraph">
-<p>The label helps to make the service discoverable, and the annotation provides connection details that a client application can use to make the connection.</p>
+<p>Using <code>kubectl</code> with the <code>status</code> subresource of a custom resource allows you to get the information about the resource.</p>
+</div>
+<div class="sect3">
+<h4 id="con-custom-resources-info-str"><a class="link" href="#con-custom-resources-info-str">8.1.1. Performing <code>kubectl</code> operations on custom resources</a></h4>
+<div class="paragraph">
+<p>Use <code>kubectl</code> commands, such as <code>get</code>, <code>describe</code>, <code>edit</code>, or <code>delete</code>, to perform operations on resource types.
+For example, <code>kubectl get kafkatopics</code> retrieves a list of all Kafka topics and <code>kubectl get kafkas</code> retrieves all deployed Kafka clusters.</p>
 </div>
 <div class="paragraph">
-<p>The service discovery label, <code>strimzi.io/discovery</code>, is set as <code>true</code> for the <code>Service</code> resources.
-The service discovery annotation has the same key, providing connection details in JSON format for each service.</p>
+<p>When referencing resource types, you can use both singular and plural names:
+<code>kubectl get kafkas</code> gets the same results as <code>kubectl get kafka</code>.</p>
 </div>
-<h4 id="example_internal_kafka_bootstrap_service" class="discrete">Example internal Kafka bootstrap service</h4>
+<div class="paragraph">
+<p>You can also use the <em>short name</em> of the resource.
+Learning short names can save you time when managing Strimzi.
+The short name for <code>Kafka</code> is <code>k</code>, so you can also run <code>kubectl get k</code> to list all Kafka clusters.</p>
+</div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    strimzi.io/discovery: |-
-      [ {
-        "port" : 9092,
-        "tls" : false,
-        "protocol" : "kafka",
-        "auth" : "scram-sha-512"
-      }, {
-        "port" : 9093,
-        "tls" : true,
-        "protocol" : "kafka",
-        "auth" : "tls"
-      } ]
-  labels:
-    strimzi.io/cluster: my-cluster
-    strimzi.io/discovery: "true"
-    strimzi.io/kind: Kafka
-    strimzi.io/name: my-cluster-kafka-bootstrap
-  name: my-cluster-kafka-bootstrap
-spec:
-  #...</code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get k
+
+NAME         DESIRED KAFKA REPLICAS   DESIRED ZK REPLICAS
+my-cluster   3                        3</code></pre>
 </div>
 </div>
-<h4 id="example_http_bridge_service" class="discrete">Example HTTP Bridge service</h4>
+<table class="tableblock frame-all grid-all stripes-none stretch">
+<caption class="title">Table 4. Long and short names for each Strimzi resource</caption>
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Strimzi resource</th>
+<th class="tableblock halign-left valign-top">Long name</th>
+<th class="tableblock halign-left valign-top">Short name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kafka</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">k</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka Topic</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kafkatopic</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kt</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka User</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kafkauser</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ku</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka Connect</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kafkaconnect</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kc</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka Connect S2I</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kafkaconnects2i</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kcs2i</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka Connector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kafkaconnector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kctr</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka Mirror Maker</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kafkamirrormaker</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kmm</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka Mirror Maker 2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kafkamirrormaker2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kmm2</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka Bridge</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kafkabridge</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kb</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka Rebalance</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kafkarebalance</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kr</p></td>
+</tr>
+</tbody>
+</table>
+<div class="sect4">
+<h5 id="resource_categories"><a class="link" href="#resource_categories">Resource categories</a></h5>
+<div class="paragraph">
+<p>Categories of custom resources can also be used in <code>kubectl</code> commands.</p>
+</div>
+<div class="paragraph">
+<p>All Strimzi custom resources belong to the category <code>strimzi</code>, so you can use <code>strimzi</code> to get all the Strimzi resources with one command.</p>
+</div>
+<div class="paragraph">
+<p>For example, running <code>kubectl get strimzi</code> lists all Strimzi custom resources in a given namespace.</p>
+</div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    strimzi.io/discovery: |-
-      [ {
-        "port" : 8080,
-        "tls" : false,
-        "auth" : "none",
-        "protocol" : "http"
-      } ]
-  labels:
-    strimzi.io/cluster: my-bridge
-    strimzi.io/discovery: "true"
-    strimzi.io/kind: KafkaBridge
-    strimzi.io/name: my-bridge-bridge-service</code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get strimzi
+
+NAME                                   DESIRED KAFKA REPLICAS DESIRED ZK REPLICAS
+kafka.kafka.strimzi.io/my-cluster      3                      3
+
+NAME                                   PARTITIONS REPLICATION FACTOR
+kafkatopic.kafka.strimzi.io/kafka-apps 3          3
+
+NAME                                   AUTHENTICATION AUTHORIZATION
+kafkauser.kafka.strimzi.io/my-user     tls            simple</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>kubectl get strimzi -o name</code> command returns all resource types and resource names.
+The <code>-o name</code> option fetches the output in the <em>type/name</em> format</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get strimzi -o name
+
+kafka.kafka.strimzi.io/my-cluster
+kafkatopic.kafka.strimzi.io/kafka-apps
+kafkauser.kafka.strimzi.io/my-user</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can combine this <code>strimzi</code> command with other commands.
+For example, you can pass it into a <code>kubectl delete</code> command to delete all resources in a single command.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl delete $(kubectl get strimzi -o name)
+
+kafka.kafka.strimzi.io "my-cluster" deleted
+kafkatopic.kafka.strimzi.io "kafka-apps" deleted
+kafkauser.kafka.strimzi.io "my-user" deleted</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Deleting all resources in a single operation might be useful, for example,
+when you are testing new Strimzi features.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="querying_the_status_of_sub_resources"><a class="link" href="#querying_the_status_of_sub_resources">Querying the status of sub-resources</a></h5>
+<div class="paragraph">
+<p>There are other values you can pass to the <code>-o</code> option.
+For example, by using <code>-o yaml</code> you get the output in YAML format.
+Usng <code>-o json</code> will return it as JSON.</p>
+</div>
+<div class="paragraph">
+<p>You can see all the options in <code>kubectl get --help</code>.</p>
+</div>
+<div class="paragraph">
+<p>One of the most useful options is the <a href="https://kubernetes.io/docs/reference/kubectl/jsonpath/" target="_blank" rel="noopener">JSONPath support</a>, which allows you to pass JSONPath expressions to query the Kubernetes API.
+A JSONPath expression can extract or navigate specific parts of any resource.</p>
+</div>
+<div class="paragraph">
+<p>For example, you can use the JSONPath expression <code>{.status.listeners[?(@.type=="tls")].bootstrapServers}</code>
+to get the bootstrap address from the status of the Kafka custom resource and use it in your Kafka clients.</p>
+</div>
+<div class="paragraph">
+<p>Here, the command finds the <code>bootstrapServers</code> value of the <code>tls</code> listeners.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.type=="tls")].bootstrapServers}{"\n"}'
+
+my-cluster-kafka-bootstrap.myproject.svc:9093</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>By changing the type condition to <code>@.type=="external"</code> or <code>@.type=="plain"</code> you can also get the address of the other Kafka listeners.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.type=="external")].bootstrapServers}{"\n"}'
+
+192.168.1.247:9094</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can use <code>jsonpath</code> to extract any other property or group of properties from any custom resource.</p>
+</div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="returning_connection_details_on_services"><a class="link" href="#returning_connection_details_on_services">8.1.1. Returning connection details on services</a></h4>
-<div class="paragraph">
-<p>You can find the services by specifying the discovery label when fetching services from the command line or a corresponding API call.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">kubectl get service -l strimzi.io/discovery=true</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The connection details are returned when retrieving the service discovery label.</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="resource-status-access_str"><a class="link" href="#resource-status-access_str">8.2. Checking the status of a custom resource</a></h3>
-<div class="paragraph">
-<p>The <code>status</code> property of a Strimzi custom resource publishes information about the resource to users and tools that need it.</p>
-</div>
-<div class="sect3">
-<h4 id="con-custom-resources-status-str"><a class="link" href="#con-custom-resources-status-str">8.2.1. Strimzi custom resource status information</a></h4>
+<h4 id="con-custom-resources-status-str"><a class="link" href="#con-custom-resources-status-str">8.1.2. Strimzi custom resource status information</a></h4>
 <div class="paragraph">
 <p>Several resources have a <code>status</code> property, as described in the following table.</p>
 </div>
@@ -25228,7 +25331,7 @@ The Kafka bootstrap addresses listed in the status do not signify that those end
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-accessing-resource-status-str"><a class="link" href="#proc-accessing-resource-status-str">8.2.2. Finding the status of a custom resource</a></h4>
+<h4 id="proc-accessing-resource-status-str"><a class="link" href="#proc-accessing-resource-status-str">8.1.3. Finding the status of a custom resource</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to find the status of a custom resource.</p>
 </div>
@@ -25273,7 +25376,97 @@ The Kafka bootstrap addresses listed in the status do not signify that those end
 </div>
 </div>
 <div class="sect2">
-<h3 id="cluster-recovery_str"><a class="link" href="#cluster-recovery_str">8.3. Recovering a cluster from persistent volumes</a></h3>
+<h3 id="proc-add-service-discovery-str"><a class="link" href="#proc-add-service-discovery-str">8.2. Discovering services using labels and annotations</a></h3>
+<div class="paragraph">
+<p>Service discovery makes it easier for client applications running in the same Kubernetes cluster as Strimzi to interact with a Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>A <em>service discovery</em> label and annotation is generated for services used to access the Kafka cluster:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Internal Kafka bootstrap service</p>
+</li>
+<li>
+<p>HTTP Bridge service</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The label helps to make the service discoverable, and the annotation provides connection details that a client application can use to make the connection.</p>
+</div>
+<div class="paragraph">
+<p>The service discovery label, <code>strimzi.io/discovery</code>, is set as <code>true</code> for the <code>Service</code> resources.
+The service discovery annotation has the same key, providing connection details in JSON format for each service.</p>
+</div>
+<h4 id="example_internal_kafka_bootstrap_service" class="discrete">Example internal Kafka bootstrap service</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    strimzi.io/discovery: |-
+      [ {
+        "port" : 9092,
+        "tls" : false,
+        "protocol" : "kafka",
+        "auth" : "scram-sha-512"
+      }, {
+        "port" : 9093,
+        "tls" : true,
+        "protocol" : "kafka",
+        "auth" : "tls"
+      } ]
+  labels:
+    strimzi.io/cluster: my-cluster
+    strimzi.io/discovery: "true"
+    strimzi.io/kind: Kafka
+    strimzi.io/name: my-cluster-kafka-bootstrap
+  name: my-cluster-kafka-bootstrap
+spec:
+  #...</code></pre>
+</div>
+</div>
+<h4 id="example_http_bridge_service" class="discrete">Example HTTP Bridge service</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    strimzi.io/discovery: |-
+      [ {
+        "port" : 8080,
+        "tls" : false,
+        "auth" : "none",
+        "protocol" : "http"
+      } ]
+  labels:
+    strimzi.io/cluster: my-bridge
+    strimzi.io/discovery: "true"
+    strimzi.io/kind: KafkaBridge
+    strimzi.io/name: my-bridge-bridge-service</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="returning_connection_details_on_services"><a class="link" href="#returning_connection_details_on_services">8.2.1. Returning connection details on services</a></h4>
+<div class="paragraph">
+<p>You can find the services by specifying the discovery label when fetching services from the command line or a corresponding API call.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">kubectl get service -l strimzi.io/discovery=true</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The connection details are returned when retrieving the service discovery label.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="cluster-recovery-str"><a class="link" href="#cluster-recovery-str">8.3. Recovering a cluster from persistent volumes</a></h3>
 <div class="paragraph">
 <p>You can recover a Kafka cluster from persistent volumes (PVs) if they are still present.</p>
 </div>
@@ -34939,7 +35132,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-08-13 21:08:25 UTC
+Last updated 2020-08-13 21:12:15 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
