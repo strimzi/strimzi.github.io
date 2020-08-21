@@ -133,10 +133,11 @@
 <ul class="sectlevel3">
 <li><a href="#con-oauth-authentication-flow-str">2.7.1. OAuth 2.0 authentication mechanism</a></li>
 <li><a href="#con-oauth-authentication-broker-str">2.7.2. OAuth 2.0 Kafka broker configuration</a></li>
-<li><a href="#con-oauth-authentication-client-str">2.7.3. OAuth 2.0 Kafka client configuration</a></li>
-<li><a href="#con-oauth-authentication-client-options-str">2.7.4. OAuth 2.0 client authentication flow</a></li>
-<li><a href="#con-oauth-strimzi-config-str">2.7.5. Configuring OAuth 2.0 authentication</a></li>
-<li><a href="#con-oauth-server-examples-str">2.7.6. Authorization server examples</a></li>
+<li><a href="#con-oauth-reauthentication-str">2.7.3. Session re-authentication for Kafka brokers</a></li>
+<li><a href="#con-oauth-authentication-client-str">2.7.4. OAuth 2.0 Kafka client configuration</a></li>
+<li><a href="#con-oauth-authentication-client-options-str">2.7.5. OAuth 2.0 client authentication flow</a></li>
+<li><a href="#con-oauth-strimzi-config-str">2.7.6. Configuring OAuth 2.0 authentication</a></li>
+<li><a href="#con-oauth-server-examples-str">2.7.7. Authorization server examples</a></li>
 </ul>
 </li>
 <li><a href="#assembly-oauth-authorization_str">2.8. Using OAuth 2.0 token-based authorization</a>
@@ -16529,7 +16530,7 @@ The credentials are not typically required when using public authorization serve
 <div class="sect4">
 <h5 id="oauth_2_0_authentication_configuration_in_the_kafka_cluster"><a class="link" href="#oauth_2_0_authentication_configuration_in_the_kafka_cluster">OAuth 2.0 authentication configuration in the Kafka cluster</a></h5>
 <div class="paragraph">
-<p>To use OAuth 2.0 authentication in the Kafka cluster, you specify for example a TLS listener configuration for your Kafka cluster custom resource with the authentication method <code>oauth</code>:</p>
+<p>To use OAuth 2.0 authentication in the Kafka cluster, you specify, for example, a TLS listener configuration for your Kafka cluster custom resource with the authentication method <code>oauth</code>:</p>
 </div>
 <div class="listingblock">
 <div class="title">Assigining the authentication method type for OAuth 2.0</div>
@@ -16572,7 +16573,7 @@ listeners:
 <p>The <code>tls</code> property is <em>true</em> by default, so it can be left out.</p>
 </div>
 <div class="paragraph">
-<p>When you&#8217;ve defined the type of authentication as OAuth 2.0, you add configuration based on the type of validation, either as <a href="#con-oauth-authentication-broker-fast-local">fast local JWT validation</a> or <a href="#con-oauth-authentication-broker-intro-local">token validation using an introspection endpoint</a>.</p>
+<p>When you have defined the type of authentication as OAuth 2.0, you add configuration based on the type of validation, either as <a href="#con-oauth-authentication-broker-fast-local">fast local JWT validation</a> or <a href="#con-oauth-authentication-broker-intro-local">token validation using an introspection endpoint</a>.</p>
 </div>
 <div class="paragraph">
 <p>The procedure to configure OAuth 2.0 for listeners, with descriptions and examples, is described in <a href="#proc-oauth-authentication-broker-config-str">Configuring OAuth 2.0 support for Kafka brokers</a>.</p>
@@ -16600,7 +16601,7 @@ listeners:
 </ul>
 </div>
 <div class="paragraph">
-<p>You specify a <code>validIssuerUrI</code> attribute when you configure the listener, so that any tokens not issued by the authorization server are rejected.</p>
+<p>You specify a <code>validIssuerURI</code> attribute when you configure the listener, so that any tokens not issued by the authorization server are rejected.</p>
 </div>
 <div class="paragraph">
 <p>The authorization server does not need to be contacted during fast local JWT token validation.
@@ -16641,6 +16642,7 @@ spec:
           validIssuerUri: &lt;<em>https://&lt;auth-server-address&gt;/auth/realms/tls</em>&gt;
           jwksEndpointUri: &lt;<em>https://&lt;auth-server-address&gt;/auth/realms/tls/protocol/openid-connect/certs</em>&gt;
           userNameClaim: preferred_username
+          maxSecondsWithoutReauthentication: 3600
           tlsTrustedCertificates:
           - secretName: oauth-server-cert
             certificate: ca.crt</code></pre>
@@ -16676,6 +16678,7 @@ spec:
           validIssuerUri: &lt;<em>https://&lt;auth-server-address&gt;/auth/realms/tls</em>&gt;
           introspectionEndpointUri: &lt;<em>https://&lt;auth-server-address&gt;/auth/realms/tls/protocol/openid-connect/token/introspect</em>&gt;
           userNameClaim: preferred_username
+          maxSecondsWithoutReauthentication: 3600
           tlsTrustedCertificates:
           - secretName: oauth-server-cert
             certificate: ca.crt</code></pre>
@@ -16684,7 +16687,43 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-oauth-authentication-client-str"><a class="link" href="#con-oauth-authentication-client-str">2.7.3. OAuth 2.0 Kafka client configuration</a></h4>
+<h4 id="con-oauth-reauthentication-str"><a class="link" href="#con-oauth-reauthentication-str">2.7.3. Session re-authentication for Kafka brokers</a></h4>
+<div class="paragraph">
+<p>The Kafka <em>SASL OAUTHBEARER</em> mechanism, which is used for OAuth 2.0 authentication in Strimzi, supports a Kafka feature called the <em>re-authentication</em> mechanism.</p>
+</div>
+<div class="paragraph">
+<p>When the re-authentication mechanism is enabled in the configuration of an <code>oauth</code> type listener, the broker&#8217;s authenticated session expires when the access token expires.
+The client must then re-authenticate to the existing session by sending a new, valid access token to the broker, without dropping the connection.</p>
+</div>
+<div class="paragraph">
+<p>If token validation is successful, a new client session is started using the existing connection.
+If the client fails to re-authenticate, the broker will close the connection if further attempts are made to send or receive messages.
+Java clients that use Kafka client library 2.2 or later automatically re-authenticate if the re-authentication mechanism is enabled on the broker.</p>
+</div>
+<div class="paragraph">
+<p>You enable session re-authentication in the <code>Kafka</code> resource. Set the <code>maxSecondsWithoutReauthentication</code> property for a TLS listener with <code>type: oauth</code> authentication.
+Session re-authentication is supported for both types of token validation (fast local JWT and introspection endpoint). For an example configuration, see <a href="#proc-oauth-authentication-broker-config-str">Configuring OAuth 2.0 support for Kafka brokers</a>.</p>
+</div>
+<div class="paragraph">
+<p>For more information about the re-authentication mechanism, which was added in Kafka version 2.2, see <a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-368%3A+Allow+SASL+Connections+to+Periodically+Re-Authenticate" target="_blank" rel="noopener">KIP-368</a>.</p>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#con-oauth-authentication-broker-str">OAuth 2.0 Kafka broker configuration</a></p>
+</li>
+<li>
+<p><a href="#proc-oauth-authentication-broker-config-str">Configuring OAuth 2.0 support for Kafka brokers</a></p>
+</li>
+<li>
+<p><a href="appendix_crds.html#type-KafkaListenerAuthenticationOAuth-reference">KafkaListenerAuthenticationOAuth schema reference</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-oauth-authentication-client-str"><a class="link" href="#con-oauth-authentication-client-str">2.7.4. OAuth 2.0 Kafka client configuration</a></h4>
 <div class="paragraph">
 <p>A Kafka client is configured with either:</p>
 </div>
@@ -16737,7 +16776,7 @@ The Kafka client exchanges either:</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-oauth-authentication-client-options-str"><a class="link" href="#con-oauth-authentication-client-options-str">2.7.4. OAuth 2.0 client authentication flow</a></h4>
+<h4 id="con-oauth-authentication-client-options-str"><a class="link" href="#con-oauth-authentication-client-options-str">2.7.5. OAuth 2.0 client authentication flow</a></h4>
 <div class="paragraph">
 <p>In this section, we explain and visualize the communication flow between Kafka client, Kafka broker, and authorization server during Kafka session initiation.
 The flow depends on the client and server configuration.</p>
@@ -16902,7 +16941,7 @@ Any issued token would be considered valid until it expires.
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-oauth-strimzi-config-str"><a class="link" href="#con-oauth-strimzi-config-str">2.7.5. Configuring OAuth 2.0 authentication</a></h4>
+<h4 id="con-oauth-strimzi-config-str"><a class="link" href="#con-oauth-strimzi-config-str">2.7.6. Configuring OAuth 2.0 authentication</a></h4>
 <div class="paragraph">
 <p>OAuth 2.0 is used for interaction between Kafka clients and Strimzi components.</p>
 </div>
@@ -16985,7 +17024,10 @@ Plain listeners are not recommended.</p>
 </div>
 <div class="paragraph">
 <p>If the authorization server is using certificates signed by the trusted CA and matching the OAuth 2.0 server hostname, TLS connection works using the default settings.
-Otherwise, you have two connection options for your listener configuration when delegating token validation to the authorization server:</p>
+Otherwise, you may need to configure the truststore with prober certificates or disable the certificate hostname validation.</p>
+</div>
+<div class="paragraph">
+<p>When configuring the Kafka broker you have two options for the mechanism used to validate the access token during OAuth 2.0 authentication of the newly connected Kafka client:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -17056,13 +17098,15 @@ Otherwise, you have two connection options for your listener configuration when 
     validIssuerUri: &lt;<em>https://&lt;auth-server-address&gt;/auth/realms/external</em>&gt; <b class="conum">(2)</b>
     jwksEndpointUri: &lt;<em>https://&lt;auth-server-address&gt;/auth/realms/external/protocol/openid-connect/certs</em>&gt; <b class="conum">(3)</b>
     userNameClaim: preferred_username <b class="conum">(4)</b>
-    tlsTrustedCertificates: <b class="conum">(5)</b>
+    maxSecondsWithoutReauthentication: 3600 <b class="conum">(5)</b>
+    tlsTrustedCertificates: <b class="conum">(6)</b>
     - secretName: oauth-server-cert
       certificate: ca.crt
-    disableTlsHostnameVerification: true <b class="conum">(6)</b>
-    jwksExpirySeconds: 360 <b class="conum">(7)</b>
-    jwksRefreshSeconds: 300 <b class="conum">(8)</b>
-    enableECDSA: "true" <b class="conum">(9)</b></code></pre>
+    disableTlsHostnameVerification: true <b class="conum">(7)</b>
+    jwksExpirySeconds: 360 <b class="conum">(8)</b>
+    jwksRefreshSeconds: 300 <b class="conum">(9)</b>
+    jwksMinRefreshPauseSeconds: 1 <b class="conum">(10)</b>
+    enableECDSA: "true" <b class="conum">(11)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -17080,16 +17124,22 @@ Otherwise, you have two connection options for your listener configuration when 
 <p>The token claim (or key) that contains the actual user name in the token. The user name is the <em>principal</em> used to identify the user. The <code>userNameClaim</code> value will depend on the authentication flow and the authorization server used.</p>
 </li>
 <li>
+<p>(Optional) Activates the Kafka re-authentication mechanism that enforces session expiry to the same length of time as the access token. If the specified value is less than the time left for the access token to expire, then the client will have to re-authenticate before the actual token expiry. By default, the session does not expire when the access token expires, and the client does not attempt re-authentication.</p>
+</li>
+<li>
 <p>(Optional) Trusted certificates for TLS connection to the authorization server.</p>
 </li>
 <li>
 <p>(Optional) Disable TLS hostname verification. Default is <code>false</code>.</p>
 </li>
 <li>
-<p>The duration the JWKs certificates are considered valid before they expire. Default is <code>360</code> seconds. If you specify a longer time, consider the risk of allowing access to revoked certificates.</p>
+<p>The duration the JWKS certificates are considered valid before they expire. Default is <code>360</code> seconds. If you specify a longer time, consider the risk of allowing access to revoked certificates.</p>
 </li>
 <li>
-<p>The period between refreshes of JWKs certificates. The interval must be at least 60 seconds shorter than the expiry interval. Default is <code>300</code> seconds.</p>
+<p>The period between refreshes of JWKS certificates. The interval must be at least 60 seconds shorter than the expiry interval. Default is <code>300</code> seconds.</p>
+</li>
+<li>
+<p>The minimum pause in seconds between consecutive attempts to refresh JWKS public keys. When an unknown signing key is encountered, the JWKS keys refresh is scheduled outside the regular periodic schedule with at least the specified pause since the last refresh attempt. The refreshing of keys follows the rule of exponential backoff, retrying on unsuccessful refreshes with ever increasing pause, until it reaches <code>jwksRefreshSeconds</code>. The default value is 1.</p>
 </li>
 <li>
 <p>(Optional) If ECDSA is used for signing JWT tokens on authorization server, then this needs to be enabled. It installs additional crypto providers using BouncyCastle crypto library. Default is <code>false</code>.</p>
@@ -17109,7 +17159,8 @@ Otherwise, you have two connection options for your listener configuration when 
     clientSecret: <b class="conum">(3)</b>
       secretName: my-cluster-oauth
       key: clientSecret
-    userNameClaim: preferred_username <b class="conum">(4)</b></code></pre>
+    userNameClaim: preferred_username <b class="conum">(4)</b>
+    maxSecondsWithoutReauthentication: 3600 <b class="conum">(5)</b></code></pre>
 </div>
 </div>
 </div>
@@ -17127,6 +17178,9 @@ Otherwise, you have two connection options for your listener configuration when 
 </li>
 <li>
 <p>The token claim (or key) that contains the actual user name in the token. The user name is the <em>principal</em> used to identify the user. The <code>userNameClaim</code> value will depend on the authorization server used.</p>
+</li>
+<li>
+<p>(Optional) Activates the Kafka re-authentication mechanism that enforces session expiry to the same length of time as the access token. If the specified value is less than the time left for the access token to expire, then the client will have to re-authenticate before the actual token expiry. By default, the session does not expire when the access token expires, and the client does not attempt re-authentication.</p>
 </li>
 </ol>
 </div>
@@ -17224,7 +17278,7 @@ kubectl get po -w</code></pre>
 <pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;dependency&gt;
  &lt;groupId&gt;io.strimzi&lt;/groupId&gt;
  &lt;artifactId&gt;kafka-oauth-client&lt;/artifactId&gt;
- &lt;version&gt;0.5.0&lt;/version&gt;
+ &lt;version&gt;0.6.0&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -17490,7 +17544,7 @@ kubectl get pod -w</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-oauth-server-examples-str"><a class="link" href="#con-oauth-server-examples-str">2.7.6. Authorization server examples</a></h4>
+<h4 id="con-oauth-server-examples-str"><a class="link" href="#con-oauth-server-examples-str">2.7.7. Authorization server examples</a></h4>
 <div class="paragraph">
 <p>When choosing an authorization server, consider the features that best support configuration of your chosen authentication flow.</p>
 </div>
@@ -17611,6 +17665,9 @@ Storage and access to user data may be a factor in how you choose to configure a
 You use the same Keycloak server endpoint when you set up authorization.</p>
 </li>
 <li>
+<p>OAuth 2.0 authentication must be configured with the <code>maxSecondsWithoutReauthentication</code> option to enable re-authentication.</p>
+</li>
+<li>
 <p>You need to understand how to manage policies and permissions for Keycloak Authorization Services, as described in the <a href="https://www.keycloak.org/documentation.html" target="_blank" rel="noopener">Keycloak documentation</a>.</p>
 </li>
 </ul>
@@ -17662,6 +17719,8 @@ spec:
     tlsTrustedCertificates: <b class="conum">(7)</b>
     - secretName: oauth-server-cert
       certificate: ca.crt
+    grantsRefreshPeriodSeconds: 60 <b class="conum">(8)</b>
+    grantsRefreshPoolSize: 5 <b class="conum">(9)</b>
   #...</code></pre>
 </div>
 </div>
@@ -17688,6 +17747,12 @@ The default is <code>false</code>.</p>
 </li>
 <li>
 <p>(Optional) Trusted certificates for TLS connection to the authorization server.</p>
+</li>
+<li>
+<p>(Optional) The time between two consecutive grants refresh runs. That is the maximum time for active sessions to detect any permissions changes for the user on Keycloak. The default value is 60.</p>
+</li>
+<li>
+<p>(Optional) The number of threads to use to refresh (in parallel) the grants for the active sessions. The default value is 5.</p>
 </li>
 </ol>
 </div>
@@ -27246,8 +27311,22 @@ It must have the value <code>oauth</code> for the type <code>KafkaListenerAuthen
 <td class="tableblock halign-left valign-top"><p class="tableblock">integer</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jwksMinRefreshPauseSeconds</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The minimum pause between two consecutive refreshes. When an unknown signing key is encountered the refresh is scheduled immediately, but will always wait for this minimum pause. Defaults to 1 second.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">jwksRefreshSeconds</p></td>
 <td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Configures how often are the JWKS certificates refreshed. The refresh interval has to be at least 60 seconds shorter then the expiry interval specified in <code>jwksExpirySeconds</code>. Defaults to 300 seconds.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">maxSecondsWithoutReauthentication</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Maximum number of seconds the authenticated session remains valid without re-authentication. This enables Apache Kafka re-authentication feature, and causes sessions to expire when the access token expires. If the access token expires before max time or if max time is reached, the client has to re-authenticate, otherwise the server will drop the connection. Not set by default - the authenticated session does not expire when the access token expires.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">integer</p></td>
@@ -28526,10 +28605,24 @@ It must have the value <code>keycloak</code> for the type <code>KafkaAuthorizati
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">delegateToKafkaAcls</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Whether authorization decision should be delegated to the 'Simple' authorizer if DENIED by Keycloak Authorization Services policies.Default value is <code>false</code>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Whether authorization decision should be delegated to the 'Simple' authorizer if DENIED by Keycloak Authorization Services policies. Default value is <code>false</code>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">grantsRefreshPeriodSeconds</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The time between two consecutive grants refresh runs in seconds. The default value is 60.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">grantsRefreshPoolSize</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The number of threads to use to refresh grants for active sessions. The more threads, the more parallelism, so the sooner the job completes. However, using more threads places a heavier load on the authorization server. The default value is 5.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">superUsers</p></td>
