@@ -10309,9 +10309,18 @@ spec:
 </div>
 </div>
 <div class="sect4">
-<h5 id="proc-kafka-connect-mounting-volumes-deployment-configuration-kafka-connect"><a class="link" href="#proc-kafka-connect-mounting-volumes-deployment-configuration-kafka-connect">Mounting Secrets as volumes</a></h5>
+<h5 id="proc-kafka-connect-mounting-volumes-deployment-configuration-kafka-connect"><a class="link" href="#proc-kafka-connect-mounting-volumes-deployment-configuration-kafka-connect">Mounting Secrets as volumes for connector configuration</a></h5>
 <div class="paragraph">
-<p>You can create a Kubernetes Secret, mount it as a volume to Kafka Connect, and then use it to configure a Kafka Connect connector.</p>
+<p>You can create a Kubernetes Secret, mount it as a volume to Kafka Connect,
+and then use it to configure a Kafka Connect connector.</p>
+</div>
+<div class="paragraph">
+<p>Configuration providers allow you to load configuration values from external sources.</p>
+</div>
+<div class="paragraph">
+<p>In this procedure, a Secret named <code>mysecret</code> is mounted to a volume named <code>connector-config</code>.
+The Kafka <code>FileConfigProvider</code> is given the alias <code>file</code>,
+and used to read and extract database <em>username</em> and <em>password</em> property values from the file to use in the connector configuration.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -10325,8 +10334,10 @@ spec:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Create a secret containing a properties file that defines the configuration options for your connector configuration.
-For example:</p>
+<p>Create a secret containing properties that define the configuration options for your connector configuration.</p>
+<div class="paragraph">
+<p>For example:</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: v1
@@ -10335,16 +10346,30 @@ metadata:
   name: mysecret
 type: Opaque
 stringData:
-  connector.properties: |-
-    dbUsername: my-user
+  connector.properties: |- <b class="conum">(1)</b>
+    dbUsername: my-user <b class="conum">(2)</b>
     dbPassword: my-password</code></pre>
 </div>
 </div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The connector configuration in properties file format.</p>
 </li>
 <li>
-<p>Create or edit the Kafka Connect resource.
-Configure the <code>FileConfigProvider</code> in the <code>config</code> section and the <code>externalConfiguration</code> section of the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> custom resource to reference the secret.
-For example:</p>
+<p>Database username and password properties used in the configuration.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Create or edit the Kafka Connect resource.</p>
+<div class="paragraph">
+<p>In the <code>config</code> section and the <code>externalConfiguration</code> section of the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> custom resource, configure the configuration provider to reference the secret.</p>
+</div>
+<div class="paragraph">
+<p>For example:</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
@@ -10354,25 +10379,40 @@ metadata:
 spec:
   # ...
   config:
-    config.providers: file
-    config.providers.file.class: org.apache.kafka.common.config.provider.FileConfigProvider
+    config.providers: file <b class="conum">(1)</b>
+    config.providers.file.class: org.apache.kafka.common.config.provider.FileConfigProvider <b class="conum">(2)</b>
   #...
   externalConfiguration:
     volumes:
-      - name: connector-config
+      - name: connector-config <b class="conum">(3)</b>
         secret:
-          secretName: mysecret</code></pre>
+          secretName: mysecret <b class="conum">(4)</b></code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The alias for the configuration provider, which is used to define other configuration parameters.
+Use a comma-separated list if you want to add more than one provider.</p>
+</li>
+<li>
+<p>The <code>FileConfigProvider</code> is the configuration provider that provides values from properties files.
+The parameter uses the alias from <code>config.providers</code>, taking the form <code>config.providers.${alias}.class</code>.</p>
+</li>
+<li>
+<p>The name of the volume containing the Secret.</p>
+</li>
+<li>
+<p>The name of the Secret.</p>
+</li>
+</ol>
 </div>
 </li>
 <li>
 <p>Apply the changes to your Kafka Connect deployment.</p>
-<div class="paragraph">
-<p>Use <code>kubectl apply</code>:</p>
-</div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>your-file</em></code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>KAFKA-CONNECT-CONFIG-FILE</em></code></pre>
 </div>
 </div>
 </li>
@@ -10391,17 +10431,29 @@ For example:</p>
       "connector.class":"MyDbConnector",
       "tasks.max":"3",
       "database": "my-postgresql:5432",
-      "username":"${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbUsername}",
-      "password":"${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbPassword}",
+      "username":"${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbUsername}", <b class="conum">(1)</b>
+      "password":"${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbPassword}", <b class="conum">(2)</b>
       # ...
    }
 }</code></pre>
 </div>
 </div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Path to the username property value. The path takes the form <code>/opt/kafka/external-configuration/<em>SECRET-VOLUME-NAME</em>/<em>PROPERTIES-FILENAME:USERNAME-PROPERTY</em></code>.</p>
 </li>
 <li>
-<p>If you are using a <code>KafkaConnector</code> resource, use the values from the mounted properties file in the <code>spec.config</code> section of your custom resource.
-For example:</p>
+<p>Path to the password property value. The path takes the form <code>/opt/kafka/external-configuration/<em>SECRET-VOLUME-NAME</em>/<em>PROPERTIES-FILENAME:PASSWORD-PROPERTY</em></code>.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>If you are using a <code>KafkaConnector</code> resource, use the values from the mounted properties file in the <code>spec.config</code> section of your custom resource.</p>
+<div class="paragraph">
+<p>For example:</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
@@ -13134,9 +13186,18 @@ spec:
 </div>
 </div>
 <div class="sect4">
-<h5 id="proc-kafka-connect-mounting-volumes-deployment-configuration-kafka-connect-s2i"><a class="link" href="#proc-kafka-connect-mounting-volumes-deployment-configuration-kafka-connect-s2i">Mounting Secrets as volumes</a></h5>
+<h5 id="proc-kafka-connect-mounting-volumes-deployment-configuration-kafka-connect-s2i"><a class="link" href="#proc-kafka-connect-mounting-volumes-deployment-configuration-kafka-connect-s2i">Mounting Secrets as volumes for connector configuration</a></h5>
 <div class="paragraph">
-<p>You can create a Kubernetes Secret, mount it as a volume to Kafka Connect, and then use it to configure a Kafka Connect connector.</p>
+<p>You can create a Kubernetes Secret, mount it as a volume to Kafka Connect,
+and then use it to configure a Kafka Connect connector.</p>
+</div>
+<div class="paragraph">
+<p>Configuration providers allow you to load configuration values from external sources.</p>
+</div>
+<div class="paragraph">
+<p>In this procedure, a Secret named <code>mysecret</code> is mounted to a volume named <code>connector-config</code>.
+The Kafka <code>FileConfigProvider</code> is given the alias <code>file</code>,
+and used to read and extract database <em>username</em> and <em>password</em> property values from the file to use in the connector configuration.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -13150,8 +13211,10 @@ spec:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Create a secret containing a properties file that defines the configuration options for your connector configuration.
-For example:</p>
+<p>Create a secret containing properties that define the configuration options for your connector configuration.</p>
+<div class="paragraph">
+<p>For example:</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: v1
@@ -13160,16 +13223,30 @@ metadata:
   name: mysecret
 type: Opaque
 stringData:
-  connector.properties: |-
-    dbUsername: my-user
+  connector.properties: |- <b class="conum">(1)</b>
+    dbUsername: my-user <b class="conum">(2)</b>
     dbPassword: my-password</code></pre>
 </div>
 </div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The connector configuration in properties file format.</p>
 </li>
 <li>
-<p>Create or edit the Kafka Connect resource.
-Configure the <code>FileConfigProvider</code> in the <code>config</code> section and the <code>externalConfiguration</code> section of the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> custom resource to reference the secret.
-For example:</p>
+<p>Database username and password properties used in the configuration.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Create or edit the Kafka Connect resource.</p>
+<div class="paragraph">
+<p>In the <code>config</code> section and the <code>externalConfiguration</code> section of the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> custom resource, configure the configuration provider to reference the secret.</p>
+</div>
+<div class="paragraph">
+<p>For example:</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
@@ -13179,25 +13256,40 @@ metadata:
 spec:
   # ...
   config:
-    config.providers: file
-    config.providers.file.class: org.apache.kafka.common.config.provider.FileConfigProvider
+    config.providers: file <b class="conum">(1)</b>
+    config.providers.file.class: org.apache.kafka.common.config.provider.FileConfigProvider <b class="conum">(2)</b>
   #...
   externalConfiguration:
     volumes:
-      - name: connector-config
+      - name: connector-config <b class="conum">(3)</b>
         secret:
-          secretName: mysecret</code></pre>
+          secretName: mysecret <b class="conum">(4)</b></code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The alias for the configuration provider, which is used to define other configuration parameters.
+Use a comma-separated list if you want to add more than one provider.</p>
+</li>
+<li>
+<p>The <code>FileConfigProvider</code> is the configuration provider that provides values from properties files.
+The parameter uses the alias from <code>config.providers</code>, taking the form <code>config.providers.${alias}.class</code>.</p>
+</li>
+<li>
+<p>The name of the volume containing the Secret.</p>
+</li>
+<li>
+<p>The name of the Secret.</p>
+</li>
+</ol>
 </div>
 </li>
 <li>
 <p>Apply the changes to your Kafka Connect deployment.</p>
-<div class="paragraph">
-<p>Use <code>kubectl apply</code>:</p>
-</div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>your-file</em></code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>KAFKA-CONNECT-CONFIG-FILE</em></code></pre>
 </div>
 </div>
 </li>
@@ -13216,17 +13308,29 @@ For example:</p>
       "connector.class":"MyDbConnector",
       "tasks.max":"3",
       "database": "my-postgresql:5432",
-      "username":"${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbUsername}",
-      "password":"${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbPassword}",
+      "username":"${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbUsername}", <b class="conum">(1)</b>
+      "password":"${file:/opt/kafka/external-configuration/connector-config/connector.properties:dbPassword}", <b class="conum">(2)</b>
       # ...
    }
 }</code></pre>
 </div>
 </div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Path to the username property value. The path takes the form <code>/opt/kafka/external-configuration/<em>SECRET-VOLUME-NAME</em>/<em>PROPERTIES-FILENAME:USERNAME-PROPERTY</em></code>.</p>
 </li>
 <li>
-<p>If you are using a <code>KafkaConnector</code> resource, use the values from the mounted properties file in the <code>spec.config</code> section of your custom resource.
-For example:</p>
+<p>Path to the password property value. The path takes the form <code>/opt/kafka/external-configuration/<em>SECRET-VOLUME-NAME</em>/<em>PROPERTIES-FILENAME:PASSWORD-PROPERTY</em></code>.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>If you are using a <code>KafkaConnector</code> resource, use the values from the mounted properties file in the <code>spec.config</code> section of your custom resource.</p>
+<div class="paragraph">
+<p>For example:</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
