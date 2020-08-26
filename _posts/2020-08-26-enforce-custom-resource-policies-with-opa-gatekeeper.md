@@ -6,26 +6,26 @@ author: jakub_scholz
 ---
 
 In our [last blog post](https://strimzi.io/blog/2020/08/05/using-open-policy-agent-with-strimzi-and-apache-kafka/) about [Open Policy Agent (OPA)](https://www.openpolicyagent.org/), we looked at how it can be used with Strimzi for Kafka authorization.
-In this blog post we will look at how you can use Open Polic Agent and its [Gatekeeper](https://github.com/open-policy-agent/gatekeeper) project to enforce policies when creating custom resources and explain why it might be handy with for Strimzi users.
+In this blog post we will look at how you can use Open Policy Agent and its [Gatekeeper](https://github.com/open-policy-agent/gatekeeper) project to enforce policies when creating custom resources and explain why it might be handy with for Strimzi users.
 
 <!--more-->
 
 Strimzi is using the operator pattern to make running Apache Kafka on Kubernetes easy.
 We use the Custom Resource Definitions (CRDs) to extend the Kubernetes API.
 When users want to create a Kafka cluster or Kafka topic, they can create them as custom resources.
-These custom resources (CRs) will be seen by the Strimzi operator which will react to them and deplo a Kafka cluster or create a Kafka topic.
+These custom resources (CRs) will be seen by the Strimzi operator which will react to them and deploy a Kafka cluster or create a Kafka topic.
 
 The challenging part about this is that creating the custom resource and the operator seeing it are two separate steps which are not done synchronously.
-When the user creates or modifies the custom resource - for example using `kubectl apply` - the custom resource is accepted by the Kubernetes API server and stored in its Etcd database.
+When the user creates or modifies the custom resource - for example using `kubectl apply` - the custom resource is accepted by the Kubernetes API server and stored in its _Etcd_ database.
 If this succeeds, the user gets back the message that the resource was successfully created or changed.
 But at this point, the Operator still might not know about the resource.
 Only after the resource is created or modified, the Kubernetes API server will notify the operator about it and the operator will decide what action to take.
 Because this happens asynchronously, the operator has no chance to stop the resource from being created or changed.
 The operator will see the resource only once it is created or changed and that is too late.
-So operators cannot asily do any advanced validation or apply some sophisticated policies.
+So operators cannot easily do any advanced validation or apply some sophisticated policies.
 And this does not apply only to Strimzi but to all operators in general.
 
-TODO: Picture
+![Asynchronous flow when creating or changing CRs](/assets/images/posts/2020-08-26-asynchronous-cr-flow.png)
 
 The Custom Resource Definitions can of course include OpenAPIv3 spec which does a basic validation of the custom resource.
 But that validates only the structure of the custom resource.
@@ -42,8 +42,8 @@ You can register your application as admission controller for any kind of resour
 And whenever is such resource created or changed, the webhook will be called to validate it and either approve it and admit it into the cluster or reject it.
 If needed, the webhooks can even modify the resource, but that goes beyond the scope of this blog post.
 
-Because the admission controllers are called before the request is done and the result is stored in the Etcd database, you can use them to do some advanced validation or apply some policies which need to be enforced.
-And OPA Gatekeeper gives you a framework to write easily your own admission controllers using the Rego policy language.
+Because the admission controllers are called before the request is done and the result is stored in the _Etcd_ database, you can use them to do some advanced validation or apply some policies which need to be enforced.
+And OPA Gatekeeper gives you a framework to write easily your own admission controllers using the _Rego_ policy language.
 
 ## Open Policy Agent Gatekeeper
 
@@ -54,7 +54,7 @@ And you can use two special custom resources to configure its behavior:
 When you create it, Gatekeeper will dynamically create a new CRD based on the template.
 And this new CRD can be used to create a constraints - an instance of the policy with defined parameters which will be enforced.
 If this sounds confusing, don't worry.
-The examples comming next will make it much more clear.
+The examples coming next will make it much more clear.
 
 But before we show some examples, we need to install Gatekeeper.
 Detailed installation instructions can be found in the [Gatekeeper README.md file](https://github.com/open-policy-agent/gatekeeper#installation-instructions).
@@ -116,7 +116,7 @@ spec:
 Notice several parts of this custom resource:
 * The `.spec.crd` section configures the CRD which will be dynamically created. You can configure the kind of the new CRD (the name of the `ConstraintTemplate` resource has to be the same as the `kind` of the new CRD).
 And you can also specify OpenAPI v3 schema which will be used for validation of the constraints - the policy instances.
-* The `.spec.targets` section let's you specify the Rego policy which will be used to validate the resources.
+* The `.spec.targets` section let's you specify the _Rego_ policy which will be used to validate the resources.
 It is using the rule named `violation`.
 The resource which needs be validated will be passed into the policy as `input.review.object`.
 The parameters will be passed in `input.parameters`.
@@ -124,7 +124,7 @@ In our case, the parameter is list of labels which have to be present on the res
 The policy takes the labels from the reviewed resource and compares them against the required labels from the parameters and decides if the resource is valid.
 
 Since the `ConstraintTemplate` is just a template, it does not have to know anything about the `strimzi.io/cluster` label.
-We can specifiy that in the constraint resource.
+We can specify that in the constraint resource.
 You can create this `ConstraintTemplate` just by calling `kubectl apply` on it.
 `ConstraintTemplate` is a global resource.
 So you do not need to specify any namespace.
@@ -151,7 +151,7 @@ spec:
 ```
 
 The constraint has two parts:
-* The `.spec.match` section where we tell Gatekeeper for which resources whould this constraint apply.
+* The `.spec.match` section where we tell Gatekeeper for which resources would this constraint apply.
 In our case, these are `KafkaTopic`, `KafkaUser` and `KafkaConnector`.
 * The `.spec.parameters` section specifies the parameters of the policy.
 In our case, we want the label `strimzi.io/cluster` to be present.
@@ -429,7 +429,7 @@ Some ideas as examples:
 Gatekeeper gives you a very simple way how to write powerful admission controllers.
 The examples in this blog post covered just some of its aspects.
 To understand all the options which Gatekeeper gives you, you should check their [GitHub repository](https://github.com/open-policy-agent/gatekeeper).
-You do not have to write anything in Golang or build your own images.
-All you need to know is the Rego policy language.
+You do not have to write anything in _Golang_ or build your own images.
+All you need to know is the _Rego_ policy language.
 It is just up to you to come up with the right policies which you want to be enforced in your cluster.
 And of course you can use it with any kind of resources - not just with Strimzi.
