@@ -5,8 +5,8 @@ date: 2020-08-26
 author: jakub_scholz
 ---
 
-In our [last blog post](https://strimzi.io/blog/2020/08/05/using-open-policy-agent-with-strimzi-and-apache-kafka/) about [Open Policy Agent (OPA)](https://www.openpolicyagent.org/), we looked at how it can be used with Strimzi for Kafka authorization.
-In this blog post we will look at how you can use Open Policy Agent and its [Gatekeeper](https://github.com/open-policy-agent/gatekeeper) project to enforce policies when creating custom resources and explain why it might be handy with for Strimzi users.
+In our [last blog post](https://strimzi.io/blog/2020/08/05/using-open-policy-agent-with-strimzi-and-apache-kafka/) we looked at [Open Policy Agent (OPA)](https://www.openpolicyagent.org/), and how it can be used with Strimzi for Kafka authorization.
+In this blog post we will look at how you can use Open Policy Agent and its [Gatekeeper](https://github.com/open-policy-agent/gatekeeper) project to enforce policies when creating custom resources and explain why it might be useful to Strimzi users.
 
 <!--more-->
 
