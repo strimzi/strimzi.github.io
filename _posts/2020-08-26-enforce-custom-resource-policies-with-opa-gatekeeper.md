@@ -73,7 +73,7 @@ Once it is installed, you can start creating policies.
 When creating `KafkaTopic` or `KafkaUser` resources, you need to use the `strimzi.io/cluster` label to tell Strimzi in which Kafka cluster should the topic or user be created.
 Similarly, when using the `KafkaConnector` resource, you need to use the `strimzi.io/cluster` label to tell in which Kafka Connect cluster it should be deployed.
 When you forget this label, the topic, user or connector will not be created.
-So the first think we can try is to use Gatekeeper to make sure this label is present on these custom resources.
+So the first thing we can try is to use Gatekeeper to make sure this label is present on these custom resources.
 This is also the example included in Gatekeeper, so we can use the same code.
 
 ### Enforce the Strimzi cluster label
@@ -268,7 +268,7 @@ For connectors, it will check if the `KafkaConnect` resource exists and whether 
 Only when the cluster is valid, the custom resource will be created.
 
 As you probably noticed, this policy template doesn't take any paramaters.
-But we still need to create the constraint to tel Gatekeeper what kind of resources should be validated:
+But we still need to create the constraint to tell Gatekeeper what kind of resources should be validated:
 
 ```yaml
 apiVersion: constraints.gatekeeper.sh/v1beta1
@@ -287,7 +287,7 @@ spec:
 ```
 
 And then we can try that the validation works.
-We can try to create a `KafkaUser` with cluster name which does nto exist:
+We can try to create a `KafkaUser` with cluster name which does not exist:
 
 ```bash
 cat <<EOF | kubectl apply -f -
