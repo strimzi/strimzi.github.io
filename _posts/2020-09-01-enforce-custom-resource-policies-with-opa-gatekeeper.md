@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Enforce Custom Resource policies with Open Policy Agent Gatekeeper"
-date: 2020-08-26
+date: 2020-09-01
 author: jakub_scholz
 ---
 
@@ -24,7 +24,7 @@ Because this happens asynchronously, the operator has no chance to stop the reso
 The operator will see the resource only once it is created or changed and that is too late to do things likes like validation or applying sophisticated policies.
 This applies not only to Strimzi, but to operators in general.
 
-![Asynchronous flow when creating or changing CRs](/assets/images/posts/2020-08-26-asynchronous-cr-flow.png)
+![Asynchronous flow when creating or changing CRs](/assets/images/posts/2020-09-01-asynchronous-cr-flow.png)
 
 The Custom Resource Definitions can of course include an OpenAPIv3 schema which enables some basic validation of the custom resource.
 But that validates only the structure of the custom resource.
