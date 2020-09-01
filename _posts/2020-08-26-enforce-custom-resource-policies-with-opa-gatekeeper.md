@@ -10,8 +10,8 @@ In this blog post we will look at how you can use Open Policy Agent and its [Gat
 
 <!--more-->
 
-Strimzi is using the operator pattern to make running Apache Kafka on Kubernetes easy.
-We use the Custom Resource Definitions (CRDs) to extend the Kubernetes API.
+Strimzi uses the operator pattern to make running Apache Kafka on Kubernetes easy.
+We use Custom Resource Definitions (CRDs) to extend the Kubernetes API.
 When users want to create a Kafka cluster or Kafka topic, they can create them as custom resources.
 These custom resources (CRs) will be seen by the Strimzi operator which will react to them and deploy a Kafka cluster or create a Kafka topic.
 
@@ -21,25 +21,24 @@ If this succeeds, the user gets back the message that the resource was successfu
 But at this point, the Operator still might not know about the resource.
 Only after the resource is created or modified, the Kubernetes API server will notify the operator about it and the operator will decide what action to take.
 Because this happens asynchronously, the operator has no chance to stop the resource from being created or changed.
-The operator will see the resource only once it is created or changed and that is too late.
-So operators cannot easily do any advanced validation or apply some sophisticated policies.
-And this does not apply only to Strimzi but to all operators in general.
+The operator will see the resource only once it is created or changed and that is too late to do things likes like validation or applying sophisticated policies.
+This applies not only to Strimzi, but to operators in general.
 
 ![Asynchronous flow when creating or changing CRs](/assets/images/posts/2020-08-26-asynchronous-cr-flow.png)
 
-The Custom Resource Definitions can of course include OpenAPIv3 spec which does a basic validation of the custom resource.
+The Custom Resource Definitions can of course include an OpenAPIv3 schema which enables some basic validation of the custom resource.
 But that validates only the structure of the custom resource.
 It cannot do more advanced validations such as _Does the Kafka cluster where I want to create the topic exist?_.
 Our users are then wondering why did Strimzi let them create a topic for non-existent Kafka cluster.
-But there is not much an operator can do about it.
+But there is not much an operator can do about that.
 
 ## Admission Controllers
 
-While operators cannot reject the custom resources as _invalid_, there are other Kuberneter components which.
+While operators cannot reject the custom resources as _invalid_, there are other Kuberneter components which can.
 They are called [Admission Controllers](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/).
 Admission controllers work as webhooks.
-You can register your application as admission controller for any kind of resource.
-And whenever is such resource created or changed, the webhook will be called to validate it and either approve it and admit it into the cluster or reject it.
+You can register an application as admission controller for any kind of resource.
+And whenever such a resource is created or changed, the webhook will be called to validate it and either approve it and admit it into the cluster or reject it.
 If needed, the webhooks can even modify the resource, but that goes beyond the scope of this blog post.
 
 Because the admission controllers are called before the request is done and the result is stored in the _Etcd_ database, you can use them to do some advanced validation or apply some policies which need to be enforced.
@@ -48,13 +47,12 @@ And OPA Gatekeeper gives you a framework to write easily your own admission cont
 ## Open Policy Agent Gatekeeper
 
 Gatekeeper is a validating admission controller for validating Kubernetes resources.
-It is installed into your Kubernetes cluster as admission controller.
+It is installed into your Kubernetes cluster as an admission controller.
 And you can use two special custom resources to configure its behavior:
 `ConstraintTemplate` CRs are used to create a policy template which can be parametrized.
 When you create it, Gatekeeper will dynamically create a new CRD based on the template.
 And this new CRD can be used to create a constraints - an instance of the policy with defined parameters which will be enforced.
-If this sounds confusing, don't worry.
-The examples coming next will make it much more clear.
+If this sounds confusing, don't worry, the examples coming next will make it much clearer.
 
 But before we show some examples, we need to install Gatekeeper.
 Detailed installation instructions can be found in the [Gatekeeper README.md file](https://github.com/open-policy-agent/gatekeeper#installation-instructions).
@@ -115,8 +113,8 @@ spec:
 
 Notice several parts of this custom resource:
 * The `.spec.crd` section configures the CRD which will be dynamically created. You can configure the kind of the new CRD (the name of the `ConstraintTemplate` resource has to be the same as the `kind` of the new CRD).
-And you can also specify OpenAPI v3 schema which will be used for validation of the constraints - the policy instances.
-* The `.spec.targets` section let's you specify the _Rego_ policy which will be used to validate the resources.
+And you can also specify the OpenAPI v3 schema which will be used for validation of the constraints - the policy instances.
+* The `.spec.targets` section lets you specify the _Rego_ policy which will be used to validate the resources.
 It is using the rule named `violation`.
 The resource which needs be validated will be passed into the policy as `input.review.object`.
 The parameters will be passed in `input.parameters`.
@@ -126,8 +124,7 @@ The policy takes the labels from the reviewed resource and compares them against
 Since the `ConstraintTemplate` is just a template, it does not have to know anything about the `strimzi.io/cluster` label.
 We can specify that in the constraint resource.
 You can create this `ConstraintTemplate` just by calling `kubectl apply` on it.
-`ConstraintTemplate` is a global resource.
-So you do not need to specify any namespace.
+`ConstraintTemplate` is a global resource so you do not need to specify any namespace.
 Once the template is created, you can do `kubectl get crds` and should see there a new custom resource definition named `k8srequiredlabels`.
 
 With the template ready, we have to create the constraint:
@@ -151,12 +148,12 @@ spec:
 ```
 
 The constraint has two parts:
-* The `.spec.match` section where we tell Gatekeeper for which resources would this constraint apply.
+* The `.spec.match` section where we tell Gatekeeper which resources this constraint applies to.
 In our case, these are `KafkaTopic`, `KafkaUser` and `KafkaConnector`.
 * The `.spec.parameters` section specifies the parameters of the policy.
 In our case, we want the label `strimzi.io/cluster` to be present.
 
-The constraint can be again created using `kubectl apply`.
+Again, the constraint can be created using `kubectl apply`.
 Once it is created, we can see how it works.
 Let's try to create a `KafkaTopic` resource without the label:
 
@@ -185,9 +182,8 @@ Thanks to the policy from the previous example, we can now be sure that all our 
 But that is not enough for us.
 We want to know that the Kafka or Kafka Connect cluster actually exists.
 And for Kafka Connectors also ensure that the Kafka Connect cluster has enabled the use of connector resources.
-The Gatekeeper example policy is too simple for that.
-But we can improve it.
-When the `KafkaTopic`, `KafkaUser` and `KafkaConnector` resources are created, we can extract the value of the `strimzi.io/cluster` label and check if a `Kafka` or `KafkaConnect` resource with such name actually exists.
+The Gatekeeper example policy is too simple for that, but we can improve it.
+When the `KafkaTopic`, `KafkaUser` and `KafkaConnector` resources are created, we can extract the value of the `strimzi.io/cluster` label and check if a `Kafka` or `KafkaConnect` resource with that name actually exists.
 
 In order to be able check if `Kafka` or `KafkaConnect` resources exist, we need to tell Gatekeeper to read them from the Kubernetes API and make these data available in the policies.
 To do that we have to create the `Config` custom resource in the `gatekeeper-system` namespace:
@@ -236,7 +232,7 @@ spec:
           not valid_user
           not valid_connector
           
-          msg := "strimzi.io/cluster label must contain one of the existing clusters"
+          msg := "strimzi.io/cluster label must name one of the existing clusters"
         }
         valid_topic {
           is_topic
@@ -262,10 +258,10 @@ spec:
         }
 ```
 
-This policy will decied whether the reviewed resource is a topic, user or connector.
+This policy will decide whether the resource being reviewed is a topic, user or connector.
 For topic and user, it will check whether the `Kafka` resource with the same name exists or not.
 For connectors, it will check if the `KafkaConnect` resource exists and whether it is configured to use the connector resources.
-Only when the cluster is valid, the custom resource will be created.
+Only when the cluster is valid, will the custom resource be created.
 
 As you probably noticed, this policy template doesn't take any paramaters.
 But we still need to create the constraint to tell Gatekeeper what kind of resources should be validated:
@@ -286,8 +282,7 @@ spec:
         kinds: ["KafkaConnector"]
 ```
 
-And then we can try that the validation works.
-We can try to create a `KafkaUser` with cluster name which does not exist:
+And then we can see whether the validation works by trying to create a `KafkaUser` with a cluster name which does not exist:
 
 ```bash
 cat <<EOF | kubectl apply -f -
@@ -301,10 +296,10 @@ spec:
   authentication:
     type: tls
 EOF
-Error from server ([denied by strimzi-labels] strimzi.io/cluster label must contain one of the existing clusters): error when creating "STDIN": admission webhook "validation.gatekeeper.sh" denied the request: [denied by strimzi-labels] strimzi.io/cluster label must contain one of the existing clusters
+Error from server ([denied by strimzi-labels] strimzi.io/cluster label must contain one of the existing clusters): error when creating "STDIN": admission webhook "validation.gatekeeper.sh" denied the request: [denied by strimzi-labels] strimzi.io/cluster label must name one of the existing clusters
 ```
 
-As you can see, the resource is rejected with the error `strimzi.io/cluster label must contain one of the existing clusters`.
+As you can see, the resource is rejected with the error `strimzi.io/cluster label must name one of the existing clusters`.
 When we try it with a valid cluster name, it will be created:
 
 ```bash
@@ -376,7 +371,7 @@ This policy has two parameters:
 * The minimal allowed number of in-sync replicas
 
 And we can use these to create different constraints for different environments.
-For example, for test environment, it is ok to have only 2 replicas and `min.insync.replicas` set to 1.
+For example, for a test environment, it might be OK to have only 2 replicas and `min.insync.replicas` set to 1.
 While in production, you need to use at least 3 replicas and at least 2 `min.insync.replicas`:
 
 ```yaml
@@ -394,7 +389,7 @@ spec:
     min-insync-replicas: 2
 ```
 
-When now someone tries to create a topic not matching the criteria, it will not be allowed:
+When someone now tries to create a topic not matching the criteria, it will not be allowed:
 
 ```bash
 cat <<EOF | kubectl apply -f -
@@ -417,7 +412,7 @@ Error from server ([denied by strimzi-replicas] Topic must have at least 3 repli
 _Note: Gatekeeper only controls the topics created in Kubernetes using the `KafkaTopic` custom resource._
 _It does not validate topics created directly inside Kafka using Kafka APIs._
 
-In the same way you can write many policies to enforce different aspects of your Kafka based infrastructure.
+In the same way, you can write many policies to enforce different aspects of your Kafka based infrastructure.
 Some ideas as examples:
 
 * Minimal number of Zookeeper, Kafka or Kafka Connect nodes
@@ -426,7 +421,7 @@ Some ideas as examples:
 
 ## Conclusion
 
-Gatekeeper gives you a very simple way how to write powerful admission controllers.
+Gatekeeper gives you a very simple way to write powerful admission controllers.
 The examples in this blog post covered just some of its aspects.
 To understand all the options which Gatekeeper gives you, you should check their [GitHub repository](https://github.com/open-policy-agent/gatekeeper).
 You do not have to write anything in _Golang_ or build your own images.
