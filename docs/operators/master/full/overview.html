@@ -492,10 +492,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#metrics-overview_str">7. Monitoring</a>
 <ul class="sectlevel2">
-<li><a href="#metrics-overview-prometheus_str">7.1. Prometheus</a></li>
+<li><a href="#metrics-overview-tools-str">7.1. Prometheus</a></li>
 <li><a href="#metrics-overview-grafana_str">7.2. Grafana</a></li>
 <li><a href="#metrics-overview-exporter_str">7.3. Kafka Exporter</a></li>
 <li><a href="#metrics-overview-tracing_str">7.4. Distributed tracing</a></li>
+<li><a href="#metrics-overview-cruisecontrol_str">7.5. Cruise Control</a></li>
 </ul>
 </li>
 </ul>
@@ -835,10 +836,6 @@ Connectors are plugins that provide the connection configuration needed.</p>
 <dt class="hdlist1">Kafka Exporter</dt>
 <dd>
 <p>Kafka Exporter extracts data for analysis as Prometheus metrics, primarily data relating to offsets, consumer groups, consumer lag and topics. Consumer lag is the delay between the last message written to a partition and the message currently being picked up from that partition by a consumer</p>
-</dd>
-<dt class="hdlist1">Cruise Control</dt>
-<dd>
-<p>Cruise Control monitors and balances data across a Kafka cluster.</p>
 </dd>
 </dl>
 </div>
@@ -1715,6 +1712,26 @@ metadata:
 <div class="paragraph">
 <p>HTTP-related configuration options set the port connection which the server listens on.</p>
 </div>
+<h4 id="cors" class="discrete">CORS</h4>
+<div class="paragraph">
+<p>The Kafka Bridge supports the use of Cross-Origin Resource Sharing (CORS).
+CORS is a HTTP mechanism that allows browser access to selected resources from more than one origin, for example, resources on different domains.
+If you choose to use CORS, you can define a list of allowed resource origins and HTTP methods for interaction with the Kafka cluster through the Kafka Bridge.
+The lists are defined in the <code>http</code> specification of the Kafka Bridge configuration.</p>
+</div>
+<div class="paragraph">
+<p>CORS allows for <em>simple</em> and <em>preflighted</em> requests between origin sources on different domains.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A simple request is a HTTP request that must have an allowed origin defined in its header.</p>
+</li>
+<li>
+<p>A preflighted request sends an initial OPTIONS HTTP request before the actual request to check that the origin and the method are allowed.</p>
+</li>
+</ul>
+</div>
 <h4 id="example_yaml_showing_kafka_bridge_configuration" class="discrete">Example YAML showing Kafka Bridge configuration</h4>
 <div class="listingblock">
 <div class="content">
@@ -1727,6 +1744,9 @@ spec:
   bootstrapServers: my-cluster-kafka:9092
   http:
     port: 8080
+    cors:
+      allowedOrigins: "https://strimzi.io"
+      allowedMethods: "GET,POST,PUT,DELETE,OPTIONS,PATCH"
   consumer:
     config:
       auto.offset.reset: earliest
@@ -1735,6 +1755,14 @@ spec:
       delivery.timeout.ms: 300000
   # ...</code></pre>
 </div>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="https://www.w3.org/TR/cors/">Fetch</a> CORS specification</p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -1876,6 +1904,9 @@ Example metrics configuration files are provided with Strimzi.</p>
 <p>Distributed tracing complements the gathering of metrics data by providing a facility for end-to-end tracking of messages through Strimzi.</p>
 </div>
 <div class="paragraph">
+<p>Cruise Control provides support for rebalancing of Kafka clusters, based on workload data.</p>
+</div>
+<div class="paragraph">
 <div class="title">Metrics and monitoring tools</div>
 <p>Strimzi can employ the following tools for metrics and monitoring:</p>
 </div>
@@ -1892,6 +1923,9 @@ Example metrics configuration files are provided with Strimzi.</p>
 </li>
 <li>
 <p><strong>Jaeger</strong> provides distributed tracing support to track transactions between applications</p>
+</li>
+<li>
+<p><strong>Cruise Control</strong> balances data across a Kafka cluster</p>
 </li>
 </ul>
 </div>
@@ -1910,20 +1944,23 @@ Example metrics configuration files are provided with Strimzi.</p>
 <li>
 <p><a href="https://www.jaegertracing.io/" target="_blank" rel="noopener">Jaeger</a></p>
 </li>
+<li>
+<p><a href="https://github.com/linkedin/cruise-control/wiki" target="_blank" rel="noopener">Cruise Control Wiki</a></p>
+</li>
 </ul>
 </div>
 <div class="sect2">
-<h3 id="metrics-overview-prometheus_str"><a class="link" href="#metrics-overview-prometheus_str">7.1. Prometheus</a></h3>
+<h3 id="metrics-overview-tools-str"><a class="link" href="#metrics-overview-tools-str">7.1. Prometheus</a></h3>
 <div class="paragraph">
-<p>Prometheus can extract metrics data from Kafka, Kafka Connect and ZooKeeper.</p>
+<p>Prometheus can extract metrics data from Kafka components and the Strimzi Operators.</p>
 </div>
 <div class="paragraph">
-<p>In order to use Prometheus to obtain metrics data and provide notifications, Prometheus and the Prometheus Alertmanager plugin must be deployed.
-Kafka resources must also be deployed or redeployed with Prometheus configuration to expose the metrics data.</p>
+<p>To use Prometheus to obtain metrics data and provide alerts, Prometheus and the Prometheus Alertmanager plugin must be deployed.
+Kafka resources must also be deployed or redeployed with metrics configuration to expose the metrics data.</p>
 </div>
 <div class="paragraph">
 <p>Prometheus scrapes the exposed metrics data for monitoring.
-Alertmanager issues notifications on conditions that indicate potential issues based on pre-defined alerting rules.</p>
+Alertmanager issues alerts when conditions indicate potential problems, based on pre-defined alerting rules.</p>
 </div>
 <div class="paragraph">
 <p>Sample metrics and alerting rules configuration files are provided with Strimzi.
@@ -1978,12 +2015,28 @@ You can use the Grafana dashboard provided to visualize the data collected by Pr
 Clients are configured with a tracing profile, and a tracer is initialized for the client application to use.</p>
 </div>
 </div>
+<div class="sect2">
+<h3 id="metrics-overview-cruisecontrol_str"><a class="link" href="#metrics-overview-cruisecontrol_str">7.5. Cruise Control</a></h3>
+<div class="paragraph">
+<p>Cruise Control is an open source project for simplifying the monitoring and balancing of data across a Kafka cluster.
+Cruise Control is deployed alongside a Kafka cluster to monitor its traffic, propose more balanced partition assignments, and trigger partition reassignments based on those proposals.</p>
+</div>
+<div class="paragraph">
+<p>Cruise Control collects resource utilization information to model and analyze the workload of the Kafka cluster.
+Based on <em>optimization goals</em> that have been defined, Cruise Control generates <em>optimization proposals</em> outlining how the cluster can be effectively rebalanced.
+When an <em>optimization proposal</em> is approved, Cruise Control applies the rebalancing outlined in the proposal.</p>
+</div>
+<div class="paragraph">
+<p>Prometheus can extract Cruise Control metrics data, including data related to optimization proposals and rebalancing operations.
+A sample configuration file and Grafana dashboard for Cruise Control are provided with Strimzi.</p>
+</div>
+</div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-09-03 18:54:52 UTC
+Last updated 2020-09-03 20:05:11 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
