@@ -342,7 +342,12 @@
 <li><a href="#cluster-recovery-volume_str">10.3.3. Recovering a deleted cluster from persistent volumes</a></li>
 </ul>
 </li>
-<li><a href="#uninstalling-str">10.4. Uninstalling Strimzi</a></li>
+<li><a href="#assembly-client-config-str">10.4. Tuning client configuration</a>
+<ul class="sectlevel3">
+<li><a href="#con-producer-config-properties-str">10.4.1. Kafka producer configuration tuning</a></li>
+</ul>
+</li>
+<li><a href="#uninstalling-str">10.5. Uninstalling Strimzi</a></li>
 </ul>
 </li>
 <li><a href="#appendix-faq_str">Appendix A: Frequently asked questions</a>
@@ -17694,7 +17699,7 @@ In addition, you can configure your Kafka brokers to use OAuth 2.0 authorization
 <div class="title">Additional resources</div>
 <ul>
 <li>
-<p><a href="#assembly-oauth-authentication_str">Using OAuth 2.0 token based authentication</a></p>
+<p><a href="#assembly-oauth-authentication_str">Using OAuth 2.0 token-based authentication</a></p>
 </li>
 <li>
 <p><a href="#con-securing-kafka-authorization-str">ACL authorization</a></p>
@@ -25145,7 +25150,396 @@ You specify the required configuration using the properties described in <a href
 </div>
 </div>
 <div class="sect2">
-<h3 id="uninstalling-str"><a class="link" href="#uninstalling-str">10.4. Uninstalling Strimzi</a></h3>
+<h3 id="assembly-client-config-str"><a class="link" href="#assembly-client-config-str">10.4. Tuning client configuration</a></h3>
+<div class="paragraph">
+<p>Use configuration properties to optimize the performance of Kafka producers and consumers.</p>
+</div>
+<div class="paragraph">
+<p>A minimum set of configuration properties is required.
+But you can add or adjust properties to change how producers and consumers interact with Kafka.</p>
+</div>
+<div class="paragraph">
+<p>For example, you can tune latency and throughput of messages so that clients can respond to data in real time.
+Or you can change the configuration to provide stronger message durability guarantees.</p>
+</div>
+<div class="sect3">
+<h4 id="con-producer-config-properties-str"><a class="link" href="#con-producer-config-properties-str">10.4.1. Kafka producer configuration tuning</a></h4>
+<div class="paragraph">
+<p>Use a basic producer configuration with optional properties that are tailored to specific uses cases.</p>
+</div>
+<div class="paragraph">
+<p>Adjusting your configuration to maximize throughput might increase latency or vice versa.
+You will need to experiment and tune your producer configuration to get the balance you need.</p>
+</div>
+<div class="sect4">
+<h5 id="basic_producer_configuration"><a class="link" href="#basic_producer_configuration">Basic producer configuration</a></h5>
+<div class="paragraph">
+<p>Connection and serializer properties are required for every producer.
+Generally, it is good practice to add a client id for tracking,
+and use compression on the producer to reduce batch sizes in requests.</p>
+</div>
+<div class="paragraph">
+<p>In this basic configuration:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The order of messages in a partition is not guaranteed</p>
+</li>
+<li>
+<p>The acknowledgment of messages reaching the broker does not guarantee durability</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs"># ...
+bootstrap.servers=localhost:9092 <b class="conum">(1)</b>
+key.serializer=org.apache.kafka.common.serialization.StringSerializer <b class="conum">(2)</b>
+value.serializer=org.apache.kafka.common.serialization.StringSerializer <b class="conum">(3)</b>
+client.id=my-client <b class="conum">(4)</b>
+compression.type=gzip <b class="conum">(5)</b>
+# ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>(Required) Tells the producer to connect to a Kafka cluster using a <em>host:port</em> bootstrap server address for a Kafka broker.
+The producer uses the address to discover and connect to all brokers in the cluster.
+Use a comma-separated list to specify two or three addresses in case a server is down, but it’s not necessary to provide a list of all the brokers in the cluster.</p>
+</li>
+<li>
+<p>(Required) Serializer to transform the key of each message to bytes prior to them being sent to a broker.</p>
+</li>
+<li>
+<p>(Required) Serializer to transform the value of each message to bytes prior to them being sent to a broker.</p>
+</li>
+<li>
+<p>(Optional) The logical name for the client, which is used in logs and metrics to identify the source of a request.</p>
+</li>
+<li>
+<p>(Optional) The codec for compressing messages, which are sent and might be stored in compressed format and then decompressed when reaching a consumer.
+Compression is useful for improving throughput and reducing the load on storage, but might not be suitable for low latency applications where the cost of compression or decompression could be prohibitive.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect4">
+<h5 id="data_durability"><a class="link" href="#data_durability">Data durability</a></h5>
+<div class="paragraph">
+<p>You can apply greater data durability, to minimize the likelihood that messages are lost, using message delivery acknowledgments.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre># ...
+acks=all <b class="conum">(1)</b>
+# ...</pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Specifying <code>acks=all</code> forces a partition leader to replicate messages to a certain number of followers before
+acknowledging that the message request was successfully received.
+Because of the additional checks, <code>acks=all</code> increases the latency between the producer sending a message and receiving acknowledgment.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>The number of brokers which need to have appended the messages to their logs before the acknowledgment is sent to the producer is determined by the topic&#8217;s <code>min.insync.replicas</code> configuration.
+A typical starting point is to have a topic replication factor of 3, with two in-sync replicas on other brokers.
+In this configuration, the producer can continue unaffected if a single broker is unavailable.
+If a second broker becomes unavailable, the producer won’t receive acknowledgments and won’t be able to produce more messages.</p>
+</div>
+<div class="listingblock">
+<div class="title">Topic configuration to support <code>acks=all</code></div>
+<div class="content">
+<pre># ...
+min.insync.replicas=2 <b class="conum">(1)</b>
+# ...</pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Use <code>2</code> in-sync replicas. The default is <code>1</code>.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If the system fails, there is a risk of unsent data in the buffer being lost.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect4">
+<h5 id="ordered_delivery"><a class="link" href="#ordered_delivery">Ordered delivery</a></h5>
+<div class="paragraph">
+<p>Idempotent producers avoid duplicates as messages are delivered exactly once.
+IDs and sequence numbers are assigned to messages to ensure the order of delivery, even in the event of failure.
+If you are using <code>acks=all</code> for data consistency, enabling idempotency makes sense for ordered delivery.</p>
+</div>
+<div class="listingblock">
+<div class="title">Ordered delivery with idempotency</div>
+<div class="content">
+<pre># ...
+enable.idempotence=true <b class="conum">(1)</b>
+max.in.flight.requests.per.connection=5 <b class="conum">(2)</b>
+acks=all <b class="conum">(3)</b>
+retries=2147483647 <b class="conum">(4)</b>
+# ...</pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Set to <code>true</code> to enable the idempotent producer.</p>
+</li>
+<li>
+<p>With idempotent delivery the number of in-flight requests may be greater than 1 while still providing the message ordering guarantee. The default is 5 in-flight requests.</p>
+</li>
+<li>
+<p>Set <code>acks</code> to <code>all</code>.</p>
+</li>
+<li>
+<p>Set the number of attempts to resend a failed message request.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>If you are not using <code>acks=all</code> and idempotency because of the performance cost,
+set the number of in-flight (unacknowledged) requests to 1 to preserve ordering.
+Otherwise, a situation is possible where <em>Message-A</em> fails only to succeed after <em>Message-B</em> was already written to the broker.</p>
+</div>
+<div class="listingblock">
+<div class="title">Ordered delivery without idempotency</div>
+<div class="content">
+<pre># ...
+enable.idempotence=false <b class="conum">(1)</b>
+max.in.flight.requests.per.connection=1 <b class="conum">(2)</b>
+retries=2147483647
+# ...</pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Set to <code>false</code> to disable the idempotent producer.</p>
+</li>
+<li>
+<p>Set the number of in-flight requests to exactly <code>1</code>.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect4">
+<h5 id="reliability_guarantees"><a class="link" href="#reliability_guarantees">Reliability guarantees</a></h5>
+<div class="paragraph">
+<p>Idempotence is useful for exactly once writes to a single partition.
+Transactions, when used with idempotence, allow exactly once writes across multiple partitions.</p>
+</div>
+<div class="paragraph">
+<p>Transactions guarantee that messages using the same transactional ID are produced once,
+and either <em>all</em> are successfully written to the respective logs or <em>none</em> of them are.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre># ...
+enable.idempotence=true
+max.in.flight.requests.per.connection=5
+acks=all
+retries=2147483647
+transactional.id=_UNIQUE-ID_ <b class="conum">(1)</b>
+transaction.timeout.ms=900000 <b class="conum">(2)</b>
+# ...</pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Specify a unique transactional ID.</p>
+</li>
+<li>
+<p>Set the maximum allowed time for transactions in milliseconds before a timeout error is returned.
+The default is <code>900000</code> or 15 minutes.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>The choice of <code>transactional.id</code> is important in order that the transational guarantee is maintained.
+Each transactional id should be used for a unique set of topic partitions.
+For example, this can be achieved using an external mapping of topic partition names to transactional ids,
+or by computing the transactional id from the topic partition names using a function that avoids collisions.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="optimizing_throughput_and_latency"><a class="link" href="#optimizing_throughput_and_latency">Optimizing throughput and latency</a></h5>
+<div class="paragraph">
+<p>Usually, the requirement of a system is to satisfy a particular throughput target for a proportion of messages within a given latency.
+For example, targeting 500,000 messages per second with 95% of messages being acknowledged within 2 seconds.</p>
+</div>
+<div class="paragraph">
+<p>It’s likely that the messaging semantics (message ordering and durability) of your producer are defined by the requirements for your application.
+For instance, it’s possible that you don’t have the option of using <code>acks=0</code> or <code>acks=1</code> without breaking some important property or guarantee provided by your application.</p>
+</div>
+<div class="paragraph">
+<p>Broker restarts have a significant impact on high percentile statistics.
+For example, over a long period the 99th percentile latency is dominated by behavior around broker restarts.
+This is worth considering when designing benchmarks or comparing performance numbers from benchmarking with performance numbers seen in production.</p>
+</div>
+<div class="paragraph">
+<p>Depending on your objective, Kafka offers a number of configuration parameters and techniques for tuning producer performance for throughput and latency.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Message batching (<code>linger.ms</code> and <code>batch.size</code>)</dt>
+<dd>
+<p>Message batching delays sending messages in the hope that more messages destined for the same broker will be sent,
+allowing them to be batched into a single produce request.
+Batching is a compromise between higher latency in return for higher throughput.
+Time-based batching is configured using <code>linger.ms</code>, and size-based batching is configured using <code>batch.size</code>.</p>
+</dd>
+<dt class="hdlist1">Compression (<code>compression.type</code>)</dt>
+<dd>
+<p>Message compression adds latency in the producer (CPU time spent compressing the messages),
+but makes requests (and potentially disk writes) smaller, which can increase throughput.
+Whether compression is worthwhile, and the best compression to use, will depend on the messages being sent.
+Compression happens on the thread which calls <code>KafkaProducer.send()</code>,
+so if the latency of this method matters for your application you should consider using more threads.</p>
+</dd>
+<dt class="hdlist1">Pipelining (<code>max.in.flight.requests.per.connection</code>)</dt>
+<dd>
+<p>Pipelining means sending more requests before the response to a previous request has been received.
+In general more pipelining means better throughput, up to a threshold at which other effects,
+such as worse batching, start to counteract the effect on throughput.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<div class="title">Lowering latency</div>
+<p>When your application calls <code>KafkaProducer.send()</code> the messages are:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Processed by any interceptors</p>
+</li>
+<li>
+<p>Serialized</p>
+</li>
+<li>
+<p>Assigned to a partition</p>
+</li>
+<li>
+<p>Compressed</p>
+</li>
+<li>
+<p>Added to a batch of messages in a per-partition queue</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>At which point the <code>send()</code> method returns.
+So the time <code>send()</code> is blocked is determined by:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The time spent in the interceptors, serializers and partitioner</p>
+</li>
+<li>
+<p>The compression algorithm used</p>
+</li>
+<li>
+<p>The time spent waiting for a buffer to use for compression</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Batches will remain in the queue until one of the following occurs:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The batch is full (according to <code>batch.size</code>)</p>
+</li>
+<li>
+<p>The delay introduced by <code>linger.ms</code> has passed</p>
+</li>
+<li>
+<p>The sender is about to send message batches for other partitions to the same broker, and it is possible to add this batch too</p>
+</li>
+<li>
+<p>The producer is being flushed or closed</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Look at the configuration for batching and buffering to mitigate the impact of <code>send()</code> blocking on latency.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre># ...
+linger.ms=100 <b class="conum">(1)</b>
+batch.size=16384 <b class="conum">(2)</b>
+buffer.memory=33554432 <b class="conum">(3)</b>
+# ...</pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The <code>linger</code> property adds a delay in milliseconds so that larger batches of messages are accumulated and sent in a request. The default is <code>0'.</code></p>
+</li>
+<li>
+<p>If a maximum <code>batch.size</code> in bytes is used, a request is sent when the maximum is reached, or messages have been queued for longer than <code>linger.ms</code> (whichever comes sooner).
+Adding the delay allows batches to accumulate messages up to the batch size.</p>
+</li>
+<li>
+<p>The buffer size must be at least as big as the batch size, and be able to accommodate buffering, compression and in-flight requests.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<div class="title">Increasing throughput</div>
+<p>Improve throughput of your message requests by adjusting the maximum time to wait before a message is delivered and completes a send request.</p>
+</div>
+<div class="paragraph">
+<p>You can also direct messages to a specified partition by writing a custom partitioner to replace the default.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre># ...
+delivery.timeout.ms=120000 <b class="conum">(1)</b>
+partitioner.class=my-custom-partitioner <b class="conum">(2)</b>
+
+# ...</pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The maximum time in milliseconds to wait for a complete send request. You can set the value to <code>MAX_LONG</code> to delegate to Kafka an indefinite number of retries.
+The default is <code>120000</code> or 2 minutes.</p>
+</li>
+<li>
+<p>Specify the class name of the custom partitioner.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="uninstalling-str"><a class="link" href="#uninstalling-str">10.5. Uninstalling Strimzi</a></h3>
 <div class="paragraph">
 <p>This procedure describes how to uninstall Strimzi and remove resources related to the deployment.</p>
 </div>
