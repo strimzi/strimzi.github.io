@@ -504,7 +504,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#assembly-kafka-connect-replicas-deployment-configuration-kafka-connect">2.2.1. Replicas</a></li>
 <li><a href="#assembly-kafka-connect-bootstrap-servers-deployment-configuration-kafka-connect">2.2.2. Bootstrap servers</a></li>
 <li><a href="#assembly-kafka-connect-tls-deployment-configuration-kafka-connect">2.2.3. Connecting to Kafka brokers using TLS</a></li>
-<li><a href="#assembly-kafka-connect-authentication-deployment-configuration-kafka-connect">2.2.4. Connecting to Kafka brokers with Authentication</a></li>
+<li><a href="#assembly-kafka-connect-authentication-deployment-configuration-kafka-connect">2.2.4. Connecting to Kafka brokers with authentication</a></li>
 <li><a href="#assembly-kafka-connect-configuration-deployment-configuration-kafka-connect">2.2.5. Kafka Connect configuration</a></li>
 <li><a href="#assembly-kafka-connect-authorization-deployment-configuration-kafka-connect">2.2.6. Kafka Connect user authorization</a></li>
 <li><a href="#assembly-resource-limits-and-requests-deployment-configuration-kafka-connect">2.2.7. CPU and memory resources</a></li>
@@ -524,7 +524,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#assembly-kafka-connect-replicas-deployment-configuration-kafka-connect-s2i">2.3.1. Replicas</a></li>
 <li><a href="#assembly-kafka-connect-bootstrap-servers-deployment-configuration-kafka-connect-s2i">2.3.2. Bootstrap servers</a></li>
 <li><a href="#assembly-kafka-connect-tls-deployment-configuration-kafka-connect-s2i">2.3.3. Connecting to Kafka brokers using TLS</a></li>
-<li><a href="#assembly-kafka-connect-authentication-deployment-configuration-kafka-connect-s2i">2.3.4. Connecting to Kafka brokers with Authentication</a></li>
+<li><a href="#assembly-kafka-connect-authentication-deployment-configuration-kafka-connect-s2i">2.3.4. Connecting to Kafka brokers with authentication</a></li>
 <li><a href="#assembly-kafka-connect-configuration-deployment-configuration-kafka-connect-s2i">2.3.5. Kafka Connect configuration</a></li>
 <li><a href="#assembly-kafka-connect-authorization-deployment-configuration-kafka-connect-s2i">2.3.6. Kafka Connect user authorization</a></li>
 <li><a href="#assembly-resource-limits-and-requests-deployment-configuration-kafka-connect-s2i">2.3.7. CPU and memory resources</a></li>
@@ -6826,7 +6826,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-kafka-connect-authentication-deployment-configuration-kafka-connect"><a class="link" href="#assembly-kafka-connect-authentication-deployment-configuration-kafka-connect">2.2.4. Connecting to Kafka brokers with Authentication</a></h4>
+<h4 id="assembly-kafka-connect-authentication-deployment-configuration-kafka-connect"><a class="link" href="#assembly-kafka-connect-authentication-deployment-configuration-kafka-connect">2.2.4. Connecting to Kafka brokers with authentication</a></h4>
 <div class="paragraph">
 <p>By default, Kafka Connect will try to connect to Kafka brokers without authentication.
 Authentication is enabled through the <code>KafkaConnect</code> and <code>KafkaConnectS2I</code> resources.</p>
@@ -6834,9 +6834,11 @@ Authentication is enabled through the <code>KafkaConnect</code> and <code>KafkaC
 <div class="sect4">
 <h5 id="con-kafka-connect-authenticationdeployment-configuration-kafka-connect"><a class="link" href="#con-kafka-connect-authenticationdeployment-configuration-kafka-connect">Authentication support in Kafka Connect</a></h5>
 <div class="paragraph">
-<p>Authentication is configured through the <code>authentication</code> property in <code>KafkaConnect.spec</code> and <code>KafkaConnectS2I.spec</code>.
-The <code>authentication</code> property specifies the type of the authentication mechanisms which should be used and additional configuration details depending on the mechanism.
-The supported authentication types are:</p>
+<p>You can configure authentication for Kafka Connect in the <code>authentication</code> property in <code>KafkaConnect.spec</code> and <code>KafkaConnectS2I.spec</code>.
+The <code>authentication</code> property specifies which of the supported authentication mechanisms to use, and additional configuration depending on the mechanism.</p>
+</div>
+<div class="paragraph">
+<p>The following types of authentication are supported for Kafka Connect:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -6854,29 +6856,18 @@ The supported authentication types are:</p>
 </li>
 </ul>
 </div>
-<div class="sect5">
-<h6 id="tls_client_authentication"><a class="link" href="#tls_client_authentication">TLS Client Authentication</a></h6>
 <div class="paragraph">
-<p>To use TLS client authentication, set the <code>type</code> property to the value <code>tls</code>.
-TLS client authentication uses a TLS certificate to authenticate.
-The certificate is specified in the <code>certificateAndKey</code> property and is always loaded from a Kubernetes secret.
-In the secret, the certificate must be stored in X509 format under two different keys: public and private.</p>
+<p>The following sections explain how each authentication mechanism works.</p>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-TLS client authentication can be used only with TLS connections.
-For more details about TLS configuration in Kafka Connect see <a href="#assembly-kafka-connect-tls-deployment-configuration-kafka-connect">Connecting to Kafka brokers using TLS</a>.
-</td>
-</tr>
-</table>
+<div class="sect5">
+<h6 id="tls_client_authentication"><a class="link" href="#tls_client_authentication">TLS Client authentication</a></h6>
+<div class="paragraph">
+<p>To use TLS client authentication, set the <code>spec.authentication.type</code> property to <code>tls</code>.
+TLS client authentication uses a TLS certificate to authenticate.
+The certificate is specified in the <code>certificateAndKey</code> property and is always loaded from a Kubernetes Secret.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example TLS client authentication configuration</div>
+<div class="title">Example showing TLS client authentication for Kafka Connect</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
 kind: KafkaConnect
@@ -6893,37 +6884,51 @@ spec:
   # ...</code></pre>
 </div>
 </div>
-</div>
-<div class="sect5">
-<h6 id="sasl_based_scram_sha_512_authentication"><a class="link" href="#sasl_based_scram_sha_512_authentication">SASL based SCRAM-SHA-512 authentication</a></h6>
 <div class="paragraph">
-<p>To configure Kafka Connect to use SASL-based SCRAM-SHA-512 authentication, set the <code>type</code> property to <code>scram-sha-512</code>.
-This authentication mechanism requires a username and password.</p>
+<p>In the Kubernetes Secret:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Specify the username in the <code>username</code> property.</p>
+<p>The certificate must be stored in X509 format under the field named by the <code>certificate</code></p>
 </li>
 <li>
-<p>In the <code>passwordSecret</code> property, specify a link to a <code>Secret</code> containing the password. The <code>secretName</code> property contains the name of the <code>Secret</code> and the <code>password</code> property contains the name of the key under which the password is stored inside the <code>Secret</code>.</p>
+<p>The private key must be stored under the field named by the <code>key</code> property, as shown in the preceding example</p>
 </li>
 </ul>
 </div>
-<div class="admonitionblock important">
+<div class="paragraph">
+<p>To use this method, see <a href="#proc-configuring-kafka-connect-authentication-tls-deployment-configuration-kafka-connect">Configuring TLS client authentication in Kafka Connect</a>.</p>
+</div>
+<div class="admonitionblock note">
 <table>
 <tr>
 <td class="icon">
-<div class="title">Important</div>
+<div class="title">Note</div>
 </td>
 <td class="content">
-Do not specify the actual password in the <code>password</code> field.
+TLS client authentication can be used only with TLS connections.
+For more details about TLS configuration in Kafka Connect see <a href="#assembly-kafka-connect-tls-deployment-configuration-kafka-connect">Connecting to Kafka brokers using TLS</a>.
 </td>
 </tr>
 </table>
 </div>
+</div>
+<div class="sect5">
+<h6 id="sasl_based_scram_sha_512_authentication"><a class="link" href="#sasl_based_scram_sha_512_authentication">SASL-based SCRAM-SHA-512 authentication</a></h6>
+<div class="paragraph">
+<p>To configure Kafka Connect to use SASL-based SCRAM-SHA-512 authentication, set the <code>spec.authentication.type</code> property to <code>scram-sha-512</code>.
+This authentication mechanism requires a client username and password.</p>
+</div>
+<div class="paragraph">
+<p>The password is contained in a Secret.
+The name of the Secret is supplied as the value of the <code>secretName</code> property, and the field within the Secret is supplied as the <code>password</code> property.</p>
+</div>
+<div class="paragraph">
+<p>The <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> custom resource references the Secret and its fields under the <code>passwordSecret</code> property.</p>
+</div>
 <div class="listingblock">
-<div class="title">An example SASL based SCRAM-SHA-512 client authentication configuration</div>
+<div class="title">Example showing SCRAM-SHA-512 client authentication for Kafka Connect</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
 kind: KafkaConnect
@@ -6933,16 +6938,44 @@ spec:
   # ...
   authentication:
     type: scram-sha-512
-    username: my-connect-user
+    username: my-connect-username <b class="conum">(1)</b>
     passwordSecret:
-      secretName: my-connect-user
-      password: my-connect-password-key
+      secretName: my-connect-secret-name <b class="conum">(2)</b>
+      password: my-connect-password-field <b class="conum">(3)</b>
   # ...</code></pre>
 </div>
 </div>
+<div class="colist arabic">
+<ol>
+<li>
+<p><code>username</code>: The username.</p>
+</li>
+<li>
+<p><code>secretName</code>: The name of the Secret that contains the username and password.</p>
+</li>
+<li>
+<p><code>password</code>: The name of the field in the Secret under which the password is stored. Do NOT specify the actual password.</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="title">Example Secret YAML for SCRAM-SHA-512 client authentication for Kafka Connect</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: v1
+kind: Secret
+metadata:
+  name: my-connect-secret-name
+type: Opaque
+data:
+  my-connect-password-field: LFTIyFRFlMmU2N2Tm</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To use this method, see <a href="#proc-configuring-kafka-connect-authentication-scram-sha-512-deployment-configuration-kafka-connect">Configuring SCRAM-SHA-512 authentication in Kafka Connect</a>.</p>
+</div>
 </div>
 <div class="sect5">
-<h6 id="sasl_based_plain_authentication"><a class="link" href="#sasl_based_plain_authentication">SASL based PLAIN authentication</a></h6>
+<h6 id="sasl_based_plain_authentication"><a class="link" href="#sasl_based_plain_authentication">SASL-based PLAIN authentication</a></h6>
 <div class="paragraph">
 <p>To configure Kafka Connect to use SASL-based PLAIN authentication, set the <code>type</code> property to <code>plain</code>.
 This authentication mechanism requires a username and password.</p>
@@ -6954,7 +6987,7 @@ This authentication mechanism requires a username and password.</p>
 <div class="title">Warning</div>
 </td>
 <td class="content">
-The SASL PLAIN mechanism will transfer the username and password across the network in cleartext.
+The SASL PLAIN mechanism transfers the username and password across the network in cleartext.
 Only use SASL PLAIN authentication if TLS encryption is enabled.
 </td>
 </tr>
@@ -6966,24 +6999,26 @@ Only use SASL PLAIN authentication if TLS encryption is enabled.
 <p>Specify the username in the <code>username</code> property.</p>
 </li>
 <li>
-<p>In the <code>passwordSecret</code> property, specify a link to a <code>Secret</code> containing the password. The <code>secretName</code> property contains the name of such a <code>Secret</code> and the <code>password</code> property contains the name of the key under which the password is stored inside the <code>Secret</code>.</p>
+<p>In the <code>passwordSecret</code> property, specify a link to a <code>Secret</code> containing the password. The <code>secretName</code> property contains the name of such a <code>Secret</code> and the <code>password</code> property contains the name of the field under which the password is stored inside the <code>Secret</code>.</p>
 </li>
 </ul>
 </div>
-<div class="admonitionblock important">
+<div class="admonitionblock warning">
 <table>
 <tr>
 <td class="icon">
-<div class="title">Important</div>
+<div class="title">Warning</div>
 </td>
 <td class="content">
-Do not specify the actual password in the <code>password</code> field.
+<div class="paragraph">
+<p>Do NOT specify the actual password in the <code>passwordSecret.password</code> property.</p>
+</div>
 </td>
 </tr>
 </table>
 </div>
 <div class="listingblock">
-<div class="title">An example showing SASL based PLAIN client authentication configuration</div>
+<div class="title">Example showing SASL PLAIN client authentication for Kafka Connect</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
 kind: KafkaConnect
@@ -6993,10 +7028,10 @@ spec:
   # ...
   authentication:
     type: plain
-    username: my-connect-user
+    username: my-connect-username
     passwordSecret:
-      secretName: my-connect-user
-      password: my-connect-password-key
+      secretName: my-connect-secret-name
+      password: my-connect-password-field
   # ...</code></pre>
 </div>
 </div>
@@ -7004,6 +7039,9 @@ spec:
 </div>
 <div class="sect4">
 <h5 id="proc-configuring-kafka-connect-authentication-tls-deployment-configuration-kafka-connect"><a class="link" href="#proc-configuring-kafka-connect-authentication-tls-deployment-configuration-kafka-connect">Configuring TLS client authentication in Kafka Connect</a></h5>
+<div class="paragraph">
+<p>You can configure Kafka Connect to connect to Kafka brokers using TLS client authentication.</p>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -7081,6 +7119,12 @@ spec:
 </div>
 <div class="sect4">
 <h5 id="proc-configuring-kafka-connect-authentication-scram-sha-512-deployment-configuration-kafka-connect"><a class="link" href="#proc-configuring-kafka-connect-authentication-scram-sha-512-deployment-configuration-kafka-connect">Configuring SCRAM-SHA-512 authentication in Kafka Connect</a></h5>
+<div class="paragraph">
+<p>You can configure Kafka Connect to connect to Kafka brokers using SASL-based authentication using the SCRAM-SHA-512 mechanism.</p>
+</div>
+<div class="paragraph">
+<p>The following procedure includes creating a Secret from a text file. The Secret will contain the password used for authentication in one of its fields. Secrets created by the User Operator can also be used.</p>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -7091,10 +7135,7 @@ spec:
 <p>A running Cluster Operator</p>
 </li>
 <li>
-<p>Username of the user which should be used for authentication</p>
-</li>
-<li>
-<p>If they exist, the name of the <code>Secret</code> with the password used for authentication and the key under which the password is stored in the <code>Secret</code></p>
+<p>Username of the user for authentication</p>
 </li>
 </ul>
 </div>
@@ -7102,31 +7143,23 @@ spec:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>(Optional) If they do not already exist, prepare a file with the password used in authentication and create the <code>Secret</code>.</p>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Secrets created by the User Operator may be used.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>This can be done using <code>kubectl create</code>:</p>
-</div>
+<p>Create a text file that contains the password, in cleartext, to use for authentication:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">echo -n '<em>PASSWORD</em>' &gt; <em>MY-PASSWORD.txt</em>
-kubectl create secret generic <em>MY-SECRET</em> --from-file=<em>MY-PASSWORD.txt</em></code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">echo -n <em>PASSWORD</em> &gt; <em>MY-CONNECT-PASSWORD</em>.txt</code></pre>
 </div>
 </div>
 </li>
 <li>
-<p>Edit the <code>authentication</code> property in the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> resource.
+<p>Create the Secret from the file, setting your own field name (key) for the password:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl create secret generic <em>MY-CONNECT-SECRET</em> --from-file=<em>PASSWORD-FIELD-NAME</em>=./<em>MY-CONNECT-PASSWORD</em>.txt</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Edit the <code>authentication</code> property in the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> custom resource to reference the username and Secret.
 For example:</p>
 <div class="listingblock">
 <div class="content">
@@ -7138,22 +7171,33 @@ spec:
   # ...
   authentication:
     type: scram-sha-512
-    username: <em>MY-USERNAME</em>
+    username: <em>MY-CONNECT-USERNAME</em>
     passwordSecret:
-      secretName: <em>MY-SECRET</em>
-      password: <em>MY-PASSWORD.txt</em>
+      secretName: <em>MY-CONNECT-SECRET-NAME</em>
+      password: <em>PASSWORD-FIELD-NAME</em>
   # ...</code></pre>
 </div>
 </div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Do NOT specify the actual password in the <code>passwordSecret.password</code> property.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
 </li>
 <li>
-<p>Create or update the resource.</p>
-<div class="paragraph">
-<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
-</div>
+<p>Create or update the resource:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>your-file</em></code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>YOUR-FILE</em></code></pre>
 </div>
 </div>
 </li>
@@ -9645,7 +9689,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-kafka-connect-authentication-deployment-configuration-kafka-connect-s2i"><a class="link" href="#assembly-kafka-connect-authentication-deployment-configuration-kafka-connect-s2i">2.3.4. Connecting to Kafka brokers with Authentication</a></h4>
+<h4 id="assembly-kafka-connect-authentication-deployment-configuration-kafka-connect-s2i"><a class="link" href="#assembly-kafka-connect-authentication-deployment-configuration-kafka-connect-s2i">2.3.4. Connecting to Kafka brokers with authentication</a></h4>
 <div class="paragraph">
 <p>By default, Kafka Connect will try to connect to Kafka brokers without authentication.
 Authentication is enabled through the <code>KafkaConnect</code> and <code>KafkaConnectS2I</code> resources.</p>
@@ -9653,9 +9697,11 @@ Authentication is enabled through the <code>KafkaConnect</code> and <code>KafkaC
 <div class="sect4">
 <h5 id="con-kafka-connect-authenticationdeployment-configuration-kafka-connect-s2i"><a class="link" href="#con-kafka-connect-authenticationdeployment-configuration-kafka-connect-s2i">Authentication support in Kafka Connect</a></h5>
 <div class="paragraph">
-<p>Authentication is configured through the <code>authentication</code> property in <code>KafkaConnect.spec</code> and <code>KafkaConnectS2I.spec</code>.
-The <code>authentication</code> property specifies the type of the authentication mechanisms which should be used and additional configuration details depending on the mechanism.
-The supported authentication types are:</p>
+<p>You can configure authentication for Kafka Connect in the <code>authentication</code> property in <code>KafkaConnect.spec</code> and <code>KafkaConnectS2I.spec</code>.
+The <code>authentication</code> property specifies which of the supported authentication mechanisms to use, and additional configuration depending on the mechanism.</p>
+</div>
+<div class="paragraph">
+<p>The following types of authentication are supported for Kafka Connect:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -9673,29 +9719,18 @@ The supported authentication types are:</p>
 </li>
 </ul>
 </div>
-<div class="sect5">
-<h6 id="tls_client_authentication_2"><a class="link" href="#tls_client_authentication_2">TLS Client Authentication</a></h6>
 <div class="paragraph">
-<p>To use TLS client authentication, set the <code>type</code> property to the value <code>tls</code>.
-TLS client authentication uses a TLS certificate to authenticate.
-The certificate is specified in the <code>certificateAndKey</code> property and is always loaded from a Kubernetes secret.
-In the secret, the certificate must be stored in X509 format under two different keys: public and private.</p>
+<p>The following sections explain how each authentication mechanism works.</p>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-TLS client authentication can be used only with TLS connections.
-For more details about TLS configuration in Kafka Connect see <a href="#assembly-kafka-connect-tls-deployment-configuration-kafka-connect-s2i">Connecting to Kafka brokers using TLS</a>.
-</td>
-</tr>
-</table>
+<div class="sect5">
+<h6 id="tls_client_authentication_2"><a class="link" href="#tls_client_authentication_2">TLS Client authentication</a></h6>
+<div class="paragraph">
+<p>To use TLS client authentication, set the <code>spec.authentication.type</code> property to <code>tls</code>.
+TLS client authentication uses a TLS certificate to authenticate.
+The certificate is specified in the <code>certificateAndKey</code> property and is always loaded from a Kubernetes Secret.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example TLS client authentication configuration</div>
+<div class="title">Example showing TLS client authentication for Kafka Connect</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
 kind: KafkaConnect
@@ -9712,37 +9747,51 @@ spec:
   # ...</code></pre>
 </div>
 </div>
-</div>
-<div class="sect5">
-<h6 id="sasl_based_scram_sha_512_authentication_2"><a class="link" href="#sasl_based_scram_sha_512_authentication_2">SASL based SCRAM-SHA-512 authentication</a></h6>
 <div class="paragraph">
-<p>To configure Kafka Connect to use SASL-based SCRAM-SHA-512 authentication, set the <code>type</code> property to <code>scram-sha-512</code>.
-This authentication mechanism requires a username and password.</p>
+<p>In the Kubernetes Secret:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Specify the username in the <code>username</code> property.</p>
+<p>The certificate must be stored in X509 format under the field named by the <code>certificate</code></p>
 </li>
 <li>
-<p>In the <code>passwordSecret</code> property, specify a link to a <code>Secret</code> containing the password. The <code>secretName</code> property contains the name of the <code>Secret</code> and the <code>password</code> property contains the name of the key under which the password is stored inside the <code>Secret</code>.</p>
+<p>The private key must be stored under the field named by the <code>key</code> property, as shown in the preceding example</p>
 </li>
 </ul>
 </div>
-<div class="admonitionblock important">
+<div class="paragraph">
+<p>To use this method, see <a href="#proc-configuring-kafka-connect-authentication-tls-deployment-configuration-kafka-connect-s2i">Configuring TLS client authentication in Kafka Connect</a>.</p>
+</div>
+<div class="admonitionblock note">
 <table>
 <tr>
 <td class="icon">
-<div class="title">Important</div>
+<div class="title">Note</div>
 </td>
 <td class="content">
-Do not specify the actual password in the <code>password</code> field.
+TLS client authentication can be used only with TLS connections.
+For more details about TLS configuration in Kafka Connect see <a href="#assembly-kafka-connect-tls-deployment-configuration-kafka-connect-s2i">Connecting to Kafka brokers using TLS</a>.
 </td>
 </tr>
 </table>
 </div>
+</div>
+<div class="sect5">
+<h6 id="sasl_based_scram_sha_512_authentication_2"><a class="link" href="#sasl_based_scram_sha_512_authentication_2">SASL-based SCRAM-SHA-512 authentication</a></h6>
+<div class="paragraph">
+<p>To configure Kafka Connect to use SASL-based SCRAM-SHA-512 authentication, set the <code>spec.authentication.type</code> property to <code>scram-sha-512</code>.
+This authentication mechanism requires a client username and password.</p>
+</div>
+<div class="paragraph">
+<p>The password is contained in a Secret.
+The name of the Secret is supplied as the value of the <code>secretName</code> property, and the field within the Secret is supplied as the <code>password</code> property.</p>
+</div>
+<div class="paragraph">
+<p>The <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> custom resource references the Secret and its fields under the <code>passwordSecret</code> property.</p>
+</div>
 <div class="listingblock">
-<div class="title">An example SASL based SCRAM-SHA-512 client authentication configuration</div>
+<div class="title">Example showing SCRAM-SHA-512 client authentication for Kafka Connect</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
 kind: KafkaConnect
@@ -9752,16 +9801,44 @@ spec:
   # ...
   authentication:
     type: scram-sha-512
-    username: my-connect-user
+    username: my-connect-username <b class="conum">(1)</b>
     passwordSecret:
-      secretName: my-connect-user
-      password: my-connect-password-key
+      secretName: my-connect-secret-name <b class="conum">(2)</b>
+      password: my-connect-password-field <b class="conum">(3)</b>
   # ...</code></pre>
 </div>
 </div>
+<div class="colist arabic">
+<ol>
+<li>
+<p><code>username</code>: The username.</p>
+</li>
+<li>
+<p><code>secretName</code>: The name of the Secret that contains the username and password.</p>
+</li>
+<li>
+<p><code>password</code>: The name of the field in the Secret under which the password is stored. Do NOT specify the actual password.</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="title">Example Secret YAML for SCRAM-SHA-512 client authentication for Kafka Connect</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: v1
+kind: Secret
+metadata:
+  name: my-connect-secret-name
+type: Opaque
+data:
+  my-connect-password-field: LFTIyFRFlMmU2N2Tm</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To use this method, see <a href="#proc-configuring-kafka-connect-authentication-scram-sha-512-deployment-configuration-kafka-connect-s2i">Configuring SCRAM-SHA-512 authentication in Kafka Connect</a>.</p>
+</div>
 </div>
 <div class="sect5">
-<h6 id="sasl_based_plain_authentication_2"><a class="link" href="#sasl_based_plain_authentication_2">SASL based PLAIN authentication</a></h6>
+<h6 id="sasl_based_plain_authentication_2"><a class="link" href="#sasl_based_plain_authentication_2">SASL-based PLAIN authentication</a></h6>
 <div class="paragraph">
 <p>To configure Kafka Connect to use SASL-based PLAIN authentication, set the <code>type</code> property to <code>plain</code>.
 This authentication mechanism requires a username and password.</p>
@@ -9773,7 +9850,7 @@ This authentication mechanism requires a username and password.</p>
 <div class="title">Warning</div>
 </td>
 <td class="content">
-The SASL PLAIN mechanism will transfer the username and password across the network in cleartext.
+The SASL PLAIN mechanism transfers the username and password across the network in cleartext.
 Only use SASL PLAIN authentication if TLS encryption is enabled.
 </td>
 </tr>
@@ -9785,24 +9862,26 @@ Only use SASL PLAIN authentication if TLS encryption is enabled.
 <p>Specify the username in the <code>username</code> property.</p>
 </li>
 <li>
-<p>In the <code>passwordSecret</code> property, specify a link to a <code>Secret</code> containing the password. The <code>secretName</code> property contains the name of such a <code>Secret</code> and the <code>password</code> property contains the name of the key under which the password is stored inside the <code>Secret</code>.</p>
+<p>In the <code>passwordSecret</code> property, specify a link to a <code>Secret</code> containing the password. The <code>secretName</code> property contains the name of such a <code>Secret</code> and the <code>password</code> property contains the name of the field under which the password is stored inside the <code>Secret</code>.</p>
 </li>
 </ul>
 </div>
-<div class="admonitionblock important">
+<div class="admonitionblock warning">
 <table>
 <tr>
 <td class="icon">
-<div class="title">Important</div>
+<div class="title">Warning</div>
 </td>
 <td class="content">
-Do not specify the actual password in the <code>password</code> field.
+<div class="paragraph">
+<p>Do NOT specify the actual password in the <code>passwordSecret.password</code> property.</p>
+</div>
 </td>
 </tr>
 </table>
 </div>
 <div class="listingblock">
-<div class="title">An example showing SASL based PLAIN client authentication configuration</div>
+<div class="title">Example showing SASL PLAIN client authentication for Kafka Connect</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: kafka.strimzi.io/v1beta1
 kind: KafkaConnect
@@ -9812,10 +9891,10 @@ spec:
   # ...
   authentication:
     type: plain
-    username: my-connect-user
+    username: my-connect-username
     passwordSecret:
-      secretName: my-connect-user
-      password: my-connect-password-key
+      secretName: my-connect-secret-name
+      password: my-connect-password-field
   # ...</code></pre>
 </div>
 </div>
@@ -9823,6 +9902,9 @@ spec:
 </div>
 <div class="sect4">
 <h5 id="proc-configuring-kafka-connect-authentication-tls-deployment-configuration-kafka-connect-s2i"><a class="link" href="#proc-configuring-kafka-connect-authentication-tls-deployment-configuration-kafka-connect-s2i">Configuring TLS client authentication in Kafka Connect</a></h5>
+<div class="paragraph">
+<p>You can configure Kafka Connect to connect to Kafka brokers using TLS client authentication.</p>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -9900,6 +9982,12 @@ spec:
 </div>
 <div class="sect4">
 <h5 id="proc-configuring-kafka-connect-authentication-scram-sha-512-deployment-configuration-kafka-connect-s2i"><a class="link" href="#proc-configuring-kafka-connect-authentication-scram-sha-512-deployment-configuration-kafka-connect-s2i">Configuring SCRAM-SHA-512 authentication in Kafka Connect</a></h5>
+<div class="paragraph">
+<p>You can configure Kafka Connect to connect to Kafka brokers using SASL-based authentication using the SCRAM-SHA-512 mechanism.</p>
+</div>
+<div class="paragraph">
+<p>The following procedure includes creating a Secret from a text file. The Secret will contain the password used for authentication in one of its fields. Secrets created by the User Operator can also be used.</p>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -9910,10 +9998,7 @@ spec:
 <p>A running Cluster Operator</p>
 </li>
 <li>
-<p>Username of the user which should be used for authentication</p>
-</li>
-<li>
-<p>If they exist, the name of the <code>Secret</code> with the password used for authentication and the key under which the password is stored in the <code>Secret</code></p>
+<p>Username of the user for authentication</p>
 </li>
 </ul>
 </div>
@@ -9921,31 +10006,23 @@ spec:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>(Optional) If they do not already exist, prepare a file with the password used in authentication and create the <code>Secret</code>.</p>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Secrets created by the User Operator may be used.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>This can be done using <code>kubectl create</code>:</p>
-</div>
+<p>Create a text file that contains the password, in cleartext, to use for authentication:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">echo -n '<em>PASSWORD</em>' &gt; <em>MY-PASSWORD.txt</em>
-kubectl create secret generic <em>MY-SECRET</em> --from-file=<em>MY-PASSWORD.txt</em></code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">echo -n <em>PASSWORD</em> &gt; <em>MY-CONNECT-PASSWORD</em>.txt</code></pre>
 </div>
 </div>
 </li>
 <li>
-<p>Edit the <code>authentication</code> property in the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> resource.
+<p>Create the Secret from the file, setting your own field name (key) for the password:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl create secret generic <em>MY-CONNECT-SECRET</em> --from-file=<em>PASSWORD-FIELD-NAME</em>=./<em>MY-CONNECT-PASSWORD</em>.txt</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Edit the <code>authentication</code> property in the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> custom resource to reference the username and Secret.
 For example:</p>
 <div class="listingblock">
 <div class="content">
@@ -9957,22 +10034,33 @@ spec:
   # ...
   authentication:
     type: scram-sha-512
-    username: <em>MY-USERNAME</em>
+    username: <em>MY-CONNECT-USERNAME</em>
     passwordSecret:
-      secretName: <em>MY-SECRET</em>
-      password: <em>MY-PASSWORD.txt</em>
+      secretName: <em>MY-CONNECT-SECRET-NAME</em>
+      password: <em>PASSWORD-FIELD-NAME</em>
   # ...</code></pre>
 </div>
 </div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Do NOT specify the actual password in the <code>passwordSecret.password</code> property.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
 </li>
 <li>
-<p>Create or update the resource.</p>
-<div class="paragraph">
-<p>On Kubernetes this can be done using <code>kubectl apply</code>:</p>
-</div>
+<p>Create or update the resource:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>your-file</em></code></pre>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">kubectl apply -f <em>YOUR-FILE</em></code></pre>
 </div>
 </div>
 </li>
@@ -36253,7 +36341,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-09-04 16:24:08 UTC
+Last updated 2020-09-04 18:58:55 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
