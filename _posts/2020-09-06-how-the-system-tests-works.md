@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "How the SYSTEM TESTS works"
-date: 2020-09-__
+date: 2020-09-06
 author: maroš_orsák
 ---
 
