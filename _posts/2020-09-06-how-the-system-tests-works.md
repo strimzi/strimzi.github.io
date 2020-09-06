@@ -5,7 +5,7 @@ date: 2020-09-06
 author: maroš_orsák
 ---
 
-Sometimes, We underestimate strength of testing. Many companies start verification of the software product belated. The process of testing is complex as many can not imagine. It can be highlighted by quote: "If we fail, we fall. If we succeed - then we will face the next task."
+Sometimes, we underestimate strength of testing. Many companies start verification of the software product belated. The process of testing is complex as many can not imagine. It can be highlighted by quote: "If we fail, we fall. If we succeed - then we will face the next task."
 Strimzi is not an exception and you have to know many technologies such as [Kubernetes](https://kubernetes.io/), [Apache Kafka](https://kafka.apache.org/),
 [Keycloak](https://www.keycloak.org/), [Open Policy Agent](https://www.openpolicyagent.org/), [Cruise control](https://github.com/linkedin/cruise-control) and so on.
 
@@ -24,9 +24,9 @@ In this blog post we are gonna take a closer look on our system tests. The conte
 
 The whole ecosystem behind systems test is encapsulated in two mandatory things. First of all it is
 the Resources, which create the whole testing environment. The second of all we have the auxiliary classes that are divided into
-the classic static methods `Utils`, Clients for the external and also internal communication, `Constants.java` and `Envinroment.java`.
+the classic static methods `Utils`, Clients for the external and also internal communication, Kubernetes client, `Constants.java` and `Envinroment.java`.
 
-Pure idea to make the system tests easily modifiable is to able to write the resources in the fluent way. Fluent notation is nested builders by which you can build customized objects by your imagination.
+Pure idea to make the system tests easily modifiable is to able to write resources in the fluent way. Fluent notation is nested builders by which you can build customized objects by your imagination.
 For instance before the Fluent notation we have the [1.Telescoping pattern](https://www.vojtechruzicka.com/avoid-telescoping-constructor-pattern/#telescoping-constructor) but this does not scale well to large numbers of optional parameters.
 Second alternative would be the [2.JavaBeans convention](https://www.vojtechruzicka.com/avoid-telescoping-constructor-pattern/#alternative-1---javabeans), which first of all resolve our issue from the telescoping pattern but on the
 other hand the objects which we create will be mutable. Luckily, there is a third alternative that combines the safety of the telescoping constructor pattern with the readability of the JavaBeans pattern. It is a form of the [3.Builder pattern](https://refactoring.guru/design-patterns/builder).
