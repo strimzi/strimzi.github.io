@@ -5,9 +5,11 @@ date: 2020-09-06
 author: maroš_orsák
 ---
 
-Sometimes, we underestimate strength of testing. Many companies start verification of the software product belated. The process of testing is complex as many can not imagine. It can be highlighted by quote: "If we fail, we fall. If we succeed - then we will face the next task."
-Strimzi is not an exception and you have to know many technologies such as [Kubernetes](https://kubernetes.io/), [Apache Kafka](https://kafka.apache.org/),
-[Keycloak](https://www.keycloak.org/), [Open Policy Agent](https://www.openpolicyagent.org/), [Cruise control](https://github.com/linkedin/cruise-control) and so on.
+Sometimes, we underestimate strength of testing. Many companies start verification of the software product belated.
+The process of testing is complex as many can not imagine. It can be highlighted by quote: "If we fail, we fall. If "
+"we succeed - then we will face the next task." Fortunately, Strimzi is an exception but you have to know many technologies such
+as [Kubernetes](https://kubernetes.io/), [Apache Kafka](https://kafka.apache.org/),[Keycloak](https://www.keycloak.org/),
+[Open Policy Agent](https://www.openpolicyagent.org/),[Cruise control](https://github.com/linkedin/cruise-control) and so on.
 
 In this blog post we are gonna take a closer look on our system tests. The content is as follows:
 
