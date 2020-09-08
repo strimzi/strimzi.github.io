@@ -22,21 +22,27 @@ The content is as follows:
 
 ## Motivation
 
-Maybe you ask yourself these questions.
-Why do we need to write system tests?
-What is the value of it?
-Do they catch errors that unit or integration tests doesn't?
+Maybe you ask yourself the following questions:
+
+- Why do we need to write system tests?
+- What is the value of it?
+- Do they catch errors that unit or integration tests doesn't?
+
 The answer is very simple.
 Yes!
-System Tests are the core unit to be able ship the product to the customer with more confidence that it will not crash in the production.
+System Tests are a key part of being able to ship Strimzi to users with more confidence that it will not crash in the production.
 These types of tests, which  validate the basic properties of system we call [Smoke tests](https://www.guru99.com/smoke-testing.html).
 They ensure to detect major issues such as deployment of application with general configuration and so on.
-Moreover, we have got the regression test suites, which coverage most of all features and will definitely find a bug.
-In the next section i will describe the difference between our system tests, integration and unit tests.
+Moreover, we have got the regression test suites. Regression tests cover most of all features and will definitely find a bug
+if there is some caused by recent changes in verified code.
+In the next section, I will describe the difference between our system tests, integration, and unit tests.
 
-## How they differ from our unit and integration tests
+## How system tests differ from our unit and integration tests
 
-Firstly, we should know what is the purpose of the Unit test. Let's define information definition of unit test.
+### Unit tests
+
+At first, we should know what is the purpose of the unit tests. 
+Let's define information definition of unit test.
 
 > A unit test exercises a single behavior of a software module.
 > That module is usually a class, and the behavior is usually a public method of the class.
@@ -49,7 +55,7 @@ This is the test case, which verify that if we setup `Kafka` with external liste
 of class will contains the external port name, external port 9094 with protocol TCP and more.
 You should see that everything what this type of test validates is only single behaviour of a sofware module that we define
 previously.
-We have no running `Kubernetes cluster`.
+We don't need a running `Kubernetes cluster` for unit tests.
 It is only in-memory representation of class in that case `Kafka` model.
 
 ```java
@@ -96,7 +102,9 @@ public void testExternalNodePorts() {
 }
 ```
 
-The next one is the integration tests, which step one level higher.
+### Integration tests
+
+The next one are the integration tests, which step one level higher.
 You can find all these tests inside our `api` module.
 Before we get into detail again we should understand the informal definition of integration tests.
 
@@ -114,20 +122,22 @@ public void testKafkaWithEntityOperator() {
 }
 
 protected <T extends CustomResource> void createDelete(Class<T> resourceClass, String resource) {
-    T model = loadResource(resourceClass, resource);  <--- load model in that case Kafka model representation
+    T model = loadResource(resourceClass, resource);  // load model in that case Kafka model representation
     String modelStr = TestUtils.toYamlString(model);  
     assertDoesNotThrow(() -> createDelete(modelStr), 
-"Create delete failed after first round-trip -- maybe a problem with a defaulted value?\nApplied string: " + modelStr);
-    }
+    "Create delete failed after first round-trip -- maybe a problem with a defaulted value?\nApplied string: " + modelStr);
+}
 ```
 
-You can see that the test case basically apply the YAML representation of Kafka and except that will not fail and everything
-is correct.
+You can see that the test case basically apply the YAML representation of Kafka and expect creation of `Kafka` customer 
+resource object in Kubernetes cluster is correct.
 This is applied for every custom resource supported by `Strimzi` for instance `KafkaConnect`, `KafkaMirrorMaker`, `KafkaBridge`,
 `KafkaTopic`, `KafkaUser` and so on.
 
+### System tests
+
 After this level is successfully completed we can talk about our system tests.
-Let's firstly see the informal definition:
+Take a look on the informal definition again:
 
 > System testing is a level of testing that validates the complete and fully integrated software product.
 > The purpose of a system test is to evaluate the end-to-end system specifications.
@@ -185,20 +195,32 @@ void createClassResources() throws Exception {
 
 This test case as you can see ensures that we are able to receive messages from `KafkaBridge` component.
 In the setup phase we deploy `cluster-operator`, one node Kafka cluster and also the `KafkaBridge` itself.
-Everything is inside the real Kubernetes cluster.
-All test cases with related test suites can be found in the `system-test` module to make it more sense.
-What is also worth to mentioned that our system test currently takes around ~30 hours but we have 3 separate sub-sets, which
-runs in parallel so it is "only" approximately 10h per each sub-set.
+Everything is deployed into the real Kubernetes cluster.
+All test cases with related test suites can be found in the [systemtest](https://github.com/strimzi/strimzi-kafka-operator/tree/master/systemtest) 
+module to make it more sense.
+What is also worth to mention that our system tests currently take around ~30 hours. 
+We have 3 separate sub-sets of tests, which run in parallel so it is "only" approximately 10h per each sub-set.
 Additionally, there is also a mvn profile for the main groups - `acceptance`, `regression`, `smoke`, `bridge` and `all`,
 but we suggest to use profile with id `all` (default) and then include or exclude specific groups.
-If you want specify the profile, use the `-P` flag for example `-Psmoke`.
-All available test groups are listed in [Constants](https://github.com/strimzi/strimzi-kafka-operator/blob/master/systemtest/src/main/java/io/strimzi/systemtest/Constants.java)
-class.
+If you want specify the profile, use the `-P` flag for example `-Psmoke`. Here is an example of how we trigger some profiles
 
-## How they run with relation with Kubernetes
+```
+Generic definition
+
+mvn -f ${workspace}/systemtest/pom.xml -P all verify -Dgroups=${testProfile} -DexcludedGroups=${excludeGroups}
+
+Acceptance profile
+
+mvn -f ${workspace}/systemtest/pom.xml -P all verify -Dgroups=acceptance -DexcludedGroups=""
+```
+
+All available test groups are listed in [Constants](https://github.com/strimzi/strimzi-kafka-operator/blob/master/systemtest/src/main/java/io/strimzi/systemtest/Constants.java)
+class. In case of interest you can view our testing [document](https://github.com/strimzi/strimzi-kafka-operator/blob/master/development-docs/TESTING.md).
+
+## How system tests run in relation with Kubernetes
 
 Basically, what I mentioned in previous section system tests run against real Kubernetes cluster.
-You can run these tests against `Minikube`, `Minishift`, big `Kubernetes` or `Openshift` cluster.
+You can run these tests against any Kubernetes cluster type such as `Minikube`, `Minishift`, big `Kubernetes` or `Openshift`.
 In the `test` module we have our representation of cluster which decide on which environment it is running.
 Moreover, we are using `Azure pipelines` to trigger these tests and using `Minikube`.
 
@@ -214,7 +236,7 @@ The steps are as follows:
 2. Build the whole project in root directory - `mvn clean install -DskipTests`
 3. Setup your Kubernetes cluster
 4. Login to your Kubernetes cluster
-5. Try to start some of our tests inside system test module for instance - `io.strimzi.systemtest.bridge.HttpBridgeST.testSendSimpleMessage()` (take takes around 5 minutes)
+5. Try to start some of our tests inside system test module for instance - `io.strimzi.systemtest.bridge.HttpBridgeST.testSendSimpleMessage()` (this takes around 5 minutes)
 
 ### Using custom images
 
@@ -235,20 +257,27 @@ There are few attributes that you need to change for instance:
 
 and so on.
 
+Here is also the list of important environment variables:
+
+1. DOCKER_ORG = Specify the organization/repo containing the image used in system tests |`strimzi`|
+2. DOCKER_TAG = Specify the image tags used in system tests |`latest`|
+3. DOCKER_REGISTRY = Specify the docker registry used in system tests |`docker.io`|
+
 ### Using IDE
 
-Also you can build and run some test from your favourite IDE.
-    For instance in my case I am using InteliJ and the steps are as follows.
+You can also build and run tests from your favourite IDE.
+For instance in my case I am using InteliJ and the steps are as follows.
 
 1. Fork the [strimzi-kafka-operator](https://github.com/strimzi/strimzi-kafka-operator)
 2. Open the strimzi-kafka-operator project
-3. You should probably see on the right side maven modules. Select `system-test` module.
+3. You should probably see on the right side maven modules. Select [systemtest](https://github.com/strimzi/strimzi-kafka-operator/tree/master/systemtest) 
+module.
 4. Click on Lifecycle and then you will see `clean` and `install`.
 5. Run any test you want.
 
 ## Conclusion
 
-Today we have dive into system tests domain.
+Today we had dive into Strimzi system tests domain.
 Simply, we learned about the motivation behind writing system tests.
 Furthermore, we talked about the main differences unit, integration vs system tests.
 Afterwards, we looked at the relation with the Kubernetes.
