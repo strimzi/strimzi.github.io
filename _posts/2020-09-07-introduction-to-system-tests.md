@@ -124,7 +124,7 @@ protected <T extends CustomResource> void createDelete(Class<T> resourceClass, S
 You can see that the test case basically apply the YAML representation of Kafka and except that will not fail and everything
 is correct.
 This is applied for every custom resource supported by `Strimzi` for instance `KafkaConnect`, `KafkaMirrorMaker`, `KafkaBridge`,
-                                                                         `KafkaTopic`, `KafkaUser` and so on.
+`KafkaTopic`, `KafkaUser` and so on.
 
 After this level is successfully completed we can talk about our system tests.
 Let's firstly see the informal definition:
@@ -139,7 +139,7 @@ In our case the system tests validates the whole components/features which Strim
 Everything is tested in Kubernetes environment to fully represent production or user environment.
 Again to clarify I have an example:
 
-    ```java
+```java
 @Test
 void testReceiveSimpleMessage() {
     KafkaTopicResource.topic(CLUSTER_NAME, TOPIC_NAME).done();
@@ -192,7 +192,7 @@ runs in parallel so it is "only" approximately 10h per each sub-set.
 Additionally, there is also a mvn profile for the main groups - `acceptance`, `regression`, `smoke`, `bridge` and `all`,
 but we suggest to use profile with id `all` (default) and then include or exclude specific groups.
 If you want specify the profile, use the `-P` flag for example `-Psmoke`.
-                                                               All available test groups are listed in [Constants](https://github.com/strimzi/strimzi-kafka-operator/blob/master/systemtest/src/main/java/io/strimzi/systemtest/Constants.java)
+All available test groups are listed in [Constants](https://github.com/strimzi/strimzi-kafka-operator/blob/master/systemtest/src/main/java/io/strimzi/systemtest/Constants.java)
 class.
 
 ## How they run with relation with Kubernetes
