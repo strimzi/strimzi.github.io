@@ -94,7 +94,10 @@ public void testExternalNodePorts() {
 ### Integration tests
 
 Next up are the integration tests, which move one level higher.
-You can find all these tests inside our `api` module.
+You can find these tests inside our `api` module.
+Moreover, there are test cases inside `topic-operator` and `cluster-operator` module.
+Namely inside `topic-operator` you can find `TopicOperatorIT` and inside `cluster-operator` you can take a look on the
+`KafkaAssemblyOperatorTest` and `KafkaAssemblyOperatorMockTest`.
 Before we get into the details again, we should understand the informal definition of integration tests.
 
 > Integration tests determine if independently developed units of software work correctly when they are connected to each other. (Martin Fowler)
