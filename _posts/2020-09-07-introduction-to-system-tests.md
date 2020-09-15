@@ -30,7 +30,7 @@ In the next section, I will describe the difference between our system tests, in
 
 ### Unit tests
 
-First, we need to know what is the purpose of the unit tests. 
+First, we need to know the purpose of the unit tests. 
 Let's define a unit test.
 
 > A unit test exercises a single behavior of a software module.
@@ -38,12 +38,11 @@ Let's define a unit test.
 > The test asserts that the actual result matches the expected result.
 > These assertions must all pass, or the unit test will fail. (Ryan Cook)
 
-For clarification I can show you an example of a unit test for the `cluster-operator` module.
+For clarification, let's see an example of a unit test for the `cluster-operator` module.
 This is the test case, which verifies that if we set up a `Kafka` CR with an external 
-`nodeport` listener then the `Kafka`  class instance contains the external port name, 
+`nodeport` listener, then the `Kafka`  class instance contains the external port name, 
 external port 9094 with protocol TCP and more.
-Everything that this type of test validates is only single behaviour of a software module that we defined
-previously.
+Everything that this type of test validates is only a single behaviour of a software module that we defined.
 We don't need a running `Kubernetes cluster` for unit tests.
 It is only in-memory representation of class, in this case the `Kafka` model.
 
@@ -95,8 +94,8 @@ public void testExternalNodePorts() {
 
 Next up are the integration tests, which move one level higher.
 You can find these tests inside our `api` module.
-Moreover, there are test cases inside `topic-operator` and `cluster-operator` module.
-Namely inside `topic-operator` you can find `TopicOperatorIT` and inside `cluster-operator` you can take a look on the
+Moreover, there are test cases inside the `topic-operator` and `cluster-operator` modules.
+Inside `topic-operator` you can find `TopicOperatorIT`, and inside `cluster-operator` you can take a look on the
 `KafkaAssemblyOperatorTest` and `KafkaAssemblyOperatorMockTest`.
 Before we get into the details again, we should understand the informal definition of integration tests.
 
@@ -195,9 +194,9 @@ In the setup phase we deploy `cluster-operator`, a single one node Kafka cluster
 Everything is deployed into a real Kubernetes cluster.
 All test cases with related test suites can be found in the [systemtest](https://github.com/strimzi/strimzi-kafka-operator/tree/master/systemtest) 
 module.
-Also worth mentioning is that our system tests currently take around ~30 hours. 
-We have 3 separate sub-sets of tests, which run in parallel so it is "only" approximately 10h per each sub-set.
-Additionally, there is also a mvn profile for the main groups - `acceptance`, `regression`, `smoke`, `bridge` and `all`,
+Also worth mentioning is that our system tests currently take around 30 hours. 
+We have 3 separate sub-sets of tests, which run in parallel so it is "only" approximately 10 hours per each sub-set.
+Additionally, there is a mvn profile for the main groups - `acceptance`, `regression`, `smoke`, `bridge` and `all`,
 but we suggest to use a profile with id `all` (default) and then include or exclude specific groups.
 If you want specify the profile, Strimzi uses maven in its build and you can run particular test groups using a maven 
 profile. 
@@ -223,7 +222,7 @@ You can run these tests against any Kubernetes cluster from `Minikube`, through 
 In the `test` module we have a representation of a cluster that determines which environment it is running on.
 Moreover, we are using `Azure pipelines` to trigger these tests and using `Minikube`.
 
-## How to run them
+## How to run system tests
 
 Running system tests is nothing to be scared of. In fact, it's easy. 
 
@@ -245,7 +244,7 @@ If you want to use your local images you should take a look on these environment
 ### Using custom images
 
 If you are interested in running custom images, you should take a look at the file that is located in the install directory: [here](https://github.com/strimzi/strimzi-kafka-operator/blob/master/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml).
-There are few attributes that you need to change:
+There are few attributes that you need to change, including:
 
 - `Cluster Operator` image = specify [here](https://github.com/strimzi/strimzi-kafka-operator/blob/master/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml#L26)
 - `Kafka` image = STRIMZI_KAFKA_IMAGES
@@ -258,12 +257,10 @@ There are few attributes that you need to change:
 - `KafkaBridge` image =  STRIMZI_DEFAULT_KAFKA_BRIDGE_IMAGE
 - `CruiseControl` image =  STRIMZI_DEFAULT_CRUISE_CONTROL_IMAGE
 
-And so on.
-
 ### Using IDE
 
 You can also build and run tests from your favourite IDE.
-In my case, I am using IntelliJ and the steps are as follows.
+In my case, I use IntelliJ and the steps are as follows.
 
 1. Fork the [strimzi-kafka-operator](https://github.com/strimzi/strimzi-kafka-operator)
 2. Open the strimzi-kafka-operator project
@@ -275,8 +272,8 @@ module.
 ## Conclusion
 
 In this post we had a quick dive into Strimzi's system tests domain.
-Simply, We learned about the motivation behind writing system tests.
-Furthermore, we talked about the main differences between system tests and unit and integration tests.
+We learned about the motivation behind writing system tests.
+And we talked about the main differences between system tests and unit and integration tests.
 After, we looked at the relationship between system tests and Kubernetes.
 Lastly, we showed how to start a system test.
 Now you will be able to create your completely new system test in `Strimzi`!
