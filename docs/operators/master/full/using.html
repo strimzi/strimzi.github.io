@@ -12903,25 +12903,28 @@ The recommended pattern is for messages to be produced locally alongside the sou
 <div class="ulist">
 <ul>
 <li>
-<p>In an <em>active/passive</em> configuration, the data from an active cluster is replicated in a passive cluster, which remains on standby, for example, for data recovery in the event of system failure.</p>
+<p>In an <em>active/active</em> configuration, both clusters are active and provide the same data simultaneously, which is useful if you want to make the same data available locally in different geographical locations.</p>
 </li>
 <li>
-<p>In an <em>active/active</em> configuration, both clusters are active and provide the same data simultaneously, which is useful if you want to make the same data available locally in different geographical locations.</p>
+<p>In an <em>active/passive</em> configuration, the data from an active cluster is replicated in a passive cluster, which remains on standby, for example, for data recovery in the event of system failure.</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
 <p>The expectation is that producers and consumers connect to active clusters only.</p>
 </div>
-<div class="sect4">
-<h5 id="bidirectional_replication"><a class="link" href="#bidirectional_replication">Bidirectional replication</a></h5>
 <div class="paragraph">
-<p>The MirrorMaker 2.0 architecture supports bidirectional replication in an <em>active/active</em> cluster configuration.
-A MirrorMaker 2.0 cluster is required at each target destination.</p>
+<p>A MirrorMaker 2.0 cluster is required at each target destination.</p>
+</div>
+<div class="sect4">
+<h5 id="bidirectional_replication_activeactive"><a class="link" href="#bidirectional_replication_activeactive">Bidirectional replication (active/active)</a></h5>
+<div class="paragraph">
+<p>The MirrorMaker 2.0 architecture supports bidirectional replication in an <em>active/active</em> cluster configuration.</p>
 </div>
 <div class="paragraph">
 <p>Each cluster replicates the data of the other cluster using the concept of <em>source</em> and <em>remote</em> topics.
-As the same topics are stored in each cluster, remote topics are automatically renamed by MirrorMaker 2.0 to represent the source cluster.</p>
+As the same topics are stored in each cluster, remote topics are automatically renamed by MirrorMaker 2.0 to represent the source cluster.
+The name of the originating cluster is prepended to the name of the topic.</p>
 </div>
 <div class="imageblock">
 <div class="content">
@@ -12935,6 +12938,20 @@ As the same topics are stored in each cluster, remote topics are automatically r
 <div class="paragraph">
 <p>The concept of replication through <em>remote</em> topics is useful when configuring an architecture that requires data aggregation.
 Consumers can subscribe to source and remote topics within the same cluster, without the need for a separate aggregation cluster.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="unidirectional_replication_activepassive"><a class="link" href="#unidirectional_replication_activepassive">Unidirectional replication (active/passive)</a></h5>
+<div class="paragraph">
+<p>The MirrorMaker 2.0 architecture supports unidirectional replication in an <em>active/passive</em> cluster configuration.</p>
+</div>
+<div class="paragraph">
+<p>You can use an <em>active/passive</em> cluster configuration to make backups or migrate data to another cluster.
+In this situation, you might not want automatic renaming of remote topics.</p>
+</div>
+<div class="paragraph">
+<p>You can override automatic renaming by adding <code>IdentityReplicationPolicy</code> to the source connector configuration of the <code>KafkaMirrorMaker2</code> resource.
+With this configuration applied, topics retain their original names.</p>
 </div>
 </div>
 <div class="sect4">
@@ -13178,36 +13195,38 @@ spec:
         replication.factor: 1 <b class="conum">(20)</b>
         offset-syncs.topic.replication.factor: 1 <b class="conum">(21)</b>
         sync.topic.acls.enabled: "false" <b class="conum">(22)</b>
-    heartbeatConnector: <b class="conum">(23)</b>
+        replication.policy.separator: "" <b class="conum">(23)</b>
+        replication.policy.class: "io.strimzi.kafka.connect.mirror.IdentityReplicationPolicy" <b class="conum">(24)</b>
+    heartbeatConnector: <b class="conum">(25)</b>
       config:
-        heartbeats.topic.replication.factor: 1 <b class="conum">(24)</b>
-    checkpointConnector: <b class="conum">(25)</b>
+        heartbeats.topic.replication.factor: 1 <b class="conum">(26)</b>
+    checkpointConnector: <b class="conum">(27)</b>
       config:
-        checkpoints.topic.replication.factor: 1 <b class="conum">(26)</b>
-    topicsPattern: ".*" <b class="conum">(27)</b>
-    groupsPattern: "group1|group2|group3" <b class="conum">(28)</b>
-  resources: <b class="conum">(29)</b>
+        checkpoints.topic.replication.factor: 1 <b class="conum">(28)</b>
+    topicsPattern: ".*" <b class="conum">(29)</b>
+    groupsPattern: "group1|group2|group3" <b class="conum">(30)</b>
+  resources: <b class="conum">(31)</b>
     requests:
       cpu: "1"
       memory: 2Gi
     limits:
       cpu: "2"
       memory: 2Gi
-  logging: <b class="conum">(30)</b>
+  logging: <b class="conum">(32)</b>
     type: inline
     loggers:
       log4j.rootLogger: "INFO"
-  readinessProbe: <b class="conum">(31)</b>
+  readinessProbe: <b class="conum">(33)</b>
     initialDelaySeconds: 15
     timeoutSeconds: 5
   livenessProbe:
     initialDelaySeconds: 15
     timeoutSeconds: 5
-  jvmOptions: <b class="conum">(32)</b>
+  jvmOptions: <b class="conum">(34)</b>
     "-Xmx": "1g"
     "-Xms": "1g"
-  image: my-org/my-image:latest <b class="conum">(33)</b>
-  template: <b class="conum">(34)</b>
+  image: my-org/my-image:latest <b class="conum">(35)</b>
+  template: <b class="conum">(36)</b>
     pod:
       affinity:
         podAntiAffinity:
@@ -13220,7 +13239,7 @@ spec:
                       - postgresql
                       - mongodb
               topologyKey: "kubernetes.io/hostname"
-    connectContainer: <b class="conum">(35)</b>
+    connectContainer: <b class="conum">(37)</b>
       env:
         - name: JAEGER_SERVICE_NAME
           value: my-jaeger-service
@@ -13229,8 +13248,8 @@ spec:
         - name: JAEGER_AGENT_PORT
           value: "6831"
   tracing:
-    type: jaeger <b class="conum">(36)</b>
-  externalConfiguration: <b class="conum">(37)</b>
+    type: jaeger <b class="conum">(38)</b>
+  externalConfiguration: <b class="conum">(39)</b>
     env:
       - name: AWS_ACCESS_KEY_ID
         valueFrom:
@@ -13312,6 +13331,12 @@ Standard Apache Kafka configuration may be provided, restricted to those propert
 </li>
 <li>
 <p>When <a href="#con-mirrormaker-acls-str">ACL rules synchronization</a> is enabled, ACLs are applied to synchronized topics. The default is <code>true</code>.</p>
+</li>
+<li>
+<p>Defines the separator used for the renaming of remote topics.</p>
+</li>
+<li>
+<p>Adds a policy that overrides the automatic renaming of remote topics. Instead of prepending the name with the name of the source cluster, the topic retains its original name. Useful for active/passive backups and data migration.</p>
 </li>
 <li>
 <p><a href="#type-KafkaMirrorMaker2ConnectorSpec-reference">Configuration for the <code>MirrorHeartbeatConnector</code></a> that performs connectivity checks. The <code>config</code> overrides the default configuration options.</p>
@@ -36764,7 +36789,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-09-15 18:42:32 UTC
+Last updated 2020-09-15 20:29:45 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
