@@ -3506,9 +3506,10 @@ For example, loadbalancers might not be suitable for certain infrastructure, suc
 </ol>
 </div>
 <div class="paragraph">
-<p>You can configure your listener to use TLS or SCRAM-SHA authentication,
+<p>You can configure your listener to use TLS or SCRAM-SHA-512 authentication,
 both of which can be used with TLS encryption.
-If you are using an authorization server, you can use token-based <a href="./using.html#assembly-oauth-authentication_str" target="_blank" rel="noopener">OAuth 2.0 authentication</a> and <a href="./using.html#assembly-oauth-authorization_str" target="_blank" rel="noopener">OAuth 2.0 authorization</a>.</p>
+If you are using an authorization server, you can use token-based <a href="./using.html#assembly-oauth-authentication_str" target="_blank" rel="noopener">OAuth 2.0 authentication</a> and <a href="./using.html#assembly-oauth-authorization_str" target="_blank" rel="noopener">OAuth 2.0 authorization</a>.
+Open Policy Agent (OPA) authorization is also supported as a <a href="./using.html#con-securing-kafka-authorization-str">Kafka authorization</a> option.</p>
 </div>
 <div class="paragraph">
 <p>When you configure the <code>KafkaUser</code> authentication and authorization mechanisms, ensure they match the equivalent Kafka configuration:</p>
@@ -3516,7 +3517,7 @@ If you are using an authorization server, you can use token-based <a href="./usi
 <div class="ulist">
 <ul>
 <li>
-<p><code>KafkaUser.spec.authentication</code> matches <code>Kafka.spec.kafka.listeners.*.authentication</code></p>
+<p><code>KafkaUser.spec.authentication</code> matches <code>Kafka.spec.kafka.listeners[*].authentication</code></p>
 </li>
 <li>
 <p><code>KafkaUser.spec.authorization</code> matches <code>Kafka.spec.kafka.authorization</code></p>
@@ -3596,51 +3597,56 @@ spec:
   kafka:
     # ...
     listeners: <b class="conum">(1)</b>
-      external:
-        type: <em>LISTENER-TYPE</em> <b class="conum">(2)</b>
-        tls: true <b class="conum">(3)</b>
-        authentication:
-          type: tls <b class="conum">(4)</b>
-        configuration:
-          preferredAddressType: InternalDNS <b class="conum">(5)</b>
-        overrides: <b class="conum">(6)</b>
-          # ...
-      authorization: <b class="conum">(7)</b>
+    - name: external <b class="conum">(2)</b>
+      port: 9094 <b class="conum">(3)</b>
+      type: <em>LISTENER-TYPE</em> <b class="conum">(4)</b>
+      tls: true <b class="conum">(5)</b>
+      authentication:
+        type: tls <b class="conum">(6)</b>
+      configuration:
+        preferredNodePortAddressType: InternalDNS <b class="conum">(7)</b>
+        <em>bootstrap and broker service overrides</em> <b class="conum">(8)</b>
+        #...
+      authorization: <b class="conum">(9)</b>
         type: simple
         superUsers:
-          - super-user-name <b class="conum">(8)</b>
+          - super-user-name <b class="conum">(10)</b>
   # ...</code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <ol>
 <li>
-<p>Configuration options for enabling external listeners are described in the <a href="./using.html#type-KafkaListeners-reference" target="_blank" rel="noopener">Kafka listeners schema reference</a></p>
+<p>Configuration options for enabling external listeners are described in the <a href="./using.html#type-GenericKafkaListener-reference" target="_blank" rel="noopener">Generic Kafka listener schema reference</a>.</p>
 </li>
 <li>
-<p>External listener type specified as <code>route</code>, <code>loadbalancer</code>, <code>nodeport</code> or <code>ingress</code>.</p>
+<p>Name to identify the listener. Must be unique within the Kafka cluster.</p>
 </li>
 <li>
-<p>Enables TLS encryption on the listener. Not required for <code>route</code> listeners.</p>
+<p>Port number for the listener. Must be unique within the Kafka cluster. Depending on the listener type, the port number might not be the same as the port number that connects Kafka clients.</p>
+</li>
+<li>
+<p>External listener type specified as <code>route</code>, <code>loadbalancer</code>, <code>nodeport</code> or <code>ingress</code>. An internal listener is specified as <code>internal</code>.</p>
+</li>
+<li>
+<p>Enables TLS encryption on the listener. Default is <code>false</code>. TLS encryption is not required for <code>route</code> listeners.</p>
 </li>
 <li>
 <p>Authentication specified as <code>tls</code>.</p>
 </li>
 <li>
-<p>(Optional, for <code>nodeport</code> listeners only) Configuration to <a href="./using.html#type-NodePortListenerConfiguration-reference" target="_blank" rel="noopener">specify a preference for the first address type used by Strimzi as the node address</a>.</p>
+<p>(Optional, for <code>nodeport</code> listeners only) Configuration to <a href="./using.html#type-GenericKafkaListenerConfiguration-reference" target="_blank" rel="noopener">specify a preference for the first address type used by Strimzi as the node address</a>.</p>
 </li>
 <li>
-<p>(Optional, but not applicable to <code>ingress</code> listeners) Overrides customize the bootstrap and broker addresses advertised to clients.
-Strimzi automatically determines the addresses to advertise to clients.
+<p>(Optional) Strimzi automatically determines the addresses to advertise to clients.
 The addresses are automatically assigned by Kubernetes.
-Use overrides if the infrastructure on which you are running Strimzi does not provide the right address.
-Validation is not performed on overrides.
-The override configuration differs according to the external listener type,
-so you can override hosts for <code>route</code>, DNS names or IP addresses for <code>loadbalancer</code>, and node ports (shown) for <code>nodeport</code>.
-Refer to the <a href="./using.html#type-KafkaListeners-reference" target="_blank" rel="noopener">Kafka listeners schema reference</a> for more information on external listener <code>overrides</code>.</p>
+You can override <a href="./using.html#type-GenericKafkaListenerConfiguration-reference">bootstrap and broker service addresses</a> if the infrastructure on which you are running Strimzi does not provide the right address.
+Validation is not performed on the overrides.
+The override configuration differs according to the listener type.
+For example, you can override hosts for <code>route</code>, DNS names or IP addresses for <code>loadbalancer</code>, and node ports for <code>nodeport</code>.</p>
 </li>
 <li>
-<p>Authorization <a href="./using.html#con-securing-kafka-authorization-str" target="_blank" rel="noopener">enables <code>simple</code> authorization on the Kafka broker using the <code>AclAuthorizer</code> Kafka plugin</a>.</p>
+<p>Authoization specified as <code>simple</code>, which uses the <code>AclAuthorizer</code> Kafka plugin.</p>
 </li>
 <li>
 <p>(Optional) Super users can access all brokers regardless of any access restrictions defined in ACLs.</p>
@@ -7564,7 +7570,7 @@ The upgrade of resources <em>must</em> be performed after <a href="#assembly-upg
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-09-15 20:29:45 UTC
+Last updated 2020-09-16 19:12:03 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
