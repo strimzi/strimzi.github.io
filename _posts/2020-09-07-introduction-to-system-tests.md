@@ -202,13 +202,14 @@ If you want specify the profile, Strimzi uses maven in its build and you can run
 profile. 
 Here is an example of how we trigger some profiles:
 
+
+#### Generic definition
 ```
-Generic definition
-
 mvn -f ${workspace}/systemtest/pom.xml -P all verify -Dgroups=${testProfile} -DexcludedGroups=${excludeGroups}
+```
+#### Acceptance profile
 
-Acceptance profile
-
+```
 mvn -f ${workspace}/systemtest/pom.xml -P all verify -Dgroups=acceptance -DexcludedGroups=""
 ```
 
@@ -237,32 +238,32 @@ The steps are as follows:
 It will run tests against the images as they are published in `Dockerhub` by default. 
 If you want to use your local images you should take a look on these environment variables:
 
-1. DOCKER_ORG = Specify the organization/repo containing the image used in system tests |`strimzi`|
-2. DOCKER_TAG = Specify the image tags used in system tests |`latest`|
-3. DOCKER_REGISTRY = Specify the docker registry used in system tests |`docker.io`|
+1. DOCKER_ORG = Specify the organization/repo containing the image used in system tests (default value `strimzi`)
+2. DOCKER_TAG = Specify the image tags used in system tests (default value `latest`)
+3. DOCKER_REGISTRY = Specify the docker registry used in system tests (default value `docker.io`)
 
 ### Using custom images
 
 If you are interested in running custom images, you should take a look at the file that is located in the install directory: [here](https://github.com/strimzi/strimzi-kafka-operator/blob/master/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml).
 There are few attributes that you need to change, including:
 
-- `Cluster Operator` image = specify [here](https://github.com/strimzi/strimzi-kafka-operator/blob/master/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml#L26)
-- `Kafka` image = STRIMZI_KAFKA_IMAGES
-- `KafkaConnect` image  = STRIMZI_KAFKA_CONNECT_IMAGES
-- `KafkaConnectS2I` image =  STRIMZI_KAFKA_CONNECT_S2I_IMAGES
-- `KafkaMirrorMaker` image =  STRIMZI_KAFKA_MIRROR_MAKER_IMAGES
-- `KafkaMirrorMake2` image =  STRIMZI_KAFKA_MIRROR_MAKER_2_IMAGES
-- `Topic Operator` image =  STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE
-- `User Operator` image =  STRIMZI_DEFAULT_USER_OPERATOR_IMAGE
-- `KafkaBridge` image =  STRIMZI_DEFAULT_KAFKA_BRIDGE_IMAGE
-- `CruiseControl` image =  STRIMZI_DEFAULT_CRUISE_CONTROL_IMAGE
+- `Cluster Operator` image = specify in local version of [thus](https://github.com/strimzi/strimzi-kafka-operator/blob/master/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml#L26) file
+- `Kafka` image = `STRIMZI_KAFKA_IMAGES`
+- `KafkaConnect` image  = `STRIMZI_KAFKA_CONNECT_IMAGES`
+- `KafkaConnectS2I` image =  `STRIMZI_KAFKA_CONNECT_S2I_IMAGES`
+- `KafkaMirrorMaker` image =  `STRIMZI_KAFKA_MIRROR_MAKER_IMAGES`
+- `KafkaMirrorMake2` image =  `STRIMZI_KAFKA_MIRROR_MAKER_2_IMAGES`
+- `Topic Operator` image =  `STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE`
+- `User Operator` image =  `STRIMZI_DEFAULT_USER_OPERATOR_IMAGE`
+- `KafkaBridge` image =  `STRIMZI_DEFAULT_KAFKA_BRIDGE_IMAGE`
+- `CruiseControl` image =  `STRIMZI_DEFAULT_CRUISE_CONTROL_IMAGE`
 
 ### Using IDE
 
 You can also build and run tests from your favourite IDE.
 In my case, I use IntelliJ and the steps are as follows.
 
-1. Fork the [strimzi-kafka-operator](https://github.com/strimzi/strimzi-kafka-operator)
+1. Checkout the [strimzi-kafka-operator](https://github.com/strimzi/strimzi-kafka-operator)
 2. Open the strimzi-kafka-operator project
 3. You should probably see on the right side maven modules. Select [systemtest](https://github.com/strimzi/strimzi-kafka-operator/tree/master/systemtest) 
 module.
