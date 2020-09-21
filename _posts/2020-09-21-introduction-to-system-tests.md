@@ -247,7 +247,7 @@ If you want to use your local images you should take a look on these environment
 If you are interested in running custom images, you should take a look at the file that is located in the install directory: [here](https://github.com/strimzi/strimzi-kafka-operator/blob/master/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml).
 There are few attributes that you need to change, including:
 
-- `Cluster Operator` image = specify in local version of [thus](https://github.com/strimzi/strimzi-kafka-operator/blob/master/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml#L26) file
+- `Cluster Operator` image = specify in local version of [this](https://github.com/strimzi/strimzi-kafka-operator/blob/master/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml#L26) file
 - `Kafka` image = `STRIMZI_KAFKA_IMAGES`
 - `KafkaConnect` image  = `STRIMZI_KAFKA_CONNECT_IMAGES`
 - `KafkaConnectS2I` image =  `STRIMZI_KAFKA_CONNECT_S2I_IMAGES`
