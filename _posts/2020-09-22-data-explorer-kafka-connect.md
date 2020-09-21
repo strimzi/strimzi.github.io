@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Data Ingestion into Azure Data Explorer using Kafka Connect"
-date: 2020-22-09
+date: 2020-09-22
 author: abhirockzz
 ---
 
