@@ -2,7 +2,7 @@
 layout: post
 title:  "Data Ingestion into Azure Data Explorer using Kafka Connect"
 date: 2020-09-22
-author: abhirockzz
+author: abhishek
 ---
 
 In this blog, we will go over how to ingest data into [Azure Data Explorer](https://docs.microsoft.com/azure/data-explorer/) using the open source [Kafka Connect Sink connector for Azure Data Explorer](https://github.com/Azure/kafka-sink-azure-kusto) running on Kubernetes using Strimzi. [Kafka Connect](https://kafka.apache.org/documentation/#connect) is a tool for scalably and reliably streaming data between Apache Kafka and other systems using source and sink connectors and Strimzi provides a "Kubernetes-native" way of running Kafka clusters as well as Kafka Connect workers.
@@ -50,8 +50,11 @@ To confirm successful installation:
 
 ```
 kubectl get pods -l=name=strimzi-cluster-operator
+```
 
-//output:
+You should see the cluster operator `Pod` in `Running` status
+
+```shell
 NAME                                        READY   STATUS    RESTARTS   AGE
 strimzi-cluster-operator-5c66f679d5-69rgk   1/1     Running   0          43s
 ```
@@ -60,24 +63,24 @@ To deploy a single-node kafka cluster (along with Zookeeper):
 
 ```shell
 kubectl apply -f https://github.com/abhirockzz/kusto-kafka-connect-strimzi/raw/master/deploy/kafka.yaml
+```
 
-//wait for the cluster to start
+Wait for the cluster to start:
+
+```shell
 kubectl get pod my-kafka-cluster-kafka-0 -w
+```
+
+The Kafka Pod should transition to `Running` status and both the containers should be in `READY` state
+
+```shell
+NAME                       READY   STATUS    RESTARTS   AGE
+my-kafka-cluster-kafka-0   2/2     Running   0          1m
 ```
 
 ## Kafka Connect cluster setup
 
-The Strimzi container images for Kafka Connect include two built-in file connectors - `FileStreamSourceConnector` and `FileStreamSinkConnector`. The Azure Data Explorer connector is installed on top of the [Strimzi Kafka Docker image](https://hub.docker.com/r/strimzi/kafka) by simply adding the connector plugin JAR to the plugin path as such:
-
-```dockerfile
-FROM strimzi/kafka:latest-kafka-2.4.0
-USER root:root
-COPY ./connector/ /opt/kafka/plugins/
-RUN ls -lrt /opt/kafka/plugins/
-USER 1001
-```
-
-For the purposes of this blog, a custom Docker image seeded with Azure Data Explorer connector [version 1.0.1](https://github.com/Azure/kafka-sink-azure-kusto/releases/tag/v1.0.1) is [available on Docker Hub](https://hub.docker.com/r/abhirockzz/adx-connector-strimzi) and it is referenced in the `KafkaConnect` resource definition (`image: abhirockzz/adx-connector-strimzi:1.0.1`):
+The Strimzi container images for Kafka Connect include two built-in file connectors - `FileStreamSourceConnector` and `FileStreamSinkConnector`. For the purposes of this blog, a custom Docker image seeded with [Azure Data Explorer connector](https://github.com/Azure/kafka-sink-azure-kusto/releases/tag/v1.0.1) (version `1.0.1`) is [available on Docker Hub](https://hub.docker.com/r/abhirockzz/adx-connector-strimzi) and it is referenced in the `KafkaConnect` resource definition (`image: abhirockzz/adx-connector-strimzi:1.0.1`):
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta1
@@ -89,6 +92,26 @@ spec:
   version: 2.4.0
 ....
 ```
+
+If you want to build your own Docker image, use the [Strimzi Kafka Docker image](https://hub.docker.com/r/strimzi/kafka) as a base and add the Azure Data Explorer connector JAR top to the plugin path. Start by downloading the connector JAR file:
+
+```shell
+export KUSTO_KAFKA_SINK_VERSION=1.0.1
+mkdir connector && cd connector
+curl -L -O https://github.com/Azure/kafka-sink-azure-kusto/releases/download/v$KUSTO_KAFKA_SINK_VERSION/kafka-sink-azure-kusto-$KUSTO_KAFKA_SINK_VERSION-jar-with-dependencies.jar
+```
+
+Then, you can use this `Dockerfile` to build the Docker image:
+
+```dockerfile
+FROM strimzi/kafka:latest-kafka-2.4.0
+USER root:root
+COPY ./connector/ /opt/kafka/plugins/
+RUN ls -lrt /opt/kafka/plugins/
+USER 1001
+```
+
+> This technique has been illustrated in the [Strimzi documentation](https://strimzi.io/docs/operators/master/deploying.html#creating-new-image-from-base-str)
 
 ### Authentication
 
@@ -112,7 +135,7 @@ You will get a JSON response as below - please note down the `appId`, `password`
 
 **Add permissions to your database**
 
-Provide appropriate role to the Service principal you just created. To assign the `admin` role, [follow this guide](https://docs.microsoft.com/en-us/azure/data-explorer/manage-database-permissions#manage-permissions-in-the-azure-portal) to use the Azure portal or use the following command in your Data Explorer cluster
+Provide an appropriate role to the Service principal you just created. To assign the `admin` role, [follow this guide](https://docs.microsoft.com/en-us/azure/data-explorer/manage-database-permissions#manage-permissions-in-the-azure-portal) to use the Azure portal or use the following command in your Data Explorer cluster
 
 ```kusto
 .add database <database name> admins  ('aadapp=<service principal AppID>;<service principal TenantID>') 'AAD App'
@@ -177,15 +200,19 @@ spec:
 To check Kafka Connect cluster status:
 
 ```shell
-kubectl get pod -l=strimzi.io/cluster=my-connect-cluster
+kubectl get pod -l=strimzi.io/cluster=my-connect-cluster -w
+```
 
+Wait for the Kafka Connect Pod to transition into `Running` state.
+
+```shell
 NAME                                          READY   STATUS    RESTARTS   AGE
-my-connect-cluster-connect-5bf9db5d9f-9ttg4   1/1     Running   0          1h
+my-connect-cluster-connect-5bf9db5d9f-9ttg4   1/1     Running   0          1m
 ```
 
 ### Create the topic and install connector
 
-You can use the Entity Operator to create the `storm-events` topic. Here is the `Topic` definition:
+You can use the [Strimzi Entity Operator](https://strimzi.io/docs/operators/master/using.html#using-the-topic-operator-str) to create the `storm-events` topic. Here is the `Topic` definition:
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta1
@@ -205,12 +232,9 @@ To create:
 kubectl apply -f https://github.com/abhirockzz/kusto-kafka-connect-strimzi/raw/master/deploy/topic.yaml
 ```
 
-You should see the topic you just created as well as internal Kafka topics.
+Use `kubectl get kafkatopic` to see the topic you just created as well as internal Kafka topics
 
 ```shell
-kubectl get kafkatopic
-
-//output
 NAME                                                          PARTITIONS   REPLICATION FACTOR
 consumer-offsets---84e7a678d08f4bd226872e5cdd4eb527fadc1c6a   50           1
 storm-events                                                  3            1
@@ -219,7 +243,7 @@ strimzi-connect-cluster-offsets                               25           1
 strimzi-connect-cluster-status                                5            1
 ```
 
-Here is snippet of the connector (`KafkaConnector`) definition - it's just a way to capture configuration and metadata for the connector you want to install. Notice how the individual properties (from the `Secret`) are actually referenced:
+Here is snippet of the connector (`KafkaConnector`) definition - it's just a way to capture configuration and metadata for the connector you want to install.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1alpha1
@@ -244,7 +268,9 @@ spec:
     value.converter: "org.apache.kafka.connect.storage.StringConverter"
 ```
 
-For example to reference the Service Principal application ID, we used this:
+> The `flush.size.bytes` and `flush.interval.ms` attributes work in tandem with each other and serve as a performance knob for batching. Please refer to the [connector GitHub repo](https://github.com/Azure/kafka-sink-azure-kusto/blob/master/README.md#5-sink-properties) for details on these and other configuration parameters
+
+Notice how the individual properties (from the `Secret`) are actually referenced. For example to reference the Service Principal application ID, we used this:
 
 ```yaml
 aad.auth.appid: ${file:/opt/kafka/external-configuration/adx-auth-config/adx-auth.properties:appID}
@@ -276,9 +302,9 @@ INFO [Consumer clientId=connector-consumer-adx-sink-connector-2, groupId=connect
 
 So, we have everything setup. All we need is events to be sent to the Kafka topic, so that we can see the connector in action and ingest data into Azure Data Explorer. 
 
-You can use this handy event generator application (available in [Docker Hub](https://hub.docker.com/r/abhirockzz/adx-event-producer)) and deploy it to your Kubernetes cluster - here is the [Dockerfile](https://github.com/abhirockzz/kusto-kafka-connect-strimzi/raw/master/storm-events-producer/Dockerfile). 
+You can use this handy event generator application (available in [Docker Hub](https://hub.docker.com/r/abhirockzz/adx-event-producer)) and deploy it to your Kubernetes cluster - the `Dockerfile` is available in the [GitHub repo](https://github.com/abhirockzz/kusto-kafka-connect-strimzi/raw/master/storm-events-producer/Dockerfile) in case you want to reference it. 
 
-`Deployment` snippet:
+Kubernetes `Deployment` snippet:
 
 ```yaml
 apiVersion: apps/v1
@@ -309,6 +335,8 @@ kubectl apply -f https://github.com/abhirockzz/kusto-kafka-connect-strimzi/raw/m
 ```
 
 The application picks up records from the [StormEvents.csv file](https://github.com/abhirockzz/kusto-kafka-connect-strimzi/blob/master/storm-events-producer/StormEvents.csv) and sends them to a Kafka topic. Each event is a CSV record that represent data for a Storm occurence (start and end time, state, type etc.), for example: `2007-01-01 00:00:00.0000000,2007-01-01 05:00:00.0000000,23357,WISCONSIN,Winter Storm,COOP Observer`.
+
+> The producer application [waits for 3 seconds](https://github.com/abhirockzz/kusto-kafka-connect-strimzi/blob/master/storm-events-producer/main.go#L65) between subsequent produce operations to Kafka. This is intentional so that you can monitor the Kafka Connect logs and make sense of what's going on. The `StormEvents.csv` file contains more than 50,000 records, so it might take a while for all of them to be batched and ingested to Azure Data Explorer
 
 You can track the application logs using: `kubectl logs -f -l app=adx-event-producer`. If all is well, you should see something similar to this:
 
@@ -378,7 +406,7 @@ Storms
 
 ![](/assets/images/posts/2020-09-22-columnchart.png)
 
-These are just few examples. Dig into the [Kusto Query Language documentation](https://docs.microsoft.com/azure/data-explorer/kusto/query/) or explore tutorials about [how to ingest JSON formatted sample data into Azure Data Explorer](https://docs.microsoft.com/azure/data-explorer/ingest-json-formats?tabs=kusto-query-language), using [scalar operators](https://docs.microsoft.com/azure/data-explorer/write-queries#scalar-operators), [timecharts](https://docs.microsoft.com/azure/data-explorer/kusto/query/tutorial?pivots=azuredataexplorer#timecharts) etc.
+These are just few examples. Please take a look at the [Kusto Query Language documentation](https://docs.microsoft.com/azure/data-explorer/kusto/query/) or explore tutorials about [how to ingest JSON formatted sample data into Azure Data Explorer](https://docs.microsoft.com/azure/data-explorer/ingest-json-formats?tabs=kusto-query-language), using [scalar operators](https://docs.microsoft.com/azure/data-explorer/write-queries#scalar-operators), [timecharts](https://docs.microsoft.com/azure/data-explorer/kusto/query/tutorial?pivots=azuredataexplorer#timecharts) etc.
 
 
 ## Clean up resources
@@ -392,22 +420,21 @@ kubectl delete kafka/my-kafka-cluster
 
 To delete the AKS and Azure Data Explorer clusters, simply delete the resource group:
 
-```azurecli
+```shell
 az group delete --name <AZURE_RESOURCE_GROUP> --yes --no-wait
 ```
 
 ## Conclusion
 
-That's all for this blog post and I hope you found it useful! Please note that, this is *not* the only way to ingest data into Azure Data Explorer! You're welcome to explore the documentation and learn other techniques such as [One-click Ingestion](https://docs.microsoft.com/azure/data-explorer/ingest-data-one-click), using [Event Grid](https://docs.microsoft.com/azure/data-explorer/ingest-data-event-grid-overview), [IoT Hub](https://docs.microsoft.com/azure/data-explorer/ingest-data-iot-hub-overview) and much more!
+That's all for this blog post and I hope you found it useful! Please note that, this is *not* the only way to ingest data into Azure Data Explorer. You're welcome to refer to the documentation and explore other techniques such as [One-click Ingestion](https://docs.microsoft.com/azure/data-explorer/ingest-data-one-click), using [Event Grid](https://docs.microsoft.com/azure/data-explorer/ingest-data-event-grid-overview), [IoT Hub](https://docs.microsoft.com/azure/data-explorer/ingest-data-iot-hub-overview) etc.
 
 Please consider exploring the following topics as additional learning resources:
 
 ### Resources
 
-- [Configuring Kafka Connect cluster](https://strimzi.io/docs/latest/#proc-configuring-kafka-connect-deployment-configuration-kafka-connect)
-- [KafkaConnect schema reference](https://strimzi.io/docs/latest/#type-KafkaConnect-reference)
-- [KafkaConnector schema reference](https://strimzi.io/docs/latest/#type-KafkaConnector-reference)
+- [Configuring Kafka Connect cluster](https://strimzi.io/docs/latest/#proc-configuring-kafka-connect-deployment-configuration-kafka-connect) using Strimzi
+- Strimzi [KafkaConnect schema reference](https://strimzi.io/docs/latest/#type-KafkaConnect-reference)
+- Strimzi [KafkaConnector schema reference](https://strimzi.io/docs/latest/#type-KafkaConnector-reference)
 - [Just Enough Azure Data Explorer for Cloud Architects](https://techcommunity.microsoft.com/t5/azure-data-explorer/just-enough-azure-data-explorer-for-architects/ba-p/1636234)
-- [Azure Data Explorer connector configs](https://github.com/Azure/kafka-sink-azure-kusto#5-sink-properties)
-- [What's new in Azure Data Explorer connector 1.x](https://techcommunity.microsoft.com/t5/azure-data-explorer/azure-data-explorer-kafka-connector-new-features-with-version-1/ba-p/1637143) for details
-- [Kusto Query Language (quick reference)](https://docs.microsoft.com/en-us/azure/data-explorer/kql-quick-reference)
+- [What's new in Azure Data Explorer connector 1.x](https://techcommunity.microsoft.com/t5/azure-data-explorer/azure-data-explorer-kafka-connector-new-features-with-version-1/ba-p/1637143)
+- [Kusto Query Language](https://docs.microsoft.com/en-us/azure/data-explorer/kql-quick-reference) (quick reference)
