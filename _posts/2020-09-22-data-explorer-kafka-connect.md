@@ -27,7 +27,7 @@ Here are some quick pointers to setting up a Azure Data Explorer cluster and a m
 
 You can setup an Azure Data Explorer cluster and database [using Azure Portal](https://docs.microsoft.com/azure/data-explorer/create-cluster-database-portal), [Azure CLI](https://docs.microsoft.com/azure/data-explorer/create-cluster-database-cli) or any of the client SDKs such as [Python](https://docs.microsoft.com/azure/data-explorer/create-cluster-database-python). Once that's done, create a table (named `Storms`) and respective mapping (named `Storms_CSV_Mapping`) using below queries:
 
-```kusto
+```shell
 .create table Storms (StartTime: datetime, EndTime: datetime, EventId: int, State: string, EventType: string, Source: string)
 
 .create table Storms ingestion csv mapping 'Storms_CSV_Mapping' '[{"Name":"StartTime","datatype":"datetime","Ordinal":0}, {"Name":"EndTime","datatype":"datetime","Ordinal":1},{"Name":"EventId","datatype":"int","Ordinal":2},{"Name":"State","datatype":"string","Ordinal":3},{"Name":"EventType","datatype":"string","Ordinal":4},{"Name":"Source","datatype":"string","Ordinal":5}]'
@@ -137,7 +137,7 @@ You will get a JSON response as below - please note down the `appId`, `password`
 
 Provide an appropriate role to the Service principal you just created. To assign the `admin` role, [follow this guide](https://docs.microsoft.com/en-us/azure/data-explorer/manage-database-permissions#manage-permissions-in-the-azure-portal) to use the Azure portal or use the following command in your Data Explorer cluster
 
-```kusto
+```shell
 .add database <database name> admins  ('aadapp=<service principal AppID>;<service principal TenantID>') 'AAD App'
 ```
 
@@ -374,7 +374,7 @@ INFO Kusto ingestion: file (/tmp/kusto-sink-connector-17d03941-f8ca-498e-bc52-68
 
 Wait for sometime before data ends up in the `Storms` table. To confirm, check the row count and confirm that there are no failures in the ingestion process:
 
-```kusto
+```shell
 Storms | count
 
 . show ingestion failures
@@ -382,13 +382,13 @@ Storms | count
 
 Once there is some data, try out a few queries. To see all the records:
 
-```kusto
+```shell
 Storms
 ```
 
 Use `where` and `project` to filter specific data
 
-```kusto
+```shell
 Storms
 | where EventType == 'Drought' and State == 'TEXAS'
 | project StartTime, EndTime, Source, EventId
@@ -396,7 +396,7 @@ Storms
 
 Use the [`summarize` operator](https://docs.microsoft.com/azure/data-explorer/write-queries#summarize)
 
-```kusto
+```shell
 Storms
 | summarize event_count=count() by State
 | where event_count > 10
