@@ -104,7 +104,7 @@ curl -L -O https://github.com/Azure/kafka-sink-azure-kusto/releases/download/v$K
 Then, you can use this `Dockerfile` to build the Docker image:
 
 ```dockerfile
-FROM strimzi/kafka:latest-kafka-2.4.0
+FROM strimzi/kafka:0.19.0-kafka-2.4.0
 USER root:root
 COPY ./connector/ /opt/kafka/plugins/
 RUN ls -lrt /opt/kafka/plugins/
