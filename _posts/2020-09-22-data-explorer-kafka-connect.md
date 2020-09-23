@@ -7,13 +7,13 @@ author: abhishek
 
 In this blog, we will go over how to ingest data into [Azure Data Explorer](https://docs.microsoft.com/azure/data-explorer/) using the open source [Kafka Connect Sink connector for Azure Data Explorer](https://github.com/Azure/kafka-sink-azure-kusto) running on Kubernetes using Strimzi. [Kafka Connect](https://kafka.apache.org/documentation/#connect) is a tool for scalably and reliably streaming data between Apache Kafka and other systems using source and sink connectors and Strimzi provides a "Kubernetes-native" way of running Kafka clusters as well as Kafka Connect workers.
 
-[Azure Data Explorer](https://azure.microsoft.com/en-in/services/data-explorer/) is a fast and scalable data exploration service that lets you collect, store, and analyze large volumes of data from any diverse sources, such as websites, applications, IoT devices, and more. [Data ingestion](https://docs.microsoft.com/en-us/azure/data-explorer/ingest-data-overview) is the process used to load data records from one or more sources (including Apache Kafka) to import data into a table in Azure Data Explorer. The sink connector allows you to move data from Kafka topics into Azure Data Explorer tables which you can later query and analyze - you can do so in a scalable and fault tolerant way using just configuration!
+[Azure Data Explorer](https://azure.microsoft.com/en-in/services/data-explorer/) is a fast and scalable data exploration service that lets you collect, store, and analyze large volumes of data from any diverse sources, such as websites, applications, IoT devices, and more. It has a rich connector ecosystem that supports ingestion into Azure Data Explorer as [detailed here](https://docs.microsoft.com/en-us/azure/data-explorer/ingest-data-overview). One of the supported sources is Apache Kafka and the sink connector allows you to move data from Kafka topics into Azure Data Explorer tables which you can later query and analyze. The best part is that you can do so in a scalable and fault tolerant way using just configuration!
 
 Here is an overview of the scenario depicted in this blog post:
 
 ![Overview](/assets/images/posts/2020-09-22-overview.jpg)
 
-The Azure Data Explorer Kafka Connector picks up data from the configured Kafka topic and queues up ingestion processes (in batches) which eventually write data to a table in Azure Data Explorer. Behind the scenes, the connector leverages the [Java SDK](https://github.com/Azure/azure-kusto-java)
+The Azure Data Explorer Kafka Connector picks up data from the configured Kafka topic and queues up ingestion processes (in batches) which eventually write data to a table in Azure Data Explorer. Behind the scenes, the connector leverages the [Java SDK for Azure Data Explorer](https://github.com/Azure/azure-kusto-java).
 
 > Resources for this blog post are [available on GitHub](https://github.com/abhirockzz/kusto-kafka-connect-strimzi)
 
