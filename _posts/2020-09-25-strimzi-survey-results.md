@@ -35,7 +35,7 @@ These don't sum to 100% because people could choose more than one option.
 
 Over 55% of respondants were running Strimzi on OpenShift.
 This is likely a reflection of Red Hat being the company which started Strimzi.
-In comparison 25% were using it on EKS and the same on GKE.
+In comparison 25% were using it on Amazon's EKS and the same on Google's GKE.
 It will be interesting to see how these numbers look next year assuming we run the survey again.
 
 Over 25% were using it on some development cluster, such as minikube, kind etc. 
@@ -136,7 +136,7 @@ This was partly a question to tease out how many people have to deal with the pr
 
 In hidsight this was another ambiguous question because we don't really know why or whether people were counting having to build their own Kafka Connect images here or not.
 
-## Exposure
+## Accessing Kafka
 
 * Using TLS for within-Kubernetes access is far-and-away the most common way of accessing the Kafka cluster.
 * For external access it was a fairly even split between routes, ingress or loadbalancer.
@@ -144,7 +144,7 @@ In hidsight this was another ambiguous question because we don't really know why
 
 ## Authentication and authorization
 
-Most people said they were using TLS client authn, followed by Oauth authn and then SCRAM-SHA.
+Most people said they were using TLS client authentication, followed by Oauth authentication and then SCRAM-SHA.
 
 Perhaps surprisingly Keycloak was the most popular solution for authorization and
 OPA was as popular as Kafka's native ACLs.
