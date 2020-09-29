@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Insights from the first Strimzi survey"
-date: 2020-09-28
+date: 2020-09-29
 author: tombentley
 ---
 
