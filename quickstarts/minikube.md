@@ -24,7 +24,7 @@ kubectl apply -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
 
 # Provision the Apache Kafka cluster
 
-After that we feed Strimzi with a simple **Custom Resource**, which will then give you a small persistent Apache Kafka Cluster with one node for each, Apache Zookeeper and Apache Kafka:
+After that we feed Strimzi with a simple **Custom Resource**, which will then give you a small persistent Apache Kafka Cluster with one node each for Apache Zookeeper and Apache Kafka:
 
 ```shell
 # Apply the `Kafka` Cluster CR file
@@ -54,3 +54,9 @@ kubectl -n kafka run kafka-consumer -ti --image=strimzi/kafka:{{site.data.releas
 ```
 
 Enjoy your Apache Kafka cluster, running on Minikube!
+
+# Where next?
+
+* If that was a little too quick, you might prefer a more [descriptive introduction to Strimzi](/docs/operators/latest/quickstart.html), covering the same ground but with more explanation.
+* For an overview of the Strimzi components check out the [overview guide](/docs/operators/latest/overview.html).
+* For alternative examples of the custom resource which defines the Kafka cluster have a look at these [examples]({{site.github_url}}/strimzi-kafka-operator/tree/{{site.data.releases.operator[0].version}}/examples/kafka)
