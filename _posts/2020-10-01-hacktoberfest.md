@@ -2,7 +2,7 @@
 layout: post
 title:  "Hacktoberfest: let's start to contribute to Strimzi"
 date: 2020-10-01
-author: ppatierno
+author: paolo_patierno
 ---
 
 Finally, it is October and it is time for [Hacktoberfest](https://hacktoberfest.digitalocean.com/)!
