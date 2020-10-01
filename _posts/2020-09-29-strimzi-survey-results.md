@@ -2,7 +2,7 @@
 layout: post
 title:  "Insights from the first Strimzi survey"
 date: 2020-09-29
-author: tombentley
+author: tom_bentley
 ---
 
 In August, with the help of the CNCF, we ran a survey of the Strimzi community. 
