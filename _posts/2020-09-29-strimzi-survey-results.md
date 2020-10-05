@@ -107,9 +107,7 @@ From this we take two messages:
 
 ## Wanted features
 
-This was another free text answer, because we didn't want to constrain people to what we already have on the backlog.
-
-Here's a best-effort rundown of the sorts of replies we got, in decreasing order of popularity:
+This was another free text answer, because we didn't want to constrain people to what we already have on the backlog. As a result the comments people made where sometimes ambiguous and open to interpretation. Here's our understanding of what members of the community are asking for, in decreasing order of popularity:
 
 1. Various "UI"-type requirements, for Kafka and CC. A lot of the ask here is metrics/monitoring and alerting OOTB, though it's not completely clear how many people wanted the metrics integrated into a UI or were happy with Grafana dashboards.
 
