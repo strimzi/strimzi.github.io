@@ -82,7 +82,7 @@ of plain `KafkaConnect`. The relatively new `KafkaConnector` CR is about 60% of 
 This suggests that a signifiant number of users prefer declarative connector deployment over having to talk to the Kafka Connect REST API directly.
 
 `KafkaMirrorMaker2` is about twice as popular as `KafkaMirrorMaker`, but lots still "plan to use MM1".
-In hidsight the question here was a bit ambiguous. Are those MM1 users planning to continue their existing usage of MM1, or planning a new deployment of MM1?
+In hindsight the question here was a bit ambiguous. Are those MM1 users planning to continue their existing usage of MM1, or planning a new deployment of MM1?
 
 The newest CR, `KafkaRebalance`, has about 20% usage, but lots plan to use it, so this is likely just a reflection of it's newness.
 
@@ -91,7 +91,7 @@ But when writing the questions we didn't break out "I manage this for myself onl
 
 ## Contribution
 
-We wanted to get a clearer impression of the users who we don't interact much with the project as well as those who open issues or we help directly on the Strimzi channel on the CNCF Slack. 
+We wanted to get a clearer impression of the users who don't interact much with the project, as well as those who open issues or we help directly on the Strimzi channel on the CNCF Slack. 
 
 * 40% haven't needed to contribute
 * 28% have requested a feature
@@ -107,17 +107,17 @@ From this we take two messages:
 
 ## Wanted features
 
-This was another free text answer, because we didn't want to contrain people to what we already have on the backlog.
+This was another free text answer, because we didn't want to constrain people to what we already have on the backlog.
 
-Here's a best-effort rundown of the sorts of replies we got, in decresing order of popularity:
+Here's a best-effort rundown of the sorts of replies we got, in decreasing order of popularity:
 
-1. Various "UI"-type requirements, for Kafka and CC. A lot of the ask here is metrics/monitoring and alterting OOTB, though it's not completely clear how many people wanted the metrics integrated into a UI or were happy with grafana dashboards.
+1. Various "UI"-type requirements, for Kafka and CC. A lot of the ask here is metrics/monitoring and alerting OOTB, though it's not completely clear how many people wanted the metrics integrated into a UI or were happy with Grafana dashboards.
 
-2. More balancing-related functionality. This includes balancing replics when adding and removing disks as well as support for balancing for individual topics and changing the replication factor.
+2. More balancing-related functionality. This includes balancing replicas when adding and removing disks as well as support for balancing for individual topics and changing the replication factor.
 
 3. Better cert handling/integration with things like cert-manager and Vault were also popular.
 
-At the tail-end, with the same number of requstors:
+At the tail-end, with the same number of requesters:
 
 * A better experience when managing connectors. Specifically people find it cumbersome having to build and maintain images and suggestions that a catalog would make it easier to find connectors. 
 * Autoscaling. This is a bit ambiguous because a Kafka cluster can be scaled horizontally and vertically, but also increasing the number of partitions is also a way of scaling individual topics. 
@@ -134,7 +134,7 @@ This was partly a question to tease out how many people have to deal with the pr
 * Nearly 3/4 of people said they are using the images supplied by the project.
 * 10% are building custom images with modifications.
 
-In hidsight this was another ambiguous question because we don't really know why or whether people were counting having to build their own Kafka Connect images here or not.
+In hindsight this was another ambiguous question because we don't really know why or whether people were counting having to build their own Kafka Connect images here or not.
 
 ## Accessing Kafka
 
@@ -149,7 +149,7 @@ Most people said they were using TLS client authentication, followed by Oauth au
 Perhaps surprisingly Keycloak was the most popular solution for authorization and
 OPA was as popular as Kafka's native ACLs.
 
-This is another question where a answers from future survey will be interesting, given OPA's flexibility and typical enterprise authorization needs.
+This is another question where answers from future survey will be interesting, given OPA's flexibility and typical enterprise authorization needs.
 
 ## Docs
 
