@@ -5,9 +5,7 @@ date: 2020-10-02
 author: paul_mellor
 ---
 
-You can fine tune Kafka producers using configuration properties to optimize the streaming of data to consumers.
-
-Get the tuning right, and even a small adjustment to your producer configuration can make a significant improvement to the way your producers operate.
+You can fine tune Kafka producers using configuration properties to optimize the streaming of data to consumers. Get the tuning right, and even a small adjustment to your producer configuration can make a significant improvement to the way your producers operate.
 
 In this post we'll discuss typical tuning considerations for Kafka producers.
 
@@ -15,15 +13,9 @@ In this post we'll discuss typical tuning considerations for Kafka producers.
 
 ### Optimizing Kafka producers
 
-Obviously, we want our producers to deliver data to Kafka topics as efficiently as possible.
+Obviously, we want our producers to deliver data to Kafka topics as efficiently as possible. But what do we mean by this, and how do we quantify it? Do we base this on the number of messages sent over a set period of time? Or on how producers are set up to handle failure?
 
-But what do we mean by this, and how do we quantify it?
-
-Do we base this on the number of messages sent over a set period of time? Or on how producers are set up to handle failure?
-
-Before starting your adventure in optimization, think about your destination. What are the results your are hoping to achieve?
-
-Think long enough about this, and you might find competing requirements. For example, by maximizing throughput you might also increase latency.
+Before starting your adventure in optimization, think about your destination. What are the results your are hoping to achieve? Think long enough about this, and you might find competing requirements. For example, by maximizing throughput you might also increase latency.
 
 Be prepared to make adjustments to your adjustments.
 
@@ -32,6 +24,8 @@ Be prepared to make adjustments to your adjustments.
 It's only when you have been monitoring the performance of your producers for some time that you can gauge how best to tune their performance.
 
 To begin with, you might start with a basic producer configuration in development as a benchmark. When you start to analyze producer metrics to see how the producers actually perform in typical production scenarios, you can make incremental changes and make comparisons until you hit the sweet spot.
+
+>If you want to read more about performance metrics for monitoring Kafka producers, see Kafka's [Producer Sender Metrics](https://kafka.apache.org/documentation/#producer_sender_monitoring).
 
 When you start investigating how you to tune the performance of your producers, look at how your producers perform on average.
 
@@ -52,7 +46,7 @@ client.id=my-client
 compression.type=gzip
 ```
 
-This configuration specifies the bootstrap address for connection to the Kafka cluster, and the serializers that transform the key and value of a message.
+This configuration specifies the bootstrap address for connection to the Kafka cluster, and the serializers that transform the key and value of a message from from a String to its corresponding raw byte data representation.
 
 Optionally, it's good practice to add a unique client ID, which is used to identify the source of requests in logs and metrics.
 
@@ -88,7 +82,7 @@ We'll look at how you can use a combination of these properties to regulate:
 
 It's quite likely you'll want to balance throughput and latency targets whilst also minimizing data loss and guaranteeing ordering.
 
-If you want to read more about what each property does, see Kafka's [Producer configs](https://kafka.apache.org/).
+>If you want to read more about what each property does, see Kafka's [Producer configs](https://kafka.apache.org/).
 
 Remember, the producer configuration properties you *can* use will also be driven by the requirements of your application. Avoid any change that breaks a property or guarantee provided by your application.
 
@@ -123,7 +117,7 @@ spec:
 ```
 Using a topic replication factor of 3, and 2 in-sync replicas on other brokers, the producer can continue unaffected if a single broker is unavailable.
 
-If a second broker becomes unavailable, the producer won’t receive acknowledgments and won’t be able to produce more messages.
+If a second broker becomes unavailable, using `acks=all` the producer won’t receive acknowledgments and won’t be able to produce more messages.
 
 Because of the additional checks, `acks=all` increases the latency between the producer sending a message and receiving acknowledgment. So you will have to consider the trade-off when investigating whether this is the right approach for you.
 
@@ -148,7 +142,8 @@ retries=2147483647
 The `retries` property sets the number of retries when resending a failed message request. That impressive-looking number is the default and maximum value.
 
 > **Delivery timeout**
-If you are using `delivery.timeout.ms` in your producer configuration, producer requests will fail before the number of retries has been used if the timeout expires before a successful acknowledgment. The `delivery.timeout.ms` sets a limit on the time to wait for an acknowledgment of the success or failure to deliver a message. You can choose to leave `retries` unset and use `delivery.timeout.ms` to perform a similar function instead.
+>
+>If you are using `delivery.timeout.ms` in your producer configuration, producer requests will fail before the number of retries has been used if the timeout expires before a successful acknowledgment. The `delivery.timeout.ms` sets a limit on the time to wait for an acknowledgment of the success or failure to deliver a message. You can choose to leave `retries` unset and use `delivery.timeout.ms` to perform a similar function instead.
 
 There is a performance cost to introducing additional checks to the order of delivery.
 
@@ -168,9 +163,7 @@ In this way you avoid a situation where _Message-A_ fails only to succeed after 
 
 Idempotence on its own is useful for exactly once writes to a single partition.
 
-But how do we guarantee the reliability of message delivery for exactly once writes for a set of messages across multiple partitions? We use idempotence again, but combine it with a unique transactional ID defined for the producer.
-
-Transactions guarantee that messages using the same transactional ID are produced once, and either _all_ are successfully written to the respective logs or _none_ of them are.
+But how do we guarantee the reliability of message delivery for exactly once writes for a set of messages across multiple partitions? We use idempotence again, but combine it with a unique transactional ID defined for the producer. Transactions guarantee that messages using the same transactional ID are produced once, and either _all_ are successfully written to the respective logs or _none_ of them are.
 
 You specify a unique transactional ID in the producer configuration,
 and also set the maximum allowed time for transactions in milliseconds before a timeout error is returned. The default is `900000` or 15 minutes.
@@ -190,11 +183,7 @@ The transactional ID is registered with the Kafka cluster on the first operation
 
 Why might we want to identify the active producer? Say an application determines that a producer has failed and creates a new producer instance to restart a transaction. If both producers are now sending messages, duplicate records are being created and we have lost our exactly once integrity.
 
-By specifying a transaction ID, if a new producer instance starts, older instances of the producer are identified by their older `epoch` number and _fenced-off_ by Kafka so that their messages are no included.
-
-This maintains the integrity of the message passing by ensuring that there is only ever one valid producer with the transactional ID.  
-
-Each `transactional.id` should be used for a unique set of topic partitions.
+By specifying a transaction ID, if a new producer instance starts, older instances of the producer are identified by their older `epoch` number and _fenced-off_ by Kafka so that their messages are no included. This maintains the integrity of the message passing by ensuring that there is only ever one valid producer with the transactional ID. Each `transactional.id` should be used for a unique set of topic partitions.
 
 You can map topic partition names to transactional IDs, or compute the transactional ID from the topic partition names using a function that avoids collisions.
 
@@ -231,11 +220,10 @@ Use the `buffer.memory` to configure a buffer memory size that must be at least 
 
 Size is important. If the batch threshold is too big for the frequency of the messages produced, you're adding unnecessary delay to the messages waiting in the send buffer. You're also allocating more buffer memory than you need. If the batch threshold is too small, larger messages can be delayed.
 
-What you gain in higher throughput you concede with the buffering that adds higher latency to the message delivery.
-
-It's a compromise, so you will need to consider how to strike the right balance.
+What you gain in higher throughput you concede with the buffering that adds higher latency to the message delivery. It's a compromise, so you will need to consider how to strike the right balance.
 
 > **send() blocking and latency**
+>
 > Batching and buffering also mitigates the impact of `send()` blocking on latency.
 >
 > When your application calls `KafkaProducer.send()`, the messages produced are:
@@ -278,7 +266,8 @@ batch.size=32000
 If you think compression is worthwhile, the best type of compression to use will depend on the messages being sent.
 
 > **Adding threads**
-Compression is handled on the thread calling `KafkaProducer.send()`, so if the latency of this method matters for your application you can add more more threads.
+>
+> Compression is handled on the thread calling `KafkaProducer.send()`, so if the latency of this method matters for your application you can add more more threads.
 
 #### Pipelining messages
 
@@ -297,9 +286,7 @@ Improve throughput of your message requests by adjusting the maximum time to wai
 Use the `delivery.timeout.ms` property to specify the maximum time in milliseconds to wait for a complete send request.
 You can set the value to `MAX_LONG` to delegate to Kafka an indefinite number of retries.
 
-You can also direct messages to a specified partition by writing a custom partitioner to replace Kafka's default, and specify the class name using the `partitioner.class` property.
-
-A custom partitioner allows you to choose how you map messages to partitions, based on the data in the message.
+You can also direct messages to a specified partition by writing a custom partitioner to replace Kafka's default, and specify the class name using the `partitioner.class` property. A custom partitioner allows you to choose how you map messages to partitions, based on the data in the message.
 
 ```properties
 # ...
@@ -313,11 +300,8 @@ partitioner.class=my-custom-partitioner
 Fine tuning your producers helps alleviate performance issues.
 But don't be tempted to make a few adjustments and think your work is done.
 
-You should consider fine tuning as part of a continual optimization process.
+You should consider fine tuning as part of a continual optimization process. Monitor Kafka regularly. Look for changing trends in usage and investigate how fine tuning can help your Kafka deployment adapt. But, as you'll know, this is only one half of the story.
 
-Monitor Kafka regularly. Look for changing trends in usage and investigate how fine tuning can help your Kafka deployment adapt.
-
-But, as you'll know, this is only one half of the story.
 Next time we'll look at how you can optimize your consumers.
 
 Be sure to check back for the next installment.
