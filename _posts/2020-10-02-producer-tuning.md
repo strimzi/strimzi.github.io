@@ -5,7 +5,7 @@ date: 2020-10-02
 author: paul_mellor
 ---
 
-You can fine tune Kafka producers using configuration properties to optimize the streaming of data to consumers. Get the tuning right, and even a small adjustment to your producer configuration can make a significant improvement to the way your producers operate.
+You can fine-tune Kafka producers using configuration properties to optimize the streaming of data to consumers. Get the tuning right, and even a small adjustment to your producer configuration can make a significant improvement to the way your producers operate.
 
 In this post we'll discuss typical tuning considerations for Kafka producers.
 
@@ -33,7 +33,7 @@ For example, broker restarts will have an outsize impact on very high (99%) perc
 
 ### Basic producer configuration
 
-Before looking at the properties to use for fine tuning your producer,
+Before looking at the properties to use for fine-tuning your producer,
 let's assume we have a basic configuration.
 
 Something like this.
@@ -58,7 +58,7 @@ We can change that...
 
 ### Key properties
 
-Let's look at how you can add or change producer configuration properties for fine tuning.
+Let's look at how you can add or change producer configuration properties for fine-tuning.
 
 Here are the properties we'll consider:
 
@@ -115,7 +115,7 @@ spec:
     min.insync.replicas: 2
     #...
 ```
-Using a topic replication factor of 3, and 2 in-sync replicas on other brokers, the producer can continue unaffected if a single broker is unavailable.
+Using a topic replication factor of 3, and 2 in-sync replicas on other brokers, the producer can continue unaffected if a single broker is unavailable and at least one other broker is in-sync.
 
 If a second broker becomes unavailable, using `acks=all` the producer won’t receive acknowledgments and won’t be able to produce more messages.
 
@@ -139,7 +139,7 @@ max.in.flight.requests.per.connection=5
 acks=all
 retries=2147483647
 ```
-The `retries` property sets the number of retries when resending a failed message request. That impressive-looking number is the default and maximum value.
+The `retries` property sets the number of retries when resending a failed message request. While that number might look impressive, what we're saying is, in effect, "retry forever".
 
 > **Delivery timeout**
 >
@@ -148,7 +148,7 @@ The `retries` property sets the number of retries when resending a failed messag
 There is a performance cost to introducing additional checks to the order of delivery.
 
 If you prefer not to use `acks=all` and idempotency,
-a lighter option is to set the number of in-flight requests to 1 (the default is 5) to preserve ordering.
+another option is to set the number of in-flight requests to 1 (the default is 5) to preserve ordering.
 
 ```properties
 # ...
@@ -183,7 +183,7 @@ The transactional ID is registered with the Kafka cluster on the first operation
 
 Why might we want to identify the active producer? Say an application determines that a producer has failed and creates a new producer instance to restart a transaction. If both producers are now sending messages, duplicate records are being created and we have lost our exactly once integrity.
 
-By specifying a transaction ID, if a new producer instance starts, older instances of the producer are identified by their older `epoch` number and _fenced-off_ by Kafka so that their messages are no included. This maintains the integrity of the message passing by ensuring that there is only ever one valid producer with the transactional ID. Each `transactional.id` should be used for a unique set of topic partitions.
+By specifying a transaction ID, if a new producer instance starts, older instances of the producer are identified by their older `epoch` number and _fenced-off_ by Kafka so that their messages are not included. This maintains the integrity of the message passing by ensuring that there is only ever one valid producer with the transactional ID. Each `transactional.id` should be used for a unique set of topic partitions.
 
 You can map topic partition names to transactional IDs, or compute the transactional ID from the topic partition names using a function that avoids collisions.
 
@@ -192,7 +192,7 @@ You can map topic partition names to transactional IDs, or compute the transacti
 Depending on your objective, Kafka offers a number of configuration parameters and techniques for tuning producer performance for throughput and latency.
 
 Usually, the requirement of a system is to satisfy a particular throughput target for a proportion of messages within a given latency.
-For example, targeting 500,000 messages per second with 95% of messages being acknowledged within 2 seconds.
+For example, targeting 50,000 messages per second with 95% of messages being acknowledged within 2 seconds.
 
 #### Batching and buffering messages
 
@@ -272,7 +272,7 @@ If you think compression is worthwhile, the best type of compression to use will
 #### Pipelining messages
 
 Pipelining might sound like it has something to do with surfing the famous _Pipeline_ reef in Hawaii,
-but it's actually the equally impressive method of sending more requests from producers before the response to a previous request has been received.
+but it's actually the sending of more requests from producers before the response to a previous request has been received.
 
 For pipelining we use our old friend the `max.in.flight.requests.per.connection` property.
 You might recall its contribution to ordered delivery earlier in this post.
@@ -297,10 +297,10 @@ partitioner.class=my-custom-partitioner
 
 ### Adapt to survive
 
-Fine tuning your producers helps alleviate performance issues.
+Fine-tuning your producers helps alleviate performance issues.
 But don't be tempted to make a few adjustments and think your work is done.
 
-You should consider fine tuning as part of a continual optimization process. Monitor Kafka regularly. Look for changing trends in usage and investigate how fine tuning can help your Kafka deployment adapt. But, as you'll know, this is only one half of the story.
+You should consider fine-tuning as part of a continual optimization process. Monitor Kafka regularly. Look for changing trends in usage and investigate how fine-tuning can help your Kafka deployment adapt. But, as you'll know, this is only one half of the story.
 
 Next time we'll look at how you can optimize your consumers.
 
