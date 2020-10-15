@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Optimizing Kafka producers"
-date: 2020-10-02
+date: 2020-10-15
 author: paul_mellor
 ---
 
