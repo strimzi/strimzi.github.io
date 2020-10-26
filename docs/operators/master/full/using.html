@@ -13038,18 +13038,31 @@ The metrics are automatically enabled and contain information about:</p>
 <h2 id="kafka-bridge-concepts-str"><a class="link" href="#kafka-bridge-concepts-str">6. Kafka Bridge</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>This chapter provides an overview of the Strimzi Kafka Bridge and helps you get started using its REST API to interact with Strimzi. To try out the Kafka Bridge in your local environment, see the <a href="#assembly-kafka-bridge-quickstart-str">Kafka Bridge quickstart</a> later in this chapter.</p>
+<p>This chapter provides an overview of the Strimzi Kafka Bridge and helps you get started using its REST API to interact with Strimzi.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>To try out the Kafka Bridge in your local environment, see the <a href="#assembly-kafka-bridge-quickstart-str">Kafka Bridge quickstart</a> later in this chapter.</p>
+</li>
+<li>
+<p>For detailed configuration steps, see <a href="#assembly-deployment-configuration-kafka-bridge-str">[assembly-deployment-configuration-kafka-bridge-str]</a>.</p>
+</li>
+<li>
+<p>To view the API documentation, see the <a href="https://strimzi.io/docs/bridge/latest/" target="_blank" rel="noopener">Kafka Bridge API reference</a>.</p>
+</li>
+</ul>
 </div>
 <div class="sect2">
 <h3 id="assembly-kafka-bridge-overview-str"><a class="link" href="#assembly-kafka-bridge-overview-str">6.1. Kafka Bridge overview</a></h3>
 <div class="paragraph">
-<p>You can use the Kafka Bridge as an interface to make specific types of request to the Kafka cluster.</p>
+<p>You can use the Strimzi Kafka Bridge as an interface to make specific types of HTTP requests to the Kafka cluster.</p>
 </div>
 <div class="sect3">
 <h4 id="overview-components-kafka-bridge_kafka-bridge-overview"><a class="link" href="#overview-components-kafka-bridge_kafka-bridge-overview">6.1.1. Kafka Bridge interface</a></h4>
 <div class="paragraph">
-<p>Strimzi Kafka Bridge provides a RESTful interface that allows HTTP-based clients to interact with a Kafka cluster. 
-Kafka Bridge offers the advantages of a web API connection to Strimzi, without the need for client applications to interpret the Kafka protocol.</p>
+<p>The Kafka Bridge provides a RESTful interface that allows HTTP-based clients to interact with a Kafka cluster. 
+It offers the advantages of a web API connection to Strimzi, without the need for client applications to interpret the Kafka protocol.</p>
 </div>
 <div class="paragraph">
 <p>The API has two main resources — <code>consumers</code> and <code>topics</code> — that are exposed and made accessible through endpoints to interact with consumers and producers in your Kafka cluster. The resources relate only to the Kafka Bridge, not the consumers and producers connected directly to Kafka.</p>
@@ -13066,6 +13079,9 @@ Kafka Bridge offers the advantages of a web API connection to Strimzi, without t
 </li>
 <li>
 <p>Retrieve messages from topics.</p>
+</li>
+<li>
+<p>Retrieve a list of partitions for a topic.</p>
 </li>
 <li>
 <p>Create and delete consumers.</p>
@@ -13101,7 +13117,7 @@ Messages can be sent in JSON or binary formats.</p>
 <div class="title">Additional resources</div>
 <ul>
 <li>
-<p>To view the API documentation, including example requests and responses, see the <a href="https://strimzi.io/docs/bridge/latest/" target="_blank" rel="noopener">Kafka Bridge API reference</a> on the Strimzi website.</p>
+<p>To view the API documentation, including example requests and responses, see the <a href="https://strimzi.io/docs/bridge/latest/" target="_blank" rel="noopener">Kafka Bridge API reference</a>.</p>
 </li>
 </ul>
 </div>
@@ -13247,11 +13263,11 @@ External clients can access the Kafka Bridge through an OpenShift Route, a loadb
 </div>
 </li>
 <li>
-<p>When performing producer operations, <code>POST</code> requests must provide <code>Content-Type</code> headers specifying the desired <em>embedded data format</em>, either <code>json</code> or <code>binary</code>, as shown in the following table.</p>
-<table class="tableblock frame-all grid-all stripes-none fit-content">
+<p>When performing producer operations, <code>POST</code> requests must provide <code>Content-Type</code> headers specifying the <em>embedded data format</em> of the messages produced. This can be either <code>json</code> or <code>binary</code>.</p>
+<table class="tableblock frame-all grid-all stripes-none stretch">
 <colgroup>
-<col>
-<col>
+<col style="width: 35%;">
+<col style="width: 65%;">
 </colgroup>
 <thead>
 <tr>
@@ -13274,10 +13290,10 @@ External clients can access the Kafka Bridge through an OpenShift Route, a loadb
 </ul>
 </div>
 <div class="paragraph">
-<p>You set the embedded data format when creating a consumer using the <code>consumers/<em>groupid</em></code> endpoint&#8212;&#8203;for more information, see the next section.</p>
+<p>The embedded data format is set per consumer, as described in the next section.</p>
 </div>
 <div class="paragraph">
-<p>The <code>Content-Type</code> must not be set if the <code>POST</code> request has an empty body.
+<p>The <code>Content-Type</code> must <em>not</em> be set if the <code>POST</code> request has an empty body.
 An empty body can be used to create a consumer with the default values.</p>
 </div>
 </div>
@@ -13328,17 +13344,72 @@ An empty body can be used to create a consumer with the default values.</p>
 </div>
 </div>
 <div class="sect4">
+<h5 id="message_format"><a class="link" href="#message_format">Message format</a></h5>
+<div class="paragraph">
+<p>When sending messages using the <code>/topics</code> endpoint, you enter the message payload in the request body, in the <code>records</code> parameter.</p>
+</div>
+<div class="paragraph">
+<p>The <code>records</code> parameter can contain any of these optional fields:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Message <code>headers</code></p>
+</li>
+<li>
+<p>Message <code>key</code></p>
+</li>
+<li>
+<p>Message <code>value</code></p>
+</li>
+<li>
+<p>Destination <code>partition</code></p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">Example <code>POST</code> request to /topics</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="curl" class="language-curl hljs">curl -X POST \
+  http://localhost:8080/topics/my-topic \
+  -H 'content-type: application/vnd.kafka.json.v2+json' \
+  -d '{
+    "records": [
+        {
+            "key": "my-key",
+            "value": "sales-lead-0001"
+            "partition": 2
+            "headers": [
+              {
+                "key": "key1",
+                "value": "QXBhY2hlIEthZmthIGlzIHRoZSBib21iIQ==" <b class="conum">(1)</b>
+              }
+            ]
+        },
+    ]
+}'</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The header value in binary format and encoded as Base64.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect4">
 <h5 id="accept_headers"><a class="link" href="#accept_headers">Accept headers</a></h5>
 <div class="paragraph">
 <p>After creating a consumer, all subsequent GET requests must provide an <code>Accept</code> header in the following format:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="http" class="language-http hljs">Accept: application/vnd.kafka.<em>embedded-data-format</em>.v2+json</code></pre>
+<pre class="highlightjs highlight"><code data-lang="http" class="language-http hljs">Accept: application/vnd.kafka.<em>EMBEDDED-DATA-FORMAT</em>.v2+json</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The <code>embedded-data-format</code> is either <code>json</code> or <code>binary</code>.</p>
+<p>The <code>EMBEDDED-DATA-FORMAT</code> is either <code>json</code> or <code>binary</code>.</p>
 </div>
 <div class="paragraph">
 <p>For example, when retrieving records for a subscribed consumer using an embedded data format of JSON, include this Accept header:</p>
@@ -13498,7 +13569,7 @@ Access-Control-Allow-Origin: https://strimzi.io</code></pre>
 <div class="sect3">
 <h4 id="ref-api-resources-kafka-bridge-kafka-bridge-overview"><a class="link" href="#ref-api-resources-kafka-bridge-kafka-bridge-overview">6.1.7. Kafka Bridge API resources</a></h4>
 <div class="paragraph">
-<p>For the full list of REST API endpoints and descriptions, including example requests and responses, see the <a href="https://strimzi.io/docs/bridge/latest/" target="_blank" rel="noopener">Kafka Bridge API reference</a> on the Strimzi website.</p>
+<p>For the full list of REST API endpoints and descriptions, including example requests and responses, see the <a href="https://strimzi.io/docs/bridge/latest/" target="_blank" rel="noopener">Kafka Bridge API reference</a>.</p>
 </div>
 </div>
 <div class="sect3">
@@ -31024,7 +31095,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-10-26 15:55:06 UTC
+Last updated 2020-10-26 19:13:00 UTC
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
