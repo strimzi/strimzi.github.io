@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Dynamically changeable logging levels"
-date: 2020-10-26
+date: 2020-11-02
 author: stanislav_knot
 ---
 
@@ -14,22 +14,24 @@ Looking into application logs can help us prevent an application remaining or ev
 
 ## Setting logging levels dynamically
 
-Strimzi components are split into the two groups regarding which implementation of `log4j` they use.
+There are many frameworks used for logging in Java applications, for example [`Logback`](http://logback.qos.ch/), [`tinylog`](https://tinylog.org/v2/), or [`log4j`](http://logging.apache.org/log4j/2.x/index.html).
+Because `log4j` is used in Kafka, we do use the same framework for Strimzi operator. 
+Strimzi components are split into the two groups regarding which implementation of `log4j` they use. 
 
 `log4j`
-Kafka brokers
-Kafka Connect
-Kafka MirrorMaker2
+- Kafka brokers
+- Kafka Connect
+- Kafka MirrorMaker2
+
 `log4j2`
-Strimzi Kafka Bridge
-Topic Operator
-User Operator
-Strimzi Cluster Operator
+- Strimzi Kafka Bridge
+- Topic Operator
+- User Operator
+- Strimzi Cluster Operator
 
-You can change logging levels dynamically by ...
-
-Each implementation requires a different approach, which we will look at now.
-
+`Log4j2` implementation supports dynamic reloading of logging configuration.
+`Log4j` supports dynamic changes but not reloading entire configuration file in runtime.
+And that is why each implementation requires a different approach, which we will look at now.
 
 ### Strimzi Cluster Operator
 
@@ -43,7 +45,7 @@ $ kubectl edit cm strimzi-cluster-operator
 
 Under the field `log4j2.properties` you should see current logging configuration.
 Now you can edit this configuration to whatever you want with one exception.
-The entry `monitorInterval` must stay in the place.
+The entry `monitorInterval` must stay in place.
 
 The second way to change `ConfigMap` is to modify the file `install/cluster-operator/050-ConfigMap-strimzi-cluster-operator.yaml`, and apply the changes by this command:
 
@@ -52,7 +54,7 @@ $ kubectl apply -f install/cluster-operator/050-ConfigMap-strimzi-cluster-operat
 ```
 
 The same restrictions apply.
-The entry `monitorInterval` must stay in the place.
+The entry `monitorInterval` must stay in place.
 
 The change in logging takes some time to be applied. 
 You can find out more in the implementation details section of this post.
@@ -60,7 +62,7 @@ You can find out more in the implementation details section of this post.
 ### Topic Operator, User Operator and Kafka resources
 
 The approach to changing the logging configuration of User Operator, Topic Operator, Kafka Bridge, Kafka brokers, Kafka Connect and Kafka MirrorMaker2 did not change.
-The logging is still configurable via `inline` or `external` logging.
+The logging is still configurable via `inline` or `external` logging section of custom resource specification.
 
 Example of `inline` logging.
 ```yaml
@@ -84,29 +86,32 @@ spec:
 ```
 
 Only loggers can be changed dynamically.
-Logging appenders are changed using an external `ConfigMap` and the rolling update is triggered. This does not apply for Kafka Bridge, User operator and Topic operator.
+Logging appenders are changed using an external `ConfigMap` and the rolling update is triggered.
+
+This does not apply for Kafka Bridge, User operator, Topic operator and Cluster operator.
+Because these use `log4j2` framework, even logging appenders are changeable dynmaicaly.
 
 
 ## Verifying logging levels are set correctly
 
 In most cases, it takes a few seconds to change the logging level, and then you can observe the change in the logs.
-If you want to be sure the loggers and logging levels are changed, you can use these commands.
+If you want to check the loggers and logging levels are changed, you can use these commands.
 
 For Kafka brokers:
 
 ```
-$ kubectl  exec <kafka-cluster-name>-zookeeper-0 -- bin/kafka-configs.sh --bootstrap-server <kafka-cluster-name>-kafka-bootstrap:9092 --entity-type broker-loggers --entity-name 0 --describe
+$ kubectl  exec <kafka-cluster-name>-kafka-0 -- bin/kafka-configs.sh --bootstrap-server <kafka-cluster-name>-kafka-bootstrap:9092 --entity-type broker-loggers --entity-name 0 --describe
 ```
 
 For Kafka Connect you can get loggers information by accessing Connect API service:
 
 ```
-$ kubectl exec -ti <kafka-cluster-name>-kafka-0 -- curl http://<connect-cluster-name>-connect-api:8083/admin/loggers
+$ kubectl exec -ti <kafka-connect-pod-name> -- curl http://localhost:8083/admin/loggers
 ```
 
 Since Kafka MirrorMaker2 is based on the Kafka Connect, getting its loggers is very similar:
 ```
-$ kubectl exec -ti <kafka-cluster-name>-kafka-0 -- curl http://<mm2-cluster-name>-connect-api:8083/admin/loggers
+$ kubectl exec -ti <kafka-mirror-maker-2-pod-name> -- curl http://localhost:8083/admin/loggers
 ```
 
 Strimzi Cluster Operator, Topic Operator, Entity Operator and Strimzi Kafka Bridge use automatic reloading of logging configuration.
@@ -134,11 +139,13 @@ For more information, see [KIP-495](https://cwiki.apache.org/confluence/display/
 
 For now, there is no way to set logging configuration for Kafka MirrorMaker.
 There is a [KIP-649](https://cwiki.apache.org/confluence/display/KAFKA/KIP-649%3A+Dynamic+Client+Configuration) in progress.
-However, Kafka MirrorMaker support will eventually be dropped, as it has been replaced by MirrorMaker 2.0.. 
+However, Kafka MirrorMaker support will eventually be dropped, as it has been replaced by MirrorMaker 2.0.
 
+The inability to set logging configuration dynamically applies for the ZooKeeper as well.
+Since there is [KIP-500](https://cwiki.apache.org/confluence/display/KAFKA/KIP-500%3A+Replace+ZooKeeper+with+a+Self-Managed+Metadata+Quorum) what should remove ZooKeeper, we do not consider it as priority to implement this feature for ZooKeeper cluster.
 
-An upgrade to `log4j` has been proposed: [KIP-653](https://cwiki.apache.org/confluence/display/KAFKA/KIP-653%3A+Upgrade+log4j+to+log4j2) arised.
-For now, it is not clear how this upgrade will change dynamic changes to logging levels.
+An upgrade to `log4j2` has been proposed: [KIP-653](https://cwiki.apache.org/confluence/display/KAFKA/KIP-653%3A+Upgrade+log4j+to+log4j2) arised.
+It should make the changes in logging even simpler on the Kafka side.
 
 ## Conclusion
 
@@ -147,4 +154,6 @@ Sometimes a Kafka cluster or operator is driven into an edge case.
 With a less informative logging level it can be difficult to investigate what happened and how this situation can be fixed.
 Changing the logging level causes a rolling update of the pod, which can put the cluster in a regular state.
 This complicates debugging the cause of such an event.
-Furthermore, any reason to roll Kafka pods lowers the availability of Kafka cluster, which is the main reason why we decided to implement dynamic log levels in Strimzi 0.20.0.
+Furthermore, any reason to roll Kafka pods lowers the availability of Kafka cluster.
+To fix all these issues it gives us a need to be able to apply logging configuration dynamically.
+And that is the main reason why we decided to implement dynamic logging levels in Strimzi 0.20.0 by using methods described in this blogpost.
