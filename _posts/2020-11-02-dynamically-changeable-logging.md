@@ -6,7 +6,7 @@ author: stanislav_knot
 ---
 
 Logging is an indisputably important feature for applications.
-Logging monitors what the application is doing, but equally importantly,  it logs what the application is not doing. 
+Logging monitors what the application is doing, but equally importantly, it logs what the application is not doing. 
 Looking into application logs can help us prevent an application remaining or even getting into a faulty state.
 
 <!--more-->
@@ -14,9 +14,10 @@ Looking into application logs can help us prevent an application remaining or ev
 
 ## Setting logging levels dynamically
 
-There are many frameworks used for logging in Java applications, for example [`Logback`](http://logback.qos.ch/), [`tinylog`](https://tinylog.org/v2/), or [`log4j`](http://logging.apache.org/log4j/2.x/index.html).
-Because `log4j` is used in Kafka, we do use the same framework for Strimzi operator. 
-Strimzi components are split into the two groups regarding which implementation of `log4j` they use. 
+There are many frameworks used for logging in Java applications, for example [`Logback`](http://logback.qos.ch/), [`tinylog`](https://tinylog.org/v2/), or [`log4j2`](http://logging.apache.org/log4j/2.x/index.html).
+Kafka uses `log4j` and we decided to use newer version `log4j2` for Strimzi operator.
+The main reason is using similar principles and format of configuration file.
+Strimzi components are split into the two groups regarding which implementation of `log4j` they use.
 
 `log4j`
 - Kafka brokers
@@ -29,8 +30,8 @@ Strimzi components are split into the two groups regarding which implementation 
 - User Operator
 - Strimzi Cluster Operator
 
-`Log4j2` implementation supports dynamic reloading of logging configuration.
-`Log4j` supports dynamic changes but not reloading entire configuration file in runtime.
+`Log4j2` implementation supports dynamic reloading of logging configuration from properties file.
+`Log4j` doesn't support reloading the whole log configuration from properties file, but it can be changed programmatically using the Log4j APIs.
 And that is why each implementation requires a different approach, which we will look at now.
 
 ### Strimzi Cluster Operator
@@ -45,7 +46,10 @@ $ kubectl edit cm strimzi-cluster-operator
 
 Under the field `log4j2.properties` you should see current logging configuration.
 Now you can edit this configuration to whatever you want with one exception.
+
 The entry `monitorInterval` must stay in place.
+When it is removed, the configuration will not be reloaded dynamically anymore.
+To apply changes in such a case, the pod needs to be rolled. 
 
 The second way to change `ConfigMap` is to modify the file `install/cluster-operator/050-ConfigMap-strimzi-cluster-operator.yaml`, and apply the changes by this command:
 
