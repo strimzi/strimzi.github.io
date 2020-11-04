@@ -56,15 +56,13 @@ You can change between class and method resources stack with method `ResourceMan
 Note that pointer stack is set automatically in `AbstractST.class` in `@BeforeAll` or `@BeforeEach` methods.
 
 Cluster Operator setup example:
-```java
-    @BeforeAll
-    void createClassResources() {
-        prepareEnvForOperator(NAMESPACE);                          <--- Create namespaces
-        createTestClassResources();                                <--- Create Resources instance for class
-        applyRoleBindings(NAMESPACE);                              <--- Apply Cluster Operator bindings
-        KubernetesResource.clusterOperator(NAMESPACE).done();      <--- Deploy Cluster Operator
-        ...
-    }
+
+```
+@BeforeAll
+void createClassResources() {
+   ResourceManager.setClassResources();     <--- point resource manager to class stack
+   installClusterOperator(NAMESPACE);       <--- install cluster operator
+}
 ```
 
 ### Exercise
@@ -77,7 +75,7 @@ When your environment is successfully deployed and settled from the previous pha
 In this code snippet you can see verification phase, where we verify that configuration of the Kafka custom resource is successfully set.
 Moreover, we verify that specific property is correctly set inside Kafka pod.
 
-```java
+```
 @TestFactory
 Iterator<DynamicTest> testDynConfiguration() {
 
@@ -102,29 +100,29 @@ Iterator<DynamicTest> testDynConfiguration() {
 Because we have two stacks for storing resources, cluster resources deletion can be easily performed in `@AfterEach` or `@AfterAll` methods.
 Resource lifecycle implementation will ensure that all resources tied to a specific stack will be deleted in the correct order.
 Teardown is triggered in `@AfterAll` of `AbstractST`:
-```java
-    @AfterAll
-    void teardownEnvironmentClass() {
-        if (Environment.SKIP_TEARDOWN == null) {
-            tearDownEnvironmentAfterAll();
-            teardownEnvForOperator();
-        }
+```
+@AfterAll
+void teardownEnvironmentClass() {
+    if (Environment.SKIP_TEARDOWN == null) {
+        tearDownEnvironmentAfterAll();
+        teardownEnvForOperator();
     }
+}
 ```
 
 so if you want to change teardown from your `@AfterAll`, you must override method `tearDownEnvironmentAfterAll()`:
-```java
-    @Override
-    protected void tearDownEnvironmentAfterAll() {
-        doSomethingYouNeed();
-        super.tearDownEnvironmentAfterAll();
-    }
+```
+@Override
+protected void tearDownEnvironmentAfterAll() {
+    doSomethingYouNeed();
+    super.tearDownEnvironmentAfterAll();
+}
 ```
 
 In order to delete all resources from specific `Resources` instance, execute:
-```java
-    ResourceManager.deleteMethodResources();
-    ResourceManager.deleteClassResources();
+```
+ResourceManager.deleteMethodResources();
+ResourceManager.deleteClassResources();
 ```
 
 ## Resources
@@ -153,7 +151,7 @@ spec:
 ```
 
 ##### <a id="kafkaimplementation">Code snippet 3.2 Loading of the YAML file to JAVA representation object.</a>
-```java
+```
 KafkaTopic kafkaTopic = getKafkaTopicFromYaml(PATH_TO_KAFKA_TOPIC_CONFIG); 
 // additional changes...
 kafkaTopic = new KafkaTopicBuilder(kafkaTopic)
@@ -246,7 +244,7 @@ The first client using the our image. Basically, it is defined as a deployment a
 The usage of this client is straightforward as it is implemented by Builder pattern, which was previously mentioned. 
 For instance, creating some producer or consumer can easily be done as:
 
-```java
+```
 // 1. Creating the client instance 
 
 InternalKafkaClient internalKafkaClient = new InternalKafkaClient.Builder()
@@ -265,7 +263,7 @@ internalKafkaClient.sendMessagesPlain();  // <- for plain communication
 Note, that before sending messages to the Kafka cluster we need to ensure that test-client pod is running. This can be done via following code line, which basically creates the pod,
 in which resides running test-client and waiting for commands invoked by `kafka-verifiable-(consumer|producer).sh`.
 
-```java
+```
 KafkaClientsResource.deployKafkaClients(false, CLUSTER_NAME + "-" + Constants.KAFKA_CLIENTS).done();
 ```
 
@@ -275,7 +273,7 @@ The second one is based on client-examples images, where everything about client
 can be found [here](https://github.com/strimzi/client-examples).
 This type of client is used as Job. For instance to send some messages provide following code:
 
-```java
+```
 KubernetesResource.deployNewJob(new JobBuilder()
     .withNewMetadata()
         .withNamespace(ResourceManager.kubeClient().getNamespace())
@@ -337,7 +335,7 @@ Moreover, we have `Oauth`, `Tracing` and also `Basic` client. Each of them are f
 However, we prefer to always use the internal clients because of mentioned platform dependency. 
 Client can be used for instance:
 
-```java
+```
 // 1. Creating the client instance 
 
 BasicExternalKafkaClient basicExternalKafkaClient = new BasicExternalKafkaClient.Builder()
