@@ -1,5 +1,5 @@
 ---
-title: Deploying Strimzi (Master)
+title: Deploying and Upgrading Strimzi (Master)
 layout: default
 ---
 
