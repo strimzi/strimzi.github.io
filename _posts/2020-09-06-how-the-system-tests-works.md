@@ -21,123 +21,12 @@ In this blog post we will take a closer look at our system tests. The content is
 
 ## Introduction
 
-The whole ecosystem behind systems test is encapsulated in two mandatory things. First the `Resources`, creates the whole 
-testing environment. Second - the auxiliary classes, which are divided into the `Resources`, which create the whole 
-testing environment. 
-The second of all we have the auxiliary classes that are divided into
-the classic static methods `Utils`, internal clients and also `Apache Kafka Clients` for the external communication, 
-Kubernetes client, `Constants.java` and `Environment.java`.
-
-Main idea was to make the system tests and its resources easily modifiable and writable in the fluent way. 
-Fluent notation is a set of nested builders, which can build customized objects by your needs.
-For instance before the Fluent notation we had the [1.Telescoping pattern](https://www.vojtechruzicka.com/avoid-telescoping-constructor-pattern/#telescoping-constructor) 
-but that did not scale well (for instance in situations with large numbers of optional parameters). 
-Second alternative would be the [2.JavaBeans convention](https://www.vojtechruzicka.com/avoid-telescoping-constructor-pattern/#alternative-1---javabeans), 
-which could resolve our issue from the telescoping pattern, but on the other hand objects which created objects will be mutable. 
-Luckily, there is a third alternative that combines the safety of the telescoping constructor pattern with the readability 
-of the `JavaBeans pattern`. 
-It is a form of the [3.Builder pattern](https://refactoring.guru/design-patterns/builder).
-Moreover, if we take this idea to the next level to the `4.Abstract Recursive builder` we will be able to create multiple 
-dependent objects, which have nested hierarchy. In the following code snippets [1.1](#javabeans), [1.2](#builder), [1.3](#abstractbuilder) 
-we can see described idea and you can see how easily we can create an object using `Abstract Recursive builder`. 
-
-####  1. Kafka with new persistent claim storage and following settings
-
-##### <a id="javabeans">Code snippet 1.1 Using JavaBeans convention</a>
-
-```java
-PersistentClaimStorage psc = new PersistentClaimStorage();
-
-// JavaBeanss convention having setters 
-psc.setId(0);
-psc.setSize("100Gi");
-psc.setDeleteClaim(true);
-
-KafkaResource.kafkaEphemeral(CLUSTER_NAME, 3, 1)
-    .editSpec()
-        .editKafka()
-            .withPersistentClaimStorage(psc)
-        .endKafka()
-    .endSpec()
-    .done();
-```
-
-##### <a id="builder">Code snippet 1.2 Using Builder pattern</a>
-```java
-// Builder pattern which creates one type of object
-PersistentClaimStorage pcs = new PersistentClaimStorageBuilder()
-    .withDeleteClaim(true)
-    .withId(0)
-    .withSize("100Gi")
-    .build();
-
-KafkaResource.kafkaEphemeral(CLUSTER_NAME, 3, 1)
-    .editSpec()
-        .editKafka()
-            .withPersistentClaimStorage(psc)
-        .endKafka()
-    .endSpec()
-    .done();
-```
-
-##### <a id="abstractbuilder">Code snippet 1.3 Using Abstract recursive builder</a>
-```java
-// Abstract recursive builder which can have more objects in hierarchy as you can see here
-KafkaResource.kafkaEphemeral(CLUSTER_NAME, 3, 1)
-    .editSpec()
-        .editKafka()
-            .withNewPersistentClaimStorage()
-                .withId(0)
-                .withNewSize("100Gi")
-                .withDeleteClaim(true)
-            .endPersistentClaimStorage()
-        .endKafka()
-    .endSpec()
-    .done();
-```
-
-Examples above illustrate the idea of only one dependent. You can change more dependent objects as seen in the following example:
-
-```
-KafkaResource.kafkaEphemeral(CLUSTER_NAME, 3, 1)
-    .editMetadata()
-        .withName(name)
-        .withNamespace(ResourceManager.kubeClient().getNamespace())
-    .endMetadata()
-    .editSpec()
-        .editKafka()
-            .withVersion(Environment.ST_KAFKA_VERSION)
-            .withReplicas(kafkaReplicas)
-            .addToConfig("log.message.format.version", TestKafkaVersion.getKafkaVersionsInMap().get(Environment.ST_KAFKA_VERSION).protocolVersion())
-            .addToConfig("offsets.topic.replication.factor", Math.min(kafkaReplicas, 3))
-            .addToConfig("transaction.state.log.min.isr", Math.min(kafkaReplicas, 2))
-            .addToConfig("transaction.state.log.replication.factor", Math.min(kafkaReplicas, 3))
-            .withNewListeners()
-                .addNewGenericKafkaListener()
-                     .withName("plain")
-                     .withPort(9092)
-                     .withType(KafkaListenerType.INTERNAL)
-                     .withTls(false)
-                .endGenericKafkaListener()
-                .addNewGenericKafkaListener()
-                     .withName("tls")
-                     .withPort(9093)
-                     .withType(KafkaListenerType.INTERNAL)
-                     .withTls(true)
-                .endGenericKafkaListener()
-            .endListeners()
-            .withNewInlineLogging()
-                .addToLoggers("log4j.rootLogger", "DEBUG")
-            .endInlineLogging()
-        .endKafka()
-        ...
-        ... (more configs...)
-        ... 
-    .endSpec()
-    .done()
-```
-
-In this case you can see that it is really easy to create multiple different instances of the `Kafka` instead of having separate objects.
+The whole ecosystem behind systems test is encapsulated in two mandatory things. 
+First the `Resources`, creates the whole testing environment. 
+Second - the auxiliary classes, which are divided into the classic static methods `Utils`, internal clients, 
+`Apache Kafka Clients` for the external communication, Kubernetes client, `Constants.java` and `Environment.java`.
+Main idea is to make the system tests and its resources easily modifiable and writable in the fluent way. Let's have a closer
+to our resources.
 
 ## Resources
 
@@ -145,7 +34,7 @@ Resources in our mean of usage are abstractions of the `.yaml` definitions of cu
 `Kafka`, `KafkaTopic`, `KafkaUser`, `KafkaConnect`, `KafkaMirrorMaker` and so on.
 These custom resources are encapsulated into java objects and remind the [ORM(Object Relation Mapping)](https://www.tutorialspoint.com/hibernate/orm_overview.htm) 
 from databases. 
-In the following yaml code[2.1](#kafkatopic) we can see YAML representation of `KafkaTopic` and on the Code snippet 
+In the following yaml code [2.1](#kafkatopic) we can see YAML representation of `KafkaTopic` and on the Code snippet 
 [2.2](kafkaimplementation) related java object.
 
 ##### <a id="kafkatopic">Code snippet 2.1 YAML representation of `KafkaTopic`</a>
@@ -181,32 +70,26 @@ kafkaTopic = new KafkaTopicBuilder(kafkaTopic)
     .endSpec();
 ```
 
-Everything is built within three stacks. These three stacks are managed by `ResourceManager`, which is taking care of switching. 
-First one's, `method stack`, responsibility is to hold all resources, which are invoked in the test cases. 
-Second one's, the `class stack`, responsibility is to hold all resources, which are invoked in the `@BeforeAll` notation. 
+Everything is built within [three stacks](https://github.com/strimzi/strimzi-kafka-operator/blob/master/systemtest/src/main/java/io/strimzi/systemtest/resources/ResourceManager.java#L77-L79). 
+These three stacks are managed by `ResourceManager`, which is taking care of switching. 
+First one's, method stack, responsibility is to hold all resources, which are invoked in the test cases. 
+Second one's, the class stack, responsibility is to hold all resources, which are invoked in the `@BeforeAll` notation. 
 The third stack is used as a pointer to either class or method stack to delete proper resources in specific test phases.
-The `pointer stack` points to the `class stack` in we are in the `@BeforeAll` scope, otherwise we are working with the `method stack`. 
+The pointer stack points to the class stack in we are in the `@BeforeAll` scope, otherwise we are working with the method stack. 
 The logic inside these stacks are that once you create some resource (for instance KafkaTopic),
 it will be pushed inside the stack and the deletion of topic will be performed in the teardown phase. 
-Once the teardown phase is initiated, the `method stack` will pop all resources after test case is over. The same logic applies with `class stack,
-which will pop all resources when test suite is over. 
+Once the teardown phase is initiated, the method stack will pop all resources after test case is over. 
+The same logic applies with class stack, which will pop all resources when test suite is over. 
 What is worth to mention, is that if you specify `SKIP_TEARDOWN` environment variable to `TRUE` it will skip the teardown 
-phase and all created resources will remain in the stack.
+phase and all created resources will remain in the stack. Also, mostly great for debugging because it could break tests 
+if it's set for multiple than one.
 
 ## Lifecycle of tests
 
 Like any other test life cycle, we follow the [SEVT](http://xunitpatterns.com/Four%20Phase%20Test.html) convention. 
 [SEVT](http://xunitpatterns.com/Four%20Phase%20Test.html) stands for Setup, Exercise, Verify and Teardown.
-The fundamental idea can be illustrated as follows:
 
-```
-1.SETUP        | instance = new Instance(); 
-2.EXERCISE     | instance.setSomeValue(someValue);
-3.VERIFY       | asserThat(instance.getSomeValue(), is(someValue));
-4.TEARDOWN    | instance = null; (this steps is prevailingly done by testing Frameworks)
-```
-
-#### Setup
+### Setup
 
 In `Setup phase` we perform following actions:
 
@@ -240,15 +123,37 @@ Cluster Operator setup example:
     }
 ```
 
-#### Exercise
+### Exercise
 In this phase we specify all steps which need to be executed to cover some specific functionality. Reasonable example would be
 the Code snippet 1.4 from previous section, where we setup Kafka cluster with new persistent claim storage.
 
-#### Verify
+### Verify
 
 When your environment is successfully deployed and settled from the previous phase, you can add code for some checks, message exchange, etc.
+In this code snippet you can see verification phase, where we verify that configuration of the Kafka custom resource is successfully set.
+Moreover, we verify that specific property is correctly set inside Kafka pod.
 
-#### Teardown
+```java
+@TestFactory
+Iterator<DynamicTest> testDynConfiguration() {
+
+    List<DynamicTest> dynamicTests = new ArrayList<>(40);
+
+    Map<String, Object> testCases = generateTestCases(TestKafkaVersion.getKafkaVersionsInMap().get(Environment.ST_KAFKA_VERSION).version());
+
+    testCases.forEach((key, value) -> dynamicTests.add(DynamicTest.dynamicTest("Test " + key + "->" + value, () -> {
+        // exercise phase
+        KafkaUtils.updateConfigurationWithStabilityWait(CLUSTER_NAME, key, value);
+
+        // verify phase
+        assertThat(KafkaUtils.verifyCrDynamicConfiguration(CLUSTER_NAME, key, value), is(true));
+        assertThat(KafkaUtils.verifyPodDynamicConfiguration(KafkaResources.kafkaStatefulSetName(CLUSTER_NAME), key, value), is(true));
+    })));
+    return dynamicTests.iterator();
+}
+```
+
+### Teardown
 
 Because we have two stacks for storing resources, cluster resources deletion can be easily performed in `@AfterEach` or `@AfterAll` methods.
 Resource lifecycle implementation will ensure that all resources tied to a specific stack will be deleted in the correct order.
@@ -292,27 +197,7 @@ In `system test` module there are many helper classes,  each having a different 
 
 These classes are applicable on many problems. We have separate utils for each resource. 
 For instance we have KafkaUtils for KafkaResource, KafkaTopic for KafkaResource and so on. Furthermore, we have got
-Kubernetes related utils such as ServiceUtils, PodUtils, DeploymentsUtils and many more. The hierarchy is as follows:
-
-* utils
-  * kafkaUtils
-    * KafkaBridgeUtils
-    * KafkaConnectS2IUtils
-    * ...
-  * kubeUtils
-    * controllers
-      * DeploymentConfigUtils
-      * DeploymentUtils
-      * ...
-    * objects
-      * NamespaceUtils
-      * PersistentVolumeClaimUtils
-      * ...
-  * specific
-    * BridgeUtils
-    * CruiseControlUtils
-    * ...
-
+Kubernetes related utils such as ServiceUtils, PodUtils, DeploymentsUtils and many more.
 These classes come handy for instance when you have to wait for some change, make some API call, create, change or delete a Kubernetes resource and much more.
 The one method which stands out is `waitFor`, which is used in many utils methods.
 You can imagine the scenario, where you will change some custom resource value of Kafka and then you will want to assert
@@ -343,6 +228,8 @@ Here is the list of important environment variables:
 2. `DOCKER_TAG` = Specifies the image tags used in system tests (default value `latest`)
 3. `SKIP_TEARDOWN` = Skip teardown phase - primarily used for debug purposes (default value `false`)
 4. `ST_KAFKA_VERSION` =  Specifies Kafka version used in images during the system tests (default value `2.6.0`)
+
+If you want to see all our environment variables you can see it [here](https://github.com/strimzi/strimzi-kafka-operator/blob/master/development-docs/TESTING.md#environment-variables)
 
 #### Our Kafka clients
 
@@ -444,7 +331,8 @@ KubernetesResource.deployNewJob(new JobBuilder()
 ##### External using Vert.x client
 
 Lastly, external clients are implemented by supporting Vertx.io Verticles. This type of client has the most limitations for usage. Most notable is dependency on external listeners, which is caused by`platform dependency`. 
-They are implemented by _Abstract recursive builder_, which makes these clients very handful. 
+They are implemented by _Abstract recursive builder, which makes these clients very handful. 
+What is worth mentioning is that external clients are running in same environment as your tests.
 Moreover, we have `Oauth`, `Tracing` and also `Basic` client. Each of them are for specific use case. 
 However, we prefer to always use the internal clients because of mentioned platform dependency. 
 Client can be used for instance:
@@ -475,10 +363,14 @@ The most important ones are:
 
 ### test module
 
-In the test module, we have the Kubernetes client, which we use in the system tests to create, list, delete and update Kubernetes resources such as Service, Deployment, Pod, ConfigMap and so on. Basically, we encapsulate the [Kubernetes client](https://github.com/fabric8io/kubernetes-client)
-from fabric8 to use client more handy with not additional and typically redundant method chaining. 
+In the test module, we have the Kubernetes client, which we use in the system tests to create, list, delete and update 
+Kubernetes resources such as Service, Deployment, Pod, ConfigMap and so on. 
+Basically, we encapsulate the [Kubernetes client](https://github.com/fabric8io/kubernetes-client) from fabric8 to use 
+client more handy with not additional and typically redundant method chaining. 
 Moreover, we have our abstraction of Kubernetes cluster and mechanism to detect on which type is currently client. 
 Clusters could be Kubernetes, Minikube and so on.
+Lastly, in this module you can find [Command Client](https://github.com/strimzi/strimzi-kafka-operator/tree/master/test/src/main/java/io/strimzi/test/k8s/cmdClient),
+which servers as executor and can invoke various requests such as `kubectl annotate...`, `kubectl exec...` and so on.
 
 ### crd-generator + api module
 
@@ -495,10 +387,10 @@ At this point you have the necessary knowledge to create a simple test. There ar
 ### Precursors
 
 1. Fork the `strimzi-kafka-operator` repository - https://github.com/strimzi/strimzi-kafka-operator
-2. Build the whole project in root directory - `mvn clean install -DskipTests`
+2. Build the whole project in root directory - `mvn clean install -DskipTests` or you can use `mvn -am clean install -DskipTests -f systemtest/pom.xml`
 3. Setup your Kubernetes cluster
 4. Login to your Kubernetes cluster
-5. Try to start some of our tests inside `system test` module for instance - `io.strimzi.systemtest.bridge.HttpBridgeST.testSendSimpleMessage()` 
+5. Try to start some of our tests inside `system test` module for instance - `io.strimzi.systemtest.bridge.HttpBridgeST.testSendMessagesTlsAuthenticated()` 
 (test takes around 5 minutes)
 
 ### Writing new test case
