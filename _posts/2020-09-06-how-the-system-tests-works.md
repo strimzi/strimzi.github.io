@@ -11,24 +11,24 @@ But, we did not cover whole understanding of the system tests.
 In this blog post we will take a closer look at our system tests. The content is as follows:
 
 # Content
-1. [Introduction](#Introduction)
-2. [Lifecycle of tests](#Lifecycle of tests)
-3. [Resources](#Resources)
-4. [Auxiliary classes](#Auxiliary classes)
-5. [Dependencies](#Dependencies)
-6. [How to create a system test](#How to create a system test)
-8. [Conclusion](#Conclusion)
+1. [Introduction](#introduction)
+2. [Lifecycle of tests](#lifecycle)
+3. [Resources](#resources)
+4. [Auxiliary classes](#auxiliaryclasses)
+5. [Dependencies](#dependencies)
+6. [How to create a system test](#createtest)
+8. [Conclusion](#conclusion)
 
-## Introduction
+## <a id="introduction">Introduction</a>
 
 The whole ecosystem behind systems test is encapsulated in two mandatory things. 
 First the `Resources`, creates the whole testing environment. 
-Second - the auxiliary classes, which are divided into the classic static methods `Utils`, internal clients, 
+Second the auxiliary classes, which are divided into the classic static methods `Utils`, internal clients, 
 `Apache Kafka Clients` for the external communication, Kubernetes client, `Constants.java` and `Environment.java`.
 Main idea is to make the system tests and its resources easily modifiable and writable in the fluent way. Let's have a closer
 to our resources.
 
-## Lifecycle of tests
+## <a id="lifecycle">Lifecycle of tests</a>
 
 Like any other test life cycle, we follow the [SEVT](http://xunitpatterns.com/Four%20Phase%20Test.html) convention. 
 [SEVT](http://xunitpatterns.com/Four%20Phase%20Test.html) stands for Setup, Exercise, Verify and Teardown.
@@ -125,7 +125,7 @@ ResourceManager.deleteMethodResources();
 ResourceManager.deleteClassResources();
 ```
 
-## Resources
+## <a id="resources">Resources</a>
 
 Resources in our mean of usage are abstractions of the `.yaml` definitions of custom resources, which we provide, such as 
 `Kafka`, `KafkaTopic`, `KafkaUser`, `KafkaConnect`, `KafkaMirrorMaker` and so on.
@@ -181,7 +181,7 @@ What is worth to mention, is that if you specify `SKIP_TEARDOWN` environment var
 phase and all created resources will remain in the stack. Also, mostly great for debugging because it could break tests 
 if it's set for multiple than one.
 
-## Auxiliary classes
+## <a id="auxiliaryclasses">Auxiliary classes</a>
 
 In `system test` module there are many helper classes,  each having a different purpose:
 
@@ -352,7 +352,7 @@ BasicExternalKafkaClient basicExternalKafkaClient = new BasicExternalKafkaClient
 basicExternalKafkaClient.sendMesssageTls();
 ```
 
-## Dependencies
+## <a id="dependencies">Dependencies</a>
 
 Before writing simple test case in Strimzi system tests, we need to know main dependencies that `system test` module has. 
 The most important ones are:
@@ -378,7 +378,7 @@ For instance, imagine that you are using `Kafka` resource and you need to create
 You will need to build these modules and generate schema, which will support it and be able to create Kafka with Cruise Control. 
 These modules provide the fluent way of creating Strimzi custom resource instances such as `Kafka`, `KafkaConnect`, `KafkaConnectS2I`, `KafkaMirrorMaker` and many other.
 
-## How to create a system test
+## <a id="createtest">How to create a system test</a>
 
 At this point you have the necessary knowledge to create a simple test. There are also some additional steps, which need to be performed to set up your testing environment.
 
@@ -485,7 +485,7 @@ public class MyTestSuite extends AbstractST {
 
 Congratulations you have written your new test case in Strimzi `system test` module!
 
-## Conclusion
+## <a id="conclusion">Conclusion</a>
 
 The whole ecosystem of system tests is at first glance hard to understand but if the person who is learning this domain has a drive, it won't be a challenge for him. 
 Whole module went through several iterations of evolution, which improved many areas.
