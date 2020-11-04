@@ -1,5 +1,5 @@
 ---
-title: Deploying and Upgrading Strimzi (0.20.0)
+title: Deploying and Upgrading (0.20.0)
 layout: default
 ---
 
