@@ -12,8 +12,8 @@ In this blog post we will take a closer look at our system tests. The content is
 
 # Content
 1. [Introduction](#Introduction)
-2. [Resources](#Resources)
-3. [Lifecycle of tests](#Lifecycle of tests)
+2. [Lifecycle of tests](#Lifecycle of tests)
+3. [Resources](#Resources)
 4. [Auxiliary classes](#Auxiliary classes)
 5. [Dependencies](#Dependencies)
 6. [How to create a system test](#How to create a system test)
@@ -27,62 +27,6 @@ Second - the auxiliary classes, which are divided into the classic static method
 `Apache Kafka Clients` for the external communication, Kubernetes client, `Constants.java` and `Environment.java`.
 Main idea is to make the system tests and its resources easily modifiable and writable in the fluent way. Let's have a closer
 to our resources.
-
-## Resources
-
-Resources in our mean of usage are abstractions of the `.yaml` definitions of custom resources, which we provide, such as 
-`Kafka`, `KafkaTopic`, `KafkaUser`, `KafkaConnect`, `KafkaMirrorMaker` and so on.
-These custom resources are encapsulated into java objects and remind the [ORM(Object Relation Mapping)](https://www.tutorialspoint.com/hibernate/orm_overview.htm) 
-from databases. 
-In the following yaml code [2.1](#kafkatopic) we can see YAML representation of `KafkaTopic` and on the Code snippet 
-[2.2](kafkaimplementation) related java object.
-
-##### <a id="kafkatopic">Code snippet 2.1 YAML representation of `KafkaTopic`</a>
-```yaml
-apiVersion: kafka.strimzi.io/v1beta1
-kind: KafkaTopic
-metadata:
-  name: my-topic
-  labels:
-    strimzi.io/cluster: my-cluster
-spec:
-  partitions: 1
-  replicas: 1
-  config:
-    retention.ms: 7200000
-    segment.bytes: 1073741824
-```
-
-##### <a id="kafkaimplementation">Code snippet 2.2 Loading of the YAML file to JAVA representation object.</a>
-```java
-KafkaTopic kafkaTopic = getKafkaTopicFromYaml(PATH_TO_KAFKA_TOPIC_CONFIG); 
-// additional changes...
-kafkaTopic = new KafkaTopicBuilder(kafkaTopic)
-    .withNewMetadata()
-        .withName(topicName)
-        .withNamespace(ResourceManager.kubeClient().getNamespace())
-        .addToLabels(Labels.STRIMZI_CLUSTER_LABEL, clusterName)
-    .endMetadata()
-    .editSpec()
-        .withPartitions(partitions)
-        .withReplicas(replicas)
-        .addToConfig("min.insync.replicas", minIsr)
-    .endSpec();
-```
-
-Everything is built within [three stacks](https://github.com/strimzi/strimzi-kafka-operator/blob/master/systemtest/src/main/java/io/strimzi/systemtest/resources/ResourceManager.java#L77-L79). 
-These three stacks are managed by `ResourceManager`, which is taking care of switching. 
-First one's, method stack, responsibility is to hold all resources, which are invoked in the test cases. 
-Second one's, the class stack, responsibility is to hold all resources, which are invoked in the `@BeforeAll` notation. 
-The third stack is used as a pointer to either class or method stack to delete proper resources in specific test phases.
-The pointer stack points to the class stack in we are in the `@BeforeAll` scope, otherwise we are working with the method stack. 
-The logic inside these stacks are that once you create some resource (for instance KafkaTopic),
-it will be pushed inside the stack and the deletion of topic will be performed in the teardown phase. 
-Once the teardown phase is initiated, the method stack will pop all resources after test case is over. 
-The same logic applies with class stack, which will pop all resources when test suite is over. 
-What is worth to mention, is that if you specify `SKIP_TEARDOWN` environment variable to `TRUE` it will skip the teardown 
-phase and all created resources will remain in the stack. Also, mostly great for debugging because it could break tests 
-if it's set for multiple than one.
 
 ## Lifecycle of tests
 
@@ -182,6 +126,62 @@ In order to delete all resources from specific `Resources` instance, execute:
     ResourceManager.deleteMethodResources();
     ResourceManager.deleteClassResources();
 ```
+
+## Resources
+
+Resources in our mean of usage are abstractions of the `.yaml` definitions of custom resources, which we provide, such as 
+`Kafka`, `KafkaTopic`, `KafkaUser`, `KafkaConnect`, `KafkaMirrorMaker` and so on.
+These custom resources are encapsulated into java objects and remind the [ORM(Object Relation Mapping)](https://www.tutorialspoint.com/hibernate/orm_overview.htm) 
+from databases. 
+In the following yaml code [3.1](#kafkatopic) we can see YAML representation of `KafkaTopic` and on the Code snippet 
+[3.2](kafkaimplementation) related java object.
+
+##### <a id="kafkatopic">Code snippet 3.1 YAML representation of `KafkaTopic`</a>
+```yaml
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: my-topic
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 1
+  replicas: 1
+  config:
+    retention.ms: 7200000
+    segment.bytes: 1073741824
+```
+
+##### <a id="kafkaimplementation">Code snippet 3.2 Loading of the YAML file to JAVA representation object.</a>
+```java
+KafkaTopic kafkaTopic = getKafkaTopicFromYaml(PATH_TO_KAFKA_TOPIC_CONFIG); 
+// additional changes...
+kafkaTopic = new KafkaTopicBuilder(kafkaTopic)
+    .withNewMetadata()
+        .withName(topicName)
+        .withNamespace(ResourceManager.kubeClient().getNamespace())
+        .addToLabels(Labels.STRIMZI_CLUSTER_LABEL, clusterName)
+    .endMetadata()
+    .editSpec()
+        .withPartitions(partitions)
+        .withReplicas(replicas)
+        .addToConfig("min.insync.replicas", minIsr)
+    .endSpec();
+```
+
+Everything is built within [three stacks](https://github.com/strimzi/strimzi-kafka-operator/blob/master/systemtest/src/main/java/io/strimzi/systemtest/resources/ResourceManager.java#L77-L79). 
+These three stacks are managed by `ResourceManager`, which is taking care of switching. 
+First one's, method stack, responsibility is to hold all resources, which are invoked in the test cases. 
+Second one's, the class stack, responsibility is to hold all resources, which are invoked in the `@BeforeAll` notation. 
+The third stack is used as a pointer to either class or method stack to delete proper resources in specific test phases.
+The pointer stack points to the class stack in we are in the `@BeforeAll` scope, otherwise we are working with the method stack. 
+The logic inside these stacks are that once you create some resource (for instance KafkaTopic),
+it will be pushed inside the stack and the deletion of topic will be performed in the teardown phase. 
+Once the teardown phase is initiated, the method stack will pop all resources after test case is over. 
+The same logic applies with class stack, which will pop all resources when test suite is over. 
+What is worth to mention, is that if you specify `SKIP_TEARDOWN` environment variable to `TRUE` it will skip the teardown 
+phase and all created resources will remain in the stack. Also, mostly great for debugging because it could break tests 
+if it's set for multiple than one.
 
 ## Auxiliary classes
 
