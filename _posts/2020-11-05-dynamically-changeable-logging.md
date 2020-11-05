@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Dynamically changeable logging levels"
-date: 2020-11-02
+date: 2020-11-05
 author: stanislav_knot
 ---
 
@@ -107,6 +107,12 @@ For Kafka brokers:
 $ kubectl  exec <kafka-cluster-name>-kafka-0 -- bin/kafka-configs.sh --bootstrap-server <kafka-cluster-name>-kafka-bootstrap:9092 --entity-type broker-loggers --entity-name 0 --describe
 ```
 
+You may wonder what value you should pass to `--entity-name`.
+It should be the name of the Kafka broker what can be found in the broker configuration as `broker.id` property.
+In Strimzi, broker has name related to the name of pod where is it running.
+So <kafka-cluster-name>-kafka-0 should have name '0', <kafka-cluster-name>-kafka-1 will be '1', etc.
+
+
 For Kafka Connect you can get loggers information by accessing Connect API service:
 
 ```
@@ -121,7 +127,8 @@ $ kubectl exec -ti <kafka-mirror-maker-2-pod-name> -- curl http://localhost:8083
 Strimzi Cluster Operator, Topic Operator, Entity Operator and Strimzi Kafka Bridge use automatic reloading of logging configuration.
 The only way to check the logging configuration of these components is by looking into the pod for the file on the path `/opt/strimzi/custom-config/log4j2.properties`.
 It should contain the configuration and the `monitorInterval` property.
-Note that reconciliation time and `monitorInterval` value affect the time logging configuration to be reloaded.
+Note that reconciliation time, [re-mouting ConfigMap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#mounted-configmaps-are-updated-automatically) and `monitorInterval` value affect the time logging configuration to be reloaded.
+
 
 ## Implementation details
 
