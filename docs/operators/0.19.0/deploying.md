@@ -1,5 +1,5 @@
 ---
-title: Deploying Strimzi (0.19.0)
+title: Deploying and Upgrading (0.19.0)
 layout: default
 ---
 
