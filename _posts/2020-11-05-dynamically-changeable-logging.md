@@ -22,7 +22,7 @@ Strimzi components are split into the two groups regarding which implementation 
 `log4j`
 - Kafka brokers
 - Kafka Connect
-- Kafka MirrorMaker2
+- Kafka MirrorMaker 2.0
 
 `log4j2`
 - Strimzi Kafka Bridge
@@ -46,7 +46,6 @@ $ kubectl edit cm strimzi-cluster-operator
 
 Under the field `log4j2.properties` you should see current logging configuration.
 Now you can edit this configuration to whatever you want with one exception.
-
 The entry `monitorInterval` must stay in place.
 When it is removed, the configuration will not be reloaded dynamically anymore.
 To apply changes in such a case, the pod needs to be rolled. 
@@ -65,7 +64,7 @@ You can find out more in the implementation details section of this post.
 
 ### Topic Operator, User Operator and Kafka resources
 
-The approach to changing the logging configuration of User Operator, Topic Operator, Kafka Bridge, Kafka brokers, Kafka Connect and Kafka MirrorMaker2 did not change.
+The approach to changing the logging configuration of User Operator, Topic Operator, Kafka Bridge, Kafka brokers, Kafka Connect and Kafka MirrorMaker 2.0 did not change.
 The logging is still configurable via `inline` or `external` logging section of custom resource specification.
 
 Example of `inline` logging.
@@ -119,7 +118,7 @@ For Kafka Connect you can get loggers information by accessing Connect API servi
 $ kubectl exec -ti <kafka-connect-pod-name> -- curl http://localhost:8083/admin/loggers
 ```
 
-Since Kafka MirrorMaker2 is based on the Kafka Connect, getting its loggers is very similar:
+Since Kafka MirrorMaker 2.0 is based on the Kafka Connect, getting its loggers is very similar:
 ```
 $ kubectl exec -ti <kafka-mirror-maker-2-pod-name> -- curl http://localhost:8083/admin/loggers
 ```
@@ -139,11 +138,11 @@ Automatic reloading works in these steps:
 2. During reconciliation the `log4j2.properties`  file is remounted. It contains the configuration from the custom resource.
 3. `log4j2` polls changes in the `log4j2.properties` file in an interval of `monitorInterval` seconds
 
-For Kafka broker, Kafka Connect and Kafka MirrorMaker2 we use features already implemented from Kafka.
+For Kafka broker, Kafka Connect and Kafka MirrorMaker 2.0 we use features already implemented from Kafka.
 Logging configuration in Kafka Brokers is changed using `AdminClient`.
 For more information, see [KIP-412](https://cwiki.apache.org/confluence/display/KAFKA/KIP-412%3A+Extend+Admin+API+to+support+dynamic+application+log+levels)
 
-Kafka Connect and Kafka MirrorMaker2 logging configuration is changed using the REST API.
+Kafka Connect and Kafka MirrorMaker 2.0 logging configuration is changed using the REST API.
 For more information, see [KIP-495](https://cwiki.apache.org/confluence/display/KAFKA/KIP-495%3A+Dynamically+Adjust+Log+Levels+in+Connect)
 
 ## Further steps
