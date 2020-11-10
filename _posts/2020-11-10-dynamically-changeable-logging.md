@@ -138,7 +138,7 @@ Automatic reloading works in these steps:
 2. During reconciliation, the `log4j2.properties`  file containing the configuration from the custom resource is remounted. 
 3. `log4j2` polls changes in the `log4j2.properties` file in an interval of `monitorInterval` seconds
 
-For Kafka broker, Kafka Connect and Kafka MirrorMaker 2.0 we use features already implemented from Kafka.
+For Kafka broker, Kafka Connect and Kafka MirrorMaker 2.0, we use features already implemented from Kafka.
 Logging configuration in Kafka Brokers is changed using `AdminClient`.
 For more information, see [KIP-412](https://cwiki.apache.org/confluence/display/KAFKA/KIP-412%3A+Extend+Admin+API+to+support+dynamic+application+log+levels)
 
