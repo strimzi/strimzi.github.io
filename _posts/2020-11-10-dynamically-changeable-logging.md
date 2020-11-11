@@ -70,21 +70,19 @@ The logging is still configurable through the `inline` or `external` logging sec
 Example of `inline` logging.
 ```yaml
 ...
-spec:
-  logging:
-    type: inline
-      loggers:
-        kafka.root.logger.level = INFO
+logging:
+  type: inline
+  loggers:
+    kafka.root.logger.level = INFO
 ...
 ```
 
 Example of external logging.
 ```yaml
 ...
-spec:
-  logging:
-    type: external
-      name: my-external-config-map
+logging:
+  type: external
+  name: my-external-config-map
 ...
 ```
 
