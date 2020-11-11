@@ -73,8 +73,8 @@ Example of `inline` logging.
 spec:
   logging:
     type: inline
-      loggers:
-        kafka.root.logger.level = INFO
+    loggers:
+      kafka.root.logger.level = INFO
 ...
 ```
 
@@ -84,7 +84,7 @@ Example of external logging.
 spec:
   logging:
     type: external
-      name: my-external-config-map
+    name: my-external-config-map
 ...
 ```
 
