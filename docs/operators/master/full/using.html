@@ -791,7 +791,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel3">
 <li><a href="#property-kafka-listeners-reference">B.4.1. <code>listeners</code></a></li>
 <li><a href="#property-kafka-config-reference">B.4.2. <code>config</code></a></li>
-<li><a href="#type-KafkaClusterSpec-schema-reference">B.4.3. Schema reference</a></li>
+<li><a href="#property-kafka-brokerRackInitImage-reference">B.4.3. <code>brokerRackInitImage</code></a></li>
+<li><a href="#type-KafkaClusterSpec-schema-reference">B.4.4. Schema reference</a></li>
 </ul>
 </li>
 <li><a href="#type-EphemeralStorage-reference">B.5. <code>EphemeralStorage</code> schema reference</a></li>
@@ -881,7 +882,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </ul>
 </li>
 <li><a href="#type-KafkaAuthorizationKeycloak-reference">B.43. <code>KafkaAuthorizationKeycloak</code> schema reference</a></li>
-<li><a href="#type-Rack-reference">B.44. <code>Rack</code> schema reference</a></li>
+<li><a href="#type-Rack-reference">B.44. <code>Rack</code> schema reference</a>
+<ul class="sectlevel3">
+<li><a href="#type-Rack-schema-reference">B.44.1. Schema reference</a></li>
+</ul>
+</li>
 <li><a href="#type-Probe-reference">B.45. <code>Probe</code> schema reference</a></li>
 <li><a href="#type-JvmOptions-reference">B.46. <code>JvmOptions</code> schema reference</a></li>
 <li><a href="#type-SystemProperty-reference">B.47. <code>SystemProperty</code> schema reference</a></li>
@@ -1764,7 +1769,7 @@ This provides a convenient mechanism for resources to be labeled as required.</p
 <div class="sect3">
 <h4 id="ref-sample-kafka-resource-config-deployment-configuration-kafka"><a class="link" href="#ref-sample-kafka-resource-config-deployment-configuration-kafka">2.1.1. Sample Kafka YAML configuration</a></h4>
 <div class="paragraph">
-<p>For help in understanding the configuration options available for your Kafka deployment, refer to sample YAML file provided here.</p>
+<p>For help in understanding the configuration options available for your Kafka deployment, refer to the sample YAML file provided here.</p>
 </div>
 <div class="paragraph">
 <p>The sample shows only some of the possible configuration options, but those that are particularly important include:</p>
@@ -1966,7 +1971,7 @@ spec:
 <p>Persistent storage has <a href="#ref-persistent-storage-deployment-configuration-kafka">additional configuration options</a>, such as a storage <code>id</code> and <code>class</code> for dynamic volume provisioning.</p>
 </li>
 <li>
-<p>Rack awareness is configured to <a href="#assembly-kafka-rack-deployment-configuration-kafka">spread replicas across different racks</a>. A <code>topology</code> key must match the label of a cluster node.</p>
+<p><a href="#type-Rack-reference">Rack awareness</a> is configured to spread replicas across different racks. A <code>topologykey</code> must match the label of a cluster node.</p>
 </li>
 <li>
 <p>Kafka <a href="./deploying.html#assembly-metrics-setup-str">metrics configuration for use with Prometheus</a>.</p>
@@ -4200,78 +4205,13 @@ Enabling rack awareness helps to improve availability of Kafka brokers and the t
 <div class="title">Note</div>
 </td>
 <td class="content">
-"Rack" might represent an availability zone, data center, or an actual rack in your data center.
+A <em>rack</em> can represent an availability zone, data center, or an actual rack in your data center.
 </td>
 </tr>
 </table>
 </div>
-<div class="sect4">
-<h5 id="proc-configuring-kafka-rack-awareness-deployment-configuration-kafka"><a class="link" href="#proc-configuring-kafka-rack-awareness-deployment-configuration-kafka">Configuring rack awareness in Kafka brokers</a></h5>
 <div class="paragraph">
-<p>Kafka rack awareness can be configured in the <code>rack</code> property of <code>Kafka.spec.kafka</code>.
-The <code>rack</code> object has one mandatory field named <code>topologyKey</code>.
-This key needs to match one of the labels assigned to the Kubernetes cluster nodes.
-The label is used by Kubernetes when scheduling the Kafka broker pods to nodes.
-If the Kubernetes cluster is running on a cloud provider platform, that label should represent the availability zone where the node is running.
-Usually, the nodes are labeled with <code>topology.kubernetes.io/zone</code> label (or <code>failure-domain.beta.kubernetes.io/zone</code> on older Kubernetes versions) that can be used as the <code>topologyKey</code> value.
-For more information about Kubernetes node labels, see <a href="https://kubernetes.io/docs/reference/kubernetes-api/labels-annotations-taints/" target="_blank" rel="noopener">Well-Known Labels, Annotations and Taints</a>.
-This has the effect of spreading the broker pods across zones, and also setting the brokers' <code>broker.rack</code> configuration parameter inside Kafka broker.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>A Kubernetes cluster</p>
-</li>
-<li>
-<p>A running Cluster Operator</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Consult your Kubernetes administrator regarding the node label that represents the zone / rack into which the node is deployed.</p>
-</li>
-<li>
-<p>Edit the <code>rack</code> property in the <code>Kafka</code> resource using the label as the topology key.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
-kind: Kafka
-metadata:
-  name: my-cluster
-spec:
-  kafka:
-    # ...
-    rack:
-      topologyKey: topology.kubernetes.io/zone
-    # ...</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Create or update the resource.</p>
-<div class="paragraph">
-<p>This can be done using <code>kubectl apply</code>:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
-</div>
-</div>
-</li>
-</ol>
-</div>
-<div class="ulist">
-<div class="title">Additional resources</div>
-<ul>
-<li>
-<p>For information about Configuring init container image for Kafka rack awareness, see <a href="#assembly-configuring-container-images-deployment-configuration-kafka">Container images</a>.</p>
-</li>
-</ul>
-</div>
+<p>For more information on configuring rack awareness, see <a href="#type-Rack-reference"><code>Rack</code> schema reference</a>.</p>
 </div>
 </div>
 <div class="sect3">
@@ -7162,7 +7102,9 @@ spec:
     "-Xmx": "1g"
     "-Xms": "1g"
   image: my-org/my-image:latest <b class="conum">(14)</b>
-  template: <b class="conum">(15)</b>
+  rack:
+    topologyKey: topology.kubernetes.io/zone <b class="conum">(15)</b>
+  template: <b class="conum">(16)</b>
     pod:
       affinity:
         podAntiAffinity:
@@ -7175,7 +7117,7 @@ spec:
                       - postgresql
                       - mongodb
               topologyKey: "kubernetes.io/hostname"
-    connectContainer: <b class="conum">(16)</b>
+    connectContainer: <b class="conum">(17)</b>
       env:
         - name: JAEGER_SERVICE_NAME
           value: my-jaeger-service
@@ -7230,6 +7172,9 @@ Standard Apache Kafka configuration may be provided, restricted to those propert
 </li>
 <li>
 <p>ADVANCED OPTION: <a href="#con-common-configuration-images-reference">Container image configuration</a>, which is recommended only in special situations.</p>
+</li>
+<li>
+<p><a href="#type-Rack-reference">Rack awareness</a> is configured to spread replicas across different racks. A <code>topologykey</code> must match the label of a cluster node.</p>
 </li>
 <li>
 <p><a href="#assembly-customizing-kubernetes-resources-str">Template customization</a>. Here a pod is scheduled with anti-affinity, so the pod is not scheduled on nodes with the same hostname.</p>
@@ -21280,7 +21225,55 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="type-KafkaClusterSpec-schema-reference"><a class="link" href="#type-KafkaClusterSpec-schema-reference">B.4.3. Schema reference</a></h4>
+<h4 id="property-kafka-brokerRackInitImage-reference"><a class="link" href="#property-kafka-brokerRackInitImage-reference">B.4.3. <code>brokerRackInitImage</code></a></h4>
+<div class="paragraph">
+<p>When rack awareness is enabled, Kafka broker pods use init container to collect the labels from the Kubernetes cluster nodes.
+The container image used for this container can be configured using the <code>brokerRackInitImage</code> property.
+When the <code>brokerRackInitImage</code> field is missing, the following images are used in order of priority:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Container image specified in <code>STRIMZI_DEFAULT_KAFKA_INIT_IMAGE</code> environment variable in the Cluster Operator configuration.</p>
+</li>
+<li>
+<p><code>quay.io/strimzi/operator:latest</code> container image.</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="title">Example <code>brokerRackInitImage</code> configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    rack:
+      topologyKey: topology.kubernetes.io/zone
+    brokerRackInitImage: my-org/my-image:latest
+    # ...</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Overriding container images is recommended only in special situations, where you need to use a different container registry.
+For example, because your network does not allow access to the container registry used by Strimzi. In this case, you should either copy the Strimzi images or build them from the source.
+If the configured image is not compatible with Strimzi images, it might not work properly.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="type-KafkaClusterSpec-schema-reference"><a class="link" href="#type-KafkaClusterSpec-schema-reference">B.4.4. Schema reference</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 50%;">
@@ -24408,6 +24401,94 @@ It must have the value <code>keycloak</code> for the type <code>KafkaAuthorizati
 <div class="paragraph">
 <p>Used in: <a href="#type-KafkaClusterSpec-reference"><code>KafkaClusterSpec</code></a>, <a href="#type-KafkaConnectS2ISpec-reference"><code>KafkaConnectS2ISpec</code></a>, <a href="#type-KafkaConnectSpec-reference"><code>KafkaConnectSpec</code></a></p>
 </div>
+<div class="paragraph">
+<p>Configures rack awareness to spread partition replicas across different racks.</p>
+</div>
+<div class="paragraph">
+<p>A <em>rack</em> can represent an availability zone, data center, or an actual rack in your data center.
+By configuring a <code>rack</code> for a Kafka cluster, consumers can fetch data from the closest replica.
+This is useful for reducing the load on your network when a Kafka cluster spans multiple datacenters.</p>
+</div>
+<div class="paragraph">
+<p>To configure Kafka brokers for rack awareness, you specify a <code>topologyKey</code> value to match the label of the cluster node used by Kubernetes when scheduling Kafka broker pods to nodes.</p>
+</div>
+<div class="paragraph">
+<p>If the Kubernetes cluster is running on a cloud provider platform, the label must represent the availability zone where the node is running.
+Usually, nodes are labeled with the <code>topology.kubernetes.io/zone</code> label (or <code>failure-domain.beta.kubernetes.io/zone</code> on older Kubernetes versions),
+which can be used as the <code>topologyKey</code> value.</p>
+</div>
+<div class="paragraph">
+<p>The rack awareness configuration spreads the broker pods and partition replicas across zones, improving resiliency, and also sets a <code>broker.rack</code> configuration for each Kafka broker.
+The <code>broker.rack</code> configuration assigns a rack ID to each broker.</p>
+</div>
+<div class="paragraph">
+<p>Consult your Kubernetes administrator regarding the node label that represents the zone or rack into which the node is deployed.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example <code>rack</code> configuration for Kafka</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    rack:
+      topologyKey: topology.kubernetes.io/zone
+    config:
+      # ...
+      replica.selector.class: org.apache.kafka.common.replica.RackAwareReplicaSelector
+    # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Use the <code>RackAwareReplicaSelector</code> implementation for the Kafka <code>ReplicaSelector</code> plugin if you want clients to consume from the closest replica.
+The <code>ReplicaSelector</code> plugin provides the logic that enables clients to consume from the nearest replica.
+Specify <code>RackAwareReplicaSelector</code> for the <code>replica.selector.class</code> to switch from the default implementation.
+The default implementation uses <code>LeaderSelector</code> to always select the leader replica for the client.
+By switching from the leader replica to the replica follower, there is some cost to latency.
+If required, you can also customize your own implementation.</p>
+</div>
+<div class="paragraph">
+<p>For clients, including Kafka Connect, you specify the same topology key as the broker that the client will use to consume messages.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example <code>rack</code> configuration for Kafka Connect</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnect
+# ...
+spec:
+  kafka:
+    # ...
+    rack:
+      topologyKey: topology.kubernetes.io/zone
+    # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The client is assigned a <code>client.rack</code> ID.</p>
+</div>
+<div class="paragraph">
+<p><code>RackAwareReplicaSelector</code> associates matching <code>broker.rack</code> and <code>client.rack</code> IDs,
+so the client can consume from the nearest replica.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/rack-config-availability-zones.png" alt="consuming from replicas in the same availability zone">
+</div>
+<div class="title">Figure 6. Example showing client consuming from replicas in the same availability zone</div>
+</div>
+<div class="paragraph">
+<p>If there are multiple replicas in the same rack, <code>RackAwareReplicaSelector</code> always selects the most up-to-date replica.
+If the rack ID is not specified, or if it cannot find a replica with the same rack ID, it will fall back to the leader replica.</p>
+</div>
+<div class="paragraph">
+<p>For more information about Kubernetes node labels, see <a href="https://kubernetes.io/docs/reference/kubernetes-api/labels-annotations-taints/" target="_blank" rel="noopener">Well-Known Labels, Annotations and Taints</a>.</p>
+</div>
+<div class="sect3">
+<h4 id="type-Rack-schema-reference"><a class="link" href="#type-Rack-schema-reference">B.44.1. Schema reference</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 50%;">
@@ -24429,6 +24510,7 @@ It must have the value <code>keycloak</code> for the type <code>KafkaAuthorizati
 </tr>
 </tbody>
 </table>
+</div>
 </div>
 <div class="sect2">
 <h3 id="type-Probe-reference"><a class="link" href="#type-Probe-reference">B.45. <code>Probe</code> schema reference</a></h3>
@@ -31772,7 +31854,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2020-11-12 19:29:01 UTC
+Last updated 2020-11-12 21:18:38 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
