@@ -12,7 +12,7 @@ In this blog post we will take a closer look at our system tests.
 
 ## Introduction
 
-The whole ecosystem behind systems test is encapsulated in two mandatory things. 
+The whole ecosystem behind system tests is encapsulated in two mandatory things. 
 First the `Resources`, creates the whole testing environment. 
 Second the auxiliary classes, which are divided into the classic static methods `Utils`, internal clients, 
 `Apache Kafka Clients` for the external communication, Kubernetes client, `Constants.java` and `Environment.java`.
@@ -411,7 +411,7 @@ As you can see, we have two main things to take care of. First is `verify that K
 
 Test scenario could look like this:
 
-1. Setup & Exercise:  Deploy `Strimzi Operator
+1. Setup & Exercise:  Deploy Strimzi Operator
 2. Setup & Exercise:  Deploy `Kafka` cluster with 3 kafka nodes and 3 zookeeper nodes 
 3. Verify: Verify that `Kafka` is ready
 4. Setup & Exercise: Create instance of `Kafka clients`
