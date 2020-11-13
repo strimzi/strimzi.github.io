@@ -8,7 +8,7 @@ In [previous blog post](https://strimzi.io/blog/2020/09/21/introduction-to-syste
 about our unit tests, integration tests and how they differ from system tests. 
 Furthermore, we showed up how to run them on Kubernetes cluster. 
 But, we did not cover whole understanding of the system tests. 
-In this blog post we will take a closer look at our system tests. The content is as follows:
+In this blog post we will take a closer look at our system tests.
 
 ## Introduction
 
