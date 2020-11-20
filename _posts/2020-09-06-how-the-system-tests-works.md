@@ -237,7 +237,7 @@ If you want to see all our environment variables you can see it [here](https://g
 Another helpful module of the system tests are Kafka clients, which contains three usage types:
 
 1. For internal communication within Kubernetes - client-examples image
-2. For external communication within Kubernetes - using Vert.x client
+2. For external communication within Kubernetes - using [Vert.x](https://vertx.io/) client
 3. For internal communication within Kubernetes - using test-client image (deprecated)
 
 ##### Internal using client-examples image
