@@ -4,28 +4,28 @@ title:  "How system tests work"
 date: 2020-09-06
 author: maros_orsak
 ---
-In the [previous blog post](https://strimzi.io/blog/2020/09/21/introduction-to-system-tests/) related to testing we learned 
-about our unit tests, integration tests and how they differ from system tests. 
+In the [previous blog post related to testing](https://strimzi.io/blog/2020/09/21/introduction-to-system-tests/) we learned 
+about our unit tests and integration tests and how they differ from system tests. 
 Furthermore, we showed how you can run them on a Kubernetes cluster. 
-But, we did not cover system tests themselves in any great detail.
-So in this blog post we will take a closer look at our system tests.
+But, we did not cover the system tests themselves in any great detail.
+So in this blog post we will take a closer look at our these tests.
+This post will be useful for anyone wanting to contribute to the tests and assumes some familiarity with Java.
 
 ## Introduction
 
-The system tests reply on two mandatory things.
+Our system tests rely on two mandatory things.
 * The `Resources` class, which is responsible for creating the testing environment.
-* A number of auxiliary classes, which are divided into the classic `Utils` - style static methods, internal clients,
+* Auxiliary classes, which are divided into the classic `Utils` - style static methods, internal clients,
 the Apache Kafka Clients for the external communication, Kubernetes client, `Constants.java` and `Environment.java`.
 
-Main idea is to make the system test and its resources easily modifiable and writable in the fluent way. Before, we dive into
-the `Resources` class, we need to understand the lifecycle of system tests. 
+Main idea is to make the system test and its resources easily modifiable and writable in the [fluent way](https://en.wikipedia.org/wiki/Fluent_interface). Before, we dive into the `Resources` class, we need to understand the lifecycle of the system tests. 
 
 ## Lifecycle of tests
 
 Like any other test lifecycle, we follow the [SEVT](http://xunitpatterns.com/Four%20Phase%20Test.html) convention. 
-[SEVT](http://xunitpatterns.com/Four%20Phase%20Test.html) stands for Setup, Exercise, Verify and Teardown.
+SEVT stands for Setup, Exercise, Verify and Teardown.
 
-### Setup phase
+### The Setup phase
 
 In the Setup phase we perform the following actions:
 
@@ -33,42 +33,46 @@ In the Setup phase we perform the following actions:
 * Deploy the Strimzi Cluster operator
 * Deploy a Kafka cluster and/or other components (optional)
 
-The reason why the last point is optional, is because we have some test cases where we might want to have a different kafka 
-configuration for each test scenario, so creation of the Kafka cluster and other resources is done in the test phase.
+In some test cases, we have a different kafka configuration for each test scenario. 
+In other test cases we share a single Kafka cluster between tests. 
+The former kind of test has better test isolation and is needed when a test case needs a specific configuration of Kafka cluster. 
+For these tests the creation of the Kafka cluster and other resources is done in the test phase.
+The latter kind of test has worse test isolation, but does result in a speed up in test execution.
 
-We create resources in the Kubernetes cluster using classes in the `resources` package, which allows us to deploy all components and, 
+We create resources in the Kubernetes cluster using the classes in the `resources` package, which allows us to deploy all the components and, 
 if needed, change their default configurations using the builder pattern.
-We do this using three stacks, which are stored in the `ResourceManager` singleton instance. 
+We do this using three stacks, stored in the `ResourceManager` singleton instance. 
 When we create a resource, we push it onto the relevant stack, so that we can clean up the resource at the end of the test (teardown phase). 
 We have one stack for all test class resources, one for test method resources and one auxiliary, which always points to the class or method stack.
 This allows us to create resources during the execution of any test method. 
 
-`ResourceManager` controls which stack is currently active in the `pointer stack`.
+`ResourceManager` controls which stack the 'auxiliary stack' reference is referring to.
 You can change between class and method resources stack with method `ResourceManager.setMethodResources()` or `ResourceManager.setClassResources()`.
-Note that pointer stack is set automatically in `AbstractST.class` in `@BeforeAll` or `@BeforeEach` methods.
+Note that auxillary stack is set automatically in `AbstractST.class` in `@BeforeAll` or `@BeforeEach` methods.
 
 Cluster Operator setup example:
 
-```
+```java
 @BeforeAll
 void createClassResources() {
-   ResourceManager.setClassResources();     <--- point resource manager to class stack
-   installClusterOperator(NAMESPACE);       <--- install cluster operator
+   ResourceManager.setClassResources(); // resource manager uses the class stack
+   installClusterOperator(NAMESPACE);   // install cluster operator into NAMESPACE
 }
 ```
 
-### Exercise phase
-In this phase we prepare our component, which is to be tested. In our case it is set of operations that modify the state of our
-components, for instance updating configuration of `Kafka` or `KafkaConnect`, creating new listeners in the `Kafka` CR, and so on.
+### The Exercise phase
+In this phase we prepare our component, which is to be tested.
+In our case it is set of operations that modify the state of our
+components, for instance updating the configuration of `Kafka` or `KafkaConnect`, creating new listeners in the `Kafka` CR, and so on.
 
-### Verify phase
+### The Verify phase
 
 When our environment is ready from the previous phase, then we need verify tested component(s).
-This usually involves checking the component's state (possibly via the `status` section of the CR), and also verifying other observable outcomes (for example that messages were send and received).
+This usually involves checking the component's state (possibly via the `status` section of the CR), and also verifying other observable outcomes (for example that messages were sent and received).
 
-In the following typical code snippet, we verify that configuration of the Kafka custom resource and a specific property inside Kafka pod is correctly and successfully set.
+In the following typical code snippet, we verify that configuration of the Kafka custom resource and a specific property inside the Kafka pod is correctly set.
 
-```
+```java
 @TestFactory
 Iterator<DynamicTest> testDynConfiguration() {
 
@@ -88,7 +92,7 @@ Iterator<DynamicTest> testDynConfiguration() {
 }
 ```
 
-It is worth to mention, that our tests occasionally do chain Exercise and Verify phases, so that tests can look like:
+It is worth mentioning, that our tests occasionally do chain Exercise and Verify phases, so that tests can look like:
 
 0. Exercise (modification of component state)
 0. Verify (verification of component state)
@@ -101,7 +105,8 @@ It is worth to mention, that our tests occasionally do chain Exercise and Verify
 Because we have two stacks for storing resources, cluster resources deletion can be easily performed in `@AfterEach` or `@AfterAll` methods.
 Resource lifecycle implementation will ensure that all resources tied to a specific stack will be deleted in the correct order.
 Teardown is triggered in `@AfterAll` of `AbstractST`:
-```
+
+```java
 @AfterAll
 void teardownEnvironmentClass() {
     if (Environment.SKIP_TEARDOWN == null) {
@@ -111,8 +116,9 @@ void teardownEnvironmentClass() {
 }
 ```
 
-If you want to change teardown from your `@AfterAll`, you must override method `tearDownEnvironmentAfterAll()`:
-```
+If you want to change teardown from your `@AfterAll`, you must override the `tearDownEnvironmentAfterAll()` method:
+
+```java
 @Override
 protected void tearDownEnvironmentAfterAll() {
     doSomethingYouNeed();
@@ -120,18 +126,19 @@ protected void tearDownEnvironmentAfterAll() {
 }
 ```
 
-In order to delete all resources from specific `Resources` instance, execute:
-```
+In order to delete _all_ the resources from a specific `Resources` instance, execute:
+
+```java
 ResourceManager.deleteMethodResources();
 ResourceManager.deleteClassResources();
 ```
 
 ## Resources
 
-Resources are in our case an abstraction of the `.yaml` definitions of custom resources provided by Strimzi, such as 
+Resources are an abstraction of the `.yaml` definitions of custom resources provided by Strimzi and Kubernetes, such as 
 `Kafka`, `KafkaTopic`, `KafkaUser`, `KafkaConnect`, `KafkaMirrorMaker` and so on.
-These custom resources are represented as Java objects. 
-This yaml representation of a `KafkaTopic`
+In the tests such resources are represented as Java objects. 
+This YAML representation of a `KafkaTopic`
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta1
@@ -148,11 +155,12 @@ spec:
     segment.bytes: 1073741824
 ```
 
-can be also be represented as the following Java code:
+can be represented as the following Java code:
 
-```
+```java
+// start from a KafkaTopic read from YAML...
 KafkaTopic kafkaTopic = getKafkaTopicFromYaml(PATH_TO_KAFKA_TOPIC_CONFIG); 
-// additional changes...
+// ... make additional changes...
 kafkaTopic = new KafkaTopicBuilder(kafkaTopic)
     .withNewMetadata()
         .withName(topicName)
@@ -167,8 +175,7 @@ kafkaTopic = new KafkaTopicBuilder(kafkaTopic)
     .endSpec();
 ```
 
-Everything is built within [three stacks](https://github.com/strimzi/strimzi-kafka-operator/blob/master/systemtest/src/main/java/io/strimzi/systemtest/resources/ResourceManager.java#L77-L79). 
-These three stacks are managed by `ResourceManager`, which is taking care of switching. 
+Everything is built using the [three stacks](https://github.com/strimzi/strimzi-kafka-operator/blob/master/systemtest/src/main/java/io/strimzi/systemtest/resources/ResourceManager.java#L77-L79) managed by `ResourceManager`, which takes care of the switching. 
 The method stack holds all the resources needed for each the test case. 
 It gets cleaned up after each `@Test` method execution.
 The class stack holds all the resources for the text fixture.
@@ -180,8 +187,8 @@ The logic inside these stacks are that once you create some resource (for instan
 it will be pushed inside the stack and the deletion of topic will be performed in the teardown phase. 
 Once the teardown phase is initiated, the method stack will pop all resources after test case is over. 
 The same logic applies with the class stack, which pops and deletes resources when test suite is over. 
-By setting the `SKIP_TEARDOWN` environment variable to `TRUE` it will skip the teardown
-phase and all created resources will remain in the stack. This can be very useful for debugging purposes.
+By setting the `SKIP_TEARDOWN` environment variable to `TRUE` it will skip the teardown phase and all created resources will remain in the stack.
+This can be very useful for debugging purposes.
 
 ## Auxiliary classes
 
@@ -190,39 +197,39 @@ In system tests there are many helper classes, each having a different purpose:
 0. `Utils`
 0. `Constants`
 0. `Environment`
-0. Kubernetes client
+0. The Kubernetes client
 0. Kafka clients
 
 #### `Utils` classes
 
 We have separate utils for each resource. 
-For example, we have `KafkaUtils` for `Kafka` resource, `KafkaTopic` for KafkaResource and so on. Furthermore, we have a number of
+For example, we have `KafkaUtils` for `Kafka` CRs, `KafkaTopicUtils` for `KafkaTopic` CRs and so on. Furthermore, we have a number of
 Kubernetes-related utils such as `ServiceUtils`, `PodUtils`, `DeploymentsUtils` and so on.
-These classes come handy when you have to wait for some change (e.g. wait for a `Pod` to become ready) or create, change or delete a Kubernetes resource.
+The function in these classes are handy when you have to wait for some change (e.g. wait for a `Pod` to become ready) or create, change or delete resources.
 
 The one method which stands out is `waitFor`, which is used in many Utils methods.
 You can imagine the scenario, where you change a custom resource and then you want to assert the outcome is correct. 
 In this scenario, if we didn't `waitFor()` the outcome to become correct, the assertion would execute too quickly and the verification would fail. 
-In other cases we the operator needs to perform a rolling update, which takes time, so the test needs to wait until all pods have been restarted.
+In other cases, the operator needs to perform a rolling update, which takes time, so the test needs to wait until all pods have been restarted.
 `waitFor()` simply polls for a successful condition (represented as the `BooleanSupplier` parameter) every `pollIntervalMs` for up to `timeoutMs`.
 If the condition is true the method will successfully end. Otherwise, when the condition never became true within the timeout a
-`WaitException` is thrown with some helpful description. The method implementation can be found [here](https://github.com/strimzi/strimzi-kafka-operator/blob/master/test/src/main/java/io/strimzi/test/TestUtils.java#L115-L145).
+`WaitException` is thrown with some helpful description.
 
 #### Constants
 
 Purpose of this class is to keep global constants used across the system tests in one place. 
 You can find there mentioned constants like timeout interval and poll interval used by `waitFor()` method. 
-Also, there are various other timeouts for cluster operator and clients, definitions of specific ports such as `KafkaBridge` metric, 
-`TopicOperator` metric, `Keycloak` and so on. 
-Lastly, there are all tag names, which are used in whole system tests, for instance `ACCEPTANCE`, `REGRESSION` and more (as discussed in the previous blog post).
+Also, there are various other timeouts for cluster operator and clients, definitions of specific ports such as for `KafkaBridge` metrics, 
+`TopicOperator` metrics, `Keycloak` and so on. 
+Lastly, there are all the tag names, for instance `ACCEPTANCE`, `REGRESSION` and so on used to control which tests to run (as discussed in the previous blog post).
 
 #### Environment
 
-System tests can be configured by several parameters, which are loaded before test execution.
+The System tests can be configured by several parameters, which are loaded before test execution.
 
-These parameters can be defined either via environmental variables or a configuration file. This file can be located anywhere on the file system as long as a path is provided to this file.
-The path is defined by environment variable `ST_CONFIG_PATH`. If it is not defined, the default configuration file located in `systemtest/config.json` will be used.
-Loading of system configuration has the following priority order:
+These parameters can be defined either via environment variables or a configuration file. This file can be located anywhere on the file system as long as the path to this file is provided by environment variable `ST_CONFIG_PATH`.
+If it is not defined, the default configuration file located in `systemtest/config.json` will be used.
+The loading of system configuration has the following priority order:
 0. Environment variable
 0. Variable defined in configuration file
 0. Default value
@@ -241,15 +248,16 @@ We have three different types of client for testing Strimzi:
 
 0. For internal communication within Kubernetes - client-examples image
 0. For external communication within Kubernetes - using [Vert.x](https://vertx.io/) client
-0. For internal communication within Kubernetes - using test-client image (deprecated)
+0. For internal communication within Kubernetes - using test-client image (deprecated, and not discussed further here)
 
 ##### Internal using client-examples image
 
 Internal clients are based on the Strimzi [`client-examples`](https://github.com/strimzi/client-examples) images.
-This type of client is used as a Kubernetes `Job`.
+The benefit of this client (and the reason why it's called 'internal') is it can be used when testing access to the Kafka cluster from inside the Kubernetes cluster.
+This client typically runs as a Kubernetes `Job`.
 For instance we can create a `Job` to send some messages to a Kafka cluster using the following code:
 
-```
+```java
 KubernetesResource.deployNewJob(new JobBuilder()
     .withNewMetadata()
         .withNamespace(ResourceManager.kubeClient().getNamespace())
@@ -278,13 +286,7 @@ KubernetesResource.deployNewJob(new JobBuilder()
                             .addNewEnv()
                                 .withName("DELAY_MS")
                                 .withValue("1000")
-                            .endEnv()
-                            .addNewEnv()
-                                .withName("LOG_LEVEL")
-                                .withValue("DEBUG")
-                            .endEnv()
-                            .addNewEnv()
-                                .withName("MESSAGE_COUNT")
+                            .end type of.withName("MESSAGE_COUNT")
                                 .withValue(String.valueOf(messageCount))
                             .endEnv()
                             .addNewEnv()
@@ -304,17 +306,18 @@ KubernetesResource.deployNewJob(new JobBuilder()
 
 ##### External using Vert.x client
 
-External clients are implemented using Vertx.io Verticles. This type of client has the most limitations for usage.
+External clients are implemented using Vertx.io Verticles. 
 Because this runs in the same virtual machine as the tests, it needs the Kafka cluster to have an external listener.
+In other words it is limited to running against Kafka clusters exposed outside Kubernetes.
 This introduces a platform dependency, meaning it needs things such as Loadbalancers, Nodeports, Ingresses and so on.
-Nodeports and Loadbalancers can be very complex to configure on some infrastructures.
+Nodeports and Loadbalancers can be very complex to configure on some infrastructures, and that complicates test execution.
 We have `Oauth`, `Tracing` and also `Basic` clients which are based on this client and each of them are for specific use case.
 
-However, usage of the internal clients is often preferred if possible as it reduces the platform dependency, so tests can be executed on different infrastructure.
+However, usage of the internal clients is often preferred if possible as it reduces the platform dependency, so those tests can be executed across all infrastructures.
 
 Here's an example of how we configure a basic vertx test client:
 
-```
+```java
 // 1. Creating the client instance 
 
 BasicExternalKafkaClient basicExternalKafkaClient = new BasicExternalKafkaClient.Builder()
@@ -342,8 +345,7 @@ The system tests have two dependencies on other Strimzi modules:
 
 The test module defines the Kubernetes client, which we use in the system tests to create, list, delete and update 
 Kubernetes resources such as `Service`, `Deployment`, `Pod`, `ConfigMap` and so on. 
-Basically, we encapsulate the [Kubernetes client](https://github.com/fabric8io/kubernetes-client) from fabric8 to use 
-client more handy with no additional and typically redundant method chaining. 
+Basically, we encapsulate the [Kubernetes client](https://github.com/fabric8io/kubernetes-client) from fabric8 to make is better suited to our usage. 
 Moreover, we have an abstraction of a Kubernetes cluster and a mechanism for detecting which type of Kubernetes cluster the test is using 
 (Kubernetes, Minikube and so on).
 
@@ -352,21 +354,22 @@ Lastly, in this module you can also find the [Command Client](https://github.com
 ### Api module
 
 The Resources previously described in Resource section are defined in the crd-generator and api modules.
-Each time when the code of those modules changes, you have to rebuild them to generate new schema for resources.
+Each time the code of those modules changes, you have to rebuild them to generate new schema for resources.
 For instance, imagine that you are using `Kafka` resource and you need to create Kafka with the `Cruise Control` support but you have old schemas, which do not support it.
-You will need to build these modules and generate schema, which will support it and be able to create Kafka with Cruise Control.
-These modules provide the fluent way of creating Strimzi custom resource instances such as `Kafka`, `KafkaConnect`, `KafkaConnectS2I`, `KafkaMirrorMaker` and many other.
+You will need to build these modules and generate schema, which will support it and be able to create a Kafka with Cruise Control.
+These modules provide a fluent way of creating Strimzi custom resource instances such as `Kafka`, `KafkaConnect`, `KafkaConnectS2I`, `KafkaMirrorMaker` and many others.
 
-## How to create a system test
+## How to run a system test
 
-At this point you have the necessary knowledge to create a simple test. There are also some additional steps, which need to be performed to set up your testing environment.
+At this point you have the necessary knowledge to _create_ a simple test. But there are some additional steps which need to be performed before you can _run_ the test: You need to set up your testing environment.
 
 ### Prerequisites
 
-0. Fork the [strimzi-kafka-operator](https://github.com/strimzi/strimzi-kafka-operator) repository.
+Having forked the [strimzi-kafka-operator](https://github.com/strimzi/strimzi-kafka-operator) repository:
+
 0. Build the whole project in the root directory - `mvn clean install -DskipTests` or you can use `mvn -am clean install -DskipTests -f systemtest/pom.xml`.
 0. Setup your Kubernetes cluster.
-0. Login to your Kubernetes cluster as a user who has rights to install the Strimzi operator.
+0. Log in to your Kubernetes cluster as a user who has rights to install the Strimzi operator (create the CRDs, `ClusterRoles` and `ClusterRollBindings` and so on).
 0. To verify that things are working, try to run some of the existing system tests, for instance `io.strimzi.systemtest.bridge.HttpBridgeST.testSendMessagesTlsAuthenticated()` (which takes around 5 minutes to run).
 
 ### Writing new test case
@@ -375,8 +378,8 @@ We are going to create a very simple test using the aforementioned classes like 
 
 Let's implement a test case that verifies:
 
-0. Kafka cluster was successfully deployed.
-0. Clients are able to send and receive messages to that Kafka cluster.
+* The Kafka cluster was successfully deployed
+* Clients are able to send and receive messages to that Kafka cluster.
 
 The test scenario could look like this:
 
@@ -391,7 +394,7 @@ The test scenario could look like this:
 
 The teardown phase is performed automatically by system tests mechanism, so there is no need to take care of it in our code.
 
-The test case can look like this:
+The test case could look like this:
 
 ```java
 package io.strimzi.systemtest;
@@ -460,7 +463,7 @@ public class MyTestSuite extends AbstractST {
 
 ```
 
-Congratulations you have written your first new test case in Strimzi system tests!
+Congratulations you have written your first new test case in the Strimzi system tests!
 
 ## Conclusion
 
