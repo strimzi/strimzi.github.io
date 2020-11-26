@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "How system tests work"
-date: 2020-09-06
+date: 2020-11-30
 author: maros_orsak
 ---
 In the [previous blog post related to testing](https://strimzi.io/blog/2020/09/21/introduction-to-system-tests/) we learned 
@@ -94,11 +94,11 @@ Iterator<DynamicTest> testDynConfiguration() {
 
 It is worth mentioning, that our tests occasionally do chain Exercise and Verify phases, so that tests can look like:
 
-0. Exercise (modification of component state)
-0. Verify (verification of component state)
-0. Exercise (another modification of component state)
-0. Verify (another verification modification of component state)
-0. and more...
+1. Exercise (modification of component state)
+2. Verify (verification of component state)
+3. Exercise (another modification of component state)
+4. Verify (another verification modification of component state)
+5. and more...
 
 ### Teardown phase
 
@@ -194,11 +194,11 @@ This can be very useful for debugging purposes.
 
 In system tests there are many helper classes, each having a different purpose:
 
-0. `Utils`
-0. `Constants`
-0. `Environment`
-0. The Kubernetes client
-0. Kafka clients
+1. `Utils`
+2. `Constants`
+3. `Environment`
+4. The Kubernetes client
+5. Kafka clients
 
 #### `Utils` classes
 
@@ -230,15 +230,15 @@ The System tests can be configured by several parameters, which are loaded befor
 These parameters can be defined either via environment variables or a configuration file. This file can be located anywhere on the file system as long as the path to this file is provided by environment variable `ST_CONFIG_PATH`.
 If it is not defined, the default configuration file located in `systemtest/config.json` will be used.
 The loading of system configuration has the following priority order:
-0. Environment variable
-0. Variable defined in configuration file
-0. Default value
+1. Environment variable
+2. Variable defined in configuration file
+3. Default value
 
 Some of the important parameters include:
-0. `DOCKER_ORG`: Specifies the organization/repo containing the image used in system tests (default value `strimzi`)
-0. `DOCKER_TAG`: Specifies the image tags used in system tests (default value `latest`)
-0. `SKIP_TEARDOWN`: Skip teardown phase - primarily used for debug purposes (default value `false`)
-0. `ST_KAFKA_VERSION`:  Specifies Kafka version used in images during the system tests (default value `2.6.0`)
+1. `DOCKER_ORG`: Specifies the organization/repo containing the image used in system tests (default value `strimzi`)
+2. `DOCKER_TAG`: Specifies the image tags used in system tests (default value `latest`)
+3. `SKIP_TEARDOWN`: Skip teardown phase - primarily used for debug purposes (default value `false`)
+4. `ST_KAFKA_VERSION`:  Specifies Kafka version used in images during the system tests (default value `2.6.0`)
 
 You can see the full list [here](https://github.com/strimzi/strimzi-kafka-operator/blob/master/development-docs/TESTING.md#environment-variables)
 
@@ -246,9 +246,9 @@ You can see the full list [here](https://github.com/strimzi/strimzi-kafka-operat
 
 We have three different types of client for testing Strimzi:
 
-0. For internal communication within Kubernetes - client-examples image
-0. For external communication within Kubernetes - using [Vert.x](https://vertx.io/) client
-0. For internal communication within Kubernetes - using test-client image (deprecated, and not discussed further here)
+1. For internal communication within Kubernetes - client-examples image
+2. For external communication within Kubernetes - using [Vert.x](https://vertx.io/) client
+3. For internal communication within Kubernetes - using test-client image (deprecated, and not discussed further here)
 
 ##### Internal using client-examples image
 
@@ -338,8 +338,8 @@ basicExternalKafkaClient.sendMesssageTls();
 
 The system tests have two dependencies on other Strimzi modules:
 
-0. test (kubernetes client)
-0. crd-generator + api (chaining / builder pattern)
+1. test (kubernetes client)
+2. crd-generator + api (chaining / builder pattern)
 
 ### Test module
 
@@ -383,14 +383,14 @@ Let's implement a test case that verifies:
 
 The test scenario could look like this:
 
-0. Setup & Exercise:  Deploy Strimzi Operator.
-0. Setup & Exercise:  Deploy a `Kafka` cluster with 3 kafka nodes and 3 zookeeper nodes.
-0. Verify: Verify that `Kafka` is ready.
-0. Setup & Exercise: Create instance of `Kafka clients`.
-0. Exercise: Send messages to `Kafka` cluster.
-0. Exercise: Receive messages from `Kafka` cluster.
-0. Verify: Verify that we have sent and received expected count of messages.
-0. Teardown : Clean up all resources (this phase is implicitly done in AbstractST).
+1. Setup & Exercise:  Deploy Strimzi Operator.
+2. Setup & Exercise:  Deploy a `Kafka` cluster with 3 kafka nodes and 3 zookeeper nodes.
+3. Verify: Verify that `Kafka` is ready.
+4. Setup & Exercise: Create instance of `Kafka clients`.
+5. Exercise: Send messages to `Kafka` cluster.
+6. Exercise: Receive messages from `Kafka` cluster.
+7. Verify: Verify that we have sent and received expected count of messages.
+8. Teardown : Clean up all resources (this phase is implicitly done in AbstractST).
 
 The teardown phase is performed automatically by system tests mechanism, so there is no need to take care of it in our code.
 
