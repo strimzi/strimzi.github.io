@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "How system tests work"
-date: 2020-11-30
+date: 2020-12-02
 author: maros_orsak
 ---
 In the [previous blog post related to testing](https://strimzi.io/blog/2020/09/21/introduction-to-system-tests/) we learned 
