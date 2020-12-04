@@ -336,7 +336,7 @@
 <li><a href="#con-common-configuration-resources-reference">B.1.5. <code>resources</code></a></li>
 <li><a href="#con-common-configuration-images-reference">B.1.6. <code>image</code></a></li>
 <li><a href="#con-common-configuration-healthchecks-reference">B.1.7. <code>livenessProbe</code> and <code>readinessProbe</code> healthchecks</a></li>
-<li><a href="#con-common-configuration-prometheus-reference">B.1.8. <code>metrics</code></a></li>
+<li><a href="#con-common-configuration-prometheus-reference">B.1.8. <code>metricsConfig</code></a></li>
 <li><a href="#con-common-configuration-jvm-reference">B.1.9. <code>jvmOptions</code></a></li>
 <li><a href="#con-common-configuration-garbage-collection-reference">B.1.10. Garbage collector logging</a></li>
 </ul>
@@ -1414,18 +1414,12 @@ spec:
       size: 10000Gi <b class="conum">(20)</b>
     rack: <b class="conum">(21)</b>
       topologyKey: topology.kubernetes.io/zone
-    metrics: <b class="conum">(22)</b>
-      lowercaseOutputName: true
-      rules: <b class="conum">(23)</b>
-      # Special cases and very specific rules
-      - pattern : kafka.server&lt;type=(.+), name=(.+), clientId=(.+), topic=(.+), partition=(.*)&gt;&lt;&gt;Value
-        name: kafka_server_$1_$2
-        type: GAUGE
-        labels:
-          clientId: "$3"
-          topic: "$4"
-          partition: "$5"
-        # ...
+    metricsConfig: <b class="conum">(22)</b>
+      type: jmxPrometheusExporter
+      valueFrom:
+        configMapKeyRef: <b class="conum">(23)</b>
+          name: my-config-map
+          key: my-key
   zookeeper: <b class="conum">(24)</b>
     replicas: 3
     resources:
@@ -1441,7 +1435,7 @@ spec:
     storage:
       type: persistent-claim
       size: 1000Gi
-    metrics:
+    metricsConfig:
       # ...
   entityOperator: <b class="conum">(25)</b>
     topicOperator:
@@ -1532,10 +1526,10 @@ spec:
 <p><a href="#type-Rack-reference">Rack awareness</a> is configured to spread replicas across different racks. A <code>topologykey</code> must match the label of a cluster node.</p>
 </li>
 <li>
-<p>Kafka <a href="./deploying.html#assembly-metrics-setup-str">metrics configuration for use with Prometheus</a>.</p>
+<p>Kafka <a href="#con-common-configuration-prometheus-reference">metrics configuration for use with Prometheus</a>.</p>
 </li>
 <li>
-<p>Kafka rules for exporting metrics to a Grafana dashboard through the JMX Exporter. A set of rules provided with Strimzi may be copied to your Kafka resource configuration.</p>
+<p>Kafka rules for exporting metrics to a Grafana dashboard through the JMX Exporter, which are enabled by referencing a ConfigMap containing configuration for the Prometheus JMX exporter in this example. You can enable metrics without further configuration using a reference to a ConfigMap containing an empty file under <code>metricsConfig.valueFrom.configMapKeyRef.key</code>.</p>
 </li>
 <li>
 <p><a href="#assembly-zookeeper-node-configuration-deployment-configuration-kafka">ZooKeeper-specific configuration</a>, which contains properties similar to the Kafka configuration.</p>
@@ -3943,7 +3937,7 @@ When metrics are enabled, they are exposed on port 9404.</p>
 <div class="sect4">
 <h5 id="ref-metrics-deployment-configuration-kafka"><a class="link" href="#ref-metrics-deployment-configuration-kafka">Metrics configuration</a></h5>
 <div class="paragraph">
-<p>Prometheus metrics are enabled by configuring the <code>metrics</code> property in following resources:</p>
+<p>Prometheus metrics are enabled by configuring the <code>metricsConfig</code> property in following resources:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -3962,11 +3956,12 @@ When metrics are enabled, they are exposed on port 9404.</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>When the <code>metrics</code> property is not defined in the resource, the Prometheus metrics will be disabled.
-To enable Prometheus metrics export without any further configuration, you can set it to an empty object (<code>{}</code>).</p>
+<p>When the <code>metricsConfig</code> (or deprecated <code>metrics</code>) property is not defined in the resource, the Prometheus metrics are disabled.
+To enable Prometheus metrics export without further configuration, you can reference a ConfigMap containing an empty file under <code>metricsConfig.valueFrom.configMapKeyRef.key</code>.
+When referencing an empty file, all metrics are exposed as long as they have not been renamed.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example of enabling metrics without any further configuration</div>
+<div class="title">Enabling metrics without further configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
@@ -3975,17 +3970,22 @@ metadata:
 spec:
   kafka:
     # ...
-    metrics: {}
+    metricsConfig:
+     type: jmxPrometheusExporter
+     valueFrom:
+       configMapKeyRef:
+         name: my-config-map
+         key: my-key
     # ...
   zookeeper:
     # ...</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The <code>metrics</code> property might contain additional configuration for the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX exporter</a>.</p>
+<p>Alternatively, the <code>metricsConfig</code> property can reference a ConfigMap that contains additional configuration for the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX exporter</a>.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example of enabling metrics with additional Prometheus JMX Exporter configuration</div>
+<div class="title">Enabling metrics with additional Prometheus JMX Exporter configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
@@ -3994,15 +3994,12 @@ metadata:
 spec:
   kafka:
     # ...
-    metrics:
-      lowercaseOutputName: true
-      rules:
-        - pattern: "kafka.server&lt;type=(.+), name=(.+)PerSec\\w*&gt;&lt;&gt;Count"
-          name: "kafka_server_$1_$2_total"
-        - pattern: "kafka.server&lt;type=(.+), name=(.+)PerSec\\w*, topic=(.+)&gt;&lt;&gt;Count"
-          name: "kafka_server_$1_$2_total"
-          labels:
-            topic: "$3"
+    metricsConfig:
+      type: jmxPrometheusExporter
+      valueFrom:
+        configMapKeyRef:
+          name: my-config-map
+          key: my-key
     # ...
   zookeeper:
     # ...</code></pre>
@@ -4026,7 +4023,7 @@ spec:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Edit the <code>metrics</code> property in the <code>Kafka</code> resource.
+<p>Edit the <code>metricsConfig</code> property in the <code>Kafka</code> resource.
 For example:</p>
 <div class="listingblock">
 <div class="content">
@@ -4039,8 +4036,12 @@ spec:
     # ...
   zookeeper:
     # ...
-    metrics:
-      lowercaseOutputName: true
+    metricsConfig:
+      type: jmxPrometheusExporter
+      valueFrom:
+        configMapKeyRef:
+          name: my-config-map
+          key: my-key
     # ...</code></pre>
 </div>
 </div>
@@ -6644,18 +6645,12 @@ spec:
   livenessProbe:
     initialDelaySeconds: 15
     timeoutSeconds: 5
-  metrics: <b class="conum">(12)</b>
-    lowercaseOutputName: true
-    lowercaseOutputLabelNames: true
-    rules:
-      - pattern: kafka.connect&lt;type=connect-worker-metrics&gt;&lt;&gt;([a-z-]+)
-        name: kafka_connect_worker_$1
-        help: "Kafka Connect JMX metric worker"
-        type: GAUGE
-      - pattern: kafka.connect&lt;type=connect-worker-rebalance-metrics&gt;&lt;&gt;([a-z-]+)
-        name: kafka_connect_worker_rebalance_$1
-        help: "Kafka Connect JMX metric rebalance information"
-        type: GAUGE
+  metricsConfig: <b class="conum">(12)</b>
+    type: jmxPrometheusExporter
+    valueFrom:
+      configMapKeyRef:
+        name: my-config-map
+        key: my-key
   jvmOptions: <b class="conum">(13)</b>
     "-Xmx": "1g"
     "-Xms": "1g"
@@ -6723,7 +6718,7 @@ Standard Apache Kafka configuration may be provided, restricted to those propert
 <p><a href="#con-common-configuration-healthchecks-reference">Healthchecks</a> to know when to restart a container (liveness) and when a container can accept traffic (readiness).</p>
 </li>
 <li>
-<p><a href="#con-common-configuration-prometheus-reference">Prometheus metrics</a>, which are enabled with configuration for the Prometheus JMX exporter in this example. You can enable metrics without further configuration using <code>metrics: {}</code>.</p>
+<p><a href="#con-common-configuration-prometheus-reference">Prometheus metrics</a>, which are enabled by referencing a ConfigMap containing configuration for the Prometheus JMX exporter in this example. You can enable metrics without further configuration using a reference to a ConfigMap containing an empty file under <code>metricsConfig.valueFrom.configMapKeyRef.key</code>.</p>
 </li>
 <li>
 <p><a href="#con-common-configuration-jvm-reference">JVM configuration options</a> to optimize performance for the Virtual Machine (VM) running Kafka Connect.</p>
@@ -7238,16 +7233,12 @@ spec:
   livenessProbe:
     initialDelaySeconds: 15
     timeoutSeconds: 5
-  metrics: <b class="conum">(18)</b>
-    lowercaseOutputName: true
-    rules:
-      - pattern: "kafka.server&lt;type=(.+), name=(.+)PerSec\\w*&gt;&lt;&gt;Count"
-        name: "kafka_server_$1_$2_total"
-      - pattern: "kafka.server&lt;type=(.+), name=(.+)PerSec\\w*,
-        topic=(.+)&gt;&lt;&gt;Count"
-        name: "kafka_server_$1_$2_total"
-        labels:
-          topic: "$3"
+  metricsConfig: <b class="conum">(18)</b>
+   type: jmxPrometheusExporter
+   valueFrom:
+     configMapKeyRef:
+       name: my-config-map
+       key: my-key
   jvmOptions: <b class="conum">(19)</b>
     "-Xmx": "1g"
     "-Xms": "1g"
@@ -7331,7 +7322,7 @@ spec:
 <p><a href="#con-common-configuration-healthchecks-reference">Healthchecks</a> to know when to restart a container (liveness) and when a container can accept traffic (readiness).</p>
 </li>
 <li>
-<p><a href="#con-common-configuration-prometheus-reference">Prometheus metrics</a>, which are enabled with configuration for the Prometheus JMX exporter in this example. You can enable metrics without further configuration using <code>metrics: {}</code>.</p>
+<p><a href="#con-common-configuration-prometheus-reference">Prometheus metrics</a>, which are enabled by referencing a ConfigMap containing configuration for the Prometheus JMX exporter in this example. You can enable metrics without further configuration using a reference to a ConfigMap containing an empty file under <code>metricsConfig.valueFrom.configMapKeyRef.key</code>.</p>
 </li>
 <li>
 <p><a href="#con-common-configuration-jvm-reference">JVM configuration options</a> to optimize performance for the Virtual Machine (VM) running Kafka MirrorMaker.</p>
@@ -20274,22 +20265,45 @@ livenessProbe:
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-common-configuration-prometheus-reference"><a class="link" href="#con-common-configuration-prometheus-reference">B.1.8. <code>metrics</code></a></h4>
+<h4 id="con-common-configuration-prometheus-reference"><a class="link" href="#con-common-configuration-prometheus-reference">B.1.8. <code>metricsConfig</code></a></h4>
 <div class="paragraph">
-<p>Use the <code>metrics</code> property to enable and configure Prometheus metrics.</p>
+<p>Use the <code>metricsConfig</code> property to enable and configure Prometheus metrics.</p>
 </div>
 <div class="paragraph">
-<p>The <code>metrics</code> property can also contain additional configuration for the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX exporter</a>.
+<p>The <code>metricsConfig</code> property contains a reference to a ConfigMap containing additional configuration for the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX exporter</a>.
 Strimzi supports Prometheus metrics using Prometheus JMX exporter to convert the JMX metrics supported by Apache Kafka and ZooKeeper to Prometheus metrics.</p>
 </div>
 <div class="paragraph">
-<p>To enable Prometheus metrics export without any further configuration, you can set it to an empty object (<code>{}</code>).</p>
+<p>To enable Prometheus metrics export without further configuration, you can reference a ConfigMap containing an empty file under <code>metricsConfig.valueFrom.configMapKeyRef.key</code>.
+When referencing an empty file, all metrics are exposed as long as they have not been renamed.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example ConfigMap with metrics configuration for Kafka</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">kind: ConfigMap
+apiVersion: kafka.strimzi.io/v1beta1
+metadata:
+  name: my-configmap
+data:
+  my-key: |
+    lowercaseOutputName: true
+    rules:
+    # Special cases and very specific rules
+    - pattern: kafka.server&lt;type=(.+), name=(.+), clientId=(.+), topic=(.+), partition=(.*)&gt;&lt;&gt;Value
+      name: kafka_server_$1_$2
+      type: GAUGE
+      labels:
+       clientId: "$3"
+       topic: "$4"
+       partition: "$5"
+    # further configuration</code></pre>
+</div>
 </div>
 <div class="paragraph">
 <p>When metrics are enabled, they are exposed on port 9404.</p>
 </div>
 <div class="paragraph">
-<p>When the <code>metrics</code> property is not defined in the resource, the Prometheus metrics are disabled.</p>
+<p>When the <code>metricsConfig</code> (or deprecated <code>metrics</code>) property is not defined in the resource, the Prometheus metrics are disabled.</p>
 </div>
 <div class="paragraph">
 <p>For more information about setting up and deploying Prometheus and Grafana, see <a href="./deploying.html#assembly-metrics-setup-str">Introducing Metrics to Kafka</a> in the <em>Deploying Strimzi</em> guide.</p>
