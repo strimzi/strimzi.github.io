@@ -55,9 +55,10 @@
 <li><a href="#kafka-connect-str">4.2. Deploy Kafka Connect</a>
 <ul class="sectlevel3">
 <li><a href="#deploying-kafka-connect-str">4.2.1. Deploying Kafka Connect to your Kubernetes cluster</a></li>
-<li><a href="#using-kafka-connect-with-plug-ins-str">4.2.2. Extending Kafka Connect with connector plug-ins</a></li>
-<li><a href="#con-creating-managing-connectors-str">4.2.3. Creating and managing connectors</a></li>
-<li><a href="#proc-deploying-kafkaconnector-str">4.2.4. Deploying a <code>KafkaConnector</code> resource to Kafka Connect</a></li>
+<li><a href="#con-kafka-connect-multiple-instances-str">4.2.2. Kafka Connect configuration for multiple instances</a></li>
+<li><a href="#using-kafka-connect-with-plug-ins-str">4.2.3. Extending Kafka Connect with connector plug-ins</a></li>
+<li><a href="#con-creating-managing-connectors-str">4.2.4. Creating and managing connectors</a></li>
+<li><a href="#proc-deploying-kafkaconnector-str">4.2.5. Deploying a <code>KafkaConnector</code> resource to Kafka Connect</a></li>
 </ul>
 </li>
 <li><a href="#kafka-mirror-maker-str">4.3. Deploy Kafka MirrorMaker</a>
@@ -2260,6 +2261,9 @@ Kafka Connect can also work in standalone mode, but this is not supported by Str
 <p><a href="#deploying-kafka-connect-str">Deploy a Kafka Connect cluster using a <code>KafkaConnect</code> resource</a></p>
 </li>
 <li>
+<p><a href="#con-kafka-connect-multiple-instances-str">Run multiple Kafka Connect instances</a></p>
+</li>
+<li>
 <p><a href="#using-kafka-connect-with-plug-ins-str">Create a Kafka Connect image containing the connectors you need to make your connection</a></p>
 </li>
 <li>
@@ -2344,7 +2348,68 @@ For a Kafka cluster with less than 3 brokers, use the <code>examples/connect/kaf
 </div>
 </div>
 <div class="sect3">
-<h4 id="using-kafka-connect-with-plug-ins-str"><a class="link" href="#using-kafka-connect-with-plug-ins-str">4.2.2. Extending Kafka Connect with connector plug-ins</a></h4>
+<h4 id="con-kafka-connect-multiple-instances-str"><a class="link" href="#con-kafka-connect-multiple-instances-str">4.2.2. Kafka Connect configuration for multiple instances</a></h4>
+<div class="paragraph">
+<p>If you are running multiple instances of Kafka Connect, you have to change the default configuration of the following <code>config</code> properties:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  config:
+    group.id: connect-cluster <b class="conum">(1)</b>
+    offset.storage.topic: connect-cluster-offsets <b class="conum">(2)</b>
+    config.storage.topic: connect-cluster-configs <b class="conum">(3)</b>
+    status.storage.topic: connect-cluster-status  <b class="conum">(4)</b>
+    # ...
+# ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Kafka Connect cluster group that the instance belongs to.</p>
+</li>
+<li>
+<p>Kafka topic that stores connector offsets.</p>
+</li>
+<li>
+<p>Kafka topic that stores connector and task status configurations.</p>
+</li>
+<li>
+<p>Kafka topic that stores connector and task status updates.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Values for the three topics must be the same for all Kafka Connect instances with the same <code>group.id</code>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Unless you change the default settings, each Kafka Connect instance connecting to the same Kafka cluster is deployed with the same values.
+What happens, in effect, is all instances are coupled to run in a cluster and use the same topics.</p>
+</div>
+<div class="paragraph">
+<p>If multiple Kafka Connect clusters try to use the same topics, Kafka Connect will not work as expected and generate errors.</p>
+</div>
+<div class="paragraph">
+<p>If you wish to run multiple Kafka Connect instances, change the values of these properties for each instance.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="using-kafka-connect-with-plug-ins-str"><a class="link" href="#using-kafka-connect-with-plug-ins-str">4.2.3. Extending Kafka Connect with connector plug-ins</a></h4>
 <div class="paragraph">
 <p>The Strimzi container images for Kafka Connect include two built-in file connectors for moving file-based data into and out of your Kafka cluster.</p>
 </div>
@@ -2638,7 +2703,7 @@ The name of the build is the same as the name of the deployed Kafka Connect clus
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-creating-managing-connectors-str"><a class="link" href="#con-creating-managing-connectors-str">4.2.3. Creating and managing connectors</a></h4>
+<h4 id="con-creating-managing-connectors-str"><a class="link" href="#con-creating-managing-connectors-str">4.2.4. Creating and managing connectors</a></h4>
 <div class="paragraph">
 <p>When you have created a container image for your connector plug-in, you need to create a connector instance in your Kafka Connect cluster.
 You can then configure, monitor, and manage a running connector instance.</p>
@@ -2737,7 +2802,7 @@ For instructions, see <a href="./using.html#proc-kafka-connect-config-str" targe
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-deploying-kafkaconnector-str"><a class="link" href="#proc-deploying-kafkaconnector-str">4.2.4. Deploying a <code>KafkaConnector</code> resource to Kafka Connect</a></h4>
+<h4 id="proc-deploying-kafkaconnector-str"><a class="link" href="#proc-deploying-kafkaconnector-str">4.2.5. Deploying a <code>KafkaConnector</code> resource to Kafka Connect</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to deploy the example <code>KafkaConnector</code> to a Kafka Connect cluster.</p>
 </div>
