@@ -166,27 +166,26 @@ A common approach is to capitalize on the benefits of using both APIs, so the lo
 
 To guarantee the reliability of message delivery on the _producer side_, you might configure your producers to use idempotence and transactional ids.
 
-Idempotence
-: Idempotence properties used for idempotence guarantee the order of message delivery from producers for exactly once writes to a single partition.
+<dl>
+  <dt>Idempotence</dt>
+  <dd>Idempotence properties used for idempotence guarantee the order of message delivery from producers for exactly once writes to a single partition.
 
-    ```properties
-    # ...
-    enable.idempotence=true
-    max.in.flight.requests.per.connection=5
-    acks=all
-    retries=2147483647
-    # ...
-    ```
+	# ...
+	enable.idempotence=true
+	max.in.flight.requests.per.connection=5
+	acks=all
+	retries=2147483647
+	# ...
+  </dd>
+  <dt>Transactional id</dt>
+  <dd>Transactional properties guarantee that messages using the same transactional is are produced once, and either all are successfully written to the respective logs or none of them are. The timeout set a time limit on achieving this.
 
-Transactional id
-: Transactional properties guarantee that messages using the same transactional is are produced once, and either all are successfully written to the respective logs or none of them are. The timeout set a time limit on achieving this.
-
-    ```properties
     # ...
     transactional.id=_UNIQUE-ID_
     transaction.timeout.ms=900000
     # ...
-    ```
+</dd>
+</dl>
 
 With producers set up in such a way, you can make the pipeline more secure from the consumer side by introducing the `isolation.level` property. The `isolation.level` property controls how transactional messages are read by the consumer, and has two valid values:
 
