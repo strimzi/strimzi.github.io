@@ -32,21 +32,21 @@ client.id=my-client
 
 On top of our minimum configuration, there are a number of properties you can use to fine-tune your consumer configuration. We won't cover all possible consumer configuration options here, but examine a curated set of properties that offer specific solutions to requirements that often need addressing:
 
-* group.id
-* fetch.max.wait.ms
-* fetch.min.bytes
-* fetch.max.bytes
-* max.partition.fetch.bytes
-* max.message.bytes (topic or broker)
-* enable.auto.commit
-* auto.commit.interval.ms
-* isolation.level
-* session.timeout.ms
-* heartbeat.interval.ms
-* auto.offset.reset
-* group.instance.id
-* max.poll.interval.ms
-* max.poll.records
+* `group.id`
+* `fetch.max.wait.ms`
+* `fetch.min.bytes`
+* `fetch.max.bytes`
+* `max.partition.fetch.bytes`
+* `max.message.bytes (topic or broker)`
+* `enable.auto.commit`
+* `auto.commit.interval.ms`
+* `isolation.level`
+* `session.timeout.ms`
+* `heartbeat.interval.ms`
+* `auto.offset.reset`
+* `group.instance.id`
+* `max.poll.interval.ms`
+* `max.poll.records`
 
 We'll look at how you can use a combination of these properties to regulate:
 
@@ -91,11 +91,11 @@ For applications that rely on processing (near) real-time data, consumer lag is 
 
 Use the `fetch.max.wait.ms` and `fetch.min.bytes` configuration properties to set thresholds that control the number of requests from your consumer.
 
-`fetch.max.wait.ms`
-: Sets a maximum threshold for time-based batching.
+* **`fetch.max.wait.ms`**
+Sets a maximum threshold for time-based batching.
 
-`fetch.min.bytes`
-: Sets a minimum threshold for size-based batching.
+* **`fetch.min.bytes`**
+Sets a minimum threshold for size-based batching.
 
 When the client application polls for data, both these properties govern the amount of data fetched by the consumer from the broker. You can adjust the properties higher so that there are fewer requests, and messages are delivered in bigger batches. You might want to do this if the amount of data being produced is low. Reducing the number of requests from the consumer also lowers the overhead on CPU utilization for the consumer and broker.
 
@@ -114,11 +114,11 @@ fetch.min.bytes=16384
 
 Increasing the minimum amount of data fetched in a request can help with increasing throughput. But if you want to do something to improve latency, you can extend your thresholds by increasing the _maximum_ amount of data that can be fetched by the consumer from the broker.
 
-`fetch.max.bytes`
-: Sets a maximum limit in bytes on the amount of data fetched from the broker at one time
+* **`fetch.max.bytes`**
+Sets a maximum limit in bytes on the amount of data fetched from the broker at one time
 
-`max.partition.fetch.bytes`
-: Sets a maximum limit in bytes on how much data is returned for each partition, which must always be larger than the number of bytes set in the broker or topic configuration for `max.message.bytes`.
+* **`max.partition.fetch.bytes`**
+Sets a maximum limit in bytes on how much data is returned for each partition, which must always be larger than the number of bytes set in the broker or topic configuration for `max.message.bytes`.
 
 By increasing the values of these two properties, and allowing more data in each request, latency is improved as there are fewer fetch requests.
 
@@ -154,11 +154,11 @@ auto.commit.interval.ms=1000
 
 A more robust course of action, away from consumer configuration, is to set up your consumer client application to commit offsets after _all_ processing has been performed and messages have been consumed. To do this, you can introduce calls to the Kafka `commitSync` and `commitAsync` APIs, which commit specified offsets for topics and partitions to Kafka.
 
-`commitSync`
-: The `commitSync` API will not poll for new messages until the last offset in a message batch is committed. This can affect throughput and latency, but you can configure the consumer to commit less frequently.
+* **`commitSync`**
+The `commitSync` API will not poll for new messages until the last offset in a message batch is committed. This can affect throughput and latency, but you can configure the consumer to commit less frequently.
 
-`commitAsync`
-: The `commitAsync` API does not wait for the broker to respond to a commit request. The `commitAsync` API has lower latency than the `commitSync` API, but risks creating duplicates when rebalancing.
+* **`commitAsync`**
+The `commitAsync` API does not wait for the broker to respond to a commit request. The `commitAsync` API has lower latency than the `commitSync` API, but risks creating duplicates when rebalancing.
 
 A common approach is to capitalize on the benefits of using both APIs, so the lower latency `commitAsync` API is used by default, but the `commitSync` API takes over before shutting the consumer down or rebalancing to safeguard the final commit.
 
@@ -205,11 +205,11 @@ isolation.level=read_committed
 
 You can define how often checks are made on the health of consumers within a consumer group. If consumers fail within a consumer group, a rebalance is triggered and partition ownership is reassigned to the members of the group. You want to get the timings of your checks just right so that the consumer group can recover quickly, but unnecessary rebalances are not triggered. And you use two properties to do it: `session.timeout.ms` and `heartbeat.interval.ms`.
 
-`session.timeout.ms`
-: Specifies the maximum amount of time in milliseconds a consumer within a consumer group can be out of contact with a broker before being considered inactive and a _rebalancing_ is triggered between the active consumers in the group. Setting the `session.timeout.ms` property lower means failing consumers are detected earlier, and rebalancing can take place quicker. However, you don't want to set the timeout so low that the broker fails to receive an _all-clear_ heartbeat in time and triggers an unnecessary rebalance.
+* **`session.timeout.ms`**
+Specifies the maximum amount of time in milliseconds a consumer within a consumer group can be out of contact with a broker before being considered inactive and a _rebalancing_ is triggered between the active consumers in the group. Setting the ** * * `session.timeout.ms` property lower means failing consumers are detected earlier, and rebalancing can take place quicker. However, you don't want to set the timeout so low that the broker fails to receive an _all-clear_ heartbeat in time and triggers an unnecessary rebalance.
 
-`heartbeat.interval.ms`
-: Specifies the interval in milliseconds between _heartbeat_ checks to the consumer group coordinator to indicate that a consumer is active and connected. The heartbeat interval must be lower, usually by a third, than the session timeout interval. Decreasing the heartbeat interval according to anticipated rebalances reduces the chance of accidental rebalancing, but bear in mind that frequent heartbeat checks increase the overhead on broker resources.
+* **`heartbeat.interval.ms`**
+Specifies the interval in milliseconds between _heartbeat_ checks to the consumer group coordinator to indicate that a consumer is active and connected. The heartbeat interval must be lower, usually by a third, than the session timeout interval. Decreasing the heartbeat interval according to anticipated rebalances reduces the chance of accidental rebalancing, but bear in mind that frequent heartbeat checks increase the overhead on broker resources.
 
 ```properties
 # ...
@@ -261,11 +261,11 @@ The consumer group coordinator assigns the consumer instance a new member id, bu
 
 You can also calibrate the `max.poll.interval.ms` and `max.poll.interval.ms` polling configuration properties to reduce the number of rebalances.
 
-`max.poll.interval.ms`
-: Sets the interval to check the consumer is continuing to process messages. If the consumer application does not make a call to poll at least every `max.poll.interval.ms` milliseconds, the consumer is considered to be failed, causing a rebalance. If the application cannot process all the records returned from poll in time, you can avoid a rebalance by using this property to increase the interval in milliseconds between polls for new messages from a consumer.
+* **`max.poll.interval.ms`**
+Sets the interval to check the consumer is continuing to process messages. If the consumer application does not make a call to poll at least every `max.poll.interval.ms` milliseconds, the consumer is considered to be failed, causing a rebalance. If the application cannot process all the records returned from poll in time, you can avoid a rebalance by using this property to increase the interval in milliseconds between polls for new messages from a consumer.
 
-`max.poll.records`
-: Sets the number of processed records returned from the consumer. You can use the `max.poll.records` property to set a maximum limit on the number of records returned from the consumer buffer, allowing your application to process fewer records within the `max.poll.interval.ms` limit.
+* **`max.poll.records`**
+Sets the number of processed records returned from the consumer. You can use the `max.poll.records` property to set a maximum limit on the number of records returned from the consumer buffer, allowing your application to process fewer records within the `max.poll.interval.ms` limit.
 
 ```properties
 # ...
