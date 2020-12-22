@@ -135,7 +135,7 @@ max.partition.fetch.bytes=1048576
 
 > Be careful with memory usage. The maximum amount of memory a client can consume is calculated approximately as:
 >
-> `_NUMBER-OF-BROKERS_ * fetch.max.bytes and _NUMBER-OF-PARTITIONS_ * max.partition.fetch.bytes`
+> <pre><i>NUMBER-OF-BROKERS</i> * fetch.max.bytes and <i>NUMBER-OF-PARTITIONS</i> * max.partition.fetch.bytes</pre>
 
 
 ## Avoiding data loss or duplication when committing offsets
