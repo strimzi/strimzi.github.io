@@ -1507,17 +1507,12 @@ spec:
       size: 10000Gi <b class="conum">(22)</b>
     rack: <b class="conum">(23)</b>
       topologyKey: topology.kubernetes.io/zone
-    metrics: <b class="conum">(24)</b>
-      lowercaseOutputName: true
-      rules: <b class="conum">(25)</b>
-      # Special cases and very specific rules
-      - pattern : kafka.server&lt;type=(.+), name=(.+), clientId=(.+), topic=(.+), partition=(.*)&gt;&lt;&gt;Value
-        name: kafka_server_$1_$2
-        type: GAUGE
-        labels:
-          clientId: "$3"
-          topic: "$4"
-          partition: "$5"
+    metricsConfig: <b class="conum">(24)</b>
+      type: jmxPrometheusExporter
+      valueFrom:
+        configMapKeyRef: <b class="conum">(25)</b>
+          name: my-config-map
+          key: my-key
     jmxOptions: <b class="conum">(26)</b>
       authentication:
         type: "password"
@@ -1541,7 +1536,7 @@ spec:
     storage:
       type: persistent-claim
       size: 1000Gi
-    metrics:
+    metricsConfig:
       # ...
   entityOperator: <b class="conum">(30)</b>
     tlsSidecar: <b class="conum">(31)</b>
@@ -1661,10 +1656,10 @@ spec:
 <p><a href="#type-Rack-reference">Rack awareness</a> is configured to spread replicas across different racks. A <code>topologykey</code> must match the label of a cluster node.</p>
 </li>
 <li>
-<p><a href="#con-common-configuration-prometheus-reference">Prometheus metrics</a> enabled. In this example, metrics are configured for the Prometheus JMX Exporter (the default metrics exporter). You can enable metrics without further configuration using <code>metrics: {}</code>.</p>
+<p><a href="#con-common-configuration-prometheus-reference">Prometheus metrics</a> enabled. In this example, metrics are configured for the Prometheus JMX Exporter (the default metrics exporter).</p>
 </li>
 <li>
-<p>Prometheus rules for exporting metrics to a Grafana dashboard through the Prometheus JMX Exporter. A set of Prometheus rules provided with Strimzi may be copied to your Kafka resource configuration.</p>
+<p>Prometheus rules for exporting metrics to a Grafana dashboard through the Prometheus JMX Exporter, which are enabled by referencing a ConfigMap containing configuration for the Prometheus JMX exporter. You can enable metrics without further configuration using a reference to a ConfigMap containing an empty file under <code>metricsConfig.valueFrom.configMapKeyRef.key</code>.</p>
 </li>
 <li>
 <p><a href="#property-kafka-jmx-reference">JMX options</a> to open JMX port 9999 to obtain JMX metrics, which is configured for password protection in this example. You can open the port without protection using <code>jmxOptions: {}</code>.</p>
@@ -3510,7 +3505,7 @@ spec:
 ZooKeeper services are secured with encryption and authentication and are not intended to be used by external applications that are not part of Strimzi.</p>
 </div>
 <div class="paragraph">
-<p>However, if you want to use Kafka CLI tools that require a connection to ZooKeeper, such as the <code>kafka-topics.sh</code> tool, you can open a terminal inside a Kafka container and connect to the local end of the TLS tunnel to ZooKeeper by using <code>localhost:2181</code> as the ZooKeeper address.</p>
+<p>However, if you want to use Kafka CLI tools that require a connection to ZooKeeper, you can use a terminal inside a ZooKeeper container and connect to <code>localhost:12181</code> as the ZooKeeper address.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -3536,7 +3531,7 @@ ZooKeeper services are secured with encryption and authentication and are not in
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec -it <em>my-cluster</em>-zookeeper-0 -- bin/kafka-topics.sh --list --zookeeper localhost:12181</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec -ti <em>my-cluster</em>-zookeeper-0 -- bin/kafka-topics.sh --list --zookeeper localhost:12181</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -18237,6 +18232,28 @@ data:
        topic: "$4"
        partition: "$5"
     # further configuration</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example metrics configuration for Kafka</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">[source,shell,subs="+attributes"]
+apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    metricsConfig:
+      type: jmxPrometheusExporter
+      valueFrom:
+        configMapKeyRef:
+          name: my-config-map
+          key: my-key
+    # ...
+  zookeeper:
+    # ...</code></pre>
 </div>
 </div>
 <div class="paragraph">
