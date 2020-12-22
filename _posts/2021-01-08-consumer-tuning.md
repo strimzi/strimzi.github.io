@@ -180,21 +180,21 @@ To guarantee the reliability of message delivery on the _producer side_, you mig
   <dt>Idempotence</dt>
   <dd>Idempotence properties used to guarantee the non-duplication and ordering of message delivery from producers for exactly once writes to a single partition.
 <pre>
-	# ...
-	enable.idempotence=true
-	max.in.flight.requests.per.connection=5
-	acks=all
-	retries=2147483647
-	# ...
+# ...
+enable.idempotence=true
+max.in.flight.requests.per.connection=5
+acks=all
+retries=2147483647
+# ...
 </pre>
   </dd>
   <dt>Transactional id</dt>
   <dd>Transactional properties guarantee that messages using the same transactional is are produced once, and either all are successfully written to the respective logs or none of them are. The timeout set a time limit on achieving this.
 <pre>
-    # ...
-    transactional.id=<i>UNIQUE-ID</i>
-    transaction.timeout.ms=900000
-    # ...
+# ...
+transactional.id=<i>UNIQUE-ID</i>
+transaction.timeout.ms=900000
+# ...
 </pre>
 </dd>
 </dl>
