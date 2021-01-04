@@ -114,7 +114,7 @@ fetch.min.bytes=16384
 # ...
 ```
 
-## Lowering latency by increasing the maximum batch sizes
+### Lowering latency by increasing maximum batch sizes
 
 Increasing the minimum amount of data fetched in a request can help with increasing throughput. But if you want to do something to improve latency, you can extend your thresholds by increasing the _maximum_ amount of data that can be fetched by the consumer from the broker.
 
@@ -138,7 +138,7 @@ max.partition.fetch.bytes=1048576
 > <pre><i>NUMBER-OF-BROKERS</i> * fetch.max.bytes and <i>NUMBER-OF-PARTITIONS</i> * max.partition.fetch.bytes</pre>
 
 
-## Avoiding data loss or duplication when committing offsets
+### Avoiding data loss or duplication when committing offsets
 
 For applications that require durable message delivery, you can increase the level of control over consumers when committing offsets to minimize the risk of data being lost or duplicated.
 
@@ -172,7 +172,7 @@ A common approach is to capitalize on the benefits of using both APIs, so the lo
 > (atomicity, consistency, isolation, and durability) reliability
 > guarantees to store consumer offsets.
 
-## Configuring a reliable data pipeline
+### Configuring a reliable data pipeline
 
 To guarantee the reliability of message delivery on the _producer side_, you might configure your producers to use idempotence and transactional ids.
 
@@ -213,7 +213,7 @@ isolation.level=read_committed
 # ...
 ```
 
-## Recovering from failure within a consumer group
+### Recovering from failure within a consumer group
 
 You can define how often checks are made on the health of consumers within a consumer group. If consumers fail within a consumer group, a rebalance is triggered and partition ownership is reassigned to the members of the group. You want to get the timings of your checks just right so that the consumer group can recover quickly, but unnecessary rebalances are not triggered. And you use two properties to do it: `session.timeout.ms` and `heartbeat.interval.ms`.
 
@@ -232,7 +232,7 @@ session.timeout.ms=10000
 
 >If the broker configuration specifies a `group.min.session.timeout.ms` and `group.max.session.timeout.ms`, the `session.timeout.ms` value must be within that range.
 
-## Managing offset policy
+### Managing offset policy
 
 How should a consumer behave when no offsets have been committed? Or when a committed offset is no longer valid or deleted? If you set the `auto.offset.reset` property correctly, it should behave impeccably in both events.
 
@@ -250,7 +250,7 @@ max.partition.fetch.bytes=1048576
 # ...
 ```
 
-## Minimizing the impact of rebalancing your consumer group
+### Minimizing the impact of rebalancing your consumer group
 
 Rebalancing is the time taken to assign a partition to active consumers in a group. During a rebalance:
 
