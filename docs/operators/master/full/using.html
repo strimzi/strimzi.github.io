@@ -1012,7 +1012,13 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#type-ExternalConfigurationEnv-reference">B.97. <code>ExternalConfigurationEnv</code> schema reference</a></li>
 <li><a href="#type-ExternalConfigurationEnvVarSource-reference">B.98. <code>ExternalConfigurationEnvVarSource</code> schema reference</a></li>
 <li><a href="#type-ExternalConfigurationVolumeSource-reference">B.99. <code>ExternalConfigurationVolumeSource</code> schema reference</a></li>
-<li><a href="#type-Build-reference">B.100. <code>Build</code> schema reference</a></li>
+<li><a href="#type-Build-reference">B.100. <code>Build</code> schema reference</a>
+<ul class="sectlevel3">
+<li><a href="#output">B.100.1. <code>output</code></a></li>
+<li><a href="#plugins">B.100.2. <code>plugins</code></a></li>
+<li><a href="#type-Build-schema-reference">B.100.3. Schema reference</a></li>
+</ul>
+</li>
 <li><a href="#type-DockerOutput-reference">B.101. <code>DockerOutput</code> schema reference</a></li>
 <li><a href="#type-ImageStreamOutput-reference">B.102. <code>ImageStreamOutput</code> schema reference</a></li>
 <li><a href="#type-Plugin-reference">B.103. <code>Plugin</code> schema reference</a></li>
@@ -27231,6 +27237,281 @@ For example, the files from a volume named <code>connector-config</code> would a
 <div class="paragraph">
 <p>Used in: <a href="#type-KafkaConnectS2ISpec-reference"><code>KafkaConnectS2ISpec</code></a>, <a href="#type-KafkaConnectSpec-reference"><code>KafkaConnectSpec</code></a></p>
 </div>
+<div class="paragraph">
+<p>Configures additional connectors for Kafka Connect deployments.</p>
+</div>
+<div class="sect3">
+<h4 id="output"><a class="link" href="#output">B.100.1. <code>output</code></a></h4>
+<div class="paragraph">
+<p>To build new container images with additional connector plugins, Strimzi requires a container registry where the images can be pushed to, stored, and pulled from.
+Strimzi does not run its own container registry, so a registry must be provided.
+Strimzi supports private container registries as well as public registries such as <a href="https://quay.io/" target="_blank" rel="noopener">Quay</a> or <a href="https://hub.docker.com//" target="_blank" rel="noopener">Docker Hub</a>.
+The container registry is configured in the <code>.spec.build.output</code> section of the <code>KafkaConnect</code> custom resource.
+The <code>output</code> configuration, which is required, supports two types: <code>docker</code> and <code>imagestream</code>.</p>
+</div>
+<div class="paragraph">
+<div class="title">Using Docker registry</div>
+<p>To use a Docker registry, you have to specify the <code>type</code> as <code>docker</code>, and the <code>image</code> field with the full name of the new container image.
+The full name must include:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The address of the registry</p>
+</li>
+<li>
+<p>Port number (if listening on a non-standard port)</p>
+</li>
+<li>
+<p>The tag of the new container image</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Example valid container image names:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>docker.io/my-org/my-image/my-tag</code></p>
+</li>
+<li>
+<p><code>quay.io/my-org/my-image/my-tag</code></p>
+</li>
+<li>
+<p><code>image-registry.image-registry.svc:5000/myproject/kafka-connect-build:latest</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Each Kafka Connect deployment must use a separate image, which can mean different tags at the most basic level.</p>
+</div>
+<div class="paragraph">
+<p>If the registry requires authentication, use the <code>pushSecret</code> to set a name of the Secret with the registry credentials.
+For the Secret, use the <code>kubernetes.io/dockerconfigjson</code> type and a <code>.dockerconfigjson</code> file to contain the Docker credentials.
+For more information on pulling an image from a private registry, see <a href="https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#registry-secret-existing-credentials" target="_blank" rel="noopener">Create a Secret based on existing Docker credentials</a>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example <code>output</code> configuration</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster
+spec:
+  #...
+  build:
+    output:
+      type: docker # <b class="conum">(1)</b>
+      image: my-registry.io/my-org/my-connect-cluster:latest # <b class="conum">(2)</b>
+      pushSecret: my-registry-credentials # <b class="conum">(3)</b>
+  #...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>(Required) Type of output used by Strimzi.</p>
+</li>
+<li>
+<p>(Required) Full name of the image used, including the repository and tag.</p>
+</li>
+<li>
+<p>(Optional) Name of the secret with the container registry credentials.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<div class="title">Using OpenShift ImageStream</div>
+<p>Instead of Docker, you can use OpenShift ImageStream to store a new container image.
+The ImageStream has to be created manually before deploying Kafka Connect.
+To use ImageStream, set the <code>type</code> to <code>imagestream</code>, and use the <code>image</code> property to specify the name of the ImageStream and the tag used.
+For example, <code>my-connect-image-stream:latest</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example <code>output</code> configuration</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster
+spec:
+  #...
+  build:
+    output:
+      type: imagestream # <b class="conum">(1)</b>
+      image: my-connect-build:latest # <b class="conum">(2)</b>
+  #...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>(Required) Type of output used by Strimzi.</p>
+</li>
+<li>
+<p>(Required) Name of the ImageStream and tag.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="plugins"><a class="link" href="#plugins">B.100.2. <code>plugins</code></a></h4>
+<div class="paragraph">
+<p>Connector plugins are a set of files that define the implementation required to connect to certain types of external system.
+The connector plugins required for a container image must be configured using the <code>.spec.build.plugins</code> property of the <code>KafkaConnect</code> custom resource.
+Each connector plugin must have a name which is unique within the Kafka Connect deployment.
+Additionally, the plugin artifacts must be listed.
+These artifacts are downloaded by Strimzi, added to the new container image, and used in the Kafka Connect deployment.
+The connector plugin artifacts can also include additional components, such as (de)serializers.
+Each connector plugin is downloaded into a separate directory so that the different connectors and their dependencies are properly <em>sandboxed</em>.
+Each plugin must be configured with at least one <code>artifact</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example <code>plugins</code> configuration with two connector plugins</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster
+spec:
+  #...
+  build:
+    output:
+      #...
+    plugins: # <b class="conum">(1)</b>
+      - name: debezium-postgres-connector
+        artifacts:
+          - type: tgz
+            url: https://repo1.maven.org/maven2/io/debezium/debezium-connector-postgres/1.3.1.Final/debezium-connector-postgres-1.3.1.Final-plugin.tar.gz
+            sha512sum: 962a12151bdf9a5a30627eebac739955a4fd95a08d373b86bdcea2b4d0c27dd6e1edd5cb548045e115e33a9e69b1b2a352bee24df035a0447cb820077af00c03
+      - name: camel-telegram
+        artifacts:
+          - type: tgz
+            url: https://repo.maven.apache.org/maven2/org/apache/camel/kafkaconnector/camel-telegram-kafka-connector/0.7.0/camel-telegram-kafka-connector-0.7.0-package.tar.gz
+            sha512sum: a9b1ac63e3284bea7836d7d24d84208c49cdf5600070e6bd1535de654f6920b74ad950d51733e8020bf4187870699819f54ef5859c7846ee4081507f48873479
+  #...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>(Required) List of connector plugins and their artifacts.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Strimzi supports two types of artifacts:
+* JAR files, which are downloaded and used directly
+* TGZ archives, which are downloaded and unpacked</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+Strimzi does not perform any security scanning of the downloaded artifacts.
+For security reasons, you should first verify the artifacts manually, and configure the checksum verification to make sure the same artifact is used in the automated build and in the Kafka Connect deployment.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<div class="title">Using JAR artifacts</div>
+<p>JAR artifacts represent a resource which is downloaded and added to a container image.
+JAR artifacts are mainly used for downloading JAR files, but they can also used to download other file types.
+To use a JAR artifacts, set the <code>type</code> property to <code>jar</code>, and specify the download location using the <code>url</code> property.</p>
+</div>
+<div class="paragraph">
+<p>Additionally, you can specify a SHA-512 checksum of the artifact.
+If specified, Strimzi will verify the checksum of the artifact while building the new container image.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example JAR artifact</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster
+spec:
+  #...
+  build:
+    output:
+      #...
+    plugins:
+      - name: my-plugin
+        artifacts:
+          - type: jar # <b class="conum">(1)</b>
+            url: https://my-domain.tld/my-jar.jar # <b class="conum">(2)</b>
+            sha512sum: 589...ab4 # <b class="conum">(3)</b>
+          - type: jar
+            url: https://my-domain.tld/my-jar2.jar
+  #...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>(Required) Type of artifact.</p>
+</li>
+<li>
+<p>(Required) URL from which the artifact is downloaded.</p>
+</li>
+<li>
+<p>(Optional) SHA-512 checksum to verify the artifact.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<div class="title">Using TGZ artifacts</div>
+<p>TGZ artifacts are used to download TAR archives that have been compressed using Gzip compression.
+The TGZ artifact can contain the whole Kafka Connect connector, even when comprising multiple different files.
+The TGZ artifact is automatically downloaded and unpacked by Strimzi while building the new container image.
+To use TGZ artifacts, set the <code>type</code> property to <code>tgz</code>, and specify the download location using the <code>url</code> property.</p>
+</div>
+<div class="paragraph">
+<p>Additionally, you can specify a SHA-512 checksum of the artifact.
+If specified, Strimzi will verify the checksum before unpacking it and building the new container image.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example TGZ artifact</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster
+spec:
+  #...
+  build:
+    output:
+      #...
+    plugins:
+      - name: my-plugin
+        artifacts:
+          - type: tgz # <b class="conum">(1)</b>
+            url: https://my-domain.tld/my-connector-archive.jar # <b class="conum">(2)</b>
+            sha512sum: 158...jg10 # <b class="conum">(3)</b>
+  #...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>(Required) Type of artifact.</p>
+</li>
+<li>
+<p>(Required) URL from which the archive is downloaded.</p>
+</li>
+<li>
+<p>(Optional) SHA-512 checksum to verify the artifact.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="type-Build-schema-reference"><a class="link" href="#type-Build-schema-reference">B.100.3. Schema reference</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 50%;">
@@ -27266,6 +27547,7 @@ For example, the files from a volume named <code>connector-config</code> would a
 </tr>
 </tbody>
 </table>
+</div>
 </div>
 <div class="sect2">
 <h3 id="type-DockerOutput-reference"><a class="link" href="#type-DockerOutput-reference">B.101. <code>DockerOutput</code> schema reference</a></h3>
@@ -31045,7 +31327,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-01-06 20:19:23 UTC
+Last updated 2021-01-06 21:15:26 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
