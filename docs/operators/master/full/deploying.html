@@ -570,7 +570,6 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#ref-kafka-versions-str">7.1.1. Kafka versions</a></li>
 <li><a href="#assembly-upgrade-cluster-operator-str">7.1.2. Upgrading the Cluster Operator</a></li>
 <li><a href="#assembly-upgrading-kafka-versions-str">7.1.3. Upgrading Kafka</a></li>
-<li><a href="#assembly-downgrading-kafka-versions-str">7.1.4. Downgrading Kafka</a></li>
 </ul>
 </li>
 <li><a href="#assembly-upgrade-resources-str">7.2. Strimzi resource upgrades</a>
@@ -581,6 +580,17 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#proc-upgrade-kafka-mirror-maker-resources-str">7.2.4. Upgrading Kafka MirrorMaker resources</a></li>
 <li><a href="#proc-upgrade-kafka-topic-resources-str">7.2.5. Upgrading Kafka Topic resources</a></li>
 <li><a href="#proc-upgrade-kafka-user-resources-str">7.2.6. Upgrading Kafka User resources</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#assembly-downgrade-str">8. Downgrading Strimzi</a>
+<ul class="sectlevel2">
+<li><a href="#proc-downgrade-cluster-operator-str">8.1. Downgrading the Cluster Operator to a previous version</a></li>
+<li><a href="#assembly-downgrade-kafka-versions-str">8.2. Downgrading Kafka</a>
+<ul class="sectlevel3">
+<li><a href="#con-target-downgrade-version-str">8.2.1. Kafka version compatibility for downgrades</a></li>
+<li><a href="#proc-downgrading-brokers-older-kafka-str">8.2.2. Downgrading Kafka brokers and client applications</a></li>
 </ul>
 </li>
 </ul>
@@ -6267,6 +6277,9 @@ Refer to the documentation supporting a specific version of Strimzi for informat
 Any changes will be <strong>overwritten</strong> by the new version of the Cluster Operator.</p>
 </li>
 <li>
+<p>Update your custom resources to reflect the supported configuration options available for the version of Strimzi you are upgrading to.</p>
+</li>
+<li>
 <p>Update the Cluster Operator.</p>
 <div class="olist loweralpha">
 <ol class="loweralpha" type="a">
@@ -6291,7 +6304,7 @@ Any changes will be <strong>overwritten</strong> by the new version of the Clust
 </li>
 <li>
 <p>If you modified one or more environment variables in your existing Cluster Operator <code>Deployment</code>, edit the
-<code>install/cluster-operator/060-Deployment-cluster-operator.yaml</code> file to use those environment variables.</p>
+<code>install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml</code> file to use those environment variables.</p>
 </li>
 </ol>
 </div>
@@ -6311,11 +6324,11 @@ Any changes will be <strong>overwritten</strong> by the new version of the Clust
 <p>Get the image for the Kafka pod to ensure the upgrade was successful:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get po my-cluster-kafka-0 -o jsonpath='{.spec.containers[0].image}'</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pod my-cluster-kafka-0 -o jsonpath='{.spec.containers[0].image}'</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The image tag shows the new Strimzi version followed by the Kafka version. For example, <code><em>&lt;New Strimzi version&gt;</em>-kafka-<em>&lt;Current Kafka version&gt;</em></code>.</p>
+<p>The image tag shows the new Strimzi version followed by the Kafka version. For example, <code><em>NEW-STRIMZI-VERSION</em>-kafka-<em>CURRENT-KAFKA-VERSION</em></code>.</p>
 </div>
 </li>
 <li>
@@ -6331,10 +6344,9 @@ Any changes will be <strong>overwritten</strong> by the new version of the Clust
 </ol>
 </div>
 <div class="paragraph">
-<p>You now have an updated Cluster Operator, but the version of Kafka running in the cluster it manages is unchanged.</p>
+<p>Your Cluster Operator was upgraded to the later version., but the version of Kafka running in the cluster it manages is unchanged.</p>
 </div>
 <div class="paragraph">
-<div class="title">What to do next</div>
 <p>Following the Cluster Operator upgrade, you can perform a <a href="#assembly-upgrading-kafka-versions-str">Kafka upgrade</a>.</p>
 </div>
 </div>
@@ -6350,7 +6362,7 @@ Any changes will be <strong>overwritten</strong> by the new version of the Clust
 <div class="ulist">
 <ul>
 <li>
-<p>Interbroker protocol</p>
+<p>Inter-broker protocol</p>
 </li>
 <li>
 <p>Log message format</p>
@@ -6718,10 +6730,8 @@ When this has proved successful another, more efficient strategy can be consider
 <p>The <code>Kafka.spec.kafka.config</code> does not contain options that are not supported in the version of Kafka that you are upgrading to.</p>
 </li>
 <li>
-<p>Whether the <code>log.message.format.version</code> for the current Kafka version needs to be updated for the new version.</p>
-<div class="paragraph">
-<p><a href="#ref-kafka-versions-str">Consult the Kafka versions table</a>.</p>
-</div>
+<p>Whether the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> for the current Kafka version needs to be updated for the new version.
+<a href="#ref-kafka-versions-str">Consult the Kafka versions table</a>.</p>
 </li>
 </ul>
 </div>
@@ -6735,12 +6745,11 @@ When this has proved successful another, more efficient strategy can be consider
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit kafka <em>my-cluster</em></code></pre>
 </div>
 </div>
-<div class="olist loweralpha">
-<ol class="loweralpha" type="a">
+</li>
 <li>
-<p>If the <code>log.message.format.version</code> of the current Kafka version is the same as that of the new Kafka version, proceed to the next step.</p>
+<p>If the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> of the current Kafka version is the same as that of the new Kafka version, proceed to the next step.</p>
 <div class="paragraph">
-<p>Otherwise, ensure that <code>Kafka.spec.kafka.config</code> has the <code>log.message.format.version</code> configured to the default for the <em>current</em> version.</p>
+<p>Otherwise, ensure that <code>Kafka.spec.kafka.config</code> has the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> configured to the default for the <em>current</em> version.</p>
 </div>
 <div class="paragraph">
 <p>For example, if upgrading from Kafka 2.6.0:</p>
@@ -6754,11 +6763,12 @@ spec:
     version: 2.6.0
     config:
       log.message.format.version: "2.6"
+      inter.broker.protocol.version: "2.6"
       # ...</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>If the <code>log.message.format.version</code> is unset, set it to the current version.</p>
+<p>If the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> are unset, set them to the current version.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -6767,20 +6777,22 @@ spec:
 <div class="title">Note</div>
 </td>
 <td class="content">
-The value of <code>log.message.format.version</code> must be a string to prevent it from being interpreted as a floating point number.
+The value of <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> must be a string to prevent it from being interpreted as a floating point number.
 </td>
 </tr>
 </table>
 </div>
 </li>
 <li>
-<p>Change the <code>Kafka.spec.kafka.version</code> to specify the new version (leaving the <code>log.message.format.version</code> as the current version).</p>
+<p>Change the <code>Kafka.spec.kafka.version</code> to specify the new version (leaving the <code>log.message.format.version</code> and and <code>inter.broker.protocol.version</code> at the current version).</p>
 <div class="paragraph">
 <p>For example, if upgrading from Kafka 2.6.0 to 2.7.0:</p>
 </div>
+<div class="openblock">
+<div class="content">
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1alpha1
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
 spec:
   # ...
@@ -6788,34 +6800,42 @@ spec:
     version: 2.7.0 <b class="conum">(1)</b>
     config:
       log.message.format.version: "2.6" <b class="conum">(2)</b>
+      inter.broker.protocol.version: "2.6" <b class="conum">(3)</b>
       # ...</code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <ol>
 <li>
-<p>This is changed to the new version</p>
+<p>Kafka version is changed to the new version.</p>
 </li>
 <li>
-<p>This remains at the current version</p>
+<p>Message format version is unchanged.</p>
+</li>
+<li>
+<p>Inter-broker protocol version is unchanged.</p>
 </li>
 </ol>
+</div>
+</div>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+You cannot downgrade Kafka if the <code>inter.broker.protocol.version</code> for the new Kafka version changes. The inter-broker protocol version determines the schemas used for persistent metadata stored by the broker, including messages written to <code>__consumer_offsets</code>. The downgraded cluster will not understand the messages.
+</td>
+</tr>
+</table>
 </div>
 </li>
 <li>
 <p>If the image for the Kafka version is different from the image defined in <code>STRIMZI_KAFKA_IMAGES</code> for the Cluster Operator, update <code>Kafka.spec.kafka.image</code>.</p>
 <div class="paragraph">
 <p>See <a href="#con-versions-and-images-str">Kafka version and image mappings</a></p>
-</div>
-</li>
-<li>
-<p>If the Kafka listener configuration does not use the array format of the <code>GenericKafkaListener</code> schema,
-update <code>Kafka.spec.kafka.listeners</code>.</p>
-<div class="paragraph">
-<p>See <a href="#con-upgrade-listeners-str">Updating listener configuration</a></p>
-</div>
-</li>
-</ol>
 </div>
 </li>
 <li>
@@ -6837,22 +6857,20 @@ Additional rolling updates occur if the new version of Kafka has a new ZooKeeper
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl logs -f <em>&lt;cluster-operator-pod-name&gt;</em> | grep -E "Kafka version upgrade from [0-9.]+ to [0-9.]+, phase ([0-9]+) of \1 completed"</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl logs -f <em>CLUSTER-OPERATOR-POD-NAME</em> | grep -E "Kafka version upgrade from KafkaVersion.<strong>[0-9.]+.</strong> to KafkaVersion.*[0-9.]+.*completed"</code></pre>
 </div>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get po -w</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pod my-cluster-kafka-0 -o jsonpath='{.spec.containers[0].image}'</code></pre>
 </div>
 </div>
-<div class="exampleblock">
-<div class="content">
 <div class="paragraph">
-<p>If the current and new versions of Kafka have different interbroker protocol versions, check the Cluster Operator logs for an <code>INFO</code> level message:</p>
+<p>If the current and new versions of Kafka have different inter-broker protocol versions, check the Cluster Operator logs for an <code>INFO</code> level message:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Reconciliation #<em>&lt;num&gt;</em>(watch) Kafka(<em>&lt;namespace&gt;</em>/<em>&lt;name&gt;</em>): Kafka version upgrade from <em>&lt;from-version&gt;</em> to <em>&lt;to-version&gt;</em>, phase 2 of 2 completed</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Reconciliation #<em>NUM</em>(watch) Kafka(<em>NAMESPACE</em>/<em>NAME</em>): Kafka version upgrade from <em>FROM-VERSION</em> to <em>TO-VERSION</em>, phase 2 of 2 completed</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -6860,9 +6878,7 @@ Additional rolling updates occur if the new version of Kafka has a new ZooKeeper
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Reconciliation #<em>&lt;num&gt;</em>(watch) Kafka(<em>&lt;namespace&gt;</em>/<em>&lt;name&gt;</em>): Kafka version upgrade from <em>&lt;from-version&gt;</em> to <em>&lt;to-version&gt;</em>, phase 1 of 1 completed</code></pre>
-</div>
-</div>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Reconciliation #<em>NUM</em>(watch) Kafka(<em>NAMESPACE</em>/<em>NAME</em>): Kafka version upgrade from <em>FROM-VERSION</em> to <em>TO-VERSION</em>, phase 1 of 1 completed</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -6874,7 +6890,7 @@ Additional rolling updates occur if the new version of Kafka has a new ZooKeeper
 <p>Ensure each pod is using the broker binaries for the new version of Kafka</p>
 </li>
 <li>
-<p>Configure the brokers to send messages using the interbroker protocol of the new version of Kafka</p>
+<p>Configure the brokers to send messages using the inter-broker protocol of the new version of Kafka</p>
 <div class="admonitionblock note">
 <table>
 <tr>
@@ -6896,18 +6912,6 @@ Clients are still using the old version, so brokers will convert messages to the
 <div class="paragraph">
 <p>See <a href="#con-strategies-for-upgrading-clients-str">Strategies for upgrading clients</a></p>
 </div>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Warning</div>
-</td>
-<td class="content">
-You cannot downgrade after completing this step. If you need to revert the update at this point, follow the procedure <a href="#proc-downgrading-brokers-older-kafka-str">Downgrading Kafka brokers and client applications</a>.
-</td>
-</tr>
-</table>
-</div>
 <div class="paragraph">
 <p>If required, set the version property for Kafka Connect and MirrorMaker as the new version of Kafka:</p>
 </div>
@@ -6923,16 +6927,16 @@ You cannot downgrade after completing this step. If you need to revert the updat
 </div>
 </li>
 <li>
-<p>If the <code>log.message.format.version</code> identified in step 1 is the same as the new version proceed to the next step.</p>
+<p>If the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> identified in step 1 are the same as the new version proceed to the next step.</p>
 <div class="paragraph">
-<p>Otherwise change the <code>log.message.format.version</code> in <code>Kafka.spec.kafka.config</code> to the default version for the new version of Kafka now being used.</p>
+<p>Otherwise change the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> in <code>Kafka.spec.kafka.config</code> to the default version for the new version of Kafka now being used.</p>
 </div>
 <div class="paragraph">
 <p>For example, if upgrading to 2.7.0:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1alpha1
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
 spec:
   # ...
@@ -7033,220 +7037,6 @@ Upgrading to the incremental cooperative rebalance protocol is optional. The eag
 <p><a href="https://kafka.apache.org/documentation/#upgrade_240_notable" target="_blank" rel="noopener">Notable changes in 2.4.0</a> in the Apache Kafka documentation.</p>
 </li>
 </ul>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="assembly-downgrading-kafka-versions-str"><a class="link" href="#assembly-downgrading-kafka-versions-str">7.1.4. Downgrading Kafka</a></h4>
-<div class="paragraph">
-<p>Kafka version downgrades are performed using the Cluster Operator.</p>
-</div>
-<div class="paragraph">
-<p>Whether and how the Cluster Operator performs a downgrade depends on the differences between versions of:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Interbroker protocol</p>
-</li>
-<li>
-<p>Log message format</p>
-</li>
-<li>
-<p>ZooKeeper</p>
-</li>
-</ul>
-</div>
-<div class="sect4">
-<h5 id="com-target-downgrade-version-str"><a class="link" href="#com-target-downgrade-version-str">Target downgrade version</a></h5>
-<div class="paragraph">
-<p>How the Cluster Operator handles a downgrade operation depends on the <code>log.message.format.version</code>.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>If the target downgrade version of Kafka has the same <code>log.message.format.version</code> as the current version, the Cluster Operator downgrades by performing a single rolling restart of the brokers.</p>
-</li>
-<li>
-<p>If the target downgrade version of Kafka has a different <code>log.message.format.version</code>, downgrading is only possible if the running cluster has <em>always</em> had <code>log.message.format.version</code> set to the version used by the downgraded version.</p>
-<div class="paragraph">
-<p>This is typically only the case if the upgrade procedure was aborted before the <code>log.message.format.version</code> was changed.
-In this case, the downgrade requires:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Two rolling restarts of the brokers if the interbroker protocol of the two versions is different</p>
-</li>
-<li>
-<p>A single rolling restart if they are the same</p>
-</li>
-</ul>
-</div>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect4">
-<h5 id="proc-downgrading-brokers-older-kafka-str"><a class="link" href="#proc-downgrading-brokers-older-kafka-str">Downgrading Kafka brokers and client applications</a></h5>
-<div class="paragraph">
-<p>This procedure describes how you can downgrade a Strimzi Kafka cluster to a lower (previous) version of Kafka, such as downgrading from 2.7.0 to 2.6.0.</p>
-</div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-<div class="paragraph">
-<p>Downgrading is <em>not possible</em> if the new version has ever used a <code>log.message.format.version</code> that is not supported by the previous version, including when the default value for <code>log.message.format.version</code> is used. For example, this resource can be downgraded to Kafka version 2.6.0 because the <code>log.message.format.version</code> has not been changed:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1alpha1
-kind: Kafka
-spec:
-  # ...
-  kafka:
-    version: 2.7.0
-    config:
-      log.message.format.version: "2.6"
-      # ...</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The downgrade would not be possible if the <code>log.message.format.version</code> was set at <code>"2.7"</code> or a value was absent (so that the parameter took the default value for a 2.7.0 broker of 2.7).</p>
-</div>
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<div class="title">Prerequisites</div>
-<p>For the <code>Kafka</code> resource to be downgraded, check:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>The Cluster Operator, which supports both versions of Kafka, is up and running.</p>
-</li>
-<li>
-<p>The <code>Kafka.spec.kafka.config</code> does not contain options that are not supported in the version of Kafka you are downgrading to.</p>
-</li>
-<li>
-<p>The <code>Kafka.spec.kafka.config</code> has a <code>log.message.format.version</code> that is supported by the version being downgraded to.</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Update the Kafka cluster configuration in an editor, as required:</p>
-<div class="paragraph">
-<p>Use <code>kubectl edit</code>:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit kafka <em>my-cluster</em></code></pre>
-</div>
-</div>
-<div class="olist loweralpha">
-<ol class="loweralpha" type="a">
-<li>
-<p>Change the <code>Kafka.spec.kafka.version</code> to specify the previous version.</p>
-<div class="paragraph">
-<p>For example, if downgrading from Kafka 2.7.0 to 2.6.0:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1alpha1
-kind: Kafka
-spec:
-  # ...
-  kafka:
-    version: 2.6.0 <b class="conum">(1)</b>
-    config:
-      log.message.format.version: "2.6" <b class="conum">(2)</b>
-      # ...</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>This is changed to the previous version</p>
-</li>
-<li>
-<p>This is unchanged</p>
-</li>
-</ol>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-You must format the value of <code>log.message.format.version</code> as a string to prevent it from being interpreted as a floating point number.
-</td>
-</tr>
-</table>
-</div>
-</li>
-<li>
-<p>If the image for the Kafka version is different from the image defined in <code>STRIMZI_KAFKA_IMAGES</code> for the Cluster Operator, update <code>Kafka.spec.kafka.image</code>.</p>
-<div class="paragraph">
-<p>See <a href="#con-versions-and-images-str">Kafka version and image mappings</a></p>
-</div>
-</li>
-</ol>
-</div>
-</li>
-<li>
-<p>Save and exit the editor, then wait for rolling updates to complete.</p>
-<div class="paragraph">
-<p>Check the update in the logs or by watching the pod state transitions:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl logs -f <em>&lt;cluster-operator-pod-name&gt;</em> | grep -E "Kafka version downgrade from [0-9.]+ to [0-9.]+, phase ([0-9]+) of \1 completed"</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get po -w</code></pre>
-</div>
-</div>
-<div class="exampleblock">
-<div class="content">
-<div class="paragraph">
-<p>If the previous and current versions of Kafka have different interbroker protocol versions, check the Cluster Operator logs for an <code>INFO</code> level message:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Reconciliation #<em>&lt;num&gt;</em>(watch) Kafka(<em>&lt;namespace&gt;</em>/<em>&lt;name&gt;</em>): Kafka version downgrade from <em>&lt;from-version&gt;</em> to <em>&lt;to-version&gt;</em>, phase 2 of 2 completed</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Alternatively, if the previous and current versions of Kafka have the same interbroker protocol version, check for:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Reconciliation #<em>&lt;num&gt;</em>(watch) Kafka(<em>&lt;namespace&gt;</em>/<em>&lt;name&gt;</em>): Kafka version downgrade from <em>&lt;from-version&gt;</em> to <em>&lt;to-version&gt;</em>, phase 1 of 1 completed</code></pre>
-</div>
-</div>
-</div>
-</div>
-</li>
-<li>
-<p>Downgrade all client applications (consumers) to use the previous version of the client binaries.</p>
-<div class="paragraph">
-<p>The Kafka cluster and clients are now using the previous Kafka version.</p>
-</div>
-</li>
-</ol>
 </div>
 </div>
 </div>
@@ -7961,10 +7751,323 @@ The upgrade of resources <em>must</em> be performed after <a href="#assembly-upg
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="assembly-downgrade-str"><a class="link" href="#assembly-downgrade-str">8. Downgrading Strimzi</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>If you are encountering issues with the version of Strimzi you upgraded to,
+you can revert your installation to the previous version.</p>
+</div>
+<div class="paragraph">
+<p>You can perform a downgrade to:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Revert your Cluster Operator to the previous Strimzi version.</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#proc-downgrade-cluster-operator-str">Downgrading the Cluster Operator to a previous version</a></p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Downgrade all Kafka brokers and client applications to the previous Kafka version.</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#assembly-downgrade-kafka-versions-str">Downgrading Kafka</a></p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>If the previous version of Strimzi does not support the version of Kafka you are using,
+you can also downgrade Kafka as long as the log message format versions appended to messages match.</p>
+</div>
+<div class="sect2">
+<h3 id="proc-downgrade-cluster-operator-str"><a class="link" href="#proc-downgrade-cluster-operator-str">8.1. Downgrading the Cluster Operator to a previous version</a></h3>
+<div class="paragraph">
+<p>If you are encountering issues with Strimzi,
+you can revert your installation.</p>
+</div>
+<div class="paragraph">
+<p>This procedure describes how to downgrade a Cluster Operator deployment to a previous version.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An existing Cluster Operator deployment is available.</p>
+</li>
+<li>
+<p>You have <a href="#downloads-str">downloaded the installation files for the previous version</a>.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Take note of any configuration changes made to the existing Cluster Operator resources (in the <code>/install/cluster-operator</code> directory).
+Any changes will be <strong>overwritten</strong> by the previous version of the Cluster Operator.</p>
+</li>
+<li>
+<p>Revert your custom resources to reflect the supported configuration options available for the version of Strimzi you are downgrading to.</p>
+</li>
+<li>
+<p>Update the Cluster Operator.</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>Modify the installation files for the previous version according to the namespace the Cluster Operator is running in.</p>
+<div class="paragraph">
+<p>On Linux, use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">sed -i 's/namespace: .*/namespace: <em>my-cluster-operator-namespace</em>/' install/cluster-operator/*RoleBinding*.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On MacOS, use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">sed -i '' 's/namespace: .*/namespace: <em>my-cluster-operator-namespace</em>/' install/cluster-operator/*RoleBinding*.yaml</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If you modified one or more environment variables in your existing Cluster Operator <code>Deployment</code>, edit the
+<code>install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml</code> file to use those environment variables.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>When you have an updated configuration, deploy it along with the rest of the installation resources:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f install/cluster-operator</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Wait for the rolling updates to complete.</p>
+</div>
+</li>
+<li>
+<p>Get the image for the Kafka pod to ensure the downgrade was successful:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pod my-cluster-kafka-0 -o jsonpath='{.spec.containers[0].image}'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The image tag shows the new Strimzi version followed by the Kafka version. For example, <code><em>NEW-STRIMZI-VERSION</em>-kafka-<em>CURRENT-KAFKA-VERSION</em></code>.</p>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Your Cluster Operator was downgraded to the previous version.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="assembly-downgrade-kafka-versions-str"><a class="link" href="#assembly-downgrade-kafka-versions-str">8.2. Downgrading Kafka</a></h3>
+<div class="paragraph">
+<p>Kafka version downgrades are performed by the Cluster Operator.</p>
+</div>
+<div class="sect3">
+<h4 id="con-target-downgrade-version-str"><a class="link" href="#con-target-downgrade-version-str">8.2.1. Kafka version compatibility for downgrades</a></h4>
+<div class="paragraph">
+<p>Kafka downgrades are dependent on compatible current and target <a href="#ref-kafka-versions-str">Kafka versions</a>,
+and the state at which messages have been logged.</p>
+</div>
+<div class="paragraph">
+<p>You cannot revert to the previous Kafka version if that version does not support any of the <code>inter.broker.protocol.version</code> settings which have <em>ever been used</em> in that cluster,
+or messages have been added to message logs that use a newer <code>log.message.format.version</code>.</p>
+</div>
+<div class="paragraph">
+<p>The <code>inter.broker.protocol.version</code> determines the schemas used for persistent metadata stored by the broker, such as the schema for messages written to <code>__consumer_offsets</code>.
+If you downgrade to a version of Kafka that does not understand an <code>inter.broker.protocol.version</code> that has (ever) been previously used in the cluster the broker will encounter data they cannot understand.</p>
+</div>
+<div class="paragraph">
+<p>If the target downgrade version of Kafka has:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The <em>same</em> <code>log.message.format.version</code> as the current version, the Cluster Operator downgrades by performing a single rolling restart of the brokers.</p>
+</li>
+<li>
+<p>A <em>different</em> <code>log.message.format.version</code>, downgrading is only possible if the running cluster has <em>always</em> had <code>log.message.format.version</code> set to the version used by the downgraded version.
+This is typically only the case if the upgrade procedure was aborted before the <code>log.message.format.version</code> was changed.
+In this case, the downgrade requires:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Two rolling restarts of the brokers if the interbroker protocol of the two versions is different</p>
+</li>
+<li>
+<p>A single rolling restart if they are the same</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Downgrading is <em>not possible</em> if the new version has ever used a <code>log.message.format.version</code> that is not supported by the previous version, including when the default value for <code>log.message.format.version</code> is used. For example, this resource can be downgraded to Kafka version 2.6.0 because the <code>log.message.format.version</code> has not been changed:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+spec:
+  # ...
+  kafka:
+    version: 2.7.0
+    config:
+      log.message.format.version: "2.6"
+      # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The downgrade would not be possible if the <code>log.message.format.version</code> was set at <code>"2.7"</code> or a value was absent (so that the parameter took the default value for a 2.7.0 broker of 2.7).</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-downgrading-brokers-older-kafka-str"><a class="link" href="#proc-downgrading-brokers-older-kafka-str">8.2.2. Downgrading Kafka brokers and client applications</a></h4>
+<div class="paragraph">
+<p>This procedure describes how you can downgrade a Strimzi Kafka cluster to a lower (previous) version of Kafka, such as downgrading from 2.7.0 to 2.6.0.</p>
+</div>
+<div class="paragraph">
+<div class="title">Prerequisites</div>
+<p>For the <code>Kafka</code> resource to be downgraded, check:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>IMPORTANT: <a href="#con-target-downgrade-version-str">Compatibility of Kafka versions</a>.</p>
+</li>
+<li>
+<p>The Cluster Operator, which supports both versions of Kafka, is up and running.</p>
+</li>
+<li>
+<p>The <code>Kafka.spec.kafka.config</code> does not contain options that are not supported by the Kafka version being downgraded to.</p>
+</li>
+<li>
+<p>The <code>Kafka.spec.kafka.config</code> has a <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> that is supported by the Kafka version being downgraded to.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Update the Kafka cluster configuration in an editor, as required.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit kafka <em>my-cluster</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Change the <code>Kafka.spec.kafka.version</code> to specify the previous version.</p>
+<div class="paragraph">
+<p>For example, if downgrading from Kafka 2.7.0 to 2.6.0:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+spec:
+  # ...
+  kafka:
+    version: 2.6.0 <b class="conum">(1)</b>
+    config:
+      log.message.format.version: "2.6" <b class="conum">(2)</b>
+      inter.broker.protocol.version: "2.6" <b class="conum">(3)</b>
+      # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Kafka version is changed to the previous version.</p>
+</li>
+<li>
+<p>Message format version is unchanged.</p>
+</li>
+<li>
+<p>Inter-broker protocol version is unchanged.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+You must format the value of <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> as a string to prevent it from being interpreted as a floating point number.
+</td>
+</tr>
+</table>
+</div>
+</li>
+<li>
+<p>If the image for the Kafka version is different from the image defined in <code>STRIMZI_KAFKA_IMAGES</code> for the Cluster Operator, update <code>Kafka.spec.kafka.image</code>.</p>
+<div class="paragraph">
+<p>See <a href="#con-versions-and-images-str">Kafka version and image mappings</a></p>
+</div>
+</li>
+<li>
+<p>Save and exit the editor, then wait for rolling updates to complete.</p>
+<div class="paragraph">
+<p>Check the update in the logs or by watching the pod state transitions:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl logs -f <em>CLUSTER-OPERATOR-POD-NAME</em> | grep -E "Kafka version downgrade from [0-9.]+ to [0-9.]+, phase ([0-9]+) of \1 completed"</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pod -w</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Check the Cluster Operator logs for an <code>INFO</code> level message:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Reconciliation #<em>NUM</em>(watch) Kafka(<em>NAMESPACE</em>/<em>NAME</em>): Kafka version downgrade from <em>FROM-VERSION</em> to <em>TO-VERSION</em>, phase 1 of 1 completed</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Downgrade all client applications (consumers) to use the previous version of the client binaries.</p>
+<div class="paragraph">
+<p>The Kafka cluster and clients are now using the previous Kafka version.</p>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-01-06 21:15:26 UTC
+Last updated 2021-01-06 23:30:31 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
