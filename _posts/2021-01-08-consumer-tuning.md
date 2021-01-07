@@ -65,11 +65,11 @@ As with producers, you will want to achieve a balance between throughput and lat
 
 Kafka *only* provides ordering guarantees for messages in a single partition. If you want a strict ordering of messages from one topic, the only option is to use one partition per topic. The consumer can then observe messages in the same order that they were committed to the broker.
 
-Potentially, things become less precise when a consumer is consuming messages from multiple partitions. Although the ordering for each partition is kept, the order of messages fetched from _all_ partitions is not guaranteed, as it does not necessarily reflect the order in which they were sent. In practice, however, retaining the order of each partition when consuming from multiple partitions is sufficient for most well-designed consumer client applications.
+Potentially, things become less precise when a consumer is consuming messages from multiple partitions. Although the ordering for each partition is kept, the order of messages fetched from _all_ partitions is not guaranteed, as it does not necessarily reflect the order in which they were sent. In practice, however, retaining the order of messages in each partition when consuming from multiple partitions is usually sufficient because messages whose order matters can be sent to the same partition (either by having the same key, or perhaps by using a custom partitioner).
 
 ### Scaling with consumer groups
 
-You'll need a group id if you intend to use consumer groups. Consumer groups are used so commonly, that they might be considered part of a basic consumer configuration. Consumer groups are a way of sharing the work of consuming messages from a set of partitions between a number of consumers by dividing the partitions between them. Consumers are grouped using a `group.id`, allowing messages to be spread across the members that share the same id.
+Consumer groups are used so commonly, that they might be considered part of a basic consumer configuration. Consumer groups are a way of sharing the work of consuming messages from a set of partitions between a number of consumers by dividing the partitions between them. Consumers are grouped using a `group.id`, allowing messages to be spread across the members that share the same id.
 
 ```properties
 # ...
@@ -77,9 +77,9 @@ group.id=my-group-id
 # ...
 ```
 
-Consumer groups are very useful for scaling your consumers according to demand. Consumers within a group do not read data from the same partition, but can receive data exclusively from zero or more partitions. One partition is assigned to exactly one member of a consumer group. As mentioned previously, if you want to guarantee message ordering, you would use one consumer with a single partition.
+Consumer groups are very useful for scaling your consumers according to demand. Consumers within a group do not read data from the same partition, but can receive data exclusively from zero or more partitions. Each partition is assigned to exactly one member of a consumer group.
 
-There are a couple of things worth mentioning when thinking about how many consumers to include in a group. Adding more consumers than partitions will not increase throughput. Excess consumers will be partition-free and idle. On the other hand, there is a potential upside in terms of reliability, because those idle consumers will be on standby in the event of failure.
+There are a couple of things worth mentioning when thinking about how many consumers to include in a group. Adding more consumers than partitions will not increase throughput. Excess consumers will be partition-free and idle. This might not be entirely pointless, however, as an idle consumer is effectively on standby in the event of failure of one of the consumers that does have partitions assigned.
 
 ### Consumer lag and consumer groups
 
@@ -142,10 +142,12 @@ max.partition.fetch.bytes=1048576
 
 For applications that require durable message delivery, you can increase the level of control over consumers when committing offsets to minimize the risk of data being lost or duplicated.
 
-Kafka's _auto-commit mechanism_ is pretty convenient (and sometimes suitable). When enabled, consumers commit the offsets of messages automatically. But convenience, as always, has a price. By allowing your consumer to commit offsets, you are introducing a risk of data loss and duplication. Why? Quite easily as it happens. You see, the auto-commit can _only_ avoid data loss if all messages are processed before the next poll of the broker or the consumer closes. Using the auto-commit, the consumer will commit offsets received from the broker at 5000ms intervals. In that time, the inherent constraints of auto-committing might lead to:
+Kafka's _auto-commit mechanism_ is pretty convenient (and sometimes suitable, depending on the use case). When enabled, consumers commit the offsets of messages automatically every `auto.commit.interval.ms` milliseconds. But convenience, as always, has a price. By allowing your consumer to commit offsets, you are introducing a risk of data loss and duplication.
 
-* _Data loss_ when the consumer has fetched and handled a number of messages, but the system crashes with processed messages still in the consumer buffer
-* _Data duplication_ on another consumer instance, after rebalancing, when the system crashes whilst processing the messages, but before performing the auto-commit
+* **Data loss**
+If your application commits an offset, and then crashes before all the messages up to that offset have actually been processed, those messages won't get processed when the application is restarted.
+* **Data duplication**
+If your application has processed all the messages, and then crashes before the offset is committed automatically, the last offset is used when the application restarts and you'll process those messages again.
 
 If this potential situation leaves you slightly concerned, what can you do about it? First of all, you can use the `auto.commit.interval.ms` property to decrease those worrying intervals between commits. But this will not completely eliminate the chance that messages are lost or duplicated.
 
@@ -167,6 +169,8 @@ The `commitSync` API commits the offsets of all messages returned from polling. 
 The `commitAsync` API does not wait for the broker to respond to a commit request. The `commitAsync` API has lower latency than the `commitSync` API, but risks creating duplicates when rebalancing.
 
 A common approach is to capitalize on the benefits of using both APIs, so the lower latency `commitAsync` API is used by default, but the `commitSync` API takes over before shutting the consumer down or rebalancing to safeguard the final commit.
+
+Turning off the auto-commit functionality helps with data loss because you can write your code to only commit offsets when messages have actually been processed. But manual commits cannot completely eliminate data duplication because you cannot guarantee that the offset commit message will always be processed by the broker. This is the case even if you do a synchronous offset commit after processing each message.
 
 > You can set up your Kafka solution to interact with databases that provide ACID
 > (atomicity, consistency, isolation, and durability) reliability
@@ -204,7 +208,7 @@ With producers set up in such a way, you can make the pipeline more secure from 
 * `read_committed`
 * `read_uncommitted` (default)
 
-If you switch from the default to `read_committed`, only transactional messages that have been committed are read by the consumer. As always, there's a trade-off. Using this mode will lead to an increase in end-to-end latency, because the consumer will only return a message when the brokers have written the transaction markers that record the result of the transaction (_committed_ or _aborted_).
+If you switch from the default to `read_committed`, only transactional messages that have been committed are read by the consumer. As always, there's a trade-off. Using this mode will lead to an increase in end-to-end latency because the consumer will only return a message when the brokers have written the transaction markers that record the result of the transaction (_committed_ or _aborted_).
 
 ```properties
 # ...
