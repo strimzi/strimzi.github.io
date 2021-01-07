@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Optimizing Kafka consumers"
-date: 2021-01-08
+date: 2021-01-07
 author: paul_mellor
 ---
 
