@@ -149,14 +149,19 @@ If your application commits an offset, and then crashes before all the messages 
 * **Data duplication**
 If your application has processed all the messages, and then crashes before the offset is committed automatically, the last offset is used when the application restarts and you'll process those messages again.
 
-If this potential situation leaves you slightly concerned, what can you do about it? First of all, you can use the `auto.commit.interval.ms` property to decrease those worrying intervals between commits. But this will not completely eliminate the chance that messages are lost or duplicated.
+If this potential situation leaves you slightly concerned, what can you do about it? First of all, you can use the `auto.commit.interval.ms` property to decrease those worrying intervals between commits.
 
-What else? Alternatively, you can turn off auto-committing by setting `enable.auto.commit` to `false`. You then assume responsibility for how your consumer application handles commits correctly. This is an important decision. Periodic automatic offset commits do mean it's something you don't need to worry about. And as long as all message processing is done before the next poll, all processed offsets will be committed. But a higher level of control might be preferable if data loss or data duplication is to be avoided.   
+```properties
+# ...
+auto.commit.interval.ms=1000
+# ...
+```
+
+But this will not completely eliminate the chance that messages are lost or duplicated. Alternatively, you can turn off auto-committing by setting `enable.auto.commit` to `false`. You then assume responsibility for how your consumer application handles commits correctly. This is an important decision. Periodic automatic offset commits do mean it's something you don't need to worry about. And as long as all message processing is done before the next poll, all processed offsets will be committed. But a higher level of control might be preferable if data loss or data duplication is to be avoided.   
 
 ```properties
 # ...
 enable.auto.commit=false
-auto.commit.interval.ms=1000
 # ...
 ```
 
