@@ -138,6 +138,8 @@
 <ul class="sectlevel3">
 <li><a href="#con-oauth-authorization-mechanism_str">4.5.1. OAuth 2.0 authorization mechanism</a></li>
 <li><a href="#proc-oauth-authorization-broker-config-str">4.5.2. Configuring OAuth 2.0 authorization support</a></li>
+<li><a href="#con-oauth-authorization-keycloak-authorization-services_str">4.5.3. Managing policies and permissions in Keycloak Authorization Services</a></li>
+<li><a href="#con-oauth-authorization-keycloak-example_str">4.5.4. Example authorization rules configuration using Authorization Services</a></li>
 </ul>
 </li>
 </ul>
@@ -9297,9 +9299,6 @@ You use the same Keycloak server endpoint when you set up authorization.</p>
 <li>
 <p>OAuth 2.0 authentication must be configured with the <code>maxSecondsWithoutReauthentication</code> option to enable re-authentication.</p>
 </li>
-<li>
-<p>You need to understand how to manage policies and permissions for Keycloak Authorization Services, as described in the <a href="https://www.keycloak.org/documentation.html" target="_blank" rel="noopener">Keycloak documentation</a>.</p>
-</li>
 </ul>
 </div>
 <div class="olist arabic">
@@ -9406,6 +9405,1000 @@ kubectl get pod -w</code></pre>
 <p>Verify the configured permissions by accessing Kafka brokers as clients or  users with specific roles, making sure they have the necessary access, or do not have the access they are not supposed to have.</p>
 </li>
 </ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-oauth-authorization-keycloak-authorization-services_str"><a class="link" href="#con-oauth-authorization-keycloak-authorization-services_str">4.5.3. Managing policies and permissions in Keycloak Authorization Services</a></h4>
+<div class="sect4">
+<h5 id="kafka_authorization_model_for_resources"><a class="link" href="#kafka_authorization_model_for_resources">Kafka authorization model for resources</a></h5>
+<div class="paragraph">
+<p>The <a href="https://kafka.apache.org/documentation/#security_authz_primitives">Kafka authorization model</a> defines resource types, and the permissions available for each type.
+When an action is performed by a Kafka client on a broker, the broker uses a configured authorizer to check permissions, depending on the action performed and the resource type.</p>
+</div>
+<div class="paragraph">
+<p>Kafka has five resource types for controlling access: <code>Topic</code>, <code>Group</code>, <code>Cluster</code>, <code>TransactionalId</code>, <code>DelegationToken</code>.</p>
+</div>
+<div class="paragraph">
+<p>Each resource type has different permissions:</p>
+</div>
+<div class="paragraph">
+<p>Topic:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Create</code></p>
+</li>
+<li>
+<p><code>Write</code></p>
+</li>
+<li>
+<p><code>Read</code></p>
+</li>
+<li>
+<p><code>Delete</code></p>
+</li>
+<li>
+<p><code>Describe</code></p>
+</li>
+<li>
+<p><code>DescribeConfigs</code></p>
+</li>
+<li>
+<p><code>Alter</code></p>
+</li>
+<li>
+<p><code>AlterConfigs</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Group:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Read</code></p>
+</li>
+<li>
+<p><code>Describe</code></p>
+</li>
+<li>
+<p><code>Delete</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Cluster:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Create</code></p>
+</li>
+<li>
+<p><code>Describe</code></p>
+</li>
+<li>
+<p><code>Alter</code></p>
+</li>
+<li>
+<p><code>DescribeConfigs</code></p>
+</li>
+<li>
+<p><code>AlterConfigs</code></p>
+</li>
+<li>
+<p><code>IdempotentWrite</code></p>
+</li>
+<li>
+<p><code>ClusterAction</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>TransactionalId:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Describe</code></p>
+</li>
+<li>
+<p><code>Write</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>DelegationToken:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Describe</code></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="keycloak_authorization_services_model_for_managing_permissions"><a class="link" href="#keycloak_authorization_services_model_for_managing_permissions">Keycloak Authorization Services model for managing permissions</a></h5>
+<div class="paragraph">
+<p>Keycloak Authorization Services use four concepts to define and grant permissions: <em>resources</em>, <em>authorization scopes</em>, <em>policies</em>, and <em>permissions</em>.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Resources</dt>
+<dd>
+<p>Resources are a set of resource definitions that are used to match permitted actions.
+For example, a resource can be an individual topic, or it can be a set of all topics with names that start with the same prefix.
+The resource definition has a set of available authorization scopes associated with it, which represent a set of all actions available on the particular resource.
+Often, only a subset of these actions is actually permitted.</p>
+</dd>
+<dt class="hdlist1">Authorization scopes</dt>
+<dd>
+<p>Authorization scopes is simply a set of all available actions on all the different resource types. When defining a new resource,  scopes are added from the set of all scopes.</p>
+</dd>
+<dt class="hdlist1">Policies</dt>
+<dd>
+<p>Policies are rules that use criteria to match a list of accounts. Policies can match service accounts based on client id or roles, or user accounts based on username, groups, or roles.</p>
+</dd>
+<dt class="hdlist1">Permissions</dt>
+<dd>
+<p>Permissions grant a subset of authorization scopes on a specific resource definition to a set of users.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="mapping_keycloak_authorization_services_to_the_kafka_authorization_model"><a class="link" href="#mapping_keycloak_authorization_services_to_the_kafka_authorization_model">Mapping Keycloak Authorization Services to the Kafka authorization model</a></h5>
+<div class="paragraph">
+<p>Use Keycloak Authorization Services rules on the OAuth client that represents the Kafka Broker to grant Kafka permissions to users or service accounts. Typically, the OAuth client has <code>kafka</code> as its client id.</p>
+</div>
+<div class="paragraph">
+<p>The OAuth 2.0 client definition must have the <em>Authorization Enabled</em> option activated.</p>
+</div>
+<div class="paragraph">
+<p>All permissions exist within the scope of this OAuth 2.0 client, which means that if you have different Kafka clusters configured with different OAuth 2.0 client IDs they would each have a separate set of permissions even though they are part of the same realm.</p>
+</div>
+<div class="paragraph">
+<p>When the Kafka client use the <em>SASL OAUTHBEARER</em> mechanism, the Keycloak authorizer (<code>KeycloakRBACAuthorizer</code>) retrieves the list of grants for the current session from the Keycloak server using the access token of the current session.
+This list of grants is the result of evaluating the Keycloak Authorization Services policies and permissions.</p>
+</div>
+<div class="paragraph">
+<div class="title">Introducing authorization scopes</div>
+<p>Typically, an initial configuration involves uploading the authorization scopes to create a list of all the possible actions that can be performed on all the Kafka resource types.
+This step is performed only once, before defining any permissions. Alternatively, you can add authorization scopes manually.</p>
+</div>
+<div class="paragraph">
+<p>The authorization scopes should contain all the possible Kafka permissions regardless of the resource type:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Create</code></p>
+</li>
+<li>
+<p><code>Write</code></p>
+</li>
+<li>
+<p><code>Read</code></p>
+</li>
+<li>
+<p><code>Delete</code></p>
+</li>
+<li>
+<p><code>Describe</code></p>
+</li>
+<li>
+<p><code>Alter</code></p>
+</li>
+<li>
+<p><code>DescribeConfig</code></p>
+</li>
+<li>
+<p><code>AlterConfig</code></p>
+</li>
+<li>
+<p><code>ClusterAction</code></p>
+</li>
+<li>
+<p><code>IdempotentWrite</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Defining resource patterns for permission checks</div>
+<p>The resources use pattern names for pattern matching against the targeted resources when performing permission checks.</p>
+</div>
+<div class="paragraph">
+<p>The general pattern is as follows: <code>RESOURCE_TYPE:NAME_PATTERN</code></p>
+</div>
+<div class="paragraph">
+<p>The resource types mirror the Kafka authorization model.
+The pattern allows for the two matching options: exact matching (when the pattern does not end with <code>*</code>), and prefix matching (when the pattern ends with <code>*</code>).</p>
+</div>
+<div class="literalblock">
+<div class="title">Example patterns for resources</div>
+<div class="content">
+<pre>Topic:my-topic
+Topic:orders-*
+Group:orders-*
+Cluster:*</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In addition, the general pattern can be prefixed by <code>kafka-cluster:CLUSTER_NAME</code> followed by a comma, where the cluster name refers to the <code>metadata.name</code> in the Kafka custom resource.</p>
+</div>
+<div class="literalblock">
+<div class="title">Example patterns for resources with cluster prefix</div>
+<div class="content">
+<pre>kafka-cluster:my-cluster,Topic:*
+kafka-cluster:*,Group:b_*</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When the <code>kafka-cluster</code> prefix is not present it is assumed to be <code>kafka-cluster:*</code>.</p>
+</div>
+<div class="paragraph">
+<p>When defining a resource, you can associate a list of possible authorization scopes relevant to the resource.
+Set whatever actions make sense for the targeted resource type.</p>
+</div>
+<div class="paragraph">
+<p>While you may add any authorization scope to any resource, only the scopes supported by the resource type are considered for access control.</p>
+</div>
+<div class="paragraph">
+<div class="title">Policies</div>
+<p>Policies are used to target permissions to one or more accounts.
+Targeting can refer to:
+* Specific user or service accounts
+* Realm roles or client roles
+* User groups
+* JS rule to match a client IP address</p>
+</div>
+<div class="paragraph">
+<p>A policy is given a unique name, and can be reused to target multiple permissions to multiple resources.</p>
+</div>
+<div class="paragraph">
+<div class="title">Defining permissions based on scopes, resources and policies</div>
+<p>Use fine-grained permissions to pull together the policies, resources, and authorization scopes that grant access to users.</p>
+</div>
+<div class="paragraph">
+<p>The name of the each permission should should clearly define what permissions it grants to which users.</p>
+</div>
+<div class="paragraph">
+<p>For more information on how to configure permissions through Keycloak Authorization Services, see <a href="#con-oauth-authorization-keycloak-example_str">the authorization example</a>.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="example_permissions_required_for_operations_on_kafka"><a class="link" href="#example_permissions_required_for_operations_on_kafka">Example permissions required for operations on Kafka</a></h5>
+<div class="paragraph">
+<p>The following  examples demonstrate the permissions required for performing common operations on Kafka.</p>
+</div>
+<div class="paragraph">
+<div class="title">Creating a topic</div>
+<p>To create a topic the <code>Create</code> permission is required for the specific topic or for <code>Cluster:kafka-cluster</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --create --topic my-topic \
+  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Listing the topic</div>
+<p>If user has <code>Describe</code> permission on the topic, the topic will be listed, otherwise not.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --list \
+  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Displaying the topic details</div>
+<p>To display the topic details the <code>Describe</code>, and <code>DescribeConfigs</code> permissions are required on the topic.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --describe --topic my-topic \
+  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Producing to the topic</div>
+<p>To produce to the topic the user needs <code>Describe</code> and <code>Write</code> permissions on the topic.
+If topic has not yet been created, and autocreation is enabled, the permissions to create the topic are required.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh  --topic my-topic \
+  --broker-list my-cluster-kafka-bootstrap:9092 --producer.config=/tmp/config.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Consuming from the topic</div>
+<p>To consume from the topic the user needs <code>Describe</code> and <code>Read</code> permissions on the topic.
+Consuming from the topic normally relies on storing the consumer offsets in a consumer group.
+That requires additional <code>Describe</code> and <code>Read</code> permissions on the consumer group.</p>
+</div>
+<div class="paragraph">
+<p>Two <code>resources</code> are needed for matching. For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Topic:my-topic
+Group:my-group-*</pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-consumer.sh --topic my-topic --group my-group-1 --from-beginning \
+  --bootstrap-server my-cluster-kafka-bootstrap:9092 --consumer.config /tmp/config.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Producing to the topic using an idempotent producer</div>
+<p>Besides needing the permissions for ordinary producing to the topic, an additional <code>IdempotentWrite</code> permission is required on the <code>Cluster</code> resource.</p>
+</div>
+<div class="paragraph">
+<p>Two <code>resources</code> are needed for matching. For example:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Topic:my-topic
+Cluster:kafka-cluster</pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Listing consumer groups</div>
+<p>When listing consumer groups, only the groups on which the user has <code>Describe</code> permissions are returned.
+Alternatively, if the user has <code>Describe</code> permission on the <code>Cluster:kafka-cluster</code>, all the consumer groups are returned.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-consumer-groups.sh --list \
+  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Displaying the consumer group details</div>
+<p>To display the consumer group details the <code>Describe</code> permission is required on the group, and on the topic associated with the group.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-consumer-groups.sh --describe --group my-group-1 \
+  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Changing the topic configuration</div>
+<p>To change the topic configuration the <code>Describe</code> and <code>Alter</code> permissions are required on the topic.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --alter --topic my-topic --partitions 2 \
+  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Displaying the Kafka broker configuration</div>
+<p>To be able to use <code>kafka-configs.sh</code> to get the broker configuration, <code>DescribeConfigs</code> permission is required on the <code>Cluster:kafka-cluster</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-configs.sh --entity-type brokers --entity-name 0 --describe --all \
+  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Changing the Kafka broker configuration</div>
+<p>To change the Kafka broker configuration the 'DescribeConfigs', and <code>AlterConfigs</code> permissions are required on <code>Cluster:kafka-cluster</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-configs --entity-type brokers --entity-name 0 --alter --add-config log.cleaner.threads=2 \
+  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Deleting a topic</div>
+<p>To delete the topic the <code>Describe</code>, and <code>Delete</code> permissions are required on the topic.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --delete --topic my-topic \
+  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Selecting a leader partition</div>
+<p>To run leader selection for topic partitions you need <code>Alter</code> permission on the <code>Cluster:kafka-cluster</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-leader-election.sh --topic my-topic --partition 0 --election-type PREFERRED  /
+  --bootstrap-server my-cluster-kafka-bootstrap:9092 --admin.config /tmp/config.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Reassigning partitions</div>
+<p>To generate partition reassignment file the <code>Describe</code> on the topics involved.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-reassign-partitions.sh --topics-to-move-json-file /tmp/topics-to-move.json --broker-list "0,1" --generate \
+  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config /tmp/config.properties &gt; /tmp/partition-reassignment.json</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To execute the partition reassignment the <code>Describe</code>, and <code>Alter</code> permissions are required on <code>Cluster:kafka-cluster</code>, and <code>Describe</code> permissions are required on the topics involved.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-reassign-partitions.sh --reassignment-json-file /tmp/partition-reassignment.json --execute \
+  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config /tmp/config.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To verify partition reassignment the <code>Describe</code>, and <code>AlterConfigs</code> permissions are required on <code>Cluster:kafka-cluster</code>,
+and on each of the topics involved.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-reassign-partitions.sh --reassignment-json-file /tmp/partition-reassignment.json --verify \
+  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config /tmp/config.properties</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-oauth-authorization-keycloak-example_str"><a class="link" href="#con-oauth-authorization-keycloak-example_str">4.5.4. Example authorization rules configuration using Authorization Services</a></h4>
+<div class="paragraph">
+<p>This is an end-to-end example of using Keycloak Authorization Services to configure authorization rules for use with <code>keycloak</code> authorization in Strimzi.
+The example starts by deploying the Keycloak server with pre-configured realms, requiring no additional configuration.
+We deploy the Kafka cluster configured to use one of the pre-configured realms.
+We then connect to the Keycloak Admin Console and demonstrate the sections of the user interface where authorizations rules are configured.
+We use Kafka CLI client tools with different personal and service accounts to demonstrate limited access based on the permissions granted to different accounts.</p>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Caution</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>This example is focused on explaining how to use Keycloak Authorization Services.
+To simplify the example, the communication between components is not properly secured with TLS, and the components themselves are not configured with security in mind.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="sect4">
+<h5 id="token_based_authorization_with_keycloak_authorization_services"><a class="link" href="#token_based_authorization_with_keycloak_authorization_services">Token-based authorization with Keycloak Authorization Services</a></h5>
+<div class="paragraph">
+<p>Once the Kafka Broker has obtained an access token by using <code>oauth</code> authentication, it is possible to use centrally managed authorization rules to enforce access restrictions onto Kafka Clients.
+For this, Strimzi Kafka Operator comes with <code>keycloak</code> authorization which uses Keycloak Authorization Services to centrally manage permissions.</p>
+</div>
+<div class="paragraph">
+<p>When using <code>keycloak</code> authorization, a custom authorizer is configured on the Kafka broker that uses Authorization Services REST endpoints available on Keycloak, which provide a list of granted permissions on resources for authenticated users.
+The list of grants (permissions) is fetched as the first action after an authenticated session is established by the Kafka client, and then regularly refreshed in the background.
+Grants are cached and enforced locally on the Kafka broker for each user session to provide fast authorization decisions. Because they are refreshed, any changes to the grants on the Keycloak server are detected and enforced.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="starting_the_pods"><a class="link" href="#starting_the_pods">Starting the pods</a></h5>
+<div class="paragraph">
+<p>For this example, we use the kubernetes deployment scripts available at <a href="https://github.com/strimzi/strimzi-kafka-oauth/tree/0.6.1/examples/kubernetes">https://github.com/strimzi/strimzi-kafka-oauth/tree/0.6.1/examples/kubernetes</a>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">export ROOT=https://raw.githubusercontent.com/strimzi/strimzi-kafka-oauth/0.6.1</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Deploy the Postgres database for Keycloak</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">kubectl apply -f $ROOT/examples/kubernetes/postgres-pvc.yaml
+kubectl apply -f $ROOT/examples/kubernetes/postgres.yaml</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Deploy the Keycloak server</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">kubectl apply -f $ROOT/examples/kubernetes/keycloak-realms-configmap.yaml
+kubectl apply -f $ROOT/examples/kubernetes/keycloak-postgres.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If your default namespace is not <code>myproject</code> (for example, <code>default</code>), use the following to deploy Keycloak:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">curl -s $ROOT/examples/kubernetes/keycloak-postgres.yaml | sed -e "s#myproject#default#" | kubectl apply -f -</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Deploy the minimal Kafka cluster</div>
+<p>Here we assume that the Strimzi Cluster Operator has already been installed on the Kubernetes cluster.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">kubectl apply -f $ROOT/examples/kubernetes/kafka-oauth-single-authz.yaml</code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="using_the_keycloak_admin_console_to_configure_authorization"><a class="link" href="#using_the_keycloak_admin_console_to_configure_authorization">Using the Keycloak Admin Console to configure authorization</a></h5>
+<div class="paragraph">
+<p>We login to the Keycloak Admin Console by creating a tunnel to the keycloak pod:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">kubectl port-forward keycloak 8080</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then we use a browser to connect to <code><a href="http://localhost:8080/auth/admin" class="bare">http://localhost:8080/auth/admin</a></code> using <code>admin</code> as username and password.</p>
+</div>
+<div class="paragraph">
+<p>The default view usually displays the <strong>Master</strong> realm.
+For this example we are interested in the <code>kafka-authz</code> realm, which you can select in the upper left corner.</p>
+</div>
+<div class="paragraph">
+<p>Initially, the <strong>Realm Settings</strong> section is selected, but you can navigate to  <strong>Groups</strong>, <strong>Roles</strong>, <strong>Clients</strong> and <strong>Users</strong>.</p>
+</div>
+<div class="paragraph">
+<p>Under <strong>Groups</strong>, you can view groups to mark users as having some permissions.
+Groups are sets of users with a name assigned. Typically, they are used to compartmentalize users into geographical, organizational or departmental units, and so on.</p>
+</div>
+<div class="paragraph">
+<p>In Keycloak, groups can be stored in an LDAP identity provider.
+That makes it possible to make a user a member of a group through a custom LDAP server admin user interface, for example, to grant them some permissions on Kafka resources.</p>
+</div>
+<div class="paragraph">
+<p>Under <strong>Users</strong>, you can view all defined users. For this example, <code>alice</code> and <code>bob</code> are defined. <code>alice</code> is a member of the <code>ClusterManager Group</code>, and <code>bob</code> is a member of <code>ClusterManager-my-cluster Group</code>.
+In Keycloak, users can be stored in an LDAP identity provider.</p>
+</div>
+<div class="paragraph">
+<p>Under <strong>Roles</strong>, you can view the realm roles to mark users or clients as having some permissions.
+Roles are a concept analogous to groups. They are usually used to <em>tag</em> users with organizational roles and have the requisite permissions.
+Roles cannot be stored in an LDAP identity provider.
+If LDAP is a requirement, you can use groups instead, and add Keycloak roles to the groups so that when users are assigned a group, they also get a corresponding role.</p>
+</div>
+<div class="paragraph">
+<p>Under <strong>Clients</strong>, you can view the additional client configurations. For this example,  <code>kafka</code>, <code>kafka-cli</code>, <code>team-a-client</code>, <code>team-b-client</code> are configured.
+The client with client id <code>kafka</code> is used by Kafka Brokers to perform the necessary OAuth 2.0 communication for access token validation,
+and to authenticate to other Kafka Broker instances using OAuth 2.0 client authentication.
+This client also contains the Authorization Services resource definitions, policies and authorization scopes used to perform authorization on the Kafka Brokers.</p>
+</div>
+<div class="paragraph">
+<p>The client with client id <code>kafka-cli</code> is a public client that can be used by the Kafka command line tools when authenticating with username and password to obtain an access token or a refresh token.</p>
+</div>
+<div class="paragraph">
+<p>Clients <code>team-a-client</code>, and <code>team-b-client</code> are confidential clients representing services with partial access to certain Kafka topics.</p>
+</div>
+<div class="paragraph">
+<p>The authorization configuration is defined in the <code>kafka</code> client from the <strong>Authorization</strong> tab, which becomes visible when <strong>Authorization Enabled</strong> is switched on from the <strong>Settings</strong> tab.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="defining_authorization_services_for_access_control"><a class="link" href="#defining_authorization_services_for_access_control">Defining Authorization Services for access control</a></h5>
+<div class="paragraph">
+<p>Keycloak Authorization Services use authorization scopes, policies and permissions to define and apply access control to resources, as explained in <a href="#keycloak_authorization_services_model_for_managing_permissions">Keycloak Authorization Services model for managing permissions</a>.</p>
+</div>
+<div class="paragraph">
+<p>From <strong>Authorization</strong> / <strong>Permissions</strong> you can see the granted permissions that use resources and policies defined from other <strong>Resources</strong> and <strong>Policies</strong> tabs. For example, the <code>kafka</code> client has the following permissions:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Dev Team A can write to topics that start with x_ on any cluster
+Dev Team B can read from topics that start with x_ on any cluster
+Dev Team B can update consumer group offsets that start with x_ on any cluster
+ClusterManager of my-cluster Group has full access to cluster config on my-cluster
+ClusterManager of my-cluster Group has full access to consumer groups on my-cluster
+ClusterManager of my-cluster Group has full access to topics on my-cluster</pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>Dev Team A can write to topics that start with x_ on any cluster</code> combines a resource called <code>Topic:x_*</code>, scopes <code>Describe</code> and <code>Write</code>, and <code>Dev Team A</code> policy. The <code>Dev Team A</code> policy matches all users that have a realm role called <code>Dev Team A</code>.</p>
+</div>
+<div class="paragraph">
+<p><code>Dev Team B can read from topics that start with x_ on any cluster</code> combines <code>Topic:x_*</code>, and <code>Group:x_*</code> resources, scopes <code>Describe</code> and <code>Read</code>, and <code>Dev Team B</code> policy. The <code>Dev Team A</code> policy matches all users that have a realm role called <code>Dev Team B</code>. Matching users and clients have the ability to read from topics, and update the consumed offsets for topics and consumer groups that have names starting with <code>x_</code>.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="targeting_permissions_using_group_or_role_policies"><a class="link" href="#targeting_permissions_using_group_or_role_policies">Targeting permissions using group or role policies</a></h5>
+<div class="paragraph">
+<p>In Keycloak, confidential clients with service accounts enabled can authenticate to the server in their own name using a client ID and a secret.
+This is convenient for microservices which typically act in their own name, and not as agents of a particular user (like a web site would, for example).
+Service accounts can have roles assigned like regular users.
+They cannot, however, have groups assigned.
+As a consequence, if you want to target permissions to microservices using service accounts, you cannot use group policies, and should instead use role policies.
+Conversely, if you want to limit certain permissions only to regular user accounts where authentication with username and password is required, you can achieve that as a side effect of using the group policies, rather than the role policies.
+That is what is used for permissions that start with <code>ClusterManager</code>.
+Performing cluster management is usually done interactively - in person - using CLI tools.
+It makes sense to require the user to log in, before using the resulting access token to authenticate to the Kafka Broker.
+In this case, the access token represents the specific user, rather than the client application.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="authorization_in_action_using_cli_clients"><a class="link" href="#authorization_in_action_using_cli_clients">Authorization in action using CLI clients</a></h5>
+<div class="paragraph">
+<p>Make sure that authorization rules have been properly imported.</p>
+</div>
+<div class="paragraph">
+<p>From <span class="menuseq"><b class="menu">Clients</b>&#160;<b class="caret">&#8250;</b> <b class="submenu">kafka</b>&#160;<b class="caret">&#8250;</b> <b class="submenu">Authorization</b>&#160;<b class="caret">&#8250;</b> <b class="menuitem">Settings</b></span> make sure that <strong>Decision Strategy</strong> is set to <strong>Affirmative</strong>, and NOT to <strong>Unanimous</strong>.
+Navigate in Keycloak to check that the expected resources, authorization claims, policies and permissions are defined.</p>
+</div>
+<div class="paragraph">
+<p>With the configuration in place, we can check access to Kafka by using a producer and consumer to create topics using different user and service accounts.</p>
+</div>
+<div class="paragraph">
+<p>First, a new interactive pod container is run using a Strimzi Kafka image to connect to a running Kafka broker.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl run -ti --rm --restart=Never --image=quay.io/strimzi/kafka:latest-kafka-2.7.0 kafka-cli -- /bin/sh</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If <code>kubectl</code> times out waiting on the image download, subsequent attempts may result in an <em>AlreadyExists</em> error.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>You can attach to the existing pod by running:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl attach -ti kafka-cli</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To produce messages as client <code>team-a-client</code>, we prepare a Kafka client configuration file with authentication parameters:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">cat &gt; /tmp/team-a-client.properties &lt;&lt; EOF
+security.protocol=SASL_PLAINTEXT
+sasl.mechanism=OAUTHBEARER
+sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+  oauth.client.id="team-a-client" \
+  oauth.client.secret="team-a-client-secret" \
+  oauth.token.endpoint.uri="http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token" ;
+sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+EOF</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The roles assigned to a client, such as the <code>Dev Team A</code> realm role assigned to the <code>team-a-client</code> service account, are presented in Keycloak on the  <strong>Service Account Roles</strong> tab from <strong>Clients</strong>.</p>
+</div>
+<div class="paragraph">
+<p>We can use this configuration from the Kafka CLI to produce and consume messages, and perform other administration tasks.</p>
+</div>
+<div class="paragraph">
+<div class="title">Producing messages with authorized access</div>
+<p>The <code>team-a-client</code> configuration is used to produce messages to topic <code>my-topic</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic my-topic \
+  --producer.config=/tmp/team-a-client.properties
+First message</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A <code>Not authorized to access topics: [my-topic]</code> error is returned when trying to push the first message.</p>
+</div>
+<div class="paragraph">
+<p><code>team-a-client</code> has a <code>Dev Team A</code> role that gives it permission to perform any supported actions on topics that start with <code>a_</code>, but can only write to topics that start with <code>x_</code>.
+The topic named <code>my-topic</code> matches neither of those rules.</p>
+</div>
+<div class="paragraph">
+<p>The <code>team-a-client</code> configuration is then used to produce messages to topic <code>a_messages</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic a_messages \
+  --producer.config /tmp/team-a-client.properties
+First message
+Second message</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The messages are pushed out successfully, and in the Kafka container log there is DEBUG level output saying <code>Authorization GRANTED</code>.</p>
+</div>
+<div class="paragraph">
+<p>Use CTRL-C to exit the CLI application.</p>
+</div>
+<div class="paragraph">
+<p>You can see the Kafka container log by running:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl logs my-cluster-kafka-0 -f</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Consuming messages with authorized access</div>
+<p>The <code>team-a-client</code> configuration is used to consume messages from topic <code>a_messages</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic a_messages \
+  --from-beginning --consumer.config /tmp/team-a-client.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>An error is returned as the <code>Dev Team A</code> role for <code>team-a-client</code> only has access to consumer groups that have names starting with <code>a_</code>.
+The <code>team-a-client</code> configuration is then used to consume messages when specifying a custom consumer group with a name that starts with <code>a_</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic a_messages \
+  --from-beginning --consumer.config /tmp/team-a-client.properties --group a_consumer_group_1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This time the consumer receives all the messages from the <code>a_messages</code> topic.</p>
+</div>
+<div class="paragraph">
+<div class="title">Administering Kafka with authorized access</div>
+<p>The <code>team-a-client</code> configuration is used in administrative operations.</p>
+</div>
+<div class="paragraph">
+<p>Listing topics returns the <code>a_messages</code> topic:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config /tmp/team-a-client.properties --list</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Listing consumer groups returns the <code>a_consumer_group_1</code> consumer group:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-consumer-groups.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config /tmp/team-a-client.properties --list</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Fetching the default cluster configuration fails cluster authorization, because the operation requires cluster level permissions that <code>team-a-client</code> does not have:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-configs.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config /tmp/team-a-client.properties \
+  --entity-type brokers --describe --entity-default</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Using clients with different permissions</div>
+<p>As with <code>team-a-client</code>, we prepare a Kafka client configuration file with authentication parameters for <code>team-b-client</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">cat &gt; /tmp/team-b-client.properties &lt;&lt; EOF
+security.protocol=SASL_PLAINTEXT
+sasl.mechanism=OAUTHBEARER
+sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+  oauth.client.id="team-b-client" \
+  oauth.client.secret="team-b-client-secret" \
+  oauth.token.endpoint.uri="http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token" ;
+sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+EOF</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>team-b-client</code> client configuration includes a <code>Dev Team B</code> realm role and permissions that start with <code>Dev Team B &#8230;&#8203;</code>. These match the users and service accounts that have the <code>Dev Team B</code> realm role assigned to them.
+The <code>Dev Team B</code> users have full access to topics beginning with <code>b_</code> on the Kafka cluster <code>my-cluster</code>, the name of the designated cluster, and read access on topics that start with <code>x_</code>.</p>
+</div>
+<div class="paragraph">
+<p>The <code>team-b-client</code> configuration is used to produce messages to topic <code>a_messages</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic a_messages \
+  --producer.config /tmp/team-b-client.properties
+Message 1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A <code>Not authorized to access topics: [a_messages]</code> error is returned when trying to push the first message, as expected, so we switch to topic <code>b_messages</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic b_messages \
+  --producer.config /tmp/team-b-client.properties
+Message 1
+Message 2
+Message 3</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Producing messages to topic <code>b_messages</code> is authorized and successful.</p>
+</div>
+<div class="paragraph">
+<p>We switch again, but this time to a topic that <code>team-b-client</code> can only read from, topic <code>x_messages</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic x_messages \
+  --producer.config /tmp/team-b-client.properties
+Message 1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A <code>Not authorized to access topics: [x_messages]</code> error is returned, as expected, so we switch to <code>team-a-client</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic x_messages \
+  --producer.config /tmp/team-a-client.properties
+Message 1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A <code>Not authorized to access topics: [x_messages]</code> error is returned again. Though <code>team-a-client</code> can write to the <code>x_messages</code> topic, it it does not have a permission to create a topic if it does not yet exist.</p>
+</div>
+<div class="paragraph">
+<p>Before <code>team-a-client</code> can write to the <code>x_messages</code> topic, a admin <em>power user</em> must create it with the correct configuration, such as the number of partitions and replicas.</p>
+</div>
+<div class="paragraph">
+<div class="title">Managing Kafka with an authorized admin</div>
+<p>Admin user <code>bob</code> is created with full access to manage everything on the Kafka cluster <code>my-cluster</code>.</p>
+</div>
+<div class="paragraph">
+<p>Helper scripts are used to authenticate to the <code>keycloak</code> instance.</p>
+</div>
+<div class="paragraph">
+<p>The following scripts are downloaded to <code>/tmp</code> dir and made executable:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">curl https://raw.githubusercontent.com/strimzi/strimzi-kafka-oauth/0.6.1/examples/docker/kafka-oauth-strimzi/kafka/oauth.sh -s > /tmp/oauth.sh
+   chmod +x /tmp/oauth.sh
+
+curl https://raw.githubusercontent.com/strimzi/strimzi-kafka-oauth/0.6.1/examples/docker/kafka-oauth-strimzi/kafka/jwt.sh -s > /tmp/jwt.sh
+   chmod +x /tmp/jwt.sh</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>User <code>bob</code> authenticates to the Keycloak server with his username and password to get a refresh token:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">export TOKEN_ENDPOINT=http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token
+REFRESH_TOKEN=$(/tmp/oauth.sh -q bob)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When prompted for a password, 'bob-password' is used.</p>
+</div>
+<div class="paragraph">
+<p>The refresh token in this case is an offline token which is a long-lived refresh token that does not expire:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre> /tmp/jwt.sh $REFRESH_TOKEN</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A configuration file is created for <code>bob</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">cat &gt; /tmp/bob.properties &lt;&lt; EOF
+security.protocol=SASL_PLAINTEXT
+sasl.mechanism=OAUTHBEARER
+sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+  oauth.refresh.token="$REFRESH_TOKEN" \
+  oauth.client.id="kafka-cli" \
+  oauth.token.endpoint.uri="http://keycloak:8080/auth/realms/kafka-authz/protocol/openid-connect/token" ;
+sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+EOF</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>kafka-cli</code> public client is used for the <code>oauth.client.id</code> in the <code>sasl.jaas.config</code>.
+Since that is a public client it does not require a Secret.
+We can use this because we authenticate with a token directly. In this case, the refresh token requests an access token behind the scenes, which is then sent to the Kafka broker for authentication. The refresh token has already been authenticated.</p>
+</div>
+<div class="paragraph">
+<p>User <code>bob</code> has permission to create the <code>x_messages</code> topic:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config /tmp/bob.properties \
+  --topic x_messages --create --replication-factor 1 --partitions 1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>User <code>bob</code> can list the topic, but <code>team-a-client</code> and <code>team-b-client</code> cannot:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config /tmp/bob.properties --list
+bin/kafka-topics.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config /tmp/team-a-client.properties --list
+bin/kafka-topics.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config /tmp/team-b-client.properties --list</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>Dev Team A</code>, and <code>Dev Team B</code> roles both have <code>Describe</code> permission on topics that start with <code>x_</code>, but they cannot see the other team&#8217;s topics as they do not have <code>Describe</code> permissions on them.</p>
+</div>
+<div class="paragraph">
+<p>The <code>team-a-client</code> can now successfully produce to the <code>x_messages</code> topic:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic x_messages \
+  --producer.config /tmp/team-a-client.properties
+Message 1
+Message 2
+Message 3</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>As expected, <code>team-b-client</code> still cannot produce to the <code>x_messages</code> topic, and the following operation returns an error:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic x_messages \
+  --producer.config /tmp/team-b-client.properties
+Message 4
+Message 5</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>However, due to its Keycloak settings <code>team-b-client</code> can consume messages from the <code>x_messages</code> topic:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic x_messages \
+  --from-beginning --consumer.config /tmp/team-b-client.properties --group x_consumer_group_b</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Conversely, even though <code>team-a-client</code> can write to topic <code>x_messages</code>, the following read request returns a <code>Not authorized to access group: x_consumer_group_a</code> error:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic x_messages \
+  --from-beginning --consumer.config /tmp/team-a-client.properties --group x_consumer_group_a</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A consumer group that begins with <code>a_</code> is used in the next read request:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic x_messages \
+  --from-beginning --consumer.config /tmp/team-a-client.properties --group a_consumer_group_a</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>An error is still returned, but this time it is <code>Not authorized to access topics: [x_messages]</code>.</p>
+</div>
+<div class="paragraph">
+<p><code>Dev Team A</code> has no <code>Read</code> access on topics that start with 'x_'.</p>
+</div>
+<div class="paragraph">
+<p>User <code>bob</code> can read from or write to any topic:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic x_messages \
+  --from-beginning --consumer.config /tmp/bob.properties</code></pre>
+</div>
+</div>
 </div>
 </div>
 </div>
