@@ -1232,10 +1232,10 @@ The external source data must reference specific topics that will store the mess
 </div>
 </div>
 <div class="paragraph">
-<p>You can add other connectors using connector plugins, which are a set of JAR files that define the implementation required to connect to certain types of external system.</p>
+<p>You can add other connectors using connector plugins, which are a set of JAR files or TGZ archives that define the implementation required to connect to certain types of external system.</p>
 </div>
 <div class="paragraph">
-<p>You create a custom Kafka Connect image that uses new Kafka Connect plugins.</p>
+<p>You create a custom Kafka Connect image that uses new connector plugins.</p>
 </div>
 <div class="paragraph">
 <p>To create the image, you can use:</p>
@@ -1243,12 +1243,47 @@ The external source data must reference specific topics that will store the mess
 <div class="ulist">
 <ul>
 <li>
-<p>A Kafka container image on <a href="https://quay.io/organization/strimzi" target="_blank" rel="noopener">Container Registry</a> as a base image</p>
+<p>Kafka Connect configuration so that Strimzi creates the new image automatically.</p>
 </li>
 <li>
-<p>OpenShift <a href="https://docs.okd.io/3.11/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a> and the <a href="https://docs.okd.io/3.11/creating_images/s2i.html" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images</p>
+<p>A Kafka container image on <a href="https://quay.io/organization/strimzi" target="_blank" rel="noopener">Container Registry</a> as a base image.</p>
+</li>
+<li>
+<p>OpenShift <a href="https://docs.okd.io/3.11/dev_guide/builds/index.html" target="_blank" rel="noopener">builds</a> and the <a href="https://docs.okd.io/3.11/creating_images/s2i.html" target="_blank" rel="noopener">Source-to-Image (S2I)</a> framework to create new container images.</p>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>For Strimzi to create the new image automatically, a <code>build</code> configuration requires <code>output</code> properties to reference a container registry that stores the container image,
+and <code>plugins</code> properties to list the connector plugins and their artifacts to add to the image.</p>
+</div>
+<div class="paragraph">
+<p>The <code>output</code> properties describe the type and name of the image, and optionally the name of the Secret containing the credentials needed to access the container registry.
+The <code>plugins</code> properties describe the type of artifact and the URL from which the artifact is downloaded. Additionally, you can specify a SHA-512 checksum to verify the artifact before unpacking it.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Kafka Connect configuration to create a new image automatically</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: {KafkaConnectApiVersion}
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster
+spec:
+  # ...
+  build:
+    output:
+      type: docker
+      image: my-registry.io/my-org/my-connect-cluster:latest
+      pushSecret: my-registry-credentials
+    plugins:
+      - name: debezium-postgres-connector
+        artifacts:
+          - type: tgz
+            url: https://<em>ARTIFACT-ADDRESS</em>.tgz
+            sha512sum: <em>HASH-NUMBER-TO-VERIFY-ARTIFACT</em>
+      # ...
+  #...</code></pre>
+</div>
 </div>
 <h4 id="managing_connectors" class="discrete">Managing connectors</h4>
 <div class="paragraph">
