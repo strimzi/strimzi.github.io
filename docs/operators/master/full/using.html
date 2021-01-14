@@ -477,11 +477,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#assembly-jmxtrans-str">2.1.5. Retrieving JMX metrics with JmxTrans</a></li>
 <li><a href="#assembly-maintenance-time-windows-str">2.1.6. Maintenance time windows for rolling updates</a></li>
 <li><a href="#proc-connnecting-to-zookeeper-str">2.1.7. Connecting to ZooKeeper from a terminal</a></li>
-<li><a href="#proc-manual-rolling-update-kafka-str">2.1.8. Performing a rolling update of a Kafka cluster</a></li>
-<li><a href="#proc-manual-rolling-update-zookeeper-str">2.1.9. Performing a rolling update of a ZooKeeper cluster</a></li>
-<li><a href="#proc-manual-delete-pod-pvc-kafka-str">2.1.10. Deleting Kafka nodes manually</a></li>
-<li><a href="#proc-manual-delete-pod-pvc-zookeeper-str">2.1.11. Deleting ZooKeeper nodes manually</a></li>
-<li><a href="#ref-list-of-kafka-cluster-resources-str">2.1.12. List of Kafka cluster resources</a></li>
+<li><a href="#proc-manual-delete-pod-pvc-kafka-str">2.1.8. Deleting Kafka nodes manually</a></li>
+<li><a href="#proc-manual-delete-pod-pvc-zookeeper-str">2.1.9. Deleting ZooKeeper nodes manually</a></li>
+<li><a href="#ref-list-of-kafka-cluster-resources-str">2.1.10. List of Kafka cluster resources</a></li>
 </ul>
 </li>
 <li><a href="#assembly-kafka-connect-str">2.2. Kafka Connect/S2I cluster configuration</a>
@@ -730,25 +728,32 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#proc-accessing-resource-status-str">10.1.3. Finding the status of a custom resource</a></li>
 </ul>
 </li>
-<li><a href="#proc-add-service-discovery-str">10.2. Discovering services using labels and annotations</a>
+<li><a href="#assembly-rolling-updates-str">10.2. Manually starting rolling updates of Kafka and ZooKeeper clusters</a>
 <ul class="sectlevel3">
-<li><a href="#returning_connection_details_on_services">10.2.1. Returning connection details on services</a></li>
+<li><a href="#prerequisites">10.2.1. Prerequisites</a></li>
+<li><a href="#proc-manual-rolling-update-statefulset-str">10.2.2. Performing a rolling update using a StatefulSet annotation</a></li>
+<li><a href="#proc-manual-rolling-update-pods-str">10.2.3. Performing a rolling update using a Pod annotation</a></li>
 </ul>
 </li>
-<li><a href="#cluster-recovery-str">10.3. Recovering a cluster from persistent volumes</a>
+<li><a href="#proc-add-service-discovery-str">10.3. Discovering services using labels and annotations</a>
 <ul class="sectlevel3">
-<li><a href="#namespace-deletion_str">10.3.1. Recovery from namespace deletion</a></li>
-<li><a href="#cluster-loss_str">10.3.2. Recovery from loss of a Kubernetes cluster</a></li>
-<li><a href="#cluster-recovery-volume_str">10.3.3. Recovering a deleted cluster from persistent volumes</a></li>
+<li><a href="#returning_connection_details_on_services">10.3.1. Returning connection details on services</a></li>
 </ul>
 </li>
-<li><a href="#assembly-client-config-str">10.4. Tuning client configuration</a>
+<li><a href="#cluster-recovery-str">10.4. Recovering a cluster from persistent volumes</a>
 <ul class="sectlevel3">
-<li><a href="#con-producer-config-properties-str">10.4.1. Kafka producer configuration tuning</a></li>
-<li><a href="#con-consumer-config-properties-str">10.4.2. Kafka consumer configuration tuning</a></li>
+<li><a href="#namespace-deletion_str">10.4.1. Recovery from namespace deletion</a></li>
+<li><a href="#cluster-loss_str">10.4.2. Recovery from loss of a Kubernetes cluster</a></li>
+<li><a href="#cluster-recovery-volume_str">10.4.3. Recovering a deleted cluster from persistent volumes</a></li>
 </ul>
 </li>
-<li><a href="#uninstalling-str">10.5. Uninstalling Strimzi</a></li>
+<li><a href="#assembly-client-config-str">10.5. Tuning client configuration</a>
+<ul class="sectlevel3">
+<li><a href="#con-producer-config-properties-str">10.5.1. Kafka producer configuration tuning</a></li>
+<li><a href="#con-consumer-config-properties-str">10.5.2. Kafka consumer configuration tuning</a></li>
+</ul>
+</li>
+<li><a href="#uninstalling-str">10.6. Uninstalling Strimzi</a></li>
 </ul>
 </li>
 <li><a href="#appendix-faq_str">Appendix A: Frequently asked questions</a>
@@ -3953,10 +3958,10 @@ spec:
 <div class="ulist">
 <ul>
 <li>
-<p><a href="#proc-manual-rolling-update-kafka-str">Performing a rolling update of a Kafka cluster</a></p>
+<p><a href="#proc-manual-rolling-update-statefulset-str">Performing a rolling update using a StatefulSet annotation</a></p>
 </li>
 <li>
-<p><a href="#proc-manual-rolling-update-zookeeper-str">Performing a rolling update of a ZooKeeper cluster</a></p>
+<p><a href="#proc-manual-rolling-update-pods-str">Performing a rolling update using a Pod annotation</a></p>
 </li>
 </ul>
 </div>
@@ -4009,95 +4014,7 @@ ZooKeeper services are secured with encryption and authentication and are not in
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-rolling-update-kafka-str"><a class="link" href="#proc-manual-rolling-update-kafka-str">2.1.8. Performing a rolling update of a Kafka cluster</a></h4>
-<div class="paragraph">
-<p>This procedure describes how to manually trigger a rolling update of an existing Kafka cluster by using a Kubernetes annotation.</p>
-</div>
-<div class="paragraph">
-<div class="title">Prerequisites</div>
-<p>See the <em>Deploying and Upgrading Strimzi</em> guide for instructions on running a:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="./deploying.html#cluster-operator-str" target="_blank" rel="noopener">Cluster Operator</a></p>
-</li>
-<li>
-<p><a href="./deploying.html#deploying-kafka-cluster-str" target="_blank" rel="noopener">Kafka cluster</a></p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Find the name of the <code>StatefulSet</code> that controls the Kafka pods you want to manually update.</p>
-<div class="paragraph">
-<p>For example, if your Kafka cluster is named <em>my-cluster</em>, the corresponding <code>StatefulSet</code> is named <em>my-cluster-kafka</em>.</p>
-</div>
-</li>
-<li>
-<p>Annotate the <code>StatefulSet</code> resource in Kubernetes. For example, using <code>kubectl annotate</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate statefulset <em>cluster-name</em>-kafka strimzi.io/manual-rolling-update=true</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Wait for the next reconciliation to occur (every two minutes by default).
-A rolling update of all pods within the annotated <code>StatefulSet</code> is triggered, as long as the annotation was detected by the reconciliation process.
-When the rolling update of all the pods is complete, the annotation is removed from the <code>StatefulSet</code>.</p>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect3">
-<h4 id="proc-manual-rolling-update-zookeeper-str"><a class="link" href="#proc-manual-rolling-update-zookeeper-str">2.1.9. Performing a rolling update of a ZooKeeper cluster</a></h4>
-<div class="paragraph">
-<p>This procedure describes how to manually trigger a rolling update of an existing ZooKeeper cluster by using a Kubernetes annotation.</p>
-</div>
-<div class="paragraph">
-<div class="title">Prerequisites</div>
-<p>See the <em>Deploying and Upgrading Strimzi</em> guide for instructions on running a:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="./deploying.html#cluster-operator-str" target="_blank" rel="noopener">Cluster Operator</a></p>
-</li>
-<li>
-<p><a href="./deploying.html#deploying-kafka-cluster-str" target="_blank" rel="noopener">Kafka cluster</a></p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Find the name of the <code>StatefulSet</code> that controls the ZooKeeper pods you want to manually update.</p>
-<div class="paragraph">
-<p>For example, if your Kafka cluster is named <em>my-cluster</em>, the corresponding <code>StatefulSet</code> is named <em>my-cluster-zookeeper</em>.</p>
-</div>
-</li>
-<li>
-<p>Annotate the <code>StatefulSet</code> resource in Kubernetes. For example, using <code>kubectl annotate</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate statefulset <em>cluster-name</em>-zookeeper strimzi.io/manual-rolling-update=true</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Wait for the next reconciliation to occur (every two minutes by default).
-A rolling update of all pods within the annotated <code>StatefulSet</code> is triggered, as long as the annotation was detected by the reconciliation process.
-When the rolling update of all the pods is complete, the annotation is removed from the <code>StatefulSet</code>.</p>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect3">
-<h4 id="proc-manual-delete-pod-pvc-kafka-str"><a class="link" href="#proc-manual-delete-pod-pvc-kafka-str">2.1.10. Deleting Kafka nodes manually</a></h4>
+<h4 id="proc-manual-delete-pod-pvc-kafka-str"><a class="link" href="#proc-manual-delete-pod-pvc-kafka-str">2.1.8. Deleting Kafka nodes manually</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to delete an existing Kafka node by using a Kubernetes annotation.
 Deleting a Kafka node consists of deleting both the <code>Pod</code> on which the Kafka broker is running and the related <code>PersistentVolumeClaim</code> (if the cluster was deployed with persistent storage).
@@ -4156,7 +4073,7 @@ Deleting a <code>PersistentVolumeClaim</code> can cause permanent data loss. The
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-delete-pod-pvc-zookeeper-str"><a class="link" href="#proc-manual-delete-pod-pvc-zookeeper-str">2.1.11. Deleting ZooKeeper nodes manually</a></h4>
+<h4 id="proc-manual-delete-pod-pvc-zookeeper-str"><a class="link" href="#proc-manual-delete-pod-pvc-zookeeper-str">2.1.9. Deleting ZooKeeper nodes manually</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to delete an existing ZooKeeper node by using a Kubernetes annotation.
 Deleting a ZooKeeper node consists of deleting both the <code>Pod</code> on which ZooKeeper is running and the related <code>PersistentVolumeClaim</code> (if the cluster was deployed with persistent storage).
@@ -4215,7 +4132,7 @@ Deleting a <code>PersistentVolumeClaim</code> can cause permanent data loss. The
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-list-of-kafka-cluster-resources-str"><a class="link" href="#ref-list-of-kafka-cluster-resources-str">2.1.12. List of Kafka cluster resources</a></h4>
+<h4 id="ref-list-of-kafka-cluster-resources-str"><a class="link" href="#ref-list-of-kafka-cluster-resources-str">2.1.10. List of Kafka cluster resources</a></h4>
 <div class="paragraph">
 <p>The following resources are created by the Cluster Operator in the Kubernetes cluster:</p>
 </div>
@@ -17750,7 +17667,119 @@ The Kafka bootstrap addresses listed in the status do not signify that those end
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-add-service-discovery-str"><a class="link" href="#proc-add-service-discovery-str">10.2. Discovering services using labels and annotations</a></h3>
+<h3 id="assembly-rolling-updates-str"><a class="link" href="#assembly-rolling-updates-str">10.2. Manually starting rolling updates of Kafka and ZooKeeper clusters</a></h3>
+<div class="paragraph">
+<p>Strimzi supports the use of annotations on <code>StatefulSet</code> and <code>Pod</code> resources to manually trigger a rolling update of Kafka and ZooKeeper clusters through the Cluster Operator.
+Rolling updates restart the pods of the resource with new ones.</p>
+</div>
+<div class="paragraph">
+<p>Manually performing a rolling update on a specific pod or set of pods from the same <code>StatefulSet</code> is usually only required in exceptional circumstances.
+However, rather than deleting the pods directly, if you perform the rolling update through the Cluster Operator you ensure that:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The manual deletion of the pod does not conflict with simultaneous Cluster Operator operations, such as deleting other pods in parallel.</p>
+</li>
+<li>
+<p>The Cluster Operator logic handles the Kafka configuration specifications, such as the number of in-sync replicas.</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="prerequisites"><a class="link" href="#prerequisites">10.2.1. Prerequisites</a></h4>
+<div class="paragraph">
+<p>To perform a manual rolling update, you need a running Cluster Operator and Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>See the <em>Deploying and Upgrading Strimzi</em> guide for instructions on running a:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="./deploying.html#cluster-operator-str" target="_blank" rel="noopener">Cluster Operator</a></p>
+</li>
+<li>
+<p><a href="./deploying.html#deploying-kafka-cluster-str" target="_blank" rel="noopener">Kafka cluster</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-manual-rolling-update-statefulset-str"><a class="link" href="#proc-manual-rolling-update-statefulset-str">10.2.2. Performing a rolling update using a StatefulSet annotation</a></h4>
+<div class="paragraph">
+<p>This procedure describes how to manually trigger a rolling update of an existing Kafka cluster or ZooKeeper cluster using a Kubernetes <code>StatefulSet</code> annotation.</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Find the name of the <code>StatefulSet</code> that controls the Kafka or ZooKeeper pods you want to manually update.</p>
+<div class="paragraph">
+<p>For example, if your Kafka cluster is named <em>my-cluster</em>, the corresponding <code>StatefulSet</code> names are <em>my-cluster-kafka</em> and <em>my-cluster-zookeeper</em>.</p>
+</div>
+</li>
+<li>
+<p>Annotate the <code>StatefulSet</code> resource in Kubernetes.</p>
+<div class="paragraph">
+<p>Use <code>kubectl annotate</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate statefulset <em>cluster-name</em>-kafka strimzi.io/manual-rolling-update=true
+
+kubectl annotate statefulset <em>cluster-name</em>-zookeeper strimzi.io/manual-rolling-update=true</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Wait for the next reconciliation to occur (every two minutes by default).
+A rolling update of all pods within the annotated <code>StatefulSet</code> is triggered, as long as the annotation was detected by the reconciliation process.
+When the rolling update of all the pods is complete, the annotation is removed from the <code>StatefulSet</code>.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-manual-rolling-update-pods-str"><a class="link" href="#proc-manual-rolling-update-pods-str">10.2.3. Performing a rolling update using a Pod annotation</a></h4>
+<div class="paragraph">
+<p>This procedure describes how to manually trigger a rolling update of an existing Kafka cluster or ZooKeeper cluster using a Kubernetes <code>Pod</code> annotation.
+When multiple pods from the same <code>StatefulSet</code> are annotated, consecutive rolling updates are performed within the same reconciliation run.</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Find the name of the Kafka or ZooKeeper <code>Pod</code> you want to manually update.</p>
+<div class="paragraph">
+<p>For example, if your Kafka cluster is named <em>my-cluster</em>, the corresponding <code>Pod</code> names are <em>my-cluster-kafka-index</em> and <em>my-cluster-zookeeper-index</em>.
+The <em>index</em> starts at zero and ends at the total number of replicas.</p>
+</div>
+</li>
+<li>
+<p>Annotate the <code>Pod</code> resource in Kubernetes.</p>
+<div class="paragraph">
+<p>Use <code>kubectl annotate</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate pod <em>cluster-name</em>-kafka-<em>index</em> strimzi.io/manual-rolling-update=true
+
+kubectl annotate pod <em>cluster-name</em>-zookeeper-<em>index</em> strimzi.io/manual-rolling-update=true</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Wait for the next reconciliation to occur (every two minutes by default).
+A rolling update of the annotated <code>Pod</code> is triggered, as long as the annotation was detected by the reconciliation process.
+When the rolling update of a pod is complete, the annotation is removed from the <code>Pod</code>.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-add-service-discovery-str"><a class="link" href="#proc-add-service-discovery-str">10.3. Discovering services using labels and annotations</a></h3>
 <div class="paragraph">
 <p>Service discovery makes it easier for client applications running in the same Kubernetes cluster as Strimzi to interact with a Kafka cluster.</p>
 </div>
@@ -17825,7 +17854,7 @@ metadata:
 </div>
 </div>
 <div class="sect3">
-<h4 id="returning_connection_details_on_services"><a class="link" href="#returning_connection_details_on_services">10.2.1. Returning connection details on services</a></h4>
+<h4 id="returning_connection_details_on_services"><a class="link" href="#returning_connection_details_on_services">10.3.1. Returning connection details on services</a></h4>
 <div class="paragraph">
 <p>You can find the services by specifying the discovery label when fetching services from the command line or a corresponding API call.</p>
 </div>
@@ -17840,7 +17869,7 @@ metadata:
 </div>
 </div>
 <div class="sect2">
-<h3 id="cluster-recovery-str"><a class="link" href="#cluster-recovery-str">10.3. Recovering a cluster from persistent volumes</a></h3>
+<h3 id="cluster-recovery-str"><a class="link" href="#cluster-recovery-str">10.4. Recovering a cluster from persistent volumes</a></h3>
 <div class="paragraph">
 <p>You can recover a Kafka cluster from persistent volumes (PVs) if they are still present.</p>
 </div>
@@ -17858,7 +17887,7 @@ metadata:
 </ul>
 </div>
 <div class="sect3">
-<h4 id="namespace-deletion_str"><a class="link" href="#namespace-deletion_str">10.3.1. Recovery from namespace deletion</a></h4>
+<h4 id="namespace-deletion_str"><a class="link" href="#namespace-deletion_str">10.4.1. Recovery from namespace deletion</a></h4>
 <div class="paragraph">
 <p>Recovery from namespace deletion is possible because of the relationship between persistent volumes and namespaces.
 A <code>PersistentVolume</code> (PV) is a storage resource that lives outside of a namespace.
@@ -17936,14 +17965,14 @@ Otherwise they will not be deleted, and may cause unnecessary expenditure on res
 </div>
 </div>
 <div class="sect3">
-<h4 id="cluster-loss_str"><a class="link" href="#cluster-loss_str">10.3.2. Recovery from loss of a Kubernetes cluster</a></h4>
+<h4 id="cluster-loss_str"><a class="link" href="#cluster-loss_str">10.4.2. Recovery from loss of a Kubernetes cluster</a></h4>
 <div class="paragraph">
 <p>When a cluster is lost, you can use the data from disks/volumes to recover the cluster if they were preserved within the infrastructure.
 The recovery procedure is the same as with namespace deletion, assuming PVs can be recovered and they were created manually.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="cluster-recovery-volume_str"><a class="link" href="#cluster-recovery-volume_str">10.3.3. Recovering a deleted cluster from persistent volumes</a></h4>
+<h4 id="cluster-recovery-volume_str"><a class="link" href="#cluster-recovery-volume_str">10.4.3. Recovering a deleted cluster from persistent volumes</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to recover a deleted cluster from persistent volumes (PVs).</p>
 </div>
@@ -18273,7 +18302,7 @@ You specify the required configuration using the properties described in <a href
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-client-config-str"><a class="link" href="#assembly-client-config-str">10.4. Tuning client configuration</a></h3>
+<h3 id="assembly-client-config-str"><a class="link" href="#assembly-client-config-str">10.5. Tuning client configuration</a></h3>
 <div class="paragraph">
 <p>Use configuration properties to optimize the performance of Kafka producers and consumers.</p>
 </div>
@@ -18288,7 +18317,7 @@ Or you can change the configuration to provide stronger message durability guara
 then make incremental changes and further comparisons until you have the configuration you need.</p>
 </div>
 <div class="sect3">
-<h4 id="con-producer-config-properties-str"><a class="link" href="#con-producer-config-properties-str">10.4.1. Kafka producer configuration tuning</a></h4>
+<h4 id="con-producer-config-properties-str"><a class="link" href="#con-producer-config-properties-str">10.5.1. Kafka producer configuration tuning</a></h4>
 <div class="paragraph">
 <p>Use a basic producer configuration with optional properties that are tailored to specific use cases.</p>
 </div>
@@ -18663,7 +18692,7 @@ The default is <code>120000</code> or 2 minutes.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-consumer-config-properties-str"><a class="link" href="#con-consumer-config-properties-str">10.4.2. Kafka consumer configuration tuning</a></h4>
+<h4 id="con-consumer-config-properties-str"><a class="link" href="#con-consumer-config-properties-str">10.5.2. Kafka consumer configuration tuning</a></h4>
 <div class="paragraph">
 <p>Use a basic consumer configuration with optional properties that are tailored to specific use cases.</p>
 </div>
@@ -19079,7 +19108,7 @@ max.poll.records=500 <b class="conum">(3)</b>
 </div>
 </div>
 <div class="sect2">
-<h3 id="uninstalling-str"><a class="link" href="#uninstalling-str">10.5. Uninstalling Strimzi</a></h3>
+<h3 id="uninstalling-str"><a class="link" href="#uninstalling-str">10.6. Uninstalling Strimzi</a></h3>
 <div class="paragraph">
 <p>This procedure describes how to uninstall Strimzi and remove resources related to the deployment.</p>
 </div>
@@ -32525,7 +32554,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-01-14 09:25:07 UTC
+Last updated 2021-01-14 10:31:48 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
