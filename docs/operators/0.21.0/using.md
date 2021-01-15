@@ -1,5 +1,5 @@
 ---
-title: Using Strimzi (0.20.1)
+title: Using Strimzi (0.21.0)
 layout: default
 ---
 
