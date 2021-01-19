@@ -502,7 +502,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#con-kafka-connect-multiple-instances-str">4.2.2. Kafka Connect configuration for multiple instances</a></li>
 <li><a href="#using-kafka-connect-with-plug-ins-str">4.2.3. Extending Kafka Connect with connector plug-ins</a></li>
 <li><a href="#con-creating-managing-connectors-str">4.2.4. Creating and managing connectors</a></li>
-<li><a href="#proc-deploying-kafkaconnector-str">4.2.5. Deploying a <code>KafkaConnector</code> resource to Kafka Connect</a></li>
+<li><a href="#proc-deploying-kafkaconnector-str">4.2.5. Deploying the example <code>KafkaConnector</code> resources</a></li>
 <li><a href="#proc-manual-restart-connector-str">4.2.6. Performing a restart of a Kafka connector</a></li>
 <li><a href="#proc-manual-restart-connector-task-str">4.2.7. Performing a restart of a Kafka connector task</a></li>
 </ul>
@@ -3366,21 +3366,52 @@ For instructions, see <a href="./using.html#proc-kafka-connect-config-str" targe
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-deploying-kafkaconnector-str"><a class="link" href="#proc-deploying-kafkaconnector-str">4.2.5. Deploying a <code>KafkaConnector</code> resource to Kafka Connect</a></h4>
+<h4 id="proc-deploying-kafkaconnector-str"><a class="link" href="#proc-deploying-kafkaconnector-str">4.2.5. Deploying the example <code>KafkaConnector</code> resources</a></h4>
 <div class="paragraph">
-<p>This procedure describes how to deploy the example <code>KafkaConnector</code> to a Kafka Connect cluster.</p>
+<p>Strimzi includes an example <code>KafkaConnector</code> in <code>examples/connect/source-connector.yaml</code>.
+This creates a basic <code>FileStreamSourceConnector</code> instance that sends each line of the Kafka license file (an example file source) to a single Kafka topic.</p>
 </div>
 <div class="paragraph">
-<p>The example YAML will create a <code>FileStreamSourceConnector</code> to send each line of the license file to Kafka as a message in a topic named <code>my-topic</code>.</p>
+<p>This procedure describes how to create:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A <code>FileStreamSourceConnector</code> that reads data from the Kafka license file (the source) and writes the data as messages to a Kafka topic.</p>
+</li>
+<li>
+<p>A <code>FileStreamSinkConnector</code> that reads messages from the Kafka topic and writes the messages to a temporary file (the sink).</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>In a production environment, you prepare container images containing your desired Kafka Connect connectors, as described in <a href="#using-kafka-connect-with-plug-ins-str">Extending Kafka Connect with connector plug-ins</a>.</p>
+</div>
+<div class="paragraph">
+<p>The <code>FileStreamSourceConnector</code> and <code>FileStreamSinkConnector</code> are provided as examples. Running these connectors in containers as described here is unlikely to be suitable for production use cases.</p>
+</div>
+</td>
+</tr>
+</table>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
 <li>
-<p>A Kafka Connect deployment in which <a href="./using.html#proc-enabling-kafkaconnectors-deployment-configuration-kafka-connect" target="_blank" rel="noopener"><code>KafkaConnectors</code> are enabled</a></p>
+<p>A Kafka Connect deployment</p>
 </li>
 <li>
-<p>A running Cluster Operator</p>
+<p><a href="./using.html#proc-enabling-kafkaconnectors-deployment-configuration-kafka-connect" target="_blank" rel="noopener"><code>KafkaConnectors</code> are enabled</a></p>
+</li>
+<li>
+<p>The Cluster Operator is running</p>
 </li>
 </ul>
 </div>
@@ -3401,33 +3432,39 @@ spec:
   class: org.apache.kafka.connect.file.FileStreamSourceConnector <b class="conum">(3)</b>
   tasksMax: 2 <b class="conum">(4)</b>
   config: <b class="conum">(5)</b>
-    file: "/opt/kafka/LICENSE"
-    topic: my-topic
+    file: "/opt/kafka/LICENSE" <b class="conum">(6)</b>
+    topic: my-topic <b class="conum">(7)</b>
     # ...</code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <ol>
 <li>
-<p>Enter a name for the <code>KafkaConnector</code> resource. This will be used as the name of the connector within Kafka Connect. You can choose any name that is valid for a Kubernetes resource.</p>
+<p>Name of the <code>KafkaConnector</code> resource, which is used as the name of the connector. Use any name that is valid for a Kubernetes resource.</p>
 </li>
 <li>
-<p>Enter the name of the Kafka Connect cluster in which to create the connector.</p>
+<p>Name of the Kafka Connect cluster to create the connector in.</p>
 </li>
 <li>
-<p>The name or alias of the connector class. This should be present in the image being used by the Kafka Connect cluster.</p>
+<p>Full name or alias of the connector class. This should be present in the image being used by the Kafka Connect cluster.</p>
 </li>
 <li>
-<p>The maximum number of tasks that the connector can create.</p>
+<p>Maximum number of Kafka Connect <code>Tasks</code> that the connector can create.</p>
 </li>
 <li>
-<p>Configuration settings for the connector. Available configuration options depend on the connector class.</p>
+<p><a href="#kafkaconnector-configs">Connector configuration</a> as key-value pairs.</p>
+</li>
+<li>
+<p>This example source connector configuration reads data from the <code>/opt/kafka/LICENSE</code> file.</p>
+</li>
+<li>
+<p>Kafka topic to publish the source data to.</p>
 </li>
 </ol>
 </div>
 </li>
 <li>
-<p>Create the <code>KafkaConnector</code> in your Kubernetes cluster:</p>
+<p>Create the source <code>KafkaConnector</code> in your Kubernetes cluster:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/connect/source-connector.yaml</code></pre>
@@ -3435,14 +3472,163 @@ spec:
 </div>
 </li>
 <li>
-<p>Check that the resource was created:</p>
+<p>Create an <code>examples/connect/sink-connector.yaml</code> file:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kctr --selector strimzi.io/cluster=my-connect-cluster -o name</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">touch examples/connect/sink-connector.yaml</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Paste the following YAML into the <code>sink-connector.yaml</code> file:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnector
+metadata:
+  name: my-sink-connector
+  labels:
+    strimzi.io/cluster: my-connect
+spec:
+  class: org.apache.kafka.connect.file.FileStreamSinkConnector <b class="conum">(1)</b>
+  tasksMax: 2
+  config: <b class="conum">(2)</b>
+    file: "/tmp/my-file" <b class="conum">(3)</b>
+    topics: my-topic <b class="conum">(4)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Full name or alias of the connector class. This should be present in the image being used by the Kafka Connect cluster.</p>
+</li>
+<li>
+<p><a href="#kafkaconnector-configs">Connector configuration</a> as key-value pairs.</p>
+</li>
+<li>
+<p>Temporary file to publish the source data to.</p>
+</li>
+<li>
+<p>Kafka topic to read the source data from.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Create the sink <code>KafkaConnector</code> in your Kubernetes cluster:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/connect/sink-connector.yaml</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Check that the connector resources were created:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kctr --selector strimzi.io/cluster=<em>MY-CONNECT-CLUSTER</em> -o name
+
+my-source-connector
+my-sink-connector</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace <em>MY-CONNECT-CLUSTER</em> with your Kafka Connect cluster.</p>
+</div>
+</li>
+<li>
+<p>In the container, execute <code>kafka-console-consumer.sh</code> to read the messages that were written to the topic by the source connector:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec <em>MY-CLUSTER</em>-kafka-0 -i -t -- bin/kafka-console-consumer.sh --bootstrap-server <em>MY-CLUSTER</em>-kafka-bootstrap.<em>NAMESPACE</em>.svc:9092 --topic my-topic --from-beginning</code></pre>
 </div>
 </div>
 </li>
 </ol>
+</div>
+<h5 id="kafkaconnector-configs" class="discrete">Source and sink connector configuration options</h5>
+<div class="paragraph">
+<p>The connector configuration is defined in the <code>spec.config</code> property of the <code>KafkaConnector</code> resource.</p>
+</div>
+<div class="paragraph">
+<p>The <code>FileStreamSourceConnector</code> and <code>FileStreamSinkConnector</code> classes support the same configuration options as the Kafka Connect REST API.
+Other connectors support different configuration options.</p>
+</div>
+<table class="tableblock frame-all grid-all stripes-none stretch">
+<caption class="title">Table 2. Configuration options for the <code>FileStreamSource</code> connector class</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Default value</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>file</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">String</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Null</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Source file to write messages to. If not specified, the standard input is used.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>topic</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">List</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Null</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The Kafka topic to publish data to.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="tableblock frame-all grid-all stripes-none stretch">
+<caption class="title">Table 3. Configuration options for <code>FileStreamSinkConnector</code> class</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Default value</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>file</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">String</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Null</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Destination file to write messages to. If not specified, the standard output is used.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>topics</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">List</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Null</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">One or more Kafka topics to read data from.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>topics.regex</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">String</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Null</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A regular expression matching one or more Kafka topics to read data from.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#con-creating-managing-connectors-str">Creating and managing connectors</a></p>
+</li>
+</ul>
 </div>
 </div>
 <div class="sect3">
@@ -4368,7 +4554,7 @@ For example, the value of a label may be derived from the name of a Kafka server
 When deploying Prometheus metrics configuration, you can can deploy the example custom resource or copy the metrics configuration to your own custom resource definition.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 2. Example custom resources with metrics configuration</caption>
+<caption class="title">Table 4. Example custom resources with metrics configuration</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -5607,7 +5793,7 @@ The delay might be a result of a configuration issue preventing a producer from 
 <p>The data extracted is described here.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 3. Broker metrics output</caption>
+<caption class="title">Table 5. Broker metrics output</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -5626,7 +5812,7 @@ The delay might be a result of a configuration issue preventing a producer from 
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 4. Topic metrics output</caption>
+<caption class="title">Table 6. Topic metrics output</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -5673,7 +5859,7 @@ The delay might be a result of a configuration issue preventing a producer from 
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 5. Consumer group metrics output</caption>
+<caption class="title">Table 7. Consumer group metrics output</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -8166,7 +8352,7 @@ You must format the value of <code>log.message.format.version</code> and <code>i
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-01-19 11:30:12 UTC
+Last updated 2021-01-19 14:28:23 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
