@@ -6,7 +6,7 @@ author: jakub_scholz
 ---
 
 Scalability is one of the flagship features of Apache Kafka.
-It is achieved by partitioning the data and distributing them across multiple brokers.
+It is achieved by partitioning the data and distributing the partitions across multiple brokers.
 Such data sharding has also a big impact on how Kafka clients connect to the brokers.
 This is especially visible when Kafka is running within a platform like Kubernetes but is accessed from outside of that platform.
 This blog-series will explain how Kafka and its clients work and how Strimzi deals with it to make it accessible for clients running outside of Kubernetes.
@@ -28,7 +28,7 @@ The clients writing to or reading from a given partition have to connect directl
 Thanks to the clients connecting directly to the individual brokers, the brokers don't need to do any forwarding of data between the clients and other brokers.
 That helps to significantly reduce the amount of work the brokers have to do and the amount of traffic flowing around within the cluster.
 The only data traffic between the different brokers is due to replication, when the follower brokers are fetching data from the lead broker for a given partition.
-That makes the data shards independent on each other and that makes Kafka scale so well.
+That makes the data shards independent of each other and that makes Kafka scale so well.
 
 ![Clients connecting to partitions]({{ "/assets/images/posts/2019-04-17-connecting-to-leader.png" }})
 
@@ -38,13 +38,13 @@ But how do the clients know where to connect?
 
 Kafka has its own discovery protocol.
 When a Kafka client is connecting to the Kafka cluster, it first connects to any broker which is member of the cluster and asks it for _metadata_ for one or more topics.
-These _metadata_ contain the information about the topics, its partitions and brokers which host these partitions.
-All brokers should have these data for the whole cluster because they are all synced through Zookeeper.
+The _metadata_ contains the information about the topics, their partitions and brokers which host these partitions.
+All brokers should have this data for the whole cluster because they are all synced through Zookeeper.
 Therefore it doesn't matter to which broker the client connected as first - all of them will give it the same response.
 
 ![Connection flow between Kafka client and Kafka cluster]({{ "/assets/images/posts/2019-04-17-connection-flow.png" }})
 
-Once the client gets the _metadata_, it will use them to figure out where to connect when it wants to write to or read from given partition.
+Once received, the client will use the _metadata_ to figure out where to connect when it wants to write to or read from a given partition.
 The broker addresses used in the _metadata_ will be either created by the broker itself based on the hostname of the machine where the broker runs.
 Or it can be configured by the user using the `advertised.listeners` option.
 The client will use the address from the _metadata_ to open one or more new connections to the addresses of the brokers which hosts the particular partitions it is interested in.
