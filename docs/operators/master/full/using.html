@@ -20007,7 +20007,7 @@ spec:
 <div class="sect3">
 <h4 id="con-common-configuration-jvm-reference"><a class="link" href="#con-common-configuration-jvm-reference">B.1.9. <code>jvmOptions</code></a></h4>
 <div class="paragraph">
-<p>The following components of Strimzi run inside a Virtual Machine (VM):</p>
+<p>The following Strimzi components run inside a Java Virtual Machine (JVM):</p>
 </div>
 <div class="ulist">
 <ul>
@@ -20029,8 +20029,7 @@ spec:
 </ul>
 </div>
 <div class="paragraph">
-<p>JVM configuration options optimize the performance for different platforms and architectures,
-and can be configured using the <code>jvmOptions</code> property in following resources:</p>
+<p>To optimize their performance on different platforms and architectures, you configure the <code>jvmOptions</code> property in the following resources:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -20058,19 +20057,34 @@ and can be configured using the <code>jvmOptions</code> property in following re
 </ul>
 </div>
 <div class="paragraph">
-<p>Only the following JVM options are supported:</p>
+<p>You can specify the following options in your configuration:</p>
 </div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1"><code>-Xms</code></dt>
 <dd>
-<p>Configures the minimum initial allocation heap size when the JVM starts.</p>
+<p>Minimum initial allocation heap size when the JVM starts.</p>
 </dd>
 <dt class="hdlist1"><code>-Xmx</code></dt>
 <dd>
-<p>Configures the maximum heap size.</p>
+<p>Maximum heap size.</p>
+</dd>
+<dt class="hdlist1"><code>-XX</code></dt>
+<dd>
+<p>Advanced runtime options for the JVM.</p>
+</dd>
+<dt class="hdlist1"><code>javaSystemProperties</code></dt>
+<dd>
+<p>Additional system properties.</p>
+</dd>
+<dt class="hdlist1"><code>gcLoggingEnabled</code></dt>
+<dd>
+<p><a href="#con-common-configuration-garbage-collection-reference">Enables garbage collector logging</a>.</p>
 </dd>
 </dl>
+</div>
+<div class="paragraph">
+<p>The full schema of <code>jvmOptions</code> is described in <a href="#type-JvmOptions-reference"><code>JvmOptions</code> schema reference</a>.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -20079,15 +20093,16 @@ and can be configured using the <code>jvmOptions</code> property in following re
 <div class="title">Note</div>
 </td>
 <td class="content">
-The units accepted by JVM settings such as <code>-Xmx</code> and <code>-Xms</code> are those accepted by the JDK <code>java</code> binary in the corresponding image.
-Accordingly, <code>1g</code> or <code>1G</code> means 1,073,741,824 bytes, and <code>Gi</code> is not a valid unit suffix.
-This is in contrast to the units used for <a href="#con-common-configuration-resources-reference">memory requests and limits</a>, which follow the Kubernetes convention where <code>1G</code> means 1,000,000,000 bytes, and <code>1Gi</code> means 1,073,741,824 bytes
+The units accepted by JVM settings, such as <code>-Xmx</code> and <code>-Xms</code>, are the same units accepted by the JDK <code>java</code> binary in the corresponding image.
+Therefore, <code>1g</code> or <code>1G</code> means 1,073,741,824 bytes, and <code>Gi</code> is not a valid unit suffix.
+This is different from the units used for <a href="#con-common-configuration-resources-reference">memory requests and limits</a>, which follow the Kubernetes convention where <code>1G</code> means 1,000,000,000 bytes, and <code>1Gi</code> means 1,073,741,824 bytes
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>The default values used for <code>-Xms</code> and <code>-Xmx</code> depends on whether there is a <a href="#con-common-configuration-resources-reference">memory request</a> limit configured for the container.</p>
+<div class="title"><code>-Xms</code> and <code>-Xmx</code> options</div>
+<p>The default values used for <code>-Xms</code> and <code>-Xmx</code> depend on whether there is a <a href="#con-common-configuration-resources-reference">memory request</a> limit configured for the container.</p>
 </div>
 <div class="ulist">
 <ul>
@@ -20095,19 +20110,12 @@ This is in contrast to the units used for <a href="#con-common-configuration-res
 <p>If there is a memory limit, the JVM&#8217;s minimum and maximum memory is set to a value corresponding to the limit.</p>
 </li>
 <li>
-<p>If there is no memory limit, the JVM&#8217;s minimum memory is set to <code>128M</code>. The JVM&#8217;s maximum memory is not defined to allow the memory to grow as needed, which is ideal for single node environments in test and development.</p>
+<p>If there is no memory limit, the JVM&#8217;s minimum memory is set to <code>128M</code>. The JVM&#8217;s maximum memory is not defined to allow the memory to increase as needed. This is ideal for single node environments in test and development.</p>
 </li>
 </ul>
 </div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
 <div class="paragraph">
-<p>Setting <code>-Xmx</code> explicitly requires some care:</p>
+<p>Before setting <code>-Xmx</code> explicitly consider the following:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -20115,20 +20123,16 @@ This is in contrast to the units used for <a href="#con-common-configuration-res
 <p>The JVM&#8217;s overall memory usage will be approximately 4 × the maximum heap, as configured by <code>-Xmx</code>.</p>
 </li>
 <li>
-<p>If <code>-Xmx</code> is set without also setting an appropriate Kubernetes memory limit, it is possible that the container will be killed should the Kubernetes node experience memory pressure (from other Pods running on it).</p>
+<p>If <code>-Xmx</code> is set without also setting an appropriate Kubernetes memory limit, it is possible that the container will be killed should the Kubernetes node experience memory pressure from other Pods running on it.</p>
 </li>
 <li>
 <p>If <code>-Xmx</code> is set without also setting an appropriate Kubernetes memory request, it is possible that the container will be scheduled to a node with insufficient memory.
-In this case, the container will not start but crash (immediately if <code>-Xms</code> is set to <code>-Xmx</code>, or some later time if not).</p>
+In this case, the container will not start but crash immediately if <code>-Xms</code> is set to <code>-Xmx</code>, or at a later time if not.</p>
 </li>
 </ul>
 </div>
-</td>
-</tr>
-</table>
-</div>
 <div class="paragraph">
-<p>When setting <code>-Xmx</code> explicitly, it is recommended to:</p>
+<p>It is <em>recommended</em> to:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -20143,21 +20147,12 @@ In this case, the container will not start but crash (immediately if <code>-Xms<
 </li>
 </ul>
 </div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-Containers doing lots of disk I/O (such as Kafka broker containers) will need to leave some memory available for use as an operating system page cache.
-On such containers, the requested memory should be significantly higher than the memory used by the JVM.
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p>In this example, the JVM uses 2 GiB (=2,147,483,648 bytes) for its heap.
+Its total memory usage is approximately 8GiB.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example fragment configuring <code>-Xmx</code> and <code>-Xms</code></div>
+<div class="title">Example <code>-Xmx</code> and <code>-Xms</code> configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
 jvmOptions:
@@ -20167,23 +20162,27 @@ jvmOptions:
 </div>
 </div>
 <div class="paragraph">
-<p>In the above example, the JVM will use 2 GiB (=2,147,483,648 bytes) for its heap.
-Its total memory usage will be approximately 8GiB.</p>
+<p>Setting the same value for initial (<code>-Xms</code>) and maximum (<code>-Xmx</code>) heap sizes avoids the JVM having to allocate memory after startup, at the cost of possibly allocating more heap than is really needed.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+Containers performing lots of disk I/O, such as Kafka broker containers, require available memory for use as an operating system page cache.
+On such containers, the requested memory should be significantly higher than the memory used by the JVM.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>Setting the same value for initial (<code>-Xms</code>) and maximum (<code>-Xmx</code>) heap sizes avoids the JVM having to allocate memory after startup, at the cost of possibly allocating more heap than is really needed.
-For Kafka and ZooKeeper pods such allocation could cause unwanted latency.
-For Kafka Connect avoiding over allocation may be the most important concern, especially in distributed mode where the effects of over-allocation is multiplied by the number of consumers.</p>
-</div>
-<div class="paragraph">
-<p><strong>-XX</strong></p>
-</div>
-<div class="paragraph">
-<p><code>-XX</code> object can be used for configuring advanced runtime options of a JVM.
-The <code>-XX</code> options are used to configure the <code>KAFKA_JVM_PERFORMANCE_OPTS</code> option of Apache Kafka.</p>
+<div class="title">-XX option</div>
+<p><code>-XX</code> options are used to configure the <code>KAFKA_JVM_PERFORMANCE_OPTS</code> option of Apache Kafka.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example showing the use of the <code>-XX</code> object</div>
+<div class="title">Example <code>-XX</code> configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">jvmOptions:
   "-XX":
@@ -20193,10 +20192,8 @@ The <code>-XX</code> options are used to configure the <code>KAFKA_JVM_PERFORMAN
     "ExplicitGCInvokesConcurrent": true</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>The example configuration above will result in the following JVM options:</p>
-</div>
 <div class="listingblock">
+<div class="title">JVM options resulting from the <code>-XX</code> configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">-XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -XX:-UseParNewGC</code></pre>
 </div>
@@ -20213,6 +20210,19 @@ When no <code>-XX</code> options are specified, the default Apache Kafka configu
 </tr>
 </table>
 </div>
+<div class="paragraph">
+<div class="title"><code>javaSystemProperties</code></div>
+<p><code>javaSystemProperties</code> are used to configure additional Java system properties, such as debugging utilities.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example <code>javaSystemProperties</code> configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">jvmOptions:
+  javaSystemProperties:
+    - name: javax.net.debug
+      value: ssl</code></pre>
+</div>
+</div>
 </div>
 <div class="sect3">
 <h4 id="con-common-configuration-garbage-collection-reference"><a class="link" href="#con-common-configuration-garbage-collection-reference">B.1.10. Garbage collector logging</a></h4>
@@ -20222,7 +20232,7 @@ GC logging is disabled by default.
 To enable it, set the <code>gcLoggingEnabled</code> property as follows:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example of enabling GC logging</div>
+<div class="title">Example GC logging configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
 jvmOptions:
@@ -32590,7 +32600,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-01-20 14:52:40 UTC
+Last updated 2021-01-20 14:53:00 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
