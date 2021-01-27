@@ -4045,20 +4045,19 @@ The example shown in this procedure is for the <code>KafkaConnect</code> resourc
 <p>KafkaConnector resources allow you to create and manage connector instances for Kafka Connect in a Kubernetes-native way.</p>
 </div>
 <div class="paragraph">
-<p>In your Kafka Connect configuration, you enable KafkaConnectors for a Kafka Connect cluster by adding the <code>strimzi.io/use-connector-resources</code> annotation.
-You can also add a <code>build</code> configuration so that Strimzi automatically builds a container image with the connector plugins you require for your data connections.
-External configuration for Kafka Connect connectors is specified through the <code>externalConfiguration</code> property.</p>
+<p>In the configuration, you enable KafkaConnectors for a Kafka Connect cluster by adding the <code>strimzi.io/use-connector-resources</code> annotation.
+You can also specify external configuration for Kafka Connect connectors through the <code>externalConfiguration</code> property.</p>
 </div>
 <div class="paragraph">
-<p>To manage connectors, you can use the Kafka Connect REST API, or use KafkaConnector custom resources.
+<p>Connectors are created, reconfigured, and deleted using the Kafka Connect HTTP REST interface, or by using KafkaConnectors.
 KafkaConnector resources must be deployed to the same namespace as the Kafka Connect cluster they link to.
-For more information on using these methods to create, reconfigure, or delete connectors, see <a href="./deploying.html#con-creating-managing-connectors-str" target="_blank" rel="noopener">Creating and managing connectors</a> in the <em>Deploying and Upgrading Strimzi</em> guide.</p>
+For more information on these methods, see <a href="./deploying.html#con-creating-managing-connectors-str" target="_blank" rel="noopener">Creating and managing connectors</a> in the <em>Deploying and Upgrading Strimzi</em> guide.</p>
 </div>
 <div class="paragraph">
-<p>Connector configuration is passed to Kafka Connect as part of an HTTP request and stored within Kafka itself.
+<p>The connector configuration is passed to Kafka Connect as part of an HTTP request and stored within Kafka itself.
 ConfigMaps and Secrets are standard Kubernetes resources used for storing configurations and confidential data.
 You can use ConfigMaps and Secrets to configure certain elements of a connector.
-You can then reference the configuration values in HTTP REST commands, which keeps the configuration separate and more secure, if needed.
+You can then reference the configuration values in HTTP REST commands (this keeps the configuration separate and more secure, if needed).
 This method applies especially to confidential data, such as usernames, passwords, or certificates.</p>
 </div>
 <div class="ulist">
@@ -4095,7 +4094,7 @@ This method applies especially to confidential data, such as usernames, password
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
 kind: KafkaConnect <b class="conum">(1)</b>
 metadata:
   name: my-connect-cluster
@@ -4128,23 +4127,7 @@ spec:
     config.storage.replication.factor: 3
     offset.storage.replication.factor: 3
     status.storage.replication.factor: 3
-  build: <b class="conum">(8)</b>
-    output: <b class="conum">(9)</b>
-      type: docker
-      image: my-registry.io/my-org/my-connect-cluster:latest
-      pushSecret: my-registry-credentials
-    plugins: <b class="conum">(10)</b>
-      - name: debezium-postgres-connector
-        artifacts:
-          - type: tgz
-            url: https://repo1.maven.org/maven2/io/debezium/debezium-connector-postgres/1.3.1.Final/debezium-connector-postgres-1.3.1.Final-plugin.tar.gz
-            sha512sum: 962a12151bdf9a5a30627eebac739955a4fd95a08d373b86bdcea2b4d0c27dd6e1edd5cb548045e115e33a9e69b1b2a352bee24df035a0447cb820077af00c03
-      - name: camel-telegram
-        artifacts:
-          - type: tgz
-            url: https://repo.maven.apache.org/maven2/org/apache/camel/kafkaconnector/camel-telegram-kafka-connector/0.7.0/camel-telegram-kafka-connector-0.7.0-package.tar.gz
-            sha512sum: a9b1ac63e3284bea7836d7d24d84208c49cdf5600070e6bd1535de654f6920b74ad950d51733e8020bf4187870699819f54ef5859c7846ee4081507f48873479
-  externalConfiguration: <b class="conum">(11)</b>
+  externalConfiguration: <b class="conum">(8)</b>
     env:
       - name: AWS_ACCESS_KEY_ID
         valueFrom:
@@ -4156,36 +4139,36 @@ spec:
           secretKeyRef:
             name: aws-creds
             key: awsSecretAccessKey
-  resources: <b class="conum">(12)</b>
+  resources: <b class="conum">(9)</b>
     requests:
       cpu: "1"
       memory: 2Gi
     limits:
       cpu: "2"
       memory: 2Gi
-  logging: <b class="conum">(13)</b>
+  logging: <b class="conum">(10)</b>
     type: inline
     loggers:
       log4j.rootLogger: "INFO"
-  readinessProbe: <b class="conum">(14)</b>
+  readinessProbe: <b class="conum">(11)</b>
     initialDelaySeconds: 15
     timeoutSeconds: 5
   livenessProbe:
     initialDelaySeconds: 15
     timeoutSeconds: 5
-  metricsConfig: <b class="conum">(15)</b>
+  metricsConfig: <b class="conum">(12)</b>
     type: jmxPrometheusExporter
     valueFrom:
       configMapKeyRef:
         name: my-config-map
         key: my-key
-  jvmOptions: <b class="conum">(16)</b>
+  jvmOptions: <b class="conum">(13)</b>
     "-Xmx": "1g"
     "-Xms": "1g"
-  image: my-org/my-image:latest <b class="conum">(17)</b>
+  image: my-org/my-image:latest <b class="conum">(14)</b>
   rack:
-    topologyKey: topology.kubernetes.io/zone <b class="conum">(18)</b>
-  template: <b class="conum">(19)</b>
+    topologyKey: topology.kubernetes.io/zone <b class="conum">(15)</b>
+  template: <b class="conum">(16)</b>
     pod:
       affinity:
         podAntiAffinity:
@@ -4198,7 +4181,7 @@ spec:
                       - postgresql
                       - mongodb
               topologyKey: "kubernetes.io/hostname"
-    connectContainer: <b class="conum">(20)</b>
+    connectContainer: <b class="conum">(17)</b>
       env:
         - name: JAEGER_SERVICE_NAME
           value: my-jaeger-service
@@ -4232,15 +4215,6 @@ By default, Kafka Connect connects to Kafka brokers using a plain text connectio
 <li>
 <p><a href="#property-kafka-connect-config-reference">Kafka Connect configuration</a> of <em>workers</em> (not connectors).
 Standard Apache Kafka configuration may be provided, restricted to those properties not managed directly by Strimzi.</p>
-</li>
-<li>
-<p><a href="#type-Build-reference">Build configuration properties</a> for building a container image with connector plugins automatically.</p>
-</li>
-<li>
-<p>(Required) Configuration of the container registry where new images are pushed.</p>
-</li>
-<li>
-<p>(Required) List of connector plugins and their artifacts to add to the new container image. Each plugin must be configured with at least one <code>artifact</code>.</p>
 </li>
 <li>
 <p><a href="#type-ExternalConfiguration-reference">External configuration for Kafka connectors</a> using environment variables, as shown here, or volumes.</p>
