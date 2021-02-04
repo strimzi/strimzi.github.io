@@ -530,7 +530,7 @@
 <li><a href="#type-KafkaJmxOptions-reference">31.47. <code>KafkaJmxOptions</code> schema reference</a></li>
 <li><a href="#type-KafkaJmxAuthenticationPassword-reference">31.48. <code>KafkaJmxAuthenticationPassword</code> schema reference</a></li>
 <li><a href="#type-JmxPrometheusExporterMetrics-reference">31.49. <code>JmxPrometheusExporterMetrics</code> schema reference</a></li>
-<li><a href="#type-ExternalConfigurationMetrics-reference">31.50. <code>ExternalConfigurationMetrics</code> schema reference</a></li>
+<li><a href="#type-ExternalConfigurationReference-reference">31.50. <code>ExternalConfigurationReference</code> schema reference</a></li>
 <li><a href="#type-InlineLogging-reference">31.51. <code>InlineLogging</code> schema reference</a></li>
 <li><a href="#type-ExternalLogging-reference">31.52. <code>ExternalLogging</code> schema reference</a></li>
 <li><a href="#type-TlsSidecar-reference">31.53. <code>TlsSidecar</code> schema reference</a>
@@ -6741,12 +6741,17 @@ spec:
   # ...
   logging:
     type: external
-    name: <em>customConfigMap</em></code></pre>
+    valueFrom:
+      configMapKeyRef:
+        name: <em>customConfigMap</em>
+        key: <em>keyInConfigMap</em></code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>With external logging, logging properties are defined in a ConfigMap.
-The name of the ConfigMap is referenced in the <code>spec.logging.name</code> property.</p>
+The name of the ConfigMap is referenced in the <code>spec.logging.valueFrom.configMapKeyRef.name</code> property.
+The <code>spec.logging.valueFrom.configMapKeyRef.name</code> and <code>spec.logging.valueFrom.configMapKeyRef.key</code> properties are mandatory.
+Default logging is used if the <code>name</code> or <code>key</code> is not set.</p>
 </div>
 <div class="paragraph">
 <p>The advantages of using a ConfigMap are that the logging properties are maintained in one place and are accessible to more than one resource.</p>
@@ -6817,14 +6822,17 @@ kafka.root.logger.level="INFO"
 </div>
 </li>
 <li>
-<p>Define <em>external</em> logging in the <code>spec</code> of the resource, setting the <code>logging.name</code> to the name of the ConfigMap.</p>
+<p>Define <em>external</em> logging in the <code>spec</code> of the resource, setting the <code>logging.valueFrom.configMapKeyRef.name</code> to the name of the ConfigMap and <code>logging.valueFrom.configMapKeyRef.key</code> to the key in this ConfigMap.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">spec:
   # ...
   logging:
     type: external
-    name: logging-configmap</code></pre>
+    valueFrom:
+      configMapKeyRef:
+        name: customConfigMap
+        key: keyInConfigMap</code></pre>
 </div>
 </div>
 </li>
@@ -14095,10 +14103,8 @@ spec:
 </div>
 <div class="paragraph">
 <p>You can set the log levels by specifying the logger and level directly (inline) or use a custom (external) ConfigMap.
-If a ConfigMap is used, you set <code>logging.name</code> property to the name of the ConfigMap containing the external logging configuration. Inside the ConfigMap, the logging configuration is described using <code>log4j.properties</code>.</p>
-</div>
-<div class="paragraph">
-<p>Here we see examples of <code>inline</code> and <code>external</code> logging.</p>
+If a ConfigMap is used, you set <code>logging.valueFrom.configMapKeyRef.name</code> property to the name of the ConfigMap containing the external logging configuration. Inside the ConfigMap, the logging configuration is described using <code>log4j.properties</code>. Both <code>logging.valueFrom.configMapKeyRef.name</code> and <code>logging.valueFrom.configMapKeyRef.key</code> properties are mandatory. A ConfigMap using the exact logging configuration specified is created with the custom resource when the Cluster Operator is running, then recreated after each reconciliation. If you do not specify a custom ConfigMap, default logging settings are used. If a specific logger value is not set, upper-level logger settings are inherited for that logger.
+Here we see examples of <code>inline</code> and <code>external</code> logging.</p>
 </div>
 <div class="listingblock">
 <div class="title">Inline logging</div>
@@ -14127,7 +14133,10 @@ spec:
     # ...
     logging:
       type: external
-      name: customConfigMap
+      valueFrom:
+        configMapKeyRef:
+          name: customConfigMap
+          key: cruise-control-log4j.properties
     # ...</code></pre>
 </div>
 </div>
@@ -20222,7 +20231,7 @@ jvmOptions:
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">topicOperator</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>topicOperator</code> has been deprecated. This feature should now be configured at path <code>spec.entityOperator.topicOperator</code>.</strong> Configuration of the Topic Operator.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>topicOperator</code> property has been deprecated, and should now be configured using <code>spec.entityOperator.topicOperator</code>.</strong> Configuration of the Topic Operator.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-TopicOperatorSpec-reference"><code>TopicOperatorSpec</code></a></p></td>
@@ -20635,7 +20644,7 @@ spec:
 </div>
 <div class="paragraph">
 <p>You can set the log levels by specifying the logger and level directly (inline) or use a custom (external) ConfigMap.
-If a ConfigMap is used, you set <code>logging.name</code> property to the name of the ConfigMap containing the external logging configuration. Inside the ConfigMap, the logging configuration is described using <code>log4j.properties</code>.
+If a ConfigMap is used, you set <code>logging.valueFrom.configMapKeyRef.name</code> property to the name of the ConfigMap containing the external logging configuration. Inside the ConfigMap, the logging configuration is described using <code>log4j.properties</code>. Both <code>logging.valueFrom.configMapKeyRef.name</code> and <code>logging.valueFrom.configMapKeyRef.key</code> properties are mandatory. A ConfigMap using the exact logging configuration specified is created with the custom resource when the Cluster Operator is running, then recreated after each reconciliation. If you do not specify a custom ConfigMap, default logging settings are used. If a specific logger value is not set, upper-level logger settings are inherited for that logger.
 For more information about log levels, see <a href="https://logging.apache.org/" target="_blank" rel="noopener">Apache logging services</a>.</p>
 </div>
 <div class="paragraph">
@@ -20666,7 +20675,10 @@ spec:
   # ...
   logging:
     type: external
-    name: customConfigMap
+    valueFrom:
+      configMapKeyRef:
+        name: customConfigMap
+        key: kafka-log4j.properties
   # ...</code></pre>
 </div>
 </div>
@@ -20757,14 +20769,14 @@ changes to Kafka logging levels are applied dynamically.</p>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">affinity</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>affinity</code> has been deprecated. This feature should now be configured at path <code>spec.kafka.template.pod.affinity</code>.</strong> The pod&#8217;s affinity rules. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">external documentation for core/v1 affinity</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>affinity</code> property has been deprecated, and should now be configured using <code>spec.kafka.template.pod.affinity</code>.</strong> The pod&#8217;s affinity rules. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">external documentation for core/v1 affinity</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">Affinity</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tolerations</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>tolerations</code> has been deprecated. This feature should now be configured at path <code>spec.kafka.template.pod.tolerations</code>.</strong> The pod&#8217;s tolerations. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">external documentation for core/v1 toleration</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>tolerations</code> property has been deprecated, and should now be configured using <code>spec.kafka.template.pod.tolerations</code>.</strong> The pod&#8217;s tolerations. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">external documentation for core/v1 toleration</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">Toleration</a> array</p></td>
@@ -20806,7 +20818,7 @@ changes to Kafka logging levels are applied dynamically.</p>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">metrics</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>metrics</code> has been deprecated. This feature should now be configured at path <code>spec.kafka.metricsConfig</code>.</strong> The Prometheus JMX Exporter configuration. See <a href="https://github.com/prometheus/jmx_exporter" class="bare">https://github.com/prometheus/jmx_exporter</a> for details of the structure of this configuration.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>metrics</code> property has been deprecated, and should now be configured using <code>spec.kafka.metricsConfig</code>.</strong> The Prometheus JMX Exporter configuration. See <a href="https://github.com/prometheus/jmx_exporter" class="bare">https://github.com/prometheus/jmx_exporter</a> for details of the structure of this configuration.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">map</p></td>
@@ -20827,7 +20839,7 @@ changes to Kafka logging levels are applied dynamically.</p>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tlsSidecar</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>tlsSidecar</code> has been deprecated.</strong> TLS sidecar configuration.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>tlsSidecar</code> property has been deprecated</strong> TLS sidecar configuration.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-TlsSidecar-reference"><code>TlsSidecar</code></a></p></td>
@@ -24185,18 +24197,18 @@ It must have the value <code>jmxPrometheusExporter</code> for the type <code>Jmx
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">valueFrom</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">ConfigMap where the Prometheus JMX Exporter configuration is stored. For details of the structure of this configuration, see the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">JMX Exporter documentation</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">ConfigMap entry where the Prometheus JMX Exporter configuration is stored. For details of the structure of this configuration, see the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">JMX Exporter documentation</a>.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-ExternalConfigurationMetrics-reference"><code>ExternalConfigurationMetrics</code></a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-ExternalConfigurationReference-reference"><code>ExternalConfigurationReference</code></a></p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="sect2">
-<h3 id="type-ExternalConfigurationMetrics-reference"><a class="link" href="#type-ExternalConfigurationMetrics-reference">31.50. <code>ExternalConfigurationMetrics</code> schema reference</a></h3>
+<h3 id="type-ExternalConfigurationReference-reference"><a class="link" href="#type-ExternalConfigurationReference-reference">31.50. <code>ExternalConfigurationReference</code> schema reference</a></h3>
 <div class="paragraph">
-<p>Used in: <a href="#type-JmxPrometheusExporterMetrics-reference"><code>JmxPrometheusExporterMetrics</code></a></p>
+<p>Used in: <a href="#type-ExternalLogging-reference"><code>ExternalLogging</code></a>, <a href="#type-JmxPrometheusExporterMetrics-reference"><code>JmxPrometheusExporterMetrics</code></a></p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
@@ -24212,7 +24224,7 @@ It must have the value <code>jmxPrometheusExporter</code> for the type <code>Jmx
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">configMapKeyRef</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Reference to the key in the ConfigMap containing the metrics configuration. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#configmapkeyselector-v1-core">external documentation for core/v1 configmapkeyselector</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Reference to the key in the ConfigMap containing the configuration. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#configmapkeyselector-v1-core">external documentation for core/v1 configmapkeyselector</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#configmapkeyselector-v1-core">ConfigMapKeySelector</a></p></td>
@@ -24288,10 +24300,17 @@ It must have the value <code>external</code> for the type <code>ExternalLogging<
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">name</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The name of the <code>ConfigMap</code> from which to get the logging configuration.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>name</code> property has been deprecatedReplaced with valueFrom . The Property name is scheduled for removal in version v1beta2.</strong> The name of the <code>ConfigMap</code> from which to get the logging configuration.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">valueFrom</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><code>ConfigMap</code> entry where the logging configuration is stored.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-ExternalConfigurationReference-reference"><code>ExternalConfigurationReference</code></a></p></td>
 </tr>
 </tbody>
 </table>
@@ -24604,7 +24623,7 @@ spec:
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tlsSidecarContainer</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>tlsSidecarContainer</code> has been deprecated.</strong> Template for the Kafka broker TLS sidecar container.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>tlsSidecarContainer</code> property has been deprecated</strong> Template for the Kafka broker TLS sidecar container.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-ContainerTemplate-reference"><code>ContainerTemplate</code></a></p></td>
@@ -24951,14 +24970,14 @@ template:
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">externalTrafficPolicy</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>externalTrafficPolicy</code> has been deprecated.</strong> Specifies whether the service routes external traffic to node-local or cluster-wide endpoints. <code>Cluster</code> may cause a second hop to another node and obscures the client source IP. <code>Local</code> avoids a second hop for LoadBalancer and Nodeport type services and preserves the client source IP (when supported by the infrastructure). If unspecified, Kubernetes will use <code>Cluster</code> as the default.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>externalTrafficPolicy</code> property has been deprecated</strong> Specifies whether the service routes external traffic to node-local or cluster-wide endpoints. <code>Cluster</code> may cause a second hop to another node and obscures the client source IP. <code>Local</code> avoids a second hop for LoadBalancer and Nodeport type services and preserves the client source IP (when supported by the infrastructure). If unspecified, Kubernetes will use <code>Cluster</code> as the default.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">string (one of [Local, Cluster])</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">loadBalancerSourceRanges</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>loadBalancerSourceRanges</code> has been deprecated.</strong> A list of CIDR ranges (for example <code>10.0.0.0/8</code> or <code>130.211.204.1/32</code>) from which clients can connect to load balancer type listeners. If supported by the platform, traffic through the loadbalancer is restricted to the specified CIDR ranges. This field is applicable only for loadbalancer type services and is ignored if the cloud provider does not support the feature. For more information, see <a href="https://v1-17.docs.kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/" class="bare">https://v1-17.docs.kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>loadBalancerSourceRanges</code> property has been deprecated</strong> A list of CIDR ranges (for example <code>10.0.0.0/8</code> or <code>130.211.204.1/32</code>) from which clients can connect to load balancer type listeners. If supported by the platform, traffic through the loadbalancer is restricted to the specified CIDR ranges. This field is applicable only for loadbalancer type services and is ignored if the cloud provider does not support the feature. For more information, see <a href="https://v1-17.docs.kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/" class="bare">https://v1-17.docs.kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">string array</p></td>
@@ -25260,7 +25279,7 @@ spec:
 </div>
 <div class="paragraph">
 <p>You can set the log levels by specifying the logger and level directly (inline) or use a custom (external) ConfigMap.
-If a ConfigMap is used, you set <code>logging.name</code> property to the name of the ConfigMap containing the external logging configuration. Inside the ConfigMap, the logging configuration is described using <code>log4j.properties</code>.
+If a ConfigMap is used, you set <code>logging.valueFrom.configMapKeyRef.name</code> property to the name of the ConfigMap containing the external logging configuration. Inside the ConfigMap, the logging configuration is described using <code>log4j.properties</code>. Both <code>logging.valueFrom.configMapKeyRef.name</code> and <code>logging.valueFrom.configMapKeyRef.key</code> properties are mandatory. A ConfigMap using the exact logging configuration specified is created with the custom resource when the Cluster Operator is running, then recreated after each reconciliation. If you do not specify a custom ConfigMap, default logging settings are used. If a specific logger value is not set, upper-level logger settings are inherited for that logger.
 For more information about log levels, see <a href="https://logging.apache.org/" target="_blank" rel="noopener">Apache logging services</a>.</p>
 </div>
 <div class="paragraph">
@@ -25293,7 +25312,10 @@ spec:
     # ...
     logging:
       type: external
-      name: customConfigMap
+      valueFrom:
+        configMapKeyRef:
+          name: customConfigMap
+          key: zookeeper-log4j.properties
   # ...</code></pre>
 </div>
 </div>
@@ -25346,14 +25368,14 @@ spec:
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">affinity</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>affinity</code> has been deprecated. This feature should now be configured at path <code>spec.zookeeper.template.pod.affinity</code>.</strong> The pod&#8217;s affinity rules. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">external documentation for core/v1 affinity</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>affinity</code> property has been deprecated, and should now be configured using <code>spec.zookeeper.template.pod.affinity</code>.</strong> The pod&#8217;s affinity rules. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">external documentation for core/v1 affinity</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">Affinity</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tolerations</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>tolerations</code> has been deprecated. This feature should now be configured at path <code>spec.zookeeper.template.pod.tolerations</code>.</strong> The pod&#8217;s tolerations. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">external documentation for core/v1 toleration</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>tolerations</code> property has been deprecated, and should now be configured using <code>spec.zookeeper.template.pod.tolerations</code>.</strong> The pod&#8217;s tolerations. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">external documentation for core/v1 toleration</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">Toleration</a> array</p></td>
@@ -25388,7 +25410,7 @@ spec:
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">metrics</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>metrics</code> has been deprecated. This feature should now be configured at path <code>spec.zookeeper.metricsConfig</code>.</strong> The Prometheus JMX Exporter configuration. See <a href="https://github.com/prometheus/jmx_exporter" class="bare">https://github.com/prometheus/jmx_exporter</a> for details of the structure of this configuration.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>metrics</code> property has been deprecated, and should now be configured using <code>spec.zookeeper.metricsConfig</code>.</strong> The Prometheus JMX Exporter configuration. See <a href="https://github.com/prometheus/jmx_exporter" class="bare">https://github.com/prometheus/jmx_exporter</a> for details of the structure of this configuration.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">map</p></td>
@@ -25416,7 +25438,7 @@ spec:
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tlsSidecar</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>tlsSidecar</code> has been deprecated.</strong> TLS sidecar configuration. The TLS sidecar is not used anymore and this option will be ignored.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>tlsSidecar</code> property has been deprecated</strong> TLS sidecar configuration. The TLS sidecar is not used anymore and this option will be ignored.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-TlsSidecar-reference"><code>TlsSidecar</code></a></p></td>
@@ -25493,7 +25515,7 @@ spec:
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tlsSidecarContainer</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>tlsSidecarContainer</code> has been deprecated.</strong> Template for the Zookeeper server TLS sidecar container. The TLS sidecar is not used anymore and this option will be ignored.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>tlsSidecarContainer</code> property has been deprecated</strong> Template for the Zookeeper server TLS sidecar container. The TLS sidecar is not used anymore and this option will be ignored.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-ContainerTemplate-reference"><code>ContainerTemplate</code></a></p></td>
@@ -25649,14 +25671,14 @@ Please use <a href="#type-EntityTopicOperatorSpec-reference"><code>EntityTopicOp
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">affinity</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>affinity</code> has been deprecated. This feature should now be configured at path <code>spec.template.pod.affinity</code>.</strong> The pod&#8217;s affinity rules. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">external documentation for core/v1 affinity</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>affinity</code> property has been deprecated, and should now be configured using <code>spec.template.pod.affinity</code>.</strong> The pod&#8217;s affinity rules. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">external documentation for core/v1 affinity</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">Affinity</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tolerations</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>tolerations</code> has been deprecated. This feature should now be configured at path <code>spec.template.pod.tolerations</code>.</strong> The pod&#8217;s tolerations. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">external documentation for core/v1 toleration</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>tolerations</code> property has been deprecated, and should now be configured using <code>spec.template.pod.tolerations</code>.</strong> The pod&#8217;s tolerations. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">external documentation for core/v1 toleration</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">Toleration</a> array</p></td>
@@ -25709,7 +25731,7 @@ Please use <a href="#type-EntityTopicOperatorSpec-reference"><code>EntityTopicOp
 </div>
 <div class="paragraph">
 <p>You can set the log levels by specifying the logger and level directly (inline) or use a custom (external) ConfigMap.
-If a ConfigMap is used, you set <code>logging.name</code> property to the name of the ConfigMap containing the external logging configuration. Inside the ConfigMap, the logging configuration is described using <code>log4j2.properties</code>.
+If a ConfigMap is used, you set <code>logging.valueFrom.configMapKeyRef.name</code> property to the name of the ConfigMap containing the external logging configuration. Inside the ConfigMap, the logging configuration is described using <code>log4j2.properties</code>. Both <code>logging.valueFrom.configMapKeyRef.name</code> and <code>logging.valueFrom.configMapKeyRef.key</code> properties are mandatory. A ConfigMap using the exact logging configuration specified is created with the custom resource when the Cluster Operator is running, then recreated after each reconciliation. If you do not specify a custom ConfigMap, default logging settings are used. If a specific logger value is not set, upper-level logger settings are inherited for that logger.
 For more information about log levels, see <a href="https://logging.apache.org/" target="_blank" rel="noopener">Apache logging services</a>.</p>
 </div>
 <div class="paragraph">
@@ -25758,7 +25780,10 @@ spec:
       reconciliationIntervalSeconds: 60
       logging:
         type: external
-        name: customConfigMap
+        valueFrom:
+          configMapKeyRef:
+            name: customConfigMap
+            key: topic-operator-log4j2.properties
   # ...</code></pre>
 </div>
 </div>
@@ -25893,7 +25918,7 @@ spec:
 </div>
 <div class="paragraph">
 <p>You can set the log levels by specifying the logger and level directly (inline) or use a custom (external) ConfigMap.
-If a ConfigMap is used, you set <code>logging.name</code> property to the name of the ConfigMap containing the external logging configuration. Inside the ConfigMap, the logging configuration is described using <code>log4j2.properties</code>.
+If a ConfigMap is used, you set <code>logging.valueFrom.configMapKeyRef.name</code> property to the name of the ConfigMap containing the external logging configuration. Inside the ConfigMap, the logging configuration is described using <code>log4j2.properties</code>. Both <code>logging.valueFrom.configMapKeyRef.name</code> and <code>logging.valueFrom.configMapKeyRef.key</code> properties are mandatory. A ConfigMap using the exact logging configuration specified is created with the custom resource when the Cluster Operator is running, then recreated after each reconciliation. If you do not specify a custom ConfigMap, default logging settings are used. If a specific logger value is not set, upper-level logger settings are inherited for that logger.
 For more information about log levels, see <a href="https://logging.apache.org/" target="_blank" rel="noopener">Apache logging services</a>.</p>
 </div>
 <div class="paragraph">
@@ -25942,7 +25967,10 @@ spec:
       reconciliationIntervalSeconds: 60
       logging:
         type: external
-        name: customConfigMap
+        valueFrom:
+          configMapKeyRef:
+            name: customConfigMap
+            key: user-operator-log4j2.properties
    # ...</code></pre>
 </div>
 </div>
@@ -26241,7 +26269,7 @@ spec:
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">metrics</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>metrics</code> has been deprecated. This feature should now be configured at path <code>spec.cruiseControl.metricsConfig</code>.</strong> The Prometheus JMX Exporter configuration. See <a href="https://github.com/prometheus/jmx_exporter" class="bare">https://github.com/prometheus/jmx_exporter</a> for details of the structure of this configuration.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>metrics</code> property has been deprecated, and should now be configured using <code>spec.cruiseControl.metricsConfig</code>.</strong> The Prometheus JMX Exporter configuration. See <a href="https://github.com/prometheus/jmx_exporter" class="bare">https://github.com/prometheus/jmx_exporter</a> for details of the structure of this configuration.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">map</p></td>
@@ -27121,7 +27149,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div class="paragraph">
 <p>You can set the log levels by specifying the logger and level directly (inline) or use a custom (external) ConfigMap.
-If a ConfigMap is used, you set <code>logging.name</code> property to the name of the ConfigMap containing the external logging configuration. Inside the ConfigMap, the logging configuration is described using <code>log4j.properties</code>.
+If a ConfigMap is used, you set <code>logging.valueFrom.configMapKeyRef.name</code> property to the name of the ConfigMap containing the external logging configuration. Inside the ConfigMap, the logging configuration is described using <code>log4j.properties</code>. Both <code>logging.valueFrom.configMapKeyRef.name</code> and <code>logging.valueFrom.configMapKeyRef.key</code> properties are mandatory. A ConfigMap using the exact logging configuration specified is created with the custom resource when the Cluster Operator is running, then recreated after each reconciliation. If you do not specify a custom ConfigMap, default logging settings are used. If a specific logger value is not set, upper-level logger settings are inherited for that logger.
 For more information about log levels, see <a href="https://logging.apache.org/" target="_blank" rel="noopener">Apache logging services</a>.</p>
 </div>
 <div class="paragraph">
@@ -27150,7 +27178,10 @@ spec:
   # ...
   logging:
     type: external
-    name: customConfigMap
+    valueFrom:
+      configMapKeyRef:
+        name: customConfigMap
+        key: connect-logging.log4j
   # ...</code></pre>
 </div>
 </div>
@@ -27269,14 +27300,14 @@ changes to Kafka Connect logging levels are applied dynamically.</p>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">affinity</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>affinity</code> has been deprecated. This feature should now be configured at path <code>spec.template.pod.affinity</code>.</strong> The pod&#8217;s affinity rules. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">external documentation for core/v1 affinity</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>affinity</code> property has been deprecated, and should now be configured using <code>spec.template.pod.affinity</code>.</strong> The pod&#8217;s affinity rules. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">external documentation for core/v1 affinity</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">Affinity</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tolerations</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>tolerations</code> has been deprecated. This feature should now be configured at path <code>spec.template.pod.tolerations</code>.</strong> The pod&#8217;s tolerations. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">external documentation for core/v1 toleration</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>tolerations</code> property has been deprecated, and should now be configured using <code>spec.template.pod.tolerations</code>.</strong> The pod&#8217;s tolerations. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">external documentation for core/v1 toleration</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">Toleration</a> array</p></td>
@@ -27290,7 +27321,7 @@ changes to Kafka Connect logging levels are applied dynamically.</p>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">metrics</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>metrics</code> has been deprecated. This feature should now be configured at path <code>spec.metricsConfig</code>.</strong> The Prometheus JMX Exporter configuration. See <a href="https://github.com/prometheus/jmx_exporter" class="bare">https://github.com/prometheus/jmx_exporter</a> for details of the structure of this configuration.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>metrics</code> property has been deprecated, and should now be configured using <code>spec.metricsConfig</code>.</strong> The Prometheus JMX Exporter configuration. See <a href="https://github.com/prometheus/jmx_exporter" class="bare">https://github.com/prometheus/jmx_exporter</a> for details of the structure of this configuration.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">map</p></td>
@@ -29266,7 +29297,7 @@ you can use OpenShift builds and S2I to create a container image that is used by
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">affinity</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>affinity</code> has been deprecated. This feature should now be configured at path <code>spec.template.pod.affinity</code>.</strong> The pod&#8217;s affinity rules. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">external documentation for core/v1 affinity</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>affinity</code> property has been deprecated, and should now be configured using <code>spec.template.pod.affinity</code>.</strong> The pod&#8217;s affinity rules. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">external documentation for core/v1 affinity</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">Affinity</a></p></td>
@@ -29280,7 +29311,7 @@ you can use OpenShift builds and S2I to create a container image that is used by
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">metrics</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>metrics</code> has been deprecated. This feature should now be configured at path <code>spec.metricsConfig</code>.</strong> The Prometheus JMX Exporter configuration. See <a href="https://github.com/prometheus/jmx_exporter" class="bare">https://github.com/prometheus/jmx_exporter</a> for details of the structure of this configuration.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>metrics</code> property has been deprecated, and should now be configured using <code>spec.metricsConfig</code>.</strong> The Prometheus JMX Exporter configuration. See <a href="https://github.com/prometheus/jmx_exporter" class="bare">https://github.com/prometheus/jmx_exporter</a> for details of the structure of this configuration.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">map</p></td>
@@ -29371,7 +29402,7 @@ you can use OpenShift builds and S2I to create a container image that is used by
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tolerations</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>tolerations</code> has been deprecated. This feature should now be configured at path <code>spec.template.pod.tolerations</code>.</strong> The pod&#8217;s tolerations. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">external documentation for core/v1 toleration</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>tolerations</code> property has been deprecated, and should now be configured using <code>spec.template.pod.tolerations</code>.</strong> The pod&#8217;s tolerations. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">external documentation for core/v1 toleration</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">Toleration</a> array</p></td>
@@ -30403,7 +30434,7 @@ Each comma-separated list contains one or more Kafka brokers or a <code>Service<
 </div>
 <div class="paragraph">
 <p>You can set the log levels by specifying the logger and level directly (inline) or use a custom (external) ConfigMap.
-If a ConfigMap is used, you set <code>logging.name</code> property to the name of the ConfigMap containing the external logging configuration. Inside the ConfigMap, the logging configuration is described using <code>log4j.properties</code>.
+If a ConfigMap is used, you set <code>logging.valueFrom.configMapKeyRef.name</code> property to the name of the ConfigMap containing the external logging configuration. Inside the ConfigMap, the logging configuration is described using <code>log4j.properties</code>. Both <code>logging.valueFrom.configMapKeyRef.name</code> and <code>logging.valueFrom.configMapKeyRef.key</code> properties are mandatory. A ConfigMap using the exact logging configuration specified is created with the custom resource when the Cluster Operator is running, then recreated after each reconciliation. If you do not specify a custom ConfigMap, default logging settings are used. If a specific logger value is not set, upper-level logger settings are inherited for that logger.
 For more information about log levels, see <a href="https://logging.apache.org/" target="_blank" rel="noopener">Apache logging services</a>.</p>
 </div>
 <div class="paragraph">
@@ -30430,7 +30461,10 @@ spec:
   # ...
   logging:
     type: external
-    name: customConfigMap
+    valueFrom:
+      configMapKeyRef:
+        name: customConfigMap
+        key: mirror-maker-log4j.properties
   # ...</code></pre>
 </div>
 </div>
@@ -30497,14 +30531,14 @@ spec:
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">affinity</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>affinity</code> has been deprecated. This feature should now be configured at path <code>spec.template.pod.affinity</code>.</strong> The pod&#8217;s affinity rules. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">external documentation for core/v1 affinity</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>affinity</code> property has been deprecated, and should now be configured using <code>spec.template.pod.affinity</code>.</strong> The pod&#8217;s affinity rules. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">external documentation for core/v1 affinity</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">Affinity</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tolerations</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>tolerations</code> has been deprecated. This feature should now be configured at path <code>spec.template.pod.tolerations</code>.</strong> The pod&#8217;s tolerations. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">external documentation for core/v1 toleration</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>tolerations</code> property has been deprecated, and should now be configured using <code>spec.template.pod.tolerations</code>.</strong> The pod&#8217;s tolerations. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">external documentation for core/v1 toleration</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">Toleration</a> array</p></td>
@@ -30525,7 +30559,7 @@ spec:
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">metrics</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>metrics</code> has been deprecated. This feature should now be configured at path <code>spec.metricsConfig</code>.</strong> The Prometheus JMX Exporter configuration. See <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">JMX Exporter documentation</a> for details of the structure of this configuration.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>metrics</code> property has been deprecated, and should now be configured using <code>spec.metricsConfig</code>.</strong> The Prometheus JMX Exporter configuration. See <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">JMX Exporter documentation</a> for details of the structure of this configuration.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">map</p></td>
@@ -31257,7 +31291,9 @@ logger.ready.level = WARN</code></pre>
 </div>
 <div class="paragraph">
 <p>You can set the log levels by specifying the logger and level directly (inline) or use a custom (external) ConfigMap.
-If a ConfigMap is used, you set <code>logging.name</code> property to the name of the ConfigMap containing the external logging configuration.
+If a ConfigMap is used, you set <code>logging.valueFrom.configMapKeyRef.name</code> property to the name of the ConfigMap containing the external logging configuration.
+The <code>logging.valueFrom.configMapKeyRef.name</code> and <code>logging.valueFrom.configMapKeyRef.key</code> properties are mandatory.
+Default logging is used if the <code>name</code> or <code>key</code> is not set.
 Inside the ConfigMap, the logging configuration is described using <code>log4j.properties</code>.
 For more information about log levels, see <a href="https://logging.apache.org/" target="_blank" rel="noopener">Apache logging services</a>.</p>
 </div>
@@ -31290,7 +31326,10 @@ spec:
   # ...
   logging:
     type: external
-    name: customConfigMap
+    valueFrom:
+      configMapKeyRef:
+        name: customConfigMap
+        key: bridge-logj42.properties
   # ...</code></pre>
 </div>
 </div>
@@ -32167,14 +32206,14 @@ spec:
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">affinity</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>affinity</code> has been deprecated. This feature should now be configured at path <code>spec.template.pod.affinity</code>.</strong> The pod&#8217;s affinity rules. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">external documentation for core/v1 affinity</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>affinity</code> property has been deprecated, and should now be configured using <code>spec.template.pod.affinity</code>.</strong> The pod&#8217;s affinity rules. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">external documentation for core/v1 affinity</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core">Affinity</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tolerations</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>tolerations</code> has been deprecated. This feature should now be configured at path <code>spec.template.pod.tolerations</code>.</strong> The pod&#8217;s tolerations. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">external documentation for core/v1 toleration</a>.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>tolerations</code> property has been deprecated, and should now be configured using <code>spec.template.pod.tolerations</code>.</strong> The pod&#8217;s tolerations. For more information, see the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">external documentation for core/v1 toleration</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core">Toleration</a> array</p></td>
@@ -32188,7 +32227,7 @@ spec:
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">metrics</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The property <code>metrics</code> has been deprecated. This feature should now be configured at path <code>spec.metricsConfig</code>.</strong> The Prometheus JMX Exporter configuration. See <a href="https://github.com/prometheus/jmx_exporter" class="bare">https://github.com/prometheus/jmx_exporter</a> for details of the structure of this configuration.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><strong>The <code>metrics</code> property has been deprecated, and should now be configured using <code>spec.metricsConfig</code>.</strong> The Prometheus JMX Exporter configuration. See <a href="https://github.com/prometheus/jmx_exporter" class="bare">https://github.com/prometheus/jmx_exporter</a> for details of the structure of this configuration.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">map</p></td>
