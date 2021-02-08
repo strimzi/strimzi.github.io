@@ -9082,7 +9082,10 @@ Otherwise, you may need to configure the truststore with prober certificates or 
     fallbackUserNameClaim: client_id <b class="conum">(2)</b>
     fallbackUserNamePrefix: client-account- <b class="conum">(3)</b>
     validTokenType: bearer <b class="conum">(4)</b>
-    userInfoEndpointUri: <em>https://OAUTH-SERVER-ADDRESS/auth/realms/external/protocol/openid-connect/userinfo</em> <b class="conum">(5)</b></code></pre>
+    userInfoEndpointUri: <em>https://OAUTH-SERVER-ADDRESS/auth/realms/external/protocol/openid-connect/userinfo</em> <b class="conum">(5)</b>
+    enableOauthBearer: false <b class="conum">(6)</b>
+    enablePlain: true <b class="conum">(7)</b>
+    tokenEndpointUri: <em>https://OAUTH-SERVER-ADDRESS/auth/realms/external/protocol/openid-connect/token</em> <b class="conum">(8)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -9101,6 +9104,15 @@ Otherwise, you may need to configure the truststore with prober certificates or 
 </li>
 <li>
 <p>(Only applicable when using <code>introspectionEndpointUri</code>) The authorization server may be configured or implemented in such a way to not provide any identifiable information in an Introspection Endpoint response. In order to obtain the user ID, you can configure the URI of the <code>userinfo</code> endpoint as a fallback. The <code>userNameClaim</code>, <code>fallbackUserNameClaim</code>, and <code>fallbackUserNamePrefix</code> settings are applied to the response of <code>userinfo</code> endpoint.</p>
+</li>
+<li>
+<p>Set this to <code>false</code> in order to disable the SASL_OAUTHBEARER mechanism on the listener. At least one of SASL_PLAIN or SASL_OAUTHBEARER has to be enabled. Default is <code>true</code>.</p>
+</li>
+<li>
+<p>Set this to <code>true</code> in order to enable the SASL_PLAIN mechanism on the listener, which is supported by all clients on all platforms. The Kafka client has to enable the SASL_PLAIN mechanism and set the <code>username</code> and the <code>password</code>. This mechanism can be used to authenticate either by using the OAuth access token, or by using the OAuth clientId and secret (client credentials). If the client sets <code>username</code> to <code>access-token</code> then the password is interpreted as access token on the server, otherwise the user is interpreted as the clientId, and password as the client secret. Default is <code>false</code>.</p>
+</li>
+<li>
+<p>This has to be set to support the client credentials authentication when <code>enablePlain</code> is set to true, as described in previous point.</p>
 </li>
 </ol>
 </div>
@@ -21699,6 +21711,20 @@ It must have the value <code>oauth</code> for the type <code>KafkaListenerAuthen
 <td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">enableOauthBearer</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Enable or disable OAuth authentication over SASL_OAUTHBEARER. Default value is <code>true</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">enablePlain</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Enable or disable OAuth authentication over SASL_PLAIN. There is no re-authentication support when this mechanism is used. Default value is <code>false</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">fallbackUserNameClaim</p></td>
 <td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The fallback username claim to be used for the user id if the claim specified by <code>userNameClaim</code> is not present. This is useful when <code>client_credentials</code> authentication only results in the client id being provided in another claim. It only takes effect if <code>userNameClaim</code> is set.</p></td>
 </tr>
@@ -21749,7 +21775,7 @@ It must have the value <code>oauth</code> for the type <code>KafkaListenerAuthen
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">maxSecondsWithoutReauthentication</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Maximum number of seconds the authenticated session remains valid without re-authentication. This enables Apache Kafka re-authentication feature, and causes sessions to expire when the access token expires. If the access token expires before max time or if max time is reached, the client has to re-authenticate, otherwise the server will drop the connection. Not set by default - the authenticated session does not expire when the access token expires.</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">Maximum number of seconds the authenticated session remains valid without re-authentication. This enables Apache Kafka re-authentication feature, and causes sessions to expire when the access token expires. If the access token expires before max time or if max time is reached, the client has to re-authenticate, otherwise the server will drop the connection. Not set by default - the authenticated session does not expire when the access token expires. This option only applies to SASL_OAUTHBEARER authentication mechanism (when <code>enableOauthBearer</code> is <code>true</code>).</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">integer</p></td>
@@ -21760,6 +21786,13 @@ It must have the value <code>oauth</code> for the type <code>KafkaListenerAuthen
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-CertSecretSource-reference"><code>CertSecretSource</code></a> array</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">tokenEndpointUri</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">URI of the Token Endpoint to use with SASL_PLAIN mechanism when the client authenticates with clientId and a secret.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">type</p></td>
