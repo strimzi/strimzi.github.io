@@ -128,6 +128,8 @@
 <li><a href="#ref-kafka-versions-str">7.1.1. Kafka versions</a></li>
 <li><a href="#assembly-upgrade-cluster-operator-str">7.1.2. Upgrading the Cluster Operator</a></li>
 <li><a href="#assembly-upgrading-kafka-versions-str">7.1.3. Upgrading Kafka</a></li>
+<li><a href="#con-upgrade-listeners-str">7.1.4. Updating listeners to the generic listener configuration</a></li>
+<li><a href="#con-strategies-for-upgrading-clients-str">7.1.5. Strategies for upgrading clients</a></li>
 </ul>
 </li>
 <li><a href="#assembly-upgrade-resources-str">7.2. Strimzi resource upgrades</a>
@@ -140,6 +142,7 @@
 <li><a href="#proc-upgrade-kafka-user-resources-str">7.2.6. Upgrading Kafka User resources</a></li>
 </ul>
 </li>
+<li><a href="#proc-upgrading-consumers-streams-cooperative-rebalancing_str">7.3. Upgrading consumers to cooperative rebalancing</a></li>
 </ul>
 </li>
 <li><a href="#assembly-downgrade-str">8. Downgrading Strimzi</a>
@@ -5976,39 +5979,66 @@ spec:
 <h2 id="assembly-upgrade-str"><a class="link" href="#assembly-upgrade-str">7. Upgrading Strimzi</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Strimzi can be upgraded with no cluster downtime.
-Each version of Strimzi supports one or more versions of Apache Kafka.
+<p>Strimzi can be upgraded from a lower version to a higher version to take advantage of new features and enhancements, performance improvements, and security options.</p>
+</div>
+<div class="paragraph">
+<p>As part of the upgrade, you upgrade Kafka to a higher supported version.
+Each Kafka release introduces new features, improvements, and bug fixes.</p>
+</div>
+<div class="paragraph">
+<div class="title">Downtime and availability</div>
+<p>If topics are configured for high availability, upgrading Strimzi should not cause any downtime for consumers and producers that publish and read data from those topics.
+Highly available topics have a replication factor of at least 3 and partitions distributed evenly among the brokers.</p>
+</div>
+<div class="paragraph">
+<p>Upgrading Strimzi triggers rolling updates, where all brokers are restarted in turn, at different stages of the process.
+During rolling updates, not all brokers are online, so overall <em>cluster availability</em> is temporarily reduced.
+A reduction in cluster availability increases the chance that a broker failure will result in lost messages.</p>
+</div>
+<div class="paragraph">
+<div class="title">Kafka version compatibility</div>
+<p>Each version of Strimzi supports one or more versions of Apache Kafka.
 You can upgrade to a higher Kafka version as long as it is supported by your version of Strimzi.
 In some cases, you can also downgrade to a lower supported Kafka version.</p>
 </div>
 <div class="paragraph">
 <p>Newer versions of Strimzi may support newer versions of Kafka, but you need to upgrade Strimzi <em>before</em> you can upgrade to a higher supported Kafka version.</p>
 </div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-If applicable, <a href="#assembly-upgrade-resources-str">Resource upgrades</a> <em>must</em> be performed after upgrading Strimzi and Kafka.
-</td>
-</tr>
-</table>
-</div>
 <div class="sect2">
 <h3 id="assembly-upgrade-kafka-str"><a class="link" href="#assembly-upgrade-kafka-str">7.1. Strimzi and Kafka upgrades</a></h3>
 <div class="paragraph">
-<p>Upgrading Strimzi is a two-stage process. To upgrade brokers and clients without downtime, you <em>must</em> complete the upgrade procedures in the following order:</p>
+<p>Upgrading Strimzi is a three-stage process. To upgrade brokers and clients without downtime, you <em>must</em> complete the upgrade procedures in the following order:</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
 <p>Update your Cluster Operator to the latest Strimzi version.</p>
+<div class="paragraph">
+<p>The approach you take depends on how you <a href="#cluster-operator-str">deployed the Cluster Operator</a>.</p>
+</div>
 <div class="ulist">
 <ul>
 <li>
-<p><a href="#assembly-upgrade-cluster-operator-str">Upgrading the Cluster Operator</a></p>
+<p>If you deployed the Cluster Operator using the installation YAML files, perform your upgrade by modifying the Operator installation files, as described in <a href="#assembly-upgrade-cluster-operator-str">Upgrading the Cluster Operator</a>.</p>
+</li>
+<li>
+<p>If you deployed the Cluster Operator from <a href="https://operatorhub.io/" target="_blank" rel="noopener">OperatorHub.io</a>, use the Operator Lifecycle Manager (OLM) to change the update channel for the Strimzi Operators to the new Strimzi version.</p>
+<div class="paragraph">
+<p>Depending on your chosen upgrade strategy, after updating the channel, either:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>An automatic upgrade is initiated</p>
+</li>
+<li>
+<p>A manual upgrade will require approval before the installation begins</p>
+<div class="paragraph">
+<p>For more information on using <a href="https://operatorhub.io/" target="_blank" rel="noopener">OperatorHub.io</a> to upgrade Operators, see the <a href="https://olm.operatorframework.io/docs/" target="_blank" rel="noopener">Operator Lifecycle Manager documentation</a>.</p>
+</div>
+</li>
+</ul>
+</div>
 </li>
 </ul>
 </div>
@@ -6020,15 +6050,69 @@ If applicable, <a href="#assembly-upgrade-resources-str">Resource upgrades</a> <
 <li>
 <p><a href="#assembly-upgrading-kafka-versions-str">Upgrading Kafka</a></p>
 </li>
+<li>
+<p><a href="#con-strategies-for-upgrading-clients-str">Strategies for upgrading clients</a></p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>If applicable, perform the following tasks:</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>Update existing custom resources to handle deprecated custom resource properties</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#assembly-upgrade-resources-str">Strimzi resource upgrades</a></p>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Custom resources can also be updated <em>before</em> the Kafka upgrade.
+</td>
+</tr>
+</table>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Update listeners to use the <code>GenericKafkaListener</code> schema</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#con-upgrade-listeners-str">Updating listeners to the generic listener configuration</a></p>
+</li>
 </ul>
 </div>
 </li>
 </ol>
 </div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<div class="title">Optional: incremental cooperative rebalance upgrade</div>
+<p>Consider upgrading consumers and Kafka Streams applications to use the <em>incremental cooperative rebalance</em> protocol for partition rebalances.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#proc-upgrading-consumers-streams-cooperative-rebalancing_str">Upgrading consumers to cooperative rebalancing</a></p>
+</li>
+</ul>
+</div>
 <div class="sect3">
 <h4 id="ref-kafka-versions-str"><a class="link" href="#ref-kafka-versions-str">7.1.1. Kafka versions</a></h4>
 <div class="paragraph">
-<p>Kafka&#8217;s log message format version and inter-broker protocol version specify the log format version appended to messages and the version of protocol used in a cluster. As a result, the upgrade process involves making configuration changes to existing Kafka brokers and code changes to client applications (consumers and producers) to ensure the correct versions are used.</p>
+<p>Kafka&#8217;s log message format version and inter-broker protocol version specify, respectively, the log format version appended to messages and the version of the Kafka protocol used in a cluster.
+To ensure the correct versions are used, the upgrade process involves making configuration changes to existing Kafka brokers and code changes to client applications (consumers and producers).</p>
 </div>
 <div class="paragraph">
 <p>The following table shows the differences between Kafka versions:</p>
@@ -6076,9 +6160,19 @@ If applicable, <a href="#assembly-upgrade-resources-str">Resource upgrades</a> <
 </tbody>
 </table>
 <div class="paragraph">
-<div class="title">Message format version</div>
+<div class="title">Inter-broker protocol version</div>
+<p>In Kafka, the network protocol used for inter-broker communication is called the <em>inter-broker protocol</em>.
+Each version of Kafka has a compatible version of the inter-broker protocol.
+The minor version of the protocol typically increases to match the minor version of Kafka, as shown in the preceding table.</p>
+</div>
+<div class="paragraph">
+<p>The inter-broker protocol version is set cluster wide in the <code>Kafka</code> resource.
+To change it, you edit the <code>inter.broker.protocol.version</code> property in <code>Kafka.spec.kafka.config</code>.</p>
+</div>
+<div class="paragraph">
+<div class="title">Log message format version</div>
 <p>When a producer sends a message to a Kafka broker, the message is encoded using a specific format.
-The format can change between Kafka releases, so messages include a version identifying which version of the format they were encoded with. You can configure a Kafka broker to convert messages from newer format versions to a given older format version before the broker appends the message to the log.</p>
+The format can change between Kafka releases, so messages specify which version of the format they were encoded with. You can configure a Kafka broker to convert messages from newer format versions to a given older format version before the broker appends the message to the log.</p>
 </div>
 <div class="paragraph">
 <p>In Kafka, there are two different methods for setting the message format version:</p>
@@ -6103,7 +6197,10 @@ The format can change between Kafka releases, so messages include a version iden
 <div class="sect3">
 <h4 id="assembly-upgrade-cluster-operator-str"><a class="link" href="#assembly-upgrade-cluster-operator-str">7.1.2. Upgrading the Cluster Operator</a></h4>
 <div class="paragraph">
-<p>The steps to upgrade your Cluster Operator deployment to use Strimzi latest are outlined in this section.</p>
+<p>The steps to upgrade your Cluster Operator deployment to use Strimzi latest are described in this section.</p>
+</div>
+<div class="paragraph">
+<p>Follow this procedure if you deployed the Cluster Operator using the installation YAML files.</p>
 </div>
 <div class="paragraph">
 <p>The availability of Kafka clusters managed by the Cluster Operator is not affected by the upgrade operation.</p>
@@ -6151,7 +6248,7 @@ Any changes will be <strong>overwritten</strong> by the new version of the Clust
 <div class="olist loweralpha">
 <ol class="loweralpha" type="a">
 <li>
-<p>Modify the installation files for the new version according to the namespace the Cluster Operator is running in.</p>
+<p>Modify the installation files for the new Cluster Operator version according to the namespace the Cluster Operator is running in.</p>
 <div class="paragraph">
 <p>On Linux, use:</p>
 </div>
@@ -6191,40 +6288,36 @@ Any changes will be <strong>overwritten</strong> by the new version of the Clust
 <p>Get the image for the Kafka pod to ensure the upgrade was successful:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pod my-cluster-kafka-0 -o jsonpath='{.spec.containers[0].image}'</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods my-cluster-kafka-0 -o jsonpath='{.spec.containers[0].image}'</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The image tag shows the new Strimzi version followed by the Kafka version. For example, <code><em>NEW-STRIMZI-VERSION</em>-kafka-<em>CURRENT-KAFKA-VERSION</em></code>.</p>
+<p>The image tag shows the new Strimzi version and the new Kafka version. For example:</p>
 </div>
-</li>
-<li>
-<p>Update existing resources to handle deprecated custom resource properties.</p>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="#assembly-upgrade-resources-str">Strimzi resource upgrades</a></p>
-</li>
-</ul>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">quay.io/strimzi/kafka:latest-kafka-2.7.0</code></pre>
+</div>
 </div>
 </li>
 </ol>
 </div>
 <div class="paragraph">
-<p>Your Cluster Operator was upgraded to the later version., but the version of Kafka running in the cluster it manages is unchanged.</p>
+<p>Your Cluster Operator was upgraded to the later version, but the version of Kafka running in the cluster it manages is unchanged.</p>
 </div>
 <div class="paragraph">
-<p>Following the Cluster Operator upgrade, you can perform a <a href="#assembly-upgrading-kafka-versions-str">Kafka upgrade</a>.</p>
+<p>Following the Cluster Operator upgrade, you must perform a <a href="#assembly-upgrading-kafka-versions-str">Kafka upgrade</a>.</p>
 </div>
 </div>
 </div>
 <div class="sect3">
 <h4 id="assembly-upgrading-kafka-versions-str"><a class="link" href="#assembly-upgrading-kafka-versions-str">7.1.3. Upgrading Kafka</a></h4>
 <div class="paragraph">
-<p>After you have upgraded your Cluster Operator, you can upgrade your brokers to a higher supported version of Kafka.</p>
+<p>After you have upgraded your Cluster Operator, you can upgrade all Kafka brokers to a higher supported version of Kafka.</p>
 </div>
 <div class="paragraph">
-<p>Kafka upgrades are performed using the Cluster Operator. How the Cluster Operator performs an upgrade depends on the differences between versions of:</p>
+<p>Kafka upgrades are performed using the Cluster Operator.
+How the Cluster Operator performs an upgrade depends on the differences between the versions of:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -6251,12 +6344,15 @@ Any changes will be <strong>overwritten</strong> by the new version of the Clust
 <li>
 <p><a href="#assembly-upgrade-cluster-operator-str">Upgrading the Cluster Operator</a></p>
 </li>
+<li>
+<p><a href="#ref-kafka-versions-str">Kafka versions</a></p>
+</li>
 </ul>
 </div>
 <div class="sect4">
 <h5 id="con-versions-and-images-str"><a class="link" href="#con-versions-and-images-str">Kafka version and image mappings</a></h5>
 <div class="paragraph">
-<p>When upgrading Kafka, consider your settings for the <code>STRIMZI_KAFKA_IMAGES</code> and <code>Kafka.spec.kafka.version</code> properties.</p>
+<p>When upgrading Kafka, consider your settings for the <code>STRIMZI_KAFKA_IMAGES</code> environment variable and the <code>Kafka.spec.kafka.version</code> property.</p>
 </div>
 <div class="ulist">
 <ul>
@@ -6293,12 +6389,293 @@ Take care to ensure that the given image corresponds to the given Kafka version.
 </div>
 </div>
 <div class="sect4">
-<h5 id="con-upgrade-listeners-str"><a class="link" href="#con-upgrade-listeners-str">Updating listener configuration</a></h5>
+<h5 id="proc-upgrading-brokers-newer-kafka-str"><a class="link" href="#proc-upgrading-brokers-newer-kafka-str">Upgrading Kafka brokers and client applications</a></h5>
+<div class="paragraph">
+<p>This procedure describes how to upgrade a Strimzi Kafka cluster to a higher version of Kafka.</p>
+</div>
+<div class="paragraph">
+<div class="title">Prerequisites</div>
+<p>For the <code>Kafka</code> resource to be upgraded, check:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The Cluster Operator, which supports both versions of Kafka, is up and running.</p>
+</li>
+<li>
+<p>The <code>Kafka.spec.kafka.config</code> does <em>not</em> contain options that are not supported in the version of Kafka that you are upgrading to.</p>
+</li>
+<li>
+<p>Whether the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> for the current Kafka version need to be updated for the new version.
+<a href="#ref-kafka-versions-str">Consult the Kafka versions table</a>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Also, consider the <a href="#con-strategies-for-upgrading-clients-str">strategies for upgrading clients</a>.
+Clients are upgraded in step 6 of this procedure according to your chosen strategy.</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Update the Kafka cluster configuration:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit kafka <em>my-cluster</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> of the <em>current</em> Kafka version are <em>the same</em> as the new Kafka version, go to step 3.</p>
+<div class="paragraph">
+<p>Otherwise, ensure that <code>Kafka.spec.kafka.config</code> has the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> configured to the defaults for the <em>current</em> Kafka version.</p>
+</div>
+<div class="paragraph">
+<p>For example, if upgrading from Kafka 2.6.0:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">kind: Kafka
+spec:
+  # ...
+  kafka:
+    version: 2.6.0
+    config:
+      log.message.format.version: "2.6"
+      inter.broker.protocol.version: "2.6"
+      # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> are unset, set them to the defaults for the <em>current</em> Kafka version.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The value of <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> must be strings to prevent them from being interpreted as floating point numbers.
+</td>
+</tr>
+</table>
+</div>
+</li>
+<li>
+<p>Change the <code>Kafka.spec.kafka.version</code> to specify the new version (leaving the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> at the <em>current</em> versions).</p>
+<div class="paragraph">
+<p>For example, if upgrading from Kafka 2.6.0 to 2.7.0:</p>
+</div>
+<div class="openblock">
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+spec:
+  # ...
+  kafka:
+    version: 2.7.0 <b class="conum">(1)</b>
+    config:
+      log.message.format.version: "2.6" <b class="conum">(2)</b>
+      inter.broker.protocol.version: "2.6" <b class="conum">(3)</b>
+      # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Kafka version is changed to the new version.</p>
+</li>
+<li>
+<p>Message format version is unchanged.</p>
+</li>
+<li>
+<p>Inter-broker protocol version is unchanged.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+You cannot downgrade Kafka if the <code>inter.broker.protocol.version</code> for the new Kafka version changes. The inter-broker protocol version determines the schemas used for persistent metadata stored by the broker, including messages written to <code>__consumer_offsets</code>. The downgraded cluster will not understand the messages.
+</td>
+</tr>
+</table>
+</div>
+</li>
+<li>
+<p>If the image for the Kafka cluster is defined in the Kafka custom resource, in <code>Kafka.spec.kafka.image</code>, update the <code>image</code> to point to a container image with the new Kafka version.</p>
+<div class="paragraph">
+<p>See <a href="#con-versions-and-images-str">Kafka version and image mappings</a></p>
+</div>
+</li>
+<li>
+<p>Save and exit the editor, then wait for rolling updates to complete.</p>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Additional rolling updates occur if the new version of Kafka has a new ZooKeeper version.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Check the update in the logs or by watching the pod state transitions:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl logs -f <em>CLUSTER-OPERATOR-POD-NAME</em> | grep -E "Kafka version upgrade from KafkaVersion.<strong>[0-9.]+.</strong> to KafkaVersion.*[0-9.]+.*completed"</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods my-cluster-kafka-0 -o jsonpath='{.spec.containers[0].image}'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If the current and new versions of Kafka have different inter-broker protocol versions, check the Cluster Operator logs for an <code>INFO</code> level message:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Reconciliation #<em>NUM</em>(watch) Kafka(<em>NAMESPACE</em>/<em>NAME</em>): Kafka version upgrade from <em>FROM-VERSION</em> to <em>TO-VERSION</em>, phase 2 of 2 completed</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Alternatively, if the current and new versions of Kafka have the same interbroker protocol version, check for:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Reconciliation #<em>NUM</em>(watch) Kafka(<em>NAMESPACE</em>/<em>NAME</em>): Kafka version upgrade from <em>FROM-VERSION</em> to <em>TO-VERSION</em>, phase 1 of 1 completed</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The rolling updates:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Ensure each pod is using the broker binaries for the new version of Kafka</p>
+</li>
+<li>
+<p>Configure the brokers to send messages using the inter-broker protocol of the new version of Kafka</p>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Clients are still using the old version, so brokers will convert messages to the old version before sending them to the clients. To minimize this additional load, update the clients as quickly as possible.
+</td>
+</tr>
+</table>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Depending on your chosen <a href="#con-strategies-for-upgrading-clients-str">strategy for upgrading clients</a>, upgrade all client applications to use the new version of the client binaries.</p>
+<div class="paragraph">
+<p>If required, set the <code>version</code> property for Kafka Connect and MirrorMaker as the new version of Kafka:</p>
+</div>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>For Kafka Connect, update <code>KafkaConnect.spec.version</code>.</p>
+</li>
+<li>
+<p>For MirrorMaker, update <code>KafkaMirrorMaker.spec.version</code>.</p>
+</li>
+<li>
+<p>For MirrorMaker 2.0, update <code>KafkaMirrorMaker2.spec.version</code>.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p><em>Optional step to reduce rolling updates</em>:</p>
+<div class="paragraph">
+<p>You can now perform one or more further product upgrades, starting with <a href="#proc-upgrading-the-co-str">Upgrading the Cluster Operator to a later version</a>.
+After reaching this step for the last upgrade you want to perform, you can complete this procedure.</p>
+</div>
+<div class="paragraph">
+<p>Alternatively, skip this step and go to step 8.</p>
+</div>
+</li>
+<li>
+<p>If the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> of the <em>new</em> Kafka version are <em>different from</em> the old Kafka version, update the Kafka resource to use the new default versions. Otherwise, go to step 9.</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>In <code>Kafka.spec.kafka.config</code>, change the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code>.</p>
+<div class="paragraph">
+<p>For example, if upgrading to Kafka 2.7.0:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+spec:
+  # ...
+  kafka:
+    version: 2.7.0
+    config:
+      log.message.format.version: "2.7"
+      inter.broker.protocol.version: "2.7"
+      # ...</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Wait for the Cluster Operator to update the cluster.</p>
+<div class="paragraph">
+<p>The Kafka cluster and clients are now using the new Kafka version.</p>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Following the Kafka upgrade, if required, you can:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#con-upgrade-listeners-str">Update listeners to the <code>GenericKafkaListener</code> schema</a></p>
+</li>
+<li>
+<p><a href="#proc-upgrading-consumers-streams-cooperative-rebalancing_str">Upgrade consumers to use the incremental cooperative rebalance protocol</a></p>
+</li>
+<li>
+<p><a href="#assembly-upgrade-resources-str">Update existing custom resources</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-upgrade-listeners-str"><a class="link" href="#con-upgrade-listeners-str">7.1.4. Updating listeners to the generic listener configuration</a></h4>
 <div class="paragraph">
 <p>Strimzi provides a <code>GenericKafkaListener</code> schema for the configuration of Kafka listeners in a <code>Kafka</code> resource.</p>
 </div>
 <div class="paragraph">
-<p><code>GenericKafkaListener</code> replaces the <code>KafkaListeners</code> schema, which is deprecated.</p>
+<p><code>GenericKafkaListener</code> replaces the <code>KafkaListeners</code> schema, which has been removed from Strimzi.</p>
 </div>
 <div class="paragraph">
 <p>With the <code>GenericKafkaListener</code> schema, you can configure as many listeners as required,
@@ -6313,8 +6690,8 @@ The <code>listeners</code> configuration is defined as an array, but the depreca
 which can be <code>nodeport</code>, <code>loadbalancer</code>, <code>ingress</code> or <code>route</code>.</p>
 </div>
 <div class="paragraph">
-<p>The <code>KafkaListeners</code> schema uses sub-properties for <code>plain</code>, <code>tls</code> and <code>external</code> listeners, with fixed ports for each.
-After the Kafka upgrade, you can convert listeners configured using the <code>KafkaListeners</code> schema into the format of the <code>GenericKafkaListener</code> schema.</p>
+<p>The <code>KafkaListeners</code> schema used sub-properties for <code>plain</code>, <code>tls</code> and <code>external</code> listeners, with fixed ports for each.
+At any stage in the upgrade process, you must convert listeners configured using the <code>KafkaListeners</code> schema into the format of the <code>GenericKafkaListener</code> schema.</p>
 </div>
 <div class="paragraph">
 <p>For example, if you are currently using the following configuration in your <code>Kafka</code> configuration:</p>
@@ -6447,10 +6824,10 @@ Using any other values will cause renaming of the Kafka listeners and Kubernetes
 see the <a href="./using.html#type-GenericKafkaListener-reference"><code>GenericKafkaListener</code> schema reference</a>.</p>
 </div>
 </div>
-<div class="sect4">
-<h5 id="con-strategies-for-upgrading-clients-str"><a class="link" href="#con-strategies-for-upgrading-clients-str">Strategies for upgrading clients</a></h5>
+<div class="sect3">
+<h4 id="con-strategies-for-upgrading-clients-str"><a class="link" href="#con-strategies-for-upgrading-clients-str">7.1.5. Strategies for upgrading clients</a></h4>
 <div class="paragraph">
-<p>The best approach to upgrading your client applications (including Kafka Connect connectors) depends on your particular circumstances.</p>
+<p>The right approach to upgrading your client applications (including Kafka Connect connectors) depends on your particular circumstances.</p>
 </div>
 <div class="paragraph">
 <p>Consuming applications need to receive messages in a message format that they understand. You can ensure that this is the case in one of two ways:</p>
@@ -6577,334 +6954,6 @@ When this has proved successful another, more efficient strategy can be consider
 </td>
 </tr>
 </table>
-</div>
-</div>
-<div class="sect4">
-<h5 id="proc-upgrading-brokers-newer-kafka-str"><a class="link" href="#proc-upgrading-brokers-newer-kafka-str">Upgrading Kafka brokers and client applications</a></h5>
-<div class="paragraph">
-<p>This procedure describes how to upgrade a Strimzi Kafka cluster to a higher version of Kafka.</p>
-</div>
-<div class="paragraph">
-<div class="title">Prerequisites</div>
-<p>For the <code>Kafka</code> resource to be upgraded, check:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>The Cluster Operator, which supports both versions of Kafka, is up and running.</p>
-</li>
-<li>
-<p>The <code>Kafka.spec.kafka.config</code> does not contain options that are not supported in the version of Kafka that you are upgrading to.</p>
-</li>
-<li>
-<p>Whether the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> for the current Kafka version needs to be updated for the new version.
-<a href="#ref-kafka-versions-str">Consult the Kafka versions table</a>.</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Update the Kafka cluster configuration in an editor, as required:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit kafka <em>my-cluster</em></code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>If the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> of the current Kafka version is the same as that of the new Kafka version, proceed to the next step.</p>
-<div class="paragraph">
-<p>Otherwise, ensure that <code>Kafka.spec.kafka.config</code> has the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> configured to the default for the <em>current</em> version.</p>
-</div>
-<div class="paragraph">
-<p>For example, if upgrading from Kafka 2.6.0:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">kind: Kafka
-spec:
-  # ...
-  kafka:
-    version: 2.6.0
-    config:
-      log.message.format.version: "2.6"
-      inter.broker.protocol.version: "2.6"
-      # ...</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>If the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> are unset, set them to the current version.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The value of <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> must be a string to prevent it from being interpreted as a floating point number.
-</td>
-</tr>
-</table>
-</div>
-</li>
-<li>
-<p>Change the <code>Kafka.spec.kafka.version</code> to specify the new version (leaving the <code>log.message.format.version</code> and and <code>inter.broker.protocol.version</code> at the current version).</p>
-<div class="paragraph">
-<p>For example, if upgrading from Kafka 2.6.0 to 2.7.0:</p>
-</div>
-<div class="openblock">
-<div class="content">
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
-kind: Kafka
-spec:
-  # ...
-  kafka:
-    version: 2.7.0 <b class="conum">(1)</b>
-    config:
-      log.message.format.version: "2.6" <b class="conum">(2)</b>
-      inter.broker.protocol.version: "2.6" <b class="conum">(3)</b>
-      # ...</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Kafka version is changed to the new version.</p>
-</li>
-<li>
-<p>Message format version is unchanged.</p>
-</li>
-<li>
-<p>Inter-broker protocol version is unchanged.</p>
-</li>
-</ol>
-</div>
-</div>
-</div>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Warning</div>
-</td>
-<td class="content">
-You cannot downgrade Kafka if the <code>inter.broker.protocol.version</code> for the new Kafka version changes. The inter-broker protocol version determines the schemas used for persistent metadata stored by the broker, including messages written to <code>__consumer_offsets</code>. The downgraded cluster will not understand the messages.
-</td>
-</tr>
-</table>
-</div>
-</li>
-<li>
-<p>If the image for the Kafka version is different from the image defined in <code>STRIMZI_KAFKA_IMAGES</code> for the Cluster Operator, update <code>Kafka.spec.kafka.image</code>.</p>
-<div class="paragraph">
-<p>See <a href="#con-versions-and-images-str">Kafka version and image mappings</a></p>
-</div>
-</li>
-<li>
-<p>Save and exit the editor, then wait for rolling updates to complete.</p>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Additional rolling updates occur if the new version of Kafka has a new ZooKeeper version.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Check the update in the logs or by watching the pod state transitions:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl logs -f <em>CLUSTER-OPERATOR-POD-NAME</em> | grep -E "Kafka version upgrade from KafkaVersion.<strong>[0-9.]+.</strong> to KafkaVersion.*[0-9.]+.*completed"</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pod my-cluster-kafka-0 -o jsonpath='{.spec.containers[0].image}'</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>If the current and new versions of Kafka have different inter-broker protocol versions, check the Cluster Operator logs for an <code>INFO</code> level message:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Reconciliation #<em>NUM</em>(watch) Kafka(<em>NAMESPACE</em>/<em>NAME</em>): Kafka version upgrade from <em>FROM-VERSION</em> to <em>TO-VERSION</em>, phase 2 of 2 completed</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Alternatively, if the current and new versions of Kafka have the same interbroker protocol version, check for:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Reconciliation #<em>NUM</em>(watch) Kafka(<em>NAMESPACE</em>/<em>NAME</em>): Kafka version upgrade from <em>FROM-VERSION</em> to <em>TO-VERSION</em>, phase 1 of 1 completed</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The rolling updates:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Ensure each pod is using the broker binaries for the new version of Kafka</p>
-</li>
-<li>
-<p>Configure the brokers to send messages using the inter-broker protocol of the new version of Kafka</p>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Clients are still using the old version, so brokers will convert messages to the old version before sending them to the clients. To minimize this additional load, update the clients as quickly as possible.
-</td>
-</tr>
-</table>
-</div>
-</li>
-</ul>
-</div>
-</li>
-<li>
-<p>Depending on your chosen strategy for upgrading clients, upgrade all client applications to use the new version of the client binaries.</p>
-<div class="paragraph">
-<p>See <a href="#con-strategies-for-upgrading-clients-str">Strategies for upgrading clients</a></p>
-</div>
-<div class="paragraph">
-<p>If required, set the version property for Kafka Connect and MirrorMaker as the new version of Kafka:</p>
-</div>
-<div class="olist loweralpha">
-<ol class="loweralpha" type="a">
-<li>
-<p>For Kafka Connect, update <code>KafkaConnect.spec.version</code></p>
-</li>
-<li>
-<p>For MirrorMaker, update <code>KafkaMirrorMaker.spec.version</code></p>
-</li>
-</ol>
-</div>
-</li>
-<li>
-<p>If the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> identified in step 1 are the same as the new version proceed to the next step.</p>
-<div class="paragraph">
-<p>Otherwise change the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> in <code>Kafka.spec.kafka.config</code> to the default version for the new version of Kafka now being used.</p>
-</div>
-<div class="paragraph">
-<p>For example, if upgrading to 2.7.0:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta1
-kind: Kafka
-spec:
-  # ...
-  kafka:
-    version: 2.7.0
-    config:
-      log.message.format.version: "2.7"
-      # ...</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Wait for the Cluster Operator to update the cluster.</p>
-<div class="paragraph">
-<p>The Kafka cluster and clients are now using the new Kafka version.</p>
-</div>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect4">
-<h5 id="proc-upgrading-consumers-streams-cooperative-rebalancing_str"><a class="link" href="#proc-upgrading-consumers-streams-cooperative-rebalancing_str">Upgrading consumers and Kafka Streams applications to cooperative rebalancing</a></h5>
-<div class="paragraph">
-<p>You can upgrade Kafka consumers and Kafka Streams applications to use the <em>incremental cooperative rebalance</em> protocol for partition rebalances instead of the default <em>eager rebalance</em> protocol. The new protocol was added in Kafka 2.4.0.</p>
-</div>
-<div class="paragraph">
-<p>Consumers keep their partition assignments in a cooperative rebalance and only revoke them at the end of the process, if needed to achieve a balanced cluster. This reduces the unavailability of the consumer group or Kafka Streams application.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Upgrading to the incremental cooperative rebalance protocol is optional. The eager rebalance protocol is still supported.
-</td>
-</tr>
-</table>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>You have <a href="#proc-upgrading-brokers-newer-kafka-str">upgraded Kafka brokers and client applications</a> to Kafka 2.7.0.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Procedure</div>
-<p><strong>To upgrade a Kafka consumer to use the incremental cooperative rebalance protocol:</strong></p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Replace the Kafka clients <code>.jar</code> file with the new version.</p>
-</li>
-<li>
-<p>In the consumer configuration, append <code>cooperative-sticky</code> to the <code>partition.assignment.strategy</code>. For example, if the <code>range</code> strategy is set, change the configuration to <code>range, cooperative-sticky</code>.</p>
-</li>
-<li>
-<p>Restart each consumer in the group in turn, waiting for the consumer to rejoin the group after each restart.</p>
-</li>
-<li>
-<p>Reconfigure each consumer in the group by removing the earlier <code>partition.assignment.strategy</code> from the consumer configuration, leaving only the <code>cooperative-sticky</code> strategy.</p>
-</li>
-<li>
-<p>Restart each consumer in the group in turn, waiting for the consumer to rejoin the group after each restart.</p>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p><strong>To upgrade a Kafka Streams application to use the incremental cooperative rebalance protocol:</strong></p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Replace the Kafka Streams <code>.jar</code> file with the new version.</p>
-</li>
-<li>
-<p>In the Kafka Streams configuration, set the <code>upgrade.from</code> configuration parameter to the Kafka version you are upgrading from (for example, 2.3).</p>
-</li>
-<li>
-<p>Restart each of the stream processors (nodes) in turn.</p>
-</li>
-<li>
-<p>Remove the <code>upgrade.from</code> configuration parameter from the Kafka Streams configuration.</p>
-</li>
-<li>
-<p>Restart each consumer in the group in turn.</p>
-</li>
-</ol>
-</div>
-<div class="ulist">
-<div class="title">Additional resources</div>
-<ul>
-<li>
-<p><a href="https://kafka.apache.org/documentation/#upgrade_240_notable" target="_blank" rel="noopener">Notable changes in 2.4.0</a> in the Apache Kafka documentation.</p>
-</li>
-</ul>
-</div>
 </div>
 </div>
 </div>
@@ -7614,6 +7663,88 @@ The upgrade of resources <em>must</em> be performed after <a href="#assembly-upg
 </li>
 </ol>
 </div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-upgrading-consumers-streams-cooperative-rebalancing_str"><a class="link" href="#proc-upgrading-consumers-streams-cooperative-rebalancing_str">7.3. Upgrading consumers to cooperative rebalancing</a></h3>
+<div class="paragraph">
+<p>You can upgrade Kafka consumers and Kafka Streams applications to use the <em>incremental cooperative rebalance</em> protocol for partition rebalances instead of the default <em>eager rebalance</em> protocol. The new protocol was added in Kafka 2.4.0.</p>
+</div>
+<div class="paragraph">
+<p>Consumers keep their partition assignments in a cooperative rebalance and only revoke them at the end of the process, if needed to achieve a balanced cluster. This reduces the unavailability of the consumer group or Kafka Streams application.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Upgrading to the incremental cooperative rebalance protocol is optional. The eager rebalance protocol is still supported.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>You have <a href="#proc-upgrading-brokers-newer-kafka-str">upgraded Kafka brokers and client applications</a> to Kafka 2.7.0.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Procedure</div>
+<p><strong>To upgrade a Kafka consumer to use the incremental cooperative rebalance protocol:</strong></p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Replace the Kafka clients <code>.jar</code> file with the new version.</p>
+</li>
+<li>
+<p>In the consumer configuration, append <code>cooperative-sticky</code> to the <code>partition.assignment.strategy</code>. For example, if the <code>range</code> strategy is set, change the configuration to <code>range, cooperative-sticky</code>.</p>
+</li>
+<li>
+<p>Restart each consumer in the group in turn, waiting for the consumer to rejoin the group after each restart.</p>
+</li>
+<li>
+<p>Reconfigure each consumer in the group by removing the earlier <code>partition.assignment.strategy</code> from the consumer configuration, leaving only the <code>cooperative-sticky</code> strategy.</p>
+</li>
+<li>
+<p>Restart each consumer in the group in turn, waiting for the consumer to rejoin the group after each restart.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p><strong>To upgrade a Kafka Streams application to use the incremental cooperative rebalance protocol:</strong></p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Replace the Kafka Streams <code>.jar</code> file with the new version.</p>
+</li>
+<li>
+<p>In the Kafka Streams configuration, set the <code>upgrade.from</code> configuration parameter to the Kafka version you are upgrading from (for example, 2.3).</p>
+</li>
+<li>
+<p>Restart each of the stream processors (nodes) in turn.</p>
+</li>
+<li>
+<p>Remove the <code>upgrade.from</code> configuration parameter from the Kafka Streams configuration.</p>
+</li>
+<li>
+<p>Restart each consumer in the group in turn.</p>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="https://kafka.apache.org/documentation/#upgrade_240_notable" target="_blank" rel="noopener">Notable changes in 2.4.0</a> in the Apache Kafka documentation.</p>
+</li>
+</ul>
 </div>
 </div>
 </div>
