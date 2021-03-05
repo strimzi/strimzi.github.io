@@ -576,23 +576,27 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#con-strategies-for-upgrading-clients-str">7.1.5. Strategies for upgrading clients</a></li>
 </ul>
 </li>
-<li><a href="#assembly-upgrade-resources-str">7.2. Strimzi resource upgrades</a>
+<li><a href="#assembly-upgrade-resources-str">7.2. Strimzi custom resource upgrades</a>
 <ul class="sectlevel3">
-<li><a href="#proc-upgrade-kafka-resources-str">7.2.1. Upgrading Kafka resources to support v1beta2</a></li>
-<li><a href="#proc-upgrade-zookeeper-api-version-str">7.2.2. Upgrading ZooKeeper to support v1beta2</a></li>
-<li><a href="#proc-upgrade-topic-operator-api-version-str">7.2.3. Upgrading the Topic Operator to support v1beta2</a></li>
-<li><a href="#proc-upgrade-entity-operator-api-version-str">7.2.4. Upgrading the Entity Operator to support v1beta2</a></li>
-<li><a href="#proc-upgrade-cruise-control-api-version-str">7.2.5. Upgrading Cruise Control to support v1beta2</a></li>
-<li><a href="#proc-upgrade-kafka-api-version-str">7.2.6. Upgrading the API version of Kafka resources to v1beta2</a></li>
-<li><a href="#proc-upgrade-kafka-connect-resources-str">7.2.7. Upgrading Kafka Connect resources to v1beta2</a></li>
-<li><a href="#proc-upgrade-kafka-connect-s2i-resources-str">7.2.8. Upgrading Kafka Connect S2I resources to v1beta2</a></li>
-<li><a href="#proc-upgrade-kafka-mirror-maker-resources-str">7.2.9. Upgrading Kafka MirrorMaker resources to v1beta2</a></li>
-<li><a href="#proc-upgrade-kafka-mirror-maker2-resources-str">7.2.10. Upgrading Kafka MirrorMaker 2.0 resources to v1beta2</a></li>
-<li><a href="#proc-upgrade-kafka-bridge-resources-str">7.2.11. Upgrading Kafka Bridge resources to v1beta2</a></li>
-<li><a href="#proc-upgrade-kafka-user-resources-str">7.2.12. Upgrading Kafka User resources to v1beta2</a></li>
-<li><a href="#proc-upgrade-kafka-topic-resources-str">7.2.13. Upgrading Kafka Topic resources to v1beta2</a></li>
-<li><a href="#proc-upgrade-kafkaconnector-resources-str">7.2.14. Upgrading Kafka Connector resources to v1beta2</a></li>
-<li><a href="#proc-upgrade-kafka-rebalance-resources-str">7.2.15. Upgrading Kafka Rebalance resources to v1beta2</a></li>
+<li><a href="#con-upgrade-custom-resources-str">7.2.1. API versioning</a></li>
+<li><a href="#proc-upgrade-cli-tool-files-str">7.2.2. Converting custom resources configuration files using the API conversion tool</a></li>
+<li><a href="#proc-upgrade-cli-tool-direct-str">7.2.3. Converting custom resources directly using the API conversion tool</a></li>
+<li><a href="#proc-upgrade-cli-tool-crds-str">7.2.4. Upgrading CRDs to v1beta2 using the API conversion tool</a></li>
+<li><a href="#proc-upgrade-kafka-resources-str">7.2.5. Upgrading Kafka resources to support v1beta2</a></li>
+<li><a href="#proc-upgrade-zookeeper-api-version-str">7.2.6. Upgrading ZooKeeper to support v1beta2</a></li>
+<li><a href="#proc-upgrade-topic-operator-api-version-str">7.2.7. Upgrading the Topic Operator to support v1beta2</a></li>
+<li><a href="#proc-upgrade-entity-operator-api-version-str">7.2.8. Upgrading the Entity Operator to support v1beta2</a></li>
+<li><a href="#proc-upgrade-cruise-control-api-version-str">7.2.9. Upgrading Cruise Control to support v1beta2</a></li>
+<li><a href="#proc-upgrade-kafka-api-version-str">7.2.10. Upgrading the API version of Kafka resources to v1beta2</a></li>
+<li><a href="#proc-upgrade-kafka-connect-resources-str">7.2.11. Upgrading Kafka Connect resources to v1beta2</a></li>
+<li><a href="#proc-upgrade-kafka-connect-s2i-resources-str">7.2.12. Upgrading Kafka Connect S2I resources to v1beta2</a></li>
+<li><a href="#proc-upgrade-kafka-mirror-maker-resources-str">7.2.13. Upgrading Kafka MirrorMaker resources to v1beta2</a></li>
+<li><a href="#proc-upgrade-kafka-mirror-maker2-resources-str">7.2.14. Upgrading Kafka MirrorMaker 2.0 resources to v1beta2</a></li>
+<li><a href="#proc-upgrade-kafka-bridge-resources-str">7.2.15. Upgrading Kafka Bridge resources to v1beta2</a></li>
+<li><a href="#proc-upgrade-kafka-user-resources-str">7.2.16. Upgrading Kafka User resources to v1beta2</a></li>
+<li><a href="#proc-upgrade-kafka-topic-resources-str">7.2.17. Upgrading Kafka Topic resources to v1beta2</a></li>
+<li><a href="#proc-upgrade-kafkaconnector-resources-str">7.2.18. Upgrading Kafka Connector resources to v1beta2</a></li>
+<li><a href="#proc-upgrade-kafka-rebalance-resources-str">7.2.19. Upgrading Kafka Rebalance resources to v1beta2</a></li>
 </ul>
 </li>
 <li><a href="#proc-upgrading-consumers-streams-cooperative-rebalancing_str">7.3. Upgrading consumers to cooperative rebalancing</a></li>
@@ -819,7 +823,9 @@ By implementing knowledge of Kafka operations in code, Kafka administration task
 Your application just needs to deal with producing or consuming from the necessary topics.</p>
 </div>
 <div class="paragraph">
-<p>If the topic is reconfigured or reassigned to different Kafka nodes, the <code>KafkaTopic</code> will always be up to date.</p>
+<p>The Topic Operator maintains information about each topic in a <em>topic store</em>, which is continually synchronized with updates from Kafka topics or Kubernetes <code>KafkaTopic</code> custom resources.
+Updates from operations applied to a local in-memory topic store are persisted to a backup topic store on disk.
+If a topic is reconfigured or reassigned to other brokers, the <code>KafkaTopic</code> will always be up to date.</p>
 </div>
 </div>
 <div class="sect3">
@@ -6593,7 +6599,7 @@ To upgrade brokers and clients without downtime, you <em>must</em> complete the 
 <div class="ulist">
 <ul>
 <li>
-<p><a href="#assembly-upgrade-resources-str">Strimzi resource upgrades</a></p>
+<p><a href="#assembly-upgrade-resources-str">Strimzi custom resource upgrades</a></p>
 <div class="admonitionblock note">
 <table>
 <tr>
@@ -7508,74 +7514,10 @@ When this has proved successful another, more efficient strategy can be consider
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-upgrade-resources-str"><a class="link" href="#assembly-upgrade-resources-str">7.2. Strimzi resource upgrades</a></h3>
-<div class="paragraph">
-<p>The <code>v1alpha1</code> API version is deprecated for the following Strimzi resources:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>Kafka</code></p>
-</li>
-<li>
-<p><code>KafkaConnect</code></p>
-</li>
-<li>
-<p><code>KafkaConnectS2I</code></p>
-</li>
-<li>
-<p><code>KafkaConnector</code></p>
-</li>
-<li>
-<p><code>KafkaMirrorMaker</code></p>
-</li>
-<li>
-<p><code>KafkaMirrorMaker2</code></p>
-</li>
-<li>
-<p><code>KafkaTopic</code></p>
-</li>
-<li>
-<p><code>KafkaUser</code></p>
-</li>
-<li>
-<p><code>KafkaBridge</code></p>
-</li>
-<li>
-<p><code>KafkaRebalance</code></p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>The <code>v1beta1</code> API version is deprecated for the following Strimzi resources:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>Kafka</code></p>
-</li>
-<li>
-<p><code>KafkaConnect</code></p>
-</li>
-<li>
-<p><code>KafkaConnectS2I</code></p>
-</li>
-<li>
-<p><code>KafkaMirrorMaker</code></p>
-</li>
-<li>
-<p><code>KafkaTopic</code></p>
-</li>
-<li>
-<p><code>KafkaUser</code></p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Update these resources to use the <code>kafka.strimzi.io/v1beta2</code> API version.</p>
-</div>
-<div class="paragraph">
-<p>This section describes the upgrade steps for the resources.</p>
+<h3 id="assembly-upgrade-resources-str"><a class="link" href="#assembly-upgrade-resources-str">7.2. Strimzi custom resource upgrades</a></h3>
+<div class="paragraph _abstract">
+<p>After you have upgraded Strimzi to latest, you must ensure that your custom resources are using API version <code>v1beta2</code>.
+You can do this any time after upgrading to latest, but the upgrades must be completed before the next Strimzi minor version update.</p>
 </div>
 <div class="admonitionblock important">
 <table>
@@ -7584,31 +7526,58 @@ When this has proved successful another, more efficient strategy can be consider
 <div class="title">Important</div>
 </td>
 <td class="content">
-The upgrade of resources <em>must</em> be performed after <a href="#assembly-upgrade-str">upgrading the Cluster Operator</a>, so the Cluster Operator can understand the resources.
+Upgrade of the custom resources to <code>v1beta2</code> <em>must</em> be performed after <a href="#assembly-upgrade-str">upgrading the Cluster Operator</a>, so the Cluster Operator can understand the resources.
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Upgrade of the custom resources to <code>v1beta2</code> prepares Strimzi for a move to Kubernetes CRD <code>v1</code>,
+which will be required for Kubernetes 1.22.
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<div class="title">What if the resource upgrade does not take effect?</div>
-<p>If the upgrade does not take effect, a warning is given in the logs on reconciliation to indicate that the resource cannot be updated until the <code>apiVersion</code> is updated.</p>
+<div class="title">CLI upgrades to custom resources</div>
+<p>Strimzi provides an <em>API conversion tool</em> with its release artifacts.</p>
 </div>
 <div class="paragraph">
-<p>To trigger the update, make a cosmetic change to the custom resource, such as adding an annotation.</p>
+<p>You can download its ZIP or TAR.GZ file from <a href="https://github.com/strimzi/strimzi-kafka-operator/releases" target="_blank" rel="noopener">GitHub</a>.
+To use the tool, extract it and use the scripts in the <code>bin</code> directory.</p>
 </div>
 <div class="paragraph">
-<p>Example annotation:</p>
+<p>From its CLI, you can then use the tool to convert the format of your custom resources to <code>v1beta2</code> in one of two ways:</p>
 </div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">metadata:
-  # ...
-  annotations:
-    upgrade: "Upgraded to kafka.strimzi.io/v1beta2"</code></pre>
-</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#proc-upgrade-cli-tool-files-str">Converting custom resources configuration files using the API conversion tool</a></p>
+</li>
+<li>
+<p><a href="#proc-upgrade-cli-tool-direct-str">Converting custom resources directly using the API conversion tool</a></p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
-<p>The following procedures describe the steps to update specific resources to use the <code>kafka.strimzi.io/v1beta2</code> API version:</p>
+<p>After the conversion of your custom resources, you must set <code>v1beta2</code> as the <em>storage</em> API version in your CRDs:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#proc-upgrade-cli-tool-crds-str">Upgrading CRDs to v1beta2 using the API conversion tool</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Manual upgrades to custom resources</div>
+<p>Instead of using the API conversion tool to update custom resources to <code>v1beta2</code>, you can manually update each custom resource to use <code>v1beta2</code>:</p>
 </div>
 <div class="paragraph">
 <p>Update the <code>Kafka</code> custom resource, including the configurations for the other components:</p>
@@ -7669,8 +7638,508 @@ The upgrade of resources <em>must</em> be performed after <a href="#assembly-upg
 </li>
 </ul>
 </div>
+<div class="paragraph">
+<p>The manual procedures show the changes that are made to each custom resource.
+After these changes, you must use the API conversion tool to upgrade your CRDs.</p>
+</div>
 <div class="sect3">
-<h4 id="proc-upgrade-kafka-resources-str"><a class="link" href="#proc-upgrade-kafka-resources-str">7.2.1. Upgrading Kafka resources to support v1beta2</a></h4>
+<h4 id="con-upgrade-custom-resources-str"><a class="link" href="#con-upgrade-custom-resources-str">7.2.1. API versioning</a></h4>
+<div class="paragraph _abstract">
+<p>Custom resources are edited and controlled using APIs added to Kubernetes by CRDs.
+Put another way, CRDs extend the Kubernetes API to allow the creation of custom resources.
+CRDs are themselves resources within Kubernetes.
+They are installed in a Kubernetes cluster to define the versions of API for the custom resource.
+Each version of the custom resource API can define its own schema for that version.
+Kubernetes clients, including the Strimzi Operators, access the custom resources served by the Kubernetes API server using a URL path (<em>API path</em>), which includes the API version.</p>
+</div>
+<div class="paragraph">
+<p>The introduction of <code>v1beta2</code> updates the schemas of the custom resources.
+Older API versions are deprecated.</p>
+</div>
+<div class="paragraph">
+<p>The <code>v1alpha1</code> API version is deprecated for the following Strimzi custom resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Kafka</code></p>
+</li>
+<li>
+<p><code>KafkaConnect</code></p>
+</li>
+<li>
+<p><code>KafkaConnectS2I</code></p>
+</li>
+<li>
+<p><code>KafkaConnector</code></p>
+</li>
+<li>
+<p><code>KafkaMirrorMaker</code></p>
+</li>
+<li>
+<p><code>KafkaMirrorMaker2</code></p>
+</li>
+<li>
+<p><code>KafkaTopic</code></p>
+</li>
+<li>
+<p><code>KafkaUser</code></p>
+</li>
+<li>
+<p><code>KafkaBridge</code></p>
+</li>
+<li>
+<p><code>KafkaRebalance</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>v1beta1</code> API version is deprecated for the following Strimzi custom resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Kafka</code></p>
+</li>
+<li>
+<p><code>KafkaConnect</code></p>
+</li>
+<li>
+<p><code>KafkaConnectS2I</code></p>
+</li>
+<li>
+<p><code>KafkaMirrorMaker</code></p>
+</li>
+<li>
+<p><code>KafkaTopic</code></p>
+</li>
+<li>
+<p><code>KafkaUser</code></p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+The <code>v1alpha1</code> and <code>v1beta1</code> versions will be removed in the next minor release.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/" target="_blank" rel="noopener">Extend the Kubernetes API with CustomResourceDefinitions</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-upgrade-cli-tool-files-str"><a class="link" href="#proc-upgrade-cli-tool-files-str">7.2.2. Converting custom resources configuration files using the API conversion tool</a></h4>
+<div class="paragraph _abstract">
+<p>This procedure describes how to use the API conversion tool to convert YAML files describing the configuration for Strimzi custom resources into a format applicable to <code>v1beta2</code>.
+To do so, you use the <code>convert-file</code> (<code>cf</code>) command.</p>
+</div>
+<div class="paragraph">
+<p>The <code>convert-file</code> command can convert YAML files containing multiple documents.
+For a multi-document YAML file, all the Strimzi custom resources it contains are converted.
+Any non-Strimzi Kubernetes resources are replicated unmodified in the converted output file.</p>
+</div>
+<div class="paragraph">
+<p>After you have converted the YAML file, you must apply the configuration to update the custom resource in the cluster.
+Alternatively, if the GitOps synchronization mechanism is being used for updates on your cluster, you can use it to apply the changes.
+The conversion is only complete when the custom resource is updated in the Kubernetes cluster.</p>
+</div>
+<div class="paragraph">
+<p>Alternatively, you can use the <a href="#proc-upgrade-cli-tool-direct-str"><code>convert-resource</code> procedure to convert custom resources directly</a>.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Cluster Operator supporting the <code>v1beta2</code> API version is up and running.</p>
+</li>
+<li>
+<p>The API conversion tool, which is provided with the release artifacts.</p>
+</li>
+<li>
+<p>The tool requires Java 11.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Use the CLI help for more information on the API conversion tool, and the flags available for the <code>convert-file</code> command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/api-conversion.sh help
+bin/api-conversion.sh help convert-file</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Use <code>bin/api-conversion.cmd</code> for this procedure if you are using Windows.</p>
+</div>
+<table class="tableblock frame-all grid-all stripes-none stretch">
+<caption class="title">Table 8. Flags for YAML file conversion</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Flag</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>-f</code>, <code>--file=<em>NAME-OF-YAML-FILE</em></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Specifies the YAML file for the Strimzi custom resource being converted</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>-o,</code> <code>--output=<em>NAME-OF-CONVERTED-YAML-FILE</em></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Creates an output YAML file for the converted custom resource</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>--in-place</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Updates the original source file with the converted YAML</p></td>
+</tr>
+</tbody>
+</table>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Run the API conversion tool with the <code>convert-file</code> command and appropriate flags.</p>
+<div class="paragraph">
+<p>Example 1, converts a YAML file and displays the output, though the file does not change:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/api-conversion.sh convert-file --file input.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Example 2, converts a YAML file, and writes the changes into the original source file:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/api-conversion.sh convert-file --file input.yaml --in-place</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Example 3, converts a YAML file, and writes the changes into a new output file:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/api-conversion.sh convert-file --file input.yaml --output output.yaml</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Update the custom resources using the converted configuration file.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>CONVERTED-CONFIG-FILE</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Verify that the custom resources have been converted.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get <em>KIND</em> <em>CUSTOM-RESOURCE-NAME</em> -o yaml</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-upgrade-cli-tool-direct-str"><a class="link" href="#proc-upgrade-cli-tool-direct-str">7.2.3. Converting custom resources directly using the API conversion tool</a></h4>
+<div class="paragraph _abstract">
+<p>This procedure describes how to use the API conversion tool to convert Strimzi custom resources directly in the Kubernetes cluster into a format applicable to <code>v1beta2</code>.
+To do so, you use the <code>convert-resource</code> (<code>cr</code>) command.
+The command uses Kubernetes APIs to make the conversions.</p>
+</div>
+<div class="paragraph">
+<p>You can specify one or more of types of Strimzi custom resources, based on the <code>kind</code> property, or you can convert all types.
+You can also target a specific namespace or all namespaces for conversion.
+When targeting a namespace, you can convert all custom resources in that namespace, or convert a single custom resource by specifying its name and kind.</p>
+</div>
+<div class="paragraph">
+<p>Alternatively, you can use the <a href="#proc-upgrade-cli-tool-files-str"><code>convert-file</code> procedure to convert and apply the YAML files describing the custom resources</a>.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Cluster Operator supporting the <code>v1beta2</code> API version is up and running.</p>
+</li>
+<li>
+<p>The API conversion tool, which is provided with the release artifacts.</p>
+</li>
+<li>
+<p>The tool requires Java 11 (OpenJDK).</p>
+</li>
+<li>
+<p>The steps require a user admin account with RBAC permission to:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Get the Strimzi custom resources being converted using the <code>--name</code> option</p>
+</li>
+<li>
+<p>List the Strimzi custom resources being converted without using the <code>--name</code> option</p>
+</li>
+<li>
+<p>Replace the Strimzi custom resources being converted</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Use the CLI help for more information on the API conversion tool, and the flags available for the <code>convert-resource</code> command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/api-conversion.sh help
+bin/api-conversion.sh help convert-resource</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Use <code>bin/api-conversion.cmd</code> for this procedure if you are using Windows.</p>
+</div>
+<table class="tableblock frame-all grid-all stripes-none stretch">
+<caption class="title">Table 9. Flags for converting custom resources</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Flag</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>-k</code>, <code>--kind</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Specifies the kinds of custom resources to be converted, or converts all resources if not specified</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>-a</code>, <code>--all-namespaces</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Converts custom resources in all namespaces</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>-n</code>, <code>--namespace</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Specifies a Kubernetes namespace or OpenShift project, or uses the current namespace if not specified</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>--name</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <code>--namespace</code> and a single custom resource <code>--kind</code> is used, specifies the name of the custom resource being converted</p></td>
+</tr>
+</tbody>
+</table>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Run the API conversion tool with the <code>convert-resource</code> command and appropriate flags.</p>
+<div class="paragraph">
+<p>Example 1, converts all Strimzi resources in current namespace:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/api-conversion.sh convert-resource</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Example 2, converts all Strimzi resources in all namespaces:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/api-conversion.sh convert-resource --all-namespaces</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Example 3, converts all Strimzi resources in the <code>my-kafka</code> namespace:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/api-conversion.sh convert-resource --namespace my-kafka</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Example 4, converts only Kafka resources in all namespaces:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/api-conversion.sh convert-resource --all-namespaces --kind Kafka</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Example 5, converts Kafka and Kafka Connect resources in all namespaces:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/api-conversion.sh convert-resource --all-namespaces --kind Kafka --kind KafkaConnect</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Example 6, converts a Kafka custom resource named <code>my-cluster</code> in the <code>my-kafka</code> namespace:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/api-conversion.sh convert-resource --kind Kafka --namespace my-kafka --name my-cluster</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Verify that the custom resources have been converted.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get <em>KIND</em> <em>CUSTOM-RESOURCE-NAME</em> -o yaml</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-upgrade-cli-tool-crds-str"><a class="link" href="#proc-upgrade-cli-tool-crds-str">7.2.4. Upgrading CRDs to v1beta2 using the API conversion tool</a></h4>
+<div class="paragraph _abstract">
+<p>This procedure describes how to use the API conversion tool to convert the CRDs that define the schemas used to instantiate and manage Strimzi-specific resources in a format applicable to <code>v1beta2</code>.
+To do so, you use the <code>crd-upgrade</code> command.</p>
+</div>
+<div class="paragraph">
+<p><strong>Perform this procedure after converting all Strimzi custom resources in the whole Kubernetes cluster to <code>v1beta2</code>.</strong>
+If you upgrade your CRDs first, and then convert your custom resources, you will need to run this command again.</p>
+</div>
+<div class="paragraph">
+<p>The command updates <code>spec.versions</code> in the CRDs to declare <code>v1beta2</code> as the <em>storage</em> API version.
+The command also updates custom resources so they are stored under <code>v1beta2</code>.
+New custom resource instances are created from the specification of the storage API version, so only one API version is ever marked as the storage version.</p>
+</div>
+<div class="paragraph">
+<p>When you have upgraded the CRDs to use <code>v1beta2</code> as the storage version, you should only use <code>v1beta2</code> properties in your custom resources.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Cluster Operator supporting the <code>v1beta2</code> API version is up and running.</p>
+</li>
+<li>
+<p>The API conversion tool, which is provided with the release artifacts.</p>
+</li>
+<li>
+<p>The tool requires Java 11 (OpenJDK).</p>
+</li>
+<li>
+<p>Custom resources have been converted to <code>v1beta2</code>.</p>
+</li>
+<li>
+<p>The steps require a user admin account with RBAC permission to:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>List the Strimzi custom resources in all namespaces</p>
+</li>
+<li>
+<p>Replace the Strimzi custom resources being converted</p>
+</li>
+<li>
+<p>Update CRDs</p>
+</li>
+<li>
+<p>Replace the status of the CRDs</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Use the CLI help for more information on the API conversion tool:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/api-conversion.sh help</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Use <code>bin/api-conversion.cmd</code> for this procedure if you are using Windows.</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>If you have not done so, convert your custom resources to use <code>v1beta2</code>.</p>
+<div class="paragraph">
+<p>You can use the API conversion tool to do this in one of two ways:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#proc-upgrade-cli-tool-files-str">Converting custom resources configuration files using the API conversion tool</a></p>
+</li>
+<li>
+<p><a href="#proc-upgrade-cli-tool-direct-str">Converting custom resources directly using the API conversion tool</a></p>
+<div class="paragraph">
+<p>Or you can make the changes manually.</p>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Run the API conversion tool with the <code>crd-upgrade</code> command.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/api-conversion.sh crd-upgrade</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Verify that the CRDs have been upgraded so that v1beta2 is the storage version.</p>
+<div class="paragraph">
+<p>For example, for the Kafka topic CRD:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: CustomResourceDefinition
+metadata:
+  name: kafkatopics.kafka.strimzi.io
+  #...
+spec:
+  group: kafka.strimzi.io
+  #...
+  versions:
+  - name: v1beta2
+    served: true
+    storage: true
+    #...
+status:
+  #...
+  storedVersions:
+  - v1beta2</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-upgrade-kafka-resources-str"><a class="link" href="#proc-upgrade-kafka-resources-str">7.2.5. Upgrading Kafka resources to support v1beta2</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -7849,7 +8318,7 @@ This is described in the following procedures.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-upgrade-zookeeper-api-version-str"><a class="link" href="#proc-upgrade-zookeeper-api-version-str">7.2.2. Upgrading ZooKeeper to support v1beta2</a></h4>
+<h4 id="proc-upgrade-zookeeper-api-version-str"><a class="link" href="#proc-upgrade-zookeeper-api-version-str">7.2.6. Upgrading ZooKeeper to support v1beta2</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -7957,7 +8426,7 @@ data:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-upgrade-topic-operator-api-version-str"><a class="link" href="#proc-upgrade-topic-operator-api-version-str">7.2.3. Upgrading the Topic Operator to support v1beta2</a></h4>
+<h4 id="proc-upgrade-topic-operator-api-version-str"><a class="link" href="#proc-upgrade-topic-operator-api-version-str">7.2.7. Upgrading the Topic Operator to support v1beta2</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -8044,7 +8513,7 @@ You can also complete this step as part of the <a href="#proc-upgrade-entity-ope
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-upgrade-entity-operator-api-version-str"><a class="link" href="#proc-upgrade-entity-operator-api-version-str">7.2.4. Upgrading the Entity Operator to support v1beta2</a></h4>
+<h4 id="proc-upgrade-entity-operator-api-version-str"><a class="link" href="#proc-upgrade-entity-operator-api-version-str">7.2.8. Upgrading the Entity Operator to support v1beta2</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -8109,7 +8578,7 @@ You can also complete this step as part of the <a href="#proc-upgrade-entity-ope
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-upgrade-cruise-control-api-version-str"><a class="link" href="#proc-upgrade-cruise-control-api-version-str">7.2.5. Upgrading Cruise Control to support v1beta2</a></h4>
+<h4 id="proc-upgrade-cruise-control-api-version-str"><a class="link" href="#proc-upgrade-cruise-control-api-version-str">7.2.9. Upgrading Cruise Control to support v1beta2</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -8209,7 +8678,7 @@ data:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-upgrade-kafka-api-version-str"><a class="link" href="#proc-upgrade-kafka-api-version-str">7.2.6. Upgrading the API version of Kafka resources to v1beta2</a></h4>
+<h4 id="proc-upgrade-kafka-api-version-str"><a class="link" href="#proc-upgrade-kafka-api-version-str">7.2.10. Upgrading the API version of Kafka resources to v1beta2</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -8277,7 +8746,7 @@ data:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-upgrade-kafka-connect-resources-str"><a class="link" href="#proc-upgrade-kafka-connect-resources-str">7.2.7. Upgrading Kafka Connect resources to v1beta2</a></h4>
+<h4 id="proc-upgrade-kafka-connect-resources-str"><a class="link" href="#proc-upgrade-kafka-connect-resources-str">7.2.11. Upgrading Kafka Connect resources to v1beta2</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -8442,7 +8911,7 @@ data:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-upgrade-kafka-connect-s2i-resources-str"><a class="link" href="#proc-upgrade-kafka-connect-s2i-resources-str">7.2.8. Upgrading Kafka Connect S2I resources to v1beta2</a></h4>
+<h4 id="proc-upgrade-kafka-connect-s2i-resources-str"><a class="link" href="#proc-upgrade-kafka-connect-s2i-resources-str">7.2.12. Upgrading Kafka Connect S2I resources to v1beta2</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -8607,7 +9076,7 @@ data:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-upgrade-kafka-mirror-maker-resources-str"><a class="link" href="#proc-upgrade-kafka-mirror-maker-resources-str">7.2.9. Upgrading Kafka MirrorMaker resources to v1beta2</a></h4>
+<h4 id="proc-upgrade-kafka-mirror-maker-resources-str"><a class="link" href="#proc-upgrade-kafka-mirror-maker-resources-str">7.2.13. Upgrading Kafka MirrorMaker resources to v1beta2</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -8776,7 +9245,7 @@ data:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-upgrade-kafka-mirror-maker2-resources-str"><a class="link" href="#proc-upgrade-kafka-mirror-maker2-resources-str">7.2.10. Upgrading Kafka MirrorMaker 2.0 resources to v1beta2</a></h4>
+<h4 id="proc-upgrade-kafka-mirror-maker2-resources-str"><a class="link" href="#proc-upgrade-kafka-mirror-maker2-resources-str">7.2.14. Upgrading Kafka MirrorMaker 2.0 resources to v1beta2</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -8901,7 +9370,7 @@ data:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-upgrade-kafka-bridge-resources-str"><a class="link" href="#proc-upgrade-kafka-bridge-resources-str">7.2.11. Upgrading Kafka Bridge resources to v1beta2</a></h4>
+<h4 id="proc-upgrade-kafka-bridge-resources-str"><a class="link" href="#proc-upgrade-kafka-bridge-resources-str">7.2.15. Upgrading Kafka Bridge resources to v1beta2</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -8980,7 +9449,7 @@ See <a href="#deploying-kafka-bridge-str">Deploying Kafka Bridge to your Kuberne
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-upgrade-kafka-user-resources-str"><a class="link" href="#proc-upgrade-kafka-user-resources-str">7.2.12. Upgrading Kafka User resources to v1beta2</a></h4>
+<h4 id="proc-upgrade-kafka-user-resources-str"><a class="link" href="#proc-upgrade-kafka-user-resources-str">7.2.16. Upgrading Kafka User resources to v1beta2</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -9029,7 +9498,7 @@ See <a href="#deploying-kafka-bridge-str">Deploying Kafka Bridge to your Kuberne
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-upgrade-kafka-topic-resources-str"><a class="link" href="#proc-upgrade-kafka-topic-resources-str">7.2.13. Upgrading Kafka Topic resources to v1beta2</a></h4>
+<h4 id="proc-upgrade-kafka-topic-resources-str"><a class="link" href="#proc-upgrade-kafka-topic-resources-str">7.2.17. Upgrading Kafka Topic resources to v1beta2</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -9078,7 +9547,7 @@ See <a href="#deploying-kafka-bridge-str">Deploying Kafka Bridge to your Kuberne
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-upgrade-kafkaconnector-resources-str"><a class="link" href="#proc-upgrade-kafkaconnector-resources-str">7.2.14. Upgrading Kafka Connector resources to v1beta2</a></h4>
+<h4 id="proc-upgrade-kafkaconnector-resources-str"><a class="link" href="#proc-upgrade-kafkaconnector-resources-str">7.2.18. Upgrading Kafka Connector resources to v1beta2</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -9131,7 +9600,7 @@ See <a href="#con-creating-managing-connectors-str">Creating and managing connec
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-upgrade-kafka-rebalance-resources-str"><a class="link" href="#proc-upgrade-kafka-rebalance-resources-str">7.2.15. Upgrading Kafka Rebalance resources to v1beta2</a></h4>
+<h4 id="proc-upgrade-kafka-rebalance-resources-str"><a class="link" href="#proc-upgrade-kafka-rebalance-resources-str">7.2.19. Upgrading Kafka Rebalance resources to v1beta2</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -9460,7 +9929,7 @@ spec:
 </div>
 <div class="sect3">
 <h4 id="proc-downgrading-brokers-older-kafka-str"><a class="link" href="#proc-downgrading-brokers-older-kafka-str">8.2.2. Downgrading Kafka brokers and client applications</a></h4>
-<div class="paragraph">
+<div class="paragraph _abstract">
 <p>This procedure describes how you can downgrade a Strimzi Kafka cluster to a lower (previous) version of Kafka, such as downgrading from 2.7.0 to 2.6.1.</p>
 </div>
 <div class="paragraph">
@@ -9487,10 +9956,10 @@ spec:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Update the Kafka cluster configuration in an editor, as required.</p>
+<p>Update the Kafka cluster configuration.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit kafka <em>my-cluster</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit kafka <em>KAFKA-CONFIGURATION-FILE</em></code></pre>
 </div>
 </div>
 </li>
@@ -9575,7 +10044,23 @@ You must format the value of <code>log.message.format.version</code> and <code>i
 <p>The Kafka cluster and clients are now using the previous Kafka version.</p>
 </div>
 </li>
+<li>
+<p>If you are reverting back to a version of Strimzi earlier than 0.22, which uses ZooKeeper for the storage of topic metadata, delete the internal topic store topics from the Kafka cluster.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl run kafka-admin -ti --image={DockerKafkaImageCurrent} --rm=true --restart=Never -- ./bin/kafka-topics.sh --bootstrap-server localhost:9092 --topic __strimzi-topic-operator-kstreams-topic-store-changelog --delete &amp;&amp; ./bin/kafka-topics.sh --bootstrap-server localhost:9092 --topic __strimzi_store_topic --delete</code></pre>
+</div>
+</div>
+</li>
 </ol>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="./using.html#ref-topic-operator-store-str" target="_blank" rel="noopener">Topic Operator topic store</a></p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -9584,7 +10069,7 @@ You must format the value of <code>log.message.format.version</code> and <code>i
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-03-05 16:27:42 UTC
+Last updated 2021-03-05 19:44:32 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
