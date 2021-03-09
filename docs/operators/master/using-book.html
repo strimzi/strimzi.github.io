@@ -10817,17 +10817,11 @@ Message 5</code></pre>
 </div>
 <div class="sect2">
 <h3 id="using-the-cluster-operator-str"><a class="link" href="#using-the-cluster-operator-str">18.1. Using the Cluster Operator</a></h3>
-<div class="paragraph">
+<div class="paragraph _abstract">
 <p>The Cluster Operator is used to deploy a Kafka cluster and other Kafka components.</p>
 </div>
 <div class="paragraph">
 <p>The Cluster Operator is deployed using YAML installation files.</p>
-</div>
-<div class="paragraph">
-<p>For information on deploying the Cluster Operator, see <a href="./deploying.html#cluster-operator-str" target="_blank" rel="noopener">Deploying the Cluster Operator</a> in the <em>Deploying and Upgrading Strimzi</em> guide.</p>
-</div>
-<div class="paragraph">
-<p>For information on the deployment options available for Kafka, see <a href="#assembly-config-kafka-str">Kafka Cluster configuration</a>.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -10841,23 +10835,36 @@ On OpenShift, a Kafka Connect deployment can incorporate a Source2Image feature 
 </tr>
 </table>
 </div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="./deploying.html#cluster-operator-str" target="_blank" rel="noopener">Deploying the Cluster Operator</a> in the <em>Deploying and Upgrading Strimzi</em> guide.</p>
+</li>
+<li>
+<p><a href="#assembly-config-kafka-str">Kafka Cluster configuration</a>.</p>
+</li>
+</ul>
+</div>
 <div class="sect3">
 <h4 id="ref-operator-cluster-str"><a class="link" href="#ref-operator-cluster-str">18.1.1. Cluster Operator configuration</a></h4>
 <div class="paragraph">
-<p>The Cluster Operator can be configured through the following supported environment variables and through the logging configuration.</p>
+<p>You can configure the Cluster Operator using supported environment variables, and through its logging configuration.</p>
 </div>
 <div class="paragraph">
-<p>For more information of <code>image</code> configuration, see, <a href="#con-common-configuration-images-reference"><code>image</code></a>.</p>
+<p>The environment variables relate to container configuration for the deployment of the Cluster Operator image.
+For more information on <code>image</code> configuration, see, <a href="#con-common-configuration-images-reference"><code>image</code></a>.</p>
 </div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1"><code>STRIMZI_NAMESPACE</code></dt>
 <dd>
 <p>A comma-separated list of namespaces that the operator should operate in.
-When not set, set to empty string, or to <code>*</code> the Cluster Operator will operate in all namespaces.
+When not set, set to empty string, or set to <code>*</code>, the Cluster Operator will operate in all namespaces.
 The Cluster Operator deployment might use the <a href="https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/#the-downward-api" target="_blank" rel="noopener">Kubernetes Downward API</a>
-to set this automatically to the namespace the Cluster Operator is deployed in. See the example below:</p>
+to set this automatically to the namespace the Cluster Operator is deployed in.</p>
 <div class="listingblock">
+<div class="title">Example configuration for Cluster Operator namespaces</div>
 <div class="content">
 <pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
   - name: STRIMZI_NAMESPACE
@@ -10995,9 +11002,9 @@ Changing this list results in a rolling update of all your Kafka, Kafka Connect,
 <dt class="hdlist1"><code>STRIMZI_KUBERNETES_VERSION</code></dt>
 <dd>
 <p>Optional.
-Overrides the Kubernetes version information detected from the API server.
-See the example below:</p>
+Overrides the Kubernetes version information detected from the API server.</p>
 <div class="listingblock">
+<div class="title">Example configuration for Kubernetes version override</div>
 <div class="content">
 <pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
   - name: STRIMZI_KUBERNETES_VERSION
@@ -11044,7 +11051,8 @@ This value should be increased when using Strimzi to build container images cont
 </dd>
 </dl>
 </div>
-<h5 id="configuration_by_configmap" class="discrete">Configuration by ConfigMap</h5>
+<div class="sect4">
+<h5 id="logging_configuration_by_configmap"><a class="link" href="#logging_configuration_by_configmap">Logging configuration by ConfigMap</a></h5>
 <div class="paragraph">
 <p>The Cluster Operator&#8217;s logging is configured by the <code>strimzi-cluster-operator</code> <code>ConfigMap</code>.</p>
 </div>
@@ -11086,10 +11094,35 @@ Create a new <code>ConfigMap</code> to load a new logging configuration.</p>
 <div class="title">Note</div>
 </td>
 <td class="content">
-Do not remove the monitorInterval option from the ConfigMap.
+Do not remove the <code>monitorInterval</code> option from the ConfigMap.
 </td>
 </tr>
 </table>
+</div>
+</div>
+<div class="sect4">
+<h5 id="restricting_cluster_operator_access_with_network_policy"><a class="link" href="#restricting_cluster_operator_access_with_network_policy">Restricting Cluster Operator access with network policy</a></h5>
+<div class="paragraph">
+<p>The Cluster Operator can run in the same namespace as the resources it manages, or in a separate namespace.
+By default, the <code>STRIMZI_OPERATOR_NAMESPACE</code> environment variable is configured to use the Kubernetes Downward API to find which namespace the Cluster Operator is running in.
+If the Cluster Operator is running in the same namespace as the resources, only local access is required, and allowed by Strimzi.</p>
+</div>
+<div class="paragraph">
+<p>If the Cluster Operator is running in a separate namespace to the resources it manages, any namespace in the Kubernetes cluster is allowed access to the Cluster Operator unless network policy is configured.
+Use the optional <code>STRIMZI_OPERATOR_NAMESPACE_LABELS</code> environment variable to establish network policy for the Cluster Operator using namespace labels.
+By adding namespace labels, access to the Cluster Operator is restricted to the namespaces specified.</p>
+</div>
+<div class="listingblock">
+<div class="title">Network policy configured for the Cluster Operator deployment</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">#...
+env:
+  # ...
+  - name: STRIMZI_OPERATOR_NAMESPACE_LABELS
+    value: label1=value1,label2=value2
+  #...</code></pre>
+</div>
+</div>
 </div>
 <div class="sect4">
 <h5 id="periodic_reconciliation"><a class="link" href="#periodic_reconciliation">Periodic reconciliation</a></h5>
