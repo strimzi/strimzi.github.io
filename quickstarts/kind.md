@@ -55,12 +55,12 @@ kubectl create namespace kafka
 Next we apply the Strimzi install files, including `ClusterRoles`, `ClusterRoleBindings` and some **Custom Resource Definitions** (`CRDs`). The CRDs define the schemas used for declarative management of the Kafka cluster, Kafka topics and users.
 
 ```shell
-kubectl apply -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
+kubectl create -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
 ```
 
 This will be familiar if you've installed Strimzi on things like minikube before.
 Note how we set all the `namespace` references in downloaded .yaml file to `kafka`. By default they are set to `myproject`.
-But we want them all to be `kafka` because we decided to install the operator into the `kafka` namespace, which we achieve by specifying `-n kafka` when running `kubectl apply` ensuring that all the definitions and the configurations are installed in `kafka` namespace rather than the `default` namespace.
+But we want them all to be `kafka` because we decided to install the operator into the `kafka` namespace, which we achieve by specifying `-n kafka` when running `kubectl create` ensuring that all the definitions and the configurations are installed in `kafka` namespace rather than the `default` namespace.
 
 If there is a mismatch between namespaces, then the Strimzi Cluster Operator will not have the necessary permissions to perform its operations. 
 
