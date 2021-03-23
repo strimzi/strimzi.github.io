@@ -479,12 +479,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#downloads-str">3.2. Downloading Strimzi release artifacts</a></li>
 <li><a href="#container-images-str">3.3. Pushing container images to your own registry</a></li>
 <li><a href="#adding-users-the-strimzi-admin-role-str">3.4. Designating Strimzi administrators</a></li>
-<li><a href="#deploy-alternatives_str">3.5. Alternative cluster deployment options</a>
-<ul class="sectlevel3">
-<li><a href="#deploy-kubernetes-str">3.5.1. Installing a local Kubernetes cluster</a></li>
-<li><a href="#deploy-openshift-str">3.5.2. Installing a local OpenShift cluster</a></li>
-</ul>
-</li>
+<li><a href="#deploy-kubernetes-str">3.5. Installing a local Kubernetes cluster with Minikube</a></li>
 </ul>
 </li>
 <li><a href="#deploy-tasks_str">4. Deploying Strimzi</a>
@@ -539,7 +534,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#assembly-metrics-prometheus-str">6.2.2. Setting up Prometheus</a></li>
 <li><a href="#assembly-metrics-prometheus-alertmanager-str">6.2.3. Setting up Prometheus Alertmanager</a></li>
 <li><a href="#assembly-metrics-grafana-str">6.2.4. Setting up Grafana</a></li>
-<li><a href="#con-metrics-kafka-mini-kube-shift-str">6.2.5. Using metrics with Minikube or Minishift</a></li>
+<li><a href="#con-metrics-kafka-mini-kube-str">6.2.5. Using metrics with Minikube</a></li>
 </ul>
 </li>
 <li><a href="#assembly-kafka-exporter-str">6.3. Add Kafka Exporter</a>
@@ -1220,7 +1215,7 @@ For more information on the configuration through custom resources, see <a href=
 <p><a href="#adding-users-the-strimzi-admin-role-str">How to set up <em>admin</em> roles for configuration of custom resources used in deployment</a></p>
 </li>
 <li>
-<p><a href="#deploy-alternatives_str">Alternative deployment options to Kubernetes using <em>Minikube</em> or <em>Minishift</em></a></p>
+<p><a href="#deploy-kubernetes-str"><em>Minikube</em> as an alternative deployment option to Kubernetes</a></p>
 </li>
 </ul>
 </div>
@@ -1239,12 +1234,15 @@ To run the commands in this guide, your cluster user must have the rights to man
 <div class="sect2">
 <h3 id="deploy-prereqs-str"><a class="link" href="#deploy-prereqs-str">3.1. Deployment prerequisites</a></h3>
 <div class="paragraph">
-<p>To deploy Strimzi, make sure:</p>
+<p>To deploy Strimzi, make sure that:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>A Kubernetes 1.16 and later cluster is available</p>
+<p>A Kubernetes 1.16 and later cluster is available.</p>
+<div class="paragraph">
+<p>If you do not have access to a Kubernetes cluster, you can install Strimzi with <a href="#deploy-kubernetes-str"><em>Minikube</em></a>.</p>
+</div>
 </li>
 <li>
 <p>The <code>kubectl</code> command-line tool is installed and configured to connect to the running cluster.</p>
@@ -1264,19 +1262,40 @@ where such integration benefits OpenShift users and there is no equivalent imple
 </tr>
 </table>
 </div>
-<h4 id="alternatives_if_a_kubernetes_cluster_is_not_available" class="discrete">Alternatives if a Kubernetes cluster is not available</h4>
+<h4 id="oc_and_kubectl_commands" class="discrete"><code>oc</code> and <code>kubectl</code> commands</h4>
 <div class="paragraph">
-<p>If you do not have access to a Kubernetes cluster, as an alternative you can try installing Strimzi with:</p>
+<p>The <code>oc</code> command functions as an alternative to <code>kubectl</code>.
+In almost all cases the example <code>kubectl</code> commands used in this guide can be done using <code>oc</code> simply by replacing the command name (options and arguments remain the same).</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="#deploy-kubernetes-str"><em>Minikube</em></a></p>
-</li>
-<li>
-<p><a href="#deploy-openshift-str"><em>Minishift</em></a></p>
-</li>
-</ul>
+<div class="paragraph">
+<p>In other words, instead of using:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>when using OpenShift you can use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+As an exception to this general rule, <code>oc</code> uses <code>oc adm</code> subcommands for <em>cluster management</em> functionality,
+whereas <code>kubectl</code> does not make this distinction.
+For example, the <code>oc</code> equivalent of <code>kubectl taint</code> is <code>oc adm taint</code>.
+</td>
+</tr>
+</table>
 </div>
 </div>
 <div class="sect2">
@@ -1512,37 +1531,14 @@ Because of the aggregation, you might not need to assign these roles to users wh
 </div>
 </div>
 <div class="sect2">
-<h3 id="deploy-alternatives_str"><a class="link" href="#deploy-alternatives_str">3.5. Alternative cluster deployment options</a></h3>
+<h3 id="deploy-kubernetes-str"><a class="link" href="#deploy-kubernetes-str">3.5. Installing a local Kubernetes cluster with Minikube</a></h3>
 <div class="paragraph">
-<p>This section suggests alternatives to using a Kubernetes cluster.</p>
+<p>Minikube offers an easy way to get started with Kubernetes.
+If a Kubernetes cluster is unavailable, you can use Minikube to create a local cluster.</p>
 </div>
 <div class="paragraph">
-<p>If a Kubernetes cluster is unavailable, you can use:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><em>Minikube</em> to create a local cluster</p>
-</li>
-<li>
-<p><em>Minishift</em> to create a local OpenShift cluster and use OpenShift-specific features</p>
-</li>
-</ul>
-</div>
-<div class="sect3">
-<h4 id="deploy-kubernetes-str"><a class="link" href="#deploy-kubernetes-str">3.5.1. Installing a local Kubernetes cluster</a></h4>
-<div class="paragraph">
-<p>The easiest way to get started with Kubernetes is using Minikube.
-This section provides basic guidance on how to use it.
-For more information on the tools, refer to the documentation available online.</p>
-</div>
-<div class="paragraph">
-<p>In order to interact with a Kubernetes cluster the <a href="https://kubernetes.io/docs/tasks/tools/install-kubectl/"><code>kubectl</code></a>
-utility needs to be installed.</p>
-</div>
-<div class="paragraph">
-<p>You can download and install Minikube from the <a href="https://kubernetes.io/docs/getting-started-guides/minikube/">Kubernetes website</a>.
-Depending on the number of brokers you want to deploy inside the cluster, and if you need Kafka Connect running as well,
+<p>You can download and install Minikube from the <a href="https://kubernetes.io/docs/home/">Kubernetes website</a>, which also provides documentation.
+Depending on the number of brokers you want to deploy inside the cluster, and whether you want to run Kafka Connect as well,
 try running Minikube with at least with 4 GB of RAM instead of the default 2 GB.</p>
 </div>
 <div class="paragraph">
@@ -1553,89 +1549,8 @@ try running Minikube with at least with 4 GB of RAM instead of the default 2 GB.
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">minikube start --memory 4096</code></pre>
 </div>
 </div>
-</div>
-<div class="sect3">
-<h4 id="deploy-openshift-str"><a class="link" href="#deploy-openshift-str">3.5.2. Installing a local OpenShift cluster</a></h4>
 <div class="paragraph">
-<p>The easiest way to get started with OpenShift is using Minishift or <code>oc cluster up</code>.
-This section provides basic guidance on how to use them.
-For more information on the tools, refer to the documentation available online.</p>
-</div>
-<div class="sect4">
-<h5 id="oc_cluster_up"><a class="link" href="#oc_cluster_up">oc cluster up</a></h5>
-<div class="paragraph">
-<p>The <a href="https://github.com/openshift/origin/releases"><code>oc</code></a> utility is one of the main tools for interacting with OpenShift.
-It provides a simple way of starting a local cluster using the command:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc cluster up</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This command requires Docker to be installed.
-You can find more inforation on
-<a href="https://github.com/openshift/origin/blob/release-3.11/docs/cluster_up_down.md">here</a>.</p>
-</div>
-</div>
-<div class="sect4">
-<h5 id="minishift"><a class="link" href="#minishift">Minishift</a></h5>
-<div class="paragraph">
-<p>Minishift is an OpenShift installation within a VM.
-It can be downloaded and installed from the <a href="https://docs.openshift.org/latest/minishift/index.html">Minishift website</a>.
-Depending on the number of brokers you want to deploy inside the cluster, and if you need Kafka Connect running as well, try running Minishift
-with at least 4 GB of RAM instead of the default 2 GB.</p>
-</div>
-<div class="paragraph">
-<p>Once installed, start Minishift using:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">minishift start --memory 4GB</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>If you want to use <code>kubectl</code> with either an <code>oc cluster up</code> or <code>minishift</code> cluster,
-you will need to <a href="https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/">configure it</a>, as unlike with Minikube this won&#8217;t be done automatically.</p>
-</div>
-</div>
-<div class="sect4">
-<h5 id="oc_and_kubectl_commands"><a class="link" href="#oc_and_kubectl_commands"><code>oc</code> and <code>kubectl</code> commands</a></h5>
-<div class="paragraph">
-<p>The <code>oc</code> command functions as an alternative to <code>kubectl</code>.
-In almost all cases the example <code>kubectl</code> commands given in this guide can be done using <code>oc</code> simply by replacing the command name (options and arguments remain the same).</p>
-</div>
-<div class="paragraph">
-<p>In other words, instead of using:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>when using OpenShift you can use</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc apply -f <em>your-file</em></code></pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-As an exception to this general rule, <code>oc</code> uses <code>oc adm</code> subcommands for <em>cluster management</em>,
-while <code>kubectl</code> does not make such a distinction.
-For example, the <code>oc</code> equivalent of <code>kubectl taint</code> is <code>oc adm taint</code>.
-</td>
-</tr>
-</table>
-</div>
-</div>
+<p>To interact with the cluster, install the <a href="https://kubernetes.io/docs/tasks/tools/install-kubectl/"><code>kubectl</code></a> utility.</p>
 </div>
 </div>
 </div>
@@ -5719,22 +5634,12 @@ The name of the Grafana pod is different for each user.
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-metrics-kafka-mini-kube-shift-str"><a class="link" href="#con-metrics-kafka-mini-kube-shift-str">6.2.5. Using metrics with Minikube or Minishift</a></h4>
+<h4 id="con-metrics-kafka-mini-kube-str"><a class="link" href="#con-metrics-kafka-mini-kube-str">6.2.5. Using metrics with Minikube</a></h4>
 <div class="paragraph">
-<p>When adding Prometheus and Grafana servers to an Apache Kafka deployment using Minikube or Minishift, the memory available to the virtual machine should be increased (to 4 GB of RAM, for example, instead of the default 2 GB).</p>
+<p>When adding Prometheus and Grafana servers to an Apache Kafka deployment using Minikube, the memory available to the virtual machine should be increased (to 4 GB of RAM, for example, instead of the default 2 GB).</p>
 </div>
 <div class="paragraph">
-<p>For information on how to increase the default amount of memory, see:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="#deploy-kubernetes-str">Installing a Kubernetes cluster</a></p>
-</li>
-<li>
-<p><a href="#deploy-openshift-str"> Installing an OpenShift cluster</a></p>
-</li>
-</ul>
+<p>For information on how to increase the default amount of memory, see <a href="#deploy-kubernetes-str">Installing a local Kubernetes cluster with Minikube</a></p>
 </div>
 <div class="ulist">
 <div class="title">Additional resources</div>
@@ -10086,7 +9991,7 @@ You must format the value of <code>log.message.format.version</code> and <code>i
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-03-23 10:34:27 UTC
+Last updated 2021-03-23 18:01:38 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
