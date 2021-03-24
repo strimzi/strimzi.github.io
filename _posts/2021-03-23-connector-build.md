@@ -4,23 +4,30 @@ title:  "How to build your own KafkaConnect image via custom resource"
 date: 2021-03-23
 author: jakub_stejskal
 ---
-In one of [the older blog post](https://strimzi.io/blog/2020/05/07/camel-kafka-connectors/) we shown you how easy is to integrate Camel with Strimzi via KafkaConnect custom resource.
-That approach had one limitation - you had to build your own KafkaConnect image and use it in custom resource.
-However, this step is not needed anymore, thanks to feature which we introduced in Strimzi 0.22 to allow users to build custom KafkaConnect images directly by Strimzi.
+In one of [the older blog post](https://strimzi.io/blog/2020/05/07/camel-kafka-connectors/) we shown you how easy is to integrate [Camel Kafka Connectors](https://camel.apache.org/camel-kafka-connector/latest/) with Strimzi via `KafkaConnect` custom resource.
+That approach had one limitation - you had to build your own Kafka Connect image and use it in custom resource.
+However, this step is not needed anymore, thanks to feature which we introduced in Strimzi 0.22 to allow users to build custom Kafka Connect images directly by Strimzi.
 
 ### How does it work
-Strimzi uses two different ways how to build the image based on the underlying kubernetes cluster:
-* In case you use pure Kubernetes, the image will be built by [Kaniko](https://github.com/GoogleContainerTools/kaniko)
+
+Strimzi uses two different ways how to build the image based on the underlying Kubernetes cluster:
+* In case you use Kubernetes, the image will be built by [kaniko](https://github.com/GoogleContainerTools/kaniko)
 * In case you use Openshift, the image will be built by Openshift Builds
 
+Let's describe kaniko by quoting description from it's github:
+> kaniko is a tool to build container images from a Dockerfile, inside a container or Kubernetes cluster.
+> kaniko doesn't depend on a Docker daemon and executes each command within a Dockerfile completely in userspace.
+> This enables building container images in environments that can't easily or securely run a Docker daemon, such as a standard Kubernetes cluster.
+
 In both cases, Strimzi will spin-up a build pod, which builds the image based on the configuration from custom resource.
-The final image is then pushed into specific registry or image stream, again based on the configuration. 
-The great thing in this feature is, that you can easily reuse the newly built image in another KafkaConnect resource without building it again or manually.
+The final image is then pushed into specific container registry or image stream, again based on the configuration. 
+Kafka Connect cluster specified by custom resource with build part will then use the newly built image.
 
-### KafkaConnect configuration
-A new `build` configuration for KafkaConnect resource allow you to configure a list of custom connectors, which will be downloaded and baked into a new KafkaConnect images specified by you.
+### Kafka Connect configuration
 
-In the example bellow, you can see the configuration of the build part in KafkaConnect:
+A new `build` configuration for `KafkaConnect` resource allow you to configure a list of custom connectors, which will be downloaded and baked into a new `KafkaConnect` image specified by you.
+
+In the example bellow, you can see the configuration of the build part in `KafkaConnect`:
 * (1) - build configuration which contains output information and list of plugins.
 * (2) - configuration of registry, where new image will be pushed. 
 * (3) - List of plugins, which will be downloaded and added into your specific connect image.
@@ -58,12 +65,13 @@ spec:
 ```
 
 There is a several possible options which you can configure for the build.
-In `output` part, you need to specify output type either to `docker` for push into docker registry like quay.io or to `imagestream` to push image into internal Openshift image stream (openshift only).
-Output configuration also require image name and push secret in case the registry are private. 
-The secret has to be deployed in the same namespace as KafkaConnect resource.
+In `output` part, you need to specify output type either to `docker` for push into docker registry like `Docker Hub` or `Quay` or to `ImageStream` to push image into internal OpenShift image stream (OpenShift only).
+Output configuration also require image name and push secret in case the registry are protected. 
+The secret has to be deployed in the same namespace as `KafkaConnect` resource.
+You can find more information about how to create this secret in [Kubernetes documentation](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#registry-secret-existing-credentials).
 
 In `plugins` part, you just need to list all connectors, which you want ot have in your image. 
-Again, each item in the list has several options, which you need to specify like `name` of the plugin and `arttifacts` section with info needed for download and work with it.
+Again, each item in the list has several options, which you need to specify like `name` of the plugin and `artifacts` section with info needed for download and work with it.
 Artifact `type` could be either `zip`, `tgz` or `jar` and of course has to be same as artifact available on `url`.
 `sha512sum` is optional property, which is used for validation of downloaded artifact by Strimzi, if it's specified.
 
@@ -127,10 +135,10 @@ Strimzi will spin-up KafkaConnect build pod and when build is finished, regular 
 ```shell
 NAME                                          READY   STATUS      RESTARTS   AGE
 my-cluster-entity-operator-7d7f49cbc-b47cw    3/3     Running     0          4m10s
-my-cluster-kafka-0                            1/1     Running     1          4m43s
+my-cluster-kafka-0                            1/1     Running     0          4m43s
 my-cluster-kafka-1                            1/1     Running     0          4m43s
 my-cluster-kafka-2                            1/1     Running     0          4m43s
-my-cluster-zookeeper-0                        1/1     Running     1          5m14s
+my-cluster-zookeeper-0                        1/1     Running     0          5m14s
 my-cluster-zookeeper-1                        1/1     Running     0          5m14s
 my-cluster-zookeeper-2                        1/1     Running     0          5m14s
 my-connect-cluster-connect-69bc4bc47c-tvjzh   1/1     Running     0          74s
@@ -226,7 +234,7 @@ The connector generated messages and send them to Kafka where could be consumed 
 
 ## Conclusion
 
-In that blog post we show you how easily is to setup KafkaConnect with your custom connectors just with kubectl and Strimzi. 
+In this blog post we show you how easily is to setup Kafka Connect with your custom connectors just with kubectl and Strimzi. 
 You don't need to download anything.
 You don't need to build anything.
-You just need to create KafkaConnect and profit from it!
+You just need to create `KafkaConnect` resource and use it!
