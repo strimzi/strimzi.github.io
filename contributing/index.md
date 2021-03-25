@@ -14,7 +14,7 @@ You can contribute by:
 All bugs, tasks or enhancements are tracked as [GitHub issues](https://github.com/strimzi/strimzi-kafka-operator/issues). 
 Issues which might be a good start for new contributors are marked with the ["good-start"](https://github.com/strimzi/strimzi-kafka-operator/labels/good-start) label.
 
-The [Hacking guide](https://github.com/strimzi/strimzi-kafka-operator/blob/master/HACKING.md) describes how to build Strimzi and how to test your changes before submitting a patch or opening a PR.
+The [Hacking guide](https://github.com/strimzi/strimzi-kafka-operator/blob/main/HACKING.md) describes how to build Strimzi and how to test your changes before submitting a patch or opening a PR.
 
 The [Documentation Contributor Guide](https://strimzi.io/contributing/guide/) describes how to contribute to Strimzi documentation.
 
@@ -25,7 +25,7 @@ If you want to get in touch with us first before contributing, you can use:
 
 # How to become a maintainer
 
-The governance of the project is defined in the [GOVERNANCE.md](https://github.com/strimzi/strimzi-kafka-operator/blob/master/GOVERNANCE.md) file in the Strimzi Github repository, but in summary certain members of the community are the "maintainers" who decide the direction of the project. New maintainers can be elected by a ⅔ majority vote of the existing maintainers.
+The governance of the project is defined in the [GOVERNANCE.md](https://github.com/strimzi/strimzi-kafka-operator/blob/main/GOVERNANCE.md) file in the Strimzi Github repository, but in summary certain members of the community are the "maintainers" who decide the direction of the project. New maintainers can be elected by a ⅔ majority vote of the existing maintainers.
 
 So as to be transparent and to ensure that all potential maintainers are judged fairly and consistently the following criteria should be taken into account in electing new maintainers:
 
