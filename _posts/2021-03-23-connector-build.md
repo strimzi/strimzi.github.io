@@ -10,7 +10,7 @@ However, this step is not needed anymore, thanks to feature which we introduced 
 
 ### How does it work
 
-Strimzi uses two different ways how to build the image based on the underlying Kubernetes cluster.
+Strimzi uses two different ways how to build the image based on the underlying cluster.
 In case you use Kubernetes, the image will be built by [kaniko](https://github.com/GoogleContainerTools/kaniko).
 kaniko is a tool to build container images from a Dockerfile, inside a container or Kubernetes cluster.
 kaniko doesn't depend on a Docker daemon and executes each command within a Dockerfile completely in userspace.
@@ -62,8 +62,8 @@ spec:
             sha512sum: b7da48d5ecd1e4199886d169ced1bf702ffbdfd704d69e0da97e78ff63c1bcece2f59c2c6c751f9c20be73472b8cb6a31b6fd4f75558c1cb9d96daa9e9e603d2
 ```
 
-There is a several possible options which you can configure for the build.
-In `output` part, you need to specify output type either to `docker` for push into container registry like Docker Hub or Quay or to ImageStream to push image into internal OpenShift registry(OpenShift only).
+There are a several possible options which you can configure for the build.
+In `output` part, you need to specify output type either to `docker` for push into container registry like Docker Hub or Quay or to ImageStream to push image into internal OpenShift registry (OpenShift only).
 Output configuration also require image name and push secret in case the registry are protected. 
 The secret has to be deployed in the same namespace as `KafkaConnect` resource.
 You can find more information about how to create this secret in [Kubernetes documentation](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#registry-secret-existing-credentials).
@@ -130,7 +130,7 @@ my-cluster-zookeeper-0                        1/1     Running     0          5m1
 my-cluster-zookeeper-1                        1/1     Running     0          5m14s
 my-cluster-zookeeper-2                        1/1     Running     0          5m14s
 my-connect-cluster-connect-69bc4bc47c-tvjzh   1/1     Running     0          74s
-my-connect-cluster-connect-build-1-build      0/1     Completed   0          2m2s
+my-connect-cluster-connect-build              0/1     Completed   0          2m2s
 strimzi-cluster-operator-769f57cb64-7cbvm     1/1     Running     0          6m3s
 ```
 
@@ -217,7 +217,7 @@ The connector generated messages and send them to Kafka where could be consumed 
 ## Conclusion
 
 In this blog post we show you how easily is to setup Kafka Connect with your custom connectors just with `kubectl` and Strimzi. 
-For more information please see [KafkaConnect build reference](https://strimzi.io/docs/operators/latest/using.html#type-Build-reference) in our documentation.
+For more information please see [KafkaConnect build reference](https://strimzi.io/docs/operators/latest/full/deploying.html#creating-new-image-using-kafka-connect-build-str) in our documentation.
 You don't need to download anything.
 You don't need to build anything.
 You just need to create `KafkaConnect` resource and use it!
