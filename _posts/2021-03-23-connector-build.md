@@ -10,14 +10,12 @@ However, this step is not needed anymore, thanks to feature which we introduced 
 
 ### How does it work
 
-Strimzi uses two different ways how to build the image based on the underlying Kubernetes cluster:
-* In case you use Kubernetes, the image will be built by [kaniko](https://github.com/GoogleContainerTools/kaniko)
-* In case you use Openshift, the image will be built by Openshift Builds
-
-Let's describe kaniko by quoting description from it's github:
-> kaniko is a tool to build container images from a Dockerfile, inside a container or Kubernetes cluster.
-> kaniko doesn't depend on a Docker daemon and executes each command within a Dockerfile completely in userspace.
-> This enables building container images in environments that can't easily or securely run a Docker daemon, such as a standard Kubernetes cluster.
+Strimzi uses two different ways how to build the image based on the underlying Kubernetes cluster.
+In case you use Kubernetes, the image will be built by [kaniko](https://github.com/GoogleContainerTools/kaniko).
+kaniko is a tool to build container images from a Dockerfile, inside a container or Kubernetes cluster.
+kaniko doesn't depend on a Docker daemon and executes each command within a Dockerfile completely in userspace.
+This enables building container images in environments that can't easily or securely run a Docker daemon, such as a standard Kubernetes cluster.
+In case you use Openshift, the image will be built by Openshift Builds.
 
 In both cases, Strimzi will spin-up a build pod, which builds the image based on the configuration from custom resource.
 The final image is then pushed into specific container registry or image stream, again based on the configuration. 
@@ -65,7 +63,7 @@ spec:
 ```
 
 There is a several possible options which you can configure for the build.
-In `output` part, you need to specify output type either to `docker` for push into docker registry like `Docker Hub` or `Quay` or to `ImageStream` to push image into internal OpenShift image stream (OpenShift only).
+In `output` part, you need to specify output type either to `docker` for push into container registry like Docker Hub or Quay or to ImageStream to push image into internal OpenShift registry(OpenShift only).
 Output configuration also require image name and push secret in case the registry are protected. 
 The secret has to be deployed in the same namespace as `KafkaConnect` resource.
 You can find more information about how to create this secret in [Kubernetes documentation](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#registry-secret-existing-credentials).
@@ -79,7 +77,7 @@ Artifact `type` could be either `zip`, `tgz` or `jar` and of course has to be sa
 
 Now lets go through quick example how to make it working in your cluster. 
 At first, you have to have Strimzi and Kafka cluster up and running. 
-Then you can create KafkaConnect with the following configuration (just change registry and organization in image name and secret):
+Then you can create `KafkaConnect` with the following configuration (just change registry and organization in image name and secret):
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -109,28 +107,18 @@ spec:
       image: my-reg.io/my-org/my-connect-cluster:latest
       pushSecret: my-registry-credentials
     plugins: 
-      - name: debezium-postgres-connector
-        artifacts:
-          - type: zip
-            url: https://repo1.maven.org/maven2/io/debezium/debezium-connector-postgres/1.4.2.Final/debezium-connector-postgres-1.4.2.Final-plugin.zip
-            sha512sum: ef1620547e6ddf5be010271849b6a87a19f6e6beee93b379c80883815b8f37ec5137095b2c99975d7704cbf957e6a33d76c61109582cad57c7cbbfae43adc86c
       - name: camel-timer
         artifacts:
           - type: tgz
             url: https://repo.maven.apache.org/maven2/org/apache/camel/kafkaconnector/camel-timer-kafka-connector/0.8.0/camel-timer-kafka-connector-0.8.0-package.tar.gz
             sha512sum: c0102700ae176b1ef078bdb86d640935a1333865e58b870f6b0ef3d9dad067221122aee6bf52852dad209a7c2051f359e0434fc7fbd783fb50e21707c7577ef9
-      - name: echo-connector
-        artifacts:
-          - type: jar
-            url: https://github.com/scholzj/echo-sink/releases/download/1.1.0/echo-sink-1.1.0.jar
-            sha512sum: b7da48d5ecd1e4199886d169ced1bf702ffbdfd704d69e0da97e78ff63c1bcece2f59c2c6c751f9c20be73472b8cb6a31b6fd4f75558c1cb9d96daa9e9e603d2
   template:
     pod:
       imagePullSecrets:
         - name: my-registry-credentials
 ```
 
-Strimzi will spin-up KafkaConnect build pod and when build is finished, regular KafkaConnect pod will be created.
+Strimzi will spin-up Kafka Connect build pod and when build is finished, regular Kafka Connect pod will be created.
 
 ```shell
 NAME                                          READY   STATUS      RESTARTS   AGE
@@ -146,7 +134,7 @@ my-connect-cluster-connect-build-1-build      0/1     Completed   0          2m2
 strimzi-cluster-operator-769f57cb64-7cbvm     1/1     Running     0          6m3s
 ```
 
-You can also double check the status of KafkaConnect, which will now contains all connectors which you added:
+You can also double check the status of the `KafkaConnect`, which will now contains all available connectors:
 
 ```yaml
 ...
@@ -156,12 +144,6 @@ You can also double check the status of KafkaConnect, which will now contains al
       status: "True"
       type: Ready
     connectorPlugins:
-    - class: cz.scholz.kafka.connect.echosink.EchoSinkConnector
-      type: sink
-      version: 1.0.0
-    - class: io.debezium.connector.postgresql.PostgresConnector
-      type: source
-      version: 1.4.2.Final
     - class: org.apache.camel.kafkaconnector.CamelSinkConnector
       type: sink
       version: 0.8.0
@@ -192,7 +174,7 @@ You can also double check the status of KafkaConnect, which will now contains al
     url: http://my-connect-cluster-connect-api.kafka.svc:8083
 ```
 
-Now you can create KafkaConnector resource and use there any of the connectors which you added to the build section.
+Now you can create `KafkaConnector` resource and use there any of the connectors which you added to the build section.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -221,7 +203,7 @@ spec:
 
 You can verify that connector is working by attaching kafka client to a connector topic:
 ```bash
-kubectl -n kafka exec my-cluster-kafka-0 -c kafka -i -t -- bin/kafka-console-consumer.sh  --bootstrap-server localhost:9092 --topic timer-topic
+kubectl run kafka-producer -ti --image=quay.io/strimzi/kafka:0.22.1-kafka-2.7.0 --rm=true --restart=Never -n kafka -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic timer-topic
 
 {"schema":null,"payload":{"message":"Hello World","timestamp":1616517487920}}
 {"schema":null,"payload":{"message":"Hello World","timestamp":1616517487914}}
@@ -234,7 +216,8 @@ The connector generated messages and send them to Kafka where could be consumed 
 
 ## Conclusion
 
-In this blog post we show you how easily is to setup Kafka Connect with your custom connectors just with kubectl and Strimzi. 
+In this blog post we show you how easily is to setup Kafka Connect with your custom connectors just with `kubectl` and Strimzi. 
+For more information please see [KafkaConnect build reference](https://strimzi.io/docs/operators/latest/using.html#type-Build-reference) in our documentation.
 You don't need to download anything.
 You don't need to build anything.
 You just need to create `KafkaConnect` resource and use it!
