@@ -8,6 +8,8 @@ In a [previous blog post](https://strimzi.io/blog/2020/05/07/camel-kafka-connect
 That approach had one limitation - you had to build your own Kafka Connect image and use it in the custom resource.
 This step is no longer needed thanks to a feature introduced in Strimzi 0.22 that allows custom Kafka Connect images to be built directly by Strimzi.
 
+<!--more-->
+
 ### How does it work?
 
 Strimzi builds the image in two ways based on the underlying cluster.
@@ -63,19 +65,21 @@ In this example `KafkaConnect` configuration, you can see the build specificatio
 * (3) - List of plugins, which will be downloaded and added into your specific connect image.
 
 There are a several possible options which you can configure for the build.
-For the `output` property, you need to specify the `type` either as `docker` to push into a container registry like Docker Hub or Quay, or to `ImageStream` to push the image into an internal OpenShift registry (OpenShift only).
-The output configuration also requires an image name and push secret in case the registry is protected.
+For the `output` property, you need to specify the `type` either as `docker` to push into a container registry like Docker Hub or Quay, or as `ImageStream` to push the image into an internal OpenShift registry (OpenShift only).
+The output configuration also requires an image name in `image` property.
+Optional property is `pushSecret` in case the registry is protected.
 The secret has to be deployed in the same namespace as the `KafkaConnect` resource.
 You can find more information about how to create this secret in the [Kubernetes documentation](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#registry-secret-existing-credentials).
 
 For the `plugins` configuration, you need to list all connectors that you want to have in your image.
+You can also use this to add custom SMTs or converters.
 You need to specify the name of the plugin, and add the information needed to download and work with the plugin using the `artifacts` property.
 The artifact `type` can be `zip`, `tgz`, or `jar` and, of course, has to be same as the artifact specified with the `url`.
 `sha512sum` is an optional property, which is used for validation of the downloaded artifact by Strimzi.
 
 ## Quick example
 
-Now lets go through a quick example to how to make the build work in your cluster.
+Now let's go through a quick example of how to make the build work in your cluster.
 First, you have to have Strimzi and a Kafka cluster up and running.
 Then you can create `KafkaConnect` with the following configuration (just change the registry and organization in the image name and secret):
 
@@ -201,7 +205,7 @@ spec:
     transforms.ReplaceField.blacklist: originalValue
 ```
 
-You can verify that connector is working by attaching a kafka client to a connector topic:
+You can verify that a source connector is working by attaching a Kafka client to a connector topic:
 ```bash
 kubectl run kafka-producer -ti --image=quay.io/strimzi/kafka:0.22.1-kafka-2.7.0 --rm=true --restart=Never -n kafka -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic timer-topic
 
@@ -216,8 +220,8 @@ The connector generates messages and sends them to Kafka where they are consumed
 
 ## Conclusion
 
-In this blog post we showed how easy it is to set up Kafka Connect with your custom connectors with only `kubectl` and Strimzi.  
-For more information please see [KafkaConnect build reference](https://strimzi.io/docs/operators/latest/full/deploying.html#creating-new-image-using-kafka-connect-build-str) in our documentation.
+In this blog post we showed how easy it is to set up Kafka Connect with your custom connectors using only `kubectl` and Strimzi.  
+For more information, please see [KafkaConnect build reference](https://strimzi.io/docs/operators/latest/full/deploying.html#creating-new-image-using-kafka-connect-build-str) in our documentation.
 You don't need to download anything.
 You don't need to build anything.
 You just need to create the `KafkaConnect` resource and use it!
