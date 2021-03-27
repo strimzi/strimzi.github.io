@@ -80,6 +80,19 @@ spec:
     # ...
 ```
 
+_Update: Since version 0.20.0, Strimzi uses a new format for listener configuration:_
+
+```yaml
+# ...
+listeners:
+  # ...
+  - name: external
+    port: 9094
+    type: loadbalancer
+    tls: true
+# ...
+```
+
 Load balancers, in common with the node port external listener, have TLS enabled by default.
 If you don't want to use TLS encryption, you can easily disable it:
 
@@ -90,6 +103,19 @@ If you don't want to use TLS encryption, you can easily disable it:
         type: loadbalancer
         tls: false
     # ...
+```
+
+_Update: Since version 0.20.0, Strimzi uses a new format for listener configuration:_
+
+```yaml
+# ...
+listeners:
+  # ...
+  - name: external
+    port: 9094
+    type: loadbalancer
+    tls: false
+# ...
 ```
 
 After Strimzi creates the load balancer type Kubernetes services, the load balancers will be automatically created.
@@ -147,6 +173,27 @@ listeners:
 # ...
 ```
 
+_Update: Since version 0.20.0, Strimzi uses a new format for listener configuration:_
+
+```yaml
+# ...
+listeners:
+  # ...
+  - name: external
+    port: 9094
+    type: loadbalancer
+    tls: true
+    configuration:
+      brokers:
+      - broker: 0
+        advertisedHost: 216.58.201.78
+      - broker: 1
+        advertisedHost: 104.215.148.63
+      - broker: 2
+        advertisedHost: 40.112.72.205
+# ...
+```
+
 I hope that in one of the future versions we will give users a more comfortable option to choose between the IP address and hostname.
 But this feature might be useful to handle also different kinds of network configurations and translations.
 If needed, you can also use it to override the node port numbers as well.
@@ -155,10 +202,36 @@ If needed, you can also use it to override the node port numbers as well.
 # ...
 listeners:
   external:
-    type: route
+    type: loadbalancer
     authentication:
       type: tls
     overrides:
+      brokers:
+      - broker: 0
+        advertisedHost: 216.58.201.78
+        advertisedPort: 12340
+      - broker: 1
+        advertisedHost: 104.215.148.63
+        advertisedPort: 12341
+      - broker: 2
+        advertisedHost: 40.112.72.205
+        advertisedPort: 12342
+# ...
+```
+
+_Update: Since version 0.20.0, Strimzi uses a new format for listener configuration:_
+
+```yaml
+# ...
+listeners:
+  # ...
+  - name: external
+    port: 9094
+    type: loadbalancer
+    tls: true
+    authentication:
+      type: tls
+    configuration:
       brokers:
       - broker: 0
         advertisedHost: 216.58.201.78
@@ -220,6 +293,35 @@ spec:
     # ...
 ```
 
+_Update: Since version 0.20.0, Strimzi uses a new format for listener configuration:_
+
+```yaml
+# ...
+listeners:
+  # ...
+  - name: external
+    port: 9094
+    type: loadbalancer
+    tls: true
+    authentication:
+      type: tls
+    configuration:
+      bootstrap:
+        annotations:
+          service.beta.kubernetes.io/openstack-internal-load-balancer: "true"
+      brokers:
+      - broker: 0
+        annotations:
+          service.beta.kubernetes.io/openstack-internal-load-balancer: "true"
+      - broker: 1
+        annotations:
+          service.beta.kubernetes.io/openstack-internal-load-balancer: "true"
+      - broker: 2
+        annotations:
+          service.beta.kubernetes.io/openstack-internal-load-balancer: "true"
+# ...
+```
+
 You can specify different annotations for the bootstrap and the per-broker services.
 After you specify these annotations, they will be passed by Strimzi to the Kubernetes services, and the load balancers will be created accordingly.
 
@@ -262,6 +364,37 @@ listeners:
 # ...
 ```
 
+_Update: Since version 0.20.0, Strimzi uses a new format for listener configuration:_
+
+```yaml
+# ...
+listeners:
+  # ...
+  - name: external
+    port: 9094
+    type: loadbalancer
+    tls: true
+    configuration:
+      bootstrap:
+        annotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-bootstrap.mydomain.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+      brokers:
+      - broker: 0
+        annotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-0.mydomain.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+      - broker: 1
+        annotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-1.mydomain.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+      - broker: 2
+        annotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-2.mydomain.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+# ...
+```
+
 Again, Strimzi lets you configure the annotations directly.
 That gives you more freedom and hopefully makes this feature usable even when you use some other tool then External DNS.
 It also lets you configure other options than just the DNS names, such as the time-to-live of the DNS records etc.
@@ -290,6 +423,38 @@ listeners:
         advertisedHost: kafka-broker-1.mydomain.com
       - broker: 2
         dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-2.mydomain.com.
+        advertisedHost: kafka-broker-2.mydomain.com
+# ...
+```
+
+_Update: Since version 0.20.0, Strimzi uses a new format for listener configuration:_
+
+```yaml
+# ...
+listeners:
+  # ...
+  - name: external
+    port: 9094
+    type: loadbalancer
+    tls: true
+    configuration:
+      bootstrap:
+        annotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-bootstrap.mydomain.com.
+        alternativeNames: 
+        - kafka-bootstrap.mydomain.com
+      brokers:
+      - broker: 0
+        annotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-0.mydomain.com.
+        advertisedHost: kafka-broker-0.mydomain.com
+      - broker: 1
+        annotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-1.mydomain.com.
+        advertisedHost: kafka-broker-1.mydomain.com
+      - broker: 2
+        annotations:
           external-dns.alpha.kubernetes.io/hostname: kafka-broker-2.mydomain.com.
         advertisedHost: kafka-broker-2.mydomain.com
 # ...

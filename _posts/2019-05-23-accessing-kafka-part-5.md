@@ -117,6 +117,29 @@ spec:
     # ...
 ```
 
+_Update: Since version 0.20.0, Strimzi uses a new format for listener configuration:_
+
+```yaml
+# ...
+listeners:
+  # ...
+  - name: external
+    port: 9094
+    type: ingress
+    tls: true
+    configuration:
+      bootstrap:
+        host: bootstrap.192.168.64.46.nip.io
+      brokers:
+      - broker: 0
+        host: broker-0.192.168.64.46.nip.io
+      - broker: 1
+        host: broker-1.192.168.64.46.nip.io
+      - broker: 2
+        host: broker-2.192.168.64.46.nip.io
+# ...
+```
+
 Using Ingress in your clients is very similar to OpenShift Routes.
 Since it always uses TLS Encryption, you have to first download the server certificate (replace `my-cluster` with the name of your cluster):
 
@@ -183,6 +206,41 @@ listeners:
           external-dns.alpha.kubernetes.io/ttl: "60"
       - broker: 2
         dnsAnnotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-2.mydomain.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+# ...
+```
+
+_Update: Since version 0.20.0, Strimzi uses a new format for listener configuration:_
+
+```yaml
+# ...
+listeners:
+  # ...
+  - name: external
+    port: 9094
+    type: ingress
+    tls: true
+    configuration:
+      bootstrap:
+        host: kafka-bootstrap.mydomain.com
+        annotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-bootstrap.mydomain.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+      brokers:
+      - broker: 0
+        host: kafka-broker-0.mydomain.com
+        annotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-0.mydomain.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+      - broker: 1
+        host: kafka-broker-1.mydomain.com
+        annotations:
+          external-dns.alpha.kubernetes.io/hostname: kafka-broker-1.mydomain.com.
+          external-dns.alpha.kubernetes.io/ttl: "60"
+      - broker: 2
+        host: kafka-broker-2.mydomain.com
+        annotations:
           external-dns.alpha.kubernetes.io/hostname: kafka-broker-2.mydomain.com.
           external-dns.alpha.kubernetes.io/ttl: "60"
 # ...
