@@ -56,6 +56,19 @@ spec:
     # ...
 ```
 
+_Update: Since version 0.20.0, Strimzi uses a new format for listener configuration:_
+
+```yaml
+# ...
+listeners:
+  # ...
+  - name: external
+    port: 9094
+    type: nodeport
+    tls: false
+# ...
+```
+
 But what happens after you configure it is a bit more complicated.
 
 The first thing we need to address is how the clients will access the individual brokers.
@@ -204,6 +217,27 @@ listeners:
 # ...
 ```
 
+_Update: Since version 0.20.0, Strimzi uses a new format for listener configuration:_
+
+```yaml
+# ...
+listeners:
+  # ...
+  - name: external
+    port: 9094
+    type: nodeport
+    tls: false
+    configuration:
+      brokers:
+      - broker: 0
+        advertisedHost: XXX.XXX.XXX.XXX
+      - broker: 1
+        advertisedHost: XXX.XXX.XXX.XXX
+      - broker: 2
+        advertisedHost: XXX.XXX.XXX.XXX
+# ...
+```
+
 The overrides can specify either DNS names or IP addresses.
 This solution is not ideal, since you need to maintain the addresses in the custom resource and remember to update them every time you are, for example, scaling up your Kafka cluster.
 But in many cases you might not be able to change the addresses reported by the Kubernetes APIs.
@@ -223,6 +257,20 @@ But you can disable it if you want.
 # ...
 listeners:
   external:
+    type: nodeport
+    tls: false
+# ...
+```
+
+_Update: Since version 0.20.0, Strimzi uses a new format for listener configuration._
+_In the new configuration, TLS configuration is mandatory and TLS always needs to be explicitly configured._
+
+```yaml
+# ...
+listeners:
+  # ...
+  - name: external
+    port: 9094
     type: nodeport
     tls: false
 # ...
@@ -269,6 +317,31 @@ listeners:
 # ...
 ```
 
+_Update: Since version 0.20.0, Strimzi uses a new format for listener configuration:_
+
+```yaml
+# ...
+listeners:
+  # ...
+  - name: external
+    port: 9094
+    type: nodeport
+    tls: true
+    authentication:
+      type: tls
+    configuration:
+      bootstrap:
+        nodePort: 32100
+      brokers:
+      - broker: 0
+        nodePort: 32000
+      - broker: 1
+        nodePort: 32001
+      - broker: 2
+        nodePort: 32002
+# ...
+```
+
 The example above requests node port `32100` for the bootstrap service and ports `32000`, `32001` and `32002` for the per-broker services.
 This allows you to re-deploy your cluster without changing the node ports numbers in all your applications.
 
@@ -293,6 +366,32 @@ listeners:
     authentication:
       type: tls
     overrides:
+      brokers:
+      - broker: 0
+        advertisedHost: example.hostname.0
+        advertisedPort: 12340
+      - broker: 1
+        advertisedHost: example.hostname.1
+        advertisedPort: 12341
+      - broker: 2
+        advertisedHost: example.hostname.2
+        advertisedPort: 12342
+# ...
+```
+
+_Update: Since version 0.20.0, Strimzi uses a new format for listener configuration:_
+
+```yaml
+# ...
+listeners:
+  # ...
+  - name: external
+    port: 9094
+    type: nodeport
+    tls: true
+    authentication:
+      type: tls
+    configuration:
       brokers:
       - broker: 0
         advertisedHost: example.hostname.0

@@ -62,6 +62,19 @@ spec:
     # ...
 ```
 
+_Update: Since version 0.20.0, Strimzi uses a new format for listener configuration:_
+
+```yaml
+# ...
+listeners:
+  # ...
+  - name: external
+    port: 9094
+    type: route
+    tls: true
+# ...
+```
+
 And the Strimzi Kafka Operator and OpenShift will take care of the rest.
 To provide access to the individual brokers, we use the same tricks as we use with node ports and which were already described in the [previous blog post](https://strimzi.io/2019/04/23/accessing-kafka-part-2.html).
 We create a dedicated service for each of the brokers.
@@ -130,6 +143,31 @@ listeners:
     authentication:
       type: tls
     overrides:
+      bootstrap:
+        host: bootstrap.myrouter.com
+      brokers:
+      - broker: 0
+        host: broker-0.myrouter.com
+      - broker: 1
+        host: broker-1.myrouter.com
+      - broker: 2
+        host: broker-2.myrouter.com
+# ...
+```
+
+_Update: Since version 0.20.0, Strimzi uses a new format for listener configuration:_
+
+```yaml
+# ...
+listeners:
+  # ...
+  - name: external
+    port: 9094
+    type: route
+    tls: true
+    authentication:
+      type: tls
+    configuration:
       bootstrap:
         host: bootstrap.myrouter.com
       brokers:
