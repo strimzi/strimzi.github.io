@@ -6,7 +6,7 @@ author: jakub_stejskal
 ---
 In a [previous blog post](https://strimzi.io/blog/2020/05/07/camel-kafka-connectors/) we showed how easy it is to integrate [Camel Kafka Connectors](https://camel.apache.org/camel-kafka-connector/latest/) with Strimzi by configuring a `KafkaConnect` custom resource.
 That approach had one limitation - you had to build your own Kafka Connect image and use it in the custom resource.
-This step is no longer needed thanks to a feature introduced in Strimzi 0.22 that allows custom Kafka Connect images to be built directly by Strimzi.
+This step is no longer needed thanks to a feature introduced in Strimzi 0.21 that allows custom Kafka Connect images to be built directly by Strimzi.
 
 <!--more-->
 
@@ -207,12 +207,11 @@ spec:
 
 You can verify that a source connector is working by attaching a Kafka client to a connector topic:
 ```bash
-kubectl run kafka-producer -ti --image=quay.io/strimzi/kafka:0.22.1-kafka-2.7.0 --rm=true --restart=Never -n kafka -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic timer-topic
+kubectl run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.22.1-kafka-2.7.0 --rm=true --restart=Never -n kafka -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic timer-topic
 
 {"schema":null,"payload":{"message":"Hello World","timestamp":1616517487920}}
 {"schema":null,"payload":{"message":"Hello World","timestamp":1616517487914}}
 {"schema":null,"payload":{"message":"Hello World","timestamp":1616517488925}}
-{"schema":null,"payload":{"message":"Hello World","timestampmage based on the underlying Kub":1616517488921}}
 ...
 ```
 
