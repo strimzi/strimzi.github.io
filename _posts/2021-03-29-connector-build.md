@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Building your own Kafka Connect image with a custom resource"
-date: 2021-03-23
+date: 2021-03-29
 author: jakub_stejskal
 ---
 In a [previous blog post](https://strimzi.io/blog/2020/05/07/camel-kafka-connectors/) we showed how easy it is to integrate [Camel Kafka Connectors](https://camel.apache.org/camel-kafka-connector/latest/) with Strimzi by configuring a `KafkaConnect` custom resource.
