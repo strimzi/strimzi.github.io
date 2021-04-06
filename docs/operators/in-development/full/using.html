@@ -568,9 +568,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#assembly-oauth-authentication_str">4.4. Using OAuth 2.0 token-based authentication</a>
 <ul class="sectlevel3">
-<li><a href="#con-oauth-authentication-flow-str">4.4.1. OAuth 2.0 authentication mechanism</a></li>
+<li><a href="#con-oauth-authentication-flow-str">4.4.1. OAuth 2.0 authentication mechanisms</a></li>
 <li><a href="#con-oauth-authentication-broker-str">4.4.2. OAuth 2.0 Kafka broker configuration</a></li>
-<li><a href="#con-oauth-reauthentication-str">4.4.3. Session re-authentication for Kafka brokers</a></li>
+<li><a href="#str">4.4.3. Session re-authentication for Kafka brokers</a></li>
 <li><a href="#con-oauth-authentication-client-str">4.4.4. OAuth 2.0 Kafka client configuration</a></li>
 <li><a href="#con-oauth-authentication-client-options-str">4.4.5. OAuth 2.0 client authentication flow</a></li>
 <li><a href="#con-oauth-strimzi-config-str">4.4.6. Configuring OAuth 2.0 authentication</a></li>
@@ -8481,19 +8481,31 @@ spec:
 <div class="sect2">
 <h3 id="assembly-oauth-authentication_str"><a class="link" href="#assembly-oauth-authentication_str">4.4. Using OAuth 2.0 token-based authentication</a></h3>
 <div class="paragraph">
-<p>Strimzi supports the use of OAuth 2.0 authentication using the <em>SASL OAUTHBEARER</em> mechanism.</p>
+<p>Strimzi supports the use of OAuth 2.0 authentication using the <em>OAUTHBEARER</em> and <em>PLAIN</em> mechanisms.</p>
 </div>
 <div class="paragraph">
 <p>OAuth 2.0 enables standardized token-based authentication and authorization between applications, using a central authorization server to issue tokens that grant limited access to resources.</p>
 </div>
 <div class="paragraph">
-<p>You can configure OAuth 2.0 authentication, then <a href="#assembly-oauth-authorization_str">OAuth 2.0 authorization</a>.</p>
+<p>Kafka brokers and clients both need to be configured to use OAuth 2.0.
+You can configure OAuth 2.0 authentication, then <a href="#assembly-oauth-authorization_str">OAuth 2.0 authorization</a>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>OAuth 2.0 authentication can be used in conjunction with <a href="#con-securing-kafka-authorization-str">Kafka authorization</a>.</p>
+</div>
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>OAuth 2.0 authentication can also be used in conjunction with <code>simple</code> or OPA-based <a href="#con-securing-kafka-authorization-str">Kafka authorization</a>.</p>
-</div>
-<div class="paragraph">
-<p>Using OAuth 2.0 token-based authentication, application clients can access resources on application servers (called <em>resource servers</em>) without exposing account credentials.</p>
+<p>Using OAuth 2.0 authentication, application clients can access resources on application servers (called <em>resource servers</em>) without exposing account credentials.</p>
 </div>
 <div class="paragraph">
 <p>The application client passes an access token as a means of authenticating, which application servers can also use to determine the level of access to grant.
@@ -8538,15 +8550,131 @@ The brokers and clients communicate with the OAuth 2.0 authorization server, as 
 </ul>
 </div>
 <div class="sect3">
-<h4 id="con-oauth-authentication-flow-str"><a class="link" href="#con-oauth-authentication-flow-str">4.4.1. OAuth 2.0 authentication mechanism</a></h4>
+<h4 id="con-oauth-authentication-flow-str"><a class="link" href="#con-oauth-authentication-flow-str">4.4.1. OAuth 2.0 authentication mechanisms</a></h4>
 <div class="paragraph">
-<p>The Kafka <em>SASL OAUTHBEARER</em> mechanism is used to establish authenticated sessions with a Kafka broker.</p>
+<p>Strimzi supports the OAUTHBEARER and PLAIN mechanisms for OAuth 2.0 authentication.
+Both mechanisms allow Kafka clients to establish authenticated sessions with Kafka brokers.
+The authentication flow between clients, the authorization server, and Kafka brokers is different for each mechanism.</p>
 </div>
 <div class="paragraph">
-<p>A Kafka client initiates a session with the Kafka broker using the <em>SASL OAUTHBEARER</em> mechanism for credentials exchange, where credentials take the form of an access token.</p>
+<p>We recommend that you configure clients to use OAUTHBEARER whenever possible.
+OAUTHBEARER provides a higher level of security than PLAIN because client credentials are <em>never</em> shared with Kafka brokers.
+Consider using PLAIN only with Kafka clients that do not support OAUTHBEARER.</p>
 </div>
 <div class="paragraph">
-<p>Kafka brokers and clients need to be configured to use OAuth 2.0.</p>
+<p>If necessary, OAUTHBEARER and PLAIN can be enabled together, on the same <code>oauth</code> listener.</p>
+</div>
+<div class="paragraph">
+<div class="title">OAUTHBEARER overview</div>
+<p>Kafka supports the OAUTHBEARER authentication mechanism, however it must be explicitly configured.
+Also, many Kafka client tools use libraries that provide basic support for OAUTHBEARER at the protocol level.</p>
+</div>
+<div class="paragraph">
+<p>To ease application development, Strimzi provides an <em>OAuth callback handler</em> for the upstream Kafka Client Java libraries (but not for other libraries).
+Therefore, you do not need to write your own callback handlers for such clients.
+An application client can use the callback handler to provide the access token.
+Clients written in other languages, such as Go, must use custom code to connect to the authorization server and obtain the access token.</p>
+</div>
+<div class="paragraph">
+<p>With OAUTHBEARER, the client initiates a session with the Kafka broker for credentials exchange, where credentials take the form of a bearer token provided by the callback handler.
+Using the callbacks, you can configure token provision in one of three ways:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Client ID and Secret (by using the OAuth 2.0 client credentials mechanism)</p>
+</li>
+<li>
+<p>A long-lived access token, obtained manually at configuration time</p>
+</li>
+<li>
+<p>A long-lived refresh token, obtained manually at configuration time</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>OAUTHBEARER is automatically enabled in the <code>oauth</code> listener configuration for the Kafka broker.
+You can set the <code>enableOauthBearer</code> property to <code>true</code>, though this is not required.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  # ...
+  authentication:
+    type: oauth
+    # ...
+    enableOauthBearer: true</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>OAUTHBEARER authentication can only be used by Kafka clients that support the OAUTHBEARER mechanism at the protocol level.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<div class="title">PLAIN overview</div>
+<p>PLAIN is a simple authentication mechanism used by all Kafka client tools (including developer tools such as kafkacat).
+To enable PLAIN to be used together with OAuth 2.0 authentication, Strimzi includes server-side callbacks and calls this <em>OAuth 2.0 over PLAIN</em>.</p>
+</div>
+<div class="paragraph">
+<p>With the Strimzi implementation of PLAIN, the client credentials are not stored in ZooKeeper.
+Instead, client credentials are handled centrally behind a compliant authorization server, similar to when OAUTHBEARER authentication is used.</p>
+</div>
+<div class="paragraph">
+<p>When used with the OAuth 2.0 over PLAIN callbacks, Kafka clients authenticate with Kafka brokers using either of the following methods:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Client ID and secret (by using the OAuth 2.0 client credentials mechanism)</p>
+</li>
+<li>
+<p>A long-lived access token, obtained manually at configuration time</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The client must be enabled to use PLAIN authentication, and provide a <code>username</code> and <code>password</code>.
+If the password is prefixed with <code>$accessToken:</code> followed by the value of the access token, the Kafka broker will interpret the password as the access token.
+Otherwise, the Kafka broker will interpret the <code>username</code> as the client ID and the <code>password</code> as the client secret.</p>
+</div>
+<div class="paragraph">
+<p>If the <code>password</code> is set as the access token, the <code>username</code> must be set to the same principal name that the Kafka broker obtains from the access token.
+The process depends on how you configure username extraction using <code>userNameClaim</code>, <code>fallbackUserNameClaim</code>, <code>fallbackUsernamePrefix</code>, or <code>userInfoEndpointUri</code>.
+It also depends on your authorization server; in particular, how it maps client IDs to account names.</p>
+</div>
+<div class="paragraph">
+<p>To use PLAIN, you must enable it in the <code>oauth</code> listener configuration for the Kafka broker.</p>
+</div>
+<div class="paragraph">
+<p>In the following example, PLAIN is enabled in addition to OAUTHBEARER, which is enabled by default.
+If you want to use PLAIN only, you can disable OAUTHBEARER by setting <code>enableOauthBearer</code> to <code>false</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  # ...
+  authentication:
+    type: oauth
+    # ...
+    enablePlain: true
+    tokenEndpointUri: https://<em>OAUTH-SERVER-ADDRESS</em>/auth/realms/external/protocol/openid-connect/token</code></pre>
+</div>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#proc-oauth-authentication-broker-config-str">Configuring OAuth 2.0 support for Kafka brokers</a></p>
+</li>
+</ul>
 </div>
 </div>
 <div class="sect3">
@@ -8776,13 +8904,27 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-oauth-reauthentication-str"><a class="link" href="#con-oauth-reauthentication-str">4.4.3. Session re-authentication for Kafka brokers</a></h4>
+<h4 id="str"><a class="link" href="#str">4.4.3. Session re-authentication for Kafka brokers</a></h4>
 <div class="paragraph">
-<p>The Kafka <em>SASL OAUTHBEARER</em> mechanism, which is used for OAuth 2.0 authentication in Strimzi, supports a Kafka feature called the <em>re-authentication</em> mechanism.</p>
+<p>You can configure <code>oauth</code> listeners to use Kafka <em>session re-authentication</em> for OAuth 2.0 sessions between Kafka clients and Kafka brokers.
+This mechanism enforces the expiry of an authenticated session between the client and the broker after a defined period of time.
+When a session expires, the client immediately starts a new session by reusing the existing connection rather than dropping it.</p>
 </div>
 <div class="paragraph">
-<p>When the re-authentication mechanism is enabled in the configuration of an <code>oauth</code> type listener, the broker&#8217;s authenticated session expires when the access token expires.
-The client must then re-authenticate to the existing session by sending a new, valid access token to the broker, without dropping the connection.</p>
+<p>Session re-authentication is disabled by default.
+To enable it, you set a time value for <code>maxSecondsWithoutReauthentication</code> in the <code>oauth</code> listener configuration.
+The same property is used to configure session re-authentication for OAUTHBEARER and PLAIN authentication.
+For an example configuration, see <a href="#proc-oauth-authentication-broker-config-str">Configuring OAuth 2.0 support for Kafka brokers</a>.</p>
+</div>
+<div class="paragraph">
+<p>Session re-authentication must be supported by the Kafka client libraries used by the client.</p>
+</div>
+<div class="paragraph">
+<p>Session re-authentication can be used with <em>fast local JWT</em> or <em>introspection endpoint</em> token validation.</p>
+</div>
+<div class="paragraph">
+<div class="title">Client re-authentication</div>
+<p>When the broker&#8217;s authenticated session expires, the client must re-authenticate to the existing session by sending a new, valid access token to the broker, without dropping the connection.</p>
 </div>
 <div class="paragraph">
 <p>If token validation is successful, a new client session is started using the existing connection.
@@ -8790,11 +8932,45 @@ If the client fails to re-authenticate, the broker will close the connection if 
 Java clients that use Kafka client library 2.2 or later automatically re-authenticate if the re-authentication mechanism is enabled on the broker.</p>
 </div>
 <div class="paragraph">
-<p>You enable session re-authentication in the <code>Kafka</code> resource. Set the <code>maxSecondsWithoutReauthentication</code> property for a TLS listener with <code>type: oauth</code> authentication.
-Session re-authentication is supported for both types of token validation (fast local JWT and introspection endpoint). For an example configuration, see <a href="#proc-oauth-authentication-broker-config-str">Configuring OAuth 2.0 support for Kafka brokers</a>.</p>
+<p>Session re-authentication also applies to refresh tokens, if used.
+When the session expires, the client refreshes the access token by using its refresh token.
+The client then uses the new access token to re-authenticate to the existing session.</p>
 </div>
 <div class="paragraph">
-<p>For more information about the re-authentication mechanism, which was added in Kafka version 2.2, see <a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-368%3A+Allow+SASL+Connections+to+Periodically+Re-Authenticate" target="_blank" rel="noopener">KIP-368</a>.</p>
+<div class="title">Session expiry for OAUTHBEARER and PLAIN</div>
+<p>When session re-authentication is configured, session expiry works differently for OAUTHBEARER and PLAIN authentication.</p>
+</div>
+<div class="paragraph">
+<p>For OAUTHBEARER and PLAIN, using the client ID and secret method:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The broker&#8217;s authenticated session will expire at the configured <code>maxSecondsWithoutReauthentication</code>.</p>
+</li>
+<li>
+<p>The session will expire earlier if the access token expires before the configured time.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For PLAIN using the long-lived access token method:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The broker&#8217;s authenticated session will expire at the configured <code>maxSecondsWithoutReauthentication</code>.</p>
+</li>
+<li>
+<p>Re-authentication will fail if the access token expires before the configured time.
+Although session re-authentication is attempted, PLAIN has no mechanism for refreshing tokens.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>If <code>maxSecondsWithoutReauthentication</code> is <em>not</em> configured, OAUTHBEARER and PLAIN clients can remain connected to brokers indefinitely, without needing to re-authenticate.
+Authenticated sessions do not end with access token expiry.
+However, this can be considered when configuring authorization, for example, by using <code>keycloak</code> authorization or installing a custom authorizer.</p>
 </div>
 <div class="ulist">
 <div class="title">Additional resources</div>
@@ -8807,6 +8983,9 @@ Session re-authentication is supported for both types of token validation (fast 
 </li>
 <li>
 <p><a href="#type-KafkaListenerAuthenticationOAuth-reference">KafkaListenerAuthenticationOAuth schema reference</a></p>
+</li>
+<li>
+<p><a href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-368%3A+Allow+SASL+Connections+to+Periodically+Re-Authenticate" target="_blank" rel="noopener">KIP-368</a></p>
 </li>
 </ul>
 </div>
@@ -9317,10 +9496,10 @@ Otherwise, you may need to configure the truststore with prober certificates or 
 <p>(Only applicable when using <code>introspectionEndpointUri</code>) The authorization server may be configured or implemented in such a way to not provide any identifiable information in an Introspection Endpoint response. In order to obtain the user ID, you can configure the URI of the <code>userinfo</code> endpoint as a fallback. The <code>userNameClaim</code>, <code>fallbackUserNameClaim</code>, and <code>fallbackUserNamePrefix</code> settings are applied to the response of <code>userinfo</code> endpoint.</p>
 </li>
 <li>
-<p>Set this to <code>false</code> in order to disable the SASL_OAUTHBEARER mechanism on the listener. At least one of SASL_PLAIN or SASL_OAUTHBEARER has to be enabled. Default is <code>true</code>.</p>
+<p>Set this to <code>false`to disable the OAUTHBEARER mechanism on the listener. At least one of PLAIN or OAUTHBEARER has to be enabled. Default is `true</code>.</p>
 </li>
 <li>
-<p>Set this to <code>true</code> in order to enable the SASL_PLAIN mechanism on the listener, which is supported by all clients on all platforms. The Kafka client has to enable the SASL_PLAIN mechanism and set the <code>username</code> and the <code>password</code>. This mechanism can be used to authenticate either by using the OAuth access token, or by using the OAuth clientId and secret (client credentials). If the client sets <code>username</code> to <code>access-token</code> then the password is interpreted as access token on the server, otherwise the user is interpreted as the clientId, and password as the client secret. Default is <code>false</code>.</p>
+<p>Set this to <code>true</code> to enable the PLAIN mechanism on the listener, which is supported by all clients on all platforms. The Kafka client has to enable the PLAIN mechanism and set the <code>username</code> and the <code>password</code>. This mechanism can be used to authenticate either by using the OAuth access token, or by using the OAuth client id and secret (client credentials). If the client sets <code>password</code> to start with the string <code>$accessToken:</code>, the password is interpreted as the access token on the server, and <code>username</code> as the account username, otherwise the user is interpreted as the client id, and password as the client secret. Default is <code>false</code>.</p>
 </li>
 <li>
 <p>This has to be set to support the client credentials authentication when <code>enablePlain</code> is set to true, as described in previous point.</p>
@@ -32270,7 +32449,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-04-06 10:23:22 UTC
+Last updated 2021-04-06 14:15:37 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
