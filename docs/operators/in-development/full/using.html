@@ -23749,30 +23749,78 @@ It must have the value <code>custom</code> for the type <code>KafkaAuthorization
 <p><a href="#type-Rack-schema-reference">Full list of <code>Rack</code> schema properties</a></p>
 </div>
 <div class="paragraph">
-<p>Configures rack awareness to spread partition replicas across different racks.</p>
+<p>The <code>rack</code> option configures rack awareness.
+A <em>rack</em> can represent an availability zone, data center, or an actual rack in your data center.
+The <em>rack</em> is configured through a <code>topologyKey</code>.
+<code>topologyKey</code> identifies a label on Kubernetes nodes that contains the name of the topology in its value.
+An example of such a label is <code>topology.kubernetes.io/zone</code> (or <code>failure-domain.beta.kubernetes.io/zone</code> on older Kubernetes versions), which contains the name of the availability zone in which the Kubernetes node runs.
+You can configure your Kafka cluster to be aware of the <em>rack</em> in which it runs, and enable additional features such as spreading partition replicas across different racks or consuming messages from the closest replicas.</p>
 </div>
 <div class="paragraph">
-<p>A <em>rack</em> can represent an availability zone, data center, or an actual rack in your data center.
-By configuring a <code>rack</code> for a Kafka cluster, consumers can fetch data from the closest replica.
-This is useful for reducing the load on your network when a Kafka cluster spans multiple datacenters.</p>
+<p>For more information about Kubernetes node labels, see <a href="https://kubernetes.io/docs/reference/kubernetes-api/labels-annotations-taints/" target="_blank" rel="noopener">Well-Known Labels, Annotations and Taints</a>.
+Consult your Kubernetes administrator regarding the node label that represents the zone or rack into which the node is deployed.</p>
 </div>
+<div class="sect4">
+<h5 id="spreading_partition_replicas_across_racks"><a class="link" href="#spreading_partition_replicas_across_racks">Spreading partition replicas across racks</a></h5>
 <div class="paragraph">
-<p>To configure Kafka brokers for rack awareness, you specify a <code>topologyKey</code> value to match the label of the cluster node used by Kubernetes when scheduling Kafka broker pods to nodes.</p>
-</div>
-<div class="paragraph">
-<p>If the Kubernetes cluster is running on a cloud provider platform, the label must represent the availability zone where the node is running.
-Usually, nodes are labeled with the <code>topology.kubernetes.io/zone</code> label (or <code>failure-domain.beta.kubernetes.io/zone</code> on older Kubernetes versions),
-which can be used as the <code>topologyKey</code> value.</p>
-</div>
-<div class="paragraph">
-<p>The rack awareness configuration spreads the broker pods and partition replicas across zones, improving resiliency, and also sets a <code>broker.rack</code> configuration for each Kafka broker.
-The <code>broker.rack</code> configuration assigns a rack ID to each broker.</p>
-</div>
-<div class="paragraph">
-<p>Consult your Kubernetes administrator regarding the node label that represents the zone or rack into which the node is deployed.</p>
+<p>When rack awareness is configured, Strimzi will set <code>broker.rack</code> configuration for each Kafka broker.
+The <code>broker.rack</code> configuration assigns a rack ID to each broker.
+When <code>broker.rack</code> is configured, Kafka brokers will spread partition replicas across as many different racks as possible.
+When replicas are spread across multiple racks, the probability that multiple replicas will fail at the same time is lower than if they would be in the same rack.
+Spreading replicas improves resiliency, and is important for availability and reliability.
+To enable rack awareness in Kafka, add the <code>rack</code> option to the <code>.spec.kafka</code> section of the <code>Kafka</code> custom resource as shown in the example below.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example <code>rack</code> configuration for Kafka</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    rack:
+      topologyKey: topology.kubernetes.io/zone
+    # ...</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The <em>rack</em> in which brokers are running can change in some cases when the pods are deleted or restarted.
+As a result, the replicas running in different racks might then share the same rack.
+Use Cruise Control and the <code>KafkaRebalance</code> resource with the <code>RackAwareGoal</code> to make sure that replicas remain distributed across different racks.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>When rack awareness is enabled in the <code>Kafka</code> custom resource, Strimzi will automatically add the Kubernetes <code>preferredDuringSchedulingIgnoredDuringExecution</code> affinity rule to distribute the Kafka brokers across the different racks.
+However, the <em>preferred</em> rule does not guarantee that the brokers will be spread.
+Depending on your exact Kubernetes and Kafka configurations, you should add additional <code>affinity</code> rules or configure <code>topologySpreadConstraints</code> for both ZooKeeper and Kafka to make sure the nodes are properly distributed accross as many racks as possible.
+For more information see <a href="#assembly-scheduling-str">Configuring pod scheduling</a>.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="consuming_messages_from_the_closest_replicas"><a class="link" href="#consuming_messages_from_the_closest_replicas">Consuming messages from the closest replicas</a></h5>
+<div class="paragraph">
+<p>Rack awareness can also be used in consumers to fetch data from the closest replica.
+This is useful for reducing the load on your network when a Kafka cluster spans multiple datacenters and can also reduce costs when running Kafka in public clouds.
+However, it can lead to increased latency.</p>
+</div>
+<div class="paragraph">
+<p>In order to be able to consume from the closest replica, rack awareness has to be configured in the Kafka cluster, and the <code>RackAwareReplicaSelector</code> has to be enabled.
+The replica selector plugin provides the logic that enables clients to consume from the nearest replica.
+The default implementation uses <code>LeaderSelector</code> to always select the leader replica for the client.
+Specify <code>RackAwareReplicaSelector</code> for the <code>replica.selector.class</code> to switch from the default implementation.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example <code>rack</code> configuration with enabled replica-aware selector</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
@@ -23790,15 +23838,21 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p>Use the <code>RackAwareReplicaSelector</code> implementation for the Kafka <code>ReplicaSelector</code> plugin if you want clients to consume from the closest replica.
-The <code>ReplicaSelector</code> plugin provides the logic that enables clients to consume from the nearest replica.
-Specify <code>RackAwareReplicaSelector</code> for the <code>replica.selector.class</code> to switch from the default implementation.
-The default implementation uses <code>LeaderSelector</code> to always select the leader replica for the client.
-By switching from the leader replica to the replica follower, there is some cost to latency.
-If required, you can also customize your own implementation.</p>
+<p>In addition to the Kafka broker configuration, you also need to specify the <code>client.rack</code> option in your consumers.
+The <code>client.rack</code> option should specify the <em>rack ID</em> in which the consumer is running.
+<code>RackAwareReplicaSelector</code> associates matching <code>broker.rack</code> and <code>client.rack</code> IDs, to find the nearest replica and consume from it.
+If there are multiple replicas in the same rack, <code>RackAwareReplicaSelector</code> always selects the most up-to-date replica.
+If the rack ID is not specified, or if it cannot find a replica with the same rack ID, it will fall back to the leader replica.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/rack-config-availability-zones.svg" alt="consuming from replicas in the same availability zone">
+</div>
+<div class="title">Figure 6. Example showing client consuming from replicas in the same availability zone</div>
 </div>
 <div class="paragraph">
-<p>For clients, including Kafka Connect, you specify the same topology key as the broker that the client will use to consume messages.</p>
+<p>Consuming messages from the closest replicas can be used also in Kafka Connect for sink connectors which are consuming messages.
+When deploying Kafka Connect using Strimzi, you can use the <code>rack</code> section in the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> custom resources to automatically configure the <code>client.rack</code> option.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example <code>rack</code> configuration for Kafka Connect</div>
@@ -23815,24 +23869,9 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p>The client is assigned a <code>client.rack</code> ID.</p>
+<p>Enabling rack awareness in the <code>KafkaConnect</code> or <code>KafkaConnectS2I</code> custom resource will not set any affinity rules, but you can also configure <code>affinity</code> or <code>topologySpreadConstraints</code>.
+For more information see <a href="#assembly-scheduling-str">Configuring pod scheduling</a>.</p>
 </div>
-<div class="paragraph">
-<p><code>RackAwareReplicaSelector</code> associates matching <code>broker.rack</code> and <code>client.rack</code> IDs,
-so the client can consume from the nearest replica.</p>
-</div>
-<div class="imageblock">
-<div class="content">
-<img src="images/rack-config-availability-zones.svg" alt="consuming from replicas in the same availability zone">
-</div>
-<div class="title">Figure 6. Example showing client consuming from replicas in the same availability zone</div>
-</div>
-<div class="paragraph">
-<p>If there are multiple replicas in the same rack, <code>RackAwareReplicaSelector</code> always selects the most up-to-date replica.
-If the rack ID is not specified, or if it cannot find a replica with the same rack ID, it will fall back to the leader replica.</p>
-</div>
-<div class="paragraph">
-<p>For more information about Kubernetes node labels, see <a href="https://kubernetes.io/docs/reference/kubernetes-api/labels-annotations-taints/" target="_blank" rel="noopener">Well-Known Labels, Annotations and Taints</a>.</p>
 </div>
 <div class="sect4">
 <h5 id="type-Rack-schema-reference"><a class="link" href="#type-Rack-schema-reference"><code>Rack</code> schema properties</a></h5>
@@ -32446,7 +32485,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-04-13 07:38:54 UTC
+Last updated 2021-04-13 11:25:59 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
