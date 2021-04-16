@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Building your own Kafka Connect image with a custom resource"
+title:  "Upgrade changes and API versions conversion"
 date: 2021-04-07
 author: jakub_stejskal
 ---
