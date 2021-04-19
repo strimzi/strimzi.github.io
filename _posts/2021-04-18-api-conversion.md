@@ -35,8 +35,11 @@ These versions are currently deprecated and will be dropped in the following Str
 
 One another change is, that with new API version we remove deprecated fields so users need to migrate them to new format.
 For instance `v1beta2` supports only new array based listener configuration and new metrics configuration formats from config maps.
+`metrics` and `logging` field were also changed as well.
+For metrics configuration you should use `metricsConfig` in `spec.kafka` to reference name of config map with metrics configuration in `valueFrom` field.
+Same for `logging`, but field name remains same.
 In additional some old unused fields like `tlsSidecar` were removed as well.
-All changes in field are described in our [documentation](https://strimzi.io/docs/operators/latest/full/deploying.html#proc-upgrade-cli-tool-files-str).
+All changes in fields are described in our [documentation](https://strimzi.io/docs/operators/latest/full/deploying.html#proc-upgrade-cli-tool-files-str).
 You can also see the deprecated field in CR status as warnings.
 
 For smooth migration to new CRs and CRDs version we created `api-conversion` tool. _Note that for proper conversion you need to have installed Strimzi 0.22 with all its CRDs._
