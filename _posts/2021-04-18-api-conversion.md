@@ -8,11 +8,6 @@ In Strimzi 0.22 we introduced new API version `v1beta2` which will replace `v1be
 This blog post will show you how to perform the conversion and get ready for next Strimzi releases.
 
 <!--more-->
-
-Even with these changes, there are still some disadvantages:
-* For upgrade, roll out the new brokers while first using the older `log.message.format.version` or `inter.broker.protocol.version` and only afterwards change to the new versions for message format and inter-broker protocol.
-* Downgrade won't be executed when new `log.message.format.version` or `inter.broker.protocol.version` are already used.
-  You need to change configuration to use same `log.message.format.version` and `inter.broker.protocol.version` as older Kafka.
   
 ### New API versions
 
