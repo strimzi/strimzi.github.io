@@ -49,7 +49,7 @@ You can see the states of the upgrade process and each rolling update in the dia
 
 ![Kafka upgrade states](/assets/images/posts/2021-04-19-kafka-rolling-updates.png)
 
-#### Disadvantages
+#### Things to be aware of
 
 Even with these changes, there are still some disadvantages:
 * For upgrade, roll out the new brokers while first using the older `log.message.format.version` or `inter.broker.protocol.version` and only afterwards change to the new versions for message format and inter-broker protocol.
