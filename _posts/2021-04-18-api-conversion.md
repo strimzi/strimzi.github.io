@@ -13,13 +13,11 @@ Even with these changes, there are still some disadvantages:
 * For upgrade, roll out the new brokers while first using the older `log.message.format.version` or `inter.broker.protocol.version` and only afterwards change to the new versions for message format and inter-broker protocol.
 * Downgrade won't be executed when new `log.message.format.version` or `inter.broker.protocol.version` are already used.
   You need to change configuration to use same `log.message.format.version` and `inter.broker.protocol.version` as older Kafka.
-
-You can find further information in our [documentation](https://strimzi.io/docs/operators/0.22.1/full/deploying.html#proc-upgrade-cli-tool-crds-str).
-
+  
 ### New API versions
 
 As we stated before, we introduced new API version `v1beta2` for Strimzi resources.
-Every user of Strimzi will have to migrate from old `v1beta1` to `v1beta2`.
+Every user of Strimzi will have to migrate from old `v1beta1` / `v1beta2`.
 This migration is not necessarily needed right after upgrade to Strimzi 0.22, but has to be done before upgrade to Strimzi 0.23 or later.
 The main reason why Strimzi users had to do this migration are preparations of Strimzi to use [Kubernetes CRD `apiextensions/v1`](https://kubernetes.io/docs/reference/using-api/deprecation-guide/#customresourcedefinition-v122).
 
@@ -27,11 +25,12 @@ Custom resources are created and controlled using APIs added to Kubernetes by CR
 Put another way, CRDs extend the Kubernetes API to allow the creation of custom resources.
 CRDs are themselves resources within Kubernetes.
 They are installed in a Kubernetes cluster to define the versions of API for the custom resource.
-Each version of the custom resource API can define its own schema for that version. have to the migration from old `v1bet
+Each version of the custom resource API can define its own schema for that version.
 Kubernetes clients, including the Strimzi Operators, access the custom resources served by the Kubernetes API server using a URL path (API path), which includes the API version
 
-In 0.21, we supported custom resource version `v1alpha1` for all custom resources and `v1beta1` for `Kafka`, `KafkaConnect`, `KafkaConnectS2I`, `KafkaMirrorMaker`, `KafkaUser` and `KafkaTopic`.
-These versions are currently deprecated and will be dropped in the following Strimzi 0.23.
+In 0.22, we still support custom resource version `v1alpha1` for all custom resources and `v1beta1` for `Kafka`, `KafkaConnect`, `KafkaConnectS2I`, `KafkaMirrorMaker`, `KafkaUser` and `KafkaTopic`.
+However, these versions are currently deprecated and will be dropped in the following Strimzi 0.23.
+That's one of the reasons, why users have to finish the migration before 0.23.
 
 One another change is, that with new API version we remove deprecated fields so users need to migrate them to new format.
 For instance `v1beta2` supports only new array based listener configuration and new metrics configuration formats from config maps.
