@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Upgrade procedure improvements"
+title:  "Kafka upgrade improvements"
 date: 2021-04-07
 author: jakub_stejskal
 ---
@@ -12,7 +12,7 @@ This blog post will show you how the upgrade process changed and what you should
 
 ### Upgrade improvements
 
-Upgrade process before 0.22 was a little complicated.
+Upgrade process before 0.22 consisted of multiple steps.
 During upgrade, users had to go through all already released versions between current deployed version and target one.
 For example if you wanted to upgrade from 0.18 to 0.20, the recommended approach was to install 0.19 firstly, wait for rolling-update, set new values for Kafka `version`, `log.message.format.version` and `inter.broker.protocol.version` and then do the same steps for 0.20.
 This makes the upgrades hard to execute fully automatically for example when you use Strimzi installed from [OperatorHub](https://operatorhub.io/operator/strimzi-kafka-operator).
