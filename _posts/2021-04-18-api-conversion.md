@@ -32,7 +32,7 @@ For instance `v1beta2` supports only new array based listener configuration and 
 `metrics` and `logging` field were also changed as well.
 For metrics configuration you should use `metricsConfig` in `spec.kafka` to reference name of config map with metrics configuration in `valueFrom` field.
 Same for `logging`, but field name remains same.
-In additional some old unused fields like `tlsSidecar` were removed as well.
+In addition, some old unused fields like `tlsSidecar` were removed as well.
 All changes in fields are described in our [documentation](https://strimzi.io/docs/operators/latest/full/deploying.html#proc-upgrade-cli-tool-files-str).
 You can also see the deprecated field in CR status as warnings.
 
@@ -57,7 +57,7 @@ You can use the tool directly from un-archived directory as it's shown in the ex
 `convert-file` (`cf`) command basically takes input yaml file passed via option `-f` or `--file` and convert CR to new API version and migrate deprecated fields.
 The output will be printed to _stdout_ or you can specify output file with `-o` or `--output` options.
 You can also use `--in-file` option to save changes directly to input file.
-For more info run `bin/api-conversion.sh cr --help` command.
+For more info run `bin/api-conversion.sh cf --help` command.
 
 #### convert-resources
 
@@ -67,17 +67,16 @@ With `-k`,`--kind` the tool will convert only a specific kind of custom resource
 This option can be passed multiple times to convert multiple kinds.
 For instance to convert `Kafka` and `KafkaTopic` you just need to pass `--kind Kafka --kind KafkaTopic` to `cr` command.
 
-The last option is `-n`,`--name` where you can specify a name of the custom resource.
+The last option is `--name` where you can specify a name of the custom resource.
 This option can be used only with `--namespace` and single `--kind` options.
-For more info run `bin/api-conversion.sh cf --help` command.
+For more info run `bin/api-conversion.sh cr --help` command.
 
-#### convert-crd
+#### crd-upgrade
 
-`convert-crd` updates `spec.versions` in the Strimzi CRDs to declare `v1beta2` as the storage API version.
+`crd-upgrade` (`crd`) updates `spec.versions` in the Strimzi CRDs to declare `v1beta2` as the storage API version.
 The command also updates existing custom resources where it updates API version and stores them as `v1beta2`.
 
-Once you convert CRDs to API version `apiextensions/v1`, you should use only `v1beta2` version in Strimzi Custom resources.
-
+Once you upgrade CRDs, you should use only `v1beta2` version in Strimzi Custom resources.
 
 ### Conclusion
 
