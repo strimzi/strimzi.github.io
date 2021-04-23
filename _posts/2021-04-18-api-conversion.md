@@ -4,17 +4,16 @@ title:  "Path to CRD v1"
 date: 2021-04-18
 author: jakub_stejskal
 ---
-In Strimzi 0.22 we introduced new API version `v1beta2` which will replace `v1beta1` / `v1alpha1` APIs and make Strimzi ready for Kubernetes 1.22.
-This blog post will show you how to perform the conversion and get ready for next Strimzi releases.
+In Strimzi 0.22 we introduced the `v1beta2` API version to prepare Strimzi for Kubernetes 1.22. The `v1beta2` API version replaces the `v1beta1` and `v1alpha1` API versions.
+This post shows you how to perform an API conversion to `v1beta2` to be ready for the next Strimzi releases.
 
 <!--more-->
   
 ### New API versions
 
-As we stated before, we introduced new API version `v1beta2` for Strimzi resources.
-Every user of Strimzi will have to migrate from old `v1beta1` / `v1beta2`.
+By introducing API version `v1beta2` for Strimzi resources, current Strimzi users must migrate from the old `v1beta1`  and `v1beta2` versions.
 This migration is not necessarily needed right after upgrade to Strimzi 0.22, but has to be done before upgrade to Strimzi 0.23 or later.
-The main reason why Strimzi users had to do this migration are preparations of Strimzi to use [Kubernetes CRD `apiextensions/v1`](https://kubernetes.io/docs/reference/using-api/deprecation-guide/#customresourcedefinition-v122).
+The main reason for the migration is to prepare Strimzi to use [Kubernetes CRD `apiextensions/v1`](https://kubernetes.io/docs/reference/using-api/deprecation-guide/#customresourcedefinition-v122).
 
 Custom resources are created and controlled using APIs added to Kubernetes by CRDs.
 Put another way, CRDs extend the Kubernetes API to allow the creation of custom resources.
@@ -23,63 +22,63 @@ They are installed in a Kubernetes cluster to define the versions of API for the
 Each version of the custom resource API can define its own schema for that version.
 Kubernetes clients, including the Strimzi Operators, access the custom resources served by the Kubernetes API server using a URL path (API path), which includes the API version
 
-In 0.22, we still support custom resource version `v1alpha1` for all custom resources and `v1beta1` for `Kafka`, `KafkaConnect`, `KafkaConnectS2I`, `KafkaMirrorMaker`, `KafkaUser` and `KafkaTopic`.
-However, these versions are currently deprecated and will be dropped in the following Strimzi 0.23.
-That's one of the reasons, why users have to finish the migration before 0.23.
+In 0.22, we still support custom resource version `v1alpha1` for all custom resources and `v1beta1` for `Kafka`, `KafkaConnect`, `KafkaConnectS2I`, `KafkaMirrorMaker`, `KafkaUser`, and `KafkaTopic`.
+However, these versions are currently deprecated and will be dropped in the Strimzi 0.23 release.
+That's one of the reasons why users have to finish the migration before 0.23.
 
-One another change is, that with new API version we remove deprecated fields so users need to migrate them to new format.
-For instance `v1beta2` supports only new array based listener configuration and new metrics configuration formats from config maps.
-`metrics` and `logging` field were also changed as well.
-For metrics configuration you should use `metricsConfig` in `spec.kafka` to reference name of config map with metrics configuration in `valueFrom` field.
-Same for `logging`, but field name remains same.
+For the new API version, deprecated custom resource properties have been removed. You need to migrate custom resources to the new structure.
+For instance, `v1beta2` only supports a new array-based listener configuration and new metrics configuration formats from config maps.
+`metrics` and `logging` properties have also changed.
+For metrics configuration, you now use `metricsConfig` in `spec.kafka` to reference the name ofa config map with metrics configuration using the `valueFrom` property.
+Same for `logging`, but property name remains same.
 In addition, some old unused fields like `tlsSidecar` were removed as well.
-All changes in fields are described in our [documentation](https://strimzi.io/docs/operators/latest/full/deploying.html#proc-upgrade-cli-tool-files-str).
-You can also see the deprecated field in CR status as warnings.
+All the changes to properties are fully described in our [documentation](https://strimzi.io/docs/operators/latest/full/deploying.html#proc-upgrade-cli-tool-files-str).
+You can also see the deprecated property as a warning in the custom resource status
 
-For smooth migration to new CRs and CRDs version we created `api-conversion` tool. _Note that for proper conversion you need to have installed Strimzi 0.22 with all its CRDs._
+For smooth migration to new custom resources and CRDs version, we provide an `api-conversion` tool. _Note that for proper conversion you need to have Strimzi 0.22 installed with all its CRDs._
 
 ### API conversion tool
 
-The tool is shipped as part of Strimzi 0.22 in [zip](https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.22.1/api-conversion-0.22.1.zip) and [tar.gz](https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.22.1/api-conversion-0.22.1.tar.gz) archives.
-After un-archiving, you will find there all libs needed by the tool in `libs` directory and two scripts for running the tool in folder `bin`.
-Script `api-conversion.sh` is for linux/mac users and `api-conversion.cmd` is for Windows users.
+The `api conversion` tool is shipped with Strimzi 0.22 as a [zip file](https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.22.1/api-conversion-0.22.1.zip) and [tar file](https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.22.1/api-conversion-0.22.1.tar.gz).
+After extracting, you will find all the libs needed by the tool in `libs` directory and two scripts for running the tool in the folder `bin`.
+The `api-conversion.sh` script is for linux/mac users and `api-conversion.cmd` is for Windows users.
 
-The tool can operate in two modes:
-* convert your resources to `v1beta2`. It can convert resources in yaml files or resource already deployed into Kubernetes cluster.
-* convert CRDs to use `v1beta2` as a stored version and use `v1beta2` in all Strimzi custom resources.
+The tool operates in two modes:
+* Converting custom resources to `v1beta2`. It can convert resources in yaml files or resource already deployed into Kubernetes cluster.
+* Convert CRDs to use `v1beta2` as a stored version and use `v1beta2` in all Strimzi custom resources.
 
-You can use the tool directly from un-archived directory as it's shown in the example bellow.
+You can use the tool directly from an extracted directory as shown in the example below.
 
 ![api-conversion tool help](/assets/images/posts/2021-04-18-api-conversion.png)
 
 #### convert-file
 
-`convert-file` (`cf`) command basically takes input yaml file passed via option `-f` or `--file` and convert CR to new API version and migrate deprecated fields.
-The output will be printed to _stdout_ or you can specify output file with `-o` or `--output` options.
-You can also use `--in-file` option to save changes directly to input file.
-For more info run `bin/api-conversion.sh cf --help` command.
+The `convert-file` (`cf`) command updates the YAML file of a custom resource, which is passed using an `-f` or `--file` parameter. It converts the custom resource to new API version and updates the properties into the current structure.
+The output is printed to _stdout_, or you can specify an output file with `-o` or `--output` options.
+You can also use the `--in-file` option to save changes directly to input file.
+For more information, run the `bin/api-conversion.sh cf --help` command.
 
 #### convert-resources
 
-`convert-resources` (`cr`) allow you to convert custom resources directly in your Kubernetes cluster.
+The `convert-resources` (`cr`) command converts custom resources directly in your Kubernetes cluster.
 You can use `-a`,`--all-namespaces` or `-n`,`--namespace` options to specify namespace where the resources should be converted.
 With `-k`,`--kind` the tool will convert only a specific kind of custom resources.
-This option can be passed multiple times to convert multiple kinds.
-For instance to convert `Kafka` and `KafkaTopic` you just need to pass `--kind Kafka --kind KafkaTopic` to `cr` command.
+Or the command can convert multiple kinds.
+For instance, to convert `Kafka` and `KafkaTopic` you just need to pass `--kind Kafka --kind KafkaTopic` to the `cr` command.
 
-The last option is `--name` where you can specify a name of the custom resource.
-This option can be used only with `--namespace` and single `--kind` options.
-For more info run `bin/api-conversion.sh cr --help` command.
+You can use the `--name` option to specify a custom resource by name.
+This option can only be used with `--namespace` and single `--kind` options.
+For more information, you can run the `bin/api-conversion.sh cr --help` command.
 
 #### crd-upgrade
 
-`crd-upgrade` (`crd`) updates `spec.versions` in the Strimzi CRDs to declare `v1beta2` as the storage API version.
-The command also updates existing custom resources where it updates API version and stores them as `v1beta2`.
+The `crd-upgrade` (`crd`) command updates `spec.versions` in the Strimzi CRDs to declare `v1beta2` as the storage API version.
+The command also updates the API version of existing custom resources and stores them as `v1beta2`.
 
-Once you upgrade CRDs, you should use only `v1beta2` version in Strimzi Custom resources.
+Once you upgrade CRDs, you must use only the `v1beta2` version in Strimzi Custom resources.
 
 ### Conclusion
 
-In this blog post we take a brief look to API conversion, which will be needed for future Strimzi versions.
+In this post we took a brief look at API conversion, which is needed for future Strimzi versions.
 You can find further information in our [documentation](https://strimzi.io/docs/operators/0.22.1/full/deploying.html#proc-upgrade-cli-tool-files-str).
 
