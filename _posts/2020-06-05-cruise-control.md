@@ -128,7 +128,7 @@ metadata:
   name: my-rebalance
   labels:
     strimzi.io/cluster: my-cluster
-  spec: {}
+spec: {}
 ```
 
 And you can deploy this like any other resource:
