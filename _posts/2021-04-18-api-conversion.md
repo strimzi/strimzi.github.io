@@ -11,7 +11,7 @@ This post shows you how to perform an API conversion to `v1beta2` to be ready fo
   
 ### New API versions
 
-By introducing API version `v1beta2` for Strimzi resources, current Strimzi users must migrate from the old `v1beta1`  and `v1beta2` versions.
+By introducing API version `v1beta2` for Strimzi resources, current Strimzi users must migrate from the old `v1alpha1`  and `v1beta1` versions.
 This migration is not necessarily needed right after upgrade to Strimzi 0.22, but has to be done before upgrade to Strimzi 0.23 or later.
 The main reason for the migration is to prepare Strimzi to use [Kubernetes CRD `apiextensions/v1`](https://kubernetes.io/docs/reference/using-api/deprecation-guide/#customresourcedefinition-v122).
 
@@ -26,21 +26,22 @@ In 0.22, we still support custom resource version `v1alpha1` for all custom reso
 However, these versions are currently deprecated and will be dropped in the Strimzi 0.23 release.
 That's one of the reasons why users have to finish the migration before 0.23.
 
-For the new API version, deprecated custom resource properties have been removed. You need to migrate custom resources to the new structure.
-For instance, `v1beta2` only supports a new array-based listener configuration and new metrics configuration formats from config maps.
-`metrics` and `logging` properties have also changed.
-For metrics configuration, you now use `metricsConfig` in `spec.kafka` to reference the name ofa config map with metrics configuration using the `valueFrom` property.
+For the new API version, deprecated custom resource properties have been removed. 
+You need to migrate custom resources to the new structure.
+For instance, `v1beta2` only supports a new array-based listener configuration and new `metrics` configuration formats from config maps.
+`logging` properties have also changed.
+For metrics configuration, you now use `metricsConfig` in `spec.kafka` to reference the name of a config map with metrics configuration using the `valueFrom` property.
 Same for `logging`, but property name remains same.
 In addition, some old unused fields like `tlsSidecar` were removed as well.
 All the changes to properties are fully described in our [documentation](https://strimzi.io/docs/operators/latest/full/deploying.html#proc-upgrade-cli-tool-files-str).
-You can also see the deprecated property as a warning in the custom resource status
+You can also see a warning in the custom resource status when the deprecated property is used.
 
 For smooth migration to new custom resources and CRDs version, we provide an `api-conversion` tool. _Note that for proper conversion you need to have Strimzi 0.22 installed with all its CRDs._
 
 ### API conversion tool
 
 The `api conversion` tool is shipped with Strimzi 0.22 as a [zip file](https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.22.1/api-conversion-0.22.1.zip) and [tar file](https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.22.1/api-conversion-0.22.1.tar.gz).
-After extracting, you will find all the libs needed by the tool in `libs` directory and two scripts for running the tool in the folder `bin`.
+After extracting, you will find all the libs needed by the tool in `libs` directory and two scripts for running the tool in the directory `bin`.
 The `api-conversion.sh` script is for linux/mac users and `api-conversion.cmd` is for Windows users.
 
 The tool operates in two modes:
