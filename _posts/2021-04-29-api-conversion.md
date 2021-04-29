@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Path to CRD v1"
-date: 2021-04-18
+date: 2021-04-29
 author: jakub_stejskal
 ---
 In Strimzi 0.22 we introduced the `v1beta2` API version to prepare Strimzi for Kubernetes 1.22. The `v1beta2` API version replaces the `v1beta1` and `v1alpha1` API versions.
@@ -50,7 +50,7 @@ The tool operates in two modes:
 
 You can use the tool directly from an extracted directory as shown in the example below.
 
-![api-conversion tool help](/assets/images/posts/2021-04-18-api-conversion.png)
+![api-conversion tool help](/assets/images/posts/2021-04-29-api-conversion.png)
 
 #### convert-file
 
