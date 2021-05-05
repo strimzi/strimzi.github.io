@@ -40,7 +40,7 @@ This works well for web applications which use HTTP, but it doesn't work so well
 
 Apache Kafka does not use HTTP so it cannot easily provide information on a given HTTP URL.
 That is why with Apache Kafka, we will need to use the DNS Challenge.
-The DNS Challenge works similarly, but uses the DNS protocol instead of HTTP.
+The [DNS Challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge) works similarly, but uses the DNS protocol instead of HTTP.
 It will ask us to create a DNS record with some specific information to prove our domain ownership.
 Using the DNS challenge makes it a bit more complicated, because we will need to give cert-manager access to the DNS management of our domain.
 But once we configure it, it works well.
@@ -120,7 +120,7 @@ In my case, I simply created two new AWS users, attached the policies to them an
 
 ### Installing cert-manager and ExternalDNS
 
-To install ExternalDNS, you can just follow the installation process from its documentation.
+To install ExternalDNS, you can just follow the installation process from its [documentation](https://github.com/kubernetes-sigs/external-dns#running-externaldns).
 But in addition, I also configured the AWS credentials to be passed from the Secret as environment variables into the ExternalDNS deployment:
 
 ```yaml
@@ -140,13 +140,13 @@ env:
 ```
 
 For cert-manager, we will use the credentials later when creating the certificate.
-So you just follow the cert-manager documentation and install it in our cluster.
+So we just follow the cert-manager [documentation](https://cert-manager.io/docs/installation/) and install it in our cluster.
 
 You can use other methods to pass the AWS credentials to cert-manager and ExternalDNS.
 For example,  using [kiam](https://github.com/uswitch/kiam) or [kube2iam](https://github.com/jtblin/kube2iam).
 If you use Amazon EKS, you can also use the built-in support for [attaching roles to Kubernetes ServiceAccounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts-technical-overview.html) as well.
 
-The process will be similar for other DNS providers as well.
+The configuration procedure will be similar for other DNS providers as well.
 Just follow the documentation provided by cert-manager, ExternalDNS and your DNS provider.
 
 ## Creating the signed certificate
