@@ -330,12 +330,12 @@ spec:
               host: broker-0.example.com
             - broker: 1
               annotations:
-                external-dns.alpha.kubernetes.io/hostname: broker-0.example.com.
+                external-dns.alpha.kubernetes.io/hostname: broker-1.example.com.
                 external-dns.alpha.kubernetes.io/ttl: "60"
               host: broker-1.example.com
             - broker: 2
               annotations:
-                external-dns.alpha.kubernetes.io/hostname: broker-0.example.com.
+                external-dns.alpha.kubernetes.io/hostname: broker-2.example.com.
                 external-dns.alpha.kubernetes.io/ttl: "60"
               host: broker-2.example.com
           brokerCertChainAndKey:
