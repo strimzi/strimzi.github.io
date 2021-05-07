@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Deploying Kafka with Let's Encrypt certificates"
-date: 2021-05-03
+date: 2021-05-07
 author: jakub_scholz
 ---
 
