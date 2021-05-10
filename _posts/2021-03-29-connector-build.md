@@ -44,7 +44,7 @@ spec:
     plugins: (3) 
       - name: debezium-postgres-connector
         artifacts:
-          - type: tgz
+          - type: zip
             url: https://repo1.maven.org/maven2/io/debezium/debezium-connector-postgres/1.4.2.Final/debezium-connector-postgres-1.4.2.Final-plugin.zip
             sha512sum: ef1620547e6ddf5be010271849b6a87a19f6e6beee93b379c80883815b8f37ec5137095b2c99975d7704cbf957e6a33d76c61109582cad57c7cbbfae43adc86c
       - name: camel-timer
