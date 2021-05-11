@@ -28951,7 +28951,7 @@ Volumes and environment variables are configured in the <code>externalConfigurat
 <div class="sect4">
 <h5 id="property-kafka-connect-external-env-reference"><a class="link" href="#property-kafka-connect-external-env-reference"><code>env</code></a></h5>
 <div class="paragraph">
-<p>The <code>env</code> property is used to specify one or more environment variables.
+<p>Use the <code>env</code> property to specify one or more environment variables.
 These variables can contain a value from either a ConfigMap or a Secret.</p>
 </div>
 <div class="listingblock">
@@ -29006,7 +29006,8 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p>A common use case for mounting Secrets to environment variables is when your connector needs to communicate with Amazon AWS and needs to read the <code>AWS_ACCESS_KEY_ID</code> and <code>AWS_SECRET_ACCESS_KEY</code> environment variables with credentials.</p>
+<p>A common use case for mounting Secrets is for a connector to communicate with Amazon AWS.
+The connector needs to be able to read the <code>AWS_ACCESS_KEY_ID</code> and <code>AWS_SECRET_ACCESS_KEY</code>.</p>
 </div>
 <div class="paragraph">
 <p>To mount a value from a ConfigMap to an environment variable, use <code>configMapKeyRef</code> in the <code>valueFrom</code> property as shown in the following example.</p>
@@ -29033,7 +29034,7 @@ spec:
 <div class="sect4">
 <h5 id="property-kafka-connect-external-volumes-reference"><a class="link" href="#property-kafka-connect-external-volumes-reference"><code>volumes</code></a></h5>
 <div class="paragraph">
-<p>You can also mount ConfigMaps or Secrets to a Kafka Connect pod as volumes.</p>
+<p>Use volumes to mount ConfigMaps or Secrets to a Kafka Connect pod.</p>
 </div>
 <div class="paragraph">
 <p>Using volumes instead of environment variables is useful in the following scenarios:</p>
@@ -29041,15 +29042,41 @@ spec:
 <div class="ulist">
 <ul>
 <li>
-<p>Mounting truststores or keystores with TLS certificates</p>
+<p>Mounting a properties file that is used to configure Kafka Connect connectors</p>
 </li>
 <li>
-<p>Mounting a properties file that is used to configure Kafka Connect connectors</p>
+<p>Mounting truststores or keystores with TLS certificates</p>
 </li>
 </ul>
 </div>
+<div class="paragraph">
+<p>Volumes are mounted inside the Kafka Connect containers on the path <code>/opt/kafka/external-configuration/<em>&lt;volume-name&gt;</em></code>.
+For example, the files from a volume named <code>connector-config</code> will appear in the directory <code>/opt/kafka/external-configuration/connector-config</code>.</p>
+</div>
+<div class="paragraph">
+<p>Configuration <em>providers</em> load values from outside the configuration.
+Use a provider mechanism to avoid passing restricted information over the Kafka Connect REST interface.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>FileConfigProvider</code> loads configuration values from properties in a file.</p>
+</li>
+<li>
+<p><code>DirectoryConfigProvider</code> loads configuration values from separate files within a directory structure.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Use a comma-separated list if you want to add more than one provider, including custom providers.
+You can use custom providers to load values from other file locations.</p>
+</div>
+<div class="paragraph">
+<div class="title">Using <code>FileConfigProvider</code> to load property values</div>
+<p>In this example, a Secret named <code>mysecret</code> contains connector properties that specify a database name and password:</p>
+</div>
 <div class="listingblock">
-<div class="title">Example Secret with properties</div>
+<div class="title">Example Secret with database properties</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
 kind: Secret
@@ -29058,7 +29085,7 @@ metadata:
 type: Opaque
 stringData:
   connector.properties: |- <b class="conum">(1)</b>
-    dbUsername: my-user <b class="conum">(2)</b>
+    dbUsername: my-username <b class="conum">(2)</b>
     dbPassword: my-password</code></pre>
 </div>
 </div>
@@ -29073,10 +29100,17 @@ stringData:
 </ol>
 </div>
 <div class="paragraph">
-<p>In this example, a Secret named <code>mysecret</code> is mounted to a volume named <code>connector-config</code>.
-In the <code>config</code> property, a configuration provider (<code>FileConfigProvider</code>) is specified, which will load configuration values from external sources.
-The Kafka <code>FileConfigProvider</code> is given the alias <code>file</code>,
-and will read and extract database <em>username</em> and <em>password</em> property values from the file to use in the connector configuration.</p>
+<p>The Secret and the <code>FileConfigProvider</code> configuration provider are specified in the Kafka Connect configuration.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The Secret is mounted to a volume named <code>connector-config</code>.</p>
+</li>
+<li>
+<p><code>FileConfigProvider</code> is given the alias <code>file</code>.</p>
+</li>
+</ul>
 </div>
 <div class="listingblock">
 <div class="title">Example external volumes set to values from a Secret</div>
@@ -29101,15 +29135,14 @@ spec:
 <div class="colist arabic">
 <ol>
 <li>
-<p>The alias for the configuration provider, which is used to define other configuration parameters.
-Use a comma-separated list if you want to add more than one provider.</p>
+<p>The alias for the configuration provider is used to define other configuration parameters.</p>
 </li>
 <li>
-<p>The <code>FileConfigProvider</code> is the configuration provider that provides values from properties files.
+<p><code>FileConfigProvider</code> provides values from properties files.
 The parameter uses the alias from <code>config.providers</code>, taking the form <code>config.providers.${alias}.class</code>.</p>
 </li>
 <li>
-<p>The name of the volume containing the Secret. Each volume must specify a name in the <code>name</code> property and a reference to ConfigMap or Secret.</p>
+<p>The name of the volume containing the Secret. Each volume must specify a name in the <code>name</code> property and a reference to a ConfigMap or Secret.</p>
 </li>
 <li>
 <p>The name of the Secret.</p>
@@ -29117,11 +29150,120 @@ The parameter uses the alias from <code>config.providers</code>, taking the form
 </ol>
 </div>
 <div class="paragraph">
-<p>The volumes are mounted inside the Kafka Connect containers in the path <code>/opt/kafka/external-configuration/<em>&lt;volume-name&gt;</em></code>.
-For example, the files from a volume named <code>connector-config</code> would appear in the directory <code>/opt/kafka/external-configuration/connector-config</code>.</p>
+<p>Placeholders for the property values in the Secret are referenced in the connector configuration.
+The placeholder structure is <code>file:<em>PATH-AND-FILE-NAME</em>:<em>PROPERTY-VALUE</em></code>.
+<code>FileConfigProvider</code> reads and extracts the database <em>username</em> and <em>password</em> property values from the mounted Secret in connector configurations.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example connector configuration showing placeholders for external values</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: my-source-connector
+  labels:
+    strimzi.io/cluster: my-connect-cluster
+spec:
+  class: io.debezium.connector.mysql.MySqlConnector
+  tasksMax: 2
+  config:
+    database.hostname: 192.168.99.1
+    database.port: "3306"
+    database.user: "${file:/opt/kafka/external-configuration/connector-config/mysecret:my-username}"
+    database.password: "${file:/opt/kafka/external-configuration/connector-config/mysecret:my-password}"
+    database.server.id: "184054"
+    #...</code></pre>
+</div>
 </div>
 <div class="paragraph">
-<p>The <code>FileConfigProvider</code> is used to read the values from the mounted properties files in connector configurations.</p>
+<div class="title">Using <code>DirectoryConfigProvider</code> to load property values from separate files</div>
+<p>In this example, a <code>Secret</code> contains TLS truststore and keystore user credentials in separate files.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Secret with user credentials</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+  labels:
+    strimzi.io/kind: KafkaUser
+    strimzi.io/cluster: my-cluster
+type: Opaque
+data: <b class="conum">(1)</b>
+  ca.crt: # Public key of the client CA
+  user.crt: # User certificate that contains the public key of the user
+  user.key: # Private key of the user
+  user.p12: # PKCS #12 archive file for storing certificates and keys
+  user.password: # Password for protecting the PKCS #12 archive file</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The Secret and the <code>DirectoryConfigProvider</code> configuration provider are specified in the Kafka Connect configuration.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The Secret is mounted to a volume named <code>connector-config</code>.</p>
+</li>
+<li>
+<p><code>DirectoryConfigProvider</code> is given the alias <code>directory</code>.</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">Example external volumes set for user credentials files</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  config:
+    config.providers: directory
+    config.providers.directory.class: org.apache.kafka.common.config.provider.DirectoryConfigProvider <b class="conum">(1)</b>
+  #...
+  externalConfiguration:
+    volumes:
+      - name: connector-config
+        secret:
+          secretName: mysecret</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The <code>DirectoryConfigProvider</code> provides values from files in a directory.
+The parameter uses the alias from <code>config.providers</code>, taking the form <code>config.providers.${alias}.class</code>.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Placeholders for the credentials are referenced in the connector configuration.
+The placeholder structure is <code>directory:<em>PATH</em>:<em>FILE-NAME</em></code>.
+<code>DirectoryConfigProvider</code> reads and extracts the credentials from the mounted Secret in connector configurations.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example connector configuration showing placeholders for external values</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: my-source-connector
+  labels:
+    strimzi.io/cluster: my-connect-cluster
+spec:
+  class: io.debezium.connector.mysql.MySqlConnector
+  tasksMax: 2
+  config:
+    security.protocol: SSL
+    ssl.truststore.type: PEM
+    ssl.truststore.location: "${directory:/opt/kafka/external-configuration/connector-config:ca.crt}"
+    ssl.keystore.type: PEM
+    ssl.keystore.location: ${directory:/opt/kafka/external-configuration/connector-config:user.key}"
+    #...</code></pre>
+</div>
 </div>
 </div>
 <div class="sect4">
@@ -33928,7 +34070,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-05-11 00:06:30 UTC
+Last updated 2021-05-11 15:27:45 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
