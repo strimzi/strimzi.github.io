@@ -3573,8 +3573,7 @@ For example, it is not possible to authenticate a user with TLS if it is not als
 You can also configure your listener to <a href="./using.html#kafka-listener-certificates-str" target="_blank" rel="noopener">use a Kafka listener certificate managed by an external Certificate Authority</a>.</p>
 </div>
 <div class="paragraph">
-<p>Certificates are available in PKCS #12 (.p12) and PEM (.crt) formats.
-This procedure shows PKCS #12 certificates.</p>
+<p>Certificates are available in PKCS #12 format (.p12) and PEM (.crt) formats.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -3725,6 +3724,35 @@ If you are using a <code>route</code> listener type, be careful that the whole l
 </div>
 </li>
 <li>
+<p>Extract the public cluster CA certificate and password from the generated <code><em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert</code> Secret.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.p12}' | base64 -d &gt; ca.p12</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.password}' | base64 -d &gt; ca.password</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Use the certificate and password in your Kafka client to connect to the Kafka cluster with TLS encryption.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Cluster CA certificates renew automatically by default. If you are using your own Kafka listener certificates,
+you will need to <a href="./using.html#renewing-your-own-ca-certificates-str" target="_blank" rel="noopener">renew the certificates manually</a>.
+</td>
+</tr>
+</table>
+</div>
+</li>
+<li>
 <p>Create or modify a user representing the client that requires access to the Kafka cluster.</p>
 <div class="ulist">
 <ul>
@@ -3819,30 +3847,17 @@ data:
 </div>
 </li>
 <li>
-<p>Extract the public cluster CA certificate to the desired certificate format:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.p12}' | base64 -d &gt; ca.p12</code></pre>
-</div>
-</div>
-</li>
+<p>Configure your client to connect to the Kafka cluster with the properties required to make a secure connection to the Kafka cluster.</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
 <li>
-<p>Extract the password from the password file:</p>
+<p>Add the authentication details for the public cluster certificates:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.password}' | base64 -d &gt; ca.password</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Configure your client with the authentication details for the public cluster certificates:</p>
-<div class="listingblock">
-<div class="title">Sample client code</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">properties.put("security.protocol","SSL"); <b class="conum">(1)</b>
-properties.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,"/path/to/ca.p12"); <b class="conum">(2)</b>
-properties.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,<em>CA-PASSWORD</em>); <b class="conum">(3)</b>
-properties.put(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG,"PKCS12"); <b class="conum">(4)</b></code></pre>
+<pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env">security.protocol: SSL <b class="conum">(1)</b>
+ssl.truststore.location: <em>PATH-TO/ssl/keys/truststore</em> <b class="conum">(2)</b>
+ssl.truststore.password: <em>CLUSTER-CA-CERT-PASSWORD</em> <b class="conum">(3)</b>
+ssl.truststore.type=PKCS12 <b class="conum">(4)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -3875,29 +3890,19 @@ Use <code>security.protocol: SASL_SSL</code> when using SCRAM-SHA authentication
 </div>
 </li>
 <li>
-<p>Extract the user CA certificate from the user Secret to the desired certificate format:</p>
+<p>Add the bootstrap address and port for connecting to the Kafka cluster:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>USER-NAME</em> -o jsonpath='{.data.user\.p12}' | base64 -d &gt; user.p12</code></pre>
+<pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env">bootstrap.servers: <em>BOOTSTRAP-ADDRESS:PORT</em></code></pre>
 </div>
 </div>
 </li>
 <li>
-<p>Extract the password from the password file:</p>
+<p>Add the authentication details for the public user certificates:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>USER-NAME</em> -o jsonpath='{.data.user\.password}' | base64 -d &gt; user.password</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Configure your client with the authentication details for the user CA certificate:</p>
-<div class="listingblock">
-<div class="title">Sample client code</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">properties.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,"/path/to/user.p12"); <b class="conum">(1)</b>
-properties.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,"&lt;user.password&gt;"); <b class="conum">(2)</b>
-properties.put(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG,"PKCS12"); <b class="conum">(3)</b></code></pre>
+<pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env">ssl.keystore.location: <em>PATH-TO/ssl/keys/user1.keystore</em> <b class="conum">(1)</b>
+ssl.keystore.password: <em>USER-CERT-PASSWORD</em> <b class="conum">(2)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -3906,20 +3911,15 @@ properties.put(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG,"PKCS12"); <b class="conum">(
 <p>Specifies the keystore location where the certificates were imported.</p>
 </li>
 <li>
-<p>Specifies the password for accessing the keystore. This property can be omitted if it is not needed by the keystore. The public user certificate is signed by the client CA when it is created.</p>
-</li>
-<li>
-<p>Identifies the keystore type.</p>
+<p>Specifies the password for accessing the keystore. This property can be omitted if it is not needed by the keystore.</p>
 </li>
 </ol>
 </div>
-</li>
-<li>
-<p>Add the bootstrap address and port for connecting to the Kafka cluster:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env">bootstrap.servers: <em>BOOTSTRAP-ADDRESS:PORT</em></code></pre>
+<div class="paragraph">
+<p>The public user certificate is signed by the client CA when it is created.</p>
 </div>
+</li>
+</ol>
 </div>
 </li>
 </ol>
