@@ -1771,12 +1771,12 @@ metadata:
   name: my-cluster
 spec:
   kafka:
-    version: 2.7.0
+    version: 2.8.0
     #...
     config:
       #...
-      log.message.format.version: 2.7
-      inter.broker.protocol.version: 2.7
+      log.message.format.version: 2.8
+      inter.broker.protocol.version: 2.8
   # ...</code></pre>
 </div>
 </div>
@@ -2562,10 +2562,10 @@ spec: # <b class="conum">(1)</b>
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Create a new <code>Dockerfile</code> using <code>quay.io/strimzi/kafka:latest-kafka-2.7.0</code> as the base image:</p>
+<p>Create a new <code>Dockerfile</code> using <code>quay.io/strimzi/kafka:latest-kafka-2.8.0</code> as the base image:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">FROM quay.io/strimzi/kafka:latest-kafka-2.7.0
+<pre class="highlightjs highlight"><code class="language-none hljs">FROM quay.io/strimzi/kafka:latest-kafka-2.8.0
 USER root:root
 COPY ./<em>my-plugins</em>/ /opt/kafka/plugins/
 USER 1001</code></pre>
@@ -2693,7 +2693,7 @@ and uses them to build a new container image.
 Once built, container images are stored in OpenShift&#8217;s local container image repository and are available for use in deployments.</p>
 </div>
 <div class="paragraph">
-<p>A Kafka Connect builder image with S2I support is provided on the <a href="https://quay.io/organization/strimzi" target="_blank" rel="noopener">Container Registry</a> as part of the <code>quay.io/strimzi/kafka:latest-kafka-2.7.0</code> image.
+<p>A Kafka Connect builder image with S2I support is provided on the <a href="https://quay.io/organization/strimzi" target="_blank" rel="noopener">Container Registry</a> as part of the <code>quay.io/strimzi/kafka:latest-kafka-2.8.0</code> image.
 This S2I image takes your binaries (with plug-ins and connectors) and stores them in the <code>/tmp/kafka-plugins/s2i</code> directory.
 It creates a new Kafka Connect image from this directory, which can then be used with the Kafka Connect deployment.
 When started using the enhanced image, Kafka Connect loads any third-party plug-ins from the <code>/tmp/kafka-plugins/s2i</code> directory.</p>
@@ -3447,7 +3447,7 @@ and require familiarity with the <a href="./using.html#assembly-deployment-confi
 <p>Deploy a Kafka producer.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl run kafka-producer -ti --image=quay.io/strimzi/kafka:latest-kafka-2.7.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list <em>cluster-name</em>-kafka-bootstrap:9092 --topic <em>my-topic</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl run kafka-producer -ti --image=quay.io/strimzi/kafka:latest-kafka-2.8.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list <em>cluster-name</em>-kafka-bootstrap:9092 --topic <em>my-topic</em></code></pre>
 </div>
 </div>
 </li>
@@ -3461,7 +3461,7 @@ and require familiarity with the <a href="./using.html#assembly-deployment-confi
 <p>Deploy a Kafka consumer.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl run kafka-consumer -ti --image=quay.io/strimzi/kafka:latest-kafka-2.7.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server <em>cluster-name</em>-kafka-bootstrap:9092 --topic <em>my-topic</em> --from-beginning</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl run kafka-consumer -ti --image=quay.io/strimzi/kafka:latest-kafka-2.8.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server <em>cluster-name</em>-kafka-bootstrap:9092 --topic <em>my-topic</em> --from-beginning</code></pre>
 </div>
 </div>
 </li>
@@ -3573,7 +3573,8 @@ For example, it is not possible to authenticate a user with TLS if it is not als
 You can also configure your listener to <a href="./using.html#kafka-listener-certificates-str" target="_blank" rel="noopener">use a Kafka listener certificate managed by an external Certificate Authority</a>.</p>
 </div>
 <div class="paragraph">
-<p>Certificates are available in PKCS #12 format (.p12) and PEM (.crt) formats.</p>
+<p>Certificates are available in PKCS #12 (.p12) and PEM (.crt) formats.
+This procedure shows PKCS #12 certificates.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -3724,35 +3725,6 @@ If you are using a <code>route</code> listener type, be careful that the whole l
 </div>
 </li>
 <li>
-<p>Extract the public cluster CA certificate and password from the generated <code><em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert</code> Secret.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.p12}' | base64 -d &gt; ca.p12</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.password}' | base64 -d &gt; ca.password</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Use the certificate and password in your Kafka client to connect to the Kafka cluster with TLS encryption.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Cluster CA certificates renew automatically by default. If you are using your own Kafka listener certificates,
-you will need to <a href="./using.html#renewing-your-own-ca-certificates-str" target="_blank" rel="noopener">renew the certificates manually</a>.
-</td>
-</tr>
-</table>
-</div>
-</li>
-<li>
 <p>Create or modify a user representing the client that requires access to the Kafka cluster.</p>
 <div class="ulist">
 <ul>
@@ -3847,17 +3819,30 @@ data:
 </div>
 </li>
 <li>
-<p>Configure your client to connect to the Kafka cluster with the properties required to make a secure connection to the Kafka cluster.</p>
-<div class="olist loweralpha">
-<ol class="loweralpha" type="a">
-<li>
-<p>Add the authentication details for the public cluster certificates:</p>
+<p>Extract the public cluster CA certificate to the desired certificate format:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env">security.protocol: SSL <b class="conum">(1)</b>
-ssl.truststore.location: <em>PATH-TO/ssl/keys/truststore</em> <b class="conum">(2)</b>
-ssl.truststore.password: <em>CLUSTER-CA-CERT-PASSWORD</em> <b class="conum">(3)</b>
-ssl.truststore.type=PKCS12 <b class="conum">(4)</b></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.p12}' | base64 -d &gt; ca.p12</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Extract the password from the password file:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.password}' | base64 -d &gt; ca.password</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Configure your client with the authentication details for the public cluster certificates:</p>
+<div class="listingblock">
+<div class="title">Sample client code</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">properties.put("security.protocol","SSL"); <b class="conum">(1)</b>
+properties.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,"/path/to/ca.p12"); <b class="conum">(2)</b>
+properties.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,<em>CA-PASSWORD</em>); <b class="conum">(3)</b>
+properties.put(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG,"PKCS12"); <b class="conum">(4)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -3890,19 +3875,29 @@ Use <code>security.protocol: SASL_SSL</code> when using SCRAM-SHA authentication
 </div>
 </li>
 <li>
-<p>Add the bootstrap address and port for connecting to the Kafka cluster:</p>
+<p>Extract the user CA certificate from the user Secret to the desired certificate format:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env">bootstrap.servers: <em>BOOTSTRAP-ADDRESS:PORT</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>USER-NAME</em> -o jsonpath='{.data.user\.p12}' | base64 -d &gt; user.p12</code></pre>
 </div>
 </div>
 </li>
 <li>
-<p>Add the authentication details for the public user certificates:</p>
+<p>Extract the password from the password file:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env">ssl.keystore.location: <em>PATH-TO/ssl/keys/user1.keystore</em> <b class="conum">(1)</b>
-ssl.keystore.password: <em>USER-CERT-PASSWORD</em> <b class="conum">(2)</b></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>USER-NAME</em> -o jsonpath='{.data.user\.password}' | base64 -d &gt; user.password</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Configure your client with the authentication details for the user CA certificate:</p>
+<div class="listingblock">
+<div class="title">Sample client code</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">properties.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,"/path/to/user.p12"); <b class="conum">(1)</b>
+properties.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,"&lt;user.password&gt;"); <b class="conum">(2)</b>
+properties.put(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG,"PKCS12"); <b class="conum">(3)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -3911,15 +3906,20 @@ ssl.keystore.password: <em>USER-CERT-PASSWORD</em> <b class="conum">(2)</b></cod
 <p>Specifies the keystore location where the certificates were imported.</p>
 </li>
 <li>
-<p>Specifies the password for accessing the keystore. This property can be omitted if it is not needed by the keystore.</p>
+<p>Specifies the password for accessing the keystore. This property can be omitted if it is not needed by the keystore. The public user certificate is signed by the client CA when it is created.</p>
+</li>
+<li>
+<p>Identifies the keystore type.</p>
 </li>
 </ol>
 </div>
-<div class="paragraph">
-<p>The public user certificate is signed by the client CA when it is created.</p>
-</div>
 </li>
-</ol>
+<li>
+<p>Add the bootstrap address and port for connecting to the Kafka cluster:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env">bootstrap.servers: <em>BOOTSTRAP-ADDRESS:PORT</em></code></pre>
+</div>
 </div>
 </li>
 </ol>
@@ -6383,7 +6383,7 @@ You will upgrade the Kafka version later.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">quay.io/strimzi/kafka:latest-kafka-2.7.0</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">quay.io/strimzi/kafka:latest-kafka-2.8.0</code></pre>
 </div>
 </div>
 </li>
@@ -6540,7 +6540,7 @@ Kafka clients are upgraded in step 6 of this procedure.</p>
 <li>
 <p>If configured, ensure that <code>Kafka.spec.kafka.config</code> has the <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> set to the defaults for the <em>current</em> Kafka version.</p>
 <div class="paragraph">
-<p>For example, if upgrading from Kafka version 2.6.1 to 2.7.0:</p>
+<p>For example, if upgrading from Kafka version 2.7.0 to 2.8.0:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -6548,10 +6548,10 @@ Kafka clients are upgraded in step 6 of this procedure.</p>
 spec:
   # ...
   kafka:
-    version: 2.6.1
+    version: 2.7.0
     config:
-      log.message.format.version: "2.6"
-      inter.broker.protocol.version: "2.6"
+      log.message.format.version: "2.7"
+      inter.broker.protocol.version: "2.7"
       # ...</code></pre>
 </div>
 </div>
@@ -6591,7 +6591,7 @@ Leaving the <code>inter.broker.protocol.version</code> unchanged ensures that th
 </table>
 </div>
 <div class="paragraph">
-<p>For example, if upgrading from Kafka 2.6.1 to 2.7.0:</p>
+<p>For example, if upgrading from Kafka 2.7.0 to 2.8.0:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -6600,10 +6600,10 @@ kind: Kafka
 spec:
   # ...
   kafka:
-    version: 2.7.0 <b class="conum">(1)</b>
+    version: 2.8.0 <b class="conum">(1)</b>
     config:
-      log.message.format.version: "2.6" <b class="conum">(2)</b>
-      inter.broker.protocol.version: "2.6" <b class="conum">(3)</b>
+      log.message.format.version: "2.7" <b class="conum">(2)</b>
+      inter.broker.protocol.version: "2.7" <b class="conum">(3)</b>
       # ...</code></pre>
 </div>
 </div>
@@ -6675,7 +6675,7 @@ You cannot downgrade Kafka if the <code>inter.broker.protocol.version</code> for
 <li>
 <p>If configured, update the Kafka resource to use the new <code>inter.broker.protocol.version</code> version. Otherwise, go to step 9.</p>
 <div class="paragraph">
-<p>For example, if upgrading to Kafka 2.7.0:</p>
+<p>For example, if upgrading to Kafka 2.8.0:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -6684,10 +6684,10 @@ kind: Kafka
 spec:
   # ...
   kafka:
-    version: 2.7.0
+    version: 2.8.0
     config:
-      log.message.format.version: "2.6"
-      inter.broker.protocol.version: "2.7"
+      log.message.format.version: "2.7"
+      inter.broker.protocol.version: "2.8"
       # ...</code></pre>
 </div>
 </div>
@@ -6698,7 +6698,7 @@ spec:
 <li>
 <p>If configured, update the Kafka resource to use the new <code>log.message.format.version</code> version. Otherwise, go to step 10.</p>
 <div class="paragraph">
-<p>For example, if upgrading to Kafka 2.7.0:</p>
+<p>For example, if upgrading to Kafka 2.8.0:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -6707,10 +6707,10 @@ kind: Kafka
 spec:
   # ...
   kafka:
-    version: 2.7.0
+    version: 2.8.0
     config:
-      log.message.format.version: "2.7"
-      inter.broker.protocol.version: "2.7"
+      log.message.format.version: "2.8"
+      inter.broker.protocol.version: "2.8"
       # ...</code></pre>
 </div>
 </div>
@@ -9212,7 +9212,7 @@ Upgrading to the incremental cooperative rebalance protocol is optional. The eag
 <div class="title">Prerequisites</div>
 <ul>
 <li>
-<p>You have <a href="#proc-upgrading-brokers-newer-kafka-str">upgraded Kafka brokers and client applications</a> to Kafka 2.7.0.</p>
+<p>You have <a href="#proc-upgrading-brokers-newer-kafka-str">upgraded Kafka brokers and client applications</a> to Kafka 2.8.0.</p>
 </li>
 </ul>
 </div>
@@ -9443,7 +9443,7 @@ In this case, the downgrade requires:</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>Downgrading is <em>not possible</em> if the new version has ever used a <code>log.message.format.version</code> that is not supported by the previous version, including when the default value for <code>log.message.format.version</code> is used. For example, this resource can be downgraded to Kafka version 2.6.1 because the <code>log.message.format.version</code> has not been changed:</p>
+<p>Downgrading is <em>not possible</em> if the new version has ever used a <code>log.message.format.version</code> that is not supported by the previous version, including when the default value for <code>log.message.format.version</code> is used. For example, this resource can be downgraded to Kafka version 2.7.0 because the <code>log.message.format.version</code> has not been changed:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -9452,20 +9452,20 @@ kind: Kafka
 spec:
   # ...
   kafka:
-    version: 2.7.0
+    version: 2.8.0
     config:
-      log.message.format.version: "2.6"
+      log.message.format.version: "2.7"
       # ...</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The downgrade would not be possible if the <code>log.message.format.version</code> was set at <code>"2.7"</code> or a value was absent (so that the parameter took the default value for a 2.7.0 broker of 2.7).</p>
+<p>The downgrade would not be possible if the <code>log.message.format.version</code> was set at <code>"2.8"</code> or a value was absent (so that the parameter took the default value for a 2.8.0 broker of 2.8).</p>
 </div>
 </div>
 <div class="sect3">
 <h4 id="proc-downgrading-brokers-older-kafka-str"><a class="link" href="#proc-downgrading-brokers-older-kafka-str">8.2.2. Downgrading Kafka brokers and client applications</a></h4>
 <div class="paragraph _abstract">
-<p>This procedure describes how you can downgrade a Strimzi Kafka cluster to a lower (previous) version of Kafka, such as downgrading from 2.7.0 to 2.6.1.</p>
+<p>This procedure describes how you can downgrade a Strimzi Kafka cluster to a lower (previous) version of Kafka, such as downgrading from 2.8.0 to 2.7.0.</p>
 </div>
 <div class="paragraph">
 <div class="title">Prerequisites</div>
@@ -9501,7 +9501,7 @@ spec:
 <li>
 <p>Change the <code>Kafka.spec.kafka.version</code> to specify the previous version.</p>
 <div class="paragraph">
-<p>For example, if downgrading from Kafka 2.7.0 to 2.6.1:</p>
+<p>For example, if downgrading from Kafka 2.8.0 to 2.7.0:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -9510,10 +9510,10 @@ kind: Kafka
 spec:
   # ...
   kafka:
-    version: 2.6.1 <b class="conum">(1)</b>
+    version: 2.7.0 <b class="conum">(1)</b>
     config:
-      log.message.format.version: "2.6" <b class="conum">(2)</b>
-      inter.broker.protocol.version: "2.6" <b class="conum">(3)</b>
+      log.message.format.version: "2.7" <b class="conum">(2)</b>
+      inter.broker.protocol.version: "2.7" <b class="conum">(3)</b>
       # ...</code></pre>
 </div>
 </div>
@@ -9583,7 +9583,7 @@ You must format the value of <code>log.message.format.version</code> and <code>i
 <p>If you are reverting back to a version of Strimzi earlier than 0.22, which uses ZooKeeper for the storage of topic metadata, delete the internal topic store topics from the Kafka cluster.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl run kafka-admin -ti --image=quay.io/strimzi/kafka:latest-kafka-2.7.0 --rm=true --restart=Never -- ./bin/kafka-topics.sh --bootstrap-server localhost:9092 --topic __strimzi-topic-operator-kstreams-topic-store-changelog --delete &amp;&amp; ./bin/kafka-topics.sh --bootstrap-server localhost:9092 --topic __strimzi_store_topic --delete</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl run kafka-admin -ti --image=quay.io/strimzi/kafka:latest-kafka-2.8.0 --rm=true --restart=Never -- ./bin/kafka-topics.sh --bootstrap-server localhost:9092 --topic __strimzi-topic-operator-kstreams-topic-store-changelog --delete &amp;&amp; ./bin/kafka-topics.sh --bootstrap-server localhost:9092 --topic __strimzi_store_topic --delete</code></pre>
 </div>
 </div>
 </li>
