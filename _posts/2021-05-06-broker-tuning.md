@@ -43,7 +43,7 @@ zookeeper.connection.timeout.ms=6000
 # ...
 ```
 
-In Strimzi you configure these settings through the `config` property of the `Kafka` custom resource.
+In Strimzi, you configure these settings through the `config` property of the `Kafka` custom resource.
 In this post, we suggest what else you might add to optimize your Kafka brokers.
 
 > Some properties are [managed directly by Strimzi](https://strimzi.io/docs/operators/latest/using.html#property-kafka-config-reference), such as `broker.id`. These properties are ignored if they are added to the `config` specification.
@@ -76,7 +76,7 @@ replica.fetch.max.bytes=1048576
 
 The importance of Kafka's topic replication mechanism cannot be overstated.
 Topic replication is central to Kafka's reliability and data durability. Using replication, a failed broker can recover from its in-sync replicas.
-We go into more detail about leaders, followers and in-sync replicas with [partition rebalancing for availability](#Partition rebalancing for availability).
+We go into more detail about leaders, followers and in-sync replicas with [partition rebalancing for availability](#partition-rebalancing-for-availability).
 
 The `auto.create.topics.enable` property to create topics automatically is usually disabled. Kafka users tend to prefer applying more control over topic creation.
 If you do use automatic topic creation, set `num.partitions` to equal the number of brokers in the cluster so that writes are distributed.
@@ -238,20 +238,23 @@ log.cleanup.policy=compact,delete
 * **Compact policy**
 `compact` policy guarantees to keep the most recent message for each message key. Log compaction is suitable when message values are changeable, and you want to retain the latest update. New messages are appended to the  _head_ of the log, which acts in the same way as a non-compacted log with writes appended in order. The _tail_ of a compacted log has the older messages that are deleted or compacted according to policy. Consequently, the tail has non-contiguous offsets.
 
-.Log showing key value writes with offset positions before compaction
+**Log showing key value writes with offset positions before compaction**
+
 ![Image of compaction showing key value writes](/assets/images/posts/2021-05-06-broker-tuning-compaction-1.png)
 
 If you're not using keys, you can't use compaction as keys are needed to identify related messages. The latest message (with the highest offset) is kept and older messages with the same key are discarded. You can restore a message back to a previous state. Records retain their original offsets after cleanup. When consuming an offset that's no longer available in the tail, the record with the next higher offset is found.
 
 After the log has been cleaned up, compacted messages are no longer available in the tail of the log. Records retain their original offset. Consuming from the offset of record that is no longer available returns the next higher available offset.
 
-.Log after compaction
+**Log after compaction**
+
 ![Image of compaction after log cleanup](/assets/images/posts/2021-05-06-broker-tuning-compaction-2.png)
 
 Logs can still become arbitrarily large using compaction alone. You can control this by setting policy to compact _and_ delete logs.
 Log data is first compacted, removing older records that have a key in the head of the log. Then data that falls before the log retention threshold is deleted.
 
-.Log retention point and compaction point
+**Log retention point and compaction point**
+
 ![Image of compaction with retention point](/assets/images/posts/2021-05-06-broker-tuning-compaction-3.png)
 
 Adjust the frequency the log is checked for cleanup in milliseconds using `log.retention.check.interval.ms`. Base the frequency on log retention settings. Cleanup should be often enough to manage the disk space, but not so often it affects performance on a topic. Smaller retention sizes might require more frequent checks. You can put the cleaner on standby if there are no logs to clean for a set period using `log.cleaner.backoff.ms`.
@@ -300,7 +303,7 @@ log.cleaner.io.max.bytes.per.second= 1.7976931348623157E308
 
 ### Handling large message sizes
 
-Calibrated for optimal throughput in most situations, Kafka's default message batch size is set to 1MB. If you have the [disk capacity](#Managing disk utilization), you can increase the batch size at a reduced throughput.  
+Calibrated for optimal throughput in most situations, Kafka's default message batch size is set to 1MB. If you have the [disk capacity](#managing-disk-utilization), you can increase the batch size at a reduced throughput.  
 
 You have four ways to handle large message sizes:
 
@@ -320,7 +323,8 @@ Compressing batches will add additional processing overhead on the producer and 
 Reference-based messaging only sends a reference to data stored in some other system in the message’s value. This is useful for data replication when you do not know how big a message will be.
 Data is written to the data store, which must be fast, durable, and highly available, and a reference to the data is returned. The producer sends the reference to Kafka. The consumer uses the reference to fetch the data from the data store.
 
-.Reference-based messaging flow
+**Reference-based messaging flow**
+
 ![Image of reference-based messaging flow](/assets/images/posts/2021-05-06-broker-tuning-reference-messaging.png)
 
 Referenced-based messaging means more for message passing requires more trips, so end-to-end latency will increase. One major drawback of this approach is that there is no automatic clean up of the data in the external system when the Kafka message is cleaned up.
@@ -339,7 +343,8 @@ The basic steps are:
 - Complete messages are delivered in order according to the offset of the first or last chunk for each set of chunked messages.
 - Successful delivery of the complete message is checked against offset metadata to avoid duplicates during a rebalance.
 
-.Inline messaging flow
+**Inline messaging flow**
+
 ![Image of inline messaging flow](/assets/images/posts/2021-05-06-broker-tuning-inline-messaging.png)
 
 Inline messaging does not depend on external systems like reference-based messaging. But it does have a performance overhead on the consumer side because of the buffering required, particularly when handling a series of large messages in parallel. The chunks of large messages can become interleaved, so that it is not always possible to commit when all the chunks of a message have been consumed if the chunks of another large message in the buffer are incomplete. For this reason, buffering is usually supported by persisting message chunks or by implementing commit logic.
@@ -368,7 +373,7 @@ The wait between flushes includes the time to make the check and the specified i
 
 When replicating data across brokers, a partition leader on one broker handles all producer requests (writes to the log). Partition followers on other brokers replicate the partition data of the leader. So you get data reliability in the event of the leader failing. Followers need to be in sync for recovery, meaning the follower has caught up with the most recently committed message on the leader. If a leader is no longer available, one of the in-sync replicas is chosen as the new leader. The leader checks the follower by looking at the last offset requested.
 
->An out-of-sync follower is usually not eligible as a leader should the current leader fail, unless [unclean leader election is allowed](#Unclean leader election is allowed).
+>An out-of-sync follower is usually not eligible as a leader should the current leader fail, unless [unclean leader election is allowed](#unclean-leader-election).
 
 You can adjust the lag time before a follower is considered out of sync:
 
@@ -430,7 +435,7 @@ Inevitably, there's a trade-off as the delay prevents the group from consuming u
 And as we come to end of his post, we can make a general point about any tuning you undertake.
 Have a clear idea of what you hope to achieve with your tuning, but be mindful of what compromises you might have to make to achieve the outcome you seek.
 
-##Conclusion
+## Conclusion
 
 So that completes a targeted roundup of the most common broker tuning options for your consideration.
 Try them out and keep your messages flowing.   
