@@ -1,7 +1,7 @@
 ---
 layout: post
-title:  "Optimizing Kafka brokers"
-date: 2021-06-01
+title:  "Optimizing Kafka broker configuration"
+date: 2021-05-21
 author: paul_mellor
 ---
 
@@ -44,7 +44,9 @@ zookeeper.connection.timeout.ms=6000
 ```
 
 In Strimzi, you configure these settings through the `config` property of the `Kafka` custom resource.
+
 In this post, we suggest what else you might add to optimize your Kafka brokers.
+Where example values are shown for properties, this is usually the default — adjust accordingly.
 
 > Some properties are [managed directly by Strimzi](https://strimzi.io/docs/operators/latest/using.html#property-kafka-config-reference), such as `broker.id`. These properties are ignored if they are added to the `config` specification.
 
@@ -66,7 +68,7 @@ High availability environments require a replication factor of at least 3 for to
 For increased data durability, set `min.insync.replicas` in your *topic* configuration and message delivery acknowledgments using `acks=all` in your *producer* configuration.
 
 Use the `replica.fetch.max.bytes` property to set a maximum size for the messages fetched by each _follower_ that replicates the data from a _leader_ partition.
-Base the value on the average message size and throughput. When considering the total memory allocation required for read/write buffering, the memory available must also be able to accommodate the maximum replicated message size when multiplied by all followers. The size must also be greater than `message.max.bytes` so that all messages can be replicated.
+Base the value on the average message size and throughput. When considering the total memory allocation required for read/write buffering, the memory available must also be able to accommodate the maximum replicated message size when multiplied by all followers. The size must also be greater than `message.max.bytes`, otherwise the broker can accept messages that are too big to replicate.
 
 ```properties
 # ...
@@ -75,12 +77,12 @@ replica.fetch.max.bytes=1048576
 ```
 
 The importance of Kafka's topic replication mechanism cannot be overstated.
-Topic replication is central to Kafka's reliability and data durability. Using replication, a failed broker can recover from its in-sync replicas.
+Topic replication is central to Kafka's reliability and data durability. Using replication, a failed broker can recover from in-sync replicas on other brokers.
 We go into more detail about leaders, followers and in-sync replicas with [partition rebalancing for availability](#partition-rebalancing-for-availability).
 
-The `auto.create.topics.enable` property to create topics automatically is usually disabled. Kafka users tend to prefer applying more control over topic creation.
+The `auto.create.topics.enable` property is enabled by default to create topics automatically, but it's usually disabled as Kafka users tend to prefer applying more control over topic creation.
 If you do use automatic topic creation, set `num.partitions` to equal the number of brokers in the cluster so that writes are distributed.
-The `delete.topic.enable` property to allow topics to be deleted is usually disabled too. This time you're making sure that data is not accidentally lost, although you can temporarily enable the property to delete topics if circumstances demand it.
+The `delete.topic.enable` property is enabled by default to allow topics to be deleted and is usually disabled too. This time you're making sure that data is not accidentally lost, although you can temporarily enable the property to delete topics if circumstances demand it.
 
 ```properties
 # ...
@@ -89,7 +91,7 @@ delete.topic.enable=true
 # ...
 ```
 
-> You can delete topics with the `KafkaTopic` resource if the `delete.topic.enable` property is enabled.
+> You cannot delete topics with the `KafkaTopic` resource if the `delete.topic.enable` property is set to false.
 
 ### Internal topic settings for transactions and commits
 
@@ -157,7 +159,7 @@ socket.request.max.bytes=104857600
 
 ### Increasing bandwidth for high latency connections
 
-If you've fine-tuned the size of your message batches, but latency is impeding the performance of your Kafka environment, try increasing the size of the buffers for sending and receiving messages.
+If you've fine-tuned the size of your message batches, the default values of the buffers for sending and receiving messages might be too small for the required throughput.
 
 ```properties
 # ...
