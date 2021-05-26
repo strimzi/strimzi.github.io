@@ -521,9 +521,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#assembly-scheduling-str">2.7. Configuring pod scheduling</a>
 <ul class="sectlevel3">
 <li><a href="#affinity-str">2.7.1. Specifying affinity, tolerations, and topology spread constraints</a></li>
-<li><a href="#configuring-pod-anti-affinity-in-kafka-components-str">2.7.2. Configuring pod anti-affinity in Kafka components</a></li>
-<li><a href="#proc-configuring-node-affinity-str">2.7.3. Configuring node affinity in Kafka components</a></li>
-<li><a href="#proc-dedicated-nodes-str">2.7.4. Setting up dedicated nodes and scheduling pods on them</a></li>
+<li><a href="#configuring-pod-anti-affinity-to-schedule-each-kafka-broker-on-a-different-worker-node-str">2.7.2. Configuring pod anti-affinity to schedule each Kafka broker on a different worker node</a></li>
+<li><a href="#configuring-pod-anti-affinity-in-kafka-components-str">2.7.3. Configuring pod anti-affinity in Kafka components</a></li>
+<li><a href="#proc-configuring-node-affinity-str">2.7.4. Configuring node affinity in Kafka components</a></li>
+<li><a href="#proc-dedicated-nodes-str">2.7.5. Setting up dedicated nodes and scheduling pods on them</a></li>
 </ul>
 </li>
 <li><a href="#external-logging_str">2.8. External logging</a>
@@ -6685,7 +6686,134 @@ That can lead to improved performance and stability.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="configuring-pod-anti-affinity-in-kafka-components-str"><a class="link" href="#configuring-pod-anti-affinity-in-kafka-components-str">2.7.2. Configuring pod anti-affinity in Kafka components</a></h4>
+<h4 id="configuring-pod-anti-affinity-to-schedule-each-kafka-broker-on-a-different-worker-node-str"><a class="link" href="#configuring-pod-anti-affinity-to-schedule-each-kafka-broker-on-a-different-worker-node-str">2.7.2. Configuring pod anti-affinity to schedule each Kafka broker on a different worker node</a></h4>
+<div class="paragraph">
+<p>Many Kafka brokers or ZooKeeper nodes can run on the same Kubernetes worker node.
+If the worker node fails, they will all become unavailable at the same time.
+To improve reliability, you can use <code>podAntiAffinity</code> configuration to schedule each Kafka broker or ZooKeeper node on a different Kubernetes worker node.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Kubernetes cluster</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>affinity</code> property in the resource specifying the cluster deployment.
+To make sure that no worker nodes are shared by Kafka brokers or ZooKeeper nodes, use the <code>strimzi.io/name</code> label.
+Set the <code>topologyKey</code> to <code>kubernetes.io/hostname</code> to specify that the selected pods are not scheduled on nodes with the same hostname.
+This will still allow the same worker node to be shared by a single Kafka broker and a single ZooKeeper node.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    template:
+      pod:
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: strimzi.io/name
+                      operator: In
+                      values:
+                        - <em>CLUSTER-NAME</em>-kafka
+                topologyKey: "kubernetes.io/hostname"
+    # ...
+  zookeeper:
+    # ...
+    template:
+      pod:
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: strimzi.io/name
+                      operator: In
+                      values:
+                        - <em>CLUSTER-NAME</em>-zookeeper
+                topologyKey: "kubernetes.io/hostname"
+    # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Where <code><em>CLUSTER-NAME</em></code> is the name of your Kafka custom resource.</p>
+</div>
+</li>
+<li>
+<p>If you even want to make sure that a Kafka broker and ZooKeeper node do not share the same worker node, use the <code>strimzi.io/cluster</code> label.
+For example:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+spec:
+  kafka:
+    # ...
+    template:
+      pod:
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: strimzi.io/cluster
+                      operator: In
+                      values:
+                        - <em>CLUSTER-NAME</em>
+                topologyKey: "kubernetes.io/hostname"
+    # ...
+  zookeeper:
+    # ...
+    template:
+      pod:
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: strimzi.io/cluster
+                      operator: In
+                      values:
+                        - <em>CLUSTER-NAME</em>
+                topologyKey: "kubernetes.io/hostname"
+    # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Where <code><em>CLUSTER-NAME</em></code> is the name of your Kafka custom resource.</p>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>KAFKA-CONFIG-FILE</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="configuring-pod-anti-affinity-in-kafka-components-str"><a class="link" href="#configuring-pod-anti-affinity-in-kafka-components-str">2.7.3. Configuring pod anti-affinity in Kafka components</a></h4>
+<div class="paragraph">
+<p>Pod anti-affinity configuration helps with the stability and performance of Kafka brokers. By using <code>podAntiAffinity</code>, Kubernetes will not schedule Kafka brokers on the same nodes as other workloads.
+Typically, you want to avoid Kafka running on the same worker node as other network or storage intensive applications such as databases, storage or other messaging platforms.</p>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -6746,7 +6874,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-configuring-node-affinity-str"><a class="link" href="#proc-configuring-node-affinity-str">2.7.3. Configuring node affinity in Kafka components</a></h4>
+<h4 id="proc-configuring-node-affinity-str"><a class="link" href="#proc-configuring-node-affinity-str">2.7.4. Configuring node affinity in Kafka components</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -6817,7 +6945,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-dedicated-nodes-str"><a class="link" href="#proc-dedicated-nodes-str">2.7.4. Setting up dedicated nodes and scheduling pods on them</a></h4>
+<h4 id="proc-dedicated-nodes-str"><a class="link" href="#proc-dedicated-nodes-str">2.7.5. Setting up dedicated nodes and scheduling pods on them</a></h4>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -34955,7 +35083,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-05-26 09:32:13 UTC
+Last updated 2021-05-26 13:07:43 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
