@@ -5,7 +5,7 @@ date: 2021-04-07
 author: jakub_stejskal
 ---
 The upgrade of Strimzi and Kafka is not a trivial process.
-In Strimzi 0.22 we introduced several improvements to make the process easier.
+In Strimzi 0.22 and 0.24 we introduced several improvements to make the process easier.
 This post shows you how the upgrade process has changed, and what you should do to keep your cluster working without issues.
 
 <!--more-->
@@ -43,7 +43,8 @@ In cases like this, Strimzi determines the versions and performs the upgrade as 
 * Perform a rolling update of the Kafka cluster to change the images from the old Strimzi version to the new one.
 * Upgrade the Kafka `version` to the default version supported by the new Strimzi version, which will perform a rolling update.
 * Get `log.message.format.version` and `inter.broker.protocol.version` based on `version`.
-* Set `log.message.format.version` and `inter.broker.protocol.version`, and perform a rolling update of the Kafka cluster.
+* Set `inter.broker.protocol.version`, and perform a rolling update of the Kafka cluster.
+* Set `log.message.format.version`, and perform a rolling update of the Kafka cluster.
 
 You can see the states of the upgrade process and each rolling update in the diagram below.
 
