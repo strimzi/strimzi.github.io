@@ -117,7 +117,7 @@ offsets.commit.required.acks=-1
 # ...
 ```
 
-***:warning: Do not reduce these settings in production.***
+***WARNING: Do not reduce these settings in production.***
 
 ### Improving request handling throughput by increasing I/O threads
 
