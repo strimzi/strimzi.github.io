@@ -14324,7 +14324,25 @@ Consider a shorter interval for fast changing clusters, although this increases 
 </div>
 <h4 id="contents-optimization-proposals" class="discrete">Contents of optimization proposals</h4>
 <div class="paragraph">
-<p>The following table describes the properties contained in an optimization proposal:</p>
+<p>An optimization proposal consists of two main sections:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The <em>summary</em> is stored in the <code>status</code> of the <code>KafkaRebalance</code> resource.</p>
+</li>
+<li>
+<p>The <em>broker load</em> is stored in a ConfigMap that contains data as a JSON string.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The summary provides an overview of the proposed cluster rebalance and indicates the scale of the changes involved.
+The broker load shows before and after values for the proposed rebalance, so you can see the impact on each of the brokers in the cluster.</p>
+</div>
+<h5 id="summary" class="discrete">Summary</h5>
+<div class="paragraph">
+<p>The following table explains the properties contained in the optimization proposal&#8217;s summary section:</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
 <caption class="title">Table 2. Properties contained in an optimization proposal</caption>
@@ -14391,6 +14409,73 @@ These topics are excluded from the calculation of partition replica/leader movem
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>excludedBrokersForReplicaMove</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Not yet supported. An empty list is returned.</p></td>
+</tr>
+</tbody>
+</table>
+<h5 id="broker_load" class="discrete">Broker load</h5>
+<div class="paragraph">
+<p>The broker load is stored in a ConfigMap (with the same name as the KafakRebalance custom resource) as a JSON formatted string. This JSON string consists of a JSON object with keys for each broker IDs linking to a number of metrics for each broker.
+Each metric consist of three values.
+The first is the metric value before the optimization proposal is applied, the second is the expected value of the metric after the proposal is applied, and the third is the difference between the first two values (after minus before).</p>
+</div>
+<div class="paragraph">
+<p>To extract the JSON string from the ConfigMap you could use the following command, which uses the jq command line JSON parser tool:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get configmap <em>MY-REBALANCE</em> -o json | jq '.["data"]["brokerLoad.json"]|fromjson|.'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The following table explains the properties contained in the optimization proposal&#8217;s broker load ConfigMap:</p>
+</div>
+<table class="tableblock frame-all grid-all stripes-none stretch">
+<colgroup>
+<col style="width: 35%;">
+<col style="width: 65%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">JSON property</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>leaders</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The number of replicas on this broker that are partition leaders.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>replicas</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The number of replicas on this broker.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>cpuPercentage</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The CPU utilization as a percentage of the defined capacity.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>diskUsedPercentage</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The disk utilization as a percentage of the defined capacity.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>diskUsedMB</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The absolute disk usage in MB.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>networkOutRate</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The total network output rate for the broker.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>leaderNetworkInRate</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The network input rate for all partition leader replicas on this broker.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>followerNetworkInRate</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The network input rate for all follower replicas on this broker.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>potentialMaxNetworkOutRate</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The hypothetical maximum network output rate that would be realized if this broker became the leader of all the replicas it currently hosts.</p></td>
 </tr>
 </tbody>
 </table>
