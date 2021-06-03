@@ -452,6 +452,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#overview-components-cluster-operator-str">1.4.1. Cluster Operator</a></li>
 <li><a href="#overview-concepts-topic-operator-str">1.4.2. Topic Operator</a></li>
 <li><a href="#overview-concepts-user-operator-str">1.4.3. User Operator</a></li>
+<li><a href="#con-feature-gates-overview-str">1.4.4. Feature gates in Strimzi Operators</a></li>
 </ul>
 </li>
 <li><a href="#assembly-custom-resources-str">1.5. Strimzi custom resources</a>
@@ -704,7 +705,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#tls-connections-str">9.4. TLS connections</a>
 <ul class="sectlevel3">
 <li><a href="#zookeeper_communication">9.4.1. ZooKeeper communication</a></li>
-<li><a href="#kafka_interbroker_communication">9.4.2. Kafka interbroker communication</a></li>
+<li><a href="#kafka_inter_broker_communication">9.4.2. Kafka inter-broker communication</a></li>
 <li><a href="#topic_and_user_operators">9.4.3. Topic and User Operators</a></li>
 <li><a href="#cruise_control">9.4.4. Cruise Control</a></li>
 <li><a href="#kafka_client_connections">9.4.5. Kafka Client connections</a></li>
@@ -1245,6 +1246,18 @@ Your application needs to use the user and its credentials for authentication an
 </div>
 <div class="paragraph">
 <p>In addition to managing credentials for authentication, the User Operator also manages authorization rules by including a description of the user&#8217;s access rights in the <code>KafkaUser</code> declaration.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-feature-gates-overview-str"><a class="link" href="#con-feature-gates-overview-str">1.4.4. Feature gates in Strimzi Operators</a></h4>
+<div class="paragraph">
+<p>You can enable and disable some features of operators using <em>feature gates</em>.</p>
+</div>
+<div class="paragraph">
+<p>Feature gates are set in the operator configuration and have three stages of maturity: alpha, beta, or General Availability (GA).</p>
+</div>
+<div class="paragraph">
+<p>For more information, see <a href="./using.html#ref-operator-cluster-feature-gates-str">Feature gates</a>.</p>
 </div>
 </div>
 </div>
@@ -7739,7 +7752,7 @@ The listener will accept all connections without authentication.</p>
 <div class="title">Note</div>
 </td>
 <td class="content">
-Listeners cannot be configured to use the ports set aside for interbroker communication (9091) and metrics (9404).
+Listeners cannot be configured to use the ports reserved for inter-broker communication (9091 or 9090) and metrics (9404).
 </td>
 </tr>
 </table>
@@ -11566,20 +11579,24 @@ This value should be increased when using Strimzi to build container images cont
 <dt class="hdlist1"><code>STRIMZI_FEATURE_GATES</code></dt>
 <dd>
 <p>Optional.
-Disables or enables feature gates to activate new features or change the operator behavior.
-For more details about the feature gates, see <a href="#ref-operator-cluster-feature-gates-str">Feature gates</a>.</p>
+Enables or disables features and functionality controlled by feature gates.
+For more information about each feature gate, see <a href="#ref-operator-cluster-feature-gates-str">Feature gates</a>.</p>
 </dd>
 </dl>
 </div>
 <div class="sect4">
 <h5 id="ref-operator-cluster-feature-gates-str"><a class="link" href="#ref-operator-cluster-feature-gates-str">Feature gates</a></h5>
 <div class="paragraph">
-<p>Strimzi operators support feature gates to turn functionality on and off.
-When applied, feature gates alter the behavior of the operator.
-You can change the default state for each feature gate to enable or disable them.</p>
+<p>Strimzi operators support <em>feature gates</em> to enable or disable certain features and functionality.
+Enabling a feature gate changes the behavior of the relevant operator and introduces the feature to your Strimzi deployment.</p>
 </div>
 <div class="paragraph">
-<p>Feature gates have 3 stages of maturity:</p>
+<p>Feature gates have a default state of either <em>enabled</em> or <em>disabled</em>.
+To modify a feature gate&#8217;s default state, use the <code>STRIMZI_FEATURE_GATES</code> environment variable in the operator&#8217;s configuration.
+You can modify multiple feature gates using this single environment variable.</p>
+</div>
+<div class="paragraph">
+<p>Feature gates have three stages of maturity:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -11590,20 +11607,30 @@ You can change the default state for each feature gate to enable or disable them
 <p>Beta — typically enabled by default</p>
 </li>
 <li>
-<p>General Availability (GA) — typically enabled by default or always enabled</p>
+<p>General Availability (GA) — typically enabled by default</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>Alpha stage features might be unstable, subject to change, experimental, or not sufficiently tested for production use.
-Beta stage features are already well tested and their functionality is not likely to change.
-GA means that a feature is stable and should not change.
-GA features might also become features that are always enabled.
-In this case, the feature gate is removed and it will not be possible to disable the feature.
-Alpha and beta features are removed if they do not prove to be useful.</p>
+<p>Alpha stage features might be experimental or unstable, subject to change, or not sufficiently tested for production use.
+Beta stage features are well tested and their functionality is not likely to change.
+GA stage features are stable and should not change in future.
+Alpha and beta stage features are removed if they do not prove to be useful.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Feature gates might be removed when they reach GA. This means that the feature was incorporated into the Strimzi core features and can no longer be disabled.
+</td>
+</tr>
+</table>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 1. List of supported feature gates and Strimzi versions when they moved into the alpha, beta, or GA stage</caption>
+<caption class="title">Table 1. All feature gates and the Strimzi versions when they moved to alpha, beta, or GA</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 25%;">
@@ -11622,24 +11649,25 @@ Alpha and beta features are removed if they do not prove to be useful.</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>ControlPlaneListener</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0.23.0</p></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>ServiceAccountPatching</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0.24.0</p></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
 </tr>
 </tbody>
 </table>
+<h6 id="configuring_feature_gates" class="discrete">Configuring feature gates</h6>
 <div class="paragraph">
-<p>You configure feature gates using the environment variable <code>STRIMZI_FEATURE_GATES</code>.
-The configuration contains a comma-separated list of the feature gate names.
-A prefix of <code>+</code> enables the feature gate. A prefix of <code>-</code>  disables the feature gate.</p>
+<p>You configure feature gates using the <code>STRIMZI_FEATURE_GATES</code> environment variable in the operator&#8217;s configuration.
+Specify a comma-separated list of feature gate names and prefixes.
+A <code>+</code> prefix enables the feature gate and a <code>-</code> prefix  disables it.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example feature gate configuration which enables <code>FeatureGate1</code> and disables <code>FeatureGate2</code></div>
+<div class="title">Example feature gate configuration that enables <code>FeatureGate1</code> and disables <code>FeatureGate2</code></div>
 <div class="content">
 <pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
   - name: STRIMZI_FEATURE_GATES
@@ -11647,12 +11675,47 @@ A prefix of <code>+</code> enables the feature gate. A prefix of <code>-</code> 
 </div>
 </div>
 <div class="sect5">
-<h6 id="control_plane_listener_feature_gate"><a class="link" href="#control_plane_listener_feature_gate">Control Plane listener feature gate</a></h6>
+<h6 id="control_plane_listener_feature_gate"><a class="link" href="#control_plane_listener_feature_gate">Control plane listener feature gate</a></h6>
 <div class="paragraph">
-<p>When enabled, the <code>ControlPlaneListener</code> feature gate configures Kafka brokers to use a separate listener for controller connections and for data connections (replication).
-This feature gate is currently in the alpha phase and is disabled by default.
-To enable it, use <code>+ControlPlaneListener</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.
-This feature gate has to be disabled when upgrading from Strimzi 0.22 and earlier or when downgrading to Strimzi 0.22 and earlier.</p>
+<p>Use the <code>ControlPlaneListener</code> feature gate to change the communication paths used for inter-broker communications within your Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>The Kubernetes control plane manages the workloads running on the worker nodes.
+Services such as the Kubernetes API server and the controller manager run on the control plane.
+The Kubernetes data plane provides resources to containers, including CPU, memory, network, and storage.</p>
+</div>
+<div class="paragraph">
+<p>In Strimzi, control plane traffic consists of controller connections that maintain the desired state of the Kafka cluster.
+Data plane traffic mainly consists of data replication between the leader broker and the follower brokers.</p>
+</div>
+<div class="paragraph">
+<p>When the <code>ControlPlaneListener</code> feature gate is disabled, control plane and data plane traffic go through the same internal listener on port 9091.
+This was the default behavior before the feature gate was introduced.</p>
+</div>
+<div class="paragraph">
+<p>When <code>ControlPlaneListener</code> is enabled, control plane traffic goes through a dedicated <em>control plane listener</em> on port 9090.
+Data plane traffic continues to use the internal listener on port 9091.</p>
+</div>
+<div class="paragraph">
+<p>Using control plane listeners might improve performance because important controller connections, such as partition leadership changes, are not delayed by data replication across brokers.</p>
+</div>
+<div class="paragraph">
+<div class="title">Enabling the control plane listener feature gate</div>
+<p>The <code>ControlPlaneListener</code> feature gate is in the alpha stage and has a default state of <em>disabled</em>.
+To enable it, specify <code>+ControlPlaneListener</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.</p>
+</div>
+<div class="paragraph">
+<p>This feature gate must be disabled when:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Upgrading from Strimzi 0.22 and earlier</p>
+</li>
+<li>
+<p>Downgrading to Strimzi 0.22 and earlier</p>
+</li>
+</ul>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -11661,7 +11724,7 @@ This feature gate has to be disabled when upgrading from Strimzi 0.22 and earlie
 <div class="title">Note</div>
 </td>
 <td class="content">
-The <code>ControlPlaneListener</code> feature gate was introduced in Strimzi 0.23.0 and is expected to remain in the alpha phase for a number of releases before it moves to the beta phase and is enabled by default.
+The <code>ControlPlaneListener</code> feature gate was introduced in Strimzi 0.23.0 and is expected to remain in the alpha stage for a number of releases before moving to the beta stage.
 </td>
 </tr>
 </table>
@@ -16549,7 +16612,7 @@ spec:
 <div class="sectionbody">
 <div class="paragraph">
 <p>Strimzi supports encrypted communication between the Kafka and Strimzi components using the TLS protocol.
-Communication between Kafka brokers (interbroker communication), between ZooKeeper nodes (internodal communication), and between these and the Strimzi operators is always encrypted.
+Communication between Kafka brokers (interbroker communication), between ZooKeeper nodes (internodal communication), and between those components and the Strimzi operators is always encrypted.
 Communication between Kafka clients and Kafka brokers is encrypted according to how the cluster is configured.
 For the Kafka and Strimzi components, TLS certificates are also used for authentication.</p>
 </div>
@@ -17683,16 +17746,24 @@ kubectl label secret <em>CA-KEY-SECRET</em> strimzi.io/kind=Kafka strimzi.io/clu
 <div class="sect3">
 <h4 id="zookeeper_communication"><a class="link" href="#zookeeper_communication">9.4.1. ZooKeeper communication</a></h4>
 <div class="paragraph">
-<p>Communication between the ZooKeeper nodes on all ports as well as between clients and ZooKeeper is encrypted.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="kafka_interbroker_communication"><a class="link" href="#kafka_interbroker_communication">9.4.2. Kafka interbroker communication</a></h4>
-<div class="paragraph">
-<p>Communication between Kafka brokers is done through an internal listener on port 9091, which is encrypted by default and not accessible to Kafka clients.</p>
+<p>Communication between the ZooKeeper nodes on all ports, as well as between clients and ZooKeeper, is encrypted using TLS.</p>
 </div>
 <div class="paragraph">
 <p>Communication between Kafka brokers and ZooKeeper nodes is also encrypted.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="kafka_inter_broker_communication"><a class="link" href="#kafka_inter_broker_communication">9.4.2. Kafka inter-broker communication</a></h4>
+<div class="paragraph">
+<p>Communication between Kafka brokers is always encrypted using TLS.</p>
+</div>
+<div class="paragraph">
+<p>Unless the <code>ControlPlaneListener</code> <a href="#ref-operator-cluster-feature-gates-str">feature gate</a> is enabled, all inter-broker communication goes through an internal listener on port 9091.
+If you enable the feature gate, traffic from the control plane goes through an internal <em>control plane listener</em> on port 9090.
+Traffic from the data plane continues to use the existing internal listener on port 9091.</p>
+</div>
+<div class="paragraph">
+<p>These internal listeners are not available to Kafka clients.</p>
 </div>
 </div>
 <div class="sect3">
@@ -35193,7 +35264,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-06-02 14:32:26 UTC
+Last updated 2021-06-03 22:12:50 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
