@@ -9,7 +9,7 @@ Following our popular and evergreen posts on fine-tuning [producers](https://str
 we complete our _Kafka optimization trilogy_ with this post on getting started with broker configuration.
 
 In terms of the options you can use to configure your brokers, there are countless permutations.
-We've reduced and refined the options and present here what's typically configured to get the most out of Kafka brokers.
+We've reduced and refined the options and present here what's commonly configured to get the most out of Kafka brokers.
 
 And when we say brokers, we also include topics.
 Some broker options provide defaults which can be overridden at the topic level, such as setting the maximum batch size for topics with `message.max.bytes`.
@@ -51,7 +51,7 @@ Where example values are shown for properties, this is usually the default — a
 
 ### Replicating topics for high availability
 
-When you configure topics, the number of partitions, minimum number of in-sync replicas and partition replication factor are typically set at the topic level.
+When you configure topics, the number of partitions, minimum number of in-sync replicas, and partition replication factor are typically set at the topic level.
 You can use [Strimzi's `KafkaTopic`](https://strimzi.io/docs/operators/latest/using.html#proc-configuring-kafka-topic-str) to do this.
 You can also set these properties at the broker level too. In which case, the defaults are applied to topics that do not have these properties set explicitly, including automatically-created topics.
 
@@ -77,12 +77,13 @@ replica.fetch.max.bytes=1048576
 
 The importance of Kafka's topic replication mechanism cannot be overstated.
 Topic replication is central to Kafka's reliability and data durability. Using replication, a failed broker can recover from in-sync replicas on other brokers.
-We go into more detail about leaders, followers and in-sync replicas with [partition rebalancing for availability](#partition-rebalancing-for-availability).
+We'll go into more detail about leaders, followers and in-sync replicas when discussing [partition rebalancing for availability](#partition-rebalancing-for-availability).
 
 #### Creating and deleting topics
 
-The `auto.create.topics.enable` property is enabled by default so that topics are created when needed by a producer or consumer. It's usually disabled in production as Kafka users tend to prefer applying more control over topic creation in that environment.
-If you are using automatic topic creation, you can set the default number of partitions for topics using `num.partitions`. Use it with `default.replication.factor` property. In this case, you might want to set the replication factor to at least three replicas so that data is more durable by default.
+The `auto.create.topics.enable` property is enabled by default so that topics are created when needed by a producer or consumer. It's usually disabled in production as Kafka users tend to prefer applying more control over topic creation.
+If you are using automatic topic creation, you can set the default number of partitions for topics using `num.partitions`. Use it with the `default.replication.factor` property. In this case, you might want to set the replication factor to at least three replicas so that data is more durable by default.
+
 The `delete.topic.enable` property is enabled by default to allow topics to be deleted. Kafka users normally disable this property in production too. This time you're making sure that data is not accidentally lost, although you can temporarily enable the property to delete topics if circumstances demand it.
 
 ```properties
@@ -171,15 +172,15 @@ socket.receive.buffer.bytes=1048576
 # ...
 ```
 
-You can work out the optimal size of your buffers using a _bandwidth-delay_ product calculation.
+If you want to change the values, you can work out the optimal size of your buffers using a _bandwidth-delay_ product calculation.
 You need some figures to work with. Essentially, you want to multiply your bandwidth capacity with the round-trip delay to give the data volume.
 Go look at this [wiki definition](https://en.wikipedia.org/wiki/Bandwidth-delay_product) to see examples of the calculation.
 
 ### Managing logs with data retention policies
 
-Kafka uses logs to store message data. Logs are a series of segments with various associated indexes. New messages are written to a single _active_ segment. The messages are never modified.  
-Using fetch requests, consumers read from the segments. After a time, the active segment is _rolled_ to become ready-only as a new active segment replaces it.
-Older segments are retained until they are eligible for deletion.
+Kafka uses logs to store message data. Logs are a series of segments with various associated indexes. New messages are written to a single _active_ segment. The messages are never modified.
+
+Using fetch requests, consumers read from the segments. After a time, the active segment is _rolled_ to become read-only as a new active segment replaces it. Older segments are retained until they are eligible for deletion.
 
 You can configure the maximum size in bytes of a log segment and the amount of time in milliseconds before an active segment is rolled.
 Set them at the topic level using `segment.bytes` and `segment.ms`. Or set defaults at the broker level for any topics that do not have these settings:
@@ -191,7 +192,7 @@ log.roll.ms=604800000
 # ...
 ```
 
-Larger sizes means the active segment contains more messages and is rolled less often.
+Larger sizes mean the active segment contains more messages and is rolled less often.
 Non-active segments also become eligible for deletion less often.
 
 You can set time-based or size-based log retention policies, in conjunction with the cleanup policies we cover next, so that logs are kept manageable.
@@ -208,8 +209,7 @@ log.retention.ms=1680000
 ```
 
 The retention period is based on the time messages were appended to the segment.
-If  `log.retention.ms` is set to -1, no time limit is applied to log retention, so all logs are retained.  
-Disk usage should always be monitored, but the -1 setting is not generally recommended as it is especially likely to lead to issues with full disks, which can be hard to rectify.
+If  `log.retention.ms` is set to -1, no time limit is applied to log retention, so all logs are retained. Disk usage should always be monitored, but the -1 setting is not generally recommended as it is especially likely to lead to issues with full disks, which can be hard to rectify.
 
 For size-based log retention, set a maximum log size in bytes:
 
@@ -316,7 +316,7 @@ log.cleaner.io.max.bytes.per.second=1.7976931348623157E308
 
 ### Handling large message sizes
 
-Ideally, individual messages aren't more than a few 100kb, and are batched by the producer for better throughput up to the limit configured by `message.max.bytes` (broker config) or `max.message.bytes` (topic config). This defaults to 1MB.  
+Ideally, individual messages aren't more than a few 100KB, and are batched by the producer for better throughput up to the limit configured by `message.max.bytes` (broker config) or `max.message.bytes` (topic config). This defaults to 1MB.  
 
 You have four ways to handle large message sizes:
 
@@ -341,10 +341,10 @@ Data is written to the data store, which must be fast, durable, and highly avail
 
 ![Image of reference-based messaging flow](/assets/images/posts/2021-05-06-broker-tuning-reference-messaging.png)
 
-Referenced-based message passing requires more trips, so end-to-end latency will increase. One major drawback of this approach is that there is no automatic clean up of the data in the external system when the Kafka message is cleaned up.
+Referenced-based message passing requires more trips, so end-to-end latency will increase. One major drawback of this approach is that there is no automatic cleanup of the data in the external system when the Kafka message is cleaned up.
 There is also the risk that data could be removed from the external system before the message in Kafka gets deleted.
 
-One way to mitigate the limitations of reference-based messaging is to take a hybrid approach. Send large messages to the data store and process standard-sized messages directly.
+One way to mitigate the limitations of reference-based messaging is to take the hybrid approach briefly mentioned. Send large messages to the data store and process standard-sized messages directly.
 
 #### Inline messaging
 Inline messaging is a complex process that splits messages into chunks that use the same key, which are then combined on output using a stream processor like Kafka Streams.
@@ -364,7 +364,7 @@ The basic steps are:
 
 Inline messaging does not depend on external systems like reference-based messaging. But it does have a performance overhead on the consumer side because of the buffering required, particularly when handling a series of large messages in parallel. The chunks of large messages can become interleaved, so that it is not always possible to commit when all the chunks of a message have been consumed if the chunks of another large message in the buffer are incomplete. For this reason, buffering is usually supported by persisting message chunks or by implementing commit logic.
 
-#### Configuration to handle larger messages**
+#### Configuration to handle larger messages
 
 You increase message limits by configuring `message.max.bytes` to set the maximum record batch size. You can set the limit at the topic level or the broker level. If you set limit at the broker level, larger messages are allowed for all topics and messages greater than the maximum limit are rejected. The buffer size for the producers (`max.request.size`) and consumers (`message.max.bytes`) must be able to accommodate the larger messages.
 
@@ -416,8 +416,7 @@ leader.imbalance.per.broker.percentage=10
 #...
 ```
 
-The percentage leader imbalance for a broker is the ratio between the current number of partitions for which the broker is the _current_ leader and the number of partitions for which it is the _preferred_ leader.  
-You can set the percentage to zero to ensure that preferred leaders are always elected, assuming they are in sync.
+The percentage leader imbalance for a broker is the ratio between the current number of partitions for which the broker is the _current_ leader and the number of partitions for which it is the _preferred_ leader. You can set the percentage to zero to ensure that preferred leaders are always elected, assuming they are in sync.
 
 If the checks for rebalances need more control, you can disable automated rebalances. You can then choose when to trigger a rebalance using the `kafka-leader-election.sh` command line tool.
 
@@ -441,7 +440,7 @@ Unclean leader election means out-of-sync replicas can become leaders, but you r
 
 ### Avoiding unnecessary consumer group rebalances
 
-We'll end this exploration of broker tuning tips by suggesting a useful configuration to avoid unnecessary consumer group rebalances. You can add a delay so the group coordinator waits for members to join before the initial rebalance.
+We'll end this exploration of broker tuning tips by suggesting a very useful configuration to avoid unnecessary consumer group rebalances. You can add a delay so the group coordinator waits for members to join before the initial rebalance:
 
 ```properties
 # ...
