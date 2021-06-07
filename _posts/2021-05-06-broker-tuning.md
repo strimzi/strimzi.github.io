@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Optimizing Kafka broker configuration"
-date: 2021-05-21
+date: 2021-06-07
 author: paul_mellor
 ---
 
