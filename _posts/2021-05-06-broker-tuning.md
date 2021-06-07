@@ -128,7 +128,7 @@ Adjust the number of network threads to reflect the replication factor and the l
 > Kafka broker metrics can help with working out the number of threads required. For example, metrics for the average time network threads are idle (`kafka.network:type=SocketServer,name=NetworkProcessorAvgIdlePercent`) indicate the percentage of resources used.
 If there is 0% idle time, all resources are in use, which means that more threads would be beneficial.
 
-I/O threads (`num.io.threads`) pick up requests from the request queue to process them. Adding more threads can improve throughput, but the number of CPU cores/and disk bandwidth imposes a practical upper limit.
+I/O threads (`num.io.threads`) pick up requests from the request queue to process them. Adding more threads can improve throughput, but the number of CPU cores and disk bandwidth imposes a practical upper limit.
 A good starting point might be to start with the default of 8 multiplied by the number of disks.
 
 Use `num.recovery.threads.per.data.dir` to specify the number of threads used for log loading at startup and flushing at shutdown.
