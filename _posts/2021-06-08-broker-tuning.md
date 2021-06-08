@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Optimizing Kafka broker configuration"
-date: 2021-06-07
+date: 2021-06-08
 author: paul_mellor
 ---
 
@@ -254,20 +254,20 @@ log.cleanup.policy=compact,delete
 
 **Log showing key value writes with offset positions before compaction**
 
-![Image of compaction showing key value writes](/assets/images/posts/2021-05-06-broker-tuning-compaction-1.png)
+![Image of compaction showing key value writes](/assets/images/posts/2021-06-08-broker-tuning-compaction-1.png)
 
 If you're not using keys, you can't use compaction as keys are needed to identify related messages. During log cleaning, the latest message (with the highest offset) is kept and older messages with the same key are discarded. Records retain their original offsets even when surrounding records get deleted. Consequently, the tail can have non-contiguous offsets.  When consuming an offset that's no longer available in the tail, the record with the next higher offset is found.
 
 **Log after compaction**
 
-![Image of compaction after log cleanup](/assets/images/posts/2021-05-06-broker-tuning-compaction-2.png)
+![Image of compaction after log cleanup](/assets/images/posts/2021-06-08-broker-tuning-compaction-2.png)
 
 Logs can still become arbitrarily large using compaction alone if there's no upper bound on the number of distinct keys. You can control this by setting policy to compact _and_ delete logs.
 Log data is first compacted, removing older records that have a key in the head of the log. Then data that falls before the log retention threshold is deleted.
 
 **Log retention point and compaction point**
 
-![Image of compaction with retention point](/assets/images/posts/2021-05-06-broker-tuning-compaction-3.png)
+![Image of compaction with retention point](/assets/images/posts/2021-06-08-broker-tuning-compaction-3.png)
 
 Adjust the frequency the log is checked for cleanup in milliseconds using `log.retention.check.interval.ms`. Base the frequency on log retention settings. Cleanup should be often enough to manage the disk space, but not so often it affects performance on a topic. Smaller retention sizes might require more frequent checks. You can put the cleaner on standby if there are no logs to clean for a set period using `log.cleaner.backoff.ms`.
 
@@ -339,7 +339,7 @@ Data is written to the data store, which must be fast, durable, and highly avail
 
 **Reference-based messaging flow**
 
-![Image of reference-based messaging flow](/assets/images/posts/2021-05-06-broker-tuning-reference-messaging.png)
+![Image of reference-based messaging flow](/assets/images/posts/2021-06-08-broker-tuning-reference-messaging.png)
 
 Referenced-based message passing requires more trips, so end-to-end latency will increase. One major drawback of this approach is that there is no automatic cleanup of the data in the external system when the Kafka message is cleaned up.
 There is also the risk that data could be removed from the external system before the message in Kafka gets deleted.
@@ -360,7 +360,7 @@ The basic steps are:
 
 **Inline messaging flow**
 
-![Image of inline messaging flow](/assets/images/posts/2021-05-06-broker-tuning-inline-messaging.png)
+![Image of inline messaging flow](/assets/images/posts/2021-06-08-broker-tuning-inline-messaging.png)
 
 Inline messaging does not depend on external systems like reference-based messaging. But it does have a performance overhead on the consumer side because of the buffering required, particularly when handling a series of large messages in parallel. The chunks of large messages can become interleaved, so that it is not always possible to commit when all the chunks of a message have been consumed if the chunks of another large message in the buffer are incomplete. For this reason, buffering is usually supported by persisting message chunks or by implementing commit logic.
 
