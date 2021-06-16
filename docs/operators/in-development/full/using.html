@@ -9517,8 +9517,7 @@ Otherwise, you may need to configure the truststore with prober certificates or 
     disableTlsHostnameVerification: true <b class="conum">(7)</b>
     jwksExpirySeconds: 360 <b class="conum">(8)</b>
     jwksRefreshSeconds: 300 <b class="conum">(9)</b>
-    jwksMinRefreshPauseSeconds: 1 <b class="conum">(10)</b>
-    enableECDSA: "true" <b class="conum">(11)</b></code></pre>
+    jwksMinRefreshPauseSeconds: 1 <b class="conum">(10)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -9552,9 +9551,6 @@ Otherwise, you may need to configure the truststore with prober certificates or 
 </li>
 <li>
 <p>The minimum pause in seconds between consecutive attempts to refresh JWKS public keys. When an unknown signing key is encountered, the JWKS keys refresh is scheduled outside the regular periodic schedule with at least the specified pause since the last refresh attempt. The refreshing of keys follows the rule of exponential backoff, retrying on unsuccessful refreshes with ever increasing pause, until it reaches <code>jwksRefreshSeconds</code>. The default value is 1.</p>
-</li>
-<li>
-<p>(Optional) If ECDSA is used for signing JWT tokens on authorization server, then this needs to be enabled. It installs additional crypto providers using BouncyCastle crypto library. Default is <code>false</code>.</p>
 </li>
 </ol>
 </div>
@@ -9616,7 +9612,9 @@ Otherwise, you may need to configure the truststore with prober certificates or 
     enableOauthBearer: false <b class="conum">(7)</b>
     enablePlain: true <b class="conum">(8)</b>
     tokenEndpointUri: <em>https://OAUTH-SERVER-ADDRESS/auth/realms/external/protocol/openid-connect/token</em> <b class="conum">(9)</b>
-    customClaimCheck: "@.custom == 'custom-value'" <b class="conum">(10)</b></code></pre>
+    customClaimCheck: "@.custom == 'custom-value'" <b class="conum">(10)</b>
+    clientAudience: <em>AUDIENCE</em> <b class="conum">(11)</b>
+    clientScope: <em>SCOPE</em> <b class="conum">(12)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -9650,6 +9648,12 @@ Otherwise, you may need to configure the truststore with prober certificates or 
 </li>
 <li>
 <p>Additional custom rules can be imposed on the JWT access token during validation by setting this to a JsonPath filter query. If the access token does not contain the necessary data, it is rejected. When using the <code>introspectionEndpointUri</code>, the custom check is applied to the introspection endpoint response JSON.</p>
+</li>
+<li>
+<p>(Optional) An <code>audience</code> parameter passed to the token endpoint. An <em>audience</em> is used  when obtaining an access token for inter-broker authentication. It is also used in the name of a client for OAuth 2.0 over PLAIN client authentication using a <code>clientId</code> and <code>secret</code>. This only affects the ability to obtain the token, and the content of the token, depending on the authorization server. It does not affect token validation rules by the listener.</p>
+</li>
+<li>
+<p>(Optional) A <code>scope</code> parameter passed to the token endpoint. A <em>scope</em> is used when obtaining an access token for inter-broker authentication. It is also used in the name of a client for OAuth 2.0 over PLAIN client authentication using a <code>clientId</code> and <code>secret</code>. This only affects the ability to obtain the token, and the content of the token, depending on the authorization server. It does not affect token validation rules by the listener.</p>
 </li>
 </ol>
 </div>
@@ -9931,7 +9935,8 @@ spec:
     disableTlsHostnameVerification: true <b class="conum">(1)</b>
     checkAccessTokenType: false <b class="conum">(2)</b>
     accessTokenIsJwt: false <b class="conum">(3)</b>
-    scope: any <b class="conum">(4)</b></code></pre>
+    scope: any <b class="conum">(4)</b>
+    audience: kafka <b class="conum">(5)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -9949,6 +9954,11 @@ spec:
 <p>(Optional) The <code>scope</code> for requesting the token from the token endpoint.
 An authorization server may require a client to specify the scope.
 In this case it is <code>any</code>.</p>
+</li>
+<li>
+<p>(Optional) The <code>audience</code> for requesting the token from the token endpoint.
+An authorization server may require a client to specify the audience.
+In this case it is <code>kafka</code>.</p>
 </li>
 </ol>
 </div>
@@ -23536,9 +23546,27 @@ It must have the value <code>oauth</code> for the type <code>KafkaListenerAuthen
 <td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">clientAudience</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>The audience to use when making requests to the authorization server&#8217;s token endpoint. Used for inter-broker authentication and for configuring OAuth 2.0 over PLAIN using the <code>clientId</code> and <code>secret</code> method.</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">clientId</p></td>
 <td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
 <p>OAuth Client ID which the Kafka broker can use to authenticate against the authorization server and use the introspect endpoint URI.</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">clientScope</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>The scope to use when making requests to the authorization server&#8217;s token endpoint. Used for inter-broker authentication and for configuring OAuth 2.0 over PLAIN using the <code>clientId</code> and <code>secret</code> method.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -23574,7 +23602,7 @@ It must have the value <code>oauth</code> for the type <code>KafkaListenerAuthen
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">enableECDSA</p></td>
 <td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>Enable or disable ECDSA support by installing BouncyCastle crypto provider. Default value is <code>false</code>.</p>
+<p><strong>The <code>enableECDSA</code> property has been deprecated.</strong> Enable or disable ECDSA support by installing BouncyCastle crypto provider. ECDSA support is always enabled. The BouncyCastle libraries are no longer packaged with Strimzi. Value is ignored.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -29795,6 +29823,9 @@ In the <code>clientSecret</code> property, specify a link to a <code>Secret</cod
 </div>
 </div>
 <div class="paragraph">
+<p>Optionally, <code>scope</code> and <code>audience</code> can be specified if needed.</p>
+</div>
+<div class="paragraph">
 <div class="title">Client ID and refresh token</div>
 <p>You can configure the address of your OAuth server in the <code>tokenEndpointUri</code> property together with the OAuth client ID and refresh token.
 The OAuth client will connect to the OAuth server, authenticate using the client ID and refresh token and get an access token which it will use to authenticate with the Kafka broker.
@@ -29907,6 +29938,15 @@ It must have the value <code>oauth</code> for the type <code>KafkaClientAuthenti
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">audience</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>OAuth audience to use when authenticating against the authorization server. Some authorization servers require the audience to be explicitly set. The possible values depend on how the authorization server is configured. By default, <code>audience</code> is not specified when performing the token endpoint request.</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">clientId</p></td>
@@ -35386,7 +35426,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-06-16 07:32:24 UTC
+Last updated 2021-06-16 10:28:15 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
