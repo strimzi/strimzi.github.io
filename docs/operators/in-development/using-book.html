@@ -92,6 +92,7 @@
 <li><a href="#creating-configmap_str">2.8.1. Creating a ConfigMap for logging</a></li>
 </ul>
 </li>
+<li><a href="#proc-loading-config-with-provider-str">2.9. Loading configuration values from external sources</a></li>
 </ul>
 </li>
 <li><a href="#assembly-configuring-external-listeners-str">3. Configuring external listeners</a>
@@ -4013,7 +4014,8 @@ Standard Apache Kafka configuration may be provided, restricted to those propert
 <p>(Required) List of connector plugins and their artifacts to add to the new container image. Each plugin must be configured with at least one <code>artifact</code>.</p>
 </li>
 <li>
-<p><a href="#type-ExternalConfiguration-reference">External configuration for Kafka connectors</a> using environment variables, as shown here, or volumes.</p>
+<p><a href="#type-ExternalConfiguration-reference">External configuration for Kafka connectors</a> using environment variables, as shown here, or volumes.
+You can also use the <em>Kubernetes Configuration Provider</em> to <a href="#proc-loading-config-with-provider-str">load configuration values from external sources</a>.</p>
 </li>
 <li>
 <p>Requests for reservation of <a href="#con-common-configuration-resources-reference">supported resources</a>, currently <code>cpu</code> and <code>memory</code>, and limits to specify the maximum resources that can be consumed.</p>
@@ -5636,7 +5638,8 @@ You can use comma-separated lists.</p>
 <p><a href="#assembly-distributed-tracing-str">Distributed tracing is enabled for Jaeger</a>.</p>
 </li>
 <li>
-<p><a href="#type-ExternalConfiguration-reference">External configuration</a> for a Kubernetes Secret mounted to Kafka MirrorMaker as an environment variable.</p>
+<p><a href="#type-ExternalConfiguration-reference">External configuration</a> for a Kubernetes Secret mounted to Kafka MirrorMaker as an environment variable.
+You can also use the <em>Kubernetes Configuration Provider</em> to <a href="#proc-loading-config-with-provider-str">load configuration values from external sources</a>.</p>
 </li>
 </ol>
 </div>
@@ -6742,6 +6745,212 @@ kafka.root.logger.level="INFO"
 </li>
 </ol>
 </div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-loading-config-with-provider-str"><a class="link" href="#proc-loading-config-with-provider-str">2.9. Loading configuration values from external sources</a></h3>
+<div class="paragraph _abstract">
+<p>Use the <em>Kubernetes Configuration Provider</em> plugin to load configuration data from external sources.
+Load data from Kubernetes Secrets or ConfigMaps.</p>
+</div>
+<div class="paragraph">
+<p>Suppose you have a Secret that&#8217;s managed outside the Kafka namespace, or outside the Kafka cluster.
+The provider allows you to reference the values of the Secret in your configuration without extracting the files.
+You just need to tell the provider what Secret to use and provide access rights.
+The provider loads the data without needing to restart the Kafka component, even when using a new Secret or ConfigMap.
+This capability avoids disruption when a Kafka Connect instance hosts multiple connectors.</p>
+</div>
+<div class="paragraph">
+<p>The provider operates independently of Strimzi.
+You can use it to load configuration data for all Kafka components, including producers and consumers.
+Use it, for example, to provide the credentials for Kafka Connect connector configuration.</p>
+</div>
+<div class="paragraph">
+<p>In this procedure, an external ConfigMap provides configuration properties for a connector.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Kubernetes Configuration Provider can&#8217;t use mounted files.
+For example, it can&#8217;t load values that need the location of a truststore or keystore.
+Instead, you can mount ConfigMaps or Secrets into a Kafka Connect pod as environment variables or volumes.
+You add configuration using the <a href="#type-ExternalConfiguration-reference"><code>externalConfiguration</code> property</a> in <code>KafkaConnect.spec</code>.
+You don&#8217;t need to set up access rights with this approach.
+However, Kafka Connect will need a restart when using a new Secret or ConfigMap for a connector.
+This will cause disruption to all the Kafka Connect instance&#8217;s connectors.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Kubernetes cluster is available.</p>
+</li>
+<li>
+<p>A Kafka cluster is running.</p>
+</li>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Create a ConfigMap or Secret that contains the configuration properties.</p>
+<div class="paragraph">
+<p>In this example, a ConfigMap named <code>my-connector-configuration</code> contains connector properties:</p>
+</div>
+<div class="listingblock">
+<div class="title">Example ConfigMap with connector properties</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-connector-configuration
+data:
+  option1: value1
+  option2: value2</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Specify the Kubernetes Configuration Provider in the Kafka Connect configuration.</p>
+<div class="paragraph">
+<p>The specification shown here can support loading values from Secrets and ConfigMaps.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example external volumes set to values from a ConfigMap</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  name: my-connect
+  annotations:
+    strimzi.io/use-connector-resources: "true"
+spec:
+  # ...
+  config:
+    # ...
+    config.providers: secrets,configmaps <b class="conum">(1)</b>
+    config.providers.secrets.class: io.strimzi.kafka.KubernetesSecretConfigProvider <b class="conum">(2)</b>
+    config.providers.configmaps.class: io.strimzi.kafka.KubernetesConfigMapConfigProvider <b class="conum">(3)</b>
+  # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The alias for the configuration provider is used to define other configuration parameters.
+The provider parameters use the alias from <code>config.providers</code>, taking the form <code>config.providers.${alias}.class</code>.</p>
+</li>
+<li>
+<p><code>KubernetesSecretConfigProvider</code> provides values from Secrets.</p>
+</li>
+<li>
+<p><code>KubernetesConfigMapConfigProvider</code> provides values from ConfigMaps.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Create or update the resource to enable the provider.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>KAFKA-CONNECT-CONFIG-FILE</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create a role that permits access to the values in the external ConfigMap.</p>
+<div class="listingblock">
+<div class="title">Example role to access values from a ConfigMap</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: connector-configuration-role
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["my-connector-configuration"]
+  verbs: ["get"]
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The rule gives the role permission to access the <code>my-connector-configuration</code> ConfigMap.</p>
+</div>
+</li>
+<li>
+<p>Create a role binding to permit access to the namespace that contains the ConfigMap.</p>
+<div class="listingblock">
+<div class="title">Example role binding to access the namespace that contains the ConfigMap</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: connector-configuration-role-binding
+subjects:
+- kind: ServiceAccount
+  name: my-connect-connect
+  namespace: my-project
+roleRef:
+  kind: Role
+  name: connector-configuration-role
+  apiGroup: rbac.authorization.k8s.io
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The role binding gives the role permission to access the <code>my-project</code> namespace.</p>
+</div>
+<div class="paragraph">
+<p>The service account must be the same one used by the Kafka Connect deployment.
+The service account name format is <em>CLUSTER_NAME</em>-connect, where <em>CLUSTER_NAME</em> is the name of the <code>KafkaConnect</code> custom resource.</p>
+</div>
+</li>
+<li>
+<p>Reference the ConfigMap in the connector configuration.</p>
+<div class="listingblock">
+<div class="title">Example connector configuration referencing the ConfigMap</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: my-connector
+  labels:
+    strimzi.io/cluster: my-connect
+spec:
+  # ...
+  config:
+    option: ${configmaps:my-project/my-connector-configuration:option1}
+    # ...
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Placeholders for the property values in the ConfigMap are referenced in the connector configuration.
+The placeholder structure is <code>configmaps:<em>PATH-AND-FILE-NAME</em>:<em>PROPERTY</em></code>.
+<code>KubernetesConfigMapConfigProvider</code> reads and extracts the <em>option1</em> property value from the external ConfigMap.</p>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#type-ExternalConfiguration-reference">External configuration for Kafka Connect connectors</a></p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -30144,7 +30353,7 @@ spec:
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">env</p></td>
 <td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>Allows to pass data from Secret or ConfigMap to the Kafka Connect pods as environment variables.</p>
+<p>Makes data from a Secret or ConfigMap available in the Kafka Connect pods as environment variables.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -30153,7 +30362,7 @@ spec:
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">volumes</p></td>
 <td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>Allows to pass data from Secret or ConfigMap to the Kafka Connect pods as volumes.</p>
+<p>Makes data from a Secret or ConfigMap available in the Kafka Connect pods as volumes.</p>
 </div></div></td>
 </tr>
 <tr>
