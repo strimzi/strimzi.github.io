@@ -87,9 +87,10 @@
 <li><a href="#proc-dedicated-nodes-str">2.7.5. Setting up dedicated nodes and scheduling pods on them</a></li>
 </ul>
 </li>
-<li><a href="#external-logging_str">2.8. External logging</a>
+<li><a href="#external-logging_str">2.8. Logging configuration</a>
 <ul class="sectlevel3">
 <li><a href="#creating-configmap_str">2.8.1. Creating a ConfigMap for logging</a></li>
+<li><a href="#creating-logging-filters_str">2.8.2. Adding logging filters to Operators</a></li>
 </ul>
 </li>
 <li><a href="#proc-loading-config-with-provider-str">2.9. Loading configuration values from external sources</a></li>
@@ -6617,11 +6618,32 @@ spec:
 </div>
 </div>
 <div class="sect2">
-<h3 id="external-logging_str"><a class="link" href="#external-logging_str">2.8. External logging</a></h3>
+<h3 id="external-logging_str"><a class="link" href="#external-logging_str">2.8. Logging configuration</a></h3>
+<div class="paragraph _abstract">
+<p>Configure logging levels in the custom resources of Kafka components and Strimzi Operators.
+You can specify the logging levels directly in the <code>spec.logging</code> property of the custom resource.
+Or you can define the logging properties in a ConfigMap that&#8217;s referenced in the custom resource using the <code>configMapKeyRef</code> property.</p>
+</div>
 <div class="paragraph">
-<p>When setting the logging levels for a resource, you can specify them <em>inline</em> directly in the <code>spec.logging</code> property of the resource YAML:</p>
+<p>The advantages of using a ConfigMap are that the logging properties are maintained in one place and are accessible to more than one resource.
+You can also reuse the ConfigMap for more than one resource.
+If you are using a ConfigMap to specify loggers for Strimzi Operators, you can also append the logging specification to add filters.</p>
+</div>
+<div class="paragraph">
+<p>You specify a logging <code>type</code> in your logging specification:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>inline</code> when specifying logging levels directly</p>
+</li>
+<li>
+<p><code>external</code> when referencing a ConfigMap</p>
+</li>
+</ul>
 </div>
 <div class="listingblock">
+<div class="title">Example <code>inline</code> logging configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">spec:
   # ...
@@ -6631,10 +6653,8 @@ spec:
       kafka.root.logger.level: "INFO"</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>Or you can specify <em>external</em> logging:</p>
-</div>
 <div class="listingblock">
+<div class="title">Example <code>external</code> logging configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">spec:
   # ...
@@ -6642,22 +6662,59 @@ spec:
     type: external
     valueFrom:
       configMapKeyRef:
-        name: <em>customConfigMap</em>
-        key: <em>keyInConfigMap</em></code></pre>
+        name: my-config-map
+        key: my-config-map-key</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>With external logging, logging properties are defined in a ConfigMap.
-The name of the ConfigMap is referenced in the <code>spec.logging.valueFrom.configMapKeyRef.name</code> property.
-The <code>spec.logging.valueFrom.configMapKeyRef.name</code> and <code>spec.logging.valueFrom.configMapKeyRef.key</code> properties are mandatory.
+<p>Values for the <code>name</code> and <code>key</code> of the ConfigMap are mandatory.
 Default logging is used if the <code>name</code> or <code>key</code> is not set.</p>
 </div>
+<div class="paragraph _additional-resources">
+<div class="title">Additional resources</div>
+<p><strong>Kafka component logging</strong></p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#property-kafka-logging-reference">Kafka logging</a></p>
+</li>
+<li>
+<p><a href="#property-zookeeper-logging-reference">Zookeeper logging</a></p>
+</li>
+<li>
+<p><a href="#property-kafka-connect-logging-reference">Kafka Connect and Mirror Maker 2.0 logging</a></p>
+</li>
+<li>
+<p><a href="#property-mm-loggers-reference">MirrorMaker logging</a></p>
+</li>
+<li>
+<p><a href="#property-kafka-bridge-logging-reference">Kafka Bridge logging</a></p>
+</li>
+<li>
+<p><a href="#ref-cruise-control-configuration-str">Cruise Control logging</a></p>
+</li>
+</ul>
+</div>
 <div class="paragraph">
-<p>The advantages of using a ConfigMap are that the logging properties are maintained in one place and are accessible to more than one resource.</p>
+<p><strong>Operator logging</strong></p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#logging_configuration_by_configmap">Cluster Operatror logging</a></p>
+</li>
+<li>
+<p><a href="#property-topic-operator-logging-reference">Topic Operator logging</a></p>
+</li>
+<li>
+<p><a href="#property-user-operator-logging-reference">User Operator logging</a></p>
+</li>
+</ul>
 </div>
 <div class="sect3">
 <h4 id="creating-configmap_str"><a class="link" href="#creating-configmap_str">2.8.1. Creating a ConfigMap for logging</a></h4>
-<div class="paragraph">
+<div class="paragraph _abstract">
 <p>To use a ConfigMap to define logging properties, you create the ConfigMap and then reference it as part of the logging definition in the <code>spec</code> of a resource.</p>
 </div>
 <div class="paragraph">
@@ -6677,7 +6734,7 @@ Default logging is used if the <code>name</code> or <code>key</code> is not set.
 <p>The configuration must be placed under these properties.</p>
 </div>
 <div class="paragraph">
-<p>Here we demonstrate how a ConfigMap defines a root logger for a Kafka resource.</p>
+<p>In this procedure a ConfigMap defines a root logger for a Kafka resource.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -6685,7 +6742,7 @@ Default logging is used if the <code>name</code> or <code>key</code> is not set.
 <li>
 <p>Create the ConfigMap.</p>
 <div class="paragraph">
-<p>You can create the ConfigMap as a YAML file or from a properties file using <code>kubectl</code> at the command line.</p>
+<p>You can create the ConfigMap as a YAML file or from a properties file.</p>
 </div>
 <div class="paragraph">
 <p>ConfigMap example with a root logger definition for Kafka:</p>
@@ -6693,7 +6750,7 @@ Default logging is used if the <code>name</code> or <code>key</code> is not set.
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">kind: ConfigMap
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: v1
 metadata:
   name: logging-configmap
 data:
@@ -6702,7 +6759,7 @@ data:
 </div>
 </div>
 <div class="paragraph">
-<p>From the command line, using a properties file:</p>
+<p>If you are using a properties file, specify the file at the command line:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -6730,8 +6787,8 @@ kafka.root.logger.level="INFO"
     type: external
     valueFrom:
       configMapKeyRef:
-        name: customConfigMap
-        key: keyInConfigMap</code></pre>
+        name: logging-configmap
+        key: log4j.properties</code></pre>
 </div>
 </div>
 </li>
@@ -6739,11 +6796,226 @@ kafka.root.logger.level="INFO"
 <p>Create or update the resource.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f kafka.yaml</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>KAFKA-CONFIG-FILE</em></code></pre>
 </div>
 </div>
 </li>
 </ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="creating-logging-filters_str"><a class="link" href="#creating-logging-filters_str">2.8.2. Adding logging filters to Operators</a></h4>
+<div class="paragraph _abstract">
+<p>If you are using a ConfigMap to configure the (log4j2) logging levels for Strimzi Operators,
+you can also define logging filters to limit what&#8217;s returned in the log.</p>
+</div>
+<div class="paragraph">
+<p>Logging filters are useful when you have a large number of logging messages.
+Suppose you set the log level for the logger as DEBUG (<code>rootLogger.level="DEBUG"</code>).
+Logging filters reduce the number of logs returned for the logger at that level, so you can focus on a specific resource.
+When the filter is set, only log messages matching the filter are logged.</p>
+</div>
+<div class="paragraph">
+<p>Filters use <em>markers</em> to specify what to include in the log.
+You specify a kind, namespace and name for the marker.
+For example, if a Kafka cluster is failing, you can isolate the logs by specifying the kind as <code>Kafka</code>, and use the namespace and name of the failing cluster.</p>
+</div>
+<div class="paragraph">
+<p>This example shows a marker filter for a Kafka cluster named <code>my-kafka-cluster</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Basic logging filter configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">rootLogger.level="INFO"
+appender.console.filter.filter1.type=MarkerFilter <b class="conum">(1)</b>
+appender.console.filter.filter1.onMatch=ACCEPT <b class="conum">(2)</b>
+appender.console.filter.filter1.onMismatch=DENY <b class="conum">(3)</b>
+appender.console.filter.filter1.marker=Kafka(my-namespace/my-kafka-cluster) <b class="conum">(4)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The <code>MarkerFilter</code> type compares a specified marker for filtering.</p>
+</li>
+<li>
+<p>The <code>onMatch</code> property accepts the log if the marker matches.</p>
+</li>
+<li>
+<p>The <code>onMismatch</code> property rejects the log if the marker does not match.</p>
+</li>
+<li>
+<p>The marker used for filtering is in the format <em>KIND(NAMESPACE/NAME-OF-RESOURCE)</em>.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>You can create one or more filters.
+Here, the log is filtered for two Kafka clusters.</p>
+</div>
+<div class="listingblock">
+<div class="title">Multiple logging filter configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">appender.console.filter.filter1.type=MarkerFilter
+appender.console.filter.filter1.onMatch=ACCEPT
+appender.console.filter.filter1.onMismatch=DENY
+appender.console.filter.filter1.marker=Kafka(my-namespace/my-kafka-cluster-1)
+appender.console.filter.filter2.type=MarkerFilter
+appender.console.filter.filter2.onMatch=ACCEPT
+appender.console.filter.filter2.onMismatch=DENY
+appender.console.filter.filter2.marker=Kafka(my-namespace/my-kafka-cluster-2)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Adding filters to the Cluster Operator</div>
+<p>To add filters to the Cluster Operator, update its logging ConfigMap YAML file (<code>install/cluster-operator/050-ConfigMap-strimzi-cluster-operator.yaml</code>).</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Update the <code>050-ConfigMap-strimzi-cluster-operator.yaml</code> file to add the filter properties to the ConfigMap.</p>
+<div class="paragraph">
+<p>In this example, the filter properties return logs only for the <code>my-kafka-cluster</code> Kafka cluster:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: strimzi-cluster-operator
+data:
+  log4j2.properties:
+    #...
+    appender.console.filter.filter1.type=MarkerFilter
+    appender.console.filter.filter1.onMatch=ACCEPT
+    appender.console.filter.filter1.onMismatch=DENY
+    appender.console.filter.filter1.marker=Kafka(my-namespace/my-kafka-cluster)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Alternatively, edit the <code>ConfigMap</code> directly:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit configmap strimzi-cluster-operator</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If you updated the YAML file instead of editing the <code>ConfigMap</code> directly, apply the changes by deploying the ConfigMap:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f install/cluster-operator/050-ConfigMap-strimzi-cluster-operator.yaml</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<div class="title">Adding filters to the Topic Operator or User Operator</div>
+<p>To add filters to the Topic Operator or User Operator, create or edit a logging ConfigMap.</p>
+</div>
+<div class="paragraph">
+<p>In this procedure a logging ConfigMap is created with filters for the Topic Operator.
+The same approach is used for the User Operator.</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Create the ConfigMap.</p>
+<div class="paragraph">
+<p>You can create the ConfigMap as a YAML file or from a properties file.</p>
+</div>
+<div class="paragraph">
+<p>In this example, the filter properties return logs only for the <code>my-topic</code> topic:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: logging-configmap
+data:
+  log4j2.properties:
+    rootLogger.level="INFO"
+    appender.console.filter.filter1.type=MarkerFilter
+    appender.console.filter.filter1.onMatch=ACCEPT
+    appender.console.filter.filter1.onMismatch=DENY
+    appender.console.filter.filter1.marker=KafkaTopic(my-namespace/my-topic)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you are using a properties file, specify the file at the command line:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create configmap logging-configmap --from-file=log4j2.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The properties file defines the logging configuration:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text"># Define the logger
+rootLogger.level="INFO"
+# Set the filters
+appender.console.filter.filter1.type=MarkerFilter
+appender.console.filter.filter1.onMatch=ACCEPT
+appender.console.filter.filter1.onMismatch=DENY
+appender.console.filter.filter1.marker=KafkaTopic(my-namespace/my-topic)
+# ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Define <em>external</em> logging in the <code>spec</code> of the resource, setting the <code>logging.valueFrom.configMapKeyRef.name</code> to the name of the ConfigMap and <code>logging.valueFrom.configMapKeyRef.key</code> to the key in this ConfigMap.</p>
+<div class="paragraph">
+<p>For the Topic Operator, logging is specified in the <code>topicOperator</code> configuration of the <code>Kafka</code> resource.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">spec:
+  # ...
+  entityOperator:
+    topicOperator:
+      logging:
+        type: external
+        valueFrom:
+          configMapKeyRef:
+            name: logging-configmap
+            key: log4j2.properties</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Apply the changes by deploying the Cluster Operator:</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">create -f install/cluster-operator -n my-cluster-operator-namespace</code></pre>
+</div>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#proc-config-kafka-str">Configuring Kafka</a></p>
+</li>
+<li>
+<p><a href="#logging_configuration_by_configmap">Cluster Operator logging</a></p>
+</li>
+<li>
+<p><a href="#property-topic-operator-logging-reference">Topic Operator logging</a></p>
+</li>
+<li>
+<p><a href="#property-user-operator-logging-reference">User Operator logging</a></p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -11563,7 +11835,7 @@ You configure Cluster Operator logging by changing the data field <code>log4j2.p
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit cm strimzi-cluster-operator</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit configmap strimzi-cluster-operator</code></pre>
 </div>
 </div>
 <div class="paragraph">
