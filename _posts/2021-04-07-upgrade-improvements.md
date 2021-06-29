@@ -5,23 +5,25 @@ date: 2021-04-07
 author: jakub_stejskal
 ---
 The upgrade of Strimzi and Kafka is not a trivial process.
-In Strimzi 0.22 and 0.24 we introduced several improvements to make the process easier.
+In Strimzi 0.24 we introduced several improvements to make the process easier.
 This post shows you how the upgrade process has changed, and what you should do to keep your cluster working without issues.
 
 <!--more-->
 
 ### Upgrade improvements
 
-Before release 0.22, the upgrade process required multiple steps.
+Before release 0.24, the upgrade process required multiple steps.
 During upgrade, users had to go through all released versions between the current version and the target version.
-For example if you wanted to upgrade from 0.18 to 0.20, the recommended approach was to install 0.19 first, wait for a rolling update, and set new values for Kafka `version`, `log.message.format.version` and `inter.broker.protocol.version`. And then repeat the same steps for 0.20.
+For example if you wanted to upgrade from 0.18 to 0.20, the recommended approach was to install 0.19 first, wait for a rolling update, and set new values for Kafka `version`, `log.message.format.version` and `inter.broker.protocol.version`. 
+And then repeat the same steps for 0.20.
 This made the upgrades hard to execute fully automatically. For example, when installing Strimzi from the [OperatorHub](https://operatorhub.io/operator/strimzi-kafka-operator).
 The rolling update of Kafka cluster was also time-consuming, as upgrading through several versions can take a long time.
 
 #### Process changes
 
 Now, the process is a bit more friendly.
-The main improvement is you don't need to upgrade across all Strimzi versions, For instance, you can upgrade from 0.18 directly to 0.22, as shown in the diagram below.
+The main improvement is you don't need to upgrade across all Strimzi versions, For instance, you can upgrade from 0.24 directly to latest without upgrade through any other release like 0.25.
+The upgrade process is shown in the diagram below.
 Strimzi now does the following things regarding Kafka configuration:
 * Detect used Kafka `version`, `log.message.format.version` and `inter.broker.protocol.version` (from CR or compute it from Kafka `version`).
 * Configure Kafka `version`, `log.message.format.version` and `inter.broker.protocol.version` if it's not specified by user.
@@ -29,7 +31,7 @@ Strimzi now does the following things regarding Kafka configuration:
 Here's how Strimzi handles certain situations:
 * Supported Kafka `version` and `log.message.format.version` or `inter.broker.protocol.version` is set in CR - Strimzi will keep the values and missing one will se based on `version`.
 * Supported Kafka `version` is set, `log.message.format.version` and `inter.broker.protocol.version` are not set in CR - Strimzi will set `log.message.format.version` and `inter.broker.protocol.version` based on `version`
-* Supported Kafka `version` is not set in CR - Strimzi will set Kafka `version`, `log.message.format.version` and `inter.broker.protocol.version` based on the default Kafka supported in 0.22.
+* Supported Kafka `version` is not set in CR - Strimzi will set Kafka `version`, `log.message.format.version` and `inter.broker.protocol.version` based on the default Kafka supported in 0.24.
 * Unsupported Kafka `version` is set in CR - Strimzi will set `Kafka` CR status to `NotReady`. 
   In that case user has to update CR and manually set a proper config.
 
@@ -54,11 +56,11 @@ You can see the states of the upgrade process and each rolling update in the dia
 
 With the introduction of these upgrade improvements, there are a couple of things to be aware of:
 * For upgrade, you need to roll out the new brokers while first using the older `log.message.format.version` or `inter.broker.protocol.version`, and only afterwards change to the new versions for message format and inter-broker protocol.
-* [Downgrade is supported](https://strimzi.io/docs/operators/0.22.1/full/deploying.html#con-target-downgrade-version-str) only when you don't set new versions of `log.message.format.version` and `inter.broker.protocol.version`. 
-For instance, if you upgrade to 0.22 from 0.20, and upgrade Kafka to 2.7, a working downgrade is not guaranteed after you set `log.message.format.version` or `inter.broker.protocol.version` to 2.7.
+* [Downgrade is supported](https://strimzi.io/docs/operators/0.24.0/full/deploying.html#con-target-downgrade-version-str) only when you don't set new versions of `log.message.format.version` and `inter.broker.protocol.version`. 
+For instance, if you upgrade to latest from 0.24, and upgrade Kafka to 2.8, a working downgrade is not guaranteed after you set `log.message.format.version` or `inter.broker.protocol.version` to 2.8.
   
 ### Conclusion
 
-In this post we went through recent upgrade-related changes introduced in Strimzi 0.22.
-You can find further information in our [documentation](https://strimzi.io/docs/operators/0.22.1/full/deploying.html#assembly-upgrade-str).
+In this post we went through recent upgrade-related changes introduced in Strimzi 0.24.
+You can find further information in our [documentation](https://strimzi.io/docs/operators/0.24.0/full/deploying.html#assembly-upgrade-str).
 
