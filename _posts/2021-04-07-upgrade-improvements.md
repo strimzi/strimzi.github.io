@@ -30,7 +30,7 @@ Strimzi now does the following things regarding Kafka configuration:
 * Configure Kafka `version`, `log.message.format.version` and `inter.broker.protocol.version` if it's not specified by user.
 
 Here's how Strimzi handles certain situations:
-* Supported Kafka `version` and `log.message.format.version` or `inter.broker.protocol.version` is set in CR - Strimzi will keep the values and missing one will se based on `version`.
+* Supported Kafka `version` and `log.message.format.version` or `inter.broker.protocol.version` is set in CR - Strimzi will keep the values and any missing one will be based on the `version`.
 * Supported Kafka `version` is set, `log.message.format.version` and `inter.broker.protocol.version` are not set in CR - Strimzi will set `log.message.format.version` and `inter.broker.protocol.version` based on `version`
 * Supported Kafka `version` is not set in CR - Strimzi will set Kafka `version`, `log.message.format.version` and `inter.broker.protocol.version` based on the default Kafka supported by Strimzi.
 * Unsupported Kafka `version` is set in CR - Strimzi will set `Kafka` CR status to `NotReady`. 
@@ -42,9 +42,8 @@ You don't need to configure the Kafka `version`, `log.message.format.version` or
 
 Strimzi is able to deal with upgrade of Kafka clusters where versions are not set in the custom resource.
 In cases like this, Strimzi determines the versions and performs the upgrade as follows:
-* Get the version of the currently deployed Kafka and set it in the custom resource.
 * Perform a rolling update of the Kafka cluster to change the images from the old Strimzi version to the new one.
-* Upgrade the Kafka `version` to the default version supported by the new Strimzi version, which will perform a rolling update.
+* Upgrade the Kafka `version` to the default version supported by the new Strimzi version, which will perform a rolling update if it is not already used.
 * Get `log.message.format.version` and `inter.broker.protocol.version` based on `version`.
 * Set `inter.broker.protocol.version`, and perform a rolling update of the Kafka cluster.
 * Set `log.message.format.version`, and perform a rolling update of the Kafka cluster.
@@ -60,7 +59,7 @@ Real Kafka versions should be set based on Strimzi supported ones._
 With the introduction of these upgrade improvements, there are a couple of things to be aware of:
 * For upgrade, you need to roll out the new brokers while first using the older `log.message.format.version` or `inter.broker.protocol.version`, and only afterwards change to the new versions for message format and inter-broker protocol.
 * [Downgrade is supported](https://strimzi.io/docs/operators/0.24.0/full/deploying.html#con-target-downgrade-version-str) only when you don't set new versions of `log.message.format.version` and `inter.broker.protocol.version`. 
-For instance, if you upgrade Strimzi to `X+1` from `X`, and upgrade Kafka to `y.x.w`, a working downgrade is not guaranteed after you set `log.message.format.version` or `inter.broker.protocol.version` to `y.x`.
+For instance, if you upgrade Strimzi to `X+1` from `X`, and upgrade Kafka to `y.z.w`, a working downgrade is not guaranteed after you set `log.message.format.version` or `inter.broker.protocol.version` to `y.z-1`.
 * In case you do upgrade from 0.22, you must go through Strimzi CRD upgrade.
 For more info see our [documentation](https://strimzi.io/docs/operators/0.22.1/full/deploying.html#assembly-upgrade-resources-str).
 
