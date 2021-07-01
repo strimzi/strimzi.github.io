@@ -58,8 +58,8 @@ Real Kafka versions should be set based on Strimzi supported ones._
 
 With the introduction of these upgrade improvements, there are a couple of things to be aware of:
 * For upgrade, you need to roll out the new brokers while first using the older `log.message.format.version` or `inter.broker.protocol.version`, and only afterwards change to the new versions for message format and inter-broker protocol.
-* [Downgrade is supported](https://strimzi.io/docs/operators/0.24.0/full/deploying.html#con-target-downgrade-version-str) only when you don't set new versions of `log.message.format.version` and `inter.broker.protocol.version`. 
-For instance, if you upgrade Strimzi to `X+1` from `X`, and upgrade Kafka to `y.z.w`, a working downgrade is not guaranteed after you set `log.message.format.version` or `inter.broker.protocol.version` to `y.z-1`.
+* [Kafka downgrade is supported](https://strimzi.io/docs/operators/0.24.0/full/deploying.html#con-target-downgrade-version-str) only when you don't set new versions of `log.message.format.version` and `inter.broker.protocol.version`. 
+For instance, if you've upgraded to Kafka to `x.y.z`, a working downgrade is not guaranteed after you've set `inter.broker.protocol.version` to `x.y`.
 * In case you do upgrade from 0.22, you must go through Strimzi CRD upgrade.
 For more info see our [documentation](https://strimzi.io/docs/operators/0.22.1/full/deploying.html#assembly-upgrade-resources-str).
 
