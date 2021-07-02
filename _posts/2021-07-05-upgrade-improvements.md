@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Kafka upgrade improvements"
-date: 2021-04-07
+date: 2021-07-05
 author: jakub_stejskal
 ---
 The upgrade of Strimzi and Kafka is not a trivial process.
@@ -52,7 +52,7 @@ You can see the states of the upgrade process and each rolling update in the dia
 _Note that Kafka versions are only for an illustration.
 Real Kafka versions should be set based on Strimzi supported ones._
 
-![Kafka upgrade states](/assets/images/posts/2021-04-19-kafka-rolling-updates.png)
+![Kafka upgrade states](/assets/images/posts/2021-07-05-kafka-rolling-updates.png)
 
 #### Things to be aware of
 
