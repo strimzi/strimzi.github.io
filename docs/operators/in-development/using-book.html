@@ -309,17 +309,18 @@
 <li><a href="#cluster-recovery-volume_str">10.5.3. Recovering a deleted cluster from persistent volumes</a></li>
 </ul>
 </li>
-<li><a href="#assembly-tuning-config-str">10.6. Tuning Kafka configuration</a>
+<li><a href="#proc-setting-broker-limits-str">10.6. Setting limits on brokers using the Kafka Static Quota plugin</a></li>
+<li><a href="#assembly-tuning-config-str">10.7. Tuning Kafka configuration</a>
 <ul class="sectlevel3">
-<li><a href="#con-broker-config-properties-str">10.6.1. Kafka broker configuration tuning</a></li>
-<li><a href="#con-producer-config-properties-str">10.6.2. Kafka producer configuration tuning</a></li>
-<li><a href="#con-consumer-config-properties-str">10.6.3. Kafka consumer configuration tuning</a></li>
+<li><a href="#con-broker-config-properties-str">10.7.1. Kafka broker configuration tuning</a></li>
+<li><a href="#con-producer-config-properties-str">10.7.2. Kafka producer configuration tuning</a></li>
+<li><a href="#con-consumer-config-properties-str">10.7.3. Kafka consumer configuration tuning</a></li>
 </ul>
 </li>
-<li><a href="#uninstalling-str">10.7. Uninstalling Strimzi</a></li>
-<li><a href="#con-cluster-operator-faqs-str">10.8. Frequently asked questions</a>
+<li><a href="#uninstalling-str">10.8. Uninstalling Strimzi</a></li>
+<li><a href="#con-cluster-operator-faqs-str">10.9. Frequently asked questions</a>
 <ul class="sectlevel3">
-<li><a href="#questions_related_to_the_cluster_operator">10.8.1. Questions related to the Cluster Operator</a></li>
+<li><a href="#questions_related_to_the_cluster_operator">10.9.1. Questions related to the Cluster Operator</a></li>
 </ul>
 </li>
 </ul>
@@ -19351,7 +19352,121 @@ You specify the required configuration using the properties described in <a href
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-tuning-config-str"><a class="link" href="#assembly-tuning-config-str">10.6. Tuning Kafka configuration</a></h3>
+<h3 id="proc-setting-broker-limits-str"><a class="link" href="#proc-setting-broker-limits-str">10.6. Setting limits on brokers using the Kafka Static Quota plugin</a></h3>
+<div class="paragraph _abstract">
+<p>Use the <em>Kafka Static Quota</em> plugin to set throughput and storage limits on brokers in your Kafka cluster.
+You enable the plugin and set limits by configuring the <code>Kafka</code> resource.
+You can set a byte-rate threshold and storage quotas to put limits on the clients interacting with your brokers.</p>
+</div>
+<div class="paragraph">
+<p>You can set byte-rate thresholds for producer and consumer bandwidth.
+The total limit is distributed across all clients accessing the broker.
+For example, you can set a byte-rate threshold of 40 MBps for producers.
+If two producers are running, they are each limited to a throughput of 20 MBps.</p>
+</div>
+<div class="paragraph">
+<p>Storage quotas throttle Kafka disk storage limits between a soft limit and hard limit.
+The limits apply to all available disk space.
+Producers are slowed gradually between the soft and hard limit.
+The limits prevent disks filling up too quickly and exceeding their capacity.
+Full disks can lead to issues that are hard to rectify.
+The hard limit is the maximum storage limit.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+For JBOD storage, the limit applies across all disks.
+If a broker is using two 1 TB disks and the quota is 1.1 TB, one disk might fill and the other disk will be almost empty.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Cluster Operator that manages the Kafka cluster is running.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Add the plugin properties to the <code>config</code> of the <code>Kafka</code> resource.</p>
+<div class="paragraph">
+<p>The plugin properties are shown in this example configuration.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Kafka Static Quota plugin configuration</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    config:
+      client.quota.callback.class: io.strimzi.kafka.quotas.StaticQuotaCallback <b class="conum">(1)</b>
+      client.quota.callback.static.produce: 1000000 <b class="conum">(2)</b>
+      client.quota.callback.static.fetch: 1000000 <b class="conum">(3)</b>
+      client.quota.callback.static.storage.soft: 400000000000 <b class="conum">(4)</b>
+      client.quota.callback.static.storage.hard: 500000000000 <b class="conum">(5)</b>
+      client.quota.callback.static.storage.check-interval: 5 <b class="conum">(6)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Loads the Kafka Static Quota plugin.</p>
+</li>
+<li>
+<p>Sets the producer byte-rate threshold. 1 MBps in this example.</p>
+</li>
+<li>
+<p>Sets the consumer byte-rate threshold. 1 MBps in this example.</p>
+</li>
+<li>
+<p>Sets the lower soft limit for storage. 400 GB in this example.</p>
+</li>
+<li>
+<p>Sets the higher hard limit for storage. 500 GB in this example.</p>
+</li>
+<li>
+<p>Sets the interval in seconds between checks on storage. 5 seconds in this example. You can set this to 0 to disable the check.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Update the resource.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>KAFKA-CONFIG-FILE</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#con-broker-config-properties-str">Kafka broker configuration tuning</a></p>
+</li>
+<li>
+<p><a href="#user_quotas">Setting user quotas</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="assembly-tuning-config-str"><a class="link" href="#assembly-tuning-config-str">10.7. Tuning Kafka configuration</a></h3>
 <div class="paragraph">
 <p>Use configuration properties to optimize the performance of Kafka brokers, producers and consumers.</p>
 </div>
@@ -19373,7 +19488,7 @@ then make incremental changes and further comparisons of metrics until you have 
 </ul>
 </div>
 <div class="sect3">
-<h4 id="con-broker-config-properties-str"><a class="link" href="#con-broker-config-properties-str">10.6.1. Kafka broker configuration tuning</a></h4>
+<h4 id="con-broker-config-properties-str"><a class="link" href="#con-broker-config-properties-str">10.7.1. Kafka broker configuration tuning</a></h4>
 <div class="paragraph _abstract">
 <p>Use configuration properties to optimize the performance of Kafka brokers.
 You can use standard Kafka broker configuration options, except for properties managed directly by Strimzi.</p>
@@ -20126,10 +20241,18 @@ group.initial.rebalance.delay.ms=3000
 the more likely it is that all the members will join in time and avoid a rebalance.
 But the delay also prevents the group from consuming until the period has ended.</p>
 </div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#proc-setting-broker-limits-str">Setting limits on brokers using the Kafka Static Quota plugin</a></p>
+</li>
+</ul>
+</div>
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-producer-config-properties-str"><a class="link" href="#con-producer-config-properties-str">10.6.2. Kafka producer configuration tuning</a></h4>
+<h4 id="con-producer-config-properties-str"><a class="link" href="#con-producer-config-properties-str">10.7.2. Kafka producer configuration tuning</a></h4>
 <div class="paragraph _abstract">
 <p>Use a basic producer configuration with optional properties that are tailored to specific use cases.</p>
 </div>
@@ -20505,7 +20628,7 @@ The default is <code>120000</code> or 2 minutes.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-consumer-config-properties-str"><a class="link" href="#con-consumer-config-properties-str">10.6.3. Kafka consumer configuration tuning</a></h4>
+<h4 id="con-consumer-config-properties-str"><a class="link" href="#con-consumer-config-properties-str">10.7.3. Kafka consumer configuration tuning</a></h4>
 <div class="paragraph _abstract">
 <p>Use a basic consumer configuration with optional properties that are tailored to specific use cases.</p>
 </div>
@@ -20918,7 +21041,7 @@ max.poll.records=500 <b class="conum">(3)</b>
 </div>
 </div>
 <div class="sect2">
-<h3 id="uninstalling-str"><a class="link" href="#uninstalling-str">10.7. Uninstalling Strimzi</a></h3>
+<h3 id="uninstalling-str"><a class="link" href="#uninstalling-str">10.8. Uninstalling Strimzi</a></h3>
 <div class="paragraph">
 <p>This procedure describes how to uninstall Strimzi and remove resources related to the deployment.</p>
 </div>
@@ -20972,9 +21095,9 @@ Deleting <code>CustomResourceDefinitions</code> results in the garbage collectio
 </div>
 </div>
 <div class="sect2">
-<h3 id="con-cluster-operator-faqs-str"><a class="link" href="#con-cluster-operator-faqs-str">10.8. Frequently asked questions</a></h3>
+<h3 id="con-cluster-operator-faqs-str"><a class="link" href="#con-cluster-operator-faqs-str">10.9. Frequently asked questions</a></h3>
 <div class="sect3">
-<h4 id="questions_related_to_the_cluster_operator"><a class="link" href="#questions_related_to_the_cluster_operator">10.8.1. Questions related to the Cluster Operator</a></h4>
+<h4 id="questions_related_to_the_cluster_operator"><a class="link" href="#questions_related_to_the_cluster_operator">10.9.1. Questions related to the Cluster Operator</a></h4>
 <div class="sect4">
 <h5 id="co-faq-admin-privileges_str"><a class="link" href="#co-faq-admin-privileges_str">Why do I need cluster administrator privileges to install Strimzi?</a></h5>
 <div class="paragraph">
