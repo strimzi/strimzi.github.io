@@ -592,6 +592,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel3">
 <li><a href="#ref-operator-cluster-str">5.1.1. Cluster Operator configuration</a></li>
 <li><a href="#provisioning_role_based_access_control_rbac">5.1.2. Provisioning Role-Based Access Control (RBAC)</a></li>
+<li><a href="#proc-configuring-proxy-config-cluster-operator-str">5.1.3. Configuring the Cluster Operator with default proxy settings</a></li>
 </ul>
 </li>
 <li><a href="#using-the-topic-operator-str">5.2. Using the Topic Operator</a>
@@ -12719,6 +12720,104 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io</code></pre>
 </div>
 </div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-configuring-proxy-config-cluster-operator-str"><a class="link" href="#proc-configuring-proxy-config-cluster-operator-str">5.1.3. Configuring the Cluster Operator with default proxy settings</a></h4>
+<div class="paragraph _abstract">
+<p>If you are running a Kafka cluster behind a HTTP proxy, you can still pass data in and out of the cluster.
+For example, you can run Kafka Connect with connectors that push and pull data from outside the proxy.
+Or you can use a proxy to connect with an authorization server.</p>
+</div>
+<div class="paragraph">
+<p>Configure the Cluster Operator deployment to specify the proxy environment variables.
+The Cluster Operator accepts standard proxy configuration (<code>HTTP_PROXY</code>, <code>HTTPS_PROXY</code> and <code>NO_PROXY</code>) as environment variables.
+The proxy settings are applied to all Strimzi containers.</p>
+</div>
+<div class="paragraph">
+<p>The format for a proxy address is <em>http://IP-ADDRESS:PORT-NUMBER</em>.
+To set up a proxy with a name and password, the format is <em>http://USERNAME:PASSWORD@IP-ADDRESS:PORT-NUMBER</em>.</p>
+</div>
+<div class="paragraph">
+<div class="title">Prerequisites</div>
+<p>This procedure requires use of a Kubernetes user account which is able to create <code>CustomResourceDefinitions</code>, <code>ClusterRoles</code> and <code>ClusterRoleBindings</code>.
+Use of Role Base Access Control (RBAC) in the Kubernetes cluster usually means that permission to create, edit,
+and delete these resources is limited to Kubernetes cluster administrators, such as <code>system:admin</code>.</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>To add proxy environment variables to the Cluster Operator, update its <code>Deployment</code> configuration (<code>install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml</code>).</p>
+<div class="openblock">
+<div class="content">
+<div class="listingblock">
+<div class="title">Example proxy configuration for the Cluster Operator</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: apps/v1
+kind: Deployment
+spec:
+  # ...
+  template:
+    spec:
+      serviceAccountName: strimzi-cluster-operator
+      containers:
+        # ...
+        env:
+        # ...
+        - name: "HTTP_PROXY"
+          value: "http://proxy.com" <b class="conum">(1)</b>
+        - name: "HTTPS_PROXY"
+          value: "https://proxy.com" <b class="conum">(2)</b>
+        - name: "NO_PROXY"
+          value: "internal.com, other.domain.com" <b class="conum">(3)</b>
+  # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Address of the proxy server.</p>
+</li>
+<li>
+<p>Secure address of the proxy server.</p>
+</li>
+<li>
+<p>Addresses for servers that are accessed directly as exceptions to the proxy server. The URLs are comma-separated.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Alternatively, edit the <code>Deployment</code> directly:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit deployment strimzi-cluster-operator</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If you updated the YAML file instead of editing the <code>Deployment</code> directly, apply the changes:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#property-hostaliases-config-reference">Host aliases</a></p>
+</li>
+<li>
+<p><a href="./deploying.html#adding-users-the-strimzi-admin-role-str" target="_blank" rel="noopener">Designating Strimzi administrators</a></p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -35562,7 +35661,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-07-06 12:59:16 UTC
+Last updated 2021-07-06 17:36:51 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
