@@ -7997,7 +7997,9 @@ the user is allowed unlimited access to the cluster regardless of any authorizat
 <div class="sect4">
 <h5 id="user_quotas"><a class="link" href="#user_quotas">User quotas</a></h5>
 <div class="paragraph">
-<p>You can configure the <code>spec</code> for the <code>KafkaUser</code> resource to enforce quotas so that a user does not exceed access to Kafka brokers based on a byte threshold or a time limit of CPU utilization.</p>
+<p>You can configure the <code>spec</code> for the <code>KafkaUser</code> resource to enforce quotas so that a user does not exceed a configured level of access to Kafka brokers.
+You can set size-based network usage and time-based CPU utilization thresholds.
+You can also add a partition mutation quota to control the rate at which requests to change partitions are accepted for user requests.</p>
 </div>
 <div class="listingblock">
 <div class="title">An example <code>KafkaUser</code> with user quotas</div>
@@ -8013,7 +8015,8 @@ spec:
   quotas:
     producerByteRate: 1048576 <b class="conum">(1)</b>
     consumerByteRate: 2097152 <b class="conum">(2)</b>
-    requestPercentage: 55 <b class="conum">(3)</b></code></pre>
+    requestPercentage: 55 <b class="conum">(3)</b>
+    controllerMutationRate: 10 <b class="conum">(4)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -8026,6 +8029,9 @@ spec:
 </li>
 <li>
 <p>CPU utilization limit as a percentage of time for a client group</p>
+</li>
+<li>
+<p>Number of concurrent partition creation and deletion operations (mutations) allowed per second</p>
 </li>
 </ol>
 </div>
@@ -32367,17 +32373,40 @@ It must have the value <code>transactionalId</code> for the type <code>AclRuleTr
 <div class="sect4">
 <h5 id="quotas"><a class="link" href="#quotas"><code>quotas</code></a></h5>
 <div class="paragraph">
-<p>Quotas split into two categories:</p>
+<p>You can configure your clients to use the following types of quotas:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><em>Network usage</em> quotas, which are defined as the byte rate threshold for each group of clients sharing a quota</p>
+<p><em>Network usage</em> quotas specify the byte rate threshold for each group of clients sharing a quota.</p>
 </li>
 <li>
-<p><em>CPU utilization</em> quotas, which are defined as the percentage of time a client can utilize on request handler I/O threads and network threads of each broker within a quota window</p>
+<p><em>CPU utilization</em> quotas specify a window for broker requests from clients. The window is the percentage of time for clients to make requests. A client makes requests on the I/O threads and network threads of the broker.</p>
+</li>
+<li>
+<p><em>Partition mutation</em> quotas limit the number of partition mutations which clients are allowed to make per second.</p>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>A partition mutation quota prevents Kafka clusters from being overwhelmed by concurrent topic operations.
+Partition mutations occur in response to the following types of user requests:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Creating partitions for a new topic</p>
+</li>
+<li>
+<p>Adding partitions to an existing topic</p>
+</li>
+<li>
+<p>Deleting partitions from a topic</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>You can configure a partition mutation quota to control the rate at which mutations are accepted for user requests.</p>
 </div>
 <div class="paragraph">
 <p>Using quotas for Kafka clients might be useful in a number of situations.
@@ -32389,17 +32418,18 @@ By using a network limiting quota, it is possible to prevent this situation from
 <p>Strimzi supports user-level quotas, but not client-level quotas.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example Kafka user quotas</div>
+<div class="title">Example Kafka user quota configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
   quotas:
     producerByteRate: 1048576
     consumerByteRate: 2097152
-    requestPercentage: 55</code></pre>
+    requestPercentage: 55
+    controllerMutationRate: 10</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>For more info about Kafka user quotas, refer to the <a href="http://kafka.apache.org/documentation/#design_quotas" target="_blank" rel="noopener">Apache Kafka documentation</a>.</p>
+<p>For more information about Kafka user quotas, refer to the <a href="http://kafka.apache.org/documentation/#design_quotas" target="_blank" rel="noopener">Apache Kafka documentation</a>.</p>
 </div>
 </div>
 <div class="sect4">
