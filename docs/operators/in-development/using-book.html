@@ -9471,21 +9471,19 @@ Otherwise, you may need to configure the truststore with prober certificates or 
 <p>Set this to <code>false`to disable the OAUTHBEARER mechanism on the listener. At least one of PLAIN or OAUTHBEARER has to be enabled. Default is `true</code>.</p>
 </li>
 <li>
-<p>Set this to <code>true</code> to enable the PLAIN mechanism on the listener, which is supported by all clients on all platforms. The Kafka client has to enable the PLAIN mechanism and set the <code>username</code> and the <code>password</code>. This mechanism can be used to authenticate either by using the OAuth access token, or by using the OAuth client id and secret (client credentials). If the client sets <code>password</code> to start with the string <code>$accessToken:</code>, the password is interpreted as the access token on the server, and <code>username</code> as the account username, otherwise the user is interpreted as the client id, and password as the client secret. Default is <code>false</code>.</p>
-</li>
-<li>
-<p>This has to be set to support the client credentials authentication when <code>enablePlain</code> is set to true, as described in previous point.</p>
-</li>
-<li>
-<p>Additional custom rules can be imposed on the JWT access token during validation by setting this to a JsonPath filter query. If the access token does not contain the necessary data, it is rejected. When using the <code>introspectionEndpointUri</code>, the custom check is applied to the introspection endpoint response JSON.</p>
-</li>
-<li>
-<p>(Optional) An <code>audience</code> parameter passed to the token endpoint. An <em>audience</em> is used  when obtaining an access token for inter-broker authentication. It is also used in the name of a client for OAuth 2.0 over PLAIN client authentication using a <code>clientId</code> and <code>secret</code>. This only affects the ability to obtain the token, and the content of the token, depending on the authorization server. It does not affect token validation rules by the listener.</p>
-</li>
-<li>
-<p>(Optional) A <code>scope</code> parameter passed to the token endpoint. A <em>scope</em> is used when obtaining an access token for inter-broker authentication. It is also used in the name of a client for OAuth 2.0 over PLAIN client authentication using a <code>clientId</code> and <code>secret</code>. This only affects the ability to obtain the token, and the content of the token, depending on the authorization server. It does not affect token validation rules by the listener.</p>
+<p>Set to <code>true</code> to enable PLAIN authentication on the listener, which is supported by all clients on all platforms. The Kafka client must enable the PLAIN mechanism and set the <code>username</code> and <code>password</code>. PLAIN can be used to authenticate either by using the OAuth access token, or the OAuth <code>clientId</code> and <code>secret</code> (the client credentials). The behavior is additionally controlled by whether <code>tokenEndpointUri</code> is specified or not. Default is <code>false</code>.</p>
 </li>
 </ol>
+</div>
+<div class="paragraph">
+<p>If <code>tokenEndpointUri</code> is specified and the client sets <code>password</code> to start with the string <code>$accessToken:</code>, the server interprets the password as the access token and the <code>username</code> as the account username. Otherwise, the <code>username</code> is interpreted as the <code>clientId</code> and the <code>password</code> as the client <code>secret</code>, which the broker uses to obtain the access token in the client&#8217;s name.</p>
+</div>
+<div class="paragraph">
+<p>If <code>tokenEndpointUri</code> is not specified, the <code>password</code> is always interpreted as an access token and the <code>username</code> is always interpreted as the account username, which must match the principal id extracted from the token. This is known as 'no-client-credentials' mode because the client must always obtain the access token by itself, and can&#8217;t use <code>clientId</code> and <code>secret</code>.
+&lt;9&gt; Additional configuration for PLAIN mechanism to allow clients to authenticate by passing <code>clientId</code> and <code>secret</code> as <code>username</code> and <code>password</code> as described in the previous point. If not specified the clients can authenticate over PLAIN only by passing an access token as <code>password</code> parameter.
+&lt;10&gt; Additional custom rules can be imposed on the JWT access token during validation by setting this to a JsonPath filter query. If the access token does not contain the necessary data, it is rejected. When using the <code>introspectionEndpointUri</code>, the custom check is applied to the introspection endpoint response JSON.
+&lt;11&gt; (Optional) An <code>audience</code> parameter passed to the token endpoint. An <em>audience</em> is used  when obtaining an access token for inter-broker authentication. It is also used in the name of a client for OAuth 2.0 over PLAIN client authentication using a <code>clientId</code> and <code>secret</code>. This only affects the ability to obtain the token, and the content of the token, depending on the authorization server. It does not affect token validation rules by the listener.
+&lt;12&gt; (Optional) A <code>scope</code> parameter passed to the token endpoint. A <em>scope</em> is used when obtaining an access token for inter-broker authentication. It is also used in the name of a client for OAuth 2.0 over PLAIN client authentication using a <code>clientId</code> and <code>secret</code>. This only affects the ability to obtain the token, and the content of the token, depending on the authorization server. It does not affect token validation rules by the listener.</p>
 </div>
 </li>
 <li>
@@ -23725,7 +23723,7 @@ It must have the value <code>oauth</code> for the type <code>KafkaListenerAuthen
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tokenEndpointUri</p></td>
 <td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>URI of the Token Endpoint to use with SASL_PLAIN mechanism when the client authenticates with clientId and a secret.</p>
+<p>URI of the Token Endpoint to use with SASL_PLAIN mechanism when the client authenticates with <code>clientId</code> and a <code>secret</code>. If set, the client can authenticate over SASL_PLAIN by either setting <code>username</code> to <code>clientId</code>, and setting <code>password</code> to client <code>secret</code>, or by setting <code>username</code> to account username, and <code>password</code> to access token prefixed with <code>$accessToken:</code>. If this option is not set, the <code>password</code> is always interpreted as an access token (without a prefix), and <code>username</code> as the account username (a so called 'no-client-credentials' mode).</p>
 </div></div></td>
 </tr>
 <tr>
