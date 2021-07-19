@@ -580,7 +580,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel3">
 <li><a href="#con-oauth-authorization-mechanism_str">4.5.1. OAuth 2.0 authorization mechanism</a></li>
 <li><a href="#proc-oauth-authorization-broker-config-str">4.5.2. Configuring OAuth 2.0 authorization support</a></li>
-<li><a href="#con-oauth-authorization-keycloak-authorization-services_str">4.5.3. Managing policies and permissions in Keycloak Authorization Services</a></li>
+<li><a href="#assembly-managing-policies-permissions-keycloak_str">4.5.3. Managing policies and permissions in Keycloak Authorization Services</a></li>
 <li><a href="#con-oauth-authorization-keycloak-example_str">4.5.4. Example authorization rules configuration using Keycloak Authorization Services</a></li>
 </ul>
 </li>
@@ -10515,25 +10515,33 @@ kubectl get pod -w</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-oauth-authorization-keycloak-authorization-services_str"><a class="link" href="#con-oauth-authorization-keycloak-authorization-services_str">4.5.3. Managing policies and permissions in Keycloak Authorization Services</a></h4>
+<h4 id="assembly-managing-policies-permissions-keycloak_str"><a class="link" href="#assembly-managing-policies-permissions-keycloak_str">4.5.3. Managing policies and permissions in Keycloak Authorization Services</a></h4>
+<div class="paragraph _abstract">
+<p>This section describes the authorization models used by Keycloak Authorization Services and Kafka, and defines the important concepts in each model.</p>
+</div>
 <div class="paragraph">
-<p>This section describes the mappings between the Kafka authorization model and Keycloak Authorization Services model.
-The mappings are used in granting permissions to access Kafka.</p>
+<p>To grant permissions to access Kafka, you can map Keycloak Authorization Services objects to Kafka resources by creating an <em>OAuth client specification</em> in Keycloak.
+Kafka permissions are granted to user accounts or service accounts using Keycloak Authorization Services rules.</p>
+</div>
+<div class="paragraph">
+<p><a href="#ref-example-permissions-for-kafka-operations_assembly-keyword">Examples</a> are shown of the different user permissions required for common Kafka operations, such as creating and listing topics.</p>
 </div>
 <div class="sect4">
-<h5 id="kafka_authorization_model_for_resources"><a class="link" href="#kafka_authorization_model_for_resources">Kafka authorization model for resources</a></h5>
+<h5 id="con-kafka-keycloak-authz-models_assembly-keyword"><a class="link" href="#con-kafka-keycloak-authz-models_assembly-keyword">Kafka and Keycloak authorization models overview</a></h5>
+<div class="paragraph _abstract">
+<p>Kafka and Keycloak Authorization Services use different authorization models.</p>
+</div>
+<h6 id="kafka_authorization_model" class="discrete">Kafka authorization model</h6>
 <div class="paragraph">
-<p>The <a href="https://kafka.apache.org/documentation/#security_authz_primitives">Kafka authorization model</a> defines resource types, and the permissions available for each type.
-When an action is performed by a Kafka client on a broker, the broker uses a configured authorizer to check permissions, depending on the action performed and the resource type.</p>
+<p>Kafka&#8217;s authorization model uses <em>resource types</em>.
+When a Kafka client performs an action on a broker, the broker uses the configured <code>KeycloakRBACAuthorizer</code> to check the client&#8217;s permissions, based on the action and resource type.</p>
 </div>
 <div class="paragraph">
-<p>Kafka has five resource types for controlling access: <code>Topic</code>, <code>Group</code>, <code>Cluster</code>, <code>TransactionalId</code>, <code>DelegationToken</code>.</p>
+<p>Kafka uses five resource types to control access: <code>Topic</code>, <code>Group</code>, <code>Cluster</code>, <code>TransactionalId</code>, and <code>DelegationToken</code>.
+Each resource type has a set of available permissions.</p>
 </div>
 <div class="paragraph">
-<p>Each resource type has different permissions:</p>
-</div>
-<div class="paragraph">
-<p>Topic:</p>
+<p><strong>Topic</strong></p>
 </div>
 <div class="ulist">
 <ul>
@@ -10564,7 +10572,7 @@ When an action is performed by a Kafka client on a broker, the broker uses a con
 </ul>
 </div>
 <div class="paragraph">
-<p>Group:</p>
+<p><strong>Group</strong></p>
 </div>
 <div class="ulist">
 <ul>
@@ -10580,7 +10588,7 @@ When an action is performed by a Kafka client on a broker, the broker uses a con
 </ul>
 </div>
 <div class="paragraph">
-<p>Cluster:</p>
+<p><strong>Cluster</strong></p>
 </div>
 <div class="ulist">
 <ul>
@@ -10608,7 +10616,7 @@ When an action is performed by a Kafka client on a broker, the broker uses a con
 </ul>
 </div>
 <div class="paragraph">
-<p>TransactionalId:</p>
+<p><strong>TransactionalId</strong></p>
 </div>
 <div class="ulist">
 <ul>
@@ -10621,7 +10629,7 @@ When an action is performed by a Kafka client on a broker, the broker uses a con
 </ul>
 </div>
 <div class="paragraph">
-<p>DelegationToken:</p>
+<p><strong>DelegationToken</strong></p>
 </div>
 <div class="ulist">
 <ul>
@@ -10630,58 +10638,98 @@ When an action is performed by a Kafka client on a broker, the broker uses a con
 </li>
 </ul>
 </div>
-</div>
-<div class="sect4">
-<h5 id="con-oauth-authorization-services-model-str"><a class="link" href="#con-oauth-authorization-services-model-str">Keycloak Authorization Services model for managing permissions</a></h5>
+<h6 id="keycloak_authorization_services_model" class="discrete">Keycloak Authorization Services model</h6>
 <div class="paragraph">
-<p>Keycloak Authorization Services use four concepts to define and grant permissions: <em>resources</em>, <em>authorization scopes</em>, <em>policies</em>, and <em>permissions</em>.</p>
+<p>The Keycloak Authorization Services model has four concepts for defining and granting permissions: <em>resources</em>, <em>authorization scopes</em>, <em>policies</em>, and <em>permissions</em>.</p>
 </div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Resources</dt>
 <dd>
-<p>Resources are a set of resource definitions that are used to match permitted actions.
-For example, a resource can be an individual topic, or it can be a set of all topics with names that start with the same prefix.
-The resource definition has a set of available authorization scopes associated with it, which represent a set of all actions available on the particular resource.
+<p>A resource is a set of resource definitions that are used to match resources with permitted actions.
+A resource might be an individual topic, for example, or all topics with names starting with the same prefix.
+A resource definition is associated with a set of available authorization scopes, which represent a set of all actions available on the resource.
 Often, only a subset of these actions is actually permitted.</p>
 </dd>
 <dt class="hdlist1">Authorization scopes</dt>
 <dd>
-<p>Authorization scopes is simply a set of all available actions on all the different resource types. When defining a new resource,  scopes are added from the set of all scopes.</p>
+<p>An authorization scope is a set of all the available actions on a specific resource definition.
+When you define a new resource, you add scopes from the set of all scopes.</p>
 </dd>
 <dt class="hdlist1">Policies</dt>
 <dd>
-<p>Policies are rules that use criteria to match a list of accounts. Policies can match service accounts based on client id or roles, or user accounts based on username, groups, or roles.</p>
+<p>A policy is an authorization rule that uses criteria to match against a list of accounts.
+Policies can match:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><em>Service accounts</em> based on client ID or roles</p>
+</li>
+<li>
+<p><em>User accounts</em> based on username, groups, or roles.</p>
+</li>
+</ul>
+</div>
 </dd>
 <dt class="hdlist1">Permissions</dt>
 <dd>
-<p>Permissions grant a subset of authorization scopes on a specific resource definition to a set of users.</p>
+<p>A permission grants a subset of authorization scopes on a specific resource definition to a set of users.</p>
 </dd>
 </dl>
 </div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="https://kafka.apache.org/documentation/#security_authz_primitives">Kafka authorization model</a></p>
+</li>
+</ul>
+</div>
 </div>
 <div class="sect4">
-<h5 id="mapping_keycloak_authorization_services_to_the_kafka_authorization_model"><a class="link" href="#mapping_keycloak_authorization_services_to_the_kafka_authorization_model">Mapping Keycloak Authorization Services to the Kafka authorization model</a></h5>
-<div class="paragraph">
-<p>Use Keycloak Authorization Services rules on the OAuth client that represents the Kafka Broker to grant Kafka permissions to users or service accounts. Typically, the OAuth client has <code>kafka</code> as its client id.</p>
+<h5 id="con-mapping-keycloak-authz-services-to-kafka-model_assembly-keyword"><a class="link" href="#con-mapping-keycloak-authz-services-to-kafka-model_assembly-keyword">Map Keycloak Authorization Services to the Kafka authorization model</a></h5>
+<div class="paragraph _abstract">
+<p>The Kafka authorization model is used as a basis for defining the Keycloak roles and resources that will control access to Kafka.</p>
 </div>
 <div class="paragraph">
-<p>The OAuth 2.0 client definition must have the <em>Authorization Enabled</em> option activated.</p>
+<p>To grant Kafka permissions to user accounts or service accounts, you first create an <em>OAuth client specification</em> in Keycloak for the Kafka broker.
+You then specify Keycloak Authorization Services rules on the client.
+Typically, the client id of the OAuth client that represents the broker is <code>kafka</code> (the <a href="#proc-oauth-authorization-keycloak-example_-assembly-keyword">example files</a> provided with Strimzi use <code>kafka</code> as the OAuth client id).</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>If you have multiple Kafka clusters, you can use a single OAuth client (<code>kafka</code>) for all of them.
+This gives you a single, unified space in which to define and manage authorization rules.
+However, you can also use different OAuth client ids (for example, <code>my-cluster-kafka</code> or <code>cluster-dev-kafka</code>) and define authorization rules for each cluster within each client configuration.</p>
+</div>
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>All permissions exist within the scope of this OAuth 2.0 client, which means that if you have different Kafka clusters configured with different OAuth 2.0 client IDs they would each have a separate set of permissions even though they are part of the same realm.</p>
+<p>The <code>kafka</code> client definition must have the <strong>Authorization Enabled</strong> option enabled in the Keycloak Admin Console.</p>
 </div>
 <div class="paragraph">
-<p>When the Kafka client use the <em>SASL OAUTHBEARER</em> mechanism, the Keycloak authorizer (<code>KeycloakRBACAuthorizer</code>) retrieves the list of grants for the current session from the Keycloak server using the access token of the current session.
-This list of grants is the result of evaluating the Keycloak Authorization Services policies and permissions.</p>
+<p>All permissions exist within the scope of the <code>kafka</code> client. If you have different Kafka clusters configured with different OAuth client IDs, they each need a separate set of permissions even though they&#8217;re part of the same Keycloak realm.</p>
 </div>
 <div class="paragraph">
-<div class="title">Introducing authorization scopes</div>
-<p>Typically, an initial configuration involves uploading the authorization scopes to create a list of all the possible actions that can be performed on all the Kafka resource types.
-This step is performed only once, before defining any permissions. Alternatively, you can add authorization scopes manually.</p>
+<p>When the Kafka client uses OAUTHBEARER authentication, the Keycloak authorizer (<code>KeycloakRBACAuthorizer</code>) uses the access token of the current session to retrieve a list of grants from the Keycloak server.
+To retrieve the grants, the authorizer evaluates the Keycloak Authorization Services policies and permissions.</p>
 </div>
 <div class="paragraph">
-<p>The authorization scopes should contain all the possible Kafka permissions regardless of the resource type:</p>
+<div class="title">Authorization scopes for Kafka permissions</div>
+<p>An initial Keycloak configuration usually involves uploading authorization scopes to create a list of all possible actions that can be performed on each Kafka resource type.
+This step is performed once only, before defining any permissions.
+You can add authorization scopes manually instead of uploading them.</p>
+</div>
+<div class="paragraph">
+<p>Authorization scopes must contain all the possible Kafka permissions regardless of the resource type:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -10717,49 +10765,72 @@ This step is performed only once, before defining any permissions. Alternatively
 </li>
 </ul>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
 <div class="paragraph">
-<div class="title">Defining resource patterns for permission checks</div>
-<p>The resources use pattern names for pattern matching against the targeted resources when performing permission checks.</p>
+<p>If you&#8217;re certain you won&#8217;t need a permission (for example, <code>IdempotentWrite</code>), you can omit it from the list of authorization scopes.
+However, that permission won&#8217;t be available to target on Kafka resources.</p>
+</div>
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>The general pattern is <code><em>RESOURCE-TYPE:PATTERN-NAME</em></code>.</p>
+<div class="title">Resource patterns for permissions checks</div>
+<p>Resource patterns are used for pattern matching against the targeted resources when performing permission checks.
+The general pattern format is <code><em>RESOURCE-TYPE:PATTERN-NAME</em></code>.</p>
 </div>
 <div class="paragraph">
 <p>The resource types mirror the Kafka authorization model.
-The pattern allows for the two matching options: exact matching (when the pattern does not end with <code>*</code>), and prefix matching (when the pattern ends with <code>*</code>).</p>
+The pattern allows for two matching options:</p>
 </div>
-<div class="literalblock">
+<div class="ulist">
+<ul>
+<li>
+<p>Exact matching (when the pattern does not end with <code>*</code>)</p>
+</li>
+<li>
+<p>Prefix matching (when the pattern ends with <code>*</code>)</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
 <div class="title">Example patterns for resources</div>
 <div class="content">
-<pre>Topic:my-topic
+<pre class="highlightjs highlight"><code class="language-none hljs">Topic:my-topic
 Topic:orders-*
 Group:orders-*
-Cluster:*</pre>
+Cluster:*</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>In addition, the general pattern can be prefixed by <code>kafka-cluster:<em>CLUSTER-NAME</em></code> followed by a comma, where the cluster name refers to the <code>metadata.name</code> in the Kafka custom resource.</p>
+<p>Additionally, the general pattern format can be prefixed by <code>kafka-cluster:<em>CLUSTER-NAME</em></code> followed by a comma, where <em>CLUSTER-NAME</em> refers to the <code>metadata.name</code> in the Kafka custom resource.</p>
 </div>
-<div class="literalblock">
+<div class="listingblock">
 <div class="title">Example patterns for resources with cluster prefix</div>
 <div class="content">
-<pre>kafka-cluster:my-cluster,Topic:*
-kafka-cluster:*,Group:b_*</pre>
+<pre class="highlightjs highlight"><code class="language-none hljs">kafka-cluster:my-cluster,Topic:*
+kafka-cluster:*,Group:b_*</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>When the <code>kafka-cluster</code> prefix is not present it is assumed to be <code>kafka-cluster:*</code>.</p>
+<p>When the <code>kafka-cluster</code> prefix is missing, it is assumed to be <code>kafka-cluster:*</code>.</p>
 </div>
 <div class="paragraph">
-<p>When defining a resource, you can associate a list of possible authorization scopes relevant to the resource.
+<p>When defining a resource, you can associate it with a list of possible authorization scopes which are relevant to the resource.
 Set whatever actions make sense for the targeted resource type.</p>
 </div>
 <div class="paragraph">
-<p>While you may add any authorization scope to any resource, only the scopes supported by the resource type are considered for access control.</p>
+<p>Though you may add any authorization scope to any resource, only the scopes supported by the resource type are considered for access control.</p>
 </div>
 <div class="paragraph">
-<div class="title">Policies</div>
-<p>Policies are used to target permissions to one or more accounts.
+<div class="title">Policies for applying access permission</div>
+<p>Policies are used to target permissions to one or more user accounts or service accounts.
 Targeting can refer to:</p>
 </div>
 <div class="ulist">
@@ -10774,31 +10845,37 @@ Targeting can refer to:</p>
 <p>User groups</p>
 </li>
 <li>
-<p>JavaScript rule to match a client IP address</p>
+<p>JavaScript rules to match a client IP address</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>A policy is given a unique name, and can be reused to target multiple permissions to multiple resources.</p>
+<p>A policy is given a unique name and can be reused to target multiple permissions to multiple resources.</p>
 </div>
 <div class="paragraph">
-<div class="title">Defining permissions based on scopes, resources and policies</div>
+<div class="title">Permissions to grant access</div>
 <p>Use fine-grained permissions to pull together the policies, resources, and authorization scopes that grant access to users.</p>
 </div>
 <div class="paragraph">
-<p>The name of each permission should clearly define what permissions it grants to which users.</p>
+<p>The name of each permission should clearly define which permissions it grants to which users.
+For example, <code>Dev Team B can read from topics starting with x</code>.</p>
 </div>
-<div class="paragraph">
-<p>For more information on how to configure permissions through Keycloak Authorization Services, see <a href="#con-oauth-authorization-keycloak-example_str">the authorization example</a>.</p>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>For more information about how to configure permissions through Keycloak Authorization Services, see <a href="#proc-oauth-authorization-keycloak-example_assembly-keyword">[proc-oauth-authorization-keycloak-example_assembly-keyword]</a>.</p>
+</li>
+</ul>
 </div>
 </div>
 <div class="sect4">
-<h5 id="example_permissions_required_for_operations_on_kafka"><a class="link" href="#example_permissions_required_for_operations_on_kafka">Example permissions required for operations on Kafka</a></h5>
-<div class="paragraph">
-<p>The following  examples demonstrate the user permissions required for performing common operations on Kafka.</p>
+<h5 id="ref-example-permissions-for-kafka-operations_assembly-keyword"><a class="link" href="#ref-example-permissions-for-kafka-operations_assembly-keyword">Example permissions required for Kafka operations</a></h5>
+<div class="paragraph _abstract">
+<p>The following examples demonstrate the user permissions required for performing common operations on Kafka.</p>
 </div>
 <div class="paragraph">
-<div class="title">Creating a topic</div>
+<div class="title">Create a topic</div>
 <p>To create a topic, the <code>Create</code> permission is required for the specific topic, or for <code>Cluster:kafka-cluster</code>.</p>
 </div>
 <div class="listingblock">
@@ -10808,8 +10885,8 @@ Targeting can refer to:</p>
 </div>
 </div>
 <div class="paragraph">
-<div class="title">Listing the topic</div>
-<p>If a user has <code>Describe</code> permission on the topic, the topic is listed.</p>
+<div class="title">List topics</div>
+<p>If a user has the <code>Describe</code> permission on a specified topic, the topic is listed.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -10818,8 +10895,8 @@ Targeting can refer to:</p>
 </div>
 </div>
 <div class="paragraph">
-<div class="title">Displaying the topic details</div>
-<p>To display topic details, <code>Describe</code> and <code>DescribeConfigs</code> permissions are required on the topic.</p>
+<div class="title">Display topic details</div>
+<p>To display a topic&#8217;s details, <code>Describe</code> and <code>DescribeConfigs</code> permissions are required on the topic.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -10828,9 +10905,11 @@ Targeting can refer to:</p>
 </div>
 </div>
 <div class="paragraph">
-<div class="title">Producing to the topic</div>
-<p>To produce to the topic, <code>Describe</code> and <code>Write</code> permissions are required on the topic.
-If topic has not yet been created, and autocreation is enabled, the permissions to create the topic are required.</p>
+<div class="title">Produce messages to a topic</div>
+<p>To produce messages to a topic, <code>Describe</code> and <code>Write</code> permissions are required on the topic.</p>
+</div>
+<div class="paragraph">
+<p>If the topic hasn&#8217;t been created yet, and topic auto-creation is enabled, the permissions to create a topic are required.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -10839,18 +10918,17 @@ If topic has not yet been created, and autocreation is enabled, the permissions 
 </div>
 </div>
 <div class="paragraph">
-<div class="title">Consuming from the topic</div>
-<p>To consume from the topic, <code>Describe</code> and <code>Read</code> permissions are required on the topic.
-Consuming from the topic normally relies on storing the consumer offsets in a consumer group,
-which requires additional <code>Describe</code> and <code>Read</code> permissions on the consumer group.</p>
+<div class="title">Consume messages from a topic</div>
+<p>To consume messages from a topic, <code>Describe</code> and <code>Read</code> permissions are required on the topic.
+Consuming from the topic normally relies on storing the consumer offsets in a consumer group, which requires additional <code>Describe</code> and <code>Read</code> permissions on the consumer group.</p>
 </div>
 <div class="paragraph">
 <p>Two <code>resources</code> are needed for matching. For example:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Topic:my-topic
-Group:my-group-*</pre>
+<pre class="highlightjs highlight"><code class="language-none hljs">Topic:my-topic
+Group:my-group-*</code></pre>
 </div>
 </div>
 <div class="listingblock">
@@ -10860,22 +10938,29 @@ Group:my-group-*</pre>
 </div>
 </div>
 <div class="paragraph">
-<div class="title">Producing to the topic using an idempotent producer</div>
-<p>Besides needing the permissions for standard producing to the topic, an additional <code>IdempotentWrite</code> permission is required on the <code>Cluster</code> resource.</p>
+<div class="title">Produce messages to a topic using an idempotent producer</div>
+<p>As well as the permissions for producing to a topic, an additional <code>IdempotentWrite</code> permission is required on the
+<code>Cluster</code> resource.</p>
 </div>
 <div class="paragraph">
 <p>Two <code>resources</code> are needed for matching. For example:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>Topic:my-topic
-Cluster:kafka-cluster</pre>
+<pre class="highlightjs highlight"><code class="language-none hljs">Topic:my-topic
+Cluster:kafka-cluster</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh  --topic my-topic \
+  --broker-list my-cluster-kafka-bootstrap:9092 --producer.config=/tmp/config.properties --producer-property enable.idempotence=true --request-required-acks -1</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<div class="title">Listing consumer groups</div>
-<p>When listing consumer groups, only the groups on which the user has <code>Describe</code> permissions are returned.
-Alternatively, if the user has <code>Describe</code> permission on the <code>Cluster:kafka-cluster</code>, all the consumer groups are returned.</p>
+<div class="title">List consumer groups</div>
+<p>When listing consumer groups, only the groups on which the user has the <code>Describe</code> permissions are returned.
+Alternatively, if the user has the <code>Describe</code> permission on the <code>Cluster:kafka-cluster</code>, all the consumer groups are returned.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -10884,8 +10969,8 @@ Alternatively, if the user has <code>Describe</code> permission on the <code>Clu
 </div>
 </div>
 <div class="paragraph">
-<div class="title">Displaying the consumer group details</div>
-<p>To display the consumer group details, <code>Describe</code> permission is required on the group, and on the topic associated with the group.</p>
+<div class="title">Display consumer group details</div>
+<p>To display a consumer group&#8217;s details, the <code>Describe</code> permission is required on the group and the topics associated with the group.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -10894,8 +10979,8 @@ Alternatively, if the user has <code>Describe</code> permission on the <code>Clu
 </div>
 </div>
 <div class="paragraph">
-<div class="title">Changing the topic configuration</div>
-<p>To change the topic configuration, <code>Describe</code> and <code>Alter</code> permissions are required on the topic.</p>
+<div class="title">Change topic configuration</div>
+<p>To change a topic&#8217;s configuration, the <code>Describe</code> and <code>Alter</code> permissions are required on the topic.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -10904,8 +10989,9 @@ Alternatively, if the user has <code>Describe</code> permission on the <code>Clu
 </div>
 </div>
 <div class="paragraph">
-<div class="title">Displaying the Kafka broker configuration</div>
-<p>To be able to use <code>kafka-configs.sh</code> to get the broker configuration, <code>DescribeConfigs</code> permission is required on the <code>Cluster:kafka-cluster</code>.</p>
+<div class="title">Display Kafka broker configuration</div>
+<p>In order to use <code>kafka-configs.sh</code> to get a broker&#8217;s configuration, the <code>DescribeConfigs</code> permission is required on the
+<code>Cluster:kafka-cluster</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -10914,8 +11000,8 @@ Alternatively, if the user has <code>Describe</code> permission on the <code>Clu
 </div>
 </div>
 <div class="paragraph">
-<div class="title">Changing the Kafka broker configuration</div>
-<p>To change the Kafka broker configuration, <code>DescribeConfigs</code> and <code>AlterConfigs</code> permissions are required on <code>Cluster:kafka-cluster</code>.</p>
+<div class="title">Change Kafka broker configuration</div>
+<p>To change a Kafka broker&#8217;s configuration, <code>DescribeConfigs</code> and <code>AlterConfigs</code> permissions are required on <code>Cluster:kafka-cluster</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -10924,8 +11010,8 @@ Alternatively, if the user has <code>Describe</code> permission on the <code>Clu
 </div>
 </div>
 <div class="paragraph">
-<div class="title">Deleting a topic</div>
-<p>To delete the topic, <code>Describe</code> and <code>Delete</code> permissions are required on the topic.</p>
+<div class="title">Delete a topic</div>
+<p>To delete a topic, the <code>Describe</code> and <code>Delete</code> permissions are required on the topic.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -10934,8 +11020,8 @@ Alternatively, if the user has <code>Describe</code> permission on the <code>Clu
 </div>
 </div>
 <div class="paragraph">
-<div class="title">Selecting a leader partition</div>
-<p>To run leader selection for topic partitions, <code>Alter</code> permission is required on the <code>Cluster:kafka-cluster</code>.</p>
+<div class="title">Select a lead partition</div>
+<p>To run leader selection for topic partitions, the <code>Alter</code> permission is required on the <code>Cluster:kafka-cluster</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -10944,7 +11030,7 @@ Alternatively, if the user has <code>Describe</code> permission on the <code>Clu
 </div>
 </div>
 <div class="paragraph">
-<div class="title">Reassigning partitions</div>
+<div class="title">Reassign partitions</div>
 <p>To generate a partition reassignment file, <code>Describe</code> permissions are required on the topics involved.</p>
 </div>
 <div class="listingblock">
@@ -10954,7 +11040,8 @@ Alternatively, if the user has <code>Describe</code> permission on the <code>Clu
 </div>
 </div>
 <div class="paragraph">
-<p>To execute the partition reassignment, <code>Describe</code> and <code>Alter</code> permissions are required on <code>Cluster:kafka-cluster</code>, and <code>Describe</code> permissions are required on the topics involved.</p>
+<p>To execute the partition reassignment, <code>Describe</code> and <code>Alter</code> permissions are required on <code>Cluster:kafka-cluster</code>. Also,
+<code>Describe</code> permissions are required on the topics involved.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -10963,8 +11050,8 @@ Alternatively, if the user has <code>Describe</code> permission on the <code>Clu
 </div>
 </div>
 <div class="paragraph">
-<p>To verify partition reassignment, <code>Describe</code>, and <code>AlterConfigs</code> permissions are required on <code>Cluster:kafka-cluster</code>,
-and on each of the topics involved.</p>
+<p>To verify partition reassignment, <code>Describe</code>, and <code>AlterConfigs</code> permissions are required on <code>Cluster:kafka-cluster</code>, and on each
+of the topics involved.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -35786,7 +35873,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-07-19 13:24:27 UTC
+Last updated 2021-07-19 18:27:11 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
