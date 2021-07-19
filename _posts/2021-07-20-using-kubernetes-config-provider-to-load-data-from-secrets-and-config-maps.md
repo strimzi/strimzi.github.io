@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Using Kubernetes Configuration Provider to load data from Secrets and Config Maps"
-date: 2021-07-20
+date: 2021-07-19
 author: jakub_scholz
 ---
 
