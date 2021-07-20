@@ -8174,7 +8174,7 @@ spec:
 </div>
 <div class="sect2">
 <h3 id="assembly-securing-kafka-clients-str"><a class="link" href="#assembly-securing-kafka-clients-str">4.2. Security options for Kafka clients</a></h3>
-<div class="paragraph">
+<div class="paragraph _abstract">
 <p>Use the <code>KafkaUser</code> resource to configure the authentication mechanism, authorization mechanism, and access rights for Kafka clients.
 In terms of configuring security, clients are represented as users.</p>
 </div>
@@ -8187,6 +8187,17 @@ Authentication permits access, and authorization constrains the access to permis
 </div>
 <div class="paragraph">
 <p>The authentication and authorization mechanisms must match the <a href="#proc-securing-kafka-str">specification for the listener used to access the Kafka brokers</a>.</p>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#proc-configuring-kafka-user-str">Securing user access to Kafka</a></p>
+</li>
+<li>
+<p><a href="./deploying.html#setup-external-clients-str" target="_blank" rel="noopener">Setting up access for clients outside of Kubernetes</a></p>
+</li>
+</ul>
 </div>
 <div class="sect3">
 <h4 id="con-securing-client-labels-str"><a class="link" href="#con-securing-client-labels-str">4.2.1. Identifying a Kafka cluster for user handling</a></h4>
@@ -8215,41 +8226,56 @@ metadata:
 </div>
 <div class="sect3">
 <h4 id="con-securing-client-authentication-str"><a class="link" href="#con-securing-client-authentication-str">4.2.2. User authentication</a></h4>
-<div class="paragraph">
+<div class="paragraph _abstract">
 <p>User authentication is configured using the <code>authentication</code> property in <code>KafkaUser.spec</code>.
 The authentication mechanism enabled for the user is specified using the <code>type</code> field.</p>
 </div>
 <div class="paragraph">
-<p>Supported authentication mechanisms:</p>
+<p>Supported authentication types:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>TLS client authentication</p>
+<p><code>tls</code> for TLS client authentication</p>
 </li>
 <li>
-<p>SCRAM-SHA-512 authentication</p>
+<p><code>tls-external</code> for TLS client authentication using external certificates</p>
+</li>
+<li>
+<p><code>scram-sha-512</code> for SCRAM-SHA-512 authentication</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>When no authentication mechanism is specified, the User Operator does not create the user or its credentials.</p>
+<p>If <code>tls</code> or <code>scram-sha-512</code> is specified, the User Operator creates authentication credentials when it creates the user.
+If <code>tls-external</code> is specified, the user is expected to use TLS client authentication, but no authentication credentials are created.
+When no authentication type is specified, the User Operator does not create the user or its credentials.</p>
 </div>
-<div class="ulist">
+<div class="paragraph">
+<p>Use <code>tls-external</code> to authenticate with TLS using a certificate issued outside the User Operator.
+The User Operator does not generate a TLS certificate or a secret.
+You can still manage user authorization through the User Operator  in the same way as with the <code>tls</code> mechanism.
+This means that you use the <code>CN=<em>USER-NAME</em></code> format when specifying ACL rules and quotas.
+<em>USER-NAME</em> is the common name given in a TLS certificate.</p>
+</div>
+<div class="ulist _additional-resources">
 <div class="title">Additional resources</div>
 <ul>
 <li>
 <p><a href="#con-securing-kafka-authentication-str">When to use mutual TLS authentication or SCRAM-SHA Authentication authentication for clients</a></p>
 </li>
+<li>
+<p><a href="#type-KafkaUserSpec-reference"><code>KafkaUserSpec</code> schema reference</a></p>
+</li>
 </ul>
 </div>
 <div class="sect4">
-<h5 id="tls_client_authentication"><a class="link" href="#tls_client_authentication">TLS Client Authentication</a></h5>
+<h5 id="tls_client_authentication"><a class="link" href="#tls_client_authentication">TLS client authentication</a></h5>
 <div class="paragraph">
-<p>To use TLS client authentication, you set the <code>type</code> field to <code>tls</code>.</p>
+<p>To use TLS client authentication, you set the <code>type</code> field in the <code>KafkaUser</code> resource to <code>tls</code>.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example <code>KafkaUser</code> with TLS client authentication enabled</div>
+<div class="title">Example user with TLS client authentication enabled</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaUser
@@ -8264,8 +8290,8 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p>When the user is created by the User Operator, it creates a new Secret with the same name as the <code>KafkaUser</code> resource.
-The Secret contains a private and public key for TLS client authentication.
+<p>When the user is created by the User Operator, it creates a new secret with the same name as the <code>KafkaUser</code> resource.
+The secret contains a private and public key for TLS client authentication.
 The public key is contained in a user certificate, which is signed by the client Certificate Authority (CA).</p>
 </div>
 <div class="paragraph">
@@ -8275,10 +8301,10 @@ The public key is contained in a user certificate, which is signed by the client
 <p>Secrets provide private keys and certificates in PEM and PKCS #12 formats.</p>
 </div>
 <div class="paragraph">
-<p>For more information on securing Kafka communication with Secrets, see <a href="#security-str">Managing TLS certificates</a>.</p>
+<p>For more information on securing Kafka communication with secrets, see <a href="#security-str">Managing TLS certificates</a>.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example <code>Secret</code> with user credentials</div>
+<div class="title">Example secret with user credentials</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
 kind: Secret
@@ -8298,12 +8324,34 @@ data:
 </div>
 </div>
 <div class="sect4">
-<h5 id="scram_sha_512_authentication"><a class="link" href="#scram_sha_512_authentication">SCRAM-SHA-512 Authentication</a></h5>
+<h5 id="tls_client_authentication_using_a_certificate_issued_outside_the_user_operator"><a class="link" href="#tls_client_authentication_using_a_certificate_issued_outside_the_user_operator">TLS client authentication using a certificate issued outside the User Operator</a></h5>
 <div class="paragraph">
-<p>To use the SCRAM-SHA-512 authentication mechanism, you set the <code>type</code> field to <code>scram-sha-512</code>.</p>
+<p>To use TLS client authentication using a certificate issued outside the User Operator, you set the <code>type</code> field in the <code>KafkaUser</code> resource to <code>tls-external</code>.
+A secret and credentials are not created for the user.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example <code>KafkaUser</code> with SCRAM-SHA-512 authentication enabled</div>
+<div class="title">Example user with TLS client authentication that uses a certificate issued outside the User Operator</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: my-user
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  authentication:
+    type: tls-external
+  # ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="scram_sha_512_authentication"><a class="link" href="#scram_sha_512_authentication">SCRAM-SHA-512 authentication</a></h5>
+<div class="paragraph">
+<p>To use the SCRAM-SHA-512 authentication mechanism, you set the <code>type</code> field in the <code>KafkaUser</code> resource to <code>scram-sha-512</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example user with SCRAM-SHA-512 authentication enabled</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaUser
@@ -8323,7 +8371,7 @@ The secret contains the generated password in the <code>password</code> key, whi
 In order to use the password, it must be decoded.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example <code>Secret</code> with user credentials</div>
+<div class="title">Example secret with user credentials</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
 kind: Secret
@@ -8363,7 +8411,7 @@ data:
 You can use your own password instead of the one generated by Strimzi. To do so, create a secret with the password and reference it in the <code>KafkaUser</code> resource.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example <code>KafkaUser</code> with a password set for SCRAM-SHA-512 authentication</div>
+<div class="title">Example user with a password set for SCRAM-SHA-512 authentication</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaUser
@@ -35873,7 +35921,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-07-20 13:04:14 UTC
+Last updated 2021-07-20 14:24:16 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
