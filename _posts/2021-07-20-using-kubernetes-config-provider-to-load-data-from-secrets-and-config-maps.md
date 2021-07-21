@@ -37,7 +37,9 @@ In many cases, these two mechanisms are fully sufficient.
 But they have also some limitations:
 
 * They can be used only by applications running inside the Kubernetes cluster as Pods.
-* The Secrets and Config Maps you can load have to be in the same namespace as your application. If they are in different namespace, you would need to copy them into your application namespace.
+  Applications running outside the Kubernetes cluster cannot use Secrets or Config Maps in this way
+* The Secrets and Config Maps you can load have to be in the same namespace as your application.
+  If they are in different namespace, you would need to copy them into your application namespace.
 * Any changes - such as adding additional volume or environment variable - require restart of the whole Pod.
 
 If these limitations are a problem for your Kafka application, you should keep reading to find out how the Kubernetes Configuration Provider can help you.
@@ -161,7 +163,7 @@ You can of course customize the Role.
 You can specify multiple Secrets or add Config Maps as well.
 It all depends on your requirements.
 
-Next, we will ned to create a Role Binding to assign this Role to the Kafka Connect Pods:
+Next, we will need to create a Role Binding to assign this Role to the Kafka Connect Pods:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
