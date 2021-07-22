@@ -1,24 +1,24 @@
 ---
 layout: post
 title:  "Using Kubernetes Configuration Provider to load data from Secrets and Config Maps"
-date: 2021-07-19
+date: 2021-07-22
 author: jakub_scholz
 ---
 
-When running Apache Kafka on Kubernetes, you will probably sooner or later need to use Config Maps or Secrets.
-Either to store something in them, or load it into your Kafka configuration.
-That is true regardless whether you use Strimzi to manage your Apache Kafka cluster or something else.
-Kubernetes has its own way how to use Secrets and Config Maps from Pods.
+When running Apache Kafka on Kubernetes, you will sooner or later probably need to use Config Maps or Secrets.
+Either to store something in them, or load them into your Kafka configuration.
+That is true regardless of whether you use Strimzi to manage your Apache Kafka cluster or something else.
+Kubernetes has its own way of using Secrets and Config Maps from Pods.
 But they might not be always sufficient.
 That is why in Strimzi, we created Kubernetes Configuration Provider for Apache Kafka which we will introduce in this blog post.
 
 <!--more-->
 
-Usually, when you need to use data from Config Map or Secret in your Pod, you will either mount it as volume or map it to an environment variable.
+Usually, when you need to use data from a Config Map or Secret in your Pod, you will either mount it as volume or map it to an environment variable.
 Both methods are configured in the `spec` section or the Pod resource or in the `spec.template.spec` section when using higher level resources such as Deployments or StatefulSets.
 
 When mounted as a volume, the contents of the Secret or Config Map will appear as files inside your Pod and its containers.
-Your application can just read and work with it as with any other files.
+Your application can just read and work with them as with any other files.
 The path where the files appear is configurable in the Pod specification, so you can mount them exactly where your application would expect them.
 You can also mount only selected files / fields instead of mounting the whole Secret or Config Map.
 When the contents of the Secret or Config Map changes, the files inside the Pod will be automatically updated (this does not happen immediately but in periodical intervals).
@@ -34,13 +34,13 @@ You can read more about these mechanisms in the Kubernetes documentation:
 * [Using Config Maps as environment variables](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#define-container-environment-variables-using-configmap-data)
 
 In many cases, these two mechanisms are fully sufficient.
-But they have also some limitations:
+However, they have also some limitations:
 
 * They can be used only by applications running inside the Kubernetes cluster as Pods.
   Applications running outside the Kubernetes cluster cannot use Secrets or Config Maps in this way
 * The Secrets and Config Maps you can load have to be in the same namespace as your application.
   If they are in different namespace, you would need to copy them into your application namespace.
-* Any changes - such as adding additional volume or environment variable - require restart of the whole Pod.
+* Any changes - such as adding an additional volume or environment variable - require a restart of the whole Pod.
 
 If these limitations are a problem for your Kafka application, you should keep reading to find out how the Kubernetes Configuration Provider can help you.
 
@@ -58,11 +58,11 @@ The typical use cases is that they load the value from some external source.
 By default, Kafka has two configuration providers.
 The `FileConfigProvider` loads configuration values from properties in a file.
 The `DirectoryConfigProvider` loads configuration values from separate files within a directory structure.
-Both are very nicely explained in [Strimzi documentation](https://strimzi.io/docs/operators/latest/full/using.html#type-ExternalConfiguration-reference).
+Both are very nicely explained in the [Strimzi documentation](https://strimzi.io/docs/operators/latest/full/using.html#type-ExternalConfiguration-reference).
 
-But you are not limited to these two configuration providers.
+However, you are not limited to these two configuration providers.
 You can add your own - you can either write a new configuration provider yourself or you can just download an existing one.
-All you need to do is to place a JAR with a class implementing the `ConfigProvider` interface to the class-path.
+All you need to do is to place a JAR with a class implementing the `ConfigProvider` interface in the class-path.
 For example by adding it to the `libs` directory in Kafka or adding it as a Maven dependency in your Java build.
 
 ## Kubernetes Configuration Provider
@@ -70,11 +70,11 @@ For example by adding it to the `libs` directory in Kafka or adding it as a Mave
 In Strimzi, we saw several use-cases where mounting Secrets or Config Maps as volumes or mapping them as environment variables was not sufficient or not optimal.
 That is why we created our own configuration provider which allows you to reference Kubernetes Secrets and Config Maps directly from your Kafka configuration.
 To load data from Secrets or Config Maps with the configuration provider, you do not need to specify anything in your Kubernetes Pods, Deployments or StatefulSets.
-It uses a Kubernetes client running inside your application and obtains the values from the Secrets or Config Maps directly from the Kubernetes API server.
-That means that:
+Instead, a Kubernetes client running inside your application obtains the values from the Secrets or Config Maps directly from the Kubernetes API server.
+That means:
 * As long as you have the corresponding RBAC rights, you can load the data from Secrets or Config Maps in any namespace.
   The Secret or Config Map does not have to be in the same namespace as your application anymore.
-* Your application can run outside of the Kubernetes cluster and connect to the Kubernetes API server remotely.
+* Your application can run outside the Kubernetes cluster and connect to the Kubernetes API server remotely.
 * To read the value from a different Secret or Config Map, you do not need to restart the whole Pod.
   You can just update the configuration _on the fly_ without any restarts.
 
@@ -88,30 +88,30 @@ config.providers.secrets.class=io.strimzi.kafka.KubernetesSecretConfigProvider
 config.providers.configmaps.class=io.strimzi.kafka.KubernetesConfigMapConfigProvider
 ```
 
-And then you can just use it to get the right values.
+Then you can just use it to get the right values.
 The value has to always references the name of the config provider instance - in this case `configmaps` for reading values from Config Map.
 It also needs to specify the name of the Config Map and the namespace in which it exists.
 In the example below, the namespace is `my-namespace` and the Config Map name is `my-config-map`.
-And it also need to specify the name of the field from which the configuration value should be extracted.
+It also need to specify the name of the field from which the configuration value should be extracted.
 In this example the field name is `field1`.
 
 ```properties
 option=${configmaps:my-namespace/my-config-map:field1}
 ```
 
-To better demonstrate the value of the Kubernetes Configuration Provider and show how to use it, lets have a look at two examples.
-First one will use it for configuring Kafka Connect connectors.
-Other will use it to get credentials in Kafka consumer / producer.
+To better demonstrate the value of the Kubernetes Configuration Provider and how to use it, lets have a look at two examples.
+The first one will use it for configuring Kafka Connect connectors.
+The second will use it to get credentials in Kafka consumer / producer.
 
 ## Using secrets in Kafka Connect connectors
 
-Strimzi already has a way how to use Secrets and Config Maps in Kafka Connect and its connectors.
+Strimzi already has a way of using Secrets and Config Maps in Kafka Connect and its connectors.
 You can use the `externalConfiguration` section in the `KafkaConnect` custom resource to mount them as volumes or environment variables.
-And then use the `FileConfigProvider` or `DirectoryConfigProvider` to load these in the connector configuration.
+Then you can use the `FileConfigProvider` or `DirectoryConfigProvider` to load these in the connector configuration.
 You can read more about it in our [documentation](https://strimzi.io/docs/operators/latest/full/using.html#proc-loading-config-with-provider-str).
 
 But when you use a single Kafka Connect cluster for many different connectors, any change to the `externalConfigurations` - for example to mount new Secret because of new connector - would require restart of all nodes of the Connect cluster.
-So in order to add a new connector, you will cause disruption to all other connectors already running.
+So in order to add a new connector, you will cause a disruption to all the other connectors which are running.
 The connectors should normally be able to handle this without any problems.
 But why try your luck when you can avoid this by using the Kubernetes Configuration Provider.
 
@@ -160,10 +160,9 @@ In the example above, this Role will give access only to a single Secret named `
 And the only operation it allows is `get` to read the Secret.
 This way, the configuration provider with this Role will not be able to modify the secret or read any other secrets.
 You can of course customize the Role.
-You can specify multiple Secrets or add Config Maps as well.
-It all depends on your requirements.
+You can specify multiple Secrets or add Config Maps as well, it all depends on your requirements.
 
-Next, we will need to create a Role Binding to assign this Role to the Kafka Connect Pods:
+Next, we need to create a Role Binding to assign this Role to the Kafka Connect Pods:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -181,9 +180,9 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ```
 
-The Role Binding should be once again created in the namespace where the Secret or Config Maps which we want to read exist.
+The Role Binding should be once again created in the namespace where the Secret or Config Maps which we want to read exists.
 In the `subjects` section, we need to specify the name of the Service Account used by the Kafka Connect Pods and the namespace where the Kafka Connect cluster is deployed.
-If you want to consumer Secrets or Config Maps from multiple namespace, you need to create multiple Roles and Role Bindings - each in the corresponding namespace.
+If you want to consume Secrets or Config Maps from multiple namespace, you need to create multiple Roles and Role Bindings - each in the corresponding namespace.
 
 Once we have the RBAC resources created, we can create the connector:
 
@@ -202,13 +201,13 @@ spec:
     # ...
 ```
 
-_Note: The RBAC resource are applied on the Pod level. So the Secret will be accessible to all connectors running in the same Kafka Connect cluster and not just to this particular connector._
+_Note: The RBAC resources are applied on the Pod level. So the Secret will be accessible to all connectors running in the same Kafka Connect cluster and not just to this particular connector._
 
 We use the `secrets` provider to load the fields from the `db-credentials` Secret.
 We will load the `username` field for the database user and `password` field for the database password.
 
 And that is it.
-Adding a new connector like this to the Kafka Connect deployment would not cause any Pod restarts and disrupt all the other connectors sharing the same Connect cluster.
+Adding a new connector like this to the Kafka Connect deployment would not cause any Pod restarts disrupting all the other connectors sharing the same Connect cluster.
 
 ## Loading credentials from Secrets in Kafka clients
 
@@ -217,18 +216,18 @@ When you deploy Kafka cluster using Strimzi, it will generate Secrets with TLS c
 Also, when you use the User Operator to manage users, it will generate the Secrets with the credentials typically in the Kafka cluster namespace.
 
 But in most cases, the applications using Kafka have their own namespace.
-And cannot easily mount the Secrets as volumes or environment variables.
-So you need to copy the Secrets to a different namespace and make sure it stays up-to-date.
-When your application runs outside of the Kubernetes cluster, copying the Secrets is not an option.
-You have to export the files from the secret and keep them carefully in-sync when the original secret changes.
+Therefore they cannot easily mount the Secrets as volumes or environment variables.
+So you need to copy the Secrets to a different namespace and make sure they stay up-to-date.
+When your application runs outside the Kubernetes cluster, copying the Secrets is not an option.
+Instead, you have to export the files from the secret and keep them carefully in-sync when the original secret changes.
 None of this is needed with Kubernetes Config Provider.
 
 First, we need to make sure the configuration provider can connect to the Kubernetes API and get the Secrets or Config Maps.
 If your application runs inside the Kubernetes cluster, the configuration provider should automatically configure itself from the Service Account.
-If your application runs outside Kubernetes, it will usually use a user account instead of service account.
+If your application runs outside Kubernetes, it will usually use a user account instead of a service account.
 The configuration provider will by default use the `Kubeconfig` file from `~/.kube` directory or from other path specified in the `KUBECONFIG` environment variable.
 The Kubernetes Configuration Provider is based on the Fabric8 Kubernetes Client.
-Full list of configuration options can be found in its [GitHub repository](https://github.com/fabric8io/kubernetes-client#configuring-the-client).
+Full list of configuration options can be found in the [GitHub repository](https://github.com/fabric8io/kubernetes-client#configuring-the-client).
 
 Regardless whether you use service account or user account, you have to give it the RBAC rights to read the secret.
 In this example, the client will connect using TLS Client Authentication.
@@ -248,7 +247,7 @@ rules:
 ```
 
 The example above expects that the name of the Kafka cluster is `my-kafka` and it is in namespace called `kafka`.
-It also expects that in the same namespace, we created `KafkaUser` resource named `my-user` with `type: tls` authentication.
+It also expects that in the same namespace, we created a `KafkaUser` resource named `my-user` with `type: tls` authentication.
 We also need to create the matching Role Binding:
 
 ```yaml
@@ -275,7 +274,7 @@ The Role Binding should either reference the Service Account:
   namespace: myproject
 ```
 
-Or an user account:
+Or the user account:
 
 ```yaml
 - kind: User
@@ -322,14 +321,13 @@ You can just load them directly from the Kubernetes cluster.
 ## Conclusion
 
 If mounting Secrets and Config Maps as volumes or mapping them to environment variables works well for you, you should probably stick with it.
-But as shown on the examples, there are many situations where the Kubernetes Configuration Provider allows you to do things which would otherwise not be possible.
+However as shown in the examples, there are many situations where the Kubernetes Configuration Provider allows you to do things which would otherwise not be possible.
 
 Starting with Strimzi 0.24.0, the Kubernetes Configuration Provider is automatically included in all Strimzi components.
 It is also available in Maven repositories, so that you can easily add it to your Java builds and use it from your clients.
-The examples in this post showed it used with Strimzi operators.
-But you can use it also with any other Kafka deployment. 
+The examples in this post showed it used with Strimzi operators, but you can use it with any Kafka deployment.
 There is no dependency on the rest of the Strimzi project.
 
-As everything we do in Strimzi, it is of course an open-source licensed under the Apache License 2.0.
-The source codes can be found in [out GitHub organization](https://github.com/strimzi/kafka-kubernetes-config-provider).
+As with everything we do in Strimzi, it is open source and licensed under the Apache License 2.0.
+The source code can be found in our [GitHub organization](https://github.com/strimzi/kafka-kubernetes-config-provider).
 You can also raise issues there and contribute to the project.
