@@ -58,6 +58,8 @@ Contributing a new blog post is done by opening a PR.
 If you never used GitHub before or never opened a PR, you can find many different guides on the internet.
 You can for example follow this [simple guide](https://opensource.com/article/19/7/create-pull-request-github) or read through the [full GitHub documentation](https://docs.github.com/en/github/collaborating-with-pull-requests).
 
+![Open PR with blog post](/assets/images/posts/2021-07-28-blog-post-pr.png)
+
 The blog posts are written in Markdown.
 [Markdown](https://en.wikipedia.org/wiki/Markdown) is a very simple language for creating formatted text without any special editor.
 You write the blog post in any text editor - Vim, Emacs, Visual Studio Code, Eclipse etc.
@@ -108,9 +110,10 @@ We will normally react to a new PR latest the next day and provide feedback or r
 Once you open the PR, it will also automatically generate a preview of the website with your blog post.
 So you can have a look how will it look like once published and double-check all the formatting, pictures etc.
 
-TODO: Screenshot
+![Preview of the blog post](/assets/images/posts/2021-07-28-blog-post-preview.png)
 
 Once the reviews are finished and the blog post is approved, we will merge it and it will be automatically published on the website.
+As an example, you can check the PR for [this blog post](https://github.com/strimzi/strimzi.github.io/pull/247).
 We will of course also advertise it on our Slack and social media.
 
 ## Conclusion
