@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "How to contribute blog posts for Strimzi blog"
-date: 2021-07-28
+date: 2021-07-29
 author: jakub_scholz
 ---
 
@@ -59,7 +59,7 @@ You contribute a blog post by opening a pull request (PR) in the `strimzi.github
 If you never used GitHub before or never opened a PR, you can find lots of guides on the internet.
 You can, for example, follow this [simple guide](https://opensource.com/article/19/7/create-pull-request-github) or read through the [full GitHub documentation](https://docs.github.com/en/github/collaborating-with-pull-requests).
 
-![Open PR with blog post](/assets/images/posts/2021-07-28-blog-post-pr.png)
+![Open PR with blog post](/assets/images/posts/2021-07-29-blog-post-pr.png)
 
 The blog posts are written in Markdown.
 [Markdown](https://en.wikipedia.org/wiki/Markdown) is a very simple language for creating formatted text without a special editor.
@@ -72,7 +72,7 @@ To start a new blog post, just create a new file in the `_posts` subdirectory an
 For the date, you can use the current date.
 After your blog post is reviewed and approved, we will change it to the actual publishing date when merging the PR.
 For the title, you can use the title of your blog post in lowercase and with spaces replaced with `-`.
-For example `2021-07-28-my-first-blog-post.md`.
+For example `2021-07-29-my-first-blog-post.md`.
 
 Inside the file, there should be a mandatory header with the blog post metadata such as author or title.
 The following example shows how the header might look like:
@@ -81,7 +81,7 @@ The following example shows how the header might look like:
 ---
 layout: post
 title:  "My first blog post"
-date: 2021-07-28
+date: 2021-07-29
 author: arnost_novak
 ---
 ```
@@ -107,7 +107,7 @@ Standard image file formats are supported, like .png, .gif, and .jpeg.
 Format and reference images in your text like this .png file. 
 
 ```
-![Title of my picture](/assets/images/posts/2021-07-28-my-picture-1.png)
+![Title of my picture](/assets/images/posts/2021-07-29-my-picture-1.png)
 ```
 
 Once you have the blog post ready, you can open the PR.
@@ -116,7 +116,7 @@ Once you open the PR, it will also automatically generate a preview of the websi
 So you can see how will it look when published.
 And you can check all the formatting, image placement, and so on.
 
-![Preview of the blog post](/assets/images/posts/2021-07-28-blog-post-preview.png)
+![Preview of the blog post](/assets/images/posts/2021-07-29-blog-post-preview.png)
 
 Once the reviews are finished and the blog post is approved, we will merge it and it will be automatically published on the website.
 As an example, you can check the PR for [this blog post](https://github.com/strimzi/strimzi.github.io/pull/247).
