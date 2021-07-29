@@ -21,9 +21,9 @@ But there are plenty of things to write about.
 For example:
 
 * Your experience running Strimzi
-    * How did you configured it in your environment
-    * How does your architecture look like
-    * How do you make Strimzi and Apache Kafka work well for your use-case
+    * How you configured it in your environment
+    * What your architecture looks like
+    * How you made Strimzi and Apache Kafka work well for your use-case
     * Strimzi and IoT or Edge computing
 * Tuning Strimzi configuration for different use-cases
 * Running Strimzi on different infrastructure
