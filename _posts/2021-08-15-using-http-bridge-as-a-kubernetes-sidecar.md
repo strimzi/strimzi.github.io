@@ -147,7 +147,7 @@ spec:
 
 ### Configuring the bridge
 
-When you deploy the Strimzi HTTP Bridge using the cluster operator, you just have to create the `KafkaBridge` custom resource and the operator takes care of the rest.
+When you deploy the Strimzi HTTP Bridge using the Cluster Operator, you just have to create the `KafkaBridge` custom resource and the operator takes care of the rest.
 It generates the bridge configuration and creates the deployment.
 But for running as a sidecar, the operator will not help us and we have to do this on our own.
 The way we will do it in this blog post is to create a ConfigMap with the bridge configuration, mount it as a file into the Pod and use it to start the bridge.
