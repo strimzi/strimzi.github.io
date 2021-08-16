@@ -49,8 +49,8 @@ You can of course modify it to our needs and use different configurations as wel
 
 ### Preparation
 
-This examples uses a Kafka cluster deployed with Strimzi operator.
-Before we deploy the application with the bridge sidecar, we have to install Strimzi cluster operator and deploy the Kafka cluster.
+This example uses a Kafka cluster deployed with the Strimzi operator.
+Before we deploy the application with the bridge sidecar, we have to install the Strimzi cluster operator and deploy the Kafka cluster.
 You can install the cluster operator with the installation method you prefer.
 And then deploy the Kafka cluster with the TLS client authentication enabled on port 9093 and enabled authorization:
 
@@ -258,7 +258,7 @@ data:
 
 Now we will deploy a Pod with two containers.
 The _main_ container will run CentOS 7 and it will be configured to just sleep.
-Later, we will exec into it and use `curl` to sed and receive messages through the bridge.
+Later, we will exec into it and use `curl` to send and receive messages through the bridge.
 
 The second container will be our sidecar with the bridge.
 We will mount the Config Map with the bridge sidecar as a volume and map the certificates to the environment variables.
