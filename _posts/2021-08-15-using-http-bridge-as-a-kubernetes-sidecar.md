@@ -5,12 +5,12 @@ date: 2021-08-15
 author: jakub_scholz
 ---
 
-Bridging between Apache Kafka and HTTP protocols is something users are often asking for.
+Bridging between Apache Kafka and HTTP protocols is something Kafka users are often asking for.
 That is why in Strimzi we have our own HTTP Bridge which does exactly that.
-You can easily deploy the bridge using the Strimzi operator.
+You can easily deploy the bridge using the Strimzi Cluster Operator.
 The HTTP Bridge does not directly support any security features such as authentication or encryption.
 For securing it and exposing it to the outside of your Kubernetes cluster, you can use any API Gateway or reverse proxy.
-But there are also other ways how you can use it - for example as Kubernetes sidecar.
+But there are also other ways how you can use it - for example, as a Kubernetes sidecar.
 
 <!--more-->
 
@@ -22,16 +22,16 @@ The main container with your application will share the Pod with one or more sid
 The sidecar containers typically give the main application some additional features. 
 The containers running inside the same Pod are always scheduled together on the same node and share networking or storage.
 They typically communicate with each other either using a shared volume or using local network connections.
-The typical sidecar use-cases include different proxies or file loaders.
+Typical sidecar use cases include different proxies or file loaders.
 
 ![Kubernetes Sidecar Pattern](/assets/images/posts/2021-08-15-kubernetes-sidecar-pattern.png)
 
 ## Strimzi HTTP Bridge as a Sidecar
 
 The Strimzi HTTP Bridge can be used as a sidecar as well.
-It could be useful if your application isn't able to use Kafka clients directly.
-For example because it already supports HTTP and adding Kafka client would be too complicated.
-Or because the programming language you use doesn't have a good Kafka support.
+This could be useful if your application isn't able to use Kafka clients directly.
+For example, because it already supports HTTP and adding a Kafka client would be too complicated.
+Or because the programming language you use doesn't have good Kafka support.
 
 ![HTTP Bridge Sidecar](/assets/images/posts/2021-08-15-bridge-sidecar.png)
 
@@ -49,10 +49,10 @@ You can of course modify it to our needs and use different configurations as wel
 
 ### Preparation
 
-This example uses a Kafka cluster deployed with the Strimzi operator.
-Before we deploy the application with the bridge sidecar, we have to install the Strimzi cluster operator and deploy the Kafka cluster.
-You can install the cluster operator with the installation method you prefer.
-And then deploy the Kafka cluster with the TLS client authentication enabled on port 9093 and enabled authorization:
+This example uses a Kafka cluster deployed with the Strimzi Cluster Operator.
+Before we deploy the application with the bridge sidecar, we have to install the Strimzi Cluster Operator and deploy the Kafka cluster.
+You can install the Cluster Operator with the installation method you prefer.
+And then deploy the Kafka cluster with the TLS client authentication enabled on port 9093 and authorization also enabled:
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -94,7 +94,7 @@ spec:
 ```
 
 Once the cluster is running, we will need a user which will be used by the bridge sidecar.
-We configure the user for TLS client authentication and configure authorization to allow it to send and receive examples from topic named `my-topic`:
+We configure the user for TLS client authentication and configure authorization to allow it to send and receive examples from a topic named `my-topic`:
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -131,7 +131,7 @@ spec:
         host: "*"
 ```
 
-And the topic where we will send and receive the messages:
+And create the topic where we will send and receive the messages:
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -150,9 +150,9 @@ spec:
 When you deploy the Strimzi HTTP Bridge using the cluster operator, you just have to create the `KafkaBridge` custom resource and the operator takes care of the rest.
 It generates the bridge configuration and creates the deployment.
 But for running as a sidecar, the operator will not help us and we have to do this on our own.
-The way we will do it in this blog post is that we will create a Config Map with the bridge configuration, mount it as a file into the Pod and use it to start the bridge.
+The way we will do it in this blog post is to create a ConfigMap with the bridge configuration, mount it as a file into the Pod and use it to start the bridge.
 The bridge configuration file is a simple properties file.
-We will use Apache Kafka configuration providers to inject into it some additional values such as foe example the TLS certificates.
+We will use Apache Kafka configuration providers to inject into it some additional values, such as the TLS certificates.
 
 First, we will specify the `bridge.id` which will be used to identify our bridge instance:
 
@@ -163,7 +163,7 @@ bridge.id=bridge-sidecar
 Next, we have to enable and configure the HTTP part of the bridge.
 Its configuration options always start with the `http.` prefix.
 We have to enable the HTTP bridge by setting `http.enabled` to `true`.
-And we also need to configure the host on which the HTTP bridge will listen and the port.
+And we also need to configure the host and port on which the HTTP bridge will listen.
 Since we want the bridge to be available only to the other containers running in the same Pod, we will tell it to listen only on the local interface by setting `http.host` to `127.0.0.1`.
 And we set the port on which it will listen to `8080`.
 This port has to be unique within the whole Pod.
@@ -176,15 +176,16 @@ http.port=8080
 ```
 
 Last, we also need to configure the Kafka part of the bridge.
-The bridge is using 3 different Apache Kafka APIs to communicate with Kafka: the Consumer API, Producer API, and the Admin API.
+The bridge uses 3 different Apache Kafka APIs to communicate with Kafka: the Consumer API, Producer API, and the Admin API.
 Each one has its own purpose.
-In the bridge configuration files, you can configure all of these at once or separately.
-The general options which will be applied to all three Apache Kafka APIs should be prefixed with `kafka.`.
-We will use this to configure the configuration providers, bootstrap servers, authentication etc.
+In the bridge configuration files, you can configure these together or separately.
+General options which will be applied to all three Apache Kafka APIs should be prefixed with `kafka.`.
+We will use this to configure the configuration providers, bootstrap servers, authentication and other API options.
 
-First we will initialize the [Strimzi EnvVar Configuration Provider](https://github.com/strimzi/kafka-env-var-config-provider) which we will use to load values from environment variables.
-It is already part of the Strimzi container image, so we do not need to modify the container image and we just need to initialize it.
-When customizing the example configuration for your own use-cases, you can of course also use the other configuration providers such as the `FileConfigProvider` or `DirectoryConfigProvider` which are part of Apache Kafka or the [Strimzi Kubernetes Configuration Provider](https://strimzi.io/blog/2021/07/22/using-kubernetes-config-provider-to-load-data-from-secrets-and-config-maps/) which is also already included in the container image.
+First, we will initialize the [Strimzi EnvVar Configuration Provider](https://github.com/strimzi/kafka-env-var-config-provider) which we will use to load values from environment variables.
+It is already part of the Strimzi container image, so we do not need to modify the container image.
+We just need to initialize it.
+When customizing the example configuration for your own use cases, you can of course also use the other configuration providers such as the `FileConfigProvider` or `DirectoryConfigProvider` which are part of Apache Kafka or the [Strimzi Kubernetes Configuration Provider](https://strimzi.io/blog/2021/07/22/using-kubernetes-config-provider-to-load-data-from-secrets-and-config-maps/) which is also already included in the container image.
 But this example uses only the EnvVar provider:
 
 ```properties
@@ -195,7 +196,7 @@ kafka.config.providers.env.class=io.strimzi.kafka.EnvVarConfigProvider
 Next, we will configure the Kafka clients to connect to our Kafka cluster and authenticate.
 The cluster and user certificates will be mapped from their Secrets to environment variables.
 And the configuration provider will use the values from the environment variables.
-We will also configure the `bootstrap.servers` option through environment variable to make it easier to change where the bridge connects.
+We will also configure the `bootstrap.servers` option through environment variables to make it easier to change where the bridge connects.
 
 ```properties
 kafka.bootstrap.servers=${env:BOOTSTRAP_SERVERS}
@@ -208,8 +209,8 @@ kafka.ssl.truststore.certificates=${env:CA_CRT}
 kafka.ssl.endpoint.identification.algorithm=HTTPS
 ```
 
-In addition to the options with the `kafka.` prefix, we can also add option with the prefixes `kafka.consumer.`, `kafka.producer.`, and `kafka.admin`.
-These options can be used to pass some specific options which will be applied only to the Consumer API, Producer API, or Admin API clients.
+In addition to the options with the `kafka.` prefix, we can also add options with the prefixes `kafka.consumer.`, `kafka.producer.`, and `kafka.admin`.
+These prefixes can be used to pass specific options that apply only to the Consumer API, Producer API, or Admin API clients.
 For example, we can configure the `acks` mode for producers or `auto.offset.reset` for consumers:
 
 ```properties
@@ -217,7 +218,7 @@ kafka.producer.acks=1
 kafka.consumer.auto.offset.reset=earliest
 ```
 
-The Config Map with the complete configuration file should look like this:
+The ConfigMap with the complete configuration file should look like this:
 
 ```yaml
 apiVersion: v1
@@ -261,7 +262,7 @@ The _main_ container will run CentOS 7 and it will be configured to just sleep.
 Later, we will exec into it and use `curl` to send and receive messages through the bridge.
 
 The second container will be our sidecar with the bridge.
-We will mount the Config Map with the bridge sidecar as a volume and map the certificates to the environment variables.
+We will mount the ConfigMap with the bridge sidecar as a volume and map the certificates to the environment variables.
 And we will also set the `BOOTSTRAP_SERVERS` environment variable to `my-cluster-kafka-bootstrap:9093`.
 Below is the full YAML for our Pod:
 
@@ -323,7 +324,7 @@ curl -X POST http://localhost:8080/topics/my-topic \
      -d '{ "records": [ { "value": "Hello World!" } ] }'
 ```
 
-When the message is sent, we should get as response confirmation like this, which tells us into which partition was the message sent and at which offset it is stored:
+When the message is sent, we should get as response confirmation like this, which tells us into which partition the message was sent and at which offset it is stored:
 
 ```json
 {"offsets":[{"partition":0,"offset":0}]}
@@ -365,13 +366,13 @@ curl -X GET http://localhost:8080/consumers/my-group/instances/my-consumer/recor
 ```
 
 You might need to call this command multiple times while the consumer initializes.
-But eventually you should get the message we have sent before:
+But eventually you should get the message that was sent before:
 
 ```json
 [{"topic":"my-topic","key":null,"value":"Hello World!","partition":0,"offset":0}]
 ```
 
-And that is it.
+And that's it.
 We have now working pod with the HTTP bridge as a sidecar.
 For more details about the `curl` commands and how to use the bridge, you can check the [HTTP Bridge documentation](https://strimzi.io/docs/operators/latest/full/using.html#assembly-kafka-bridge-quickstart-str) and its [API reference](https://strimzi.io/docs/bridge/latest/).
 
@@ -380,11 +381,11 @@ For more details about the `curl` commands and how to use the bridge, you can ch
 The previous example with manually executed `curl` commands shows how to deploy and use the bridge sidecar.
 But it is of course rather simple.
 If you are interested in something more complex, we have another example for you.
-It is using our [example HTTP clients](https://github.com/strimzi/client-examples) coupled with the bridge sidecar.
+It uses our [example HTTP clients](https://github.com/strimzi/client-examples) coupled with the bridge sidecar.
 It creates two deployments - one for producing and one for consuming messages.
 The full YAML of this example can be found [here](https://gist.github.com/scholzj/8902c6bb3de9fa7fbc6e75ee22ee870e).
 
-## When to use it
+## When to use a Kafka Bridge sidecar
 
 This blog post shows an alternative way how to use the Strimzi HTTP Bridge.
 When running as a sidecar, a separate instance of the bridge runs with every instance of your application.
@@ -392,17 +393,17 @@ That way, it might consume more resources compared to using a single central ins
 
 But running it as a sidecar has also some advantages.
 Since the bridge is used only locally, you have less worries about securing it.
-You do not need any API Gateway or Proxy to secure it.
+You do not need any API Gateway or reverse proxy to secure it.
 You have also less worries about scaling the bridge.
-Each instance of your application will have its own bridge instance and will behave exactly as if it used a built in Kafka client.
-Even when using it to consume messages, it will have exactly the same properties as native Kafka client including message ordering or partitions assignments.
+Each instance of your application will have its own bridge instance and will behave exactly as if it used a built-in Kafka client.
+Even when using it to consume messages, it will have exactly the same properties as a native Kafka client including message ordering or partitions assignments.
 
-Using a Kafka client directly in your application will still give you better performance and should be still preferred.
+Using a Kafka client directly in your application will still give you better performance and should still be the preferred approach.
 But if you for some reason cannot do it, the bridge sidecar is a real option to consider.
 
 ## Beyond Kubernetes
 
-The sidecar pattern is well known Kubernetes pattern.
+The sidecar pattern is a well known Kubernetes pattern.
 But you can easily replicate it also outside of Kubernetes.
 For example when running your application in virtual machines, you can deploy the bridge as a second service in each VM.
 So it is not limited to Kubernetes only.
