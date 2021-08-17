@@ -274,7 +274,7 @@ metadata:
 spec:
   containers:
     - name: main
-      image: registry.access.redhat.com/ubi8/ubi-minimal:latest
+      image: centos:7
       command: ["sh", "-c", "sleep 3600"]
     - name: bridge
       image: quay.io/strimzi/kafka-bridge:0.20.2
