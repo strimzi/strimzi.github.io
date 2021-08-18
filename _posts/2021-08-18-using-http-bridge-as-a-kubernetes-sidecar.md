@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Using HTTP Bridge as a Kubernetes sidecar"
-date: 2021-08-15
+date: 2021-08-18
 author: jakub_scholz
 ---
 
@@ -24,7 +24,7 @@ The containers running inside the same Pod are always scheduled together on the 
 They typically communicate with each other either using a shared volume or using local network connections.
 Typical sidecar use cases include different proxies or file loaders.
 
-![Kubernetes Sidecar Pattern](/assets/images/posts/2021-08-15-kubernetes-sidecar-pattern.png)
+![Kubernetes Sidecar Pattern](/assets/images/posts/2021-08-18-kubernetes-sidecar-pattern.png)
 
 ## Strimzi HTTP Bridge as a Sidecar
 
@@ -33,7 +33,7 @@ This could be useful if your application isn't able to use Kafka clients directl
 For example, because it already supports HTTP and adding a Kafka client would be too complicated.
 Or because the programming language you use doesn't have good Kafka support.
 
-![HTTP Bridge Sidecar](/assets/images/posts/2021-08-15-bridge-sidecar.png)
+![HTTP Bridge Sidecar](/assets/images/posts/2021-08-18-bridge-sidecar.png)
 
 The bridge will connect to the Kafka cluster.
 And the main application can use it to send and receive Kafka messages using HTTP.
