@@ -5,7 +5,7 @@ date: 2021-08-18
 author: jakub_scholz
 ---
 
-Bridging between Apache Kafka and HTTP protocols is something Kafka users are often asking for.
+Bridging between Apache Kafka and HTTP is something Kafka users are often asking for.
 That is why in Strimzi we have our own HTTP Bridge which does exactly that.
 You can easily deploy the bridge using the Strimzi Cluster Operator.
 The HTTP Bridge does not directly support any security features such as authentication or encryption.
