@@ -2399,7 +2399,7 @@ spec:
 </div>
 <div class="paragraph">
 <div class="title">Additional resources</div>
-<p>For more information about reassigning topics, see <a href="#con-partition-reassignment-str">Partition reassignment</a>.</p>
+<p>For more information about reassigning topics, see <a href="#con-partition-reassignment-str">Partition reassignment tool</a>.</p>
 </div>
 </div>
 <div class="sect4">
@@ -2480,16 +2480,29 @@ spec:
 </div>
 <div class="paragraph">
 <div class="title">Additional resources</div>
-<p>For more information about reassigning topics, see <a href="#con-partition-reassignment-str">Partition reassignment</a>.</p>
+<p>For more information about reassigning topics, see <a href="#con-partition-reassignment-str">Partition reassignment tool</a>.</p>
 </div>
 </div>
 </div>
 <div class="sect3">
 <h4 id="scaling-clusters-str"><a class="link" href="#scaling-clusters-str">2.1.4. Scaling clusters</a></h4>
+<div class="paragraph _abstract">
+<p>Scale Kafka clusters by adding or removing brokers.
+If a cluster already has topics defined, you also have to reassign partitions.</p>
+</div>
+<div class="paragraph">
+<p>You use the <code>kafka-reassign-partitions.sh</code> tool to reassign partitions.
+The tool uses a reassignment JSON file that specifies the topics to reassign.</p>
+</div>
+<div class="paragraph">
+<p>You can generate a reassignment JSON file or create a file manually if you want to move specific partitions.</p>
+</div>
 <div class="sect4">
-<h5 id="con-scaling-kafka-clusters-str"><a class="link" href="#con-scaling-kafka-clusters-str">Scaling Kafka clusters</a></h5>
-<div class="sect5">
-<h6 id="adding_brokers_to_a_cluster"><a class="link" href="#adding_brokers_to_a_cluster">Adding brokers to a cluster</a></h6>
+<h5 id="con-scaling-kafka-clusters-str"><a class="link" href="#con-scaling-kafka-clusters-str">Broker scaling configuration</a></h5>
+<div class="paragraph _abstract">
+<p>You configure the <code>Kafka.spec.kafka.replicas</code> configuration to add or reduce the number of brokers.</p>
+</div>
+<h6 id="broker_addition" class="discrete">Broker addition</h6>
 <div class="paragraph">
 <p>The primary way of increasing throughput for a topic is to increase the number of partitions for that topic.
 That works because the extra partitions allow the load of the topic to be shared between the different brokers in the cluster.
@@ -2498,14 +2511,12 @@ Instead, you need to add brokers to the cluster.</p>
 </div>
 <div class="paragraph">
 <p>When you add an extra broker to the cluster, Kafka does not assign any partitions to it automatically.
-You must decide which partitions to move from the existing brokers to the new broker.</p>
+You must decide which partitions to reassign from the existing brokers to the new broker.</p>
 </div>
 <div class="paragraph">
-<p>Once the partitions have been redistributed between all the brokers, the resource utilization of each broker should be reduced.</p>
+<p>Once the partitions have been redistributed between all the brokers, the resource utilization of each broker is reduced.</p>
 </div>
-</div>
-<div class="sect5">
-<h6 id="removing_brokers_from_a_cluster"><a class="link" href="#removing_brokers_from_a_cluster">Removing brokers from a cluster</a></h6>
+<h6 id="broker_removal" class="discrete">Broker removal</h6>
 <div class="paragraph">
 <p>Because Strimzi uses <code>StatefulSets</code> to manage broker pods, you cannot remove <em>any</em> pod from the cluster.
 You can only remove one or more of the highest numbered pods from the cluster.
@@ -2518,14 +2529,13 @@ You should also decide which of the remaining brokers will be responsible for ea
 Once the broker has no assigned partitions, you can scale the cluster down safely.</p>
 </div>
 </div>
-</div>
 <div class="sect4">
-<h5 id="con-partition-reassignment-str"><a class="link" href="#con-partition-reassignment-str">Partition reassignment</a></h5>
-<div class="paragraph">
+<h5 id="con-partition-reassignment-str"><a class="link" href="#con-partition-reassignment-str">Partition reassignment tool</a></h5>
+<div class="paragraph _abstract">
 <p>The Topic Operator does not currently support reassigning replicas to different brokers, so it is necessary to connect directly to broker pods to reassign replicas to brokers.</p>
 </div>
 <div class="paragraph">
-<p>Within a broker pod, the <code>kafka-reassign-partitions.sh</code> utility allows you to reassign partitions to different brokers.</p>
+<p>Within a broker pod, the <code>kafka-reassign-partitions.sh</code> tool allows you to reassign partitions to different brokers.</p>
 </div>
 <div class="paragraph">
 <p>It has three different modes:</p>
@@ -2546,7 +2556,7 @@ For a given partition, once the new broker has caught up and joined the ISR (in-
 <dt class="hdlist1"><code>--verify</code></dt>
 <dd>
 <p>Using the same <em>reassignment JSON file</em> as the <code>--execute</code> step, <code>--verify</code> checks whether all the partitions in the file have been moved to their intended brokers.
-If the reassignment is complete, --verify also removes any <a href="#con-reassignment-throttles-str">throttles</a> that are in effect.
+If the reassignment is complete, <code>--verify</code> also removes any traffic throttles (<code>--throttle</code>) that are in effect.
 Unless removed, throttles will continue to affect the cluster even after the reassignment has finished.</p>
 </dd>
 </dl>
@@ -2557,8 +2567,7 @@ If you need to cancel a reassignment, wait for it to complete and then perform a
 The <code>kafka-reassign-partitions.sh</code> will print the reassignment JSON for this reversion as part of its output.
 Very large reassignments should be broken down into a number of smaller reassignments in case there is a need to stop in-progress reassignment.</p>
 </div>
-<div class="sect5">
-<h6 id="reassignment_json_file"><a class="link" href="#reassignment_json_file">Reassignment JSON file</a></h6>
+<h6 id="partition_reassignment_json_file" class="discrete">Partition reassignment JSON file</h6>
 <div class="paragraph">
 <p>The <em>reassignment JSON file</em> has a specific structure:</p>
 </div>
@@ -2600,6 +2609,7 @@ Although Kafka also supports a <code>"log_dirs"</code> property this should not 
 <p>The following is an example reassignment JSON file that assigns partition <code>4</code> of topic <code>topic-a</code> to brokers <code>2</code>, <code>4</code> and <code>7</code>, and partition <code>2</code> of topic <code>topic-b</code> to brokers <code>1</code>, <code>5</code> and <code>7</code>:</p>
 </div>
 <div class="listingblock">
+<div class="title">Example partition reassignment file</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">{
   "version": 1,
@@ -2621,9 +2631,7 @@ Although Kafka also supports a <code>"log_dirs"</code> property this should not 
 <div class="paragraph">
 <p>Partitions not included in the JSON are not changed.</p>
 </div>
-</div>
-<div class="sect5">
-<h6 id="reassigning_partitions_between_jbod_volumes"><a class="link" href="#reassigning_partitions_between_jbod_volumes">Reassigning partitions between JBOD volumes</a></h6>
+<h6 id="partition_reassignment_between_jbod_volumes" class="discrete">Partition reassignment between JBOD volumes</h6>
 <div class="paragraph">
 <p>When using JBOD storage in your Kafka cluster, you can choose to reassign the partitions between specific volumes and their log directories (each volume has a single log directory).
 To reassign a partition to a specific volume, add the <code>log_dirs</code> option to <em>&lt;PartitionObjects&gt;</em> in the reassignment JSON file.</p>
@@ -2642,10 +2650,8 @@ To reassign a partition to a specific volume, add the <code>log_dirs</code> opti
 <p>The <code>log_dirs</code> object should contain the same number of log directories as the number of replicas specified in the <code>replicas</code> object.
 The value should be either an absolute path to the log directory, or the <code>any</code> keyword.</p>
 </div>
-<div class="paragraph">
-<p>For example:</p>
-</div>
 <div class="listingblock">
+<div class="title">Example partition reassignment file specifying log directories</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">{
       "topic": "topic-a",
@@ -2655,24 +2661,167 @@ The value should be either an absolute path to the log directory, or the <code>a
 }</code></pre>
 </div>
 </div>
+<h5 id="partition_reassignment_throttles" class="discrete">Partition reassignment throttles</h5>
+<div class="paragraph">
+<p>Partition reassignment can be a slow process because it involves transferring large amounts of data between brokers.
+To avoid a detrimental impact on clients, you can throttle the reassignment process.
+Use the <code>--throttle</code> parameter with the <code>kafka-reassign-partitions.sh</code> tool to throttle a reassignment.
+You specify a maximum threshold in bytes per second for the movement of partitions between brokers.
+For example, <code>--throttle 5000000</code> sets a maximum threshold for moving partitions of 50 MBps.</p>
+</div>
+<div class="paragraph">
+<p>Throttling might cause the reassignment to take longer to complete.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If the throttle is too low, the newly assigned brokers will not be able to keep up with records being published and the reassignment will never complete.</p>
+</li>
+<li>
+<p>If the throttle is too high, clients will be impacted.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For example, for producers, this could manifest as higher than normal latency waiting for acknowledgment.
+For consumers, this could manifest as a drop in throughput caused by higher latency between polls.</p>
 </div>
 </div>
 <div class="sect4">
 <h5 id="proc-generating-reassignment-json-files-str"><a class="link" href="#proc-generating-reassignment-json-files-str">Generating reassignment JSON files</a></h5>
+<div class="paragraph _abstract">
+<p>This procedure describes how to generate a reassignment JSON file.
+Use the reassignment file with the <code>kafka-reassign-partitions.sh</code> tool to reassign partitions after scaling a Kafka cluster.</p>
+</div>
 <div class="paragraph">
-<p>This procedure describes how to generate a reassignment JSON file that reassigns all the partitions for a given set of topics using the <code>kafka-reassign-partitions.sh</code> tool.</p>
+<p>The steps describe a secure reassignment process that uses TLS.
+You&#8217;ll need a Kafka cluster that uses TLS encryption and authentication.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
 <li>
-<p>A running Cluster Operator</p>
+<p>You have a running Cluster Operator.</p>
 </li>
 <li>
-<p>A <code>Kafka</code> resource</p>
+<p>You have a running Kafka cluster based on a <code>Kafka</code> resource configured with internal TLS authentication and encryption.</p>
+<div class="listingblock">
+<div class="title">Kafka configuration with TLS</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    listeners:
+      # ...
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true <b class="conum">(1)</b>
+        authentication:
+          type: tls <b class="conum">(2)</b>
+    # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Enables TLS encryption for the internal listener.</p>
 </li>
 <li>
-<p>A set of topics to reassign the partitions of</p>
+<p>Listener authentication mechanism <a href="#assembly-securing-kafka-brokers-str">specified as mutual TLS</a>.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>The running Kafka cluster contains a set of topics and partitions to reassign.</p>
+<div class="listingblock">
+<div class="title">Example topic configuration for <code>my-topic</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: my-topic
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 10
+  replicas: 3
+  config:
+    retention.ms: 7200000
+    segment.bytes: 1073741824
+    # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>You have a <code>KafkaUser</code> configured with ACL rules that specify permission to produce and consume topics from the Kafka brokers.</p>
+<div class="openblock">
+<div class="content">
+<div class="listingblock">
+<div class="title">Example Kafka user configuration with ACL rules for producing and consuming from <code>my-topic</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: my-user
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  authentication: <b class="conum">(1)</b>
+    type: tls
+  authorization:
+    type: simple <b class="conum">(2)</b>
+    acls:
+      - resource:
+          type: topic
+          name: my-topic
+          patternType: literal
+        operation: Write
+        host: "*"
+      - resource:
+          type: topic
+          name: my-topic
+          patternType: literal
+        operation: Create
+        host: "*"
+      - resource:
+          type: topic
+          name: my-topic
+          patternType: literal
+        operation: Describe
+        host: "*"
+  # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>User authentication mechanism defined as mutual <code>tls</code>.</p>
+</li>
+<li>
+<p>Simple authorization and accompanying list of ACL rules.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Permission for a <code>Describe</code> operation is required as a minimum for TLS access to a topic.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
 </li>
 </ul>
 </div>
@@ -2680,32 +2829,121 @@ The value should be either an absolute path to the log directory, or the <code>a
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Prepare a JSON file named <code><em>topics.json</em></code> that lists the topics to move.
-It must have the following structure:</p>
+<p>Extract the cluster CA certificate and password from the <code><em>CLUSTER-NAME</em>-cluster-ca-cert</code> Secret of the Kafka cluster.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">{
-  "version": 1,
-  "topics": [
-    <em>&lt;TopicObjects&gt;</em>
-  ]
-}</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.p12}' | base64 -d &gt; ca.p12</code></pre>
 </div>
-</div>
-<div class="paragraph">
-<p>where <em>&lt;TopicObjects&gt;</em> is a comma-separated list of objects like:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">{
-  "topic": <em>&lt;TopicName&gt;</em>
-}</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.password}' | base64 -d &gt; ca.password</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>For example if you want to reassign all the partitions of <code>topic-a</code> and <code>topic-b</code>, you would need to prepare a <code><em>topics.json</em></code> file like this:</p>
+<p>Replace <em>CLUSTER-NAME</em> with the name of the Kafka cluster.
+When you deploy Kafka using the <code>Kafka</code> resource, a Secret with the cluster CA certificate is created with the Kafka cluster name (<code><em>CLUSTER-NAME</em>-cluster-ca-cert</code>).
+For example, <code>my-cluster-cluster-ca-cert</code>.</p>
+</div>
+</li>
+<li>
+<p>Run a new interactive pod container using the Strimzi Kafka image to connect to a running Kafka broker.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl run -ti --restart=Never --image=quay.io/strimzi/kafka:latest-kafka-2.8.0 <em>INTERACTIVE-POD-NAME</em> -- /bin/sh -c "sleep 3600"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace <em>INTERACTIVE-POD-NAME</em> with the name of the pod.</p>
+</div>
+</li>
+<li>
+<p>Copy the cluster CA certificate to the interactive pod container.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl cp ca.p12 <em>INTERACTIVE-POD-NAME</em>:/tmp</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Extract the user CA certificate and password from the Secret of the Kafka user that has permission to access the Kafka brokers.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>KAFKA-USER</em> -o jsonpath='{.data.user\.p12}' | base64 -d &gt; user.p12</code></pre>
+</div>
 </div>
 <div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>KAFKA-USER</em> -o jsonpath='{.data.user\.password}' | base64 -d &gt; user.password</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace <em>KAFKA-USER</em> with the name of the Kafka user.
+When you create a Kafka user using the <code>KafkaUser</code> resource, a Secret with the user CA certificate is created with the Kafka user name.
+For example, <code>my-user</code>.</p>
+</div>
+</li>
+<li>
+<p>Copy the user CA certificate to the interactive pod container.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl cp user.p12 <em>INTERACTIVE-POD-NAME</em>:/tmp</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The CA certificates allow the interactive pod container to connect to the Kafka broker using TLS.</p>
+</div>
+</li>
+<li>
+<p>Create a <code>config.properties</code> file to specify the truststore and keystore used to authenticate connection to the Kafka cluster.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">bootstrap.servers=<em>KAFKA-CLUSTER-NAME</em>-kafka-bootstrap:9093 <b class="conum">(1)</b>
+security.protocol=SSL <b class="conum">(2)</b>
+ssl.truststore.location=/tmp/ca.p12 <b class="conum">(3)</b>
+ssl.truststore.password=<em>TRUSTSTORE-PASSWORD</em> <b class="conum">(4)</b>
+ssl.keystore.location=/tmp/user.p12 <b class="conum">(5)</b>
+ssl.keystore.password=<em>KEYSTORE-PASSWORD</em> <b class="conum">(6)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The bootstrap server address to connect to the Kafka cluster. Use your own Kafka cluster name to replace <em>KAFKA-CLUSTER-NAME</em>.</p>
+</li>
+<li>
+<p>The security protocol option when using TLS for encryption.</p>
+</li>
+<li>
+<p>The truststore location contains the public key certificate (<code>ca.p12</code>) for the Kafka cluster.</p>
+</li>
+<li>
+<p>The password for accessing the truststore.</p>
+</li>
+<li>
+<p>The keystore location contains the public key certificate (<code>user.p12</code>) for the Kafka user.</p>
+</li>
+<li>
+<p>The password for accessing the keystore.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Copy the <code>config.properties</code> file to the interactive pod container.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl cp config.properties <em>INTERACTIVE-POD-NAME</em>:/tmp/config.properties</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Prepare a JSON file named <code>topics.json</code> that specifies the topics to move.</p>
+<div class="paragraph">
+<p>Specify topic names as a comma-separated list.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example JSON file to reassign all the partitions of <code>topic-a</code> and <code>topic-b</code></div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">{
   "version": 1,
@@ -2718,67 +2956,52 @@ It must have the following structure:</p>
 </div>
 </li>
 <li>
-<p>Copy the <code><em>topics.json</em></code> file to one of the broker pods:</p>
+<p>Copy the <code><em>topics.json</em></code> file to the interactive pod container.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">cat <em>topics.json</em> | kubectl exec -c kafka <em>&lt;BrokerPod&gt;</em> -i -- \
-  /bin/bash -c \
-  'cat &gt; /tmp/topics.json'</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl cp topics.json <em>INTERACTIVE-POD-NAME</em>:/tmp/topics.json</code></pre>
 </div>
+</div>
+</li>
+<li>
+<p>Start a shell process in the interactive pod container.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec -n <em>NAMESPACE</em> -ti <em>INTERACTIVE-POD-NAME</em> /bin/bash</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace <em>NAMESPACE</em> with the Kubernetes namespace where the pod is running.</p>
 </div>
 </li>
 <li>
 <p>Use the <code>kafka-reassign-partitions.sh</code> command to generate the reassignment JSON.</p>
 <div class="listingblock">
+<div class="title">Example command to move all the partitions of <code>topic-a</code> and <code>topic-b</code> to brokers <code>0</code>, <code>1</code> and <code>2</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">kubectl exec <em>&lt;BrokerPod&gt;</em> -c kafka -it -- \
-  bin/kafka-reassign-partitions.sh --bootstrap-server localhost:9092 \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-reassign-partitions.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 \
+  --command-config /tmp/config.properties \
   --topics-to-move-json-file /tmp/topics.json \
-  --broker-list <em>&lt;BrokerList&gt;</em> \
-  --generate</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>For example, to move all the partitions of <code>topic-a</code> and <code>topic-b</code> to brokers <code>4</code> and <code>7</code></p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec <em>&lt;BrokerPod&gt;</em> -c kafka -it -- \
-  bin/kafka-reassign-partitions.sh --bootstrap-server localhost:9092 \
-  --topics-to-move-json-file /tmp/topics.json \
-  --broker-list 4,7 \
+  --broker-list 0,1,2 \
   --generate</code></pre>
 </div>
 </div>
 </li>
 </ol>
 </div>
-</div>
-<div class="sect4">
-<h5 id="creating_reassignment_json_files_manually"><a class="link" href="#creating_reassignment_json_files_manually">Creating reassignment JSON files manually</a></h5>
-<div class="paragraph">
-<p>You can manually create the reassignment JSON file if you want to move specific partitions.</p>
-</div>
-</div>
-<div class="sect4">
-<h5 id="con-reassignment-throttles-str"><a class="link" href="#con-reassignment-throttles-str">Reassignment throttles</a></h5>
-<div class="paragraph">
-<p>Partition reassignment can be a slow process because it involves transferring large amounts of data between brokers.
-To avoid a detrimental impact on clients, you can throttle the reassignment process.
-This might cause the reassignment to take longer to complete.</p>
-</div>
-<div class="ulist">
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
 <ul>
 <li>
-<p>If the throttle is too low then the newly assigned brokers will not be able to keep up with records being published and the reassignment will never complete.</p>
+<p><a href="#proc-config-kafka-str">Configuring Kafka</a></p>
 </li>
 <li>
-<p>If the throttle is too high then clients will be impacted.</p>
+<p><a href="#proc-configuring-kafka-topic-str">Configuring a Kafka topic</a></p>
+</li>
+<li>
+<p><a href="#proc-configuring-kafka-user-str">Securing user access to Kafka</a></p>
 </li>
 </ul>
-</div>
-<div class="paragraph">
-<p>For example, for producers, this could manifest as higher than normal latency waiting for acknowledgement. For consumers, this could manifest as a drop in throughput caused by higher latency between polls.</p>
 </div>
 </div>
 <div class="sect4">
@@ -18339,16 +18562,19 @@ Clients must add <em>all</em> of them to their truststores.
 <div class="title">Using PKCS #12 format (.p12)</div>
 <ol class="arabic">
 <li>
-<p>Extract the cluster CA certificate and password from the generated <code><em>&lt;cluster-name&gt;</em>-cluster-ca-cert</code> Secret.</p>
+<p>Extract the cluster CA certificate and password from the <code><em>CLUSTER-NAME</em>-cluster-ca-cert</code> Secret of the Kafka cluster.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>&lt;cluster-name&gt;</em>-cluster-ca-cert -o jsonpath='{.data.ca\.p12}' | base64 -d &gt; ca.p12</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.p12}' | base64 -d &gt; ca.p12</code></pre>
 </div>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>&lt;cluster-name&gt;</em>-cluster-ca-cert -o jsonpath='{.data.ca\.password}' | base64 -d &gt; ca.password</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.password}' | base64 -d &gt; ca.password</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>Replace <em>CLUSTER-NAME</em> with the name of the Kafka cluster.</p>
 </div>
 </li>
 <li>
@@ -18386,10 +18612,10 @@ Clients must add <em>all</em> of them to their truststores.
 <div class="title">Using PEM format (.crt)</div>
 <ol class="arabic">
 <li>
-<p>Extract the cluster CA certificate from the generated <code><em>&lt;cluster-name&gt;</em>-cluster-ca-cert</code> Secret.</p>
+<p>Extract the cluster CA certificate from the <code><em>CLUSTER-NAME</em>-cluster-ca-cert</code> Secret of the Kafka cluster.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>&lt;cluster-name&gt;</em>-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
 </div>
 </div>
 </li>
@@ -20040,7 +20266,7 @@ replica.fetch.max.bytes=1048576
 <div class="paragraph">
 <p>The <code>auto.create.topics.enable</code> property is enabled by default so that topics that do not already exist are created automatically when needed by producers and consumers.
 If you are using automatic topic creation, you can set the default number of partitions for topics using <code>num.partitions</code>.
-Generally, however, this property is disabled so that more control is provided over topics through explicit topic creation
+Generally, however, this property is disabled so that more control is provided over topics through explicit topic creation.
 For example, you can use the Strimzi <code>KafkaTopic</code> resource or applications to create topics.</p>
 </div>
 <div class="paragraph">
