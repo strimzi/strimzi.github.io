@@ -1,7 +1,7 @@
 ---
 layout: post
-title:  "Drain Cleaner: what's this?"
-date: 2021-08-03
+title: "Drain Cleaner: what's this?"
+date: 2021-09-15
 author: federico_valeri
 ---
 
@@ -9,10 +9,10 @@ One of the promises of Kubernetes is zero downtime upgrades. If your service is 
 than one replica running on different nodes or availability zones, then it should be possible to do a rolling update 
 without any service disruption.
 
-An event that may affect your service availability is the Kubernetes upgrade, where all nodes are drained one by one, 
-until they are all running on the new version. Node draining is also used for maintenance. When a node is drained, all 
-pods running on it are evicted and scheduled on other nodes. This process works well with stateless applications, but 
-can cause issues when you have a stateful replicated application like Kafka.
+An event that may affect your service availability is the Kubernetes upgrade, where all cluster nodes are drained one by 
+one, until they are all running on the new version. Node draining is also used for maintenance. When a node is drained, 
+all pods running on it are evicted and scheduled on other nodes. This process works well with stateless applications, 
+but can cause issues when you have a stateful replicated application like Kafka.
 
 <!--more-->
 
@@ -22,10 +22,10 @@ A common use case is a producer application sending records with `min.insync.rep
 order to get resiliency against single Kafka node failures. We want such client to be able to continue uninterrupted 
 during a Kubernetes upgrade, where each node is drained right after the previous one has been fully evacuated.
 
-The issue with Kafka and ZooKeeper pods is that the next node draining starts before the previous evacuated pod is fully 
-synced, so it's likely that you end up with under-replicated partitions for some time, causing the producer's rate drop 
-to zero. This may last from few seconds to several minutes, depending on the cluster load. In short, node draining 
-feature does not account for the actual internal state of the Kafka cluster. This issue affects the entire data 
+The issue with Kafka and ZooKeeper pods is that the next node draining starts before the previous evacuated Kafka pod is 
+fully synced, so it's likely that you end up with under-replicated partitions for some time, causing the producer's rate 
+drop to zero. This may last from few seconds to several minutes, depending on the cluster load. In short, node draining 
+feature does not account for the actual internal state of the Kafka cluster. This issue can affects the entire data 
 pipeline, so also consumers will likely be affected.
 
 ## Use the force (admission webhooks)
@@ -40,7 +40,7 @@ Admission Controller](https://kubernetes.io/docs/reference/access-authn-authz/ex
 invoked after the schema validation phase and it calls every registered webhook, which implement the decision logic. 
 This can be useful to enforce custom policies or simply be notified about specific events.
 
-![admission controllers](/assets/images/posts/2021-08-03-admission-controllers.png)
+![admission controllers](/assets/images/posts/2021-09-15-admission-controllers.png)
 
 Some admission controllers are actually built-in (i.e. LimitRange, NamespaceLifecycle). Validating webhooks are safe, as 
 they cannot change the incoming request and they always see the final version that would be persisted to etcd. Note that 
@@ -56,14 +56,14 @@ This is how you can apply this configuration with a single patch command (no rol
 ```sh
 kubectl patch kafka $CLUSTER_NAME --type json -p '[
   {
-"op": "add",
-"path": "/spec/zookeeper/template",
-"value": {
-  "podDisruptionBudget": {
-    "maxUnavailable": 0
-  }
-}
-},
+    "op": "add",
+    "path": "/spec/zookeeper/template",
+    "value": {
+      "podDisruptionBudget": {
+        "maxUnavailable": 0
+      }
+    }
+  },
   {
     "op": "add",
     "path": "/spec/kafka/template",
@@ -80,7 +80,7 @@ kubectl patch kafka $CLUSTER_NAME --type json -p '[
 
 To register the Drain Cleaner's endpoint at the Kubernetes control-plane level, you need to create a 
 ValidatingWebhookConfiguration resource. This is a simple REST endpoint, exposed under `/drainer` URL path. When an 
-incoming request matches one of the specified operations, groups, versions, resources, and scope for any of defined 
+incoming API request matches one of the specified operations, groups, versions, resources, and scope for any of defined 
 rules, the request is sent to that endpoint.
 
 ```yaml
@@ -187,4 +187,4 @@ kubectl uncordon $NODE_NAME
 The Drain Cleaner is a lightweight application that runs as a singleton service on your Kubernetes cluster. With a small 
 overhead you can guarantee high availability for all your Kafka clusters. This is especially important when you have service 
 level agreements (SLA) in place that you want to fulfill. This is a new component that recently joined the Strimzi family 
-and it is supported since 0.21.0 release. For that reason, there are plenty of opportunities for contributions.
+and it is supported since 0.21.0 release. Contributions are welcomed, as always :)
