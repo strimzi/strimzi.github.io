@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Drain Cleaner: What's this?"
-date: 2021-09-16
+date: 2021-09-24
 author: federico_valeri
 ---
 
@@ -43,7 +43,7 @@ As you can see from the following image, when a new Kubernetes request arrives a
 controller is invoked after the schema validation phase and it calls every registered webhook, to implement some 
 logic. This can be useful to enforce custom policies or simply be notified about specific events.
 
-![admission controllers](/assets/images/posts/2021-09-16-admission-controllers.png)
+![admission controllers](/assets/images/posts/2021-09-24-admission-controllers.png)
 
 Some admission controllers are actually built-in (i.e. LimitRange, NamespaceLifecycle). ValidatingAdmissionWebhooks are 
 safe, as they cannot change the incoming request and they always see the final version that would be persisted to etcd. 
