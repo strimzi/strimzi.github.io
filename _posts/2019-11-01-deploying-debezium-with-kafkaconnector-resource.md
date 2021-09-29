@@ -249,7 +249,7 @@ Here's what the `KafkaConnector` resource looks like:
 
 
 ```shell
-cat | kubectl -n kafka apply -f - << 'EOF'
+cat <<EOF | kubectl -n kafka apply -f -
 apiVersion: "kafka.strimzi.io/v1alpha1"
 kind: "KafkaConnector"
 metadata:
