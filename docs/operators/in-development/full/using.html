@@ -537,7 +537,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#proc-loading-config-with-provider-str">2.9. Loading configuration values from external sources</a></li>
 </ul>
 </li>
-<li><a href="#assembly-configuring-external-listeners-str">3. Configuring external listeners</a>
+<li><a href="#assembly-accessing-kafka-outside-cluster-str">3. Accessing Kafka outside of the Kubernetes cluster</a>
 <ul class="sectlevel2">
 <li><a href="#proc-accessing-kafka-using-nodeports-str">3.1. Accessing Kafka using node ports</a></li>
 <li><a href="#proc-accessing-kafka-using-loadbalancers-str">3.2. Accessing Kafka using loadbalancers</a></li>
@@ -1499,7 +1499,7 @@ For more information on securing access to Kafka brokers, see <a href="#assembly
 <div class="paragraph">
 <div class="title">Configuring external listeners for client access outside Kubernetes</div>
 <p>You can configure external listeners for client access outside a Kubernetes environment using a specified connection mechanism, such as a loadbalancer.
-For more information on the configuration options for connecting an external client, see <a href="#assembly-configuring-external-listeners-str">Configuring external listeners</a>.</p>
+For more information on the configuration options for connecting an external client, see <a href="#assembly-accessing-kafka-outside-cluster-str">Accessing Kafka from external clients outside of the Kubernetes cluster</a>.</p>
 </div>
 <div class="paragraph">
 <div class="title">Listener certificates</div>
@@ -1869,7 +1869,7 @@ spec:
 <p>Listener authentication mechanism <a href="#assembly-securing-kafka-brokers-str">specified as mutual TLS, SCRAM-SHA-512 or token-based OAuth 2.0</a>.</p>
 </li>
 <li>
-<p>External listener configuration specifies <a href="#assembly-configuring-external-listeners-str">how the Kafka cluster is exposed outside Kubernetes, such as through a <code>route</code>, <code>loadbalancer</code> or <code>nodeport</code></a>.</p>
+<p>External listener configuration specifies <a href="#assembly-accessing-kafka-outside-cluster-str">how the Kafka cluster is exposed outside Kubernetes, such as through a <code>route</code>, <code>loadbalancer</code> or <code>nodeport</code></a>.</p>
 </li>
 <li>
 <p>Optional configuration for a <a href="#kafka-listener-certificates-str">Kafka listener certificate</a> managed by an external Certificate Authority. The <code>brokerCertChainAndKey</code> specifies a <code>Secret</code> that contains a server certificate and a private key. You can configure Kafka listener certificates on any listener with enabled TLS encryption.</p>
@@ -7700,7 +7700,7 @@ The placeholder structure is <code>configmaps:<em>PATH-AND-FILE-NAME</em>:<em>PR
 </div>
 </div>
 <div class="sect1">
-<h2 id="assembly-configuring-external-listeners-str"><a class="link" href="#assembly-configuring-external-listeners-str">3. Configuring external listeners</a></h2>
+<h2 id="assembly-accessing-kafka-outside-cluster-str"><a class="link" href="#assembly-accessing-kafka-outside-cluster-str">3. Accessing Kafka outside of the Kubernetes cluster</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Use an external listener to expose your Strimzi Kafka cluster to a client outside a Kubernetes environment.</p>
@@ -8205,7 +8205,7 @@ If you enabled any authentication, you will also need to configure SASL or TLS a
 which can be <code>nodeport</code>, <code>loadbalancer</code>, <code>ingress</code> or <code>route</code> (on OpenShift).</p>
 </div>
 <div class="paragraph">
-<p>For more information on the configuration options for connecting an external client, see <a href="#assembly-configuring-external-listeners-str">Configuring external listeners</a>.</p>
+<p>For more information on the configuration options for connecting an external client, see <a href="#assembly-accessing-kafka-outside-cluster-str">Accessing Kafka outside of the Kubernetes cluster</a>.</p>
 </div>
 <div class="paragraph">
 <p>Supported authentication options:</p>
@@ -8356,7 +8356,7 @@ This means that the exchange is resilient against replay attacks.</p>
 <div class="paragraph">
 <p>By default, Strimzi automatically creates a <code>NetworkPolicy</code> resource for every listener that is enabled on a Kafka broker.
 This <code>NetworkPolicy</code> allows applications to connect to listeners in all namespaces.
-Use network policies as part of the listener authentication configuration.</p>
+Use network policies as part of the listener configuration.</p>
 </div>
 <div class="paragraph">
 <p>If you want to restrict access to a listener at the network level to only selected applications or namespaces, use the <code>networkPolicyPeers</code> property.
@@ -8537,13 +8537,14 @@ The authentication mechanism enabled for the user is specified using the <code>t
 </div>
 <div class="paragraph">
 <p>If <code>tls</code> or <code>scram-sha-512</code> is specified, the User Operator creates authentication credentials when it creates the user.
-If <code>tls-external</code> is specified, the user is expected to use TLS client authentication, but no authentication credentials are created.
+If <code>tls-external</code> is specified, the user still uses TLS client authentication, but no authentication credentials are created.
+Use this option when you&#8217;re providing your own certificates.
 When no authentication type is specified, the User Operator does not create the user or its credentials.</p>
 </div>
 <div class="paragraph">
-<p>Use <code>tls-external</code> to authenticate with TLS using a certificate issued outside the User Operator.
+<p>You can use <code>tls-external</code> to authenticate with TLS client authentication using a certificate issued outside the User Operator.
 The User Operator does not generate a TLS certificate or a secret.
-You can still manage user authorization through the User Operator  in the same way as with the <code>tls</code> mechanism.
+You can still manage ACL rules and quotas through the User Operator in the same way as when you&#8217;re using the <code>tls</code> mechanism.
 This means that you use the <code>CN=<em>USER-NAME</em></code> format when specifying ACL rules and quotas.
 <em>USER-NAME</em> is the common name given in a TLS certificate.</p>
 </div>
@@ -9397,7 +9398,7 @@ You can set the <code>enableOauthBearer</code> property to <code>true</code>, th
 </div>
 <div class="paragraph">
 <div class="title">PLAIN overview</div>
-<p>PLAIN is a simple authentication mechanism used by all Kafka client tools (including developer tools such as kafkacat).
+<p>PLAIN is a simple authentication mechanism used by all Kafka client tools.
 To enable PLAIN to be used together with OAuth 2.0 authentication, Strimzi includes server-side callbacks and calls this <em>OAuth 2.0 over PLAIN</em>.</p>
 </div>
 <div class="paragraph">
@@ -36744,7 +36745,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-10-11 18:39:47 UTC
+Last updated 2021-10-11 18:43:02 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
