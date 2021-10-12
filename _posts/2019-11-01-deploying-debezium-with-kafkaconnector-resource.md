@@ -287,7 +287,7 @@ The [Debezium documentation](https://debezium.io/documentation/reference/0.10/co
 * The `database.history.kafka.topic: "schema-changes.inventory"` configured Debezium to use the `schema-changes.inventory` topic to store the database schema history.
 
 
-A while after you've created this connector you can have a look at its `status`, using `kubectl get kctr inventory-connector -o yaml`:
+A while after you've created this connector you can have a look at its `status`, using `kubectl -n kafka get kctr inventory-connector -o yaml`:
 
 ```yaml
 #...
