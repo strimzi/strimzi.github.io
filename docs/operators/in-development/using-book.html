@@ -292,37 +292,44 @@
 </ul>
 </li>
 <li><a href="#proc-pausing-reconciliation-str">10.2. Pausing reconciliation of custom resources</a></li>
-<li><a href="#assembly-rolling-updates-str">10.3. Manually starting rolling updates of Kafka and ZooKeeper clusters</a>
+<li><a href="#assembly-drain-cleaner-str">10.3. Evicting pods with Strimzi Drain Cleaner</a>
 <ul class="sectlevel3">
-<li><a href="#prerequisites">10.3.1. Prerequisites</a></li>
-<li><a href="#proc-manual-rolling-update-statefulset-str">10.3.2. Performing a rolling update using a StatefulSet annotation</a></li>
-<li><a href="#proc-manual-rolling-update-pods-str">10.3.3. Performing a rolling update using a Pod annotation</a></li>
+<li><a href="#drain-cleaner-prereqs-str">10.3.1. Prerequisites</a></li>
+<li><a href="#proc-drain-cleaner-deploying-str">10.3.2. Deploying the Strimzi Drain Cleaner</a></li>
+<li><a href="#proc-drain-cleaner-using-str">10.3.3. Using the Strimzi Drain Cleaner</a></li>
 </ul>
 </li>
-<li><a href="#proc-add-service-discovery-str">10.4. Discovering services using labels and annotations</a>
+<li><a href="#assembly-rolling-updates-str">10.4. Manually starting rolling updates of Kafka and ZooKeeper clusters</a>
 <ul class="sectlevel3">
-<li><a href="#returning_connection_details_on_services">10.4.1. Returning connection details on services</a></li>
+<li><a href="#prerequisites">10.4.1. Prerequisites</a></li>
+<li><a href="#proc-manual-rolling-update-statefulset-str">10.4.2. Performing a rolling update using a StatefulSet annotation</a></li>
+<li><a href="#proc-manual-rolling-update-pods-str">10.4.3. Performing a rolling update using a Pod annotation</a></li>
 </ul>
 </li>
-<li><a href="#cluster-recovery-str">10.5. Recovering a cluster from persistent volumes</a>
+<li><a href="#proc-add-service-discovery-str">10.5. Discovering services using labels and annotations</a>
 <ul class="sectlevel3">
-<li><a href="#namespace-deletion_str">10.5.1. Recovery from namespace deletion</a></li>
-<li><a href="#cluster-loss_str">10.5.2. Recovery from loss of a Kubernetes cluster</a></li>
-<li><a href="#cluster-recovery-volume_str">10.5.3. Recovering a deleted cluster from persistent volumes</a></li>
+<li><a href="#returning_connection_details_on_services">10.5.1. Returning connection details on services</a></li>
 </ul>
 </li>
-<li><a href="#proc-setting-broker-limits-str">10.6. Setting limits on brokers using the Kafka Static Quota plugin</a></li>
-<li><a href="#assembly-tuning-config-str">10.7. Tuning Kafka configuration</a>
+<li><a href="#cluster-recovery-str">10.6. Recovering a cluster from persistent volumes</a>
 <ul class="sectlevel3">
-<li><a href="#con-broker-config-properties-str">10.7.1. Kafka broker configuration tuning</a></li>
-<li><a href="#con-producer-config-properties-str">10.7.2. Kafka producer configuration tuning</a></li>
-<li><a href="#con-consumer-config-properties-str">10.7.3. Kafka consumer configuration tuning</a></li>
+<li><a href="#namespace-deletion_str">10.6.1. Recovery from namespace deletion</a></li>
+<li><a href="#cluster-loss_str">10.6.2. Recovery from loss of a Kubernetes cluster</a></li>
+<li><a href="#cluster-recovery-volume_str">10.6.3. Recovering a deleted cluster from persistent volumes</a></li>
 </ul>
 </li>
-<li><a href="#uninstalling-str">10.8. Uninstalling Strimzi</a></li>
-<li><a href="#con-cluster-operator-faqs-str">10.9. Frequently asked questions</a>
+<li><a href="#proc-setting-broker-limits-str">10.7. Setting limits on brokers using the Kafka Static Quota plugin</a></li>
+<li><a href="#assembly-tuning-config-str">10.8. Tuning Kafka configuration</a>
 <ul class="sectlevel3">
-<li><a href="#questions_related_to_the_cluster_operator">10.9.1. Questions related to the Cluster Operator</a></li>
+<li><a href="#con-broker-config-properties-str">10.8.1. Kafka broker configuration tuning</a></li>
+<li><a href="#con-producer-config-properties-str">10.8.2. Kafka producer configuration tuning</a></li>
+<li><a href="#con-consumer-config-properties-str">10.8.3. Kafka consumer configuration tuning</a></li>
+</ul>
+</li>
+<li><a href="#uninstalling-str">10.9. Uninstalling Strimzi</a></li>
+<li><a href="#con-cluster-operator-faqs-str">10.10. Frequently asked questions</a>
+<ul class="sectlevel3">
+<li><a href="#questions_related_to_the_cluster_operator">10.10.1. Questions related to the Cluster Operator</a></li>
 </ul>
 </li>
 </ul>
@@ -11481,13 +11488,13 @@ Second message</code></pre>
 </li>
 <li>
 <p>Check the Kafka container log for a debug log of <code>Authorization GRANTED</code> for the request.</p>
-</li>
-</ol>
-</div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl logs my-cluster-kafka-0 -f -n $NS</code></pre>
 </div>
+</div>
+</li>
+</ol>
 </div>
 <div class="paragraph">
 <div class="title">Consuming messages with authorized access</div>
@@ -19927,7 +19934,319 @@ status:
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-rolling-updates-str"><a class="link" href="#assembly-rolling-updates-str">10.3. Manually starting rolling updates of Kafka and ZooKeeper clusters</a></h3>
+<h3 id="assembly-drain-cleaner-str"><a class="link" href="#assembly-drain-cleaner-str">10.3. Evicting pods with Strimzi Drain Cleaner</a></h3>
+<div class="paragraph _abstract">
+<p>Kafka and ZooKeeper pods might be evicted during Kubernetes upgrades, maintenance or pod rescheduling.
+If your Kafka broker and ZooKeeper pods were deployed by Strimzi, you can use the Strimzi Drain Cleaner tool to handle the pod evictions.
+You need to set the <code>podDisruptionBudget</code> for your Kafka deployment to <code>0</code> (zero) for the Strimzi Drain Cleaner to work.</p>
+</div>
+<div class="paragraph">
+<p>By deploying the Strimzi Drain Cleaner, you can use the Cluster Operator to move Kafka pods instead of Kubernetes.
+The Cluster Operator ensures that topics are never under-replicated.
+Kafka can remain operational during the eviction process.
+The Cluster Operator waits for topics to synchronize, as the Kubernetes worker nodes drain consecutively.</p>
+</div>
+<div class="paragraph">
+<p>An admission webhook notifies the Strimzi Drain Cleaner of pod eviction requests to the Kubernetes API.
+The Strimzi Drain Cleaner then adds a rolling update annotation to the pods to be drained.
+This informs the Cluster Operator to perform a rolling update of an evicted pod.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If you are not using the Strimzi Drain Cleaner, you can <a href="#proc-manual-rolling-update-pods-str">add pod annotations to perform rolling updates manually</a>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<div class="title">Webhook configuration</div>
+<p>The Strimzi Drain Cleaner deployment files include a <code>ValidatingWebhookConfiguration</code> resource file.
+The resource provides the configuration for registering the webhook with the Kubernetes API.</p>
+</div>
+<div class="paragraph">
+<p>The configuration defines the <code>rules</code> for the Kubernetes API to follow in the event of a pod eviction request.
+The rules specify that only <code>CREATE</code> operations related to <code>pods/eviction</code> sub-resources are intercepted.
+If these rules are met, the API forwards the notification.</p>
+</div>
+<div class="paragraph">
+<p>The <code>clientConfig</code> points to the Strimzi Drain Cleaner service and <code>/drainer</code> endpoint that exposes the webhook.
+The webhook uses a secure TLS connection, which requires authentication.
+The <code>caBundle</code> property specifies the certificate chain to validate HTTPS communication.
+Certificates are encoded in Base64.</p>
+</div>
+<div class="listingblock">
+<div class="title">Webhook configuration for pod eviction notifications</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+# ...
+webhooks:
+  - name: strimzi-drain-cleaner.strimzi.io
+    rules:
+      - apiGroups:   [""]
+        apiVersions: ["v1"]
+        operations:  ["CREATE"]
+        resources:   ["pods/eviction"]
+        scope:       "Namespaced"
+    clientConfig:
+      service:
+        namespace: "strimzi-drain-cleaner"
+        name: "strimzi-drain-cleaner"
+        path: /drainer
+        port: 443
+        caBundle: Cg==
+    # ...</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="drain-cleaner-prereqs-str"><a class="link" href="#drain-cleaner-prereqs-str">10.3.1. Prerequisites</a></h4>
+<div class="paragraph">
+<p>To deploy and use the Strimzi Drain Cleaner, you need to download the deployment files.</p>
+</div>
+<div class="paragraph">
+<p>The Strimzi Drain Cleaner deployment files are accessible from the <a href="https://github.com/strimzi/strimzi-kafka-operator/releases" target="_blank" rel="noopener">GitHub</a> release archive.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-drain-cleaner-deploying-str"><a class="link" href="#proc-drain-cleaner-deploying-str">10.3.2. Deploying the Strimzi Drain Cleaner</a></h4>
+<div class="paragraph _abstract">
+<p>Deploy the Strimzi Drain Cleaner to the Kubernetes cluster where the Cluster Operator and Kafka cluster are running.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>You have <a href="#drain-cleaner-prereqs-str">downloaded the Strimzi Drain Cleaner deployment files</a>.</p>
+</li>
+<li>
+<p>You have a highly available Kafka cluster deployment running with Kubernetes worker nodes that you would like to update.</p>
+</li>
+<li>
+<p>Topics are replicated for high availability.</p>
+<div class="paragraph">
+<p>Topic configuration specifies a replication factor of at least 3 and a minimum number of in-sync replicas to 1 less than the replication factor.</p>
+</div>
+<div class="listingblock">
+<div class="title">Kafka topic replicated for high availability</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: my-topic
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    # ...
+    min.insync.replicas: 2
+    # ...</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Excluding ZooKeeper</div>
+<p>If you don&#8217;t want to include ZooKeeper, you can remove the <code>--zookeeper</code> command option from the Strimzi Drain Cleaner <code>Deployment</code> configuration file.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: apps/v1
+kind: Deployment
+spec:
+  # ...
+  template:
+    spec:
+      serviceAccountName: strimzi-drain-cleaner
+      containers:
+        - name: strimzi-drain-cleaner
+          # ...
+          command:
+            - "/application"
+            - "-Dquarkus.http.host=0.0.0.0"
+            - "--kafka"
+            - "--zookeeper" <b class="conum">(1)</b>
+          # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Remove this option to exclude ZooKeeper from Strimzi Drain Cleaner operations.</p>
+</li>
+</ol>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Configure a pod disruption budget of <code>0</code> (zero) for your Kafka deployment using <code>template</code> settings in the <code>Kafka</code> resource.</p>
+<div class="listingblock">
+<div class="title">Specifying a pod disruption budget</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: myproject
+spec:
+  kafka:
+    template:
+      podDisruptionBudget:
+        maxUnavailable: 0
+
+  # ...
+  zookeeper:
+    template:
+      podDisruptionBudget:
+        maxUnavailable: 0
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Reducing the maximum pod disruption budget to zero prevents Kubernetes from automatically evicting the pods in case of voluntary disruptions,
+so pods must be evicted by the Strimzi Drain Cleaner.</p>
+</div>
+<div class="paragraph">
+<p>Add the same configuration for ZooKeeper if you want to use Strimzi Drain Cleaner to drain ZooKeeper nodes.</p>
+</div>
+</li>
+<li>
+<p>Update the <code>Kafka</code> resource:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;kafka-configuration-file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Deploy the Strimzi Drain Cleaner.</p>
+<div class="openblock">
+<div class="content">
+<div class="paragraph">
+<p>You can use <a href="https://cert-manager.io/docs/" target="_blank" rel="noopener"><code>cert-manager</code></a> in the deployment process.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If you are using <code>cert-manager</code> with Kubernetes, apply the resources in the <code>/install/drain-cleaner/certmanager</code> directory.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f ./install/drain-cleaner/certmanager</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The TLS certificates for the webhook are generated automatically and injected into the webhook configuration.</p>
+</div>
+</li>
+<li>
+<p>If you are using OpenShift, apply the resources in the <code>/install/drain-cleaner/openshift</code> directory.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f ./install/drain-cleaner/openshift</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If you are not using <code>cert-manager</code> with Kubernetes, apply the resources in the <code>/install/drain-cleaner/kubernetes</code> directory.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f ./install/drain-cleaner/kubernetes</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The resources are configured with TLS certificates that have already been generated.
+Use these certificates if you are not changing any configuration for the Strimzi Drain Cleaner, such as namespaces, service names, or pod names.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+You can use the build script and files provided in <a href="https://github.com/strimzi/drain-cleaner/tree/main/install/kubernetes/webhook-certificates" target="_blank" rel="noopener"><code>webhook-certificates</code></a>
+to generate your own certificates. The script uses the <a href="https://github.com/cloudflare/cfssl" target="_blank" rel="noopener"><code>CFSSL</code></a> and <a href="https://www.openssl.org/">openSSL</a> tools to generate the certificates.
+After you have generated the certificates, you need to add them to the <code>040-Secret.yaml</code> and <code>070-ValidatingWebhookConfiguration.yaml</code> files.
+</td>
+</tr>
+</table>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-drain-cleaner-using-str"><a class="link" href="#proc-drain-cleaner-using-str">10.3.3. Using the Strimzi Drain Cleaner</a></h4>
+<div class="paragraph _abstract">
+<p>Use the Strimzi Drain Cleaner in combination with the Cluster Operator to move Kafka broker or ZooKeeper pods from nodes that are being drained.
+When you run the Strimzi Drain Cleaner, it annotates pods with a rolling update pod annotation.
+The Cluster Operator performs rolling updates based on the annotation.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>You have <a href="#proc-drain-cleaner-deploying-str">deployed the Strimzi Drain Cleaner</a>.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Drain a specified Kubernetes node hosting the Kafka broker or ZooKeeper pods.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get nodes
+kubectl drain <em>&lt;name-of-node&gt;</em> --delete-emptydir-data --ignore-daemonsets --timeout=6000s --force</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Check the eviction events in the Strimzi Drain Cleaner log to verify that the pods have been annotated for restart.</p>
+<div class="listingblock">
+<div class="title">Strimzi Drain Cleaner log show annotations of pods</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">INFO ... Received eviction webhook for Pod my-cluster-zookeeper-2 in namespace my-project
+INFO ... Pod my-cluster-zookeeper-2 in namespace my-project will be annotated for restart
+INFO ... Pod my-cluster-zookeeper-2 in namespace my-project found and annotated for restart
+
+INFO ... Received eviction webhook for Pod my-cluster-kafka-0 in namespace my-project
+INFO ... Pod my-cluster-kafka-0 in namespace my-project will be annotated for restart
+INFO ... Pod my-cluster-kafka-0 in namespace my-project found and annotated for restart</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Check the reconciliation events in the Cluster Operator log to verify the rolling updates.</p>
+<div class="listingblock">
+<div class="title">Cluster Operator log shows rolling updates</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">INFO  PodOperator:68 - Reconciliation #13(timer) Kafka(my-project/my-cluster): Rolling Pod my-cluster-zookeeper-2
+INFO  PodOperator:68 - Reconciliation #13(timer) Kafka(my-project/my-cluster): Rolling Pod my-cluster-kafka-0
+INFO  AbstractOperator:500 - Reconciliation #13(timer) Kafka(my-project/my-cluster): reconciled</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="assembly-rolling-updates-str"><a class="link" href="#assembly-rolling-updates-str">10.4. Manually starting rolling updates of Kafka and ZooKeeper clusters</a></h3>
 <div class="paragraph">
 <p>Strimzi supports the use of annotations on <code>StatefulSet</code> and <code>Pod</code> resources to manually trigger a rolling update of Kafka and ZooKeeper clusters through the Cluster Operator.
 Rolling updates restart the pods of the resource with new ones.</p>
@@ -19947,7 +20266,7 @@ However, rather than deleting the pods directly, if you perform the rolling upda
 </ul>
 </div>
 <div class="sect3">
-<h4 id="prerequisites"><a class="link" href="#prerequisites">10.3.1. Prerequisites</a></h4>
+<h4 id="prerequisites"><a class="link" href="#prerequisites">10.4.1. Prerequisites</a></h4>
 <div class="paragraph">
 <p>To perform a manual rolling update, you need a running Cluster Operator and Kafka cluster.</p>
 </div>
@@ -19966,7 +20285,7 @@ However, rather than deleting the pods directly, if you perform the rolling upda
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-rolling-update-statefulset-str"><a class="link" href="#proc-manual-rolling-update-statefulset-str">10.3.2. Performing a rolling update using a StatefulSet annotation</a></h4>
+<h4 id="proc-manual-rolling-update-statefulset-str"><a class="link" href="#proc-manual-rolling-update-statefulset-str">10.4.2. Performing a rolling update using a StatefulSet annotation</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to manually trigger a rolling update of an existing Kafka cluster or ZooKeeper cluster using a Kubernetes <code>StatefulSet</code> annotation.</p>
 </div>
@@ -20001,10 +20320,46 @@ When the rolling update of all the pods is complete, the annotation is removed f
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-rolling-update-pods-str"><a class="link" href="#proc-manual-rolling-update-pods-str">10.3.3. Performing a rolling update using a Pod annotation</a></h4>
+<h4 id="proc-manual-rolling-update-pods-str"><a class="link" href="#proc-manual-rolling-update-pods-str">10.4.3. Performing a rolling update using a Pod annotation</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to manually trigger a rolling update of an existing Kafka cluster or ZooKeeper cluster using a Kubernetes <code>Pod</code> annotation.
 When multiple pods from the same <code>StatefulSet</code> are annotated, consecutive rolling updates are performed within the same reconciliation run.</p>
+</div>
+<div class="paragraph">
+<div class="title">Prerequisites</div>
+<p>You can perform a rolling update on a Kafka cluster regardless of the topic replication factor used.
+But for Kafka to stay operational during the update, you&#8217;ll need the following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A highly available Kafka cluster deployment running with nodes that you wish to update.</p>
+</li>
+<li>
+<p>Topics replicated for high availability.</p>
+<div class="paragraph">
+<p>Topic configuration specifies a replication factor of at least 3 and a minimum number of in-sync replicas to 1 less than the replication factor.</p>
+</div>
+<div class="listingblock">
+<div class="title">Kafka topic replicated for high availability</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: my-topic
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    # ...
+    min.insync.replicas: 2
+    # ...</code></pre>
+</div>
+</div>
+</li>
+</ul>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -20039,7 +20394,7 @@ When the rolling update of a pod is complete, the annotation is removed from the
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-add-service-discovery-str"><a class="link" href="#proc-add-service-discovery-str">10.4. Discovering services using labels and annotations</a></h3>
+<h3 id="proc-add-service-discovery-str"><a class="link" href="#proc-add-service-discovery-str">10.5. Discovering services using labels and annotations</a></h3>
 <div class="paragraph">
 <p>Service discovery makes it easier for client applications running in the same Kubernetes cluster as Strimzi to interact with a Kafka cluster.</p>
 </div>
@@ -20114,7 +20469,7 @@ metadata:
 </div>
 </div>
 <div class="sect3">
-<h4 id="returning_connection_details_on_services"><a class="link" href="#returning_connection_details_on_services">10.4.1. Returning connection details on services</a></h4>
+<h4 id="returning_connection_details_on_services"><a class="link" href="#returning_connection_details_on_services">10.5.1. Returning connection details on services</a></h4>
 <div class="paragraph">
 <p>You can find the services by specifying the discovery label when fetching services from the command line or a corresponding API call.</p>
 </div>
@@ -20129,7 +20484,7 @@ metadata:
 </div>
 </div>
 <div class="sect2">
-<h3 id="cluster-recovery-str"><a class="link" href="#cluster-recovery-str">10.5. Recovering a cluster from persistent volumes</a></h3>
+<h3 id="cluster-recovery-str"><a class="link" href="#cluster-recovery-str">10.6. Recovering a cluster from persistent volumes</a></h3>
 <div class="paragraph">
 <p>You can recover a Kafka cluster from persistent volumes (PVs) if they are still present.</p>
 </div>
@@ -20147,7 +20502,7 @@ metadata:
 </ul>
 </div>
 <div class="sect3">
-<h4 id="namespace-deletion_str"><a class="link" href="#namespace-deletion_str">10.5.1. Recovery from namespace deletion</a></h4>
+<h4 id="namespace-deletion_str"><a class="link" href="#namespace-deletion_str">10.6.1. Recovery from namespace deletion</a></h4>
 <div class="paragraph">
 <p>Recovery from namespace deletion is possible because of the relationship between persistent volumes and namespaces.
 A <code>PersistentVolume</code> (PV) is a storage resource that lives outside of a namespace.
@@ -20225,14 +20580,14 @@ Otherwise they will not be deleted, and may cause unnecessary expenditure on res
 </div>
 </div>
 <div class="sect3">
-<h4 id="cluster-loss_str"><a class="link" href="#cluster-loss_str">10.5.2. Recovery from loss of a Kubernetes cluster</a></h4>
+<h4 id="cluster-loss_str"><a class="link" href="#cluster-loss_str">10.6.2. Recovery from loss of a Kubernetes cluster</a></h4>
 <div class="paragraph">
 <p>When a cluster is lost, you can use the data from disks/volumes to recover the cluster if they were preserved within the infrastructure.
 The recovery procedure is the same as with namespace deletion, assuming PVs can be recovered and they were created manually.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="cluster-recovery-volume_str"><a class="link" href="#cluster-recovery-volume_str">10.5.3. Recovering a deleted cluster from persistent volumes</a></h4>
+<h4 id="cluster-recovery-volume_str"><a class="link" href="#cluster-recovery-volume_str">10.6.3. Recovering a deleted cluster from persistent volumes</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to recover a deleted cluster from persistent volumes (PVs).</p>
 </div>
@@ -20554,7 +20909,7 @@ You specify the required configuration using the properties described in <a href
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-setting-broker-limits-str"><a class="link" href="#proc-setting-broker-limits-str">10.6. Setting limits on brokers using the Kafka Static Quota plugin</a></h3>
+<h3 id="proc-setting-broker-limits-str"><a class="link" href="#proc-setting-broker-limits-str">10.7. Setting limits on brokers using the Kafka Static Quota plugin</a></h3>
 <div class="paragraph _abstract">
 <p>Use the <em>Kafka Static Quota</em> plugin to set throughput and storage limits on brokers in your Kafka cluster.
 You enable the plugin and set limits by configuring the <code>Kafka</code> resource.
@@ -20668,7 +21023,7 @@ spec:
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-tuning-config-str"><a class="link" href="#assembly-tuning-config-str">10.7. Tuning Kafka configuration</a></h3>
+<h3 id="assembly-tuning-config-str"><a class="link" href="#assembly-tuning-config-str">10.8. Tuning Kafka configuration</a></h3>
 <div class="paragraph">
 <p>Use configuration properties to optimize the performance of Kafka brokers, producers and consumers.</p>
 </div>
@@ -20685,7 +21040,7 @@ then make incremental changes and further comparisons of metrics until you have 
 <p>For more information about Apache Kafka configuration properties, see the <a href="https://kafka.apache.org/documentation/" target="_blank" rel="noopener">Apache Kafka documentation</a>.</p>
 </div>
 <div class="sect3">
-<h4 id="con-broker-config-properties-str"><a class="link" href="#con-broker-config-properties-str">10.7.1. Kafka broker configuration tuning</a></h4>
+<h4 id="con-broker-config-properties-str"><a class="link" href="#con-broker-config-properties-str">10.8.1. Kafka broker configuration tuning</a></h4>
 <div class="paragraph _abstract">
 <p>Use configuration properties to optimize the performance of Kafka brokers.
 You can use standard Kafka broker configuration options, except for properties managed directly by Strimzi.</p>
@@ -21449,7 +21804,7 @@ But the delay also prevents the group from consuming until the period has ended.
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-producer-config-properties-str"><a class="link" href="#con-producer-config-properties-str">10.7.2. Kafka producer configuration tuning</a></h4>
+<h4 id="con-producer-config-properties-str"><a class="link" href="#con-producer-config-properties-str">10.8.2. Kafka producer configuration tuning</a></h4>
 <div class="paragraph _abstract">
 <p>Use a basic producer configuration with optional properties that are tailored to specific use cases.</p>
 </div>
@@ -21825,7 +22180,7 @@ The default is <code>120000</code> or 2 minutes.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-consumer-config-properties-str"><a class="link" href="#con-consumer-config-properties-str">10.7.3. Kafka consumer configuration tuning</a></h4>
+<h4 id="con-consumer-config-properties-str"><a class="link" href="#con-consumer-config-properties-str">10.8.3. Kafka consumer configuration tuning</a></h4>
 <div class="paragraph _abstract">
 <p>Use a basic consumer configuration with optional properties that are tailored to specific use cases.</p>
 </div>
@@ -22238,7 +22593,7 @@ max.poll.records=500 <b class="conum">(3)</b>
 </div>
 </div>
 <div class="sect2">
-<h3 id="uninstalling-str"><a class="link" href="#uninstalling-str">10.8. Uninstalling Strimzi</a></h3>
+<h3 id="uninstalling-str"><a class="link" href="#uninstalling-str">10.9. Uninstalling Strimzi</a></h3>
 <div class="paragraph">
 <p>This procedure describes how to uninstall Strimzi and remove resources related to the deployment.</p>
 </div>
@@ -22292,9 +22647,9 @@ Deleting <code>CustomResourceDefinitions</code> results in the garbage collectio
 </div>
 </div>
 <div class="sect2">
-<h3 id="con-cluster-operator-faqs-str"><a class="link" href="#con-cluster-operator-faqs-str">10.9. Frequently asked questions</a></h3>
+<h3 id="con-cluster-operator-faqs-str"><a class="link" href="#con-cluster-operator-faqs-str">10.10. Frequently asked questions</a></h3>
 <div class="sect3">
-<h4 id="questions_related_to_the_cluster_operator"><a class="link" href="#questions_related_to_the_cluster_operator">10.9.1. Questions related to the Cluster Operator</a></h4>
+<h4 id="questions_related_to_the_cluster_operator"><a class="link" href="#questions_related_to_the_cluster_operator">10.10.1. Questions related to the Cluster Operator</a></h4>
 <div class="sect4">
 <h5 id="co-faq-admin-privileges_str"><a class="link" href="#co-faq-admin-privileges_str">Why do I need cluster administrator privileges to install Strimzi?</a></h5>
 <div class="paragraph">
