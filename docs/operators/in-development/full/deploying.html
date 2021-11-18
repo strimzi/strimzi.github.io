@@ -2318,7 +2318,14 @@ Amazon EBS volumes in Amazon AWS deployments without any changes in the YAML fil
 </div>
 <div class="paragraph">
 <p>The example YAML files specify the latest supported Kafka version, and configuration for its supported log message format version and inter-broker protocol version.
-Updates to these properties are required when <a href="#assembly-upgrading-kafka-versions-str">upgrading Kafka</a>.</p>
+The <code>inter.broker.protocol.version</code> property for the Kafka <code>config</code> must be the version supported by the specified Kafka version (<code>spec.kafka.version</code>).
+The property represents the version of Kafka protocol used in a Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>From Kafka 3.0.0, when the <code>inter.broker.protocol.version</code> is set to <code>3.0</code> or higher, the <code>log.message.format.version</code> option is ignored and doesn&#8217;t need to be set.</p>
+</div>
+<div class="paragraph">
+<p>An update to the <code>inter.broker.protocol.version</code> is required when <a href="#assembly-upgrading-kafka-versions-str">upgrading Kafka</a>.</p>
 </div>
 <div class="paragraph">
 <p>The example clusters are named <code>my-cluster</code> by default.
@@ -5993,7 +6000,7 @@ Each Kafka release introduces new features, improvements, and bug fixes to your 
 <dd>
 <p>Upgrading Strimzi from an old version to version latest within a single upgrade (skipping one or more intermediate versions).</p>
 <div class="paragraph">
-<p>For example, upgrading from Strimzi 0.20.0 directly to Strimzi 0.22.</p>
+<p>For example, upgrading from Strimzi 0.23.0 directly to Strimzi latest.</p>
 </div>
 </dd>
 </dl>
@@ -6516,6 +6523,19 @@ Changing each will trigger a further rolling update.</p></td>
 </tr>
 </tbody>
 </table>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+From Kafka 3.0.0, when the <code>inter.broker.protocol.version</code> is set to <code>3.0</code> or higher, the <code>log.message.format.version</code> option is ignored and doesn&#8217;t need to be set.
+The <code>log.message.format.version</code> property for brokers and the <code>message.format.version</code> property for topics are deprecated and will be removed in a future release of Kafka.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>As part of the Kafka upgrade, the Cluster Operator initiates rolling updates for ZooKeeper.</p>
 </div>
@@ -6587,26 +6607,35 @@ To change it, you edit the <code>inter.broker.protocol.version</code> property i
 <div class="paragraph">
 <div class="title">Log message format version</div>
 <p>When a producer sends a message to a Kafka broker, the message is encoded using a specific format.
-The format can change between Kafka releases, so messages specify which version of the format they were encoded with. You can configure a Kafka broker to convert messages from newer format versions to a given older format version before the broker appends the message to the log.</p>
+The format can change between Kafka releases, so messages specify which version of the message format they were encoded with.</p>
 </div>
 <div class="paragraph">
-<p>In Kafka, there are two different methods for setting the message format version:</p>
+<p>The properties used to set a specific message format version are as follows:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>The <code>message.format.version</code> property is set on topics.</p>
+<p><code>message.format.version</code> property for topics</p>
 </li>
 <li>
-<p>The <code>log.message.format.version</code> property is set on Kafka brokers.</p>
+<p><code>log.message.format.version</code> property for Kafka brokers</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>The default value of <code>message.format.version</code> for a topic is defined by the <code>log.message.format.version</code> that is set on the Kafka broker. You can manually set the <code>message.format.version</code> of a topic by modifying its topic configuration.</p>
+<p>From Kafka 3.0.0, the message format version values are assumed to match the <code>inter.broker.protocol.version</code> and don&#8217;t need to be set.
+The values reflect the Kafka version used.</p>
 </div>
 <div class="paragraph">
-<p>The upgrade tasks in this section assume that the message format version is defined by the <code>log.message.format.version</code>.</p>
+<p>When upgrading to Kafka 3.0.0 or higher, you can remove these settings when you update the <code>inter.broker.protocol.version</code>.
+Otherwise, set the message format version version based on the Kafka version you are upgrading to.</p>
+</div>
+<div class="paragraph">
+<p>The default value of <code>message.format.version</code> for a topic is defined by the <code>log.message.format.version</code> that is set on the Kafka broker.
+You can manually set the <code>message.format.version</code> of a topic by modifying its topic configuration.</p>
+</div>
+<div class="paragraph">
+<p>The properties can be used for down-conversion to an earlier format depending on your chosen <a href="#con-strategies-for-upgrading-clients-str">strategy for upgrading clients</a>.</p>
 </div>
 </div>
 <div class="sect3">
@@ -6648,13 +6677,24 @@ For brokers to perform optimally they should not be down converting messages at 
 <p>Messages published to a topic in a new-version format will be visible to consumers, because brokers perform down-conversion when they receive messages from producers, not when they are sent to consumers.</p>
 </div>
 <div class="paragraph">
-<p>There are a number of strategies you can use to upgrade your clients:</p>
+<p>Common strategies you can use to upgrade your clients are described as follows.
+Other strategies for upgrading client applications are also possible.</p>
 </div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Consumers first</dt>
-<dd>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+The steps outlined in each strategy change slightly when upgrading to Kafka 3.0.0 or later.
+From Kafka 3.0.0, the message format version values are assumed to match the <code>inter.broker.protocol.version</code> and don&#8217;t need to be set.
+</td>
+</tr>
+</table>
+</div>
 <div class="olist arabic">
+<div class="title">Broker-level consumers first strategy</div>
 <ol class="arabic">
 <li>
 <p>Upgrade all the consuming applications.</p>
@@ -6664,18 +6704,18 @@ For brokers to perform optimally they should not be down converting messages at 
 </li>
 <li>
 <p>Upgrade all the producing applications.</p>
+</li>
+</ol>
+</div>
 <div class="paragraph">
 <p>This strategy is straightforward, and avoids any broker down-conversion.
 However, it assumes that all consumers in your organization can be upgraded in a coordinated way, and it does not work for applications that are both consumers and producers.
 There is also a risk that, if there is a problem with the upgraded clients, new-format messages might get added to the message log so that you cannot revert to the previous consumer version.</p>
 </div>
-</li>
-</ol>
-</div>
-</dd>
-<dt class="hdlist1">Per-topic consumers first</dt>
-<dd>
+<div class="paragraph">
+<div class="title">Topic-level consumers first strategy</div>
 <p>For each topic:</p>
+</div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
@@ -6686,16 +6726,16 @@ There is also a risk that, if there is a problem with the upgraded clients, new-
 </li>
 <li>
 <p>Upgrade all the producing applications.</p>
-<div class="paragraph">
-<p>This strategy avoids any broker down-conversion, and means you can proceed on a topic-by-topic basis. It does not work for applications that are both consumers and producers of the same topic. Again, it has the risk that, if there is a problem with the upgraded clients, new-format messages might get added to the message log.</p>
-</div>
 </li>
 </ol>
 </div>
-</dd>
-<dt class="hdlist1">Per-topic consumers first, with down conversion</dt>
-<dd>
+<div class="paragraph">
+<p>This strategy avoids any broker down-conversion, and means you can proceed on a topic-by-topic basis. It does not work for applications that are both consumers and producers of the same topic. Again, it has the risk that, if there is a problem with the upgraded clients, new-format messages might get added to the message log.</p>
+</div>
+<div class="paragraph">
+<div class="title">Topic-level consumers first strategy with down conversion</div>
 <p>For each topic:</p>
+</div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
@@ -6710,20 +6750,14 @@ There is also a risk that, if there is a problem with the upgraded clients, new-
 </li>
 <li>
 <p>Change the topic-level <code>message.format.version</code> to the new version.</p>
+</li>
+</ol>
+</div>
 <div class="paragraph">
 <p>This strategy requires broker down-conversion, but the load on the brokers is minimized because it is only required for a single topic (or small group of topics) at a time. It also works for applications that are both consumers and producers of the same topic. This approach ensures that the upgraded producers and consumers are working correctly before you commit to using the new message format version.</p>
 </div>
 <div class="paragraph">
 <p>The main drawback of this approach is that it can be complicated to manage in a cluster with many topics and applications.</p>
-</div>
-</li>
-</ol>
-</div>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>Other strategies for upgrading client applications are also possible.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -6996,6 +7030,18 @@ spec:
       # ...</code></pre>
 </div>
 </div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+From Kafka 3.0.0, when the <code>inter.broker.protocol.version</code> is set to <code>3.0</code> or higher, the <code>log.message.format.version</code> option is ignored and doesn&#8217;t need to be set.
+</td>
+</tr>
+</table>
+</div>
 </li>
 <li>
 <p>Wait for the Cluster Operator to update the cluster.</p>
@@ -7251,7 +7297,7 @@ or messages have been added to message logs that use a newer <code>log.message.f
 </div>
 <div class="paragraph">
 <p>The <code>inter.broker.protocol.version</code> determines the schemas used for persistent metadata stored by the broker, such as the schema for messages written to <code>__consumer_offsets</code>.
-If you downgrade to a version of Kafka that does not understand an <code>inter.broker.protocol.version</code> that has (ever) been previously used in the cluster the broker will encounter data it cannot understand.</p>
+If you downgrade to a version of Kafka that does not understand an <code>inter.broker.protocol.version</code> that has ever been previously used in the cluster the broker will encounter data it cannot understand.</p>
 </div>
 <div class="paragraph">
 <p>If the target downgrade version of Kafka has:</p>
@@ -7295,7 +7341,19 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p>The downgrade would not be possible if the <code>log.message.format.version</code> was set at <code>"3.0"</code> or a value was absent (so that the parameter took the default value for a 3.0.0 broker of 3.0).</p>
+<p>The downgrade would not be possible if the <code>log.message.format.version</code> was set at <code>"3.0"</code> or a value was absent, so that the parameter took the default value for a 3.0.0 broker of 3.0.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+From Kafka 3.0.0, when the <code>inter.broker.protocol.version</code> is set to <code>3.0</code> or higher, the <code>log.message.format.version</code> option is ignored and doesn&#8217;t need to be set.
+</td>
+</tr>
+</table>
 </div>
 </div>
 <div class="sect3">
@@ -7305,7 +7363,7 @@ spec:
 </div>
 <div class="paragraph">
 <div class="title">Prerequisites</div>
-<p>For the <code>Kafka</code> resource to be downgraded, check:</p>
+<p>Before you downgrade the Strimzi Kafka cluster, check the following for the <code>Kafka</code> resource:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -7320,6 +7378,9 @@ spec:
 </li>
 <li>
 <p>The <code>Kafka.spec.kafka.config</code> has a <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> that is supported by the Kafka version being downgraded to.</p>
+<div class="paragraph">
+<p>From Kafka 3.0.0, when the <code>inter.broker.protocol.version</code> is set to <code>3.0</code> or higher, the <code>log.message.format.version</code> option is ignored and doesn&#8217;t need to be set.</p>
+</div>
 </li>
 </ul>
 </div>
@@ -7373,7 +7434,7 @@ spec:
 <div class="title">Note</div>
 </td>
 <td class="content">
-You must format the value of <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> as a string to prevent it from being interpreted as a floating point number.
+The value of <code>log.message.format.version</code> and <code>inter.broker.protocol.version</code> must be strings to prevent them from being interpreted as floating point numbers.
 </td>
 </tr>
 </table>
@@ -7440,7 +7501,7 @@ You must format the value of <code>log.message.format.version</code> and <code>i
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-11-18 08:56:00 UTC
+Last updated 2021-11-18 10:20:00 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
