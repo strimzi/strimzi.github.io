@@ -71,12 +71,12 @@ clients of OpenShift, if it is not already exposed. More info
 user must have the right grants to consume data from topics and create
 topics. It could be a good recommendation to define as a super-user. More
 info [here](https://strimzi.io/docs/operators/latest/using.html#super_users).
-    2.1. Get or extract certificates and migration user credentials,
+    * Get or extract certificates and migration user credentials,
     they are needed later.
 3. Deploy new Apache Kafka cluster in target OpenShift platform. This
 new cluster should have the same topology as the original
 one (# brokers, resources, …) to have an 1-1 scenario.
-    3.1 *Optionally* we could deploy a higher version of Kafka. Applications
+    * *Optionally* we could deploy a higher version of Kafka. Applications
     migrated **must** be aligned to the Kafka API declared, otherwise
     Apache Kafka brokers will have to perform down-conversion
     continuously (not desirable as it will impact in the performance)
@@ -171,7 +171,7 @@ The action combinated of all of them, using a set of internal topics,
 executes this complex process of migrating and synchronizing both
 Kafka clusters.
 
-## Red Hat AMQ Streams Operators make migrations happier
+## Strimzi Operators make migrations happier
 
 Operating an Apache Kafka system with all these components in an
 OpenShift environment sounds like a huge and complex activity, however
@@ -179,7 +179,7 @@ the reality is that is very easy thanks to the powerful
 [Kubernetes Operators](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)
 provided by the great community of [Strimzi](https://strimzi.io/).
 
-Red Hat AMQ Streams provides a full list of operators to help streamline
+Strimzi provides a full list of operators to help streamline
 the installation, configuration, and maintenance operations for OpenShift
 platforms. Thanks to these operators we could manage this complex migration
 scenario with a small few resources to achieve our goals.
