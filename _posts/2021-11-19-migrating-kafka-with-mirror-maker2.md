@@ -2,7 +2,7 @@
 layout: post
 title: "Migrating Kafka clusters with MirrorMaker2 and Strimzi"
 date: 2021-11-09
-author: roman_martin,manuel_schindler
+author: roman_martin_manuel_schindler
 ---
 
 In this article we would like to focus on the most common challenges to migrate Apache
