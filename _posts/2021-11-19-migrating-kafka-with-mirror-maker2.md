@@ -9,13 +9,18 @@ In this article we would like to focus on the most common challenges to migrate 
 Kafka clusters between different OpenShift platforms, and how to overcome
 them by using Apache MirrorMaker and [Strimzi Operators](https://strimzi.io/).
 
-Nowadays, many modern architectures are deployed on top of cloud platforms.
+*NOTE*: The article and the examples describe and implement the process for OpenShift, the
+enterprise version of Kubernetes from Red Hat. However the content applies perfectly for
+a Kubernetes platform.
+
+Nowadays, many modern architectures are deployed on top of container management platforms.
 OpenShift is one of the most standard of those platforms. These modern
 architectures are based in many patterns
 ([Event-Driven Architectures](https://www.redhat.com/en/topics/integration/what-is-event-driven-architecture),
 [Capture Data Change](https://www.redhat.com/en/topics/integration/what-is-change-data-capture),
 [Reactive Systems](https://www.reactivemanifesto.org/))
-using data streaming platforms as backbone to glue everything in a fashion way. Apache Kafka is the most extended component to implement that backbone. 
+using data streaming platforms as backbone to glue everything in a fashion way. Apache Kafka is the most extended
+component to implement that backbone. 
 
 OpenShift and Apache Kafka are evolving so fast, and organizations are
 evolving their Cloud platforms where they face some of the following migration
@@ -120,7 +125,7 @@ MirrorMaker provides currently two different implementations:
 * **MirrorMaker 1**: The first implementation with basic functionality
 to consume and produce data from the source to the target. It is very
 limited and it could help you to replicate only data payloads. 
-* **MirrorMaker 2**: Improved implementation based in
+* **MirrorMaker 2**: Improved implementation based on
 [KafkaConnect framework](https://kafka.apache.org/documentation/#connect)
 allowing  replication of more things (topics and its configuration,
 consumer groups offsets, ACLs), and more features (detects new topics/partitions,
@@ -221,7 +226,7 @@ demonstrates how the different components could work
 together and resolve the main requirements of the use
 case. You could find it here:
 
-[https://github.com/rmarting/amq-streams-migration-demo](https://github.com/rmarting/amq-streams-migration-demo)
+[https://github.com/rmarting/strimzi-migration-demo](https://github.com/rmarting/strimzi-migration-demo)
 
 We are open to get feedback, comments and improvements
 of this use case.
