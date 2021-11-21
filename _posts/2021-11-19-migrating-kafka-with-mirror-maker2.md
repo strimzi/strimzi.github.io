@@ -140,7 +140,7 @@ the topic and partitions in the target Kafka cluster.
 from the target Kafka cluster at the same point the consumers stopped in
 the source Kafka cluster. This feature tries to avoid consuming duplicated
 messages in the target cluster.
-* **Dynamic detection of changes** in source Kafka cluster and replicate in
+* **Dynamic detection of configuration changes** in source Kafka cluster and replicate in
 target Kafka cluster. Every change must be replicated in the target Kafka cluster.
 * **Replication ACL** rules that manage access to source brokers and topics
 apply to target topics. If we are not using the [User Operator of
