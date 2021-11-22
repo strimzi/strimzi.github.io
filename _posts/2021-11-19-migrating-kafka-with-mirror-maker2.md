@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Migrating Kafka clusters with MirrorMaker2 and Strimzi"
-date: 2021-11-09
+date: 2021-11-19
 author: roman_martin_manuel_schindler
 ---
 
