@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Migrating Kafka clusters with MirrorMaker2 and Strimzi"
-date: 2021-11-19
+date: 2021-11-22
 author: roman_martin_manuel_schindler
 ---
 
@@ -196,7 +196,7 @@ More information and details about these operators, review the
 
 We could draw our migration process and topology as:
 
-![Migration Deployment Topology](/assets/images/posts/2021-11-19-kafka-migration-topology.png)
+![Migration Deployment Topology](/assets/images/posts/2021-11-22-kafka-migration-topology.png)
 
 Easy, right?
 
