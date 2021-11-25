@@ -21,7 +21,7 @@ In order to build and serve the web site locally, run :
 
 We try to use the following process for blog posts:
 
-1. You should start by [asking us](https://strimzi.io//join-us/#ask-for-help-and-help-others) whether your proposed subject is a good fit for the strimzi.io blog.
+1. You should start by [asking us](https://strimzi.io/join-us/#ask-for-help-and-help-others) whether your proposed subject is a good fit for the strimzi.io blog.
    The aim of this step is to prevent you wasting your time writing a post which isn't going to interest Strimzi users.
    If your proposal is not perfect from the off, we might suggest ways to make it more relevent to our audience.
    Even if we don't think it will be relevant we might be able to recommend a better site for your proposed content.
