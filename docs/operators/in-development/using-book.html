@@ -46,7 +46,8 @@
 <li><a href="#proc-configuring-kafka-connect-user-authorization-str">2.2.3. Configuring Kafka Connect user authorization</a></li>
 <li><a href="#proc-manual-restart-connector-str">2.2.4. Performing a restart of a Kafka connector</a></li>
 <li><a href="#proc-manual-restart-connector-task-str">2.2.5. Performing a restart of a Kafka connector task</a></li>
-<li><a href="#ref-list-of-kafka-connect-resources-str">2.2.6. List of Kafka Connect cluster resources</a></li>
+<li><a href="#con-exposing-kafka-connect-api-str">2.2.6. Exposing the Kafka Connect API</a></li>
+<li><a href="#ref-list-of-kafka-connect-resources-str">2.2.7. List of Kafka Connect cluster resources</a></li>
 </ul>
 </li>
 <li><a href="#assembly-deployment-configuration-kafka-mirror-maker-str">2.3. Kafka MirrorMaker cluster configuration</a>
@@ -4688,7 +4689,149 @@ When Kafka Connect accepts the restart request, the annotation is removed from t
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-list-of-kafka-connect-resources-str"><a class="link" href="#ref-list-of-kafka-connect-resources-str">2.2.6. List of Kafka Connect cluster resources</a></h4>
+<h4 id="con-exposing-kafka-connect-api-str"><a class="link" href="#con-exposing-kafka-connect-api-str">2.2.6. Exposing the Kafka Connect API</a></h4>
+<div class="paragraph _abstract">
+<p>Use the Kafka Connect REST API as an alternative to using <code>KafkaConnector</code> resources to manage connectors.
+The Kafka Connect REST API is available as a service running on <code><em>&lt;connect_cluster_name&gt;</em>-connect-api:8083</code>, where <em>&lt;connect_cluster_name&gt;</em> is the name of your Kafka Connect cluster.
+The service is created when you create a Kafka Connect instance.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The <code>strimzi.io/use-connector-resources</code> annotation enables KafkaConnectors.
+If you applied the annotation to your <code>KafkaConnect</code> resource configuration, you need to remove it to use the Kafka Connect API.
+Otherwise, manual changes made directly using the Kafka Connect REST API are reverted by the Cluster Operator.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>You can add the connector configuration as a JSON object.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example curl request to add connector configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-curl hljs" data-lang="curl">curl -X POST \
+  http://my-connect-cluster-connect-api:8083/connectors \
+  -H 'Content-Type: application/json' \
+  -d '{ "name": "my-source-connector",
+    "config":
+    {
+      "class":"org.apache.kafka.connect.file.FileStreamSourceConnector",
+      "file": "/opt/kafka/LICENSE",
+      "topic":"my-topic",
+      "tasksMax": "4",
+      # ...
+    }
+}'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The API is only accessible within the Kubernetes cluster.
+If you want to make the Kafka Connect API accessible to applications running outside of the Kubernetes cluster, you can expose it manually by creating one of the following features:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>LoadBalancer</code> or <code>NodePort</code> type services</p>
+</li>
+<li>
+<p><code>Ingress</code> resources</p>
+</li>
+<li>
+<p>OpenShift routes</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The connection is insecure, so allow external access advisedly.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>If you decide to create services, use the labels from the <code>selector</code> of the <code><em>&lt;connect_cluster_name&gt;</em>-connect-api</code> service to configure the pods to which the service will route the traffic:</p>
+</div>
+<div class="listingblock">
+<div class="title">Selector configuration for the service</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+selector:
+  strimzi.io/cluster: my-connect-cluster <b class="conum">(1)</b>
+  strimzi.io/kind: KafkaConnect
+  strimzi.io/name: my-connect-cluster-connect <b class="conum">(2)</b>
+#...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Name of the Kafka Connect custom resource in your Kubernetes cluster.</p>
+</li>
+<li>
+<p>Name of the Kafka Connect deployment created by the Cluster Operator.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>You must also create a <code>NetworkPolicy</code> that allows HTTP requests from external clients.</p>
+</div>
+<div class="listingblock">
+<div class="title">NetworkPolicy to allow requests to the Kafka Connect API</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: my-custom-connect-network-policy
+spec:
+  ingress:
+  - from:
+    - podSelector: <b class="conum">(1)</b>
+        matchLabels:
+          app: my-connector-manager
+    ports:
+    - port: 8083
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      strimzi.io/cluster: my-connect-cluster
+      strimzi.io/kind: KafkaConnect
+      strimzi.io/name: my-connect-cluster-connect
+  policyTypes:
+  - Ingress</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The label of the pod that is allowed to connect to the API.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>To add the connector configuration outside the cluster, use the URL of the resource that exposes the API in the curl command.</p>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p>The operations supported by the REST API are described in the <a href="http://kafka.apache.org" target="_blank" rel="noopener">Apache Kafka documentation</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="ref-list-of-kafka-connect-resources-str"><a class="link" href="#ref-list-of-kafka-connect-resources-str">2.2.7. List of Kafka Connect cluster resources</a></h4>
 <div class="paragraph">
 <p>The following resources are created by the Cluster Operator in the Kubernetes cluster:</p>
 </div>
@@ -13869,26 +14012,27 @@ External clients can access the Kafka Bridge through an OpenShift Route, a loadb
 <div class="sect3">
 <h4 id="con-accessing-kafka-bridge-from-outside-kafka-bridge-overview"><a class="link" href="#con-accessing-kafka-bridge-from-outside-kafka-bridge-overview">6.2.4. Accessing the Kafka Bridge outside of Kubernetes</a></h4>
 <div class="paragraph">
-<p>After deployment, the Strimzi Kafka Bridge can only be accessed by applications running in the same Kubernetes cluster. These applications use the <code><em>kafka-bridge-name</em>-bridge-service</code> Service to access the API.</p>
+<p>After deployment, the Strimzi Kafka Bridge can only be accessed by applications running in the same Kubernetes cluster.
+These applications use the <code><em>&lt;kafka_bridge_name&gt;</em>-bridge-service</code> service to access the API.</p>
 </div>
 <div class="paragraph">
-<p>If you want to make the Kafka Bridge accessible to applications running outside of the Kubernetes cluster, you can expose it manually by using one of the following features:</p>
+<p>If you want to make the Kafka Bridge accessible to applications running outside of the Kubernetes cluster, you can expose it manually by creating one of the following features:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Services of types LoadBalancer or NodePort</p>
+<p><code>LoadBalancer</code> or <code>NodePort</code> type services</p>
 </li>
 <li>
-<p>Ingress resources</p>
+<p><code>Ingress</code> resources</p>
 </li>
 <li>
-<p>OpenShift Routes</p>
+<p>OpenShift routes</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>If you decide to create Services, use the following labels in the <code>selector</code> to configure the pods to which the service will route the traffic:</p>
+<p>If you decide to create Services, use the labels from the <code>selector</code> of the <code><em>&lt;kafka_bridge_name&gt;</em>-bridge-service</code> service to configure the pods to which the service will route the traffic:</p>
 </div>
 <div class="listingblock">
 <div class="content">
