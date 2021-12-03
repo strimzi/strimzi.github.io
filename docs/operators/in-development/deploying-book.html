@@ -89,22 +89,28 @@
 <li><a href="#assembly-metrics-str">8. Introducing metrics to Kafka</a>
 <ul class="sectlevel2">
 <li><a href="#con-metrics-kafka-exporter-lag-str">8.1. Monitoring consumer lag with Kafka Exporter</a></li>
-<li><a href="#assembly-metrics-config-files-str">8.2. Example metrics files</a>
+<li><a href="#con-metrics-cruise-control-str">8.2. Monitoring Cruise Control operations</a>
 <ul class="sectlevel3">
-<li><a href="#ref-metrics-prometheus-metrics-config-str">8.2.1. Example Prometheus metrics configuration</a></li>
-<li><a href="#ref-metrics-alertmanager-examples-str">8.2.2. Example Prometheus rules for alert notifications</a></li>
-<li><a href="#ref-metrics-dashboards-str">8.2.3. Example Grafana dashboards</a></li>
+<li><a href="#exposing_cruise_control_metrics">8.2.1. Exposing Cruise Control metrics</a></li>
+<li><a href="#viewing_cruise_control_metrics">8.2.2. Viewing Cruise Control metrics</a></li>
 </ul>
 </li>
-<li><a href="#assembly-metrics-setup-str">8.3. Using Prometheus with Strimzi</a>
+<li><a href="#assembly-metrics-config-files-str">8.3. Example metrics files</a>
 <ul class="sectlevel3">
-<li><a href="#proc-metrics-kafka-deploy-options-str">8.3.1. Deploying Prometheus metrics configuration</a></li>
-<li><a href="#assembly-metrics-prometheus-str">8.3.2. Setting up Prometheus</a></li>
-<li><a href="#proc-metrics-deploying-prometheus-alertmanager-str">8.3.3. Deploying Alertmanager</a></li>
-<li><a href="#con-metrics-kafka-mini-kube-str">8.3.4. Using metrics with Minikube</a></li>
+<li><a href="#ref-metrics-prometheus-metrics-config-str">8.3.1. Example Prometheus metrics configuration</a></li>
+<li><a href="#ref-metrics-alertmanager-examples-str">8.3.2. Example Prometheus rules for alert notifications</a></li>
+<li><a href="#ref-metrics-dashboards-str">8.3.3. Example Grafana dashboards</a></li>
 </ul>
 </li>
-<li><a href="#proc-metrics-grafana-dashboard-str">8.4. Enabling the example Grafana dashboards</a></li>
+<li><a href="#assembly-metrics-setup-str">8.4. Using Prometheus with Strimzi</a>
+<ul class="sectlevel3">
+<li><a href="#proc-metrics-kafka-deploy-options-str">8.4.1. Deploying Prometheus metrics configuration</a></li>
+<li><a href="#assembly-metrics-prometheus-str">8.4.2. Setting up Prometheus</a></li>
+<li><a href="#proc-metrics-deploying-prometheus-alertmanager-str">8.4.3. Deploying Alertmanager</a></li>
+<li><a href="#con-metrics-kafka-mini-kube-str">8.4.4. Using metrics with Minikube</a></li>
+</ul>
+</li>
+<li><a href="#proc-metrics-grafana-dashboard-str">8.5. Enabling the example Grafana dashboards</a></li>
 </ul>
 </li>
 <li><a href="#assembly-upgrade-str">9. Upgrading Strimzi</a>
@@ -297,6 +303,12 @@ By implementing knowledge of Kafka operations in code, Kafka administration task
 </div>
 <div class="paragraph">
 <p>The Topic Operator and User Operator function within the Entity Operator on deployment.</p>
+</div>
+<div class="paragraph">
+<p>You can use the Cluster Operator with a deployment of <a href="./using.html#assembly-drain-cleaner-str">Strimzi Drain Cleaner</a> to help with pod evictions.
+By deploying the Strimzi Drain Cleaner, you can use the Cluster Operator to move Kafka pods instead of Kubernetes.
+Strimzi Drain Cleaner annotates pods being evicted with a rolling update annotation.
+The annotation informs the Cluster Operator to perform the rolling update.</p>
 </div>
 <div class="paragraph">
 <div class="title">Example architecture for the Cluster Operator</div>
@@ -4427,7 +4439,141 @@ And in certain cases, it might be acceptable to automatically drop messages unti
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-metrics-config-files-str"><a class="link" href="#assembly-metrics-config-files-str">8.2. Example metrics files</a></h3>
+<h3 id="con-metrics-cruise-control-str"><a class="link" href="#con-metrics-cruise-control-str">8.2. Monitoring Cruise Control operations</a></h3>
+<div class="paragraph _abstract">
+<p>Cruise Control monitors Kafka brokers in order to track the utilization of brokers, topics, and partitions.
+Cruise Control also provides a set of metrics for monitoring its own performance.</p>
+</div>
+<div class="paragraph">
+<p>The Cruise Control metrics reporter collects raw metrics data from Kafka brokers.
+The data is produced to topics that are automatically created by Cruise Control.
+The metrics are used to <a href="./using.html#proc-generating-optimization-proposals-str" target="_blank" rel="noopener">generate optimization proposals for Kafka clusters</a>.</p>
+</div>
+<div class="paragraph">
+<p>Cruise Control metrics are available for real-time monitoring of Cruise Control operations.
+For example, you can use Cruise Control metrics to monitor the status of rebalancing operations that are running or provide alerts on any anomalies that are detected in an operation&#8217;s performance.</p>
+</div>
+<div class="paragraph">
+<p>You expose Cruise Control metrics by enabling the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX Exporter</a> in the Cruise Control configuration.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+For a full list of available Cruise Control metrics, which are known as <em>sensors</em>, see the <a href="https://github.com/linkedin/cruise-control/wiki/Sensors" target="_blank" rel="noopener">Cruise Control documentation</a>.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="exposing_cruise_control_metrics"><a class="link" href="#exposing_cruise_control_metrics">8.2.1. Exposing Cruise Control metrics</a></h4>
+<div class="paragraph">
+<p>If you want to expose metrics on Cruise Control operations, configure the <code>Kafka</code> resource <a href="#proc-metrics-kafka-deploy-options-str">to deploy Cruise Control and enable Prometheus metrics in the deployment</a>.
+You can use your own configuration or use the example <code>kafka-cruise-control-metrics.yaml</code> file provided by Strimzi.</p>
+</div>
+<div class="paragraph">
+<p>You add the configuration to the <code>metricsConfig</code> of the <code>CruiseControl</code> property in the <code>Kafka</code> resource.
+The configuration enables the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX Exporter</a> to expose Cruise Control metrics through an HTTP endpoint.
+The HTTP endpoint is scraped by the Prometheus server.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example metrics configuration for Cruise Control</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  apiVersion: kafka.strimzi.io/v1beta2
+  kind: Kafka
+  metadata:
+    name: my-cluster
+  Spec:
+    # ...
+    cruiseControl:
+      # ...
+      metricsConfig:
+        type: jmxPrometheusExporter
+        valueFrom:
+          configMapKeyRef:
+            name: cruise-control-metrics
+            key: metrics-config.yml
+  ---
+  kind: ConfigMap
+  apiVersion: v1
+  metadata:
+    name: cruise-control-metrics
+    labels:
+      app: strimzi
+  data:
+    metrics-config.yml: |
+    # <em>metrics configuration...</em></code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="viewing_cruise_control_metrics"><a class="link" href="#viewing_cruise_control_metrics">8.2.2. Viewing Cruise Control metrics</a></h4>
+<div class="paragraph">
+<p>After you expose the Cruise Control metrics, you can use Prometheus or another suitable monitoring system to view information on the metrics data.
+Strimzi provides an <a href="#assembly-metrics-config-files-str">example Grafana dashboard</a> to display visualizations of Cruise Control metrics.
+The dashboard is a JSON file called <code>strimzi-cruise-control.json</code>.
+The exposed metrics provide the monitoring data when you <a href="#proc-metrics-grafana-dashboard-str">enable the Grafana dashboard</a>.</p>
+</div>
+<div class="sect4">
+<h5 id="monitoring_balancedness_scores"><a class="link" href="#monitoring_balancedness_scores">Monitoring balancedness scores</a></h5>
+<div class="paragraph">
+<p>Cruise Control metrics include a balancedness score.
+Balancedness is the measure of how evenly a workload is distributed in a Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>The Cruise Control metric for balancedness score (<code>balancedness-score</code>) might differ from the balancedness score in the <code>KafkaRebalance</code> resource.
+Cruise Control calculates each score using <code>anomaly.detection.goals</code> which might not be the same as the <code>default.goals</code> used in the <code>KafkaRebalance</code> resource.
+The <code>anomaly.detection.goals</code> are specified in the <code>spec.cruiseControl.config</code> of the <code>Kafka</code> custom resource.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Refreshing the <code>KafkaRebalance</code> resource fetches an optimization proposal.
+The latest cached optimization proposal is fetched if one of the following conditions applies:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>KafkaRebalance <code>goals</code> match the goals configured in the <code>default.goals</code> section of the <code>Kafka</code> resource</p>
+</li>
+<li>
+<p>KafkaRebalance <code>goals</code> are not specified</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Otherwise, Cruise Control generates a new optimization proposal based on KafkaRebalance <code>goals</code>. If new proposals are generated with each refresh, this can impact performance monitoring.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect4">
+<h5 id="alerts_on_anomaly_detection"><a class="link" href="#alerts_on_anomaly_detection">Alerts on anomaly detection</a></h5>
+<div class="paragraph">
+<p>Cruise control&#8217;s <em>anomaly detector</em> provides metrics data for conditions that block the generation of optimization goals, such as broker failures.
+If you want more visibility, you can use the metrics provided by the anomaly detector to set up alerts and send out notifications.
+You can set up Cruise Control’s <em>anomaly notifier</em> to route alerts based on these metrics through a specified notification channel.
+Alternatively, you can set up Prometheus to scrape the metrics data provided by the anomaly detector and generate alerts.
+Prometheus Alertmanager can then route the alerts generated by Prometheus.</p>
+</div>
+<div class="paragraph">
+<p>The <a href="https://github.com/linkedin/cruise-control/wiki/Configurations" target="_blank" rel="noopener">Cruise Control documentation</a> provides information on <code>AnomalyDetector</code> metrics and the anomaly notifier.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="assembly-metrics-config-files-str"><a class="link" href="#assembly-metrics-config-files-str">8.3. Example metrics files</a></h3>
 <div class="paragraph _abstract">
 <p>You can find example Grafana dashboards and other metrics configuration files in the <a href="#deploy-examples-str">example configuration files</a> provided by Strimzi.</p>
 </div>
@@ -4506,7 +4652,7 @@ And in certain cases, it might be acceptable to automatically drop messages unti
 </ol>
 </div>
 <div class="sect3">
-<h4 id="ref-metrics-prometheus-metrics-config-str"><a class="link" href="#ref-metrics-prometheus-metrics-config-str">8.2.1. Example Prometheus metrics configuration</a></h4>
+<h4 id="ref-metrics-prometheus-metrics-config-str"><a class="link" href="#ref-metrics-prometheus-metrics-config-str">8.3.1. Example Prometheus metrics configuration</a></h4>
 <div class="paragraph _abstract">
 <p>Strimzi uses the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX Exporter</a> to expose metrics through an HTTP endpoint, which can be scraped by the Prometheus server.</p>
 </div>
@@ -4566,7 +4712,7 @@ When deploying Prometheus metrics configuration, you can can deploy the example 
 </table>
 </div>
 <div class="sect3">
-<h4 id="ref-metrics-alertmanager-examples-str"><a class="link" href="#ref-metrics-alertmanager-examples-str">8.2.2. Example Prometheus rules for alert notifications</a></h4>
+<h4 id="ref-metrics-alertmanager-examples-str"><a class="link" href="#ref-metrics-alertmanager-examples-str">8.3.2. Example Prometheus rules for alert notifications</a></h4>
 <div class="paragraph _abstract">
 <p>Example Prometheus rules for alert notifications are provided with the <a href="#assembly-metrics-config-files-str">example metrics configuration files</a> provided by Strimzi.
 The rules are specified in the example <code>prometheus-rules.yaml</code> file for use in a <a href="#proc-metrics-deploying-prometheus-str">Prometheus deployment</a>.</p>
@@ -4690,7 +4836,7 @@ The delay might be a result of a configuration issue preventing a producer from 
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-metrics-dashboards-str"><a class="link" href="#ref-metrics-dashboards-str">8.2.3. Example Grafana dashboards</a></h4>
+<h4 id="ref-metrics-dashboards-str"><a class="link" href="#ref-metrics-dashboards-str">8.3.3. Example Grafana dashboards</a></h4>
 <div class="paragraph _abstract">
 <p>If you deploy Prometheus to provide metrics,
 you can use the example Grafana dashboards provided with Strimzi to monitor Strimzi components.</p>
@@ -4756,7 +4902,7 @@ The dashboards are populated with a representative set of metrics for monitoring
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-metrics-setup-str"><a class="link" href="#assembly-metrics-setup-str">8.3. Using Prometheus with Strimzi</a></h3>
+<h3 id="assembly-metrics-setup-str"><a class="link" href="#assembly-metrics-setup-str">8.4. Using Prometheus with Strimzi</a></h3>
 <div class="paragraph">
 <p>You can use Prometheus to provide monitoring data for the example Grafana dashboards provided with Strimzi.</p>
 </div>
@@ -4779,9 +4925,10 @@ Prometheus and Prometheus Alertmanager are used in the examples provided by Stri
 </ol>
 </div>
 <div class="sect3">
-<h4 id="proc-metrics-kafka-deploy-options-str"><a class="link" href="#proc-metrics-kafka-deploy-options-str">8.3.1. Deploying Prometheus metrics configuration</a></h4>
+<h4 id="proc-metrics-kafka-deploy-options-str"><a class="link" href="#proc-metrics-kafka-deploy-options-str">8.4.1. Deploying Prometheus metrics configuration</a></h4>
 <div class="paragraph _abstract">
-<p>Deploy Prometheus metrics configuration to use Prometheus with Strimzi.</p>
+<p>Deploy Prometheus metrics configuration to use Prometheus with Strimzi.
+Use the <code>metricsConfig</code> property to enable and configure Prometheus metrics.</p>
 </div>
 <div class="paragraph">
 <p>You can use your own configuration or the <a href="#ref-metrics-prometheus-metrics-config-str">example custom resource configuration files provided with Strimzi</a>.</p>
@@ -4918,7 +5065,6 @@ data:
 <p>For Kafka Bridge, you specify the <code>enableMetrics</code> property and set it to <code>true</code>.</p>
 </div>
 <div class="listingblock">
-<div class="title">Enabling metrics for Kafka Bridge</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaBridge
@@ -5032,7 +5178,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-metrics-prometheus-str"><a class="link" href="#assembly-metrics-prometheus-str">8.3.2. Setting up Prometheus</a></h4>
+<h4 id="assembly-metrics-prometheus-str"><a class="link" href="#assembly-metrics-prometheus-str">8.4.2. Setting up Prometheus</a></h4>
 <div class="paragraph">
 <p><a href="https://prometheus.io/" target="_blank" rel="noopener">Prometheus</a> provides an open source set of components for systems monitoring and alert notification.</p>
 </div>
@@ -5331,7 +5477,7 @@ kubectl apply -f prometheus.yaml</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-metrics-deploying-prometheus-alertmanager-str"><a class="link" href="#proc-metrics-deploying-prometheus-alertmanager-str">8.3.3. Deploying Alertmanager</a></h4>
+<h4 id="proc-metrics-deploying-prometheus-alertmanager-str"><a class="link" href="#proc-metrics-deploying-prometheus-alertmanager-str">8.4.3. Deploying Alertmanager</a></h4>
 <div class="paragraph _abstract">
 <p>Use Alertmanager to route alerts to a notification service.
 <a href="https://prometheus.io/docs/alerting/alertmanager/" target="_blank" rel="noopener">Prometheus Alertmanager</a> is a component for handling alerts and routing them to a notification service.
@@ -5421,7 +5567,7 @@ A configuration file defines the resources for deploying Alertmanager:</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-metrics-kafka-mini-kube-str"><a class="link" href="#con-metrics-kafka-mini-kube-str">8.3.4. Using metrics with Minikube</a></h4>
+<h4 id="con-metrics-kafka-mini-kube-str"><a class="link" href="#con-metrics-kafka-mini-kube-str">8.4.4. Using metrics with Minikube</a></h4>
 <div class="paragraph">
 <p>When adding Prometheus and Grafana servers to an Apache Kafka deployment using Minikube, the memory available to the virtual machine should be increased (to 4 GB of RAM, for example, instead of the default 2 GB).</p>
 </div>
@@ -5439,7 +5585,7 @@ A configuration file defines the resources for deploying Alertmanager:</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-metrics-grafana-dashboard-str"><a class="link" href="#proc-metrics-grafana-dashboard-str">8.4. Enabling the example Grafana dashboards</a></h3>
+<h3 id="proc-metrics-grafana-dashboard-str"><a class="link" href="#proc-metrics-grafana-dashboard-str">8.5. Enabling the example Grafana dashboards</a></h3>
 <div class="paragraph _abstract">
 <p>Use Grafana to provide visualizations of Prometheus metrics on customizable dashboards.</p>
 </div>
