@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Deep dive into Apache Kafka storage internals: segments, rolling and retention"
-date: 2021-12-13
+date: 2021-12-09
 author: paolo_patierno
 ---
 
@@ -62,7 +62,7 @@ drwxrwxr-x. 55 ppatiern ppatiern     1220 Nov 14 16:33 ..
 In the output above, there is the first log segment `00000000000000000000.log` containing records from offset 0 up to offset 108.
 The second segment `00000000000000000109.log` is the one containing records starting from offset 109 and it is called the "active segment".
 
-![Log Segments](/assets/images/posts/2021-12-13-segments.png)
+![Log Segments](/assets/images/posts/2021-12-09-segments.png)
 
 The "active segment" is the only file which is opened for both read and write. It is the one where the new incoming records are appended; there is always only one active segment per partition.
 Non-active segments are open for read only, and will be accessed by consumers reading older records.
@@ -77,7 +77,7 @@ As already mentioned previously, the `.index` file contains an index that maps l
 You could expect that this mapping is available for each record but it doesn't work this way.
 Let's consider the record sent by the canary application which is around 150 bytes in size; in the following picture, for 85 records stored in the log file, the corresponding index has just 3 entries.
 
-![Log Index](/assets/images/posts/2021-12-13-index.png)
+![Log Index](/assets/images/posts/2021-12-09-index.png)
 
 The record with offset 28 is at byte offset 4169 in the log file, the record with offset 56 is at byte offset 8364 and so on.
 
@@ -107,7 +107,7 @@ Setting the parameter above the default 4096 bytes means creating less entries i
 Apache Kafka also allows to start consuming records based on timestamp; this is when `.timeindex` comes into the picture.
 Each entry in this file defines a pair made by timestamp and offset to point into the corresponding `.index` file entry.
 
-![Log Timeindex](/assets/images/posts/2021-12-13-timeindex.png)
+![Log Timeindex](/assets/images/posts/2021-12-09-timeindex.png)
 
 From the above picture, the records from timestamp `1638100314372` start at offset 28, the ones from `1638100454372` at offset 56 and so on.
 Each entry is 12 bytes in size, 8 for the timestamp and 4 for the offset.
@@ -184,7 +184,7 @@ In our example, it could happen that the first record in the segment could live 
 Assuming that at some point the clean thread runs and verify that a closed segment can be deleted, initially it just change extensions of corresponding files by adding the `.deleted` extension but not actually deleting the segment from the file system.
 There is another broker parameter `log.segment.delete.delay.ms` (1 minute by default) which defines when the file will be actually cancelled from the file system when it's marked as "deleted".
 
-![Total Retention Time](/assets/images/posts/2021-12-13-total-retention-time.png)
+![Total Retention Time](/assets/images/posts/2021-12-09-total-retention-time.png)
 
 Coming back to the canary example again and adding the delay on deletion, the first record in a segment is still alive after 25 minutes!
 It is really longer than the 10 minutes expectation, isn't it?
