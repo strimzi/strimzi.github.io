@@ -73,6 +73,29 @@ When the active segment becomes full (according to some criteria for full) it is
 From the example, you can see that the old segment was closed when it reached 16314 byes in size. This is  because of the Canary topic configuration `segment.bytes=16384`, which sets the maximum size. We'll talk about this configuration later.
 150 byes is the size of every single record sent by the Canary component. So, each segment will contain 109 records. 109 * 150 bytes = 16350 bytes, which is close to the maximum segment size.
 
+It is also possible to dump the records from a log segment by using the `DumpLogSegments` tool provided by the Apache Kafka distribution.
+Running the following command shows the records inside the specified segment log.
+
+```shell
+./bin/kafka-run-class.sh kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /tmp/kafka-logs-0/__strimzi_canary-0/00000000000000000000.log 
+Dumping /tmp/kafka-logs-0/__strimzi_canary-0/00000000000000000000.log
+Starting offset: 0
+baseOffset: 0 lastOffset: 0 count: 1 baseSequence: 0 lastSequence: 0 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false position: 0 CreateTime: 1639132508991 size: 148 magic: 2 compresscodec: NONE crc: 2142666254 isvalid: true
+| offset: 0 CreateTime: 1639132508991 keysize: -1 valuesize: 78 sequence: 0 headerKeys: [] payload: {"producerId":"strimzi-canary-client","messageId":1,"timestamp":1639132508991}
+baseOffset: 1 lastOffset: 1 count: 1 baseSequence: 0 lastSequence: 0 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false position: 148 CreateTime: 1639132514555 size: 148 magic: 2 compresscodec: NONE crc: 1895373344 isvalid: true
+| offset: 1 CreateTime: 1639132514555 keysize: -1 valuesize: 78 sequence: 0 headerKeys: [] payload: {"producerId":"strimzi-canary-client","messageId":4,"timestamp":1639132514555}
+baseOffset: 2 lastOffset: 2 count: 1 baseSequence: 0 lastSequence: 0 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false position: 296 CreateTime: 1639132519561 size: 148 magic: 2 compresscodec: NONE crc: 1097825866 isvalid: true
+..
+..
+..
+..
+| offset: 107 CreateTime: 1639133044553 keysize: -1 valuesize: 80 sequence: 0 headerKeys: [] payload: {"producerId":"strimzi-canary-client","messageId":322,"timestamp":1639133044553}
+baseOffset: 108 lastOffset: 108 count: 1 baseSequence: 0 lastSequence: 0 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false position: 16164 CreateTime: 1639133049552 size: 150 magic: 2 compresscodec: NONE crc: 1749984078 isvalid: true
+| offset: 108 CreateTime: 1639133049552 keysize: -1 valuesize: 80 sequence: 0 headerKeys: [] payload: {"producerId":"strimzi-canary-client","messageId":325,"timestamp":1639133049552}
+```
+
+From the example, you can see the records from offset 0 to 108 are stored in the `00000000000000000000.log` segment. 
+
 ## How does indexing work within a partition?
 
 As mentioned previously, the `.index` file contains an index that maps the logical offset to the byte offset of the record within the `.log` file.
@@ -83,6 +106,7 @@ In the following diagram, you can see that for 85 records stored in the log file
 ![Log Index](/assets/images/posts/2021-12-09-index.png)
 
 The record with offset 28 is at byte offset 4169 in the log file, the record with offset 56 is at byte offset 8364, and so on.
+By using the `DumpLogSegments` tool, it is possible to dump the `.index` file content.
 
 ```shell
 bin/kafka-run-class.sh kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /tmp/kafka-logs-0/__strimzi_canary-0/00000000000000000000.index
@@ -116,6 +140,7 @@ In the following diagram, you can see that the records from timestamp `163810031
 
 Each entry is 12 bytes in size, 8 for the timestamp and 4 for the offset.
 It reflects exactly how the Strimzi Canary component is producing records, because it's sending one record every 5 seconds. 28 records would be sent in 140 seconds (28 x 5), which is exactly the difference between the timestamps: 1638100454372 - 1638100314372 = 140000 milliseconds.
+By using the `DumpLogSegments` tool, it is possible to dump the `.timeindex` file content.
 
 ```shell
 bin/kafka-run-class.sh kafka.tools.DumpLogSegments --deep-iteration --print-data-log --files /tmp/kafka-logs-0/__strimzi_canary-0/00000000000000000000.timeindex 
