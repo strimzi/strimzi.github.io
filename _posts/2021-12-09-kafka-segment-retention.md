@@ -45,6 +45,7 @@ From the example, the partition 0 of the `__strimzi_canary` topic used by the St
 * The `.log` file is an actual segment containing records up to a specific offset. The name of the file defines the starting offset of the records in that log.
 * The `.index` file contains an index that maps a logical offset (in effect the record's id) to the byte offset of the record within the `.log` file. It is used for accessing records at specified offsets in the log without having to scan the whole `.log` file.
 * The `.timeindex` file is another index used for accessing records by timestamp in the log.
+* The `.snapshot` file contains a snapshot of the producer state regarding sequence IDs used to avoid duplicate records. It is used when, after a new leader is elected, the preferred one comes back and needs such a state in order to become leader again.
 
 Continuing with the Strimzi Canary component as an example, here's a more detailed view of the previous topic partition directory.
 
