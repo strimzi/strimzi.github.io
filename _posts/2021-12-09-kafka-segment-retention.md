@@ -177,6 +177,27 @@ By increasing the segment size over 5 GiB, you would also need to increase the i
 
 The timeindex might need attention as well. Because each timeindex entry is 1.5x bigger than an entry in the index (12 bytes versus 8 bytes), it can fill up earlier and cause a new segment to be rolled.
 
+To show how the index and timeindex files size have an impact on rolling a new log segment, let's consider a cluster with `log.index.interval.bytes=150` and `log.index.size.max.bytes=300` still using the Strimzi Canary to produce and consume records with the usual configuration `retention.ms=600000;segment.bytes=16384`.
+Because the Strimzi Canary records are close to 150 bytes in size, we would expect the index file to be filled with one entry every two records.
+With the maximum size set at 300 bytes, we would have around 300 / 8 = 37 entries in the index file and around 300 / 12 = 25 entries in the timeindex file.
+
+By running the Strimzi Canary for a while we have the following output.
+
+```shell
+-rw-rw-r--.  1 ppatiern ppatiern  192 Dec 10 16:23 00000000000000000000.index
+-rw-rw-r--.  1 ppatiern ppatiern 7314 Dec 10 16:23 00000000000000000000.log
+-rw-rw-r--.  1 ppatiern ppatiern  288 Dec 10 16:23 00000000000000000000.timeindex
+-rw-rw-r--.  1 ppatiern ppatiern  296 Dec 10 16:23 00000000000000000049.index
+-rw-rw-r--.  1 ppatiern ppatiern 4500 Dec 10 16:26 00000000000000000049.log
+-rw-rw-r--.  1 ppatiern ppatiern   10 Dec 10 16:23 00000000000000000049.snapshot
+-rw-rw-r--.  1 ppatiern ppatiern  300 Dec 10 16:23 00000000000000000049.timeindex
+```
+
+From the example, a new segment was rolled when the active one was still 7314 byes, not reaching the configured 16384 bytes.
+At the same time, the index reached 192 byes in size, so actually having 192 / 8 = 24 entries and not the expected 37.
+The reason is because the timeindex reached the limit of 300 bytes first.
+It is 288 bytes containing 288 / 12 = 24 entries (same number as the corresponding index).
+
 You can set these parameters at the broker level but they can also be overridden at the topic level.
 
 ## How long my records are retained? Longer than you expect!
