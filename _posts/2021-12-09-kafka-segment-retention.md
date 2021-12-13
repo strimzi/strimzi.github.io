@@ -5,15 +5,17 @@ date: 2021-12-09
 author: paolo_patierno
 ---
 
-Apache Kafka behaves as a commit-log when it comes to deal with storing records.
-Records are appended at the end of each log one after the other and each log is also split in segments
+Apache Kafka behaves as a commit-log when it comes to dealing with storing records.
+Records are appended at the end of each log one after the other and each log is also split in segments.
 Segments help with deletion of older records, improving performance, and much more.
 So, the log is a logical sequence of records that's composed of segments (files) and segments store a sub-sequence of records.
 Broker configuration allows you to tweak parameters related to logs. You can use configuration to control the rolling of segments, record retention, and so on.
 
 Not everyone is aware of how these parameters have an impact on broker behavior.
 For instance, they determine how long records are stored and made available to consumers.
-In this blog post, we will dig more into how the log segment configuration and record retention works, in order to help you make better decisions depending on your particular use case.
+In this blog post, we will dig more into how log segmentation and record retention impacts broker performance when your log cleanup policy is set to `delete`. When you know more about how it works, you might want to adjust your log configuration.
+
+> Log retention is handled differently when you use a `compact` policy instead of a `delete` policy. Using keys to identify messages, Kafka compaction keeps the latest message (with the highest offset) for a specific message key. Earlier messages that have the same key are discarded. You can read more on compaction in the Strimzi documentation for [removing log data with cleanup policies](https://strimzi.io/docs/operators/latest/using.html#removing_log_data_with_cleanup_policies).
 
 <!--more-->
 
@@ -25,8 +27,8 @@ A partition is further split into segments, which are the actual files on the di
 Splitting into segments can really help with performance.
 When records are deleted on disk or a consumer starts to consume from a specific offset, a big, unsegmented file is slower and more error prone.
 
-Looking at the broker disk, each topic partition is a directory containing the corresponding segment files and some others.
-Using the Strimzi Canary component with its producer and consumer as an example, here's an example of what the directory looks like.
+Looking at the broker disk, each topic partition is a directory containing the corresponding segment files and other files.
+Using the Strimzi Canary component with its producer and consumer as an example, here's a sample of what the directory looks like.
 
 
 ```shell
@@ -40,7 +42,7 @@ Using the Strimzi Canary component with its producer and consumer as an example,
 │   ├── 00000000000000000109.timeindex
 ```
 
-From the example, the partition 0 of the `__strimzi_canary` topic used by the Strimzi Canary component. The directory contains the following files:
+The example shows partition 0 of the `__strimzi_canary` topic used by the Strimzi Canary component. The directory contains the following files:
 
 * The `.log` file is an actual segment containing records up to a specific offset. The name of the file defines the starting offset of the records in that log.
 * The `.index` file contains an index that maps a logical offset (in effect the record's id) to the byte offset of the record within the `.log` file. It is used for accessing records at specified offsets in the log without having to scan the whole `.log` file.
@@ -65,14 +67,14 @@ drwxrwxr-x. 55 ppatiern ppatiern     1220 Nov 14 16:33 ..
 From the output, you can see that the first log segment `00000000000000000000.log` contains records from offset 0 to offset 108.
 The second segment `00000000000000000109.log` contains records starting from offset 109 and is called the ***active segment***.
 
-![Log Segments](/assets/images/posts/2021-12-09-segments.png)
-
 The active segment is the only file open for read and write operations. It is the segment where new incoming records are appended. A partition only has one active segment.
 Non-active segments are read-only, and are accessed by consumers reading older records.
-When the active segment becomes full (according to some criteria for full) it is ***rolled***, which means it is closed and re-opened in read-only mode. A new segment file is created and opened in read-write mode, becoming the active segment.
+When the active segment becomes full it is ***rolled***, which means it is closed and re-opened in read-only mode. A new segment file is created and opened in read-write mode, becoming the active segment.
 
 From the example, you can see that the old segment was closed when it reached 16314 byes in size. This is  because of the Canary topic configuration `segment.bytes=16384`, which sets the maximum size. We'll talk about this configuration later.
 150 byes is the size of every single record sent by the Canary component. So, each segment will contain 109 records. 109 * 150 bytes = 16350 bytes, which is close to the maximum segment size.
+
+![Log Segments](/assets/images/posts/2021-12-09-segments.png)
 
 It is also possible to dump the records from a log segment by using the `DumpLogSegments` tool provided by the Apache Kafka distribution.
 Running the following command shows the records inside the specified segment log.
@@ -118,17 +120,17 @@ offset: 84 position: 12564
 ```
 
 How these entries are added inside the index file is defined by the `log.index.interval.bytes` parameter, which is 4096 bytes by default.
-It means that every 4096 bytes of records added in the log file, an entry is added in the corresponding index file.
+It means that for every 4096 bytes of records added in the log file, an entry is added in the corresponding index file.
 Each entry is 8 bytes in size, 4 for the offset and 4 for the bytes position in the segment.
 In this example, we have a new index entry added every 28 records because 28 * 150 = 4200.
 
-If a consumer wants to read starting at specific offset, the search of the record is made with the following steps:
+If a consumer wants to read starting at a specific offset, a search for the record is made as follows:
 
-* Searching for the `.index` file based on its name which follows the same patterns as the corresponding `.log` file; it contains the starting offset of the records indexed by that index.
-* Searching for the entry of the `.index` file where the requested offset falls.
-* Using the corresponding bytes offset to access the `.log` file and searching for the offset that the consumer wants to start from.
+* Search for an `.index` file based on its name, which follows the same patterns as the corresponding `.log` file. The file contains the starting offset of the records indexed by that index.
+* Search for an entry in the `.index` file where the requested offset falls.
+* Use the corresponding bytes offset to access the `.log` file and search for the offset that the consumer wants to start from.
 
-The `log.index.interval.bytes` parameter can be tuned for faster searches of records despite the index file growing or viceversa.
+The `log.index.interval.bytes` parameter can be tuned for faster searches of records despite the index file growing or vice versa.
 If you set `log.index.interval.bytes` to less than the default 4096 bytes, you will have more entries in the index for a more fine-grained search. But more entries will cause the file to increase in size faster as well.
 If you set the parameter above the default 4096 bytes, you will have less entries in the index, which will slow down the search. This also means that the file size will increase in size more slowly too. 
 
@@ -159,29 +161,29 @@ Another condition is based on the `log.roll.ms` or `log.roll.hours` (7 days by d
 The first condition that is met will trigger the rolling of a new segment.
 It is also worth noticing that, as a not so usual use case, the producer timestamps in the records could be not ordered, so not having the older record as the first one, due to retries or the specific business logic of the producer.
 
-Another useful parameter is `log.roll.jitter.ms` which sets a maximum jitter when it's time to roll a segment,. Jitters are time intervals to avoid many segments being rolled at same time causing high contention on the disk.
+Another useful parameter is `log.roll.jitter.ms`, which sets a maximum jitter when it's time to roll a segment,. Jitters are time intervals to avoid many segments being rolled at same time causing high contention on the disk.
 A jitter is randomly generated for each segment.
 
 The above conditions, by size or time, are the well known ones but not everyone knows that there is a third condition.
 
 A segment is rolled even when the corresponding index (or timeindex) is full.
-The index and timeindex share the same maximum size which is defined by the `log.index.size.max.bytes` configuration parameter and it is 10 MB by default.
+The index and timeindex share the same maximum size, which is defined by the `log.index.size.max.bytes` configuration parameter, and it is 10 MB by default.
 Let's consider the default log segment maximum size, which is 1 GiB.
 We know that because `log.index.interval.bytes` is 4096 bytes by default, an entry is added in the index every 4096 bytes of records.
 It means that for a 1 GiB segment size, 1 GiB / 4096 bytes = 262144 entries are added to the index. This equals 2 MB of index (262144 * 8 bytes).
 The default index size of 10 MB is enough to handle a segment size of 5 GiB.
-This means that reducing the index size or increasing the segment size will mean a new segment is rolled when the index is full and not when the requested segment size is reached.
+Reducing the index size or increasing the segment size will mean a new segment is rolled when the index is full and not when the requested segment size is reached.
 So, setting a segment size larger than 5 GiB without increasing the index size is useless, because the broker will roll a new segment when the index is full.
 
-By increasing the segment size over 5 GiB, you would also need to increase the index file size as well. Likewise, if you decide to reduce the index file size, you should probably decrease the segment size as well.
+By increasing the segment size over 5 GiB, you would also need to increase the index file size as well. Likewise, if you decide to reduce the index file size, it is possible that you might want to decrease the segment size proportionately.
 
-The timeindex might need attention as well. Because each timeindex entry is 1.5x bigger than an entry in the index (12 bytes versus 8 bytes), it can fill up earlier and cause a new segment to be rolled.
+The timeindex might also need attention. Because each timeindex entry is 1.5x bigger than an entry in the index (12 bytes versus 8 bytes), it can fill up earlier and cause a new segment to be rolled.
 
-To show how the index and timeindex files size have an impact on rolling a new log segment, let's consider a cluster with `log.index.interval.bytes=150` and `log.index.size.max.bytes=300` still using the Strimzi Canary to produce and consume records with the usual configuration `retention.ms=600000;segment.bytes=16384`.
+To show how the index and timeindex files size have an impact on rolling a new log segment, let's consider a cluster with `log.index.interval.bytes=150` and `log.index.size.max.bytes=300` using the Strimzi Canary to produce and consume records with the usual configuration `retention.ms=600000;segment.bytes=16384`.
 Because the Strimzi Canary records are close to 150 bytes in size, we would expect the index file to be filled with one entry every two records.
 With the maximum size set at 300 bytes, we would have around 300 / 8 = 37 entries in the index file and around 300 / 12 = 25 entries in the timeindex file.
 
-By running the Strimzi Canary for a while we have the following output.
+By running the Strimzi Canary for a while we have the following output:
 
 ```shell
 -rw-rw-r--.  1 ppatiern ppatiern  192 Dec 10 16:23 00000000000000000000.index
@@ -194,11 +196,11 @@ By running the Strimzi Canary for a while we have the following output.
 ```
 
 From the example, a new segment was rolled when the active one was still 7314 byes, not reaching the configured 16384 bytes.
-At the same time, the index reached 192 byes in size, so actually having 192 / 8 = 24 entries and not the expected 37.
+At the same time, the index reached 192 bytes in size, so actually having 192 / 8 = 24 entries and not the expected 37.
 The reason is because the timeindex reached the limit of 300 bytes first.
-It is 288 bytes containing 288 / 12 = 24 entries (same number as the corresponding index).
+It is 288 bytes containing 288 / 12 = 24 entries -- the same number as the corresponding index.
 
-You can set these parameters at the broker level but they can also be overridden at the topic level.
+You can set these parameters at the broker level, but they can also be overridden at the topic level.
 
 ## How long my records are retained? Longer than you expect!
 
@@ -206,7 +208,7 @@ When managing your records, an important aspect is how long they're retained bef
 This is configurable in terms of size and duration. You can specify the maximum number of bytes to retain by using the `log.retention.bytes` parameter. If you want to set a retention period, you can use the `log.retention.ms`, `log.retention.minutes`, or `log.retention.hours` (7 days by default) parameters.
 As with the parameters that control when a segment is rolled, the first condition that is met will cause the deletion of older records from the disk.
 
-These parameters can be also be set at broker level and overridden at the topic level.
+> These parameters can be also be set at broker level and overridden at the topic level.
 
 Suppose you configure the Strimzi canary topic by specifying a retention time of 600000 ms (10 mins) and a segment size of 16384 bytes, using the `TOPIC_CONFIG` environment variable set as `retention.ms=600000;segment.bytes=16384`.
 
@@ -219,7 +221,7 @@ Regarding records retention, the expectation would be that the records are retai
 What's the minimum and maximum time after appending a record that we might still be able to read it?
 
 A segment, together with the records it contains, can be deleted only when it is closed.
-This means that if the producer is pretty slow and the maximum size of 16384 bytes is not reached within the 10 minutes, older records won't be deleted. Retention is higher than what it's meant to be.
+This means that if the producer is pretty slow and the maximum size of 16384 bytes is not reached within the 10 minutes, older records won't be deleted. Retention is therefore higher than what it's meant to be.
 
 Even if the active segment is filled quickly, the retention time is evaluated starting from the last record appended to the segment before it is closed.
 The latest record is retained for the 10 minutes we want, but the first records in the segment are retained for longer.  Of course, this depends how quickly the segment was filled and how much time passed between the first record and the last one.
@@ -232,13 +234,13 @@ Depending on when the last record is appended and a segment is closed, periodic 
 
 In our example, it might be that the first record in the segment could live up to almost 24 minutes!
 
-Assuming that at some point the clean thread runs and verifies that a closed segment can be deleted. Initially, it adds a `.deleted` extension to the corresponding files, but doesn't actually delete the segment from the file system.
+Assuming that at some point the clean thread runs, and verifies that a closed segment can be deleted. It adds a `.deleted` extension to the corresponding files, but doesn't actually delete the segment from the file system.
 The `log.segment.delete.delay.ms` broker parameter defines when the file will actually be removed from the file system when it's marked as "deleted" (1 minute by default).
 
 ![Total Retention Time](/assets/images/posts/2021-12-09-total-retention-time.png)
 
-Returning to the Canary example again and assuming the delay on deletion, the first record in our segment is still live after 25 minutes!
-It is really longer than the 10 minutes expectation, isn't it?
+Returning to the Canary example again, and assuming the delay on deletion, the first record in our segment is still live after 25 minutes!
+It is much longer than the 10 minutes expectation, isn't it?
 
 As you can see, it is clear that the retention mechanism doesn't really match the initial expectation.
 In reality, a record could live even longer than our 10 minutes depending on the configuration and internal mechanics of the broker.
@@ -248,9 +250,6 @@ It is also worth mentioning the impact on the consumer side.
 Consumers don't get records from closed segments or deleted segments, even if they are just marked as "deleted" but not actually removed from the file system.
 This is true even when a consumer starts to read the partition from the beginning.
 Longer retention won't have a direct impact on the consumers, but more on the disk usage.
-
-The overall retention mechanism works this way when the `log.cleanup.policy` is set to `delete`.
-For compacted (`compact`) topics, it is completely different. You can read more on compaction in the [Strimzi documentation](https://strimzi.io/docs/operators/latest/using.html#removing_log_data_with_cleanup_policies).
 
 ## Conclusion
 
