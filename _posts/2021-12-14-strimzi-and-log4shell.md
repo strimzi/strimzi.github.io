@@ -57,8 +57,8 @@ But until then, you can continue to use Drain Cleaner in your environment.
 ### Affected components
 
 This leaves us with five affected components.
-All Strimzi operators up to and including version 0.26.0 use Log4j2.
-As does the Strimzi Kafka Bridge up to and including version 0.20.3.
+All [Strimzi operators](https://github.com/strimzi/strimzi-kafka-operator) up to and including version 0.26.0 use Log4j2.
+As does the [Strimzi Kafka Bridge](https://github.com/strimzi/strimzi-kafka-bridge) up to and including version 0.20.3.
 The [Cruise Control](https://github.com/linkedin/cruise-control) version used by Strimzi operators from 0.22.0 up until 0.26.0 are affected as well.
 
 The operators and Cruise Control are normally accessible only internally within your Kubernetes cluster.
