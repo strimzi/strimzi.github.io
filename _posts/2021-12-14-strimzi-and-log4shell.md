@@ -9,7 +9,7 @@ The [CVE-2021-44228](https://nvd.nist.gov/vuln/detail/CVE-2021-44228) vulnerabil
 Several Strimzi components and dependencies use Log4j2 as well.
 A lot has been written about how the vulnerability works and how it can be used by attackers to gain control over your system.
 We will not get into the details in this blog post.
-But in short, if an attacker can get your application to log some arbitrary log message (or part of it), it can be used to execute arbitrary code, loaded from an attacker-controller remote server, inside your application.
+But in short, if an attacker can get your application to log some arbitrary log message (or part of it), it can be used to execute arbitrary code, loaded from an attacker-controlled remote server, inside your application.
 In this blog post, we will have a look at which parts of your Strimzi deployment might be affected and how the vulnerability can be mitigated.
 
 <!--more-->
@@ -17,8 +17,8 @@ In this blog post, we will have a look at which parts of your Strimzi deployment
 ## Is Strimzi affected?
 
 When using Strimzi, you first deploy the Cluster Operator as the central component.
-And then you use it to deploy the operands.
-And each operand might consist of multiple different components.
+Then you use it to deploy the operands.
+Finally, each operand might consist of multiple different components.
 For example when you deploy the Kafka cluster using the `Kafka` custom resource, it does not deploy just the Kafka brokers.
 It also deploys the ZooKeeper cluster, the topic and user operators and possibly also Cruise Control or Kafka Exporter.
 There are also some components which are deployed separately, such as the Drain Cleaner.
@@ -49,7 +49,7 @@ This includes the [Kafka Exporter](https://github.com/danielqsj/kafka_exporter) 
 The [Kaniko builder](https://github.com/GoogleContainerTools/kaniko) used to build the Kafka Connect images is also written in Golang
 The TLS sidecars used in the Cruise Control and Entity Operator are based on [Stunnel](https://www.stunnel.org/) which is written in C.
 
-The last unaffected components is the [Strimzi Drain Cleaner](https://github.com/strimzi/drain-cleaner).
+The last unaffected component is the [Strimzi Drain Cleaner](https://github.com/strimzi/drain-cleaner).
 The Drain Cleaner is written in Java, but it uses Log4j2 library only in tests and not when used by the users.
 The next release of Drain Cleaner will contain the Log4j2 fix (for these tests) as well.
 But until then, you do not need to be worried if you use Drain Cleaner in your environment.
