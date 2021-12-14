@@ -9,7 +9,7 @@ The [CVE-2021-44228](https://nvd.nist.gov/vuln/detail/CVE-2021-44228) vulnerabil
 Several Strimzi components and dependencies use Log4j2.
 Much has been written about how the vulnerability works and how it can be used by attackers to gain unauthorized control over your system.
 We will not get into the finer details here.
-But in short, if an attacker can get your application to log some arbitrary log message (or part of it), it can be used to execute arbitrary code, loaded from an attacker-controlled remote server, inside your application.
+In short, if an attacker can get your application to log an arbitrary log message (or part of it), it can be used to execute arbitrary code, loaded from an attacker-controlled remote server, inside your application.
 In this blog post, we will have a look at which parts of your Strimzi deployment might be affected and how the vulnerability can be mitigated.
 
 <!--more-->
@@ -23,7 +23,7 @@ For example, when you deploy the Kafka cluster using the `Kafka` custom resource
 It also deploys the ZooKeeper cluster, the topic and user operators, and possibly Cruise Control and Kafka Exporter.
 There are also some components which are deployed separately, such as the Drain Cleaner.
 
-The following list provides all the available components:
+All the available components are listed here:
 * Cluster Operator
 * Topic Operator
 * User Operator
@@ -59,11 +59,11 @@ But until then, you can continue to use Drain Cleaner in your environment.
 This leaves us with five affected components.
 All Strimzi operators up to and including version 0.26.0 use Log4j2.
 As does the Strimzi Kafka Bridge up to and including version 0.20.3.
-The versions of [Cruise Control](https://github.com/linkedin/cruise-control) used by Strimzi operators from 0.22.0 up until 0.26.0 are affected as well.
+The [Cruise Control](https://github.com/linkedin/cruise-control) version used by Strimzi operators from 0.22.0 up until 0.26.0 are affected as well.
 
 The operators and Cruise Control are normally accessible only internally within your Kubernetes cluster.
 We are currently not aware of any way of exploiting the vulnerability, either through Apache Kafka or directly.
-But we cannot exclude such possibility.
+But we cannot exclude such a possibility.
 
 The Strimzi Kafka Bridge is used to access the Kafka cluster using HTTP or AMQP protocols.
 As such, it is often exposed to more open networks and environments which makes it vulnerable.
@@ -72,7 +72,7 @@ As such, it is often exposed to more open networks and environments which makes 
 
 [Apache Kafka project](https://kafka.apache.org/) is currently using the [Log4j 1.x library](https://logging.apache.org/log4j/1.2/).
 This is a predecessor of Log4j2 and is not affected by CVE-2021-44228.
-This includes not just the Kafka brokers, but also ZooKeeper, Kafka Connect and Mirror Maker 1 & 2.
+This applies to the Kafka brokers, as well as ZooKeeper, Kafka Connect, and MirrorMaker 1 & 2.
 
 While in this case using Log4j 1 proved useful, its usage has its own problems.
 Log4j 1 is no longer maintained and has its own CVEs, though they are not as critical as CVE-2021-44228.
@@ -81,11 +81,11 @@ The Apache Kafka project is working on replacing Log4j 1 with Log4j2 in the futu
 The Log4j 1 CVE [CVE-2021-4104](https://nvd.nist.gov/vuln/detail/CVE-2021-4104) is very similar to the Log4Shell CVE.
 But there is one main difference -- it affects Log4j 1 only when you use the `JMSAppender` with specific configuration.
 The `JMSAppender` is not used by default.
-So make sure you did not enabled it in your Kafka or ZooKeeper logging configuration and you should not be affected by it.
+If you make sure that you do not use the `JMSAppender` in your Kafka or ZooKeeper logging configuration, you should not be affected by it.
 
 ## Mitigating the Log4j2 vulnerability
 
-There are two different ways that you can mitigate the vulnerability with Strimzi.
+There are two ways you can mitigate the Log4j2 vulnerability with Strimzi.
 The Log4j2 project released version 2.15.0 of their library, which fixes the CVE.
 Using this new version of Log4j2 in your environments is the best way to address the vulnerability.
 An alternative way is to disable the remote lookups in the older versions of the Log4j2 library.
@@ -96,7 +96,7 @@ After finding out about the CVE, we worked on a fix for this vulnerability in ou
 We have released version [0.21.0](https://github.com/strimzi/strimzi-kafka-bridge/releases/tag/0.21.0) of the Strimzi Kafka Bridge, which uses the new version of the library and should be safe to use.
 We have also released version [0.26.1](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.26.1) of our operators, which includes the new version of the Kafka Bridge.
 Log4j2 2.15.0 is used in all Strimzi operators.
-And it updates the Log4j2 version in the Cruise Control deployment as well.
+Log4j2 is updated in the Cruise Control deployment as well.
 
 **We recommend you upgrade to these new versions of Strimzi as soon as possible.**
 
@@ -142,7 +142,7 @@ But you can [set custom environment variables in the `Subscription` resource](ht
 
 The Strimzi 0.26 Helm Chart doesn't have an option to configure custom environment variables.
 But in many cases, you should be able to add the environment variable to the deployment after it was created by the Helm Chart.
-You can also edit the Deployment template which is inside the Helm Chart to add the environment variable to it before deploying the Helm Chart.
+You can also edit the Deployment template inside the Helm Chart to add the environment variable to it before deploying the Helm Chart.
 
 #### Topic and User Operators
 
