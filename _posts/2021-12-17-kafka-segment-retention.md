@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Deep dive into Apache Kafka storage internals: segments, rolling and retention"
-date: 2021-12-09
+date: 2021-12-17
 author: paolo_patierno
 ---
 
@@ -74,7 +74,7 @@ When the active segment becomes full it is ***rolled***, which means it is close
 From the example, you can see that the old segment was closed when it reached 16314 byes in size. This is  because of the Canary topic configuration `segment.bytes=16384`, which sets the maximum size. We'll talk about this configuration later.
 150 byes is the size of every single record sent by the Canary component. So, each segment will contain 109 records. 109 * 150 bytes = 16350 bytes, which is close to the maximum segment size.
 
-![Log Segments](/assets/images/posts/2021-12-09-segments.png)
+![Log Segments](/assets/images/posts/2021-12-17-segments.png)
 
 It is also possible to dump the records from a log segment by using the `DumpLogSegments` tool provided by the Apache Kafka distribution.
 Running the following command shows the records inside the specified segment log.
@@ -106,7 +106,7 @@ You might expect that this mapping is available for each record, but it doesn't 
 Let's consider the record sent by the Canary component, which is around 150 bytes in size.
 In the following diagram, you can see that for 85 records stored in the log file, the corresponding index has just 3 entries.
 
-![Log Index](/assets/images/posts/2021-12-09-index.png)
+![Log Index](/assets/images/posts/2021-12-17-index.png)
 
 The record with offset 28 is at byte offset 4169 in the log file, the record with offset 56 is at byte offset 8364, and so on.
 By using the `DumpLogSegments` tool, it is possible to dump the `.index` file content.
@@ -139,7 +139,7 @@ Each entry in the `.timeindex` file defines a timestamp and offset pair, which p
 
 In the following diagram, you can see that the records from timestamp `1638100314372` start at offset 28, the records from `1638100454372` start at offset 56, and so on.
 
-![Log Timeindex](/assets/images/posts/2021-12-09-timeindex.png)
+![Log Timeindex](/assets/images/posts/2021-12-17-timeindex.png)
 
 Each entry is 12 bytes in size, 8 for the timestamp and 4 for the offset.
 It reflects exactly how the Strimzi Canary component is producing records, because it's sending one record every 5 seconds. 28 records would be sent in 140 seconds (28 x 5), which is exactly the difference between the timestamps: 1638100454372 - 1638100314372 = 140000 milliseconds.
@@ -237,7 +237,7 @@ In our example, it might be that the first record in the segment could live up t
 Assuming that at some point the clean thread runs, and verifies that a closed segment can be deleted. It adds a `.deleted` extension to the corresponding files, but doesn't actually delete the segment from the file system.
 The `log.segment.delete.delay.ms` broker parameter defines when the file will actually be removed from the file system when it's marked as "deleted" (1 minute by default).
 
-![Total Retention Time](/assets/images/posts/2021-12-09-total-retention-time.png)
+![Total Retention Time](/assets/images/posts/2021-12-17-total-retention-time.png)
 
 Returning to the Canary example again, and assuming the delay on deletion, the first record in our segment is still live after 25 minutes!
 It is much longer than the 10 minutes expectation, isn't it?
