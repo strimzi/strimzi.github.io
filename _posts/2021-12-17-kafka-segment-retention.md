@@ -247,7 +247,7 @@ In reality, a record could live even longer than our 10 minutes depending on the
 The usual retention limits set by using `log.retention.ms` defines a kind of lower bound. Kafka guarantees it will not delete any records that have an age less than the one specified, but any older records might be deleted at any time in the future depending on the settings.
 
 It is also worth mentioning the impact on the consumer side.
-Consumers don't get records from closed segments or deleted segments, even if they are just marked as "deleted" but not actually removed from the file system.
+Consumers get records from closed segments but not from deleted ones, even if they are just marked as "deleted" but not actually removed from the file system.
 This is true even when a consumer starts to read the partition from the beginning.
 Longer retention won't have a direct impact on the consumers, but more on the disk usage.
 
