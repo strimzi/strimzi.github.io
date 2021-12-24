@@ -5,6 +5,8 @@ date: 2021-12-14
 author: jakub_scholz
 ---
 
+_Update (24th December 2021): We have now also released [Strimzi 0.27.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.27.0) which uses Log4j2 2.17.0 and fixes also the less critical [CVE-2021-45105](https://nvd.nist.gov/vuln/detail/CVE-2021-45105) and [CVE-2021-45046](https://nvd.nist.gov/vuln/detail/CVE-2021-45046)._
+
 The [CVE-2021-44228](https://nvd.nist.gov/vuln/detail/CVE-2021-44228) vulnerability in the [Log4j2 logging library](https://logging.apache.org/log4j/2.x/) - also known as Log4Shell - affects many software projects written in Java.
 Several Strimzi components and dependencies use Log4j2.
 Much has been written about how the vulnerability works and how it can be used by attackers to gain unauthorized control over your system.
