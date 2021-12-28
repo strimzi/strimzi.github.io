@@ -16269,6 +16269,22 @@ Capacity limits can be set for the following broker resources, using the standar
 <div class="paragraph">
 <p>Because Strimzi Kafka brokers are homogeneous, Cruise Control applies the same capacity limits to every broker it is monitoring.</p>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>In order to guarantee accurate rebalance proposal when using CPU goals, you can set CPU requests equal to CPU limits in <code>Kafka.spec.kafka.resources</code>.
+That way, all CPU resources are reserved upfront and are always available.
+This configuration allows Cruise Control to properly evaluate the CPU utilization when preparing the rebalance proposals based on CPU goals.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
 <div class="listingblock">
 <div class="title">An example Cruise Control brokerCapacity configuration using bibyte units</div>
 <div class="content">
@@ -16710,6 +16726,38 @@ For descriptions of each property, see <a href="#contents-optimization-proposals
 </div>
 </li>
 </ol>
+</div>
+<div class="paragraph">
+<div class="title">Insufficient CPU capacity</div>
+<p>If a Kafka cluster is overloaded in terms of CPU utilization, you might see an insufficient CPU capacity error in the <code>KafkaRebalance</code> status.
+It&#8217;s worth noting that this utilization value is unaffected by the <code>excludedTopics</code> configuration.
+Although optimization proposals will not reassign replicas of excluded topics, their load is still considered in the utilization calculation.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example CPU utilization error</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">com.linkedin.kafka.cruisecontrol.exception.OptimizationFailureException:
+        [CpuCapacityGoal] Insufficient capacity for cpu (Utilization 615.21,
+        Allowed Capacity 420.00, Threshold: 0.70). Add at least 3 brokers with
+        the same cpu capacity (100.00) as broker-0. Add at least 3 brokers with
+        the same cpu capacity (100.00) as broker-0.</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>The error shows CPU capacity as a percentage rather than CPU cores. For that reason, it does not directly map to the number of CPUs configured in Kafka CR.
+It is like having a single <em>virtual</em> CPU per broker, which has the cycles of <code>Kafka.spec.kafka.resources.limits.cpu</code> CPUs.
+This has no effect on the rebalance behavior, since the ratio between CPU utilization and capacity remains the same.</p>
+</div>
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <div class="title">What to do next</div>
