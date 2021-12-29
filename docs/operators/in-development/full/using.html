@@ -23832,120 +23832,87 @@ you can specify <code>trustedCertificates</code> as an empty array:</p>
 <div class="sect3">
 <h4 id="con-common-configuration-resources-reference"><a class="link" href="#con-common-configuration-resources-reference">11.1.5. <code>resources</code></a></h4>
 <div class="paragraph">
-<p>You request CPU and memory resources for components.
-Limits specify the maximum resources that can be consumed by a given container.</p>
+<p>Configure resource <em>requests</em> and <em>limits</em> to control resources for Strimzi containers.
+You can specify requests and limits for <code>memory</code> and <code>cpu</code> resources.
+The requests should be enough to ensure a stable performance of Kafka.</p>
+</div>
+<div class="paragraph">
+<p>How you configure resources in a production environment depends on a number of factors.
+For example, applications are likely to be sharing resources in your Kubernetes cluster.</p>
+</div>
+<div class="paragraph">
+<p>For Kafka, the following aspects of a deployment can impact the resources you need:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Throughput and size of messages</p>
+</li>
+<li>
+<p>The number of network threads handling messages</p>
+</li>
+<li>
+<p>The number of producers and consumers</p>
+</li>
+<li>
+<p>The number of topics and partitions</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The values specified for resource requests are reserved and always available to a container.
+Resource limits specify the maximum resources that can be consumed by a given container.
+The amount between the request and limit is not reserved and might not be always available.
+A container can use the resources up to the limit only when they are available.
+Resource limits are temporary and can be reallocated.</p>
+</div>
+<div class="paragraph">
+<div class="title">Resource request and limit</div>
+<p><span class="image"><img src="images/common-config-resources.png" alt="Boundaries of a resource request and limit"></span></p>
+</div>
+<div class="paragraph">
+<p>If you set limits without requests or vice versa, Kubernetes uses the same value for both.
+Setting equal requests and limits for resources guarantees quality of service, as
+Kubernetes will not kill containers unless they exceed their limits.</p>
+</div>
+<div class="paragraph">
+<p>You can configure resource requests and limits for one or more supported resources.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example resource configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    #...
+    resources:
+      requests:
+        memory: 64Gi
+        cpu: "8"
+      limits:
+        memory: 64Gi
+        cpu: "12"
+  entityOperator:
+    #...
+    topicOperator:
+      #...
+      resources:
+        requests:
+          memory: 512Mi
+          cpu: "1"
+        limits:
+          memory: 512Mi
+          cpu: "1"</code></pre>
+</div>
 </div>
 <div class="paragraph">
 <p>Resource requests and limits for the Topic Operator and User Operator are set in the <code>Kafka</code> resource.</p>
 </div>
 <div class="paragraph">
-<p>Use the <code>reources.requests</code> and <code>resources.limits</code> properties to configure resource requests and limits.</p>
-</div>
-<div class="paragraph">
-<p>For every deployed container, Strimzi allows you to request specific resources and define the maximum consumption of those resources.</p>
-</div>
-<div class="paragraph">
-<p>Strimzi supports requests and limits for the following types of resources:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>cpu</code></p>
-</li>
-<li>
-<p><code>memory</code></p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Strimzi uses the Kubernetes syntax for specifying these resources.</p>
-</div>
-<div class="paragraph">
-<p>For more information about managing computing resources on Kubernetes, see <a href="https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/" target="_blank" rel="noopener">Managing Compute Resources for Containers</a>.</p>
-</div>
-<div class="paragraph">
-<p><strong>Resource requests</strong></p>
-</div>
-<div class="paragraph">
-<p>Requests specify the resources to reserve for a given container.
-Reserving the resources ensures that they are always available.</p>
-</div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-If the resource request is for more than the available free resources in the Kubernetes cluster, the pod is not scheduled.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>A request may be configured for one or more supported resources.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example resource requests configuration</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
-resources:
-  requests:
-    cpu: 12
-    memory: 64Gi
-# ...</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p><strong>Resource limits</strong></p>
-</div>
-<div class="paragraph">
-<p>Limits specify the maximum resources that can be consumed by a given container.
-The limit is not reserved and might not always be available.
-A container can use the resources up to the limit only when they are available.
-Resource limits should be always higher than the resource requests.</p>
-</div>
-<div class="paragraph">
-<p>A resource may be configured for one or more supported limits.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example resource limits configuration</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
-resources:
-  limits:
-    cpu: 12
-    memory: 64Gi
-# ...</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p><strong>Supported CPU formats</strong></p>
-</div>
-<div class="paragraph">
-<p>CPU requests and limits are supported in the following formats:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Number of CPU cores as integer (<code>5</code> CPU core) or decimal (<code>2.5</code> CPU core).</p>
-</li>
-<li>
-<p>Number or <em>millicpus</em> / <em>millicores</em> (<code>100m</code>) where 1000 <em>millicores</em> is the same <code>1</code> CPU core.</p>
-</li>
-</ul>
-</div>
-<div class="listingblock">
-<div class="title">Example CPU units</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
-resources:
-  requests:
-    cpu: 500m
-  limits:
-    cpu: 2.5
-# ...</code></pre>
-</div>
+<p>If the resource request is for more than the available free resources in the Kubernetes cluster, the pod is not scheduled.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -23954,33 +23921,45 @@ resources:
 <div class="title">Note</div>
 </td>
 <td class="content">
-The computing power of 1 CPU core may differ depending on the platform where Kubernetes is deployed.
+Strimzi uses the Kubernetes syntax for specifying <code>memory</code> and <code>cpu</code> resources.
+For more information about managing computing resources on Kubernetes, see <a href="https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/" target="_blank" rel="noopener">Managing Compute Resources for Containers</a>.
 </td>
 </tr>
 </table>
 </div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Memory resources</dt>
+<dd>
+<p>When configuring memory resources, consider the total requirements of the components.</p>
+<div class="openblock">
+<div class="content">
 <div class="paragraph">
-<p>For more information on CPU specification, see the <a href="https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/#meaning-of-cpu" target="_blank" rel="noopener">Meaning of CPU</a>.</p>
+<p>Kafka runs inside a JVM and uses an operating system page cache to store message data before writing to disk.
+The memory request for Kafka should fit the JVM heap and page cache.
+You can <a href="#con-common-configuration-jvm-reference">configure the <code>jvmOptions</code> property</a> to control the minimum and maximum heap size.</p>
 </div>
 <div class="paragraph">
-<p><strong>Supported memory formats</strong></p>
+<p>Other components don&#8217;t rely on the page cache.
+You can configure memory resources without configuring the <code>jvmOptions</code> to control the heap size.</p>
 </div>
 <div class="paragraph">
-<p>Memory requests and limits are specified in megabytes, gigabytes, mebibytes, and gibibytes.</p>
+<p>Memory requests and limits are specified in megabytes, gigabytes, mebibytes, and gibibytes.
+Use the following suffixes in the specification:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>To specify memory in megabytes, use the <code>M</code> suffix. For example <code>1000M</code>.</p>
+<p><code>M</code> for megabytes</p>
 </li>
 <li>
-<p>To specify memory in gigabytes, use the <code>G</code> suffix. For example <code>1G</code>.</p>
+<p><code>G</code> for gigabytes</p>
 </li>
 <li>
-<p>To specify memory in mebibytes, use the <code>Mi</code> suffix. For example <code>1000Mi</code>.</p>
+<p><code>Mi</code> for mebibytes</p>
 </li>
 <li>
-<p>To specify memory in gibibytes, use the <code>Gi</code> suffix. For example <code>1Gi</code>.</p>
+<p><code>Gi</code> for gibibytes</p>
 </li>
 </ul>
 </div>
@@ -23998,6 +23977,42 @@ resources:
 </div>
 <div class="paragraph">
 <p>For more details about memory specification and additional supported units, see <a href="https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/#meaning-of-memory" target="_blank" rel="noopener">Meaning of memory</a>.</p>
+</div>
+</div>
+</div>
+</dd>
+<dt class="hdlist1">CPU resources</dt>
+<dd>
+<p>A CPU request should be enough to give a reliable performance at any time.
+CPU requests and limits are specified as <em>cores</em> or <em>millicpus</em>/<em>millicores</em>.</p>
+<div class="openblock">
+<div class="content">
+<div class="paragraph">
+<p>CPU cores are specified as integers (<code>5</code> CPU core) or decimals (<code>2.5</code> CPU core).
+1000 <em>millicores</em> is the same as <code>1</code> CPU core.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example CPU units</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+resources:
+  requests:
+    cpu: 500m
+  limits:
+    cpu: 2.5
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The computing power of 1 CPU core may differ depending on the platform where Kubernetes is deployed.</p>
+</div>
+<div class="paragraph">
+<p>For more information on CPU specification, see <a href="https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/#meaning-of-cpu" target="_blank" rel="noopener">Meaning of CPU</a>.</p>
+</div>
+</div>
+</div>
+</dd>
+</dl>
 </div>
 </div>
 <div class="sect3">
@@ -37980,7 +37995,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-12-28 00:03:44 UTC
+Last updated 2021-12-29 08:16:12 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
