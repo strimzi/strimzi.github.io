@@ -504,8 +504,6 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#using-kafka-connect-with-plug-ins-str">4.2.3. Extending Kafka Connect with connector plug-ins</a></li>
 <li><a href="#con-creating-managing-connectors-str">4.2.4. Creating and managing connectors</a></li>
 <li><a href="#proc-deploying-kafkaconnector-str">4.2.5. Deploying the example KafkaConnector resources</a></li>
-<li><a href="#proc-manual-restart-connector-str">4.2.6. Performing a restart of a Kafka connector</a></li>
-<li><a href="#proc-manual-restart-connector-task-str">4.2.7. Performing a restart of a Kafka connector task</a></li>
 </ul>
 </li>
 <li><a href="#kafka-mirror-maker-str">4.3. Deploy Kafka MirrorMaker</a>
@@ -3001,12 +2999,6 @@ Kafka Connect can also work in standalone mode, but this is not supported by Str
 <li>
 <p><a href="#proc-deploying-kafkaconnector-str">Deploy a KafkaConnector resource to Kafka Connect</a></p>
 </li>
-<li>
-<p><a href="#proc-manual-restart-connector-str">Restart a Kafka connector by annotating a KafkaConnector resource</a></p>
-</li>
-<li>
-<p><a href="#proc-manual-restart-connector-task-str">Restart a Kafka connector task by annotating a KafkaConnector resource</a></p>
-</li>
 </ul>
 </div>
 <div class="admonitionblock note">
@@ -3480,7 +3472,7 @@ Connectors are available for many external systems, or you can create your own.<
 <div class="ulist">
 <ul>
 <li>
-<p>KafkaConnector resources (referred to as KafkaConnectors)</p>
+<p><code>KafkaConnector</code> resources (referred to as KafkaConnectors)</p>
 </li>
 <li>
 <p>Kafka Connect REST API</p>
@@ -3522,17 +3514,17 @@ Connectors are available for many external systems, or you can create your own.<
 <h5 id="kafkaconnector_resources"><a class="link" href="#kafkaconnector_resources">KafkaConnector resources</a></h5>
 <div class="paragraph">
 <p>KafkaConnectors allow you to create and manage connector instances for Kafka Connect in a Kubernetes-native way, so an HTTP client such as cURL is not required.
-Like other Kafka resources, you declare a connector’s desired state in a KafkaConnector YAML file that is deployed to your Kubernetes cluster to create the connector instance.
-KafkaConnector resources must be deployed to the same namespace as the Kafka Connect cluster they link to.</p>
+Like other Kafka resources, you declare a connector’s desired state in a <code>KafkaConnector</code> YAML file that is deployed to your Kubernetes cluster to create the connector instance.
+<code>KafkaConnector</code> resources must be deployed to the same namespace as the Kafka Connect cluster they link to.</p>
 </div>
 <div class="paragraph">
-<p>You manage a running connector instance by updating its corresponding KafkaConnector resource, and then applying the updates.
+<p>You manage a running connector instance by updating its corresponding <code>KafkaConnector</code> resource, and then applying the updates.
 Annotations are used to manually restart connector instances and connector tasks.
-You remove a connector by deleting its corresponding KafkaConnector.</p>
+You remove a connector by deleting its corresponding <code>KafkaConnector</code>.</p>
 </div>
 <div class="paragraph">
 <p>To ensure compatibility with earlier versions of Strimzi, KafkaConnectors are disabled by default. To enable them for a Kafka Connect cluster, you must use annotations on the <code>KafkaConnect</code> resource.
-For instructions, see <a href="./using.html#proc-kafka-connect-config-str" target="_blank" rel="noopener">Configuring Kafka Connect</a> in the <em>Using Strimzi</em> guide.</p>
+For instructions, see <a href="./using.html#proc-kafka-connect-config-str" target="_blank" rel="noopener">Configuring Kafka Connect</a>.</p>
 </div>
 <div class="paragraph">
 <p>When KafkaConnectors are enabled, the Cluster Operator begins to watch for them. It updates the configurations of running connector instances to match the configurations defined in their KafkaConnectors.</p>
@@ -3548,7 +3540,19 @@ For instructions, see <a href="./using.html#proc-kafka-connect-config-str" targe
 </ul>
 </div>
 <div class="paragraph">
-<p>You can use this example to create and manage a <code>FileStreamSourceConnector</code> and a <code>FileStreamSinkConnector</code> as described in <a href="#proc-deploying-kafkaconnector-str">Deploying the example KafkaConnector resources</a>.</p>
+<p>You can use this example to create and manage a <code>FileStreamSourceConnector</code> and a <code>FileStreamSinkConnector</code>, as described in <a href="#proc-deploying-kafkaconnector-str">Deploying the example <code>KafkaConnector</code> resources</a>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+You can <a href="./using.html#proc-manual-restart-connector-str" target="_blank" rel="noopener">restart a connector</a> or <a href="./using.html#proc-manual-restart-connector-task-str" target="_blank" rel="noopener">restart a connector task</a> by annotating a <code>KafkaConnector</code> resource.
+</td>
+</tr>
+</table>
 </div>
 </div>
 <div class="sect4">
@@ -3838,101 +3842,6 @@ Other connectors support different configuration options.</p>
 <p><a href="#con-creating-managing-connectors-str">Creating and managing connectors</a></p>
 </li>
 </ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="proc-manual-restart-connector-str"><a class="link" href="#proc-manual-restart-connector-str">4.2.6. Performing a restart of a Kafka connector</a></h4>
-<div class="paragraph">
-<p>This procedure describes how to manually trigger a restart of a Kafka connector by using a Kubernetes annotation.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>The Cluster Operator is running.</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Find the name of the <code>KafkaConnector</code> custom resource that controls the Kafka connector you want to restart:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get KafkaConnector</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>To restart the connector, annotate the <code>KafkaConnector</code> resource in Kubernetes.
-For example, using <code>kubectl annotate</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate KafkaConnector <em>KAFKACONNECTOR-NAME</em> strimzi.io/restart=true</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Wait for the next reconciliation to occur (every two minutes by default).</p>
-<div class="paragraph">
-<p>The Kafka connector is restarted, as long as the annotation was detected by the reconciliation process.
-When Kafka Connect accepts the restart request, the annotation is removed from the <code>KafkaConnector</code> custom resource.</p>
-</div>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect3">
-<h4 id="proc-manual-restart-connector-task-str"><a class="link" href="#proc-manual-restart-connector-task-str">4.2.7. Performing a restart of a Kafka connector task</a></h4>
-<div class="paragraph">
-<p>This procedure describes how to manually trigger a restart of a Kafka connector task by using a Kubernetes annotation.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>The Cluster Operator is running.</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Find the name of the <code>KafkaConnector</code> custom resource that controls the Kafka connector task you want to restart:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get KafkaConnector</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Find the ID of the task to be restarted from the <code>KafkaConnector</code> custom resource.
-Task IDs are non-negative integers, starting from 0.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl describe KafkaConnector <em>KAFKACONNECTOR-NAME</em></code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>To restart the connector task, annotate the <code>KafkaConnector</code> resource in Kubernetes.
-For example, using <code>kubectl annotate</code> to restart task 0:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate KafkaConnector <em>KAFKACONNECTOR-NAME</em> strimzi.io/restart-task=0</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Wait for the next reconciliation to occur (every two minutes by default).</p>
-<div class="paragraph">
-<p>The Kafka connector task is restarted, as long as the annotation was detected by the reconciliation process.
-When Kafka Connect accepts the restart request, the annotation is removed from the <code>KafkaConnector</code> custom resource.</p>
-</div>
-</li>
-</ol>
 </div>
 </div>
 </div>
@@ -7617,7 +7526,7 @@ The value of <code>log.message.format.version</code> and <code>inter.broker.prot
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-01-06 12:39:32 UTC
+Last updated 2022-01-07 13:21:04 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
