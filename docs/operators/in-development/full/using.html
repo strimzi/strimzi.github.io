@@ -486,10 +486,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#proc-kafka-connect-config-str">2.2.1. Configuring Kafka Connect</a></li>
 <li><a href="#con-kafka-connect-multiple-instances-str">2.2.2. Kafka Connect configuration for multiple instances</a></li>
 <li><a href="#proc-configuring-kafka-connect-user-authorization-str">2.2.3. Configuring Kafka Connect user authorization</a></li>
-<li><a href="#proc-manual-restart-connector-str">2.2.4. Performing a restart of a Kafka connector</a></li>
-<li><a href="#proc-manual-restart-connector-task-str">2.2.5. Performing a restart of a Kafka connector task</a></li>
-<li><a href="#con-exposing-kafka-connect-api-str">2.2.6. Exposing the Kafka Connect API</a></li>
-<li><a href="#ref-list-of-kafka-connect-resources-str">2.2.7. List of Kafka Connect cluster resources</a></li>
+<li><a href="#ref-list-of-kafka-connect-resources-str">2.2.4. List of Kafka Connect cluster resources</a></li>
 </ul>
 </li>
 <li><a href="#assembly-deployment-configuration-kafka-mirror-maker-str">2.3. Kafka MirrorMaker cluster configuration</a>
@@ -4517,8 +4514,8 @@ The full schema of the <code>KafkaConnect</code> resource is described in <a hre
 Use the properties of the <code>KafkaConnect</code> resource to configure your Kafka Connect deployment.</p>
 </div>
 <div class="paragraph">
-<div class="title">Kafka connector configuration</div>
-<p>KafkaConnector resources allow you to create and manage connector instances for Kafka Connect in a Kubernetes-native way.</p>
+<div class="title">KafkaConnector configuration</div>
+<p><code>KafkaConnector</code> resources allow you to create and manage connector instances for Kafka Connect in a Kubernetes-native way.</p>
 </div>
 <div class="paragraph">
 <p>In your Kafka Connect configuration, you enable KafkaConnectors for a Kafka Connect cluster by adding the <code>strimzi.io/use-connector-resources</code> annotation.
@@ -4526,9 +4523,9 @@ You can also add a <code>build</code> configuration so that Strimzi automaticall
 External configuration for Kafka Connect connectors is specified through the <code>externalConfiguration</code> property.</p>
 </div>
 <div class="paragraph">
-<p>To manage connectors, you can use the Kafka Connect REST API, or use KafkaConnector custom resources.
-KafkaConnector resources must be deployed to the same namespace as the Kafka Connect cluster they link to.
-For more information on using these methods to create, reconfigure, or delete connectors, see <a href="./deploying.html#con-creating-managing-connectors-str" target="_blank" rel="noopener">Creating and managing connectors</a> in the <em>Deploying and Upgrading Strimzi</em> guide.</p>
+<p>To manage connectors, you can use the Kafka Connect REST API, or use <code>KafkaConnector</code> custom resources.
+<code>KafkaConnector</code> resources must be deployed to the same namespace as the Kafka Connect cluster they link to.
+For more information on using these methods to create, reconfigure, or delete connectors, see <a href="./deploying.html#assembly-creating-managing-connectors-str" target="_blank" rel="noopener">Creating and managing connectors</a>.</p>
 </div>
 <div class="paragraph">
 <p>Connector configuration is passed to Kafka Connect as part of an HTTP request and stored within Kafka itself.
@@ -5052,244 +5049,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-restart-connector-str"><a class="link" href="#proc-manual-restart-connector-str">2.2.4. Performing a restart of a Kafka connector</a></h4>
-<div class="paragraph">
-<p>This procedure describes how to manually trigger a restart of a Kafka connector by using a Kubernetes annotation.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>The Cluster Operator is running.</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Find the name of the <code>KafkaConnector</code> custom resource that controls the Kafka connector you want to restart:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get KafkaConnector</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>To restart the connector, annotate the <code>KafkaConnector</code> resource in Kubernetes.
-For example, using <code>kubectl annotate</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate KafkaConnector <em>KAFKACONNECTOR-NAME</em> strimzi.io/restart=true</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Wait for the next reconciliation to occur (every two minutes by default).</p>
-<div class="paragraph">
-<p>The Kafka connector is restarted, as long as the annotation was detected by the reconciliation process.
-When Kafka Connect accepts the restart request, the annotation is removed from the <code>KafkaConnector</code> custom resource.</p>
-</div>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect3">
-<h4 id="proc-manual-restart-connector-task-str"><a class="link" href="#proc-manual-restart-connector-task-str">2.2.5. Performing a restart of a Kafka connector task</a></h4>
-<div class="paragraph">
-<p>This procedure describes how to manually trigger a restart of a Kafka connector task by using a Kubernetes annotation.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>The Cluster Operator is running.</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Find the name of the <code>KafkaConnector</code> custom resource that controls the Kafka connector task you want to restart:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get KafkaConnector</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Find the ID of the task to be restarted from the <code>KafkaConnector</code> custom resource.
-Task IDs are non-negative integers, starting from 0.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl describe KafkaConnector <em>KAFKACONNECTOR-NAME</em></code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>To restart the connector task, annotate the <code>KafkaConnector</code> resource in Kubernetes.
-For example, using <code>kubectl annotate</code> to restart task 0:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate KafkaConnector <em>KAFKACONNECTOR-NAME</em> strimzi.io/restart-task=0</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Wait for the next reconciliation to occur (every two minutes by default).</p>
-<div class="paragraph">
-<p>The Kafka connector task is restarted, as long as the annotation was detected by the reconciliation process.
-When Kafka Connect accepts the restart request, the annotation is removed from the <code>KafkaConnector</code> custom resource.</p>
-</div>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect3">
-<h4 id="con-exposing-kafka-connect-api-str"><a class="link" href="#con-exposing-kafka-connect-api-str">2.2.6. Exposing the Kafka Connect API</a></h4>
-<div class="paragraph _abstract">
-<p>Use the Kafka Connect REST API as an alternative to using <code>KafkaConnector</code> resources to manage connectors.
-The Kafka Connect REST API is available as a service running on <code><em>&lt;connect_cluster_name&gt;</em>-connect-api:8083</code>, where <em>&lt;connect_cluster_name&gt;</em> is the name of your Kafka Connect cluster.
-The service is created when you create a Kafka Connect instance.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The <code>strimzi.io/use-connector-resources</code> annotation enables KafkaConnectors.
-If you applied the annotation to your <code>KafkaConnect</code> resource configuration, you need to remove it to use the Kafka Connect API.
-Otherwise, manual changes made directly using the Kafka Connect REST API are reverted by the Cluster Operator.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>You can add the connector configuration as a JSON object.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example curl request to add connector configuration</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-curl hljs" data-lang="curl">curl -X POST \
-  http://my-connect-cluster-connect-api:8083/connectors \
-  -H 'Content-Type: application/json' \
-  -d '{ "name": "my-source-connector",
-    "config":
-    {
-      "connector.class":"org.apache.kafka.connect.file.FileStreamSourceConnector",
-      "file": "/opt/kafka/LICENSE",
-      "topic":"my-topic",
-      "tasksMax": "4",
-      "type": "source"
-    }
-}'</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The API is only accessible within the Kubernetes cluster.
-If you want to make the Kafka Connect API accessible to applications running outside of the Kubernetes cluster, you can expose it manually by creating one of the following features:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>LoadBalancer</code> or <code>NodePort</code> type services</p>
-</li>
-<li>
-<p><code>Ingress</code> resources</p>
-</li>
-<li>
-<p>OpenShift routes</p>
-</li>
-</ul>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The connection is insecure, so allow external access advisedly.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>If you decide to create services, use the labels from the <code>selector</code> of the <code><em>&lt;connect_cluster_name&gt;</em>-connect-api</code> service to configure the pods to which the service will route the traffic:</p>
-</div>
-<div class="listingblock">
-<div class="title">Selector configuration for the service</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
-selector:
-  strimzi.io/cluster: my-connect-cluster <b class="conum">(1)</b>
-  strimzi.io/kind: KafkaConnect
-  strimzi.io/name: my-connect-cluster-connect <b class="conum">(2)</b>
-#...</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Name of the Kafka Connect custom resource in your Kubernetes cluster.</p>
-</li>
-<li>
-<p>Name of the Kafka Connect deployment created by the Cluster Operator.</p>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>You must also create a <code>NetworkPolicy</code> that allows HTTP requests from external clients.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example NetworkPolicy to allow requests to the Kafka Connect API</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: my-custom-connect-network-policy
-spec:
-  ingress:
-  - from:
-    - podSelector: <b class="conum">(1)</b>
-        matchLabels:
-          app: my-connector-manager
-    ports:
-    - port: 8083
-      protocol: TCP
-  podSelector:
-    matchLabels:
-      strimzi.io/cluster: my-connect-cluster
-      strimzi.io/kind: KafkaConnect
-      strimzi.io/name: my-connect-cluster-connect
-  policyTypes:
-  - Ingress</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>The label of the pod that is allowed to connect to the API.</p>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>To add the connector configuration outside the cluster, use the URL of the resource that exposes the API in the curl command.</p>
-</div>
-<div class="ulist">
-<div class="title">Additional resources</div>
-<ul>
-<li>
-<p>The operations supported by the REST API are described in the <a href="http://kafka.apache.org" target="_blank" rel="noopener">Apache Kafka documentation</a>.</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="ref-list-of-kafka-connect-resources-str"><a class="link" href="#ref-list-of-kafka-connect-resources-str">2.2.7. List of Kafka Connect cluster resources</a></h4>
+<h4 id="ref-list-of-kafka-connect-resources-str"><a class="link" href="#ref-list-of-kafka-connect-resources-str">2.2.4. List of Kafka Connect cluster resources</a></h4>
 <div class="paragraph">
 <p>The following resources are created by the Cluster Operator in the Kubernetes cluster:</p>
 </div>
@@ -38130,7 +37890,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-01-07 13:21:04 UTC
+Last updated 2022-01-08 15:13:37 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
