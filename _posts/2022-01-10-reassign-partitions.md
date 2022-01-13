@@ -9,17 +9,6 @@ As an Apache Kafka user, we sometimes have to scale up/down the number of Kafka 
 
 <!--more-->
 
-## Why use the Kafka reassignment partition tool?
-
-The Kafka reassignment partition tool can help you address a variety of use cases.
-
-Some of these are listed here :-
-
-1. You can reassign the partition between the brokers anytime. For example, it can be used at times when you want to scale down the number of brokers in your cluster.
-   You can assign partitions from the broker to be scaled down to other brokers which will handle these partitions now.
-
-2. 2. With the help of this tool, you can increase the no. of partitions / replicas which can help with increasing the throughput of the topic.
-   
 ##  Kafka reassignment partition tool
 
 The `bin/kafka-reassign-partitions.sh` tool allows you to reassign partitions to different brokers.
@@ -38,6 +27,17 @@ It has three different phases:
 | `generate`  | Takes a set of topics and brokers and generates a reassignment JSON file which will result in the partitions of those topics being assigned to those brokers. Because this operates on whole topics, it cannot be used when you only want to reassign some partitions for some topics.|
 | `execute` | Takes a reassignment JSON file and applies it to the partitions and brokers in the cluster. The `reassignment.json` file can be either the one proposed by the `--generate` command or written by the user itself. |
 | `verify`  | Using the same reassignment JSON file as the `--execute` step, `--verify` checks whether all the partitions in the file have been moved to their intended brokers. If the reassignment is complete, `--verify` also removes any traffic throttles (`--throttle`) that are in effect. Unless removed, throttles will continue to affect the cluster even after the reassignment has finished. |
+
+## Why use the Kafka reassignment partition tool?
+
+The Kafka reassignment partition tool can help you address a variety of use cases.
+
+Some of these are listed here:
+
+1. You can reassign the partition between the brokers anytime. For example, it can be used at times when you want to scale down the number of brokers in your cluster.
+   You can assign partitions from the broker to be scaled down to other brokers which will handle these partitions now.
+
+2. With the help of this tool, you can increase the no. of partitions / replicas which can help with increasing the throughput of the topic.
 
 ## Example time
 
