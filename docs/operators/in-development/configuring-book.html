@@ -58,6 +58,7 @@
 <li><a href="#assembly-customizing-kubernetes-resources-str">2.6. Customizing Kubernetes resources</a>
 <ul class="sectlevel3">
 <li><a href="#con-customizing-image-pull-policy-str">2.6.1. Customizing the image pull policy</a></li>
+<li><a href="#con-applying-termination-grace-period-str">2.6.2. Applying a termination grace period</a></li>
 </ul>
 </li>
 <li><a href="#assembly-scheduling-str">2.7. Configuring pod scheduling</a>
@@ -5453,13 +5454,14 @@ By default, the Kafka Bridge connects to Kafka brokers without authentication.</
 </div>
 <div class="sect2">
 <h3 id="assembly-customizing-kubernetes-resources-str"><a class="link" href="#assembly-customizing-kubernetes-resources-str">2.6. Customizing Kubernetes resources</a></h3>
-<div class="paragraph">
-<p>Strimzi creates several Kubernetes resources, such as <code>Deployments</code>, <code>StatefulSets</code>, <code>Pods</code>, and <code>Services</code>, which are managed by Strimzi operators.
+<div class="paragraph _abstract">
+<p>A Strimzi deployment creates Kubernetes resources, such as <code>Deployments</code>, <code>StatefulSets</code>, <code>Pods</code>, and <code>Services</code>.
+These resources are managed by Strimzi operators.
 Only the operator that is responsible for managing a particular Kubernetes resource can change that resource.
 If you try to manually change an operator-managed Kubernetes resource, the operator will revert your changes back.</p>
 </div>
 <div class="paragraph">
-<p>However, changing an operator-managed Kubernetes resource can be useful if you want to perform certain tasks, such as:</p>
+<p>Changing an operator-managed Kubernetes resource can be useful if you want to perform certain tasks, such as:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -5472,7 +5474,7 @@ If you try to manually change an operator-managed Kubernetes resource, the opera
 </ul>
 </div>
 <div class="paragraph">
-<p>You can make such changes using the <code>template</code> property in the Strimzi custom resources.
+<p>You can make the changes using the <code>template</code> property in the Strimzi custom resources.
 The <code>template</code> property is supported in the following resources.
 The API reference provides more details about the customizable fields.</p>
 </div>
@@ -5584,6 +5586,48 @@ Changing the policy will result in a rolling update of all your Kafka, Kafka Con
 <p>For more information about Image Pull Policies, see <a href="https://kubernetes.io/docs/concepts/containers/images/#updating-images" target="_blank" rel="noopener">Disruptions</a>.</p>
 </li>
 </ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-applying-termination-grace-period-str"><a class="link" href="#con-applying-termination-grace-period-str">2.6.2. Applying a termination grace period</a></h4>
+<div class="paragraph _abstract">
+<p>Apply a termination grace period to give a Kafka cluster enough time to shut down cleanly.</p>
+</div>
+<div class="paragraph">
+<p>Specify the time using the <code>terminationGracePeriodSeconds</code> property.
+Add the property to the <code>template.pod</code> configuration of the <code>Kafka</code> custom resource.</p>
+</div>
+<div class="paragraph">
+<p>The time you add will depend on the size of your Kafka cluster.
+The Kubernetes default for the termination grace period is 30 seconds.
+If you observe that your clusters are not shutting down cleanly, you can increase the termination grace period.</p>
+</div>
+<div class="paragraph">
+<p>A termination grace period is applied every time a pod is restarted.
+The period begins when Kubernetes sends a <em>term</em> (termination) signal to the processes running in the pod.
+The period should reflect the amount of time required to transfer the processes of the terminating pod to another pod before they are stopped.
+After the period ends, a <em>kill</em> signal stops any processes still running in the pod.</p>
+</div>
+<div class="paragraph">
+<p>The following example adds a termination grace period of 120 seconds to the <code>Kafka</code> custom resource.
+You can also specify the configuration in the custom resources of other Kafka components.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example termination grace period configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    template:
+      pod:
+        terminationGracePeriodSeconds: 120
+        # ...
+    # ...</code></pre>
+</div>
 </div>
 </div>
 </div>
