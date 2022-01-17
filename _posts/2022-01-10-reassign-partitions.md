@@ -5,7 +5,12 @@ date: 2021-09-23
 author: shubham_rawat
 ---
 
-As an Apache Kafka user, we sometimes have to scale up/down the number of Kafka brokers in our cluster depending on the use case. Addition of extra brokers can be an advantage to handle massive load, and we can use Cruise Control for general rebalancing in Strimzi since it allows us to automate the balancing of load across the cluster but what if we are scaling down the clusters. Let us understand this with the help of an example, suppose there are certain number of brokers in a cluster and now we want to remove a broker from the cluster. We need to make sure that the broker which is going to be removed should not have any assigned partitions. Strimzi's integration of Cruise Control currently doesn't support scaling down the cluster. This requires a tool that can assign the partitions from the broker to be removed, to the remaining brokers. The most convenient tool for this job is the Kafka reassignment partition tool: `kafka-reassign-partitions.sh`.
+As an Apache Kafka user, we sometimes have to scale up/down the number of Kafka brokers in our cluster depending on the use case.
+Addition of extra brokers can be an advantage to handle massive load, and we can use Cruise Control for general rebalancing in Strimzi since it allows us to automate the balancing of load across the cluster but what if we are scaling down the clusters.
+Let us understand this with the help of an example, suppose there are certain number of brokers in a cluster and now we want to remove a broker from the cluster.
+We need to make sure that the broker which is going to be removed should not have any assigned partitions. Strimzi's integration of Cruise Control currently doesn't support scaling down the cluster.
+This requires a tool that can assign the partitions from the broker to be removed, to the remaining brokers.
+The most convenient tool for this job is the Kafka reassignment partition tool.
 
 <!--more-->
 
@@ -45,9 +50,9 @@ Let us understand the working of this tool with an interesting problem
 Suppose we have 5 Kafka Brokers and after looking at the partition details we get to realize that the brokers are not too busy, so we can scale them down to 3.
 Through this example we will take a look at how the three phases of the Kafka reassignment partition tool(`--generate`, `--execute` and `--verify`) works.
 We will generate the JSON data that will be used in the `reassignment.json` file.
-We will then scale down the Kafka cluster using the generated `reassignment.json` file.
-The Kafka Cluster that we will use, will be configured to use TLS encryption and simple authentication.
-Strimzi  supports *TLS*, *SCRAM-SHA-512*, *OAUTH*, and *PLAIN* configuration options for authentication.
+We will then assign the partitions to the remaining broker using the `reassignment.json` file.
+The Kafka Cluster that we will use, will be configured to use PLAIN listener.
+Strimzi supports *TLS*, *SCRAM-SHA-512*, *OAUTH*, and *PLAIN* configuration options for authentication.
 
 Before proceeding towards the steps. Let's discuss one more curious question. Can you scale down any pod you want through this process?
 So the answer to this question is no. Wondering why?
@@ -60,9 +65,9 @@ If you decide to scale down by two brokers, then `<CLUSTER-NAME>-kafka-4` and `<
 This example will use a Kafka cluster deployed with the Strimzi Cluster Operator.
 Before we start with anything, we have to install the Strimzi Cluster Operator and deploy the Kafka cluster.
 You can install the Cluster Operator with any installation method you prefer.
-The Kafka cluster is then deployed with the TLS client authentication enabled on port 9093.
+The Kafka cluster is then deployed with the PLAIN listener enabled on port 9092.
 
-Example Kafka configuration for TLS authentication
+Example Kafka configuration with PLAIN authentication.
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
@@ -72,14 +77,10 @@ spec:
   kafka:
     replicas: 5
     listeners:
-      - name: tls
-        port: 9093
+      - name: plain
+        port: 9092
         type: internal
-        tls: true
-        authentication:
-          type: tls
-    authorization:
-      type: simple
+        tls: false
     config:
       offsets.topic.replication.factor: 3
       transaction.state.log.replication.factor: 3
@@ -183,17 +184,6 @@ spec:
 ### Creating a proposal `reassignment.json` file
 
 When you have a Kafka cluster running with brokers and topics, you are ready to create the proposal JSON file.
-The fist step is to extract the CA certificates and keys for the Kafka cluster and the user in order to authenticate using TLS client authentication.
-
-We can easily extract the cluster CA certificate and password from the `<CLUSTER-NAME>-cluster-ca-cert` Secret (where `<CLUSTER-NAME>` denotes the name of the cluster) using the following commands:
-
-```sh
-kubectl get secret <CLUSTER-NAME>-cluster-ca-cert -o jsonpath='{.data.ca\.p12}' | base64 -d > ca.p12
-```
-
-```sh
-kubectl get secret <CLUSTER-NAME>-cluster-ca-cert -o jsonpath='{.data.ca\.password}' | base64 -d > ca.password
-```
 
 Let us create a separate interactive pod.
 This interactive pod is used to run all the reassignment commands. 
@@ -208,51 +198,9 @@ So now it's time to get our interactive pod up and running. You can use the foll
 kubectl run --restart=Never --image=quay.io/strimzi/kafka:0.27.0-kafka-3.0.0 <INTERACTIVE-POD-NAME> -- /bin/sh -c "sleep 3600"
 ```
 
-Wait till the pod gets into the `Ready` state. Once the pod gets into `Ready` state, now our next step will be to copy the CA certificate to the interactive pod container:
+Wait till the pod gets into the `Ready` state. Once the pod gets into `Ready` state, now our next step will be to generate our `topics.json` file. 
 
-```sh
-kubectl cp ca.p12 <INTERACTIVE-POD-NAME>:/tmp
-```
-
-We can now proceed to fetch the user certificate and password for the user. The user certificate and password are extracted from the user Secret like this :
-
-```sh
-kubectl get secret <KAFKA-USER> -o jsonpath='{.data.user\.p12}' | base64 -d > user.p12
-```
-
-```sh
-kubectl get secret <KAFKA-USER> -o jsonpath='{.data.user\.password}' | base64 -d > user.password
-```
-
-Copy the user CA certificates to the interactive pod container.
-
-```sh
-kubectl cp user.p12 <INTERACTIVE-POD-NAME>:/tmp
-```
-
-The interactive pod now has both user and cluster CA certificates. 
-
-Next, we will configure the Kafka clients to connect to our Kafka cluster and authenticate.
-The truststore and the keystore location are mapped to their respective location (which is the folder inside the interactive pod container, since all of our commands will be executed inside the shell process of the interactive pod).
-And we will make use of these configuration file while running Kafka reassignment partition tool.
-We will also configure the `bootstrap.servers` option to make it easier to change address to connect to the Kafka cluster.
-
-```properties
-bootstrap.servers=<CLUSTER-NAME>-kafka-bootstrap:9093
-security.protocol=SSL
-ssl.truststore.location=/tmp/ca.p12
-ssl.truststore.password=<truststore_password_present_in_ca_password_file>
-ssl.keystore.location=/tmp/user.p12
-ssl.keystore.password=<keystore_password_present_in_user_password_file>
-```
-
-Now we will copy the `config.properties` file to the interactive pod container:
-
-```sh
-kubectl cp config.properties <INTERACTIVE-POD-NAME>:/tmp/config.properties
-```
-
-We have now completed copying the network credentials over to the new pods. Now arises a good question. What topics require reassignment?
+Now arises a good question. What topics require reassignment?
 So the answer to this is the topics that have their partitions assigned to <CLUSTER-NAME>-kafka-4 and <CLUSTER-NAME>-kafka-5 need to reassigned to 
 
 Time to create a `topics.json` file now. As we discussed above, this file will have the topics that we need to reassign:
@@ -323,13 +271,12 @@ Now it's time to generate the `reassignment.json` file.
 We will use the `kafka-reassign-partitions.sh` command to generate our proposal `reassignment.json` data:
 
 ```sh
-bin/kafka-reassign-partitions.sh --bootstrap-server <CLUSTER-NAME>-kafka-bootstrap:9093 \
---command-config /tmp/config.properties \
+bin/kafka-reassign-partitions.sh --bootstrap-server <CLUSTER-NAME>-kafka-bootstrap:9092 \
 --topics-to-move-json-file /tmp/topics.json \
 --broker-list 0,1,2 \
 --generate
 ```
-Here `--command-config` refers to the configuration file, `topics-to-move-json-file` points towards the `topics.json file` and `--broker-list` is the list of broker which will now handle the partitions which are present with the broker to be scaled down.
+Here `topics-to-move-json-file` points towards the `topics.json file` and `--broker-list` is the list of broker which will now handle the partitions which are present with the broker to be scaled down.
 
 Once you run this command, you will be able to see the JSON data which is generated by the Kafka reassignment partition tool. You get the current replica assignment and the proposed `reassignment.json` data.
 
@@ -362,9 +309,7 @@ kubectl exec -ti <INTERACTIVE-POD-NAME> /bin/bash
 So let's run the `kafka-reassign-partitions.sh` script now to start the partition reassignment 
 
 ```sh
-bin/kafka-reassign-partitions.sh --bootstrap-server
- <CLUSTER-NAME>-kafka-bootstrap:9093 \
- --command-config /tmp/config.properties \
+bin/kafka-reassign-partitions.sh --bootstrap-server <CLUSTER-NAME>-kafka-bootstrap:9092 \
  --reassignment-json-file /tmp/reassignment.json \ 
  --execute
 ```
@@ -372,9 +317,7 @@ bin/kafka-reassign-partitions.sh --bootstrap-server
 You can use the `--verify` mode to check if the partition reassignment is done or if it is still running.
 
 ```sh
-bin/kafka-reassign-partitions.sh --bootstrap-server
-  <CLUSTER-NAME>-kafka-bootstrap:9093 \
-  --command-config /tmp/config.properties \
+bin/kafka-reassign-partitions.sh --bootstrap-server <CLUSTER-NAME>-kafka-bootstrap:9092 \
   --reassignment-json-file /tmp/reassignment.json \
   --verify
 ```
