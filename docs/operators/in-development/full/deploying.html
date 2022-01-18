@@ -3238,16 +3238,18 @@ Connectors are available for many external systems, or you can create your own.<
 </dd>
 </dl>
 </div>
-<div class="paragraph">
+<div class="sect4">
+<h5 id="con-deploy-kafka-connect-config-connectors-str"><a class="link" href="#con-deploy-kafka-connect-config-connectors-str">APIs for creating and managing connectors</a></h5>
+<div class="paragraph _abstract">
 <p>Strimzi provides two APIs for creating and managing connectors:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><code>KafkaConnector</code> resources (referred to as KafkaConnectors)</p>
+<p><code>KafkaConnector</code> custom resources (referred to as KafkaConnectors)</p>
 </li>
 <li>
-<p>Kafka Connect REST API</p>
+<p>The Kafka Connect REST API</p>
 </li>
 </ul>
 </div>
@@ -3282,9 +3284,8 @@ Connectors are available for many external systems, or you can create your own.<
 </li>
 </ul>
 </div>
-<div class="sect4">
-<h5 id="kafkaconnector_resources"><a class="link" href="#kafkaconnector_resources">KafkaConnector resources</a></h5>
 <div class="paragraph">
+<div class="title">KafkaConnector custom resources</div>
 <p>KafkaConnectors allow you to create and manage connector instances for Kafka Connect in a Kubernetes-native way, so an HTTP client such as cURL is not required.
 Like other Kafka resources, you declare a connector’s desired state in a <code>KafkaConnector</code> YAML file that is deployed to your Kubernetes cluster to create the connector instance.
 <code>KafkaConnector</code> resources must be deployed to the same namespace as the Kafka Connect cluster they link to.</p>
@@ -3294,24 +3295,16 @@ Like other Kafka resources, you declare a connector’s desired state in a <code
 You remove a connector by deleting its corresponding <code>KafkaConnector</code>.</p>
 </div>
 <div class="paragraph">
-<p>To ensure compatibility with earlier versions of Strimzi, KafkaConnectors are disabled by default. To enable them for a Kafka Connect cluster, you must use annotations on the <code>KafkaConnect</code> resource.
+<p>To ensure compatibility with earlier versions of Strimzi, KafkaConnectors are disabled by default.
+To enable KafkaConnectors for a Kafka Connect cluster, you set the <code>strimzi.io/use-connector-resources</code> annotation to <code>true</code> in the <code>KafkaConnect</code> resource.
 For instructions, see <a href="./using.html#proc-kafka-connect-config-str" target="_blank" rel="noopener">Configuring Kafka Connect</a>.</p>
 </div>
 <div class="paragraph">
-<p>When KafkaConnectors are enabled, the Cluster Operator begins to watch for them. It updates the configurations of running connector instances to match the configurations defined in their KafkaConnectors.</p>
+<p>When KafkaConnectors are enabled, the Cluster Operator begins to watch for them.
+It updates the configurations of running connector instances to match the configurations defined in their KafkaConnectors.</p>
 </div>
 <div class="paragraph">
-<p>Strimzi provides <a href="#deploy-examples-str">example configuration files</a>, including the following example <code>KafkaConnector</code> file:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>examples/connect/source-connector.yaml</code>.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>You can use this example to create and manage a <code>FileStreamSourceConnector</code> and a <code>FileStreamSinkConnector</code>, as described in <a href="#proc-deploying-kafkaconnector-str">Deploying the example <code>KafkaConnector</code> resources</a>.</p>
+<p>Strimzi provides an example <code>KafkaConnector</code> configuration file, which you can use <a href="#proc-deploying-kafkaconnector-str">to create and manage a <code>FileStreamSourceConnector</code> and a <code>FileStreamSinkConnector</code></a>.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -3325,9 +3318,44 @@ You can <a href="#proc-manual-restart-connector-str">restart a connector</a> or 
 </tr>
 </table>
 </div>
+<div class="paragraph">
+<div class="title">Kafka Connect API</div>
+<p>The operations supported by the Kafka Connect REST API are described in the <a href="https://kafka.apache.org/documentation#connect_rest" target="_blank" rel="noopener">Apache Kafka Connect API documentation</a>.</p>
+</div>
+<div class="paragraph">
+<div class="title">Switching from using the Kafka Connect API to using KafkaConnectors</div>
+<p>You can switch from using the Kafka Connect API to using KafkaConnectors to manage your connectors.
+To make the switch, do the following in the the order shown:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Deploy <code>KafkaConnector</code> resources with the configuration to create your connector instances.</p>
+</li>
+<li>
+<p>Enable KafkaConnectors in your Kafka Connect configuration by setting the <code>strimzi.io/use-connector-resources</code> annotation to <code>true</code>.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+If you enable KafkaConnectors before creating the resources, you will delete all your connectors.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>To switch from using KafkaConnectors to using the Kafka Connect API, first remove the annotation that enables the KafkaConnectors from your Kafka Connect configuration.
+Otherwise, manual changes made directly using the Kafka Connect REST API are reverted by the Cluster Operator.</p>
+</div>
 </div>
 <div class="sect4">
-<h5 id="proc-deploying-kafkaconnector-str"><a class="link" href="#proc-deploying-kafkaconnector-str">Deploying the example KafkaConnector resources</a></h5>
+<h5 id="proc-deploying-kafkaconnector-str"><a class="link" href="#proc-deploying-kafkaconnector-str">Deploying example KafkaConnector resources</a></h5>
 <div class="paragraph _abstract">
 <p>Use KafkaConnectors with Kafka Connect to stream data to and from a Kafka cluster.</p>
 </div>
@@ -3821,14 +3849,6 @@ spec:
 </div>
 <div class="paragraph">
 <p>To add the connector configuration outside the cluster, use the URL of the resource that exposes the API in the curl command.</p>
-</div>
-<div class="ulist">
-<div class="title">Additional resources</div>
-<ul>
-<li>
-<p>The operations supported by the REST API are described in the <a href="http://kafka.apache.org" target="_blank" rel="noopener">Apache Kafka documentation</a>.</p>
-</li>
-</ul>
 </div>
 </div>
 </div>
@@ -7514,7 +7534,7 @@ The value of <code>log.message.format.version</code> and <code>inter.broker.prot
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-01-17 19:06:29 UTC
+Last updated 2022-01-18 10:14:30 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
