@@ -25447,7 +25447,7 @@ To enable it, set the <code>tls</code> property to <code>true</code>.</p>
 <p>Token-based OAuth 2.0 (<code>oauth</code>)</p>
 </li>
 <li>
-<p><a href="io.strimzi.api.kafka.model.listener.KafkaListenerAuthenticationCustom.html">Custom (<code>custom</code>)</a></p>
+<p><a href="#type-KafkaListenerAuthenticationCustom-reference">Custom (<code>custom</code>)</a></p>
 </li>
 </ul>
 </div>
@@ -26033,6 +26033,149 @@ It must have the value <code>oauth</code> for the type <code>KafkaListenerAuthen
 <p>Used in: <a href="#type-GenericKafkaListener-reference"><code>GenericKafkaListener</code></a></p>
 </div>
 <div class="paragraph">
+<p><a href="#type-KafkaListenerAuthenticationCustom-schema-reference">Full list of <code>KafkaListenerAuthenticationCustom</code> schema properties</a></p>
+</div>
+<div class="paragraph">
+<p>To configure custom authentication, set the <code>type</code> property to <code>custom</code>.</p>
+</div>
+<div class="paragraph">
+<p>Custom authentication allows for any type of kafka-supported authentication to be used.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example custom OAuth authentication configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  kafka:
+    config:
+      principal.builder.class: SimplePrincipal.class
+    listeners:
+      - name: oauth-bespoke
+        port: 9093
+        type: internal
+        tls: true
+        authentication:
+          type: custom
+          sasl: true
+          listenerConfig:
+            oauthbearer.sasl.client.callback.handler.class: client.class
+            oauthbearer.sasl.server.callback.handler.class: server.class
+            oauthbearer.sasl.login.callback.handler.class: login.class
+            oauthbearer.connections.max.reauth.ms: 999999999
+            sasl.enabled.mechanisms: oauthbearer
+            oauthbearer.sasl.jaas.config: |
+              org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required ;
+          secrets:
+            - name: example</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A protocol map is generated that uses the <code>sasl</code> and <code>tls</code> values to determine which protocol to map to the listener.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>SASL = True, TLS = True &#8594; SASL_SSL</p>
+</li>
+<li>
+<p>SASL = False, TLS = True &#8594; SSL</p>
+</li>
+<li>
+<p>SASL = True, TLS = False &#8594; SASL_PLAINTEXT</p>
+</li>
+<li>
+<p>SASL = False, TLS = False &#8594; PLAINTEXT</p>
+</li>
+</ul>
+</div>
+<div class="sect4">
+<h5 id="listenerconfig"><a class="link" href="#listenerconfig"><code>listenerConfig</code></a></h5>
+<div class="paragraph">
+<p>Listener configuration specified using <code>listenerConfig</code> is prefixed with <code>listener.name.<em>&lt;listener_name&gt;-&lt;port&gt;</em></code>.
+For example, <code>sasl.enabled.mechanisms</code> becomes <code>listener.name.<em>&lt;listener_name&gt;-&lt;port&gt;</em>.sasl.enabled.mechanisms</code>.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="secrets"><a class="link" href="#secrets"><code>secrets</code></a></h5>
+<div class="paragraph">
+<p>Secrets are mounted to <code>/opt/kafka/custom-authn-secrets/custom-listener-<em>&lt;listener_name&gt;-&lt;port&gt;</em>/<em>&lt;secret_name&gt;</em></code> in the Kafka broker nodes' containers.</p>
+</div>
+<div class="paragraph">
+<p>For example, the mounted secret (<code>example</code>) in the example configuration would be located at <code>/opt/kafka/custom-authn-secrets/custom-listener-oauth-bespoke-9093/example</code>.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="principal_builder"><a class="link" href="#principal_builder">Principal builder</a></h5>
+<div class="paragraph">
+<p>You can set a custom principal builder in the Kafka cluster configuration.
+However, the principal builder is subject to the following requirements:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The specified principal builder class must exist on the image.
+<em>Before</em> building your own, check if one already exists.
+You&#8217;ll need to rebuild the Strimzi images with the required classes.</p>
+</li>
+<li>
+<p>No other listener is using <code>oauth</code> type authentication.
+This is because an OAuth listener appends its own principle builder to the Kafka configuration.</p>
+</li>
+<li>
+<p>The specified principal builder is compatible with Strimzi.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Custom principal builders must support peer certificates for authentication, as Strimzi uses these to manage the Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>A custom OAuth principal builder might be identical or very similar to the Strimzi <a href="https://github.com/strimzi/strimzi-kafka-oauth/blob/main/oauth-server/src/main/java/io/strimzi/kafka/oauth/server/OAuthKafkaPrincipalBuilder.java">OAuth principal builder</a>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<a href="https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/security/authenticator/DefaultKafkaPrincipalBuilder.java#L73-L79">Kafka&#8217;s default principal builder class</a> supports the building of principals based on the names of peer certificates.
+The custom principal builder should provide a principal of type <code>user</code> using the name of the SSL peer certificate.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The following example shows a custom principal builder that satisfies the OAuth requirements of Strimzi.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example principal builder for custom OAuth configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public final class CustomKafkaPrincipalBuilder implements KafkaPrincipalBuilder {
+
+    public KafkaPrincipalBuilder() {}
+
+    @Override
+    public KafkaPrincipal build(AuthenticationContext context) {
+        if (context instanceof SslAuthenticationContext) {
+            SSLSession sslSession = ((SslAuthenticationContext) context).session();
+            try {
+                return new KafkaPrincipal(
+                    KafkaPrincipal.USER_TYPE, sslSession.getPeerPrincipal().getName());
+            } catch (SSLPeerUnverifiedException e) {
+                throw new IllegalArgumentException("Cannot use an unverified peer for authentication", e);
+            }
+        }
+
+        // Create your own KafkaPrincipal here
+        ...
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="type-KafkaListenerAuthenticationCustom-schema-reference"><a class="link" href="#type-KafkaListenerAuthenticationCustom-schema-reference"><code>KafkaListenerAuthenticationCustom</code> schema properties</a></h5>
+<div class="paragraph">
 <p>The <code>type</code> property is a discriminator that distinguishes use of the <code>KafkaListenerAuthenticationCustom</code> type from <a href="#type-KafkaListenerAuthenticationTls-reference"><code>KafkaListenerAuthenticationTls</code></a>, <a href="#type-KafkaListenerAuthenticationScramSha512-reference"><code>KafkaListenerAuthenticationScramSha512</code></a>, <a href="#type-KafkaListenerAuthenticationOAuth-reference"><code>KafkaListenerAuthenticationOAuth</code></a>.
 It must have the value <code>custom</code> for the type <code>KafkaListenerAuthenticationCustom</code>.</p>
 </div>
@@ -26086,6 +26229,7 @@ It must have the value <code>custom</code> for the type <code>KafkaListenerAuthe
 </tr>
 </tbody>
 </table>
+</div>
 </div>
 <div class="sect3">
 <h4 id="type-GenericKafkaListenerConfiguration-reference"><a class="link" href="#type-GenericKafkaListenerConfiguration-reference">12.2.11. <code>GenericKafkaListenerConfiguration</code> schema reference</a></h4>
@@ -37912,7 +38056,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-01-27 19:08:44 UTC
+Last updated 2022-01-27 20:07:45 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
