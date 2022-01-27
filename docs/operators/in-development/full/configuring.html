@@ -585,6 +585,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#ref-operator-cluster-str">6.1.1. Cluster Operator configuration</a></li>
 <li><a href="#provisioning_role_based_access_control_rbac">6.1.2. Provisioning Role-Based Access Control (RBAC)</a></li>
 <li><a href="#proc-configuring-proxy-config-cluster-operator-str">6.1.3. Configuring the Cluster Operator with default proxy settings</a></li>
+<li><a href="#proc-configuring-fips-mode-cluster-operator-str">6.1.4. Configuring FIPS mode in the Cluster Operator</a></li>
 </ul>
 </li>
 <li><a href="#using-the-topic-operator-str">6.2. Using the Topic Operator</a>
@@ -13113,6 +13114,91 @@ spec:
 </li>
 <li>
 <p><a href="./deploying.html#adding-users-the-strimzi-admin-role-str" target="_blank" rel="noopener">Designating Strimzi administrators</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-configuring-fips-mode-cluster-operator-str"><a class="link" href="#proc-configuring-fips-mode-cluster-operator-str">6.1.4. Configuring FIPS mode in the Cluster Operator</a></h4>
+<div class="paragraph _abstract">
+<p>Federal Information Processing Standards (FIPS) are standards for computer security and interoperability.
+When running Strimzi on a FIPS-enabled Kubernetes cluster, the OpenJDK used in Strimzi container images will automatically switch to FIPS mode.
+This prevents Strimzi from running on the cluster.
+When you deploy Strimzi to the cluster, you will see errors similar to the following:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-none hljs">Exception in thread "main" io.fabric8.kubernetes.client.KubernetesClientException: An error has occurred.
+	...
+Caused by: java.security.KeyStoreException: sun.security.pkcs11.wrapper.PKCS11Exception: CKR_SESSION_READ_ONLY
+	...
+Caused by: sun.security.pkcs11.wrapper.PKCS11Exception: CKR_SESSION_READ_ONLY
+	...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you want to run Strimzi on your FIPS-enabled cluster, you can disable the OpenJDK FIPS mode by setting the <code>FIPS_MODE</code> environment variable to <code>disabled</code> in the deployment configuration for the Cluster Operator.
+The Strimzi deployment won&#8217;t be FIPS compliant, but the Strimzi operators as well as all its operands will be able to run on the FIPS-enabled Kubernetes cluster.</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>To disable the FIPS mode in the Cluster Operator, update its <code>Deployment</code> configuration (<code>install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml</code>) and add the <code>FIPS_MODE</code> environment variable.</p>
+<div class="openblock">
+<div class="content">
+<div class="listingblock">
+<div class="title">Example FIPS configuration for the Cluster Operator</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: apps/v1
+kind: Deployment
+spec:
+  # ...
+  template:
+    spec:
+      serviceAccountName: strimzi-cluster-operator
+      containers:
+        # ...
+        env:
+        # ...
+        - name: "FIPS_MODE"
+          value: "disabled" # <b class="conum">(1)</b>
+  # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Disables the FIPS mode.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Alternatively, edit the <code>Deployment</code> directly:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit deployment strimzi-cluster-operator</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If you updated the YAML file instead of editing the <code>Deployment</code> directly, apply the changes:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="https://www.nist.gov/standardsgov/compliance-faqs-federal-information-processing-standards-fips" target="_blank" rel="noopener">What are Federal Information Processing Standards (FIPS)</a></p>
 </li>
 </ul>
 </div>
@@ -37814,7 +37900,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-01-27 16:02:24 UTC
+Last updated 2022-01-27 16:13:38 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
