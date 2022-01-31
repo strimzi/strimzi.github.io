@@ -5,12 +5,12 @@ date: 2021-09-23
 author: shubham_rawat
 ---
 
-As an Apache Kafka user, we sometimes have to scale up/down the number of Kafka brokers in our cluster depending on the use case.
-Addition of extra brokers can be an advantage to handle massive load, and we can use Cruise Control for general rebalancing in Strimzi since it allows us to automate the balancing of load across the cluster but what if we are scaling down the clusters.
+As Apache Kafka users, we sometimes have to scale up/down the number of Kafka brokers in our cluster depending on the use case.
+Addition of extra brokers can be an advantage to handle massive load, and we can use Cruise Control for general rebalancing in Strimzi since it allows us to automate the balancing of load across the cluster but what if we are scaling down the clusters?
 Let us understand this with the help of an example, suppose there are certain number of brokers in a cluster and now we want to remove a broker from the cluster.
 We need to make sure that the broker which is going to be removed should not have any assigned partitions. Strimzi's integration of Cruise Control currently doesn't support scaling down the cluster.
 This requires a tool that can assign the partitions from the broker to be removed, to the remaining brokers.
-The most convenient tool for this job is the Kafka reassignment partition tool.
+The most convenient tool for this job is the Kafka partition reassignment tool.
 
 <!--more-->
 
@@ -18,20 +18,12 @@ The most convenient tool for this job is the Kafka reassignment partition tool.
 
 The `bin/kafka-reassign-partitions.sh` tool allows you to reassign partitions to different brokers.
 
-While using the tool, you have to provide it with two essential JSON files: `topics.json` and `reassignment.json`.
+While using the tool, you have to provide it with either of these two JSON files: `topics.json` and `reassignment.json`.
 Wondering what these two JSON files really do? Let's talk a bit about them:
 
 - The `topic.json` basically consists of the topics that we want to reassign or move. Based on this JSON file, our tool will generate a proposal `reassignment.json` that we can use directly or modify further.
 
 - The `reassignment.json` file is a configuration file that is used during the partition reassignment process. The reassignment partition tool will generate a proposal `reassignment.json` file based on a `topics.json` file. You can change the `reassignment.json` file as per your requirement and use it.
-
-It has three different phases:
-
-| Phases | Description |
-| :-----------: | ------------- |
-| `generate`  | Takes a set of topics and brokers and generates a reassignment JSON file which will result in the partitions of those topics being assigned to those brokers. Because this operates on whole topics, it cannot be used when you only want to reassign some partitions for some topics.|
-| `execute` | Takes a reassignment JSON file and applies it to the partitions and brokers in the cluster. The `reassignment.json` file can be either the one proposed by the `--generate` command or written by the user itself. |
-| `verify`  | Using the same reassignment JSON file as the `--execute` step, `--verify` checks whether all the partitions in the file have been moved to their intended brokers. If the reassignment is complete, `--verify` also removes any traffic throttles (`--throttle`) that are in effect. Unless removed, throttles will continue to affect the cluster even after the reassignment has finished. |
 
 ## Why use the Kafka reassignment partition tool?
 
@@ -42,17 +34,38 @@ Some of these are listed here:
 1. You can reassign the partition between the brokers anytime. For example, it can be used at times when you want to scale down the number of brokers in your cluster.
    You can assign partitions from the broker to be scaled down to other brokers which will handle these partitions now.
 
-2. With the help of this tool, you can increase the no. of partitions / replicas which can help with increasing the throughput of the topic.
+2. With the help of this tool, you can increase the number of partitions / replicas which can help with increasing the throughput of the topic.
+
+## Partition Reassignment Throttle
+Partition reassignment tool reassigns the partition between the brokers and sometimes this process could be slow due to transfer of large data.
+To avoid any sort of impact on the client we can throttle the reassignment process.
+Kafka lets us apply throttle to the replication traffic which sets an upper bound on the bandwidth used to move partition between the brokers.
+For example, --throttle 5000000 sets a maximum threshold for moving partitions of 50 MBps.
+
+Throttling might cause the reassignment to take longer to complete.
+
+1. If the throttle is too low, the newly assigned brokers will not be able to keep up with records being published and the reassignment will never complete.
+
+2. If the throttle is too high, clients will be impacted.
+
+## Actions that can be executed while using the tool
+
+It has three different actions:
+
+| Action | Description |
+| :-----------: | ------------- |
+| `generate`  | Takes a set of topics and brokers and generates a reassignment JSON file. This actions is optional if we already have `reassignment.json` file with us.|
+| `execute` | Takes a reassignment JSON file and applies it to the partitions and brokers in the cluster. The `reassignment.json` file can be either the one proposed by the `--generate` command or written by the user itself. |
+| `verify`  | Using the same reassignment JSON file as the `--execute` step, `--verify` checks whether all the partitions in the file have been moved to their intended brokers. If the reassignment is complete, `--verify` also removes any replication quotas (`--throttle`) that are in effect. Unless removed, throttles will continue to affect the cluster even after the reassignment has finished. |
 
 ## Example time
 
-Let us understand the working of this tool with an interesting problem
+Let us understand the working of this tool with an interesting problem.
 Suppose we have 5 Kafka Brokers and after looking at the partition details we get to realize that the brokers are not too busy, so we can scale them down to 3.
-Through this example we will take a look at how the three phases of the Kafka reassignment partition tool(`--generate`, `--execute` and `--verify`) works.
+Through this example we will take a look at how the three actions of the Kafka reassignment partition tool(`--generate`, `--execute` and `--verify`) works.
 We will generate the JSON data that will be used in the `reassignment.json` file.
 We will then assign the partitions to the remaining broker using the `reassignment.json` file.
-The Kafka Cluster that we will use, will be configured to use PLAIN listener.
-Strimzi supports *TLS*, *SCRAM-SHA-512*, *OAUTH*, and *PLAIN* configuration options for authentication.
+The Kafka Cluster will be configured to use PLAIN listener.
 
 Before proceeding towards the steps. Let's discuss one more curious question. Can you scale down any pod you want through this process?
 So the answer to this question is no. Wondering why?
@@ -101,14 +114,14 @@ spec:
     userOperator: {}
 ```
 
-Once the cluster is running, lets deploy some topics where we will send and receive the messages.
+Once the cluster is running, let's deploy some topics where we will send and receive the messages.
 Here is an example topic configuration. You can change it to suit your requirements.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: my-topic-1
+  name: my-topic-two
   labels:
     strimzi.io/cluster: <CLUSTER-NAME>
 spec:
@@ -121,7 +134,7 @@ spec:
 ```
 
 Now we require a kafka user.
-We will configure the kafka user with ACL rules that specify permission to produce and consume topics from the Kafka brokers.
+We will configure the kafka user with ACL rules that grant permission to produce and consume topics from the Kafka brokers.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -138,31 +151,31 @@ spec:
     acls:
       - resource:
           type: topic
-          name: my-topic-1
+          name: my-topic
           patternType: literal
         operation: Write
         host: "*"
       - resource:
           type: topic
-          name: my-topic-1
+          name: my-topic-two
           patternType: literal
         operation: Read
         host: "*"
       - resource:
           type: topic
-          name: my-topic-1
+          name: my-topic-two
           patternType: literal
         operation: Describe
         host: "*"   
       - resource:
            type: topic
-           name: my-topic-1
+           name: my-topic-two
            patternType: literal
         operation: DescribeConfigs
         host: "*"
       - resource:
            type: topic
-           name: my-topic-1
+           name: my-topic-two
            patternType: literal
         operation: AlterConfigs
         host: "*"        
@@ -188,7 +201,7 @@ When you have a Kafka cluster running with brokers and topics, you are ready to 
 Let us create a separate interactive pod.
 This interactive pod is used to run all the reassignment commands. 
 One question might bug you. What is the need of a separate pod? Can't we just use one of the broker pods?
-In answer to this question, running commands from within a broker is not good practice as it's insecure
+In answer to this question, running commands from within a broker is not good practice.
 It will start another JVM inside the container designated for the broker and can cause disruption, cause the container to run out of memory and so on.
 So it is always better to avoid running the command from a broker pod.
 
@@ -199,33 +212,31 @@ kubectl run --restart=Never --image=quay.io/strimzi/kafka:0.27.0-kafka-3.0.0 <IN
 ```
 
 Wait till the pod gets into the `Ready` state. Once the pod gets into `Ready` state, now our next step will be to generate our `topics.json` file. 
+As we discussed above, this file will have the topics that we need to reassign.
 
-Now arises a good question. What topics require reassignment?
-So the answer to this is the topics that have their partitions assigned to <CLUSTER-NAME>-kafka-4 and <CLUSTER-NAME>-kafka-5 need to reassigned to 
 
-Time to create a `topics.json` file now. As we discussed above, this file will have the topics that we need to reassign:
 Now arises a good question. What topics require reassignment?
 So the answer to this is the topics that have their partitions assigned to broker `<CLUSTER-NAME>-kafka-3` and `<CLUSTER-NAME>-kafka-4` needs reassignment, and these topics partition should move to the remaining 3 brokers nodes in our cluster.
 
 To check the partitions details of a certain topic, we can use the `kafka-topics.sh` tool. We can run the following command:
 
 ```sh
-bin/kafka-topics.sh --describe --topic my-topic-1 --bootstrap-server <CLUSTER-NAME>-kafka-bootstrap:9093 --command-config /tmp/config.properties
+bin/kafka-topics.sh --describe --topic my-topic-two --bootstrap-server <CLUSTER-NAME>-kafka-bootstrap:9092 --command-config /tmp/config.properties
 ```
 which will give us the following output:
 
 ```shell
-Topic: my-topic-1       TopicId: bW1J-3OESJ2MF6buaLkkkQ PartitionCount: 10      ReplicationFactor: 3    Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
-        Topic: my-topic-1       Partition: 0    Leader: 2       Replicas: 2,3,0 Isr: 2,3,0
-        Topic: my-topic-1       Partition: 1    Leader: 3       Replicas: 3,0,1 Isr: 3,0,1
-        Topic: my-topic-1       Partition: 2    Leader: 0       Replicas: 0,1,4 Isr: 0,1,4
-        Topic: my-topic-1       Partition: 3    Leader: 1       Replicas: 1,4,2 Isr: 1,4,2
-        Topic: my-topic-1       Partition: 4    Leader: 4       Replicas: 4,2,3 Isr: 4,2,3
-        Topic: my-topic-1       Partition: 5    Leader: 2       Replicas: 2,0,1 Isr: 2,0,1
-        Topic: my-topic-1       Partition: 6    Leader: 3       Replicas: 3,1,4 Isr: 3,1,4
-        Topic: my-topic-1       Partition: 7    Leader: 0       Replicas: 0,4,2 Isr: 0,4,2
-        Topic: my-topic-1       Partition: 8    Leader: 1       Replicas: 1,2,3 Isr: 1,2,3
-        Topic: my-topic-1       Partition: 9    Leader: 4       Replicas: 4,3,0 Isr: 4,3,0
+Topic: my-topic-two       TopicId: bW1J-3OESJ2MF6buaLkkkQ PartitionCount: 10      ReplicationFactor: 3    Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
+        Topic: my-topic-two       Partition: 0    Leader: 2       Replicas: 2,3,0 Isr: 2,3,0
+        Topic: my-topic-two       Partition: 1    Leader: 3       Replicas: 3,0,1 Isr: 3,0,1
+        Topic: my-topic-two     Partition: 2    Leader: 0       Replicas: 0,1,4 Isr: 0,1,4
+        Topic: my-topic-two      Partition: 3    Leader: 1       Replicas: 1,4,2 Isr: 1,4,2
+        Topic: my-topic-two     Partition: 4    Leader: 4       Replicas: 4,2,3 Isr: 4,2,3
+        Topic: my-topic-two     Partition: 5    Leader: 2       Replicas: 2,0,1 Isr: 2,0,1
+        Topic: my-topic-two     Partition: 6    Leader: 3       Replicas: 3,1,4 Isr: 3,1,4
+        Topic: my-topic-two     Partition: 7    Leader: 0       Replicas: 0,4,2 Isr: 0,4,2
+        Topic: my-topic-two       Partition: 8    Leader: 1       Replicas: 1,2,3 Isr: 1,2,3
+        Topic: my-topic-two       Partition: 9    Leader: 4       Replicas: 4,3,0 Isr: 4,3,0
 ```
 In the same way you can get the details for the other topic`my-topic` also.
 
@@ -243,13 +254,14 @@ Topic: my-topic TopicId: ERoAsjHHTIKFRPoo3h_ZZg PartitionCount: 10      Replicat
         Topic: my-topic Partition: 9    Leader: 1       Replicas: 1,0,2 Isr: 1,0,2
 ```
 
-From the above outputs, we got to know that `my-topic-1` needs reassignment, Now we can create the topics.json file easily.
+From the above outputs, we got to know that my-topic-two has some replicas on broker 3 and 4 thus we need to reassign this topic onto other brokers. 
 
+Let's create our `topics.json` file:
 ```json
 {
   "version": 1,
   "topics": [
-    { "topic": "my-topic-1"}
+    { "topic": "my-topic-two"}
   ]
 }
 ```
@@ -282,16 +294,16 @@ Once you run this command, you will be able to see the JSON data which is genera
 
 ```shell
 Current partition replica assignment
-{"version":1,"partitions":[{"topic":"my-topic-1","partition":0,"replicas":[2,3,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":1,"replicas":[3,0,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":2,"replicas":[0,1,4],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":3,"replicas":[1,4,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":4,"replicas":[4,2,3],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":5,"replicas":[2,0,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":6,"replicas":[3,1,4],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":7,"replicas":[0,4,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":8,"replicas":[1,2,3],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":9,"replicas":[4,3,0],"log_dirs":["any","any","any"]}]}
+{"version":1,"partitions":[{"topic":"my-topic-two","partition":0,"replicas":[2,3,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":1,"replicas":[3,0,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":2,"replicas":[0,1,4],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":3,"replicas":[1,4,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":4,"replicas":[4,2,3],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":5,"replicas":[2,0,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":6,"replicas":[3,1,4],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":7,"replicas":[0,4,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":8,"replicas":[1,2,3],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":9,"replicas":[4,3,0],"log_dirs":["any","any","any"]}]}
 
 Proposed partition reassignment configuration
-{"version":1,"partitions":[{"topic":"my-topic-1","partition":0,"replicas":[0,1,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":1,"replicas":[1,2,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":2,"replicas":[2,0,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":3,"replicas":[0,2,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":4,"replicas":[1,0,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":5,"replicas":[2,1,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":6,"replicas":[0,1,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":7,"replicas":[1,2,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":8,"replicas":[2,0,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-1","partition":9,"replicas":[0,2,1],"log_dirs":["any","any","any"]}]}
+{"version":1,"partitions":[{"topic":"my-topic-two","partition":0,"replicas":[0,1,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":1,"replicas":[1,2,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":2,"replicas":[2,0,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":3,"replicas":[0,2,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":4,"replicas":[1,0,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":5,"replicas":[2,1,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":6,"replicas":[0,1,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":7,"replicas":[1,2,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":8,"replicas":[2,0,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":9,"replicas":[0,2,1],"log_dirs":["any","any","any"]}]}
 ```
-Now you can create a `reassignment.json` file and copy this proposed `reassignment.json` data to use in the `reassignment.json` file. You can also create/alter the `reassignment.json` data in the file.
+Now you can copy this proposed `reassignment.json` data and paste it in a `reassignment.json` file, which will be copied to our interactive pod container in the next step.
 
 ### Scaling down the cluster
 
-Coming to the last step of this example, Here we will see how we use the generated `reassignment.json` to get the reassignment done by the reassignment partition tool.
+Coming to the last step of this example, here we will see how we use the generated `reassignment.json` to get the reassignment done by the reassignment partition tool.
 
 Since we have copied the `reassignment.json` data into the `reassignment.json` file in the previous step, now we can use it for our next step.
 
@@ -314,50 +326,50 @@ bin/kafka-reassign-partitions.sh --bootstrap-server <CLUSTER-NAME>-kafka-bootstr
  --execute
 ```
 
-You can use the `--verify` mode to check if the partition reassignment is done or if it is still running.
+You can use the `--verify` action to check if the partition reassignment is done or if it is still running. You might have to run this command multiple times since it may take the process a while to get complete.
 
 ```sh
 bin/kafka-reassign-partitions.sh --bootstrap-server <CLUSTER-NAME>-kafka-bootstrap:9092 \
   --reassignment-json-file /tmp/reassignment.json \
   --verify
 ```
-The `--verify` mode reports if the assignment is done or not.
+The `--verify` action reports if the assignment is done or not.
 
 ```shell
 Status of partition reassignment:
-Reassignment of partition my-topic-1-0 is complete.
-Reassignment of partition my-topic-1-1 is complete.
-Reassignment of partition my-topic-1-2 is complete.
-Reassignment of partition my-topic-1-3 is complete.
-Reassignment of partition my-topic-1-4 is complete.
-Reassignment of partition my-topic-1-5 is complete.
-Reassignment of partition my-topic-1-6 is complete.
-Reassignment of partition my-topic-1-7 is complete.
-Reassignment of partition my-topic-1-8 is complete.
-Reassignment of partition my-topic-1-9 is complete.
+Reassignment of partition my-topic-two-0 is complete.
+Reassignment of partition my-topic-two-1 is complete.
+Reassignment of partition my-topic-two-2 is complete.
+Reassignment of partition my-topic-two-3 is complete.
+Reassignment of partition my-topic-two-4 is complete.
+Reassignment of partition my-topic-two-5 is complete.
+Reassignment of partition my-topic-two-6 is complete.
+Reassignment of partition my-topic-two-7 is complete.
+Reassignment of partition my-topic-two-8 is complete.
+Reassignment of partition my-topic-two-9 is complete.
 
 Clearing broker-level throttles on brokers 0,1,2,3,4
-Clearing topic-level throttles on topic my-topic-1  
+Clearing topic-level throttles on topic my-topic-two  
 ```
 
-When the partition reassignment is complete, the scaled down brokers will have no assigned partitions and can be removed safely. You can check it by looking at the partition details of the reassigned topic.
+When the partition reassignment is complete, the brokers we want to scale down will have no assigned partitions and can be removed safely. You can check it by looking at the partition details of the reassigned topic.
 
 ```shell
-        Topic: my-topic-1       Partition: 0    Leader: 2       Replicas: 0,1,2 Isr: 2,0,1
-        Topic: my-topic-1       Partition: 1    Leader: 1       Replicas: 1,2,0 Isr: 0,1,2
-        Topic: my-topic-1       Partition: 2    Leader: 0       Replicas: 2,0,1 Isr: 0,1,2
-        Topic: my-topic-1       Partition: 3    Leader: 1       Replicas: 0,2,1 Isr: 1,2,0
-        Topic: my-topic-1       Partition: 4    Leader: 1       Replicas: 1,0,2 Isr: 0,1,2
-        Topic: my-topic-1       Partition: 5    Leader: 2       Replicas: 2,1,0 Isr: 2,0,1
-        Topic: my-topic-1       Partition: 6    Leader: 0       Replicas: 0,1,2 Isr: 0,1,2
-        Topic: my-topic-1       Partition: 7    Leader: 0       Replicas: 1,2,0 Isr: 0,2,1
-        Topic: my-topic-1       Partition: 8    Leader: 1       Replicas: 2,0,1 Isr: 1,2,0
-        Topic: my-topic-1       Partition: 9    Leader: 0       Replicas: 0,2,1 Isr: 0,1,2   
+        Topic: my-topic-two       Partition: 0    Leader: 2       Replicas: 0,1,2 Isr: 2,0,1
+        Topic: my-topic-two       Partition: 1    Leader: 1       Replicas: 1,2,0 Isr: 0,1,2
+        Topic: my-topic-two       Partition: 2    Leader: 0       Replicas: 2,0,1 Isr: 0,1,2
+        Topic: my-topic-two       Partition: 3    Leader: 1       Replicas: 0,2,1 Isr: 1,2,0
+        Topic: my-topic-two       Partition: 4    Leader: 1       Replicas: 1,0,2 Isr: 0,1,2
+        Topic: my-topic-two       Partition: 5    Leader: 2       Replicas: 2,1,0 Isr: 2,0,1
+        Topic: my-topic-two       Partition: 6    Leader: 0       Replicas: 0,1,2 Isr: 0,1,2
+        Topic: my-topic-two       Partition: 7    Leader: 0       Replicas: 1,2,0 Isr: 0,2,1
+        Topic: my-topic-two       Partition: 8    Leader: 1       Replicas: 2,0,1 Isr: 1,2,0
+        Topic: my-topic-two       Partition: 9    Leader: 0       Replicas: 0,2,1 Isr: 0,1,2   
 ```
 As you can see the partition are now removed from the pod to be scaled down and now they can be removed without any problems. 
 
 # Conclusion
 
-This example provides a brief introduction to the `--generate`, `--execute`, and `--verify` modes of the Kafka reassignment partition tool. These are the crucial points you should know before attempting a reassignment of partitions in your Kafka cluster.
+This example provides a brief introduction to the `--generate`, `--execute`, and `--verify` actions of the Kafka reassignment partition tool. These are the crucial points you should know before attempting a reassignment of partitions in your Kafka cluster.
 
 You can also take a look at our documentation on using the partition reassignment file for [Scaling up the Kafka cluster](https://strimzi.io/docs/operators/in-development/using.html#proc-scaling-up-a-kafka-cluster-str) and [Scaling down the Kafka cluster](https://strimzi.io/docs/operators/in-development/using.html#proc-scaling-down-a-kafka-cluster-str).
