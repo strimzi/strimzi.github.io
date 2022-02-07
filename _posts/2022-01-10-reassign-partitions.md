@@ -37,16 +37,15 @@ Some of these are listed here:
 2. With the help of this tool, you can increase the number of partitions / replicas which can help with increasing the throughput of the topic.
 
 ## Partition Reassignment Throttle
-Partition reassignment tool reassigns the partition between the brokers and sometimes this process could be slow due to transfer of large data.
-To avoid any sort of impact on the client we can throttle the reassignment process.
-Kafka lets us apply throttle to the replication traffic which sets an upper bound on the bandwidth used to move partition between the brokers.
-For example, --throttle 5000000 sets a maximum threshold for moving partitions of 50 MBps.
+Reassigning partitions between brokers can sometimes lead to a large transfer of large data.
+To avoid overloading the cluster, it is recommended to always set a throttle rate to limit the bandwidth used by the reassignment. 
+This can be done using the `--throttle` flag which sets the maximum allowed bandwidth in bytes, for example `--throttle 5000000` sets the limit to 50 MB/s.
 
 Throttling might cause the reassignment to take longer to complete.
 
 1. If the throttle is too low, the newly assigned brokers will not be able to keep up with records being published and the reassignment will never complete.
 
-2. If the throttle is too high, clients will be impacted.
+2. If the throttle is too high, the overall health of the cluster may be impacted.
 
 ## Actions that can be executed while using the tool
 
@@ -61,7 +60,7 @@ It has three different actions:
 ## Example time
 
 Let us understand the working of this tool with an interesting problem.
-Suppose we have 5 Kafka Brokers and after looking at the partition details we get to realize that the brokers are not too busy, so we can scale them down to 3.
+Suppose we have 5 Kafka Brokers and after looking at the partition details we realize that the brokers are not too busy, so we can scale them down to 3.
 Through this example we will take a look at how the three actions of the Kafka reassignment partition tool(`--generate`, `--execute` and `--verify`) works.
 We will generate the JSON data that will be used in the `reassignment.json` file.
 We will then assign the partitions to the remaining broker using the `reassignment.json` file.
@@ -133,8 +132,8 @@ spec:
     # ...
 ```
 
-Now we require a kafka user.
-We will configure the kafka user with ACL rules that grant permission to produce and consume topics from the Kafka brokers.
+Now we require a Kafka user.
+We will configure the Kafka user with ACL rules that grant permission to produce and consume topics from the Kafka brokers.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -151,7 +150,7 @@ spec:
     acls:
       - resource:
           type: topic
-          name: my-topic
+          name: my-topic-two
           patternType: literal
         operation: Write
         host: "*"
@@ -218,40 +217,41 @@ As we discussed above, this file will have the topics that we need to reassign.
 Now arises a good question. What topics require reassignment?
 So the answer to this is the topics that have their partitions assigned to broker `<CLUSTER-NAME>-kafka-3` and `<CLUSTER-NAME>-kafka-4` needs reassignment, and these topics partition should move to the remaining 3 brokers nodes in our cluster.
 
-To check the partitions details of a certain topic, we can use the `kafka-topics.sh` tool. We can run the following command:
+To check the partitions details of a certain topic, we can use the `kafka-topics.sh` tool. We can run the following command from inside interactive pod after starting a shell process using `kubectl exec -ti <INTERACTIVE-POD-NAME> /bin/bash`
+:
 
 ```sh
-bin/kafka-topics.sh --describe --topic my-topic-two --bootstrap-server <CLUSTER-NAME>-kafka-bootstrap:9092 --command-config /tmp/config.properties
+bin/kafka-topics.sh --describe --topic my-topic-two --bootstrap-server <CLUSTER-NAME>-kafka-bootstrap:9092
 ```
 which will give us the following output:
 
 ```shell
-Topic: my-topic-two       TopicId: bW1J-3OESJ2MF6buaLkkkQ PartitionCount: 10      ReplicationFactor: 3    Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
-        Topic: my-topic-two       Partition: 0    Leader: 2       Replicas: 2,3,0 Isr: 2,3,0
-        Topic: my-topic-two       Partition: 1    Leader: 3       Replicas: 3,0,1 Isr: 3,0,1
-        Topic: my-topic-two     Partition: 2    Leader: 0       Replicas: 0,1,4 Isr: 0,1,4
-        Topic: my-topic-two      Partition: 3    Leader: 1       Replicas: 1,4,2 Isr: 1,4,2
-        Topic: my-topic-two     Partition: 4    Leader: 4       Replicas: 4,2,3 Isr: 4,2,3
-        Topic: my-topic-two     Partition: 5    Leader: 2       Replicas: 2,0,1 Isr: 2,0,1
-        Topic: my-topic-two     Partition: 6    Leader: 3       Replicas: 3,1,4 Isr: 3,1,4
-        Topic: my-topic-two     Partition: 7    Leader: 0       Replicas: 0,4,2 Isr: 0,4,2
-        Topic: my-topic-two       Partition: 8    Leader: 1       Replicas: 1,2,3 Isr: 1,2,3
-        Topic: my-topic-two       Partition: 9    Leader: 4       Replicas: 4,3,0 Isr: 4,3,0
+Topic: my-topic-two     TopicId: _aUFY9oMSjqBjvP9Ed3JDg PartitionCount: 10      ReplicationFactor: 3    Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
+        Topic: my-topic-two     Partition: 0    Leader: 0       Replicas: 0,3,1 Isr: 0,3,1
+        Topic: my-topic-two     Partition: 1    Leader: 1       Replicas: 1,0,4 Isr: 1,0,4
+        Topic: my-topic-two     Partition: 2    Leader: 4       Replicas: 4,1,2 Isr: 4,1,2
+        Topic: my-topic-two     Partition: 3    Leader: 2       Replicas: 2,4,3 Isr: 2,4,3
+        Topic: my-topic-two     Partition: 4    Leader: 3       Replicas: 3,2,0 Isr: 3,2,0
+        Topic: my-topic-two     Partition: 5    Leader: 0       Replicas: 0,1,4 Isr: 0,1,4
+        Topic: my-topic-two     Partition: 6    Leader: 1       Replicas: 1,4,2 Isr: 1,4,2
+        Topic: my-topic-two     Partition: 7    Leader: 4       Replicas: 4,2,3 Isr: 4,2,3
+        Topic: my-topic-two     Partition: 8    Leader: 2       Replicas: 2,3,0 Isr: 2,3,0
+        Topic: my-topic-two     Partition: 9    Leader: 3       Replicas: 3,0,1 Isr: 3,0,1
 ```
 In the same way you can get the details for the other topic`my-topic` also.
 
 ```sh
-Topic: my-topic TopicId: ERoAsjHHTIKFRPoo3h_ZZg PartitionCount: 10      ReplicationFactor: 3    Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
-        Topic: my-topic Partition: 0    Leader: 1       Replicas: 1,2,0 Isr: 0,1,2
-        Topic: my-topic Partition: 1    Leader: 2       Replicas: 2,0,1 Isr: 2,1,0
-        Topic: my-topic Partition: 2    Leader: 0       Replicas: 0,1,2 Isr: 0,1,2
-        Topic: my-topic Partition: 3    Leader: 0       Replicas: 1,0,2 Isr: 0,2,1
-        Topic: my-topic Partition: 4    Leader: 1       Replicas: 2,1,0 Isr: 1,0,2
-        Topic: my-topic Partition: 5    Leader: 0       Replicas: 0,2,1 Isr: 1,2,0
-        Topic: my-topic Partition: 6    Leader: 2       Replicas: 1,2,0 Isr: 0,1,2
-        Topic: my-topic Partition: 7    Leader: 2       Replicas: 2,0,1 Isr: 2,0,1
-        Topic: my-topic Partition: 8    Leader: 0       Replicas: 0,1,2 Isr: 0,1,2
-        Topic: my-topic Partition: 9    Leader: 1       Replicas: 1,0,2 Isr: 1,0,2
+Topic: my-topic TopicId: WyFKVZzLS8i54IGgm1ifrQ PartitionCount: 10      ReplicationFactor: 3    Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
+        Topic: my-topic Partition: 0    Leader: 0       Replicas: 0,2,1 Isr: 0,2,1
+        Topic: my-topic Partition: 1    Leader: 2       Replicas: 2,1,0 Isr: 0,2,1
+        Topic: my-topic Partition: 2    Leader: 1       Replicas: 1,0,2 Isr: 0,2,1
+        Topic: my-topic Partition: 3    Leader: 0       Replicas: 0,1,2 Isr: 0,2,1
+        Topic: my-topic Partition: 4    Leader: 2       Replicas: 2,0,1 Isr: 0,2,1
+        Topic: my-topic Partition: 5    Leader: 1       Replicas: 1,2,0 Isr: 0,2,1
+        Topic: my-topic Partition: 6    Leader: 0       Replicas: 0,2,1 Isr: 0,2,1
+        Topic: my-topic Partition: 7    Leader: 2       Replicas: 2,1,0 Isr: 0,2,1
+        Topic: my-topic Partition: 8    Leader: 1       Replicas: 1,0,2 Isr: 0,2,1
+        Topic: my-topic Partition: 9    Leader: 0       Replicas: 0,1,2 Isr: 0,2,1
 ```
 
 From the above outputs, we got to know that my-topic-two has some replicas on broker 3 and 4 thus we need to reassign this topic onto other brokers. 
@@ -292,12 +292,13 @@ Here `topics-to-move-json-file` points towards the `topics.json file` and `--bro
 
 Once you run this command, you will be able to see the JSON data which is generated by the Kafka reassignment partition tool. You get the current replica assignment and the proposed `reassignment.json` data.
 
-```shell
+```sh
 Current partition replica assignment
-{"version":1,"partitions":[{"topic":"my-topic-two","partition":0,"replicas":[2,3,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":1,"replicas":[3,0,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":2,"replicas":[0,1,4],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":3,"replicas":[1,4,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":4,"replicas":[4,2,3],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":5,"replicas":[2,0,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":6,"replicas":[3,1,4],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":7,"replicas":[0,4,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":8,"replicas":[1,2,3],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":9,"replicas":[4,3,0],"log_dirs":["any","any","any"]}]}
+{"version":1,"partitions":[{"topic":"my-topic-two","partition":0,"replicas":[0,3,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":1,"replicas":[1,0,4],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":2,"replicas":[4,1,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":3,"replicas":[2,4,3],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":4,"replicas":[3,2,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":5,"replicas":[0,1,4],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":6,"replicas":[1,4,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":7,"replicas":[4,2,3],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":8,"replicas":[2,3,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":9,"replicas":[3,0,1],"log_dirs":["any","any","any"]}]}
 
 Proposed partition reassignment configuration
-{"version":1,"partitions":[{"topic":"my-topic-two","partition":0,"replicas":[0,1,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":1,"replicas":[1,2,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":2,"replicas":[2,0,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":3,"replicas":[0,2,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":4,"replicas":[1,0,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":5,"replicas":[2,1,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":6,"replicas":[0,1,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":7,"replicas":[1,2,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":8,"replicas":[2,0,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":9,"replicas":[0,2,1],"log_dirs":["any","any","any"]}]}
+{"version":1,"partitions":[{"topic":"my-topic-two","partition":0,"replicas":[2,0,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":1,"replicas":[0,1,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":2,"replicas":[1,2,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":3,"replicas":[2,1,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":4,"replicas":[0,2,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":5,"replicas":[1,0,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":6,"replicas":[2,0,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":7,"replicas":[0,1,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":8,"replicas":[1,2,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":9,"replicas":[2,1,0],"log_dirs":["any","any","any"]}]}
+
 ```
 Now you can copy this proposed `reassignment.json` data and paste it in a `reassignment.json` file, which will be copied to our interactive pod container in the next step.
 
@@ -322,20 +323,20 @@ So let's run the `kafka-reassign-partitions.sh` script now to start the partitio
 
 ```sh
 bin/kafka-reassign-partitions.sh --bootstrap-server <CLUSTER-NAME>-kafka-bootstrap:9092 \
- --reassignment-json-file /tmp/reassignment.json \ 
- --execute
+--reassignment-json-file /tmp/reassignment.json \ 
+--execute
 ```
 
 You can use the `--verify` action to check if the partition reassignment is done or if it is still running. You might have to run this command multiple times since it may take the process a while to get complete.
 
 ```sh
 bin/kafka-reassign-partitions.sh --bootstrap-server <CLUSTER-NAME>-kafka-bootstrap:9092 \
-  --reassignment-json-file /tmp/reassignment.json \
-  --verify
+--reassignment-json-file /tmp/reassignment.json \
+--verify
 ```
 The `--verify` action reports if the assignment is done or not.
 
-```shell
+```sh
 Status of partition reassignment:
 Reassignment of partition my-topic-two-0 is complete.
 Reassignment of partition my-topic-two-1 is complete.
@@ -349,24 +350,64 @@ Reassignment of partition my-topic-two-8 is complete.
 Reassignment of partition my-topic-two-9 is complete.
 
 Clearing broker-level throttles on brokers 0,1,2,3,4
-Clearing topic-level throttles on topic my-topic-two  
+Clearing topic-level throttles on topic my-topic-two
 ```
 
-When the partition reassignment is complete, the brokers we want to scale down will have no assigned partitions and can be removed safely. You can check it by looking at the partition details of the reassigned topic.
+When the partition reassignment is complete, the brokers we want to scale down will have no assigned partitions and can be removed safely. Note, if new topics are created before these brokers are removed from the cluster, partitions may be assigned to these brokers.
 
-```shell
-        Topic: my-topic-two       Partition: 0    Leader: 2       Replicas: 0,1,2 Isr: 2,0,1
-        Topic: my-topic-two       Partition: 1    Leader: 1       Replicas: 1,2,0 Isr: 0,1,2
-        Topic: my-topic-two       Partition: 2    Leader: 0       Replicas: 2,0,1 Isr: 0,1,2
-        Topic: my-topic-two       Partition: 3    Leader: 1       Replicas: 0,2,1 Isr: 1,2,0
-        Topic: my-topic-two       Partition: 4    Leader: 1       Replicas: 1,0,2 Isr: 0,1,2
-        Topic: my-topic-two       Partition: 5    Leader: 2       Replicas: 2,1,0 Isr: 2,0,1
-        Topic: my-topic-two       Partition: 6    Leader: 0       Replicas: 0,1,2 Isr: 0,1,2
-        Topic: my-topic-two       Partition: 7    Leader: 0       Replicas: 1,2,0 Isr: 0,2,1
-        Topic: my-topic-two       Partition: 8    Leader: 1       Replicas: 2,0,1 Isr: 1,2,0
-        Topic: my-topic-two       Partition: 9    Leader: 0       Replicas: 0,2,1 Isr: 0,1,2   
+```sh
+Topic: my-topic-two     TopicId: _aUFY9oMSjqBjvP9Ed3JDg PartitionCount: 10      ReplicationFactor: 3    Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
+        Topic: my-topic-two     Partition: 0    Leader: 0       Replicas: 2,0,1 Isr: 0,1,2
+        Topic: my-topic-two     Partition: 1    Leader: 1       Replicas: 0,1,2 Isr: 1,0,2
+        Topic: my-topic-two     Partition: 2    Leader: 1       Replicas: 1,2,0 Isr: 1,2,0
+        Topic: my-topic-two     Partition: 3    Leader: 2       Replicas: 2,1,0 Isr: 0,1,2
+        Topic: my-topic-two     Partition: 4    Leader: 0       Replicas: 0,2,1 Isr: 2,0,1
+        Topic: my-topic-two     Partition: 5    Leader: 0       Replicas: 1,0,2 Isr: 0,1,2
+        Topic: my-topic-two     Partition: 6    Leader: 1       Replicas: 2,0,1 Isr: 1,2,0
+        Topic: my-topic-two     Partition: 7    Leader: 0       Replicas: 0,1,2 Isr: 0,1,2
+        Topic: my-topic-two     Partition: 8    Leader: 2       Replicas: 1,2,0 Isr: 2,0,1
+        Topic: my-topic-two     Partition: 9    Leader: 2       Replicas: 2,1,0 Isr: 0,1,2 
 ```
-As you can see the partition are now removed from the pod to be scaled down and now they can be removed without any problems. 
+As you can see the partition are now removed from the pod to be scaled down and now they can be removed without any problems.
+
+Let's change the replicas to 3 now in the Kafka resource 
+
+```sh
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    version: 3.1.0
+    replicas: 3   // changed to 3 from 5
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+....        
+```
+
+Now apply the Kafka resource and check the pods in the namespace:
+```sh
+kubectl get pods
+```
+
+You will notice that `<CLUSTER-NAME>-kafka-3` and `<CLUSTER-NAME>-kafka-4` are removed u:
+
+```sh
+NAME                                          READY   STATUS    RESTARTS   AGE
+my-cluster-entity-operator-59b74b79b6-xwxgj   3/3     Running   0          3h28m
+my-cluster-kafka-0                            1/1     Running   0          91s
+my-cluster-kafka-1                            1/1     Running   0          2m32s
+my-cluster-kafka-2                            1/1     Running   0          2m1s
+my-cluster-zookeeper-0                        1/1     Running   2          3h31m
+my-cluster-zookeeper-1                        1/1     Running   2          3h31m
+my-cluster-zookeeper-2                        1/1     Running   0          3h31m
+my-pod                                        1/1     Running   0          46m
+strimzi-cluster-operator-8759c8f5d-z4n4v      1/1     Running   0          3h34m
+```
 
 # Conclusion
 
