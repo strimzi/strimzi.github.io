@@ -122,7 +122,7 @@
 <li><a href="#con-oauth-authentication-broker-str">5.4.2. OAuth 2.0 Kafka broker configuration</a></li>
 <li><a href="#str">5.4.3. Session re-authentication for Kafka brokers</a></li>
 <li><a href="#con-oauth-authentication-client-str">5.4.4. OAuth 2.0 Kafka client configuration</a></li>
-<li><a href="#con-oauth-authentication-client-options-str">5.4.5. OAuth 2.0 client authentication flow</a></li>
+<li><a href="#con-oauth-authentication-client-options-str">5.4.5. OAuth 2.0 client authentication flows</a></li>
 <li><a href="#con-oauth-strimzi-config-str">5.4.6. Configuring OAuth 2.0 authentication</a></li>
 <li><a href="#con-oauth-server-examples-str">5.4.7. Authorization server examples</a></li>
 </ul>
@@ -8903,13 +8903,13 @@ The brokers and clients communicate with the OAuth 2.0 authorization server, as 
 <p>Server-side OAuth 2.0 support for Kafka brokers</p>
 </li>
 <li>
-<p>Client-side OAuth 2.0 support for Kafka MirrorMaker, Kafka Connect and the Kafka Bridge</p>
+<p>Client-side OAuth 2.0 support for Kafka MirrorMaker, Kafka Connect, and the Kafka Bridge</p>
 </li>
 </ul>
 </div>
 <div class="sect3">
 <h4 id="con-oauth-authentication-flow-str"><a class="link" href="#con-oauth-authentication-flow-str">5.4.1. OAuth 2.0 authentication mechanisms</a></h4>
-<div class="paragraph">
+<div class="paragraph _abstract">
 <p>Strimzi supports the OAUTHBEARER and PLAIN mechanisms for OAuth 2.0 authentication.
 Both mechanisms allow Kafka clients to establish authenticated sessions with Kafka brokers.
 The authentication flow between clients, the authorization server, and Kafka brokers is different for each mechanism.</p>
@@ -8920,16 +8920,28 @@ OAUTHBEARER provides a higher level of security than PLAIN because client creden
 Consider using PLAIN only with Kafka clients that do not support OAUTHBEARER.</p>
 </div>
 <div class="paragraph">
-<p>If necessary, OAUTHBEARER and PLAIN can be enabled together, on the same <code>oauth</code> listener.</p>
+<p>You configure Kafka broker listeners to use OAuth 2.0 authentication for connecting clients.
+If necessary, you can use the OAUTHBEARER and PLAIN mechanisms on the same <code>oauth</code> listener.
+The properties to support each mechanism must be explicitly specified in the <code>oauth</code> listener configuration.</p>
 </div>
 <div class="paragraph">
 <div class="title">OAUTHBEARER overview</div>
-<p>Kafka supports the OAUTHBEARER authentication mechanism, however it must be explicitly configured.
-Also, many Kafka client tools use libraries that provide basic support for OAUTHBEARER at the protocol level.</p>
+<p>OAUTHBEARER is automatically enabled in the <code>oauth</code> listener configuration for the Kafka broker.
+You can set the <code>enableOauthBearer</code> property to <code>true</code>, though this is not required.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  # ...
+  authentication:
+    type: oauth
+    # ...
+    enableOauthBearer: true</code></pre>
+</div>
 </div>
 <div class="paragraph">
-<p>To ease application development, Strimzi provides an <em>OAuth callback handler</em> for the upstream Kafka Client Java libraries (but not for other libraries).
-Therefore, you do not need to write your own callback handlers for such clients.
+<p>Many Kafka client tools use libraries that provide basic support for OAUTHBEARER at the protocol level.
+To support application development, Strimzi provides an <em>OAuth callback handler</em> for the upstream Kafka Client Java libraries (but not for other libraries).
+Therefore, you do not need to write your own callback handlers.
 An application client can use the callback handler to provide the access token.
 Clients written in other languages, such as Go, must use custom code to connect to the authorization server and obtain the access token.</p>
 </div>
@@ -8950,19 +8962,6 @@ Using the callbacks, you can configure token provision in one of three ways:</p>
 </li>
 </ul>
 </div>
-<div class="paragraph">
-<p>OAUTHBEARER is automatically enabled in the <code>oauth</code> listener configuration for the Kafka broker.
-You can set the <code>enableOauthBearer</code> property to <code>true</code>, though this is not required.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  # ...
-  authentication:
-    type: oauth
-    # ...
-    enableOauthBearer: true</code></pre>
-</div>
-</div>
 <div class="admonitionblock note">
 <table>
 <tr>
@@ -8979,8 +8978,25 @@ You can set the <code>enableOauthBearer</code> property to <code>true</code>, th
 </div>
 <div class="paragraph">
 <div class="title">PLAIN overview</div>
+<p>To use PLAIN, you must enable it in the <code>oauth</code> listener configuration for the Kafka broker.</p>
+</div>
+<div class="paragraph">
+<p>In the following example, PLAIN is enabled in addition to OAUTHBEARER, which is enabled by default.
+If you want to use PLAIN only, you can disable OAUTHBEARER by setting <code>enableOauthBearer</code> to <code>false</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  # ...
+  authentication:
+    type: oauth
+    # ...
+    enablePlain: true
+    tokenEndpointUri: https://<em>OAUTH-SERVER-ADDRESS</em>/auth/realms/external/protocol/openid-connect/token</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>PLAIN is a simple authentication mechanism used by all Kafka client tools.
-To enable PLAIN to be used together with OAuth 2.0 authentication, Strimzi includes server-side callbacks and calls this <em>OAuth 2.0 over PLAIN</em>.</p>
+To enable PLAIN to be used with OAuth 2.0 authentication, Strimzi provides <em>OAuth 2.0 over PLAIN</em> server-side callbacks.</p>
 </div>
 <div class="paragraph">
 <p>With the Strimzi implementation of PLAIN, the client credentials are not stored in ZooKeeper.
@@ -9000,31 +9016,31 @@ Instead, client credentials are handled centrally behind a compliant authorizati
 </ul>
 </div>
 <div class="paragraph">
-<p>The client must be enabled to use PLAIN authentication, and provide a <code>username</code> and <code>password</code>.
-If the password is prefixed with <code>$accessToken:</code> followed by the value of the access token, the Kafka broker will interpret the password as the access token.
-Otherwise, the Kafka broker will interpret the <code>username</code> as the client ID and the <code>password</code> as the client secret.</p>
+<p>For both methods, the client must provide the PLAIN <code>username</code> and <code>password</code> properties to pass credentials to the Kafka broker.
+The client uses these properties to pass a client ID and secret or username and access token.</p>
+</div>
+<div class="paragraph">
+<p>Client IDs and secrets are used to obtain access tokens.</p>
+</div>
+<div class="paragraph">
+<p>Access tokens are passed as <code>password</code> property values.
+You pass the access token with or without an <code>$accessToken:</code> prefix.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If you configure a token endpoint (<code>tokenEndpointUri</code>) in the listener configuration, you need the prefix.</p>
+</li>
+<li>
+<p>If you don&#8217;t configure a token endpoint (<code>tokenEndpointUri</code>) in the listener configuration, you don&#8217;t need the prefix.
+The Kafka broker interprets the password as a raw access token.</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
 <p>If the <code>password</code> is set as the access token, the <code>username</code> must be set to the same principal name that the Kafka broker obtains from the access token.
-The process depends on how you configure username extraction using <code>userNameClaim</code>, <code>fallbackUserNameClaim</code>, <code>fallbackUsernamePrefix</code>, or <code>userInfoEndpointUri</code>.
-It also depends on your authorization server; in particular, how it maps client IDs to account names.</p>
-</div>
-<div class="paragraph">
-<p>To use PLAIN, you must enable it in the <code>oauth</code> listener configuration for the Kafka broker.</p>
-</div>
-<div class="paragraph">
-<p>In the following example, PLAIN is enabled in addition to OAUTHBEARER, which is enabled by default.
-If you want to use PLAIN only, you can disable OAUTHBEARER by setting <code>enableOauthBearer</code> to <code>false</code>.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  # ...
-  authentication:
-    type: oauth
-    # ...
-    enablePlain: true
-    tokenEndpointUri: https://<em>OAUTH-SERVER-ADDRESS</em>/auth/realms/external/protocol/openid-connect/token</code></pre>
-</div>
+You can specify username extraction options in your listener using the <code>userNameClaim</code>, <code>fallbackUserNameClaim</code>, <code>fallbackUsernamePrefix</code>, and <code>userInfoEndpointUri</code> properties.
+The username extraction process also depends on your authorization server; in particular, how it maps client IDs to account names.</p>
 </div>
 <div class="ulist">
 <div class="title">Additional resources</div>
@@ -9402,44 +9418,32 @@ The Kafka client exchanges either:</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-oauth-authentication-client-options-str"><a class="link" href="#con-oauth-authentication-client-options-str">5.4.5. OAuth 2.0 client authentication flow</a></h4>
-<div class="paragraph">
-<p>In this section, we explain and visualize the communication flow between Kafka client, Kafka broker, and authorization server during Kafka session initiation.
-The flow depends on the client and server configuration.</p>
+<h4 id="con-oauth-authentication-client-options-str"><a class="link" href="#con-oauth-authentication-client-options-str">5.4.5. OAuth 2.0 client authentication flows</a></h4>
+<div class="paragraph _abstract">
+<p>OAuth 2.0 authentication flows depend on the underlying Kafka client and Kafka broker configuration.
+The flows must also be supported by the authorization server used.</p>
 </div>
 <div class="paragraph">
-<p>When a Kafka client sends an access token as credentials to a Kafka broker, the token needs to be validated.</p>
+<p>The Kafka broker listener configuration determines how clients authenticate using an access token.
+The client can pass a client ID and secret to request an access token.</p>
 </div>
 <div class="paragraph">
-<p>Depending on the authorization server used, and the configuration options available, you may prefer to use:</p>
+<p>If a listener is configured to use PLAIN authentication, the client can authenticate with a client ID and secret or username and access token.
+These values are passed as the <code>username</code> and <code>password</code> properties of the PLAIN mechanism.</p>
+</div>
+<div class="paragraph">
+<p>Listener configuration supports the following token validation options:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Fast local token validation based on JWT signature checking and local token introspection, without contacting the authorization server</p>
+<p>You can use fast local token validation based on JWT signature checking and local token introspection, without contacting an authorization server.
+The authorization server provides a JWKS endpoint with public certificates that are used to validate signatures on the tokens.</p>
 </li>
 <li>
-<p>An OAuth 2.0 introspection endpoint provided by the authorization server</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Using fast local token validation requires the authorization server to provide a JWKS endpoint with public certificates that are used to validate signatures on the tokens.</p>
-</div>
-<div class="paragraph">
-<p>Another option is to use an OAuth 2.0 introspection endpoint on the authorization server.
-Each time a new Kafka broker connection is established, the broker passes the access token received from the client to the authorization server, and checks the response to confirm whether or not the token is valid.</p>
-</div>
-<div class="paragraph">
-<p>Kafka client credentials can also be configured for:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Direct local access using a previously generated long-lived access token</p>
-</li>
-<li>
-<p>Contact with the authorization server for a new access token to be issued</p>
+<p>You can use a call to a token introspection endpoint provided by an authorization server.
+Each time a new Kafka broker connection is established, the broker passes the access token received from the client to the authorization server.
+The Kafka broker checks the response to confirm whether or not the token is valid.</p>
 </li>
 </ul>
 </div>
@@ -9455,10 +9459,23 @@ An authorization server might only allow the use of opaque access tokens, which 
 </tr>
 </table>
 </div>
-<div class="sect4">
-<h5 id="example_client_authentication_flows"><a class="link" href="#example_client_authentication_flows">Example client authentication flows</a></h5>
 <div class="paragraph">
-<p>Here you can see the communication flows, for different configurations of Kafka clients and brokers, during Kafka session authentication.</p>
+<p>Kafka client credentials can also be configured for the following types of authentication:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Direct local access using a previously generated long-lived access token</p>
+</li>
+<li>
+<p>Contact with the authorization server for a new access token to be issued (using a client ID and a secret, or a refresh token)</p>
+</li>
+</ul>
+</div>
+<div class="sect4">
+<h5 id="example_client_authentication_flows_using_the_sasl_oauthbearer_mechanism"><a class="link" href="#example_client_authentication_flows_using_the_sasl_oauthbearer_mechanism">Example client authentication flows using the SASL OAUTHBEARER mechanism</a></h5>
+<div class="paragraph">
+<p>You can use the following communication flows for Kafka authentication using the SASL OAUTHBEARER mechanism.</p>
 </div>
 <div class="ulist">
 <ul>
@@ -9483,19 +9500,19 @@ An authorization server might only allow the use of opaque access tokens, which 
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Kafka client requests access token from authorization server, using client ID and secret, and optionally a refresh token.</p>
+<p>The Kafka client requests an access token from the authorization server using a client ID and secret, and optionally a refresh token.</p>
 </li>
 <li>
-<p>Authorization server generates a new access token.</p>
+<p>The authorization server generates a new access token.</p>
 </li>
 <li>
-<p>Kafka client authenticates with the Kafka broker using the <em>SASL OAUTHBEARER</em> mechanism to pass the access token.</p>
+<p>The Kafka client authenticates with the Kafka broker using the SASL OAUTHBEARER mechanism to pass the access token.</p>
 </li>
 <li>
-<p>Kafka broker validates the access token by calling a token introspection endpoint on authorization server, using its own client ID and secret.</p>
+<p>The Kafka broker validates the access token by calling a token introspection endpoint on the authorization server using its own client ID and secret.</p>
 </li>
 <li>
-<p>Kafka client session is established if the token is valid.</p>
+<p>A Kafka client session is established if the token is valid.</p>
 </li>
 </ol>
 </div>
@@ -9506,16 +9523,16 @@ An authorization server might only allow the use of opaque access tokens, which 
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Kafka client authenticates with authorization server from the token endpoint, using a client ID and secret, and optionally a refresh token.</p>
+<p>The Kafka client authenticates with the authorization server from the token endpoint, using a client ID and secret, and optionally a refresh token.</p>
 </li>
 <li>
-<p>Authorization server generates a new access token.</p>
+<p>The authorization server generates a new access token.</p>
 </li>
 <li>
-<p>Kafka client authenticates with the Kafka broker using the <em>SASL OAUTHBEARER</em> mechanism to pass the access token.</p>
+<p>The Kafka client authenticates with the Kafka broker using the SASL OAUTHBEARER mechanism to pass the access token.</p>
 </li>
 <li>
-<p>Kafka broker validates the access token locally using a JWT token signature check, and local token introspection.</p>
+<p>The Kafka broker validates the access token locally using a JWT token signature check, and local token introspection.</p>
 </li>
 </ol>
 </div>
@@ -9526,13 +9543,13 @@ An authorization server might only allow the use of opaque access tokens, which 
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Kafka client authenticates with the Kafka broker using the <em>SASL OAUTHBEARER</em> mechanism to pass the long-lived access token.</p>
+<p>The Kafka client authenticates with the Kafka broker using the SASL OAUTHBEARER mechanism to pass the long-lived access token.</p>
 </li>
 <li>
-<p>Kafka broker validates the access token by calling a token introspection endpoint on authorization server, using its own client ID and secret.</p>
+<p>The Kafka broker validates the access token by calling a token introspection endpoint on the authorization server, using its own client ID and secret.</p>
 </li>
 <li>
-<p>Kafka client session is established if the token is valid.</p>
+<p>A Kafka client session is established if the token is valid.</p>
 </li>
 </ol>
 </div>
@@ -9543,10 +9560,10 @@ An authorization server might only allow the use of opaque access tokens, which 
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Kafka client authenticates with the Kafka broker using the <em>SASL OAUTHBEARER</em> mechanism to pass the long-lived access token.</p>
+<p>The Kafka client authenticates with the Kafka broker using the SASL OAUTHBEARER mechanism to pass the long-lived access token.</p>
 </li>
 <li>
-<p>Kafka broker validates the access token locally using JWT token signature check, and local token introspection.</p>
+<p>The Kafka broker validates the access token locally using a JWT token signature check and local token introspection.</p>
 </li>
 </ol>
 </div>
@@ -9563,6 +9580,92 @@ Any issued token would be considered valid until it expires.
 </td>
 </tr>
 </table>
+</div>
+</div>
+<div class="sect4">
+<h5 id="example_client_authentication_flows_using_the_sasl_plain_mechanism"><a class="link" href="#example_client_authentication_flows_using_the_sasl_plain_mechanism">Example client authentication flows using the SASL PLAIN mechanism</a></h5>
+<div class="paragraph">
+<p>You can use the following communication flows for Kafka authentication using the OAuth PLAIN mechanism.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#oauth-plain-client-id-str">Client using a client ID and secret, with the broker obtaining the access token for the client</a></p>
+</li>
+<li>
+<p><a href="#oauth-plain-access-token-str">Client using a long-lived access token without a client ID and secret</a></p>
+</li>
+</ul>
+</div>
+<div id="oauth-plain-client-id-str" class="paragraph">
+<div class="title">Client using a client ID and secret, with the broker obtaining the access token for the client</div>
+<p><span class="image"><img src="images/oauth-plain-client-id.png" alt="Client using a client ID and secret" width="with the broker obtaining the access token for the client"></span></p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The Kafka client passes a <code>clientId</code> as a username and a <code>secret</code> as a password.</p>
+</li>
+<li>
+<p>The Kafka broker uses a token endpoint to pass the <code>clientId</code> and <code>secret</code> to the authorization server.</p>
+</li>
+<li>
+<p>The authorization server returns a fresh access token or an error if the client credentials are not valid.</p>
+</li>
+<li>
+<p>The Kafka broker validates the token in one of the following ways:</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>If a token introspection endpoint is specified, the Kafka broker validates the access token by calling the endpoint on the authorization server.
+A session is established if the token validation is successful.</p>
+</li>
+<li>
+<p>If local token introspection is used, a request is not made to the authorization server.
+The Kafka broker validates the access token locally using a JWT token signature check.</p>
+</li>
+</ol>
+</div>
+</li>
+</ol>
+</div>
+<div id="oauth-plain-access-token-str" class="paragraph">
+<div class="title">Client using a long-lived access token without a client ID and secret</div>
+<p><span class="image"><img src="images/oauth-plain-access-token.png" alt="Client using a long-lived access token without a client ID and secret"></span></p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The Kafka client passes a username and password. The password provides the value of an access token that was obtained manually and configured before running the client.</p>
+</li>
+<li>
+<p>The password is passed with or without an <code>$accessToken:</code> string prefix depending on whether or not the Kafka broker listener is configured with a token endpoint for authentication.</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>If the token endpoint is configured, the password should be prefixed by <code>$accessToken:</code> to let the broker know that the password parameter contains an access token rather than a client secret. The Kafka broker interprets the username as the account username.</p>
+</li>
+<li>
+<p>If the token endpoint is not configured on the Kafka broker listener (enforcing a <code>no-client-credentials mode</code>), the password should provide the access token without the prefix. The Kafka broker interprets the username as the account username.
+In this mode, the client doesn&#8217;t use a client ID and secret, and the <code>password</code> parameter is always interpreted as a raw access token.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>The Kafka broker validates the token in one of the following ways:</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>If a token introspection endpoint is specified, the Kafka broker validates the access token by calling the endpoint on the authorization server. A session is established if token validation is successful.</p>
+</li>
+<li>
+<p>If local token introspection is used, there is no request made to the authorization server. Kafka broker validates the access token locally using a JWT token signature check.</p>
+</li>
+</ol>
+</div>
+</li>
+</ol>
 </div>
 </div>
 </div>
@@ -9675,7 +9778,7 @@ Otherwise, you may need to configure the truststore with prober certificates or 
 <p><a href="#type-KafkaListenerAuthenticationOAuth-reference">KafkaListenerAuthenticationOAuth schema reference</a></p>
 </li>
 <li>
-<p><a href="#assembly-securing-access-str">Managing access to Kafka</a></p>
+<p><a href="#con-oauth-authentication-flow-str">OAuth 2.0 authentication mechanisms</a></p>
 </li>
 </ul>
 </div>
@@ -9852,15 +9955,13 @@ Otherwise, you may need to configure the truststore with prober certificates or 
 <p>(Only applicable when using <code>introspectionEndpointUri</code>) The authorization server may be configured or implemented in such a way to not provide any identifiable information in an Introspection Endpoint response. In order to obtain the user ID, you can configure the URI of the <code>userinfo</code> endpoint as a fallback. The <code>userNameClaim</code>, <code>fallbackUserNameClaim</code>, and <code>fallbackUserNamePrefix</code> settings are applied to the response of <code>userinfo</code> endpoint.</p>
 </li>
 <li>
-<p>Set this to <code>false`to disable the OAUTHBEARER mechanism on the listener. At least one of PLAIN or OAUTHBEARER has to be enabled. Default is `true</code>.</p>
+<p>Set this to <code>false</code> to disable the OAUTHBEARER mechanism on the listener. At least one of PLAIN or OAUTHBEARER has to be enabled. Default is <code>true</code>.</p>
 </li>
 <li>
-<p>Set to <code>true</code> to enable PLAIN authentication on the listener, which is supported by all clients on all platforms. The Kafka client must enable the PLAIN mechanism and set the <code>username</code> and <code>password</code>. PLAIN can be used to authenticate either by using the OAuth access token, or the OAuth <code>clientId</code> and <code>secret</code> (the client credentials). The behavior is additionally controlled by whether <code>tokenEndpointUri</code> is specified or not. Default is <code>false</code>.
-If <code>tokenEndpointUri</code> is specified and the client sets <code>password</code> to start with the string <code>$accessToken:</code>, the server interprets the password as the access token and the <code>username</code> as the account username. Otherwise, the <code>username</code> is interpreted as the <code>clientId</code> and the <code>password</code> as the client <code>secret</code>, which the broker uses to obtain the access token in the client&#8217;s name.
-If <code>tokenEndpointUri</code> is not specified, the <code>password</code> is always interpreted as an access token and the <code>username</code> is always interpreted as the account username, which must match the principal id extracted from the token. This is known as 'no-client-credentials' mode because the client must always obtain the access token by itself, and can&#8217;t use <code>clientId</code> and <code>secret</code>.</p>
+<p>Set to <code>true</code> to enable PLAIN authentication on the listener, which is supported for clients on all platforms.</p>
 </li>
 <li>
-<p>Additional configuration for PLAIN mechanism to allow clients to authenticate by passing <code>clientId</code> and <code>secret</code> as <code>username</code> and <code>password</code> as described in the previous point. If not specified the clients can authenticate over PLAIN only by passing an access token as <code>password</code> parameter.</p>
+<p>Additional configuration for the PLAIN mechanism. If specified, clients can authenticate over PLAIN by passing an access token as the <code>password</code> using an <code>$accessToken:</code> prefix.</p>
 </li>
 <li>
 <p>Additional custom rules can be imposed on the JWT access token during validation by setting this to a JsonPath filter query. If the access token does not contain the necessary data, it is rejected. When using the <code>introspectionEndpointUri</code>, the custom check is applied to the introspection endpoint response JSON.</p>
