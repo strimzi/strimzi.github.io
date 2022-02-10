@@ -9933,7 +9933,9 @@ Otherwise, you may need to configure the truststore with prober certificates or 
     clientAudience: <em>AUDIENCE</em> <b class="conum">(11)</b>
     clientScope: <em>SCOPE</em> <b class="conum">(12)</b>
     connectTimeoutSeconds: 60 <b class="conum">(13)</b>
-    readTimeoutSeconds: 60 <b class="conum">(14)</b></code></pre>
+    readTimeoutSeconds: 60 <b class="conum">(14)</b>
+    groupsClaim: "$.groups" <b class="conum">(15)</b>
+    groupsClaimDelimiter: "," <b class="conum">(16)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -9969,16 +9971,22 @@ Otherwise, you may need to configure the truststore with prober certificates or 
 <p>Additional custom rules can be imposed on the JWT access token during validation by setting this to a JsonPath filter query. If the access token does not contain the necessary data, it is rejected. When using the <code>introspectionEndpointUri</code>, the custom check is applied to the introspection endpoint response JSON.</p>
 </li>
 <li>
-<p>(Optional) An <code>audience</code> parameter passed to the token endpoint. An <em>audience</em> is used  when obtaining an access token for inter-broker authentication. It is also used in the name of a client for OAuth 2.0 over PLAIN client authentication using a <code>clientId</code> and <code>secret</code>. This only affects the ability to obtain the token, and the content of the token, depending on the authorization server. It does not affect token validation rules by the listener.</p>
+<p>An <code>audience</code> parameter passed to the token endpoint. An <em>audience</em> is used  when obtaining an access token for inter-broker authentication. It is also used in the name of a client for OAuth 2.0 over PLAIN client authentication using a <code>clientId</code> and <code>secret</code>. This only affects the ability to obtain the token, and the content of the token, depending on the authorization server. It does not affect token validation rules by the listener.</p>
 </li>
 <li>
-<p>(Optional) A <code>scope</code> parameter passed to the token endpoint. A <em>scope</em> is used when obtaining an access token for inter-broker authentication. It is also used in the name of a client for OAuth 2.0 over PLAIN client authentication using a <code>clientId</code> and <code>secret</code>. This only affects the ability to obtain the token, and the content of the token, depending on the authorization server. It does not affect token validation rules by the listener.</p>
+<p>A <code>scope</code> parameter passed to the token endpoint. A <em>scope</em> is used when obtaining an access token for inter-broker authentication. It is also used in the name of a client for OAuth 2.0 over PLAIN client authentication using a <code>clientId</code> and <code>secret</code>. This only affects the ability to obtain the token, and the content of the token, depending on the authorization server. It does not affect token validation rules by the listener.</p>
 </li>
 <li>
-<p>(Optional) The connect timeout in seconds when connecting to the authorization server. The default value is 60.</p>
+<p>The connect timeout in seconds when connecting to the authorization server. The default value is 60.</p>
 </li>
 <li>
-<p>(Optional) The read timeout in seconds when connecting to the authorization server. The default value is 60.</p>
+<p>The read timeout in seconds when connecting to the authorization server. The default value is 60.</p>
+</li>
+<li>
+<p>A JsonPath query used to extract groups information from JWT token or introspection endpoint response. Not set by default. This can be used by a custom authorizer to make authorization decisions based on user groups.</p>
+</li>
+<li>
+<p>A delimiter used to parse groups information when returned as a single delimited string. The default value is ',' (comma).</p>
 </li>
 </ol>
 </div>
@@ -26054,6 +26062,24 @@ It must have the value <code>oauth</code> for the type <code>KafkaListenerAuthen
 <td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">groupsClaim</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>JsonPath query used to extract groups for the user during authentication. Extracted groups can be used by a custom authorizer. By default no groups are extracted.</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">groupsClaimDelimiter</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>A delimiter used to parse groups when they are extracted as a single String value rather than a JSON array. Default value is ',' (comma).</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">introspectionEndpointUri</p></td>
 <td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
 <p>URI of the token introspection endpoint which can be used to validate opaque non-JWT tokens.</p>
@@ -27977,6 +28003,24 @@ For more information, see <a href="#type-KafkaClusterSpec-reference">Kafka broke
 </td>
 </tr>
 </table>
+</div>
+<div class="paragraph">
+<p>Custom authorization can make use of group membership information extracted from the JWT token during authentication when using <code>oauth</code> authentication and configuring <code>groupsClaim</code> configuration attribute. Groups are available on the <code>OAuthKafkaPrincipal</code> object during authorize() call as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">    public List&lt;AuthorizationResult&gt; authorize(AuthorizableRequestContext requestContext, List&lt;Action&gt; actions) {
+
+        KafkaPrincipal principal = requestContext.principal();
+        if (principal instanceof OAuthKafkaPrincipal) {
+            OAuthKafkaPrincipal p = (OAuthKafkaPrincipal) principal;
+
+            for (String group: p.getGroups()) {
+                System.out.println("Group: " + group);
+            }
+        }
+    }</code></pre>
+</div>
 </div>
 </div>
 <div class="sect4">
