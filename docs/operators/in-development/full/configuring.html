@@ -9396,7 +9396,7 @@ Using the callbacks, you can configure token provision in one of three ways:</p>
 <div class="ulist">
 <ul>
 <li>
-<p>Client ID and Secret (by using the OAuth 2.0 client credentials mechanism)</p>
+<p>Client ID and Secret (by using the <em>OAuth 2.0 client credentials</em> mechanism)</p>
 </li>
 <li>
 <p>A long-lived access token, obtained manually at configuration time</p>
@@ -10043,7 +10043,7 @@ Any issued token would be considered valid until it expires.
 </div>
 <div id="oauth-plain-client-id-str" class="paragraph">
 <div class="title">Client using a client ID and secret, with the broker obtaining the access token for the client</div>
-<p><span class="image"><img src="images/oauth-plain-client-id.png" alt="Client using a client ID and secret" width="with the broker obtaining the access token for the client"></span></p>
+<p><span class="image"><img src="images/oauth-plain-client-id.png" alt="Client using a client ID and secret with the broker obtaining the access token for the client"></span></p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -10409,7 +10409,8 @@ Otherwise, you may need to configure the truststore with prober certificates or 
 <p>Set to <code>true</code> to enable PLAIN authentication on the listener, which is supported for clients on all platforms.</p>
 </li>
 <li>
-<p>Additional configuration for the PLAIN mechanism. If specified, clients can authenticate over PLAIN by passing an access token as the <code>password</code> using an <code>$accessToken:</code> prefix.</p>
+<p>Additional configuration for the PLAIN mechanism. If specified, clients can authenticate over PLAIN by passing an access token as the <code>password</code> using an <code>$accessToken:</code> prefix.
+For production, always use <code>https://</code> urls.</p>
 </li>
 <li>
 <p>Additional custom rules can be imposed on the JWT access token during validation by setting this to a JsonPath filter query. If the access token does not contain the necessary data, it is rejected. When using the <code>introspectionEndpointUri</code>, the custom check is applied to the introspection endpoint response JSON.</p>
@@ -10493,7 +10494,7 @@ kubectl get pod -w</code></pre>
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
  &lt;groupId&gt;io.strimzi&lt;/groupId&gt;
  &lt;artifactId&gt;kafka-oauth-client&lt;/artifactId&gt;
- &lt;version&gt;{oauth-version}&lt;/version&gt;
+ &lt;version&gt;0.10.0&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -10505,9 +10506,11 @@ kubectl get pod -w</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">System.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, “<em>https://&lt;auth-server-address&gt;/auth/realms/master/protocol/openid-connect/token</em>”); <b class="conum">(1)</b>
-System.setProperty(ClientConfig.OAUTH_CLIENT_ID, "<em>&lt;client-name&gt;</em>"); <b class="conum">(2)</b>
-System.setProperty(ClientConfig.OAUTH_CLIENT_SECRET, "<em>&lt;client-secret&gt;</em>"); <b class="conum">(3)</b></code></pre>
+<pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env">System.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, “<em>https://&lt;auth-server-address&gt;/auth/realms/master/protocol/openid-connect/token</em>”); <b class="conum">(1)</b>
+System.setProperty(ClientConfig.OAUTH_CLIENT_ID, "<em>&lt;client_name&gt;</em>"); <b class="conum">(2)</b>
+System.setProperty(ClientConfig.OAUTH_CLIENT_SECRET, "<em>&lt;client_secret&gt;</em>"); <b class="conum">(3)</b>
+System.setProperty(ClientConfig.OAUTH_SCOPE, "<em>&lt;scope_value&gt;</em>") <b class="conum">(4)</b>
+System.setProperty(ClientConfig.OAUTH_AUDIENCE, "<em>&lt;audience_value</em>") <b class="conum">(5)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -10521,26 +10524,43 @@ System.setProperty(ClientConfig.OAUTH_CLIENT_SECRET, "<em>&lt;client-secret&gt;<
 <li>
 <p>Client secret created when creating the <em>client</em> in the authorization server.</p>
 </li>
+<li>
+<p>(Optional) The <code>scope</code> for requesting the token from the token endpoint.
+An authorization server may require a client to specify the scope.</p>
+</li>
+<li>
+<p>(Optional) The <code>audience</code> for requesting the token from the token endpoint.
+An authorization server may require a client to specify the audience.</p>
+</li>
 </ol>
 </div>
 </li>
 <li>
-<p>Enable the <em>SASL OAUTHBEARER</em> mechanism on a TLS encrypted connection in the Kafka client configuration:</p>
+<p>Enable the <em>OAUTHBEARER</em> or <em>PLAIN</em> mechanism on a TLS encrypted connection in the Kafka client configuration.</p>
 <div class="paragraph">
 <p>For example:</p>
 </div>
 <div class="listingblock">
+<div class="title">Enabling OAUTHBEARER for a Kafka client</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">props.put("sasl.jaas.config", "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;");
-props.put("security.protocol", "SASL_SSL"); <b class="conum">(1)</b>
+<pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env">props.put("sasl.jaas.config", "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;");
+props.put("security.protocol", "SASL_SSL");
 props.put("sasl.mechanism", "OAUTHBEARER");
 props.put("sasl.login.callback.handler.class", "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Enabling PLAIN for a Kafka client</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env">props.put("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$CLIENT_ID_OR_ACCOUNT_NAME\" password=\"$SECRET_OR_ACCESS_TOKEN\" ;");
+props.put("security.protocol", "SASL_SSL"); <b class="conum">(1)</b>
+props.put("sasl.mechanism", "PLAIN");</code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <ol>
 <li>
-<p>Here we use <code>SASL_SSL</code> for use over TLS connections. Use <code>SASL_PLAINTEXT</code> over unencrypted connections.</p>
+<p>Here we use <code>SASL_SSL</code> for use over TLS connections. Use <code>SASL_PLAINTEXT</code> over unencrypted connections for local development only.</p>
 </li>
 </ol>
 </div>
@@ -10960,7 +10980,7 @@ spec:
 <p>Type <code>keycloak</code> enables Keycloak authorization.</p>
 </li>
 <li>
-<p>URI of the Keycloak token endpoint. For production, always use HTTPs.
+<p>URI of the Keycloak token endpoint. For production, always use <code>https://</code> urls.
 When you configure token-based <code>oauth</code> authentication, you specify a <code>jwksEndpointUri</code> as the URI for local JWT validation.
 The hostname for the <code>tokenEndpointUri</code> URI must be the same.</p>
 </li>
@@ -38838,7 +38858,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-02-14 14:45:35 UTC
+Last updated 2022-02-14 16:33:26 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
