@@ -308,7 +308,7 @@
 <li><a href="#assembly-rolling-updates-str">11.4. Manually starting rolling updates of Kafka and ZooKeeper clusters</a>
 <ul class="sectlevel3">
 <li><a href="#prerequisites">11.4.1. Prerequisites</a></li>
-<li><a href="#proc-manual-rolling-update-statefulset-str">11.4.2. Performing a rolling update using a StatefulSet annotation</a></li>
+<li><a href="#proc-manual-rolling-update-statefulset-str">11.4.2. Performing a rolling update using a pod management annotation</a></li>
 <li><a href="#proc-manual-rolling-update-pods-str">11.4.3. Performing a rolling update using a Pod annotation</a></li>
 </ul>
 </li>
@@ -2081,7 +2081,7 @@ You must decide which partitions to reassign from the existing brokers to the ne
 </div>
 <h6 id="broker_removal" class="discrete">Broker removal</h6>
 <div class="paragraph">
-<p>Because Strimzi uses <code>StatefulSets</code> to manage broker pods, you cannot remove <em>any</em> pod from the cluster.
+<p>If you are using <code>StatefulSets</code> to manage broker pods, you cannot remove <em>any</em> pod from the cluster.
 You can only remove one or more of the highest numbered pods from the cluster.
 For example, in a cluster of 12 brokers the pods are named <code><em>cluster-name</em>-kafka-0</code> up to <code><em>cluster-name</em>-kafka-11</code>.
 If you decide to scale down by one broker, the <code><em>cluster-name</em>-kafka-11</code> will be removed.</p>
@@ -3122,7 +3122,7 @@ spec:
 <div class="ulist">
 <ul>
 <li>
-<p><a href="#proc-manual-rolling-update-statefulset-str">Performing a rolling update using a StatefulSet annotation</a></p>
+<p><a href="#proc-manual-rolling-update-statefulset-str">Performing a rolling update using a pod management annotation</a></p>
 </li>
 <li>
 <p><a href="#proc-manual-rolling-update-pods-str">Performing a rolling update using a Pod annotation</a></p>
@@ -3349,7 +3349,7 @@ For example, <code>my-cluster-zookeeper-0</code>.</p>
 </dd>
 <dt class="hdlist1"><code><em>cluster-name</em>-zookeeper-<em>idx</em></code></dt>
 <dd>
-<p>Pods created by the ZooKeeper StatefulSet.</p>
+<p>Pods created by the ZooKeeper StatefulSet or StrimziPodSet.</p>
 </dd>
 <dt class="hdlist1"><code><em>cluster-name</em>-zookeeper-nodes</code></dt>
 <dd>
@@ -3399,7 +3399,7 @@ For example, <code>my-cluster-zookeeper-0</code>.</p>
 </dd>
 <dt class="hdlist1"><code><em>cluster-name</em>-kafka-<em>idx</em></code></dt>
 <dd>
-<p>Pods created by the Kafka StatefulSet.</p>
+<p>Pods created by the Kafka StatefulSet or StrimziPodSet.</p>
 </dd>
 <dt class="hdlist1"><code><em>cluster-name</em>-kafka-brokers</code></dt>
 <dd>
@@ -5989,7 +5989,7 @@ The API reference provides more details about the customizable fields.</p>
 </dl>
 </div>
 <div class="paragraph">
-<p>In the following example, the <code>template</code> property is used to modify the labels in a Kafka broker&#8217;s <code>StatefulSet</code>:</p>
+<p>In the following example, the <code>template</code> property is used to modify the labels in a Kafka broker&#8217;s pod.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example template customization</div>
@@ -6004,7 +6004,7 @@ spec:
   kafka:
     # ...
     template:
-      statefulset:
+      pod:
         metadata:
           labels:
             mylabel: myvalue
@@ -21215,12 +21215,12 @@ INFO  AbstractOperator:500 - Reconciliation #13(timer) Kafka(my-project/my-clust
 <div class="sect2">
 <h3 id="assembly-rolling-updates-str"><a class="link" href="#assembly-rolling-updates-str">11.4. Manually starting rolling updates of Kafka and ZooKeeper clusters</a></h3>
 <div class="paragraph">
-<p>Strimzi supports the use of annotations on <code>StatefulSet</code> and <code>Pod</code> resources to manually trigger a rolling update of Kafka and ZooKeeper clusters through the Cluster Operator.
+<p>Strimzi supports the use of annotations on resources to manually trigger a rolling update of Kafka and ZooKeeper clusters through the Cluster Operator.
 Rolling updates restart the pods of the resource with new ones.</p>
 </div>
 <div class="paragraph">
-<p>Manually performing a rolling update on a specific pod or set of pods from the same <code>StatefulSet</code> is usually only required in exceptional circumstances.
-However, rather than deleting the pods directly, if you perform the rolling update through the Cluster Operator you ensure that:</p>
+<p>Manually performing a rolling update on a specific pod or set of pods is usually only required in exceptional circumstances.
+However, rather than deleting the pods directly, if you perform the rolling update through the Cluster Operator you ensure the following:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -21252,46 +21252,46 @@ However, rather than deleting the pods directly, if you perform the rolling upda
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-rolling-update-statefulset-str"><a class="link" href="#proc-manual-rolling-update-statefulset-str">11.4.2. Performing a rolling update using a StatefulSet annotation</a></h4>
+<h4 id="proc-manual-rolling-update-statefulset-str"><a class="link" href="#proc-manual-rolling-update-statefulset-str">11.4.2. Performing a rolling update using a pod management annotation</a></h4>
+<div class="paragraph _abstract">
+<p>This procedure describes how to trigger a rolling update of a Kafka cluster or ZooKeeper cluster.</p>
+</div>
 <div class="paragraph">
-<p>This procedure describes how to manually trigger a rolling update of an existing Kafka cluster or ZooKeeper cluster using a Kubernetes <code>StatefulSet</code> annotation.</p>
+<p>To trigger the update, you add an annotation to the resource you are using to manage the pods running on the cluster.
+You annotate the <code>StatefulSet</code> or <code>StrimziPodSet</code> resource (if you enabled the <a href="#ref-operator-use-strimzi-pod-sets-feature-gate-str">UseStrimziPodSets feature gate</a>).</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Find the name of the <code>StatefulSet</code> that controls the Kafka or ZooKeeper pods you want to manually update.</p>
+<p>Find the name of the resource that controls the Kafka or ZooKeeper pods you want to manually update.</p>
 <div class="paragraph">
-<p>For example, if your Kafka cluster is named <em>my-cluster</em>, the corresponding <code>StatefulSet</code> names are <em>my-cluster-kafka</em> and <em>my-cluster-zookeeper</em>.</p>
+<p>For example, if your Kafka cluster is named <em>my-cluster</em>, the corresponding names are <em>my-cluster-kafka</em> and <em>my-cluster-zookeeper</em>.</p>
 </div>
 </li>
 <li>
-<p>Annotate the <code>StatefulSet</code> resource in Kubernetes.</p>
-<div class="paragraph">
-<p>Use <code>kubectl annotate</code>:</p>
+<p>Use <code>kubectl annotate</code> to annotate the appropriate resource in Kubernetes.</p>
+<div class="listingblock">
+<div class="title">Annotating a StatefulSet</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate statefulset <em>&lt;cluster_name&gt;</em>-kafka strimzi.io/manual-rolling-update=true
+
+kubectl annotate statefulset <em>&lt;cluster_name&gt;</em>-zookeeper strimzi.io/manual-rolling-update=true</code></pre>
+</div>
 </div>
 <div class="listingblock">
+<div class="title">Annotating a StrimziPodSet</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate statefulset <em>cluster-name</em>-kafka strimzi.io/manual-rolling-update=true
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate strimzipodset <em>&lt;cluster_name&gt;</em>-kafka strimzi.io/manual-rolling-update=true
 
-kubectl annotate statefulset <em>cluster-name</em>-zookeeper strimzi.io/manual-rolling-update=true</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>If you enabled the <a href="#ref-operator-use-strimzi-pod-sets-feature-gate-str"><code>UseStrimziPodSets</code> feature gate</a>, annotate the <code>StrimziPodSet</code> resources instead of the <code>StatefulSet</code> resources:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate strimzipodset <em>cluster-name</em>-kafka strimzi.io/manual-rolling-update=true
-
-kubectl annotate strimzipodset <em>cluster-name</em>-zookeeper strimzi.io/manual-rolling-update=true</code></pre>
+kubectl annotate strimzipodset <em>&lt;cluster_name&gt;</em>-zookeeper strimzi.io/manual-rolling-update=true</code></pre>
 </div>
 </div>
 </li>
 <li>
 <p>Wait for the next reconciliation to occur (every two minutes by default).
-A rolling update of all pods within the annotated <code>StatefulSet</code> is triggered, as long as the annotation was detected by the reconciliation process.
-When the rolling update of all the pods is complete, the annotation is removed from the <code>StatefulSet</code>.</p>
+A rolling update of all pods within the annotated resource is triggered, as long as the annotation was detected by the reconciliation process.
+When the rolling update of all the pods is complete, the annotation is removed from the resource.</p>
 </li>
 </ol>
 </div>
@@ -21300,7 +21300,7 @@ When the rolling update of all the pods is complete, the annotation is removed f
 <h4 id="proc-manual-rolling-update-pods-str"><a class="link" href="#proc-manual-rolling-update-pods-str">11.4.3. Performing a rolling update using a Pod annotation</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to manually trigger a rolling update of an existing Kafka cluster or ZooKeeper cluster using a Kubernetes <code>Pod</code> annotation.
-When multiple pods from the same <code>StatefulSet</code> are annotated, consecutive rolling updates are performed within the same reconciliation run.</p>
+When multiple pods are annotated, consecutive rolling updates are performed within the same reconciliation run.</p>
 </div>
 <div class="paragraph">
 <div class="title">Prerequisites</div>
@@ -29019,7 +29019,7 @@ It must have the value <code>external</code> for the type <code>ExternalLogging<
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
 template:
-  statefulset:
+  pod:
     metadata:
       labels:
         label1: value1
