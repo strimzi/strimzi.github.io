@@ -61,7 +61,7 @@ Strimzi uploads a new Chart as part of the release process.
 To see a full list of Strimzi Charts available use the [`helm search`](https://docs.helm.sh/helm/#helm-search) command.
 
 ```bash
-$ helm search strimzi/ --versions
+$ helm search repo strimzi/ --versions
 NAME                            Chart VERSION   APP VERSION     DESCRIPTION
 strimzi/strimzi-kafka-operator  0.8.2           0.8.2           Strimzi: Kafka as a Service
 strimzi/strimzi-kafka-operator  0.8.1           0.8.1           Strimzi: Kafka as a Service
