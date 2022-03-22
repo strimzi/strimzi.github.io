@@ -44,10 +44,11 @@
 <li><a href="#con-mirrormaker-str">2.4.1. MirrorMaker 2.0 data replication</a></li>
 <li><a href="#cluster_configuration">2.4.2. Cluster configuration</a></li>
 <li><a href="#con-config-mirrormaker2-connectors-str">2.4.3. Connector configuration</a></li>
-<li><a href="#con-mirrormaker-acls-str">2.4.4. ACL rules synchronization</a></li>
-<li><a href="#proc-mirrormaker-replication-str">2.4.5. Synchronizing data between Kafka clusters using MirrorMaker 2.0</a></li>
-<li><a href="#proc-manual-restart-mirrormaker2-connector-str">2.4.6. Performing a restart of a Kafka MirrorMaker 2.0 connector</a></li>
-<li><a href="#proc-manual-restart-mirrormaker2-connector-task-str">2.4.7. Performing a restart of a Kafka MirrorMaker 2.0 connector task</a></li>
+<li><a href="#con-mirrormaker-tasks-max-str">2.4.4. Specifying a maximum number of tasks</a></li>
+<li><a href="#con-mirrormaker-acls-str">2.4.5. ACL rules synchronization</a></li>
+<li><a href="#proc-mirrormaker-replication-str">2.4.6. Synchronizing data between Kafka clusters using MirrorMaker 2.0</a></li>
+<li><a href="#proc-manual-restart-mirrormaker2-connector-str">2.4.7. Performing a restart of a Kafka MirrorMaker 2.0 connector</a></li>
+<li><a href="#proc-manual-restart-mirrormaker2-connector-task-str">2.4.8. Performing a restart of a Kafka MirrorMaker 2.0 connector task</a></li>
 </ul>
 </li>
 <li><a href="#assembly-config-kafka-bridge-str">2.5. Kafka Bridge cluster configuration</a>
@@ -3806,7 +3807,7 @@ spec:
 <p>Enables KafkaConnectors for the Kafka Connect cluster.</p>
 </li>
 <li>
-<p><a href="#con-common-configuration-replicas-reference">The number of replica nodes</a>.</p>
+<p><a href="#con-common-configuration-replicas-reference">The number of replica nodes</a> for the workers that run tasks.</p>
 </li>
 <li>
 <p>Authentication for the Kafka Connect cluster, using the <a href="#type-KafkaClientAuthenticationTls-reference">TLS mechanism</a>, as shown here, using <a href="#type-KafkaClientAuthenticationOAuth-reference">OAuth bearer tokens</a>, or a SASL-based <a href="#type-KafkaClientAuthenticationScramSha256-reference">SCRAM-SHA-256</a>/<a href="#type-KafkaClientAuthenticationScramSha512-reference">SCRAM-SHA-512</a> or <a href="#type-KafkaClientAuthenticationPlain-reference">PLAIN</a> mechanism.
@@ -3819,7 +3820,7 @@ By default, Kafka Connect connects to Kafka brokers using a plain text connectio
 <p><a href="#con-common-configuration-trusted-certificates-reference">TLS encryption</a> with key names under which TLS certificates are stored in X.509 format for the cluster. If certificates are stored in the same secret, it can be listed multiple times.</p>
 </li>
 <li>
-<p><a href="#property-kafka-connect-config-reference">Kafka Connect configuration</a> of <em>workers</em> (not connectors).
+<p><a href="#property-kafka-connect-config-reference">Kafka Connect configuration</a> of workers (not connectors).
 Standard Apache Kafka configuration may be provided, restricted to those properties not managed directly by Strimzi.</p>
 </li>
 <li>
@@ -5146,7 +5147,53 @@ You can also change the frequency of checks for new consumer groups using the <c
 </table>
 </div>
 <div class="sect3">
-<h4 id="con-mirrormaker-acls-str"><a class="link" href="#con-mirrormaker-acls-str">2.4.4. ACL rules synchronization</a></h4>
+<h4 id="con-mirrormaker-tasks-max-str"><a class="link" href="#con-mirrormaker-tasks-max-str">2.4.4. Specifying a maximum number of tasks</a></h4>
+<div class="paragraph _abstract">
+<p>Connectors create the tasks that are responsible for moving data in and out of Kafka.
+Each connector comprises one or more tasks that are distributed across a group of worker pods that run the tasks.</p>
+</div>
+<div class="paragraph">
+<p>Tasks run in parallel.
+Workers are assigned one or more tasks.
+A single task is handled by one worker pod, so you don&#8217;t need more worker pods than tasks.
+If there are more tasks than workers, workers handle multiple tasks.</p>
+</div>
+<div class="paragraph">
+<p>You can specify the maximum number of connector tasks in your MirrorMaker configuration using the <code>tasksMax</code> property.
+Without specifying a maximum number of tasks, the default setting is a single task.
+If the infrastructure supports the processing overhead, increasing the number of tasks can improve throughput.</p>
+</div>
+<div class="listingblock">
+<div class="title">tasksMax configuration for a MirrorMaker connector</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker2
+metadata:
+  name: my-mirror-maker2
+spec:
+  # ...
+  mirrors:
+  - sourceCluster: "my-cluster-source"
+    targetCluster: "my-cluster-target"
+    sourceConnector:
+      tasksMax: 10
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For sink and source connectors, the maximum number of tasks that can run in parallel depends on a number of factors.
+Common factors include the connector configuration, the type of external system, the expected throughput, and the number of workers.
+A connector creates fewer than the maximum number of tasks if it cannot achieve the parallelism.
+For sink connectors, the maximum number of tasks possible is one for each partition consumed.</p>
+</div>
+<div class="paragraph">
+<p>Suppose a source connector is used to connect to a database as an external data source.
+The connector might determine the required number of tasks based on the number of tables in the database and the maximum allowable number of tasks.
+The source connector might create fewer tasks than the maximum allowed if it’s not possible or desirable to split the source data into so many tasks.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-mirrormaker-acls-str"><a class="link" href="#con-mirrormaker-acls-str">2.4.5. ACL rules synchronization</a></h4>
 <div class="paragraph">
 <p>ACL access to remote topics is possible if you are <strong>not</strong> using the User Operator.</p>
 </div>
@@ -5168,7 +5215,7 @@ OAuth 2.0 authorization does not support access to remote topics in this way.
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-mirrormaker-replication-str"><a class="link" href="#proc-mirrormaker-replication-str">2.4.5. Synchronizing data between Kafka clusters using MirrorMaker 2.0</a></h4>
+<h4 id="proc-mirrormaker-replication-str"><a class="link" href="#proc-mirrormaker-replication-str">2.4.6. Synchronizing data between Kafka clusters using MirrorMaker 2.0</a></h4>
 <div class="paragraph">
 <p>Use MirrorMaker 2.0 to synchronize data between Kafka clusters through configuration.</p>
 </div>
@@ -5404,7 +5451,7 @@ spec:
 <p>The Kafka Connect and Mirror Maker 2.0 <a href="#type-KafkaConnectSpec-reference">version</a>, which will always be the same.</p>
 </li>
 <li>
-<p><a href="#con-common-configuration-replicas-reference">The number of replica nodes</a>.</p>
+<p><a href="#con-common-configuration-replicas-reference">The number of replica nodes</a> for the workers that run tasks.</p>
 </li>
 <li>
 <p><a href="#type-KafkaMirrorMaker2Spec-reference">Kafka cluster alias</a> for Kafka Connect, which must specify the <strong>target</strong> Kafka cluster. The Kafka cluster is used by Kafka Connect for its internal topics.</p>
@@ -5554,7 +5601,7 @@ You can also use <em>configuration provider plugins</em> to <a href="#assembly-l
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-restart-mirrormaker2-connector-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-str">2.4.6. Performing a restart of a Kafka MirrorMaker 2.0 connector</a></h4>
+<h4 id="proc-manual-restart-mirrormaker2-connector-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-str">2.4.7. Performing a restart of a Kafka MirrorMaker 2.0 connector</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to manually trigger a restart of a Kafka MirrorMaker 2.0 connector by using a Kubernetes annotation.</p>
 </div>
@@ -5613,7 +5660,7 @@ When the restart request is accepted, the annotation is removed from the <code>K
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-restart-mirrormaker2-connector-task-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-task-str">2.4.7. Performing a restart of a Kafka MirrorMaker 2.0 connector task</a></h4>
+<h4 id="proc-manual-restart-mirrormaker2-connector-task-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-task-str">2.4.8. Performing a restart of a Kafka MirrorMaker 2.0 connector task</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to manually trigger a restart of a Kafka MirrorMaker 2.0 connector task by using a Kubernetes annotation.</p>
 </div>
