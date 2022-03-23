@@ -5625,15 +5625,12 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p>For sink and source connectors, the maximum number of tasks that can run in parallel depends on a number of factors.
-Common factors include the connector configuration, the type of external system, the expected throughput, and the number of workers.
-A connector creates fewer than the maximum number of tasks if it cannot achieve the parallelism.
-For sink connectors, the maximum number of tasks possible is one for each partition consumed.</p>
+<p>For the source connector, the maximum number of tasks possible is one for each partition being replicated from the source cluster.
+For the checkpoint connector, the maximum number of tasks possible is one for each group being replicated from the source cluster.
+The number of tasks that are started for these connectors is the lower value between the maximum number of possible tasks and the value for <code>tasksMax</code>.</p>
 </div>
 <div class="paragraph">
-<p>Suppose a source connector is used to connect to a database as an external data source.
-The connector might determine the required number of tasks based on the number of tables in the database and the maximum allowable number of tasks.
-The source connector might create fewer tasks than the maximum allowed if it’s not possible or desirable to split the source data into so many tasks.</p>
+<p>The heartbeat connector always uses a single task.</p>
 </div>
 </div>
 <div class="sect3">
@@ -13663,7 +13660,7 @@ Caused by: sun.security.pkcs11.wrapper.PKCS11Exception: CKR_SESSION_READ_ONLY
 </div>
 <div class="paragraph">
 <p>If you want to run Strimzi on your FIPS-enabled cluster, you can disable the OpenJDK FIPS mode by setting the <code>FIPS_MODE</code> environment variable to <code>disabled</code> in the deployment configuration for the Cluster Operator.
-The Strimzi deployment won&#8217;t be FIPS compliant, but the Strimzi operators as well as all its operands will be able to run on the FIPS-enabled Kubernetes cluster.</p>
+The Strimzi deployment won&#8217;t be FIPS compliant, but the Strimzi operators as well as all of its operands will be able to run on the FIPS-enabled Kubernetes cluster.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -15270,9 +15267,22 @@ If the reassignments are equivalent, then it passes them to the next strategy in
 <h4 id="intra_broker_disk_balancing"><a class="link" href="#intra_broker_disk_balancing">7.4.3. Intra-broker disk balancing</a></h4>
 <div class="paragraph">
 <p>Moving a large amount of data between disks on the same broker has less impact than between separate brokers.
-If you are running a Kafka deployment that uses JBOD storage with multiple disks on the same broker, Cruise Control can balance partitions between the disks.
-NOTE: If you are using JBOD storage with a single disk, intra-broker disk balancing will result in a proposal with 0 partition movements since there are no disks to balance between.
-To perform an intra-broker disk balance, set <code>rebalanceDisk</code> to <code>true</code> under the <code>KafkaRebalance.spec</code>.
+If you are running a Kafka deployment that uses JBOD storage with multiple disks on the same broker, Cruise Control can balance partitions between the disks.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If you are using JBOD storage with a single disk, intra-broker disk balancing will result in a proposal with 0 partition movements since there are no disks to balance between.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>To perform an intra-broker disk balance, set <code>rebalanceDisk</code> to <code>true</code> under the <code>KafkaRebalance.spec</code>.
 When setting <code>rebalanceDisk</code> to <code>true</code>, do not set a <code>goals</code> field in the <code>KafkaRebalance.spec</code>, as Cruise Control will automatically set the intra-broker goals and ignore the inter-broker goals.
 Cruise Control does not perform inter-broker and intra-broker balancing at the same time.</p>
 </div>
@@ -15294,67 +15304,62 @@ You can set these tuning options at either the <a href="#ref-cruise-control-conf
 </ul>
 </div>
 <div class="paragraph">
-<p>The relevant configurations are summarized below:</p>
+<p>The relevant configurations are summarized in the following table.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 5. Rebalance performance tuning configuration</caption>
 <colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 33.3333%;">
-<col style="width: 33.3334%;">
+<col style="width: 36.3636%;">
+<col style="width: 36.3636%;">
+<col style="width: 9.0909%;">
+<col style="width: 18.1819%;">
 </colgroup>
 <thead>
 <tr>
-<th class="tableblock halign-left valign-top">Server and <code>KafkaRebalance</code> Configuration</th>
+<th class="tableblock halign-left valign-top">Cruise Control properties</th>
+<th class="tableblock halign-left valign-top">KafkaRebalance properties</th>
+<th class="tableblock halign-left valign-top">Default</th>
 <th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Default Value</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>num.concurrent.partition.movements.per.broker</code></p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The maximum number of inter-broker partition movements in each partition reassignment batch</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><code>num.concurrent.partition.movements.per.broker</code></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><code>concurrentPartitionMovementsPerBroker</code></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The maximum number of inter-broker partition movements in each partition reassignment batch</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>concurrentPartitionMovementsPerBroker</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><code>num.concurrent.intra.broker.partition.movements</code></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><code>concurrentIntraBrokerPartitionMovements</code></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The maximum number of intra-broker partition movements in each partition reassignment batch</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>num.concurrent.intra.broker.partition.movements</code></p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The maximum number of intra-broker partition movements in each partition reassignment batch</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><code>num.concurrent.leader.movements</code></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><code>concurrentLeaderMovements</code></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1000</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The maximum number of partition leadership changes in each partition reassignment batch</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>concurrentIntraBrokerPartitionMovements</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><code>default.replication.throttle</code></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><code>replicationThrottle</code></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Null (no limit)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The bandwidth (in bytes per second) to assign to partition reassignment</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>num.concurrent.leader.movements</code></p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The maximum number of partition leadership changes in each partition reassignment batch</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">1000</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><code>default.replica.movement.strategies</code></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><code>replicaMovementStrategies</code></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BaseReplicaMovementStrategy</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The list of strategies (in priority order) used to determine the order in which partition reassignment commands are executed for generated proposals.
+  For the server setting, use a comma separated string with the fully qualified names of the strategy class (add <code>com.linkedin.kafka.cruisecontrol.executor.strategy.</code> to the start of each class name).
+  For the <code>KafkaRebalance</code> resource setting use a YAML array of strategy class names.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>concurrentLeaderMovements</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>default.replication.throttle</code></p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The bandwidth (in bytes per second) to be assigned to the reassigning of partitions</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">No Limit</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>replicationThrottle</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>default.replica.movement.strategies</code></p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">The list of strategies (in priority order) used to determine the order in which partition reassignment commands are executed for generated proposals.</p>
-<p class="tableblock">For the server setting, use a comma separated string with the fully qualified names of the strategy class (add <code>com.linkedin.kafka.cruisecontrol.executor.strategy.</code> to the start of each class name). For the <code>KafkaRebalance</code> resource setting use a YAML array of strategy class names.</p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><code>BaseReplicaMovementStrategy</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>replicaMovementStrategies</code></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>rebalanceDisk</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Enables intra-broker disk balancing, which balances disk space utilization between disks on the same broker. Only applies to Kafka deployments that use JBOD storage with multiple disks.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><code>rebalanceDisk</code></code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Enables intra-broker disk balancing, which balances disk space utilization between disks on the same broker. Only applies to Kafka deployments that use JBOD storage with multiple disks.</p></td>
 </tr>
 </tbody>
 </table>
@@ -15502,7 +15507,7 @@ Capacity limits can be set for the following broker resources:</p>
 <div class="title">Note</div>
 </td>
 <td class="content">
-Disk and CPU capacity limits are automatically generated by Strimzi, so we do not need to set them.
+Disk and CPU capacity limits are automatically generated by Strimzi, so you do not need to set them.
 </td>
 </tr>
 </table>
@@ -15764,7 +15769,7 @@ For more information on configuring optimization goals, see <a href="#con-optimi
 <p>The following table shows the three topics that are automatically created when Cruise Control is deployed. These topics are required for Cruise Control to work properly and must not be deleted or changed.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 5. Auto-created topics</caption>
+<caption class="title">Table 6. Auto-created topics</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 20%;">
@@ -17598,7 +17603,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </table>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 6. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
+<caption class="title">Table 7. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -17617,7 +17622,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 7. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
+<caption class="title">Table 8. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -17644,7 +17649,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 8. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-brokers</code> secret</caption>
+<caption class="title">Table 9. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-brokers</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -17675,7 +17680,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 9. Fields in the <code><em>&lt;cluster_name&gt;</em>-zookeeper-nodes</code> secret</caption>
+<caption class="title">Table 10. Fields in the <code><em>&lt;cluster_name&gt;</em>-zookeeper-nodes</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -17706,7 +17711,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 10. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
+<caption class="title">Table 11. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -17738,7 +17743,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 11. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
+<caption class="title">Table 12. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -17770,7 +17775,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 12. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
+<caption class="title">Table 13. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -17802,7 +17807,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 13. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
+<caption class="title">Table 14. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -17834,7 +17839,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 14. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
+<caption class="title">Table 15. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -17880,7 +17885,7 @@ This secret must be accessible to the Strimzi components and for administrative 
 You can enforce this using Kubernetes role-based access controls, if necessary.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 15. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
+<caption class="title">Table 16. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -17899,7 +17904,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 16. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
+<caption class="title">Table 17. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -17935,7 +17940,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 <p>When a user is created using the User Operator, a secret is generated using the name of the user.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 17. Fields in the <code><em>user_name</em></code> secret</caption>
+<caption class="title">Table 18. Fields in the <code><em>user_name</em></code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 30%;">
@@ -18245,7 +18250,7 @@ Instead, follow the procedure for <a href="#renewing-your-own-ca-certificates-st
 <li>
 <p>Apply the <code>strimzi.io/force-renew</code> annotation to the <code>Secret</code> that contains the CA certificate that you want to renew.</p>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 18. Annotation for the Secret that forces renewal of certificates</caption>
+<caption class="title">Table 19. Annotation for the Secret that forces renewal of certificates</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -18370,7 +18375,7 @@ Instead, follow the procedure for <a href="#renewing-your-own-ca-certificates-st
 <li>
 <p>Apply the <code>strimzi.io/force-replace</code> annotation to the <code>Secret</code> that contains the private key that you want to renew.</p>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 19. Commands for replacing private keys</caption>
+<caption class="title">Table 20. Commands for replacing private keys</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -18436,7 +18441,7 @@ Instead, follow the procedure for <a href="#renewing-your-own-ca-certificates-st
 <p>This procedure describes how to renew CA certificates that you are using instead of the certificates generated by the Cluster Operator.</p>
 </div>
 <div class="paragraph">
-<p><strong>Perform the steps in this procedure when you are not also changing the corresponding CA keys.
+<p><strong>If you are not changing the corresponding CA keys, perform the steps in this procedure.
 Otherwise, perform the steps to <a href="#proc-replacing-your-own-private-keys-str">replace private keys used by your own CA certificates</a>.</strong></p>
 </div>
 <div class="paragraph">
@@ -18892,7 +18897,7 @@ type: Opaque</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate Kafka <em>NAME-OF-CUSTOM-RESOURCE</em> strimzi.io/pause-reconciliation-</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate Kafka <em>&lt;name_of_custom_resource&gt;</em> strimzi.io/pause-reconciliation-</code></pre>
 </div>
 </div>
 </li>
@@ -19414,7 +19419,7 @@ A rolling update is also started if you update a Kafka listener certificate in a
 <p>For external listeners which have TLS encryption enabled, the hostnames you need to specify in certificates depends on the external listener <code>type</code>.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 20. SANs for each type of external listener</caption>
+<caption class="title">Table 21. SANs for each type of external listener</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -19494,7 +19499,7 @@ my-cluster   3                        3</code></pre>
 </div>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 21. Long and short names for each Strimzi resource</caption>
+<caption class="title">Table 22. Long and short names for each Strimzi resource</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -19653,7 +19658,7 @@ my-cluster-kafka-bootstrap.myproject.svc:9093</code></pre>
 <p>Several resources have a <code>status</code> property, as described in the following table.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 22. Custom resource status properties</caption>
+<caption class="title">Table 23. Custom resource status properties</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -23045,8 +23050,8 @@ A container can use the resources up to the limit only when they are available.
 Resource limits are temporary and can be reallocated.</p>
 </div>
 <div class="paragraph">
-<div class="title">Resource request and limit</div>
-<p><span class="image"><img src="images/common-config-resources.png" alt="Boundaries of a resource request and limit"></span></p>
+<div class="title">Resource requests and limits</div>
+<p><span class="image"><img src="images/common-config-resources.png" alt="Boundaries of a resource requests and limits"></span></p>
 </div>
 <div class="paragraph">
 <p>If you set limits without requests or vice versa, Kubernetes uses the same value for both.
@@ -28639,7 +28644,7 @@ If you set a custom environment variable that is already in use by Strimzi, it i
 </ul>
 </div>
 <div class="paragraph">
-<p>You can specify and configure the options listed in the <a href="https://zookeeper.apache.org/doc/r3.5.8/zookeeperAdmin.html" target="_blank" rel="noopener">ZooKeeper documentation</a> with the exception of those managed directly by Strimzi.
+<p>You can specify and configure the options listed in the <a href="https://zookeeper.apache.org/doc/r3.6.3/" target="_blank" rel="noopener">ZooKeeper documentation</a> with the exception of those managed directly by Strimzi.
 Specifically, all configuration options with keys equal to or starting with one of the following strings are forbidden:</p>
 </div>
 <div class="ulist">
@@ -37529,7 +37534,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-03-22 13:40:14 UTC
+Last updated 2022-03-23 14:55:06 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
