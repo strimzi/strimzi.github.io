@@ -8,8 +8,8 @@ author: shubham_rawat
 As Apache Kafka users, we sometimes have to scale up/down the number of Kafka brokers in our cluster depending on the use case.
 Addition of extra brokers can be an advantage to handle massive load, and we can use Cruise Control for general rebalancing in Strimzi since it allows us to automate the balancing of load across the cluster but what if we are scaling down the clusters?
 Let us understand this with the help of an example, suppose there are certain number of brokers in a cluster and now we want to remove a broker from the cluster.
-We need to make sure that the broker which is going to be removed should not have any assigned partitions. Strimzi's integration of Cruise Control currently doesn't support scaling down the cluster.
-This requires a tool that can assign the partitions from the broker to be removed, to the remaining brokers.
+We need to make sure that the broker which is going to be removed should not have any assigned partitions. Strimzi's integration of Cruise Control currently doesn't support doing this for you.
+You have to use some other tool to assign the partitions from the broker to be removed, to the remaining brokers.
 The most convenient tool for this job is the Kafka partition reassignment tool.
 
 <!--more-->
@@ -31,21 +31,22 @@ The Kafka reassignment partition tool can help you address a variety of use case
 
 Some of these are listed here:
 
-1. You can reassign the partition between the brokers anytime. For example, it can be used at times when you want to scale down the number of brokers in your cluster.
+- You can reassign partitions between the brokers. For example, it can be used when you want to scale down the number of brokers in your cluster.
    You can assign partitions from the broker to be scaled down to other brokers which will handle these partitions now.
 
-2. With the help of this tool, you can increase the number of partitions / replicas which can help with increasing the throughput of the topic.
+- You can increase the number of partitions / replicas which can help with increasing the throughput of topics.
 
 ## Partition Reassignment Throttle
-Reassigning partitions between brokers can sometimes lead to a large transfer of large data.
-To avoid overloading the cluster, it is recommended to always set a throttle rate to limit the bandwidth used by the reassignment. 
-This can be done using the `--throttle` flag which sets the maximum allowed bandwidth in bytes, for example `--throttle 5000000` sets the limit to 50 MB/s.
+Reassigning partitions between brokers often leads to additional interbroker network traffic, in addition to the normal traffic required for replication.To avoid overloading the cluster, it is recommended to always set a throttle rate to limit the bandwidth used by the reassignment. 
+This can be done using the `--throttle` flag which sets the maximum allowed bandwidth in bytes, for example `--throttle 5000000` sets the limit to 5 MB/s.
 
 Throttling might cause the reassignment to take longer to complete.
 
 1. If the throttle is too low, the newly assigned brokers will not be able to keep up with records being published and the reassignment will never complete.
 
 2. If the throttle is too high, the overall health of the cluster may be impacted.
+
+The best way to set the value for throttle is to start with a safe value, and if it's too low, then run the command again to update the throttle till it's good.
 
 ## Actions that can be executed while using the tool
 
@@ -72,14 +73,17 @@ It is due to the fact Strimzi uses StatefulSets to manage broker pods. So you ca
 You can only remove one or more of the highest numbered pods from the cluster. For example, in a cluster of 5 brokers the pods are named `<CLUSTER-NAME>-kafka-0` up to `<CLUSTER-NAME>-kafka-4`.
 If you decide to scale down by two brokers, then `<CLUSTER-NAME>-kafka-4` and `<CLUSTER-NAME>-kafka-3` will be removed.
 
-### Preparing to scale down the number of Kafka Brokers
+ The next section will help you set up the environment for executing the above example ie setting up your kafka cluster, kafka topics and also configuring the Kafka user with required ACL's.
 
-This example will use a Kafka cluster deployed with the Strimzi Cluster Operator.
-Before we start with anything, we have to install the Strimzi Cluster Operator and deploy the Kafka cluster.
+Note: In case you already have the environoment set up, you can skip the next section.
+
+### Setting up the environment
+
+To get the kafka cluster up and running , we will first have to install the Strimzi Cluster Operator and then deploy the Kafka resource.
 You can install the Cluster Operator with any installation method you prefer.
-The Kafka cluster is then deployed with the PLAIN listener enabled on port 9092.
+The Kafka cluster is then deployed with the plain listener enabled on port 9092.
 
-Example Kafka configuration with PLAIN authentication.
+Example Kafka configuration with plain listener.
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
