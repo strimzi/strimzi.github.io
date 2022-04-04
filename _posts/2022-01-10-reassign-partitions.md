@@ -55,7 +55,7 @@ It has three different actions:
 | Action | Description |
 | :-----------: | ------------- |
 | `generate`  | Takes a set of topics and brokers and generates a reassignment JSON file. This actions is optional if we already have `reassignment.json` file with us. You can use this actions using `--generate`|
-| `execute` | Takes a reassignment JSON file and applies it to the partitions and brokers in the cluster. The `reassignment.json` file can be either the one proposed by the `generate` action or written by the user itself. `--execute`  is used to carry out his action |
+| `execute` | Takes a reassignment JSON file and applies it to the partitions and brokers in the cluster. The `reassignment.json` file can be either the one proposed by the `generate` action or written by the user itself. `--execute`  is used to carry out this action |
 | `verify`  | Using the same reassignment JSON file as the `--execute` step, `--verify` checks whether all the partitions in the file have been moved to their intended brokers. If the reassignment is complete, `--verify` also removes any replication quotas (`--throttle`) that are in effect. Unless removed, throttles will continue to affect the cluster even after the reassignment has finished. This action can be executed using `--verify` |
 
 ## Example time
@@ -65,7 +65,6 @@ Suppose we have 5 Kafka Brokers and after looking at the partition details we re
 Through this example we will take a look at how the three actions of the Kafka reassignment partition tool(`--generate`, `--execute` and `--verify`) works.
 We will generate the JSON data that will be used in the `reassignment.json` file.
 We will then assign the partitions to the remaining broker using the `reassignment.json` file.
-The Kafka Cluster will be configured to use PLAIN listener.
 
 Before proceeding towards the steps. Let's discuss one more curious question. Can you scale down any pod you want through this process?
 So the answer to this question is no. Wondering why?
@@ -75,7 +74,7 @@ If you decide to scale down by two brokers, then `<CLUSTER-NAME>-kafka-4` and `<
 
  The next section will help you set up the environment for executing the above example ie setting up your kafka cluster, kafka topics and also configuring the Kafka user with required ACL's.
 
-Note: In case you already have the environoment set up, you can skip the next section.
+Note: In case you already have the environment set up, you can skip the next section.
 
 ### Setting up the environment
 
@@ -244,7 +243,7 @@ Topic: my-topic-two     TopicId: _aUFY9oMSjqBjvP9Ed3JDg PartitionCount: 10      
 ```
 Note: Your topic details can vary and might not be same as the topic details present here. 
 
-In the same way you can get the details for the other topic`my-topic` also.
+In the same way you can get the details for the other topic `my-topic` also.
 
 ```sh
 Topic: my-topic TopicId: WyFKVZzLS8i54IGgm1ifrQ PartitionCount: 10      ReplicationFactor: 3    Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
@@ -337,7 +336,6 @@ bin/kafka-reassign-partitions.sh --bootstrap-server <CLUSTER-NAME>-kafka-bootstr
 --throttle <THROTTLE_BYTE_PER_SECOND> \
 --execute
 ```
-
 
 You can use the `--verify` action to check if the partition reassignment is done or if it is still running. You might have to run this command multiple times since it may take the process a while to get complete.
 
