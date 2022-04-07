@@ -487,11 +487,12 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#cluster_configuration">2.4.2. Cluster configuration</a></li>
 <li><a href="#con-config-mirrormaker2-connectors-str">2.4.3. Connector configuration</a></li>
 <li><a href="#con-mirrormaker-tasks-max-str">2.4.4. Specifying a maximum number of tasks</a></li>
-<li><a href="#con-mirrormaker-acls-str">2.4.5. ACL rules synchronization</a></li>
-<li><a href="#proc-mirrormaker-replication-str">2.4.6. Configuring Kafka MirrorMaker 2.0</a></li>
-<li><a href="#proc-config-mirrormaker2-securing-connection-str">2.4.7. Securing a Kafka MirrorMaker 2.0 deployment</a></li>
-<li><a href="#proc-manual-restart-mirrormaker2-connector-str">2.4.8. Performing a restart of a Kafka MirrorMaker 2.0 connector</a></li>
-<li><a href="#proc-manual-restart-mirrormaker2-connector-task-str">2.4.9. Performing a restart of a Kafka MirrorMaker 2.0 connector task</a></li>
+<li><a href="#con-mirrormaker-high-volume-messages-str">2.4.5. Handling high volumes of messages</a></li>
+<li><a href="#con-mirrormaker-acls-str">2.4.6. ACL rules synchronization</a></li>
+<li><a href="#proc-mirrormaker-replication-str">2.4.7. Configuring Kafka MirrorMaker 2.0</a></li>
+<li><a href="#proc-config-mirrormaker2-securing-connection-str">2.4.8. Securing a Kafka MirrorMaker 2.0 deployment</a></li>
+<li><a href="#proc-manual-restart-mirrormaker2-connector-str">2.4.9. Performing a restart of a Kafka MirrorMaker 2.0 connector</a></li>
+<li><a href="#proc-manual-restart-mirrormaker2-connector-task-str">2.4.10. Performing a restart of a Kafka MirrorMaker 2.0 connector task</a></li>
 </ul>
 </li>
 <li><a href="#assembly-config-kafka-bridge-str">2.5. Kafka Bridge cluster configuration</a>
@@ -5621,7 +5622,108 @@ The number of tasks that are started for these connectors is the lower value bet
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-mirrormaker-acls-str"><a class="link" href="#con-mirrormaker-acls-str">2.4.5. ACL rules synchronization</a></h4>
+<h4 id="con-mirrormaker-high-volume-messages-str"><a class="link" href="#con-mirrormaker-high-volume-messages-str">2.4.5. Handling high volumes of messages</a></h4>
+<div class="paragraph _abstract">
+<p>If your MirrorMaker 2.0 deployment is going to be handling a high volume of messages, you might need to adjust its configuration to support it.</p>
+</div>
+<div class="paragraph">
+<p>The flush pipeline for data replication is <strong>source topic &#8594; (Kafka Connect) source message queue &#8594; producer buffer &#8594; target topic</strong>.
+An offset flush timeout period (<code>offset.flush.timeout.ms</code>) is the time to wait for the producer buffer (<code>producer.buffer.memory</code>) to flush and offset data to be committed.
+Try to avoid a situation where a large producer buffer and an insufficient offset flush timeout period causes a <em>failed to flush</em> or <em>failed to commit offsets</em> type of error.</p>
+</div>
+<div class="paragraph">
+<p>This type of error means that there are too many messages in the producer buffer, so they can&#8217;t all be flushed before the offset flush timeout is reached.</p>
+</div>
+<div class="paragraph">
+<p>If you are getting this type of error, try the following configuration changes:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Decreasing the default value in bytes of the <code>producer.buffer.memory</code></p>
+</li>
+<li>
+<p>Increasing the default value in milliseconds of the <code>offset.flush.timeout.ms</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The changes should help to keep the underlying Kafka Connect queue of outstanding messages at a manageable size.
+You might need to adjust the values to have the desired effect.</p>
+</div>
+<div class="paragraph">
+<p>If these configuration changes don&#8217;t resolve the error, you can try increasing the number of tasks that run in parallel by doing the following.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#con-mirrormaker-tasks-max-str">Increasing the number of tasks</a> using the <code>tasksMax</code> property</p>
+</li>
+<li>
+<p>Increasing the number of nodes for the workers that run tasks using the <code>replicas</code> property</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">Example MirrorMaker 2.0 configuration for handling high volumes of messages</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker2
+metadata:
+  name: my-mirror-maker2
+spec:
+  version: 3.1.0
+  replicas: 5
+  connectCluster: "my-cluster-target"
+  clusters:
+  - alias: "my-cluster-source"
+    bootstrapServers: my-cluster-source-kafka-bootstrap:9092
+  - alias: "my-cluster-target"
+    config:
+      offset.flush.timeout.ms: 10000
+      producer.buffer.memory: 8388608
+    bootstrapServers: my-cluster-target-kafka-bootstrap:9092
+  mirrors:
+  - sourceCluster: "my-cluster-source"
+    targetCluster: "my-cluster-target"
+    sourceConnector:
+      tasksMax: 10</code></pre>
+</div>
+</div>
+<div class="sect4">
+<h5 id="checking_the_message_flow"><a class="link" href="#checking_the_message_flow">Checking the message flow</a></h5>
+<div class="paragraph">
+<p>If you are using Prometheus and Grafana to monitor your deployment, you can check the MirrorMaker 2.0 message flow.
+The example MirrorMaker 2.0 Grafana dashboard provided with Strimzi shows the following metrics related to the flush pipeline.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The number of messages in Kafka Connect&#8217;s outstanding messages queue</p>
+</li>
+<li>
+<p>The available bytes of the producer buffer</p>
+</li>
+<li>
+<p>The offset commit timeout in milliseconds</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>You can use these metrics to gauge whether or not you need to tune your configuration based on the volume of messages.</p>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="./deploying.html#assembly-metrics-setup-str" target="_blank" rel="noopener">Grafana dashboards</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-mirrormaker-acls-str"><a class="link" href="#con-mirrormaker-acls-str">2.4.6. ACL rules synchronization</a></h4>
 <div class="paragraph">
 <p>ACL access to remote topics is possible if you are <strong>not</strong> using the User Operator.</p>
 </div>
@@ -5643,7 +5745,7 @@ OAuth 2.0 authorization does not support access to remote topics in this way.
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-mirrormaker-replication-str"><a class="link" href="#proc-mirrormaker-replication-str">2.4.6. Configuring Kafka MirrorMaker 2.0</a></h4>
+<h4 id="proc-mirrormaker-replication-str"><a class="link" href="#proc-mirrormaker-replication-str">2.4.7. Configuring Kafka MirrorMaker 2.0</a></h4>
 <div class="paragraph _abstract">
 <p>Use the properties of the <code>KafkaMirrorMaker2</code> resource to configure your Kafka MirrorMaker 2.0 deployment.
 Use MirrorMaker 2.0 to synchronize data between Kafka clusters</p>
@@ -6018,7 +6120,7 @@ You can also use <em>configuration provider plugins</em> to <a href="#assembly-l
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-config-mirrormaker2-securing-connection-str"><a class="link" href="#proc-config-mirrormaker2-securing-connection-str">2.4.7. Securing a Kafka MirrorMaker 2.0 deployment</a></h4>
+<h4 id="proc-config-mirrormaker2-securing-connection-str"><a class="link" href="#proc-config-mirrormaker2-securing-connection-str">2.4.8. Securing a Kafka MirrorMaker 2.0 deployment</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes in outline the configuration required to secure a MirrorMaker 2.0 deployment.</p>
 </div>
@@ -6547,7 +6649,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-restart-mirrormaker2-connector-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-str">2.4.8. Performing a restart of a Kafka MirrorMaker 2.0 connector</a></h4>
+<h4 id="proc-manual-restart-mirrormaker2-connector-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-str">2.4.9. Performing a restart of a Kafka MirrorMaker 2.0 connector</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to manually trigger a restart of a Kafka MirrorMaker 2.0 connector by using a Kubernetes annotation.</p>
 </div>
@@ -6606,7 +6708,7 @@ When the restart request is accepted, the annotation is removed from the <code>K
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-restart-mirrormaker2-connector-task-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-task-str">2.4.9. Performing a restart of a Kafka MirrorMaker 2.0 connector task</a></h4>
+<h4 id="proc-manual-restart-mirrormaker2-connector-task-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-task-str">2.4.10. Performing a restart of a Kafka MirrorMaker 2.0 connector task</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to manually trigger a restart of a Kafka MirrorMaker 2.0 connector task by using a Kubernetes annotation.</p>
 </div>
@@ -38161,7 +38263,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-04-07 12:19:19 UTC
+Last updated 2022-04-07 13:50:05 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
