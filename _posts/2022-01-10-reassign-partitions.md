@@ -54,8 +54,8 @@ It has three different actions:
 
 | Action | Description |
 | :-----------: | ------------- |
-| `generate`  | Takes a set of topics and brokers and generates a reassignment JSON file. This actions is optional if we already have `reassignment.json` file with us. You can use this actions using `--generate`|
-| `execute` | Takes a reassignment JSON file and applies it to the partitions and brokers in the cluster. The `reassignment.json` file can be either the one proposed by the `generate` action or written by the user itself. `--execute`  is used to carry out this action |
+| `generate`  | Takes a set of topics and brokers and generates a reassignment JSON file. This action is optional if we already have `reassignment.json` file with us. You can use this action using `--generate`|
+| `execute` | Takes a reassignment JSON file and applies it to the partitions and brokers in the cluster. The `reassignment.json` file can be either the one proposed by the `generate` action or written by the user. `--execute`  is used to carry out this action |
 | `verify`  | Using the same reassignment JSON file as the `--execute` step, `--verify` checks whether all the partitions in the file have been moved to their intended brokers. If the reassignment is complete, `--verify` also removes any replication quotas (`--throttle`) that are in effect. Unless removed, throttles will continue to affect the cluster even after the reassignment has finished. This action can be executed using `--verify` |
 
 ## Example time
@@ -78,7 +78,7 @@ Note: In case you already have the environment set up, you can skip the next sec
 
 ### Setting up the environment
 
-To get the kafka cluster up and running , we will first have to install the Strimzi Cluster Operator and then deploy the Kafka resource.
+To get the Kafka cluster up and running , we will first have to install the Strimzi Cluster Operator and then deploy the Kafka resource.
 You can install the Cluster Operator with any installation method you prefer.
 The Kafka cluster is then deployed with the plain listener enabled on port 9092.
 
@@ -218,7 +218,7 @@ As we discussed above, this file will have the topics that we need to reassign.
 
 
 Now arises a good question. What topics require reassignment?
-So the answer to this is the topics that have their partitions assigned to broker `<CLUSTER-NAME>-kafka-3` and `<CLUSTER-NAME>-kafka-4` needs reassignment, and these topics partition should move to the remaining 3 brokers nodes in our cluster.
+So the answer to this is the topics that have their partitions assigned to broker `<CLUSTER-NAME>-kafka-3` and `<CLUSTER-NAME>-kafka-4` need reassignment, or these topics partition should move to the remaining 3 brokers nodes in our cluster.
 
 To check the partitions details of a certain topic, we can use the `kafka-topics.sh` tool. We can run the following command from inside interactive pod after starting a shell process using `kubectl exec -ti <INTERACTIVE-POD-NAME> /bin/bash`
 :
@@ -259,7 +259,7 @@ Topic: my-topic TopicId: WyFKVZzLS8i54IGgm1ifrQ PartitionCount: 10      Replicat
         Topic: my-topic Partition: 9    Leader: 0       Replicas: 0,1,2 Isr: 0,2,1
 ```
 
-From the above outputs, we got to know that my-topic-two has some replicas on broker 3 and 4 thus we need to reassign this topic onto other brokers. 
+From the above outputs, we see that `my-topic-two` has some replicas on broker 3 and 4 thus we need to reassign this topic onto other brokers. 
 
 Let's create our `topics.json` file:
 ```json
@@ -337,7 +337,7 @@ bin/kafka-reassign-partitions.sh --bootstrap-server <CLUSTER-NAME>-kafka-bootstr
 --execute
 ```
 
-You can use the `--verify` action to check if the partition reassignment is done or if it is still running. You might have to run this command multiple times since it may take the process a while to get complete.
+You can use the `--verify` action to check if the partition reassignment is done or if it is still running. You might have to run this command multiple times since it may take the process a while to complete.
 
 ```sh
 bin/kafka-reassign-partitions.sh --bootstrap-server <CLUSTER-NAME>-kafka-bootstrap:9092 \
@@ -406,7 +406,7 @@ Now apply the Kafka resource and check the pods in the namespace:
 kubectl get pods
 ```
 
-You will notice that `<CLUSTER-NAME>-kafka-3` and `<CLUSTER-NAME>-kafka-4` are removed u:
+You will notice that `<CLUSTER-NAME>-kafka-3` and `<CLUSTER-NAME>-kafka-4` are removed:
 
 ```sh
 NAME                                          READY   STATUS    RESTARTS   AGE
