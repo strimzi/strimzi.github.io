@@ -37,7 +37,7 @@ Some of these are listed here:
 - You can increase the number of partitions / replicas which can help with increasing the throughput of topics.
 
 ## Partition Reassignment Throttle
-Reassigning partitions between brokers often leads to additional interbroker network traffic, in addition to the normal traffic required for replication.To avoid overloading the cluster, it is recommended to always set a throttle rate to limit the bandwidth used by the reassignment. 
+Reassigning partitions between brokers often leads to additional interbroker network traffic, in addition to the normal traffic required for replication. To avoid overloading the cluster, it is recommended to always set a throttle rate to limit the bandwidth used by the reassignment. 
 This can be done using the `--throttle` flag which sets the maximum allowed bandwidth in bytes, for example `--throttle 5000000` sets the limit to 5 MB/s.
 
 Throttling might cause the reassignment to take longer to complete.
