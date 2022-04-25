@@ -6,7 +6,7 @@ author: shubham_rawat
 ---
 
 As Apache Kafka users, we sometimes have to scale up/down the number of Kafka brokers in our cluster depending on the use case.
-Addition of extra brokers can be an advantage to handle massive load, and we can use Cruise Control for general rebalancing in Strimzi since it allows us to automate the balancing of load across the cluster but what if we are scaling down the clusters?
+Addition of extra brokers can be an advantage to handle increased load, and we can use Cruise Control for general rebalancing in Strimzi since it allows us to automate the balancing of load across the cluster but what if we are scaling down the clusters?
 Let us understand this with the help of an example, suppose there are certain number of brokers in a cluster and now we want to remove a broker from the cluster.
 We need to make sure that the broker which is going to be removed should not have any assigned partitions. Strimzi's integration of Cruise Control currently doesn't support doing this for you.
 You have to use some other tool to assign the partitions from the broker to be removed, to the remaining brokers.
@@ -38,7 +38,7 @@ Some of these are listed here:
 
 ## Partition Reassignment Throttle
 Reassigning partitions between brokers often leads to additional interbroker network traffic, in addition to the normal traffic required for replication. To avoid overloading the cluster, it is recommended to always set a throttle rate to limit the bandwidth used by the reassignment. 
-This can be done using the `--throttle` flag which sets the maximum allowed bandwidth in bytes, for example `--throttle 5000000` sets the limit to 5 MB/s.
+This can be done using the `--throttle` flag which sets the maximum allowed bandwidth in bytes per second, for example `--throttle 5000000` sets the limit to 5 MB/s.
 
 Throttling might cause the reassignment to take longer to complete.
 
@@ -46,7 +46,9 @@ Throttling might cause the reassignment to take longer to complete.
 
 2. If the throttle is too high, the overall health of the cluster may be impacted.
 
-The best way to set the value for throttle is to start with a safe value, and if it's too low, then run the command again to update the throttle till it's good.
+The best way to set the value for throttle is to start with a safe value.
+If the lag is growing, or decreasing too slowly to catch up within a reasonable time, then the throttle should be increased.
+To do this, run the command again to increase the throttle, iterating until it looks like the broker will join the ISR within a reasonable time.
 
 ## Actions that can be executed while using the tool
 
@@ -62,23 +64,25 @@ It has three different actions:
 
 Let us understand the working of this tool with a concrete example.
 Suppose we have 5 Kafka Brokers and after looking at the partition details we realize that the brokers are not too busy, so we can scale them down to 3.
-Through this example we will take a look at how the three actions of the Kafka reassignment partition tool(`--generate`, `--execute` and `--verify`) works.
+Through this example we will take a look at how the three actions of the Kafka reassignment partition tool(`--generate`, `--execute` and `--verify`) work.
 We will generate the JSON data that will be used in the `reassignment.json` file.
 We will then assign the partitions to the remaining broker using the `reassignment.json` file.
 
 Before proceeding towards the steps. Let's discuss one more curious question. Can you scale down any pod you want through this process?
-So the answer to this question is no. Wondering why?
-It is due to the fact Strimzi uses StatefulSets to manage broker pods. So you cannot remove any pod from the cluster.
-You can only remove one or more of the highest numbered pods from the cluster. For example, in a cluster of 5 brokers the pods are named `<CLUSTER-NAME>-kafka-0` up to `<CLUSTER-NAME>-kafka-4`.
+So the answer to this question is no.
+It is due to the fact Strimzi uses StatefulSets to manage broker pods.
+The Kubernetes StatefulSet controller managed pods with contiguous numbers starting from 0.
+So when scaling down it will always remove the the highest numbered pod(s).
+For example, in a cluster of 5 brokers the pods are named `<CLUSTER-NAME>-kafka-0` up to `<CLUSTER-NAME>-kafka-4`.
 If you decide to scale down by two brokers, then `<CLUSTER-NAME>-kafka-4` and `<CLUSTER-NAME>-kafka-3` will be removed.
 
- The next section will help you set up the environment for executing the above example ie setting up your kafka cluster, kafka topics and also configuring the Kafka user with required ACL's.
+ The next section will help you set up the environment for executing the above example, i.e. setting up your kafka cluster, kafka topics and also configuring the Kafka user with required ACL's.
 
 Note: In case you already have the environment set up, you can skip the next section.
 
 ### Setting up the environment
 
-To get the Kafka cluster up and running , we will first have to install the Strimzi Cluster Operator and then deploy the Kafka resource.
+To get the Kafka cluster up and running, we will first have to install the Strimzi Cluster Operator and then deploy the Kafka resource.
 You can install the Cluster Operator with any installation method you prefer.
 The Kafka cluster is then deployed with the plain listener enabled on port 9092.
 
