@@ -586,6 +586,12 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 </ul>
 </li>
+<li><a href="#assembly-uninstalling-str">12. Uninstalling Strimzi</a>
+<ul class="sectlevel2">
+<li><a href="#uninstalling-str">12.1. Uninstalling Strimzi using the CLI</a></li>
+<li><a href="#uninstalling-operator-hub-str">12.2. Uninstalling Strimzi from OperatorHub.io</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -7788,10 +7794,175 @@ The value of <code>log.message.format.version</code> and <code>inter.broker.prot
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="assembly-uninstalling-str"><a class="link" href="#assembly-uninstalling-str">12. Uninstalling Strimzi</a></h2>
+<div class="sectionbody">
+<div class="paragraph _abstract">
+<p>You can uninstall Strimzi using the CLI or by unsubscribing from OperatorHub.io.</p>
+</div>
+<div class="paragraph">
+<p>Use the same approach you used to install Strimzi.</p>
+</div>
+<div class="paragraph">
+<p>When you uninstall Strimzi, you will need to identify resources created specifically for a deployment and referenced from the Strimzi resource.</p>
+</div>
+<div class="paragraph">
+<p>Such resources include:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Secrets (Custom CAs and certificates, Kafka Connect secrets, and other Kafka secrets)</p>
+</li>
+<li>
+<p>Logging <code>ConfigMaps</code> (of type <code>external</code>)</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These are resources referenced by <code>Kafka</code>, <code>KafkaConnect</code>, <code>KafkaMirrorMaker</code>, or <code>KafkaBridge</code> configuration.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Deleting <code>CustomResourceDefinitions</code> results in the garbage collection of the corresponding custom resources (<code>Kafka</code>, <code>KafkaConnect</code>, <code>KafkaMirrorMaker</code>, or <code>KafkaBridge</code>) and the resources dependent on them (Deployments, StatefulSets, and other dependent resources).
+</td>
+</tr>
+</table>
+</div>
+<div class="sect2">
+<h3 id="uninstalling-str"><a class="link" href="#uninstalling-str">12.1. Uninstalling Strimzi using the CLI</a></h3>
+<div class="paragraph _abstract">
+<p>This procedure describes how to use the <code>kubectl</code> command-line tool to uninstall Strimzi and remove resources related to the deployment.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>Access to a Kubernetes cluster using an account with <code>cluster-admin</code> or <code>strimzi-admin</code> permissions.</p>
+</li>
+<li>
+<p>You have identified the resources to be deleted.</p>
+<div class="paragraph">
+<p>You can use the following <code>kubectl</code> CLI command to find resources and also verify that they have been removed when you have uninstalled Strimzi.</p>
+</div>
+<div class="listingblock">
+<div class="title">Command to find resources related to a Strimzi deployment</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get <em>&lt;resource_type&gt;</em> --all-namespaces | grep <em>&lt;kafka_cluster_name&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace <em>&lt;resource_type&gt;</em> with the type of the resource you are checking, such as <code>secret</code> or <code>configmap</code>.</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Delete the Cluster Operator <code>Deployment</code>, related <code>CustomResourceDefinitions</code>, and <code>RBAC</code> resources.</p>
+<div class="paragraph">
+<p>Specify the installation files used to deploy the Cluster Operator.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete -f install/cluster-operator</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Delete the resources you identified in the prerequisites.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete <em>&lt;resource_type&gt;</em> <em>&lt;resource_name&gt;</em> -n <em>&lt;namespace&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace <em>&lt;resource_type&gt;</em> with the type of resource you are deleting and <em>&lt;resource_name&gt;</em> with the name of the resource.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example to delete a secret</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete secret my-cluster-clients-ca -n my-project</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="uninstalling-operator-hub-str"><a class="link" href="#uninstalling-operator-hub-str">12.2. Uninstalling Strimzi from OperatorHub.io</a></h3>
+<div class="paragraph _abstract">
+<p>This procedure describes how to uninstall Strimzi from OperatorHub.io and remove resources related to the deployment.</p>
+</div>
+<div class="paragraph">
+<p>You perform the steps using the <code>kubectl</code> command-line tool.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>Access to a Kubernetes cluster using an account with <code>cluster-admin</code> or <code>strimzi-admin</code> permissions.</p>
+</li>
+<li>
+<p>You have identified the resources to be deleted.</p>
+<div class="paragraph">
+<p>You can use the following <code>kubectl</code> CLI command to find resources and also verify that they have been removed when you have uninstalled Strimzi.</p>
+</div>
+<div class="listingblock">
+<div class="title">Command to find resources related to a Strimzi deployment</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get <em>&lt;resource_type&gt;</em> --all-namespaces | grep <em>&lt;kafka_cluster_name&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace <em>&lt;resource_type&gt;</em> with the type of the resource you are checking, such as <code>secret</code> or <code>configmap</code>.</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Delete the Strimzi subscription.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete subscription strimzi-cluster-operator -n <em>&lt;namespace&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Delete the cluster service version (CSV).</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete csv strimzi-cluster-operator.<em>&lt;version&gt;</em>  -n <em>&lt;namespace&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Remove related CRDs.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get crd -l app=strimzi -o name | xargs kubectl delete</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-04-27 11:38:08 UTC
+Last updated 2022-04-27 16:32:45 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
