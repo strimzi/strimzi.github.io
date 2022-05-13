@@ -609,7 +609,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#controlplanelistener_feature_gate">6.4.1. ControlPlaneListener feature gate</a></li>
 <li><a href="#serviceaccountpatching_feature_gate">6.4.2. ServiceAccountPatching feature gate</a></li>
 <li><a href="#ref-operator-use-strimzi-pod-sets-feature-gate-str">6.4.3. UseStrimziPodSets feature gate</a></li>
-<li><a href="#ref-operator-cluster-feature-gate-releases-str">6.4.4. Feature gate releases</a></li>
+<li><a href="#ref-operator-use-kraft-feature-gate-str">6.4.4. (Preview) UseKRaft feature gate</a></li>
+<li><a href="#ref-operator-cluster-feature-gate-releases-str">6.4.5. Feature gate releases</a></li>
 </ul>
 </li>
 <li><a href="#con-operators-prometheus-metrics-str">6.5. Monitoring operators using Prometheus metrics</a></li>
@@ -15067,7 +15068,87 @@ The <code>UseStrimziPodSets</code> feature gate must be disabled when downgradin
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-operator-cluster-feature-gate-releases-str"><a class="link" href="#ref-operator-cluster-feature-gate-releases-str">6.4.4. Feature gate releases</a></h4>
+<h4 id="ref-operator-use-kraft-feature-gate-str"><a class="link" href="#ref-operator-use-kraft-feature-gate-str">6.4.4. (Preview) UseKRaft feature gate</a></h4>
+<div class="paragraph">
+<p>The <code>UseKRaft</code> feature gate has a default state of <em>disabled</em>.</p>
+</div>
+<div class="paragraph">
+<p>The <code>UseKRaft</code> feature gate deploys the Kafka cluster in the KRaft (Kafka Raft metadata) mode without ZooKeeper.
+This feature gate is currently intended only for development and testing.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+<strong>The KRaft mode is not ready for production in Apache Kafka or in Strimzi.</strong>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>When the <code>UseKRaft</code> feature gate is enabled, the Kafka cluster is deployed without ZooKeeper.
+<strong>The <code>.spec.zookeeper</code> properties in the Kafka custom resource will be ignored, but still need to be present.</strong>
+The <code>UseKRaft</code> feature gate provides an API that configures Kafka cluster nodes and their roles.
+The API is still in development and is expected to change before the KRaft mode is production-ready.</p>
+</div>
+<div class="paragraph">
+<p>Currently, the KRaft mode in Strimzi has the following major limitations:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Moving from Kafka clusters with ZooKeeper to KRaft clusters or the other way around is not supported.</p>
+</li>
+<li>
+<p>Upgrades and downgrades of Apache Kafka versions or the Strimzi operator are not supported.
+Users might need to delete the cluster, upgrade the operator and deploy a new Kafka cluster.</p>
+</li>
+<li>
+<p>The Entity Operator (including the User Operator and Topic operator) is not supported.
+The <code>spec.entityOperator</code> property <strong>must be removed</strong> from the <code>Kafka</code> custom resource.</p>
+</li>
+<li>
+<p><code>simple</code> authorization is not supported.</p>
+</li>
+<li>
+<p>SCRAM-SHA-512 authentication is not supported.</p>
+</li>
+<li>
+<p>JBOD storage is not supported.
+The <code>type: jbod</code> storage can be used, but the JBOD array can contain only one disk.</p>
+</li>
+<li>
+<p>Liveness and readiness probes are disabled.</p>
+</li>
+<li>
+<p>All Kafka nodes have both the <code>controller</code> and <code>broker</code> KRaft roles.
+Kafka clusters with separate <code>controller</code> and <code>broker</code> nodes are not supported.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Enabling the UseStrimziPodSets feature gate</div>
+<p>To enable the <code>UseKRaft</code> feature gate, specify <code>+UseKRaft</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+The <code>UseKRaft</code> feature gate depends on the <code>UseStrimziPodSets</code> feature gate.
+When enabling the <code>UseKRaft</code> feature gate, make sure that the <code>USeStrimziPodSets</code> feature gate is enabled as well.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="ref-operator-cluster-feature-gate-releases-str"><a class="link" href="#ref-operator-cluster-feature-gate-releases-str">6.4.5. Feature gate releases</a></h4>
 <div class="paragraph _abstract">
 <p>Feature gates have three stages of maturity:</p>
 </div>
@@ -15100,6 +15181,9 @@ Alpha and beta stage features are removed if they do not prove to be useful.</p>
 </li>
 <li>
 <p>The <code>UseStrimziPodSets</code> feature gate is currently planned to move to the beta stage in Strimzi 0.30.</p>
+</li>
+<li>
+<p>The <code>UseKRaft</code> feature gate is available for development only and does not currently have a planned release for moving to the beta phase.</p>
 </li>
 </ul>
 </div>
@@ -15147,6 +15231,12 @@ Feature gates might be removed when they reach GA. This means that the feature w
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>UseStrimziPodSets</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0.28</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>UseKRaft</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.29</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
 </tr>
@@ -25073,7 +25163,7 @@ changes to Kafka logging levels are applied dynamically.</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">config</p></td>
 <td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
-<p>Kafka broker config properties with the following prefixes cannot be set: listeners, advertised., broker., listener., host.name, port, inter.broker.listener.name, sasl., ssl., security., password., log.dir, zookeeper.connect, zookeeper.set.acl, zookeeper.ssl, zookeeper.clientCnxnSocket, authorizer., super.user, cruise.control.metrics.topic, cruise.control.metrics.reporter.bootstrap.servers (with the exception of: zookeeper.connection.timeout.ms, ssl.cipher.suites, ssl.protocol, ssl.enabled.protocols,cruise.control.metrics.topic.num.partitions, cruise.control.metrics.topic.replication.factor, cruise.control.metrics.topic.retention.ms,cruise.control.metrics.topic.auto.create.retries, cruise.control.metrics.topic.auto.create.timeout.ms,cruise.control.metrics.topic.min.insync.replicas).</p>
+<p>Kafka broker config properties with the following prefixes cannot be set: listeners, advertised., broker., listener., host.name, port, inter.broker.listener.name, sasl., ssl., security., password., log.dir, zookeeper.connect, zookeeper.set.acl, zookeeper.ssl, zookeeper.clientCnxnSocket, authorizer., super.user, cruise.control.metrics.topic, cruise.control.metrics.reporter.bootstrap.servers,node.id, process.roles, controller. (with the exception of: zookeeper.connection.timeout.ms, ssl.cipher.suites, ssl.protocol, ssl.enabled.protocols,cruise.control.metrics.topic.num.partitions, cruise.control.metrics.topic.replication.factor, cruise.control.metrics.topic.retention.ms,cruise.control.metrics.topic.auto.create.retries, cruise.control.metrics.topic.auto.create.timeout.ms,cruise.control.metrics.topic.min.insync.replicas,controller.quorum.election.backoff.max.ms, controller.quorum.election.timeout.ms, controller.quorum.fetch.timeout.ms).</p>
 </div></div></td>
 </tr>
 <tr>
@@ -38265,7 +38355,7 @@ You can also <a href="#con-common-configuration-ssl-reference">configure the <co
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-05-13 10:44:15 UTC
+Last updated 2022-05-13 11:52:34 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
