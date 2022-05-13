@@ -181,6 +181,7 @@
 <li><a href="#con-optimization-proposals-str">7.3. Optimization proposals overview</a>
 <ul class="sectlevel3">
 <li><a href="#approving_or_rejecting_an_optimization_proposal">7.3.1. Approving or rejecting an optimization proposal</a></li>
+<li><a href="#con-optimization-proposals-modes-str">7.3.2. Rebalancing modes</a></li>
 </ul>
 </li>
 <li><a href="#con-rebalance-str">7.4. Rebalance performance tuning overview</a>
@@ -15533,6 +15534,62 @@ If you generate an optimization proposal using the default optimization goals, C
 <p>To change the cached optimization proposal refresh interval, edit the <code>proposal.expiration.ms</code> setting in the Cruise Control deployment configuration.
 Consider a shorter interval for fast changing clusters, although this increases the load on the Cruise Control server.</p>
 </div>
+</div>
+<div class="sect3">
+<h4 id="con-optimization-proposals-modes-str"><a class="link" href="#con-optimization-proposals-modes-str">7.3.2. Rebalancing modes</a></h4>
+<div class="paragraph">
+<p>When using the <code>KafkaRebalance</code> custom resource for running a rebalancing operation, you have three available modes:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>full</code></p>
+</li>
+<li>
+<p><code>add-brokers</code></p>
+</li>
+<li>
+<p><code>remove-brokers</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>You specify a mode using the <code>spec.mode</code> property of the <code>KafkaRebalance</code> custom resource.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>full</code></dt>
+<dd>
+<p>The <code>full</code> mode runs a full rebalance by moving replicas across all the brokers in the cluster.
+This is the default mode if the <code>spec.mode</code> property is not defined in the <code>KafkaRebalance</code> custom resource.</p>
+</dd>
+<dt class="hdlist1"><code>add-brokers</code></dt>
+<dd>
+<p>The <code>add-brokers</code> mode is used after scaling up a Kafka cluster by adding one or more brokers.
+Normally, after scaling up a Kafka cluster, new brokers are used to host only the partitions of newly created topics.
+If no new topics are created, the newly added brokers are not used and the existing brokers remain under the same load.
+By using the <code>add-brokers</code> mode immediately after adding brokers to the cluster, the rebalancing operation moves replicas from existing brokers to the newly added brokers.
+You specify the new brokers as a list using the <code>spec.brokers</code> property of the <code>KafkaRebalance</code> custom resource.</p>
+</dd>
+<dt class="hdlist1"><code>remove-brokers</code></dt>
+<dd>
+<p>The <code>remove-brokers</code> mode is used before scaling down a Kafka cluster by removing one or more brokers.
+If you scale down a Kafka cluster, brokers are shut down even if they host replicas.
+This can lead to under-replicated partitions and possibly result in some partitions being under their minimum ISR (in-sync replicas).
+To avoid this potential problem, the <code>remove-brokers</code> mode moves replicas off the brokers that are going to be removed.
+When these brokers are not hosting replicas anymore, you can safely run the scaling down operation.
+You specify the brokers you&#8217;re removing as a list in the <code>spec.brokers</code> property in the <code>KafkaRebalance</code> custom resource.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>In general, use the <code>full</code> rebalance mode to rebalance a Kafka cluster by spreading the load across brokers.
+Use the <code>add-brokers</code> and <code>remove-brokers</code> modes only if you want to scale your cluster up or down and rebalance the replicas accordingly.</p>
+</div>
+<div class="paragraph">
+<p>The procedure to run a rebalance is actually the same across the three different modes.
+The only difference is with specifying a mode through the <code>spec.mode</code> property and, if needed, listing brokers that have been added or will be removed through the <code>spec.brokers</code> property.</p>
+</div>
 <div class="ulist">
 <div class="title">Additional resources</div>
 <ul>
@@ -16207,11 +16264,31 @@ If the names of the auto-created topics are changed in a Kafka cluster that alre
 </div>
 <div class="sect2">
 <h3 id="proc-generating-optimization-proposals-str"><a class="link" href="#proc-generating-optimization-proposals-str">7.7. Generating optimization proposals</a></h3>
-<div class="paragraph">
-<p>When you create or update a <code>KafkaRebalance</code> resource, Cruise Control generates an <a href="#con-optimization-proposals-str">optimization proposal</a> for the Kafka cluster based on the configured <a href="#con-optimization-goals-str">optimization goals</a>.</p>
+<div class="paragraph _abstract">
+<p>When you create or update a <code>KafkaRebalance</code> resource, Cruise Control generates an <a href="#con-optimization-proposals-str">optimization proposal</a> for the Kafka cluster based on the configured <a href="#con-optimization-goals-str">optimization goals</a>.
+Analyze the information in the optimization proposal and decide whether to approve it.
+You can use the results of the optimization proposal to rebalance your Kafka cluster.</p>
 </div>
 <div class="paragraph">
-<p>Analyze the information in the optimization proposal and decide whether to approve it.</p>
+<p>You can run the optimization proposal in one of the following modes:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>full</code></p>
+</li>
+<li>
+<p><code>add-brokers</code></p>
+</li>
+<li>
+<p><code>remove-brokers</code>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The mode you use depends on whether you are rebalancing across all the brokers already running in the Kafka cluster;
+or you want to rebalance after scaling up or before scaling down your Kafka cluster.
+For more information, see <a href="#con-optimization-proposals-modes-str">Rebalancing modes with broker scaling</a>.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -16232,8 +16309,10 @@ If the names of the auto-created topics are changed in a Kafka cluster that alre
 <div class="olist loweralpha">
 <ol class="loweralpha" type="a">
 <li>
-<p>To use the <em>default optimization goals</em> defined in the <code>Kafka</code> resource, leave the <code>spec</code> property empty:</p>
+<p>To use the <em>default optimization goals</em> defined in the <code>Kafka</code> resource, leave the <code>spec</code> property empty.
+Cruise Control rebalances a Kafka cluster in <code>full</code> mode by default.</p>
 <div class="listingblock">
+<div class="title">Example configuration with full rebalancing by default</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaRebalance
@@ -16243,6 +16322,90 @@ metadata:
     strimzi.io/cluster: my-cluster
 spec: {}</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>You can also run a full rebalance by specifying the <code>full</code> mode through the <code>spec.mode</code> property.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example configuration specifying <code>full</code> mode</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaRebalance
+metadata:
+  name: my-rebalance
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  mode: full</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you want to rebalance a Kafka cluster after scaling up, specify the <code>add-brokers</code> mode.</p>
+</div>
+<div class="paragraph">
+<p>In this mode, existing replicas are moved to the newly added brokers.
+You need to specify the brokers as a list.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example configuration specifying <code>add-brokers</code> mode</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaRebalance
+metadata:
+  name: my-rebalance
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  mode: add-brokers
+  brokers: [3, 4] <b class="conum">(1)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>List of newly added brokers added by the scale up operation. This property is mandatory.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>If you want to rebalance a Kafka cluster before scaling down, specify the <code>remove-brokers</code> mode.</p>
+</div>
+<div class="paragraph">
+<p>In this mode, replicas are moved off the brokers that are going to be removed.
+You need to specify the brokers that are being removed as a list.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of rebalancing to run before a scale down by using the <code>remove-brokers</code> mode</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaRebalance
+metadata:
+  name: my-rebalance
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  mode: remove-brokers
+  brokers: [3, 4] <b class="conum">(1)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>List of brokers to be removed by the scale down operation. This property is mandatory.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The following steps and the steps to approve or stop a rebalance are the same regardless of the rebalance mode you are using.
+</td>
+</tr>
+</table>
 </div>
 </li>
 <li>
