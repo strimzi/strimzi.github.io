@@ -21865,7 +21865,7 @@ then make incremental changes and further comparisons of metrics until you have 
 <p><a href="#proc-setting-broker-limits-str">Kafka Static Quota plugin</a> sets limits on brokers</p>
 </li>
 <li>
-<p><a href="#type-Rack-reference">Rack configuration</a> spreads broker partitions across racks</p>
+<p><a href="#type-Rack-reference">Rack configuration</a> spreads broker partitions across racks and allows consumers to fetch data from the nearest replica</p>
 </li>
 </ul>
 </div>
@@ -22042,11 +22042,12 @@ As an exception, you might want to reduce the settings in a single-broker <em>te
 Produce requests are placed in a request queue. Responses are placed in a response queue.</p>
 </div>
 <div class="paragraph">
-<p>The number of network threads should reflect the replication factor and the levels of activity from client producers and consumers interacting with the Kafka cluster.
+<p>The number of network threads per listener should reflect the replication factor and the levels of activity from client producers and consumers interacting with the Kafka cluster.
 If you are going to have a lot of requests, you can increase the number of threads, using the amount of time threads are idle to determine when to add more threads.</p>
 </div>
 <div class="paragraph">
-<p>To reduce congestion and regulate the request traffic, you can limit the number of requests allowed in the request queue before the network thread is blocked.</p>
+<p>To reduce congestion and regulate the request traffic, you can limit the number of requests allowed in the request queue.
+When the request queue is full, all incoming traffic is blocked.</p>
 </div>
 <div class="paragraph">
 <p>I/O threads pick up requests from the request queue to process them.
@@ -22059,7 +22060,7 @@ At a minimum, the number of I/O threads should equal the number of storage volum
 num.network.threads=3 <b class="conum">(1)</b>
 queued.max.requests=500 <b class="conum">(2)</b>
 num.io.threads=8 <b class="conum">(3)</b>
-num.recovery.threads.per.data.dir=1 <b class="conum">(4)</b>
+num.recovery.threads.per.data.dir=4 <b class="conum">(4)</b>
 # ...</code></pre>
 </div>
 </div>
@@ -22075,7 +22076,7 @@ num.recovery.threads.per.data.dir=1 <b class="conum">(4)</b>
 <p>The number of I/O  threads for a Kafka broker.</p>
 </li>
 <li>
-<p>The number of threads used for log loading at startup and flushing at shutdown.</p>
+<p>The number of threads used for log loading at startup and flushing at shutdown. Try setting to a value of at least the number of cores.</p>
 </li>
 </ol>
 </div>
@@ -22083,16 +22084,30 @@ num.recovery.threads.per.data.dir=1 <b class="conum">(4)</b>
 <p>Configuration updates to the thread pools for all brokers might occur dynamically at the cluster level.
 These updates are restricted to between half the current size and twice the current size.</p>
 </div>
-<div class="admonitionblock note">
+<div class="admonitionblock tip">
 <table>
 <tr>
 <td class="icon">
-<div class="title">Note</div>
+<div class="title">Tip</div>
 </td>
 <td class="content">
-Kafka broker metrics can help with working out the number of threads required.
-For example, metrics for the average time network threads are idle (<code>kafka.network:type=SocketServer,name=NetworkProcessorAvgIdlePercent</code>) indicate the percentage of resources used.
-If there is 0% idle time, all resources are in use, which means that adding more threads might be beneficial.
+<div class="paragraph">
+<p>The following Kafka broker metrics can help with working out the number of threads required:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>kafka.network:type=SocketServer,name=NetworkProcessorAvgIdlePercent</code> provides metrics on the average time network threads are idle as a percentage.</p>
+</li>
+<li>
+<p><code>kafka.server:type=KafkaRequestHandlerPool,name=RequestHandlerAvgIdlePercent</code> provides metrics on the average time I/O threads are idle as a percentage.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>If there is 0% idle time, all resources are in use, which means that adding more threads might be beneficial.
+When idle time goes below 30%, performance may start to suffer.</p>
+</div>
 </td>
 </tr>
 </table>
@@ -22234,7 +22249,8 @@ log.cleaner.enable=true
 </div>
 </div>
 <div class="paragraph">
-<p>You can set the cleanup policy at the topic or broker level.
+<p>The log cleaner needs to be enabled if you are using log compaction cleanup policy.
+You can set the cleanup policy at the topic or broker level.
 Broker-level configuration is the default for topics that do not have policy set.</p>
 </div>
 <div class="paragraph">
@@ -22485,6 +22501,10 @@ The buffer size for the producers (<code>max.request.size</code>) and consumers 
 <div class="sect3">
 <h4 id="controlling_the_log_flush_of_message_data"><a class="link" href="#controlling_the_log_flush_of_message_data">11.3.10. Controlling the log flush of message data</a></h4>
 <div class="paragraph">
+<p>Generally, the recommendation is to not set explicit flush thresholds and let the operating system perform background flush using its default settings.
+Partition replication provides greater data durability than writes to any single disk, as a failed broker can recover from its in-sync replicas.</p>
+</div>
+<div class="paragraph">
 <p>Log flush properties control the periodic writes of cached message data to disk.
 The scheduler specifies the frequency of checks on the log cache in milliseconds:</p>
 </div>
@@ -22509,10 +22529,6 @@ log.flush.interval.messages=100000
 <div class="paragraph">
 <p>The wait between flushes includes the time to make the check and the specified interval before the flush is carried out.
 Increasing the frequency of flushes can affect throughput.</p>
-</div>
-<div class="paragraph">
-<p>Generally, the recommendation is to not set explicit flush thresholds and let the operating system perform background flush using its default settings.
-Partition replication provides greater data durability than writes to any single disk as a failed broker can recover from its in-sync replicas.</p>
 </div>
 <div class="paragraph">
 <p>If you are using application flush management, setting lower flush thresholds might be appropriate if you are using faster disks.</p>
@@ -22710,7 +22726,8 @@ Compression is useful for improving throughput and reducing the load on storage,
 <div class="sect3">
 <h4 id="data_durability"><a class="link" href="#data_durability">11.4.2. Data durability</a></h4>
 <div class="paragraph">
-<p>You can apply greater data durability, to minimize the likelihood that messages are lost, using message delivery acknowledgments.</p>
+<p>Message delivery acknowledgments provide data durability to minimize the likelihood that messages are lost.
+Acknowledgments are enabled by default with the <code>acks</code> property set at <code>acks=all</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -22722,11 +22739,14 @@ acks=all <b class="conum">(1)</b>
 <div class="colist arabic">
 <ol>
 <li>
-<p>Specifying <code>acks=all</code> forces a partition leader to replicate messages to a certain number of followers before
-acknowledging that the message request was successfully received.
-Because of the additional checks, <code>acks=all</code> increases the latency between the producer sending a message and receiving acknowledgment.</p>
+<p><code>acks=all</code> forces a partition leader to replicate messages to a certain number of followers before
+acknowledging that the message request was successfully received.</p>
 </li>
 </ol>
+</div>
+<div class="paragraph">
+<p>The <code>acks=all</code> setting offers the strongest guarantee of delivery, but it will increase the latency between the producer sending a message and receiving acknowledgment.
+If you don&#8217;t require such strong guarantees, a setting of <code>acks=0</code> or <code>acks=1</code> provides either no delivery guarantees or only acknowledgment that the leader partition has written the record to its log.</p>
 </div>
 <div class="paragraph">
 <p>The number of brokers which need to have appended the messages to their logs before the acknowledgment is sent to the producer is determined by the topic&#8217;s <code>min.insync.replicas</code> configuration.
@@ -22767,7 +22787,9 @@ If the system fails, there is a risk of unsent data in the buffer being lost.
 <div class="paragraph">
 <p>Idempotent producers avoid duplicates as messages are delivered exactly once.
 IDs and sequence numbers are assigned to messages to ensure the order of delivery, even in the event of failure.
-If you are using <code>acks=all</code> for data consistency, enabling idempotency makes sense for ordered delivery.</p>
+If you are using <code>acks=all</code> for data consistency, using idempotency makes sense for ordered delivery.
+Idempotency is enabled for producers by default.
+With idempotency enabled, you can set the number of concurrent in-flight requests to a maximum of 5 for message ordering to be preserved.</p>
 </div>
 <div class="listingblock">
 <div class="title">Ordered delivery with idempotency</div>
@@ -22797,7 +22819,7 @@ retries=2147483647 <b class="conum">(4)</b>
 </ol>
 </div>
 <div class="paragraph">
-<p>If you are not using <code>acks=all</code> and idempotency because of the performance cost,
+<p>If you choose not to use <code>acks=all</code> and disable idempotency because of the performance cost,
 set the number of in-flight (unacknowledged) requests to 1 to preserve ordering.
 Otherwise, a situation is possible where <em>Message-A</em> fails only to succeed after <em>Message-B</em> was already written to the broker.</p>
 </div>
@@ -23343,7 +23365,7 @@ If a consumer group or standalone consumer is inactive and commits no offsets du
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env"># ...
 heartbeat.interval.ms=3000 <b class="conum">(1)</b>
-session.timeout.ms=10000 <b class="conum">(2)</b>
+session.timeout.ms=45000 <b class="conum">(2)</b>
 auto.offset.reset=earliest <b class="conum">(3)</b>
 # ...</code></pre>
 </div>
