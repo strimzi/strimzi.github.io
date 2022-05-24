@@ -6,10 +6,10 @@ author: jakub_scholz
 ---
 
 Last week we released Strimzi 0.29.0.
-And one of the features we worked on were StrimziPodSets.
+And one of the features we worked on was StrimziPodSets.
 What is it?
 Why should you care?
-And what new features we plan to build on top of it in the future?
+And what new features do we plan to build on top of it in the future?
 Learn more in our new video!
 
 <!--more-->
