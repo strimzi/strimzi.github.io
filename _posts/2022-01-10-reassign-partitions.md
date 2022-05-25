@@ -46,6 +46,8 @@ Throttling might cause the reassignment to take longer to complete.
 
 2. If the throttle is too high, the overall health of the cluster may be impacted.
 
+You can use the `kafka.server:type=FetcherLagMetrics,name=ConsumerLag,clientId=([-.\w]+),topic=([-.\w]+),partition=([0-9]+)` metric (which with the default spec.metrics settings in your Kafka CR would appear be scraped by Prometheus as `kafka_server-fetcherlagmetrics_consumerlag`) to observe how far the followers are lagging behind the leader
+
 The best way to set the value for throttle is to start with a safe value.
 If the lag is growing, or decreasing too slowly to catch up within a reasonable time, then the throttle should be increased.
 To do this, run the command again to increase the throttle, iterating until it looks like the broker will join the ISR within a reasonable time.
