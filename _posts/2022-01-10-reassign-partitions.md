@@ -46,7 +46,7 @@ Throttling might cause the reassignment to take longer to complete.
 
 2. If the throttle is too high, the overall health of the cluster may be impacted.
 
-You can use the `kafka.server:type=FetcherLagMetrics,name=ConsumerLag,clientId=([-.\w]+),topic=([-.\w]+),partition=([0-9]+)` metric (which with the default spec.metrics settings in your Kafka CR would appear be scraped by Prometheus as `kafka_server-fetcherlagmetrics_consumerlag`) to observe how far the followers are lagging behind the leader
+You can use the `kafka.server:type=FetcherLagMetrics,name=ConsumerLag,clientId=([-.\w]+),topic=([-.\w]+),partition=([0-9]+)` metric (which with the spec.kafka.metrics settings in your Kafka CR would appear be scraped by Prometheus as `kafka_server-fetcherlagmetrics_consumerlag`) to observe how far the followers are lagging behind the leader. You can also refer to this [example](https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/kafka-metrics.yaml) for configuring metrics 
 
 The best way to set the value for throttle is to start with a safe value.
 If the lag is growing, or decreasing too slowly to catch up within a reasonable time, then the throttle should be increased.
@@ -84,7 +84,8 @@ Note: In case you already have the environment set up, you can skip the next sec
 
 ### Setting up the environment
 
-To get the Kafka cluster up and running, we will first have to install the Strimzi Cluster Operator and then deploy the Kafka resource.
+To get the Kafka cluster up and running, we will first have to install the Strimzi Cluster Operator and then deploy the Kafka resource. You can refer to the [Stimzi Quickstart Guide](https://strimzi.io/docs/operators/latest/quickstart.html) for installing Strimzi.
+
 You can install the Cluster Operator with any installation method you prefer.
 The Kafka cluster is then deployed with the plain listener enabled on port 9092.
 
