@@ -5,11 +5,11 @@ date: 2021-09-23
 author: shubham_rawat
 ---
 
-As Apache Kafka users, we sometimes have to scale up/down the number of Kafka brokers in our cluster depending on the use case.
-Addition of extra brokers can be an advantage to handle increased load, and we can use Cruise Control for general rebalancing in Strimzi since it allows us to automate the balancing of load across the cluster but what if we are scaling down the clusters?
+As Apache Kafka users, we sometimes want to scale up/down the number of Kafka brokers in our cluster in response to the load on the cluster.
+The ability to add extra brokers can be an advantage to handle increased load, and we can use Cruise Control for general rebalancing in Strimzi since it allows us to automate the balancing of load across the cluster but what if we are scaling down the clusters?
 Let us understand this with the help of an example, suppose there are certain number of brokers in a cluster and now we want to remove a broker from the cluster.
-We need to make sure that the broker which is going to be removed should not have any assigned partitions. Strimzi's integration of Cruise Control currently doesn't support doing this for you, but we are working on it [strimzi/proposals#52](https://github.com/strimzi/proposals/pull/52).
-You have to use some other tool to assign the partitions from the broker to be removed, to the remaining brokers.
+We need to make sure that the broker which is going to be removed does not have any assigned partitions. Strimzi's integration of Cruise Control currently doesn't support doing this for you, but we are working on it [strimzi/proposals#52](https://github.com/strimzi/proposals/pull/52).
+You have to use some other tool to reassign the partitions from the broker to be removed, to the remaining brokers.
 The most convenient tool for this job is the Kafka partition reassignment tool.
 
 <!--more-->
@@ -70,9 +70,9 @@ Through this example we will take a look at how the three actions of the Kafka r
 We will generate the JSON data that will be used in the `reassignment.json` file.
 We will then assign the partitions to the remaining broker using the `reassignment.json` file.
 
-Before proceeding towards the steps. Let's discuss one more curious question. Can you scale down any pod you want through this process?
-So the answer to this question is no.
-It is due to the fact Strimzi uses StatefulSets to manage broker pods.
+Before proceeding with the steps. let's discuss one more curious question. Can you scale down any pod you want through this process?
+The answer to this question is no.
+This is due to the fact Strimzi uses StatefulSets to manage broker pods.
 The Kubernetes StatefulSet controller managed pods with contiguous numbers starting from 0.
 So when scaling down it will always remove the the highest numbered pod(s).
 For example, in a cluster of 5 brokers the pods are named `<CLUSTER-NAME>-kafka-0` up to `<CLUSTER-NAME>-kafka-4`.
@@ -142,67 +142,6 @@ spec:
     # ...
 ```
 
-Now we require a Kafka user.
-We will configure the Kafka user with ACL rules that grant permission to produce and consume topics from the Kafka brokers.
-
-```yaml
-apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaUser
-metadata:
-  name: <KAFKA-USER>
-  labels:
-    strimzi.io/cluster: <CLUSTER-NAME>
-spec:
-  authentication:
-    type: tls
-  authorization:
-    type: simple
-    acls:
-      - resource:
-          type: topic
-          name: my-topic-two
-          patternType: literal
-        operation: Write
-        host: "*"
-      - resource:
-          type: topic
-          name: my-topic-two
-          patternType: literal
-        operation: Read
-        host: "*"
-      - resource:
-          type: topic
-          name: my-topic-two
-          patternType: literal
-        operation: Describe
-        host: "*"   
-      - resource:
-           type: topic
-           name: my-topic-two
-           patternType: literal
-        operation: DescribeConfigs
-        host: "*"
-      - resource:
-           type: topic
-           name: my-topic-two
-           patternType: literal
-        operation: AlterConfigs
-        host: "*"        
-      - resource:
-           type: cluster
-           name: <CLUSTER-NAME>
-           patternType: literal
-        operation: Alter
-        host: "*"
-      - resource:
-           type: cluster
-           name: <CLUSTER-NAME>
-           patternType: literal
-        operation: AlterConfigs
-        host: "*"        
-  # ...
-```
-
 ### Creating a proposal `reassignment.json` file
 
 When you have a Kafka cluster running with brokers and topics, you are ready to create the proposal JSON file.
@@ -223,9 +162,8 @@ kubectl run --restart=Never --image=quay.io/strimzi/kafka:0.27.0-kafka-3.0.0 <IN
 Wait till the pod gets into the `Ready` state. Once the pod gets into `Ready` state, now our next step will be to generate our `topics.json` file. 
 As we discussed above, this file will have the topics that we need to reassign.
 
-
-Now arises a good question. What topics require reassignment?
-So the answer to this is the topics that have their partitions assigned to broker `<CLUSTER-NAME>-kafka-3` and `<CLUSTER-NAME>-kafka-4` need reassignment, or these topics partition should move to the remaining 3 brokers nodes in our cluster.
+Now a good question arises. What topics require reassignment?
+The answer to this is the topics that have their partitions assigned to broker `<CLUSTER-NAME>-kafka-3` and `<CLUSTER-NAME>-kafka-4` need reassignment, or these topics partition should move to the remaining 3 brokers nodes in our cluster.
 
 To check the partitions details of a certain topic, we can use the `kafka-topics.sh` tool. We can run the following command from inside interactive pod after starting a shell process using `kubectl exec -ti <INTERACTIVE-POD-NAME> /bin/bash`
 :
