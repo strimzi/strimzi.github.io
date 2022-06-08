@@ -15912,6 +15912,9 @@ Deploy one instance of Cruise Control per Kafka cluster.</p>
 You can use <code>brokerCapacity</code> to change the default capacity limits for goals related to resource distribution.
 If brokers are running on nodes with heterogeneous network resources, you can use <code>overrides</code> to set network capacity limits for each broker.</p>
 </div>
+<div class="paragraph">
+<p>If an empty object (<code>{}</code>) is used for the <code>cruiseControl</code> configuration, all properties use their default values.</p>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -16042,7 +16045,7 @@ spec:
 <p>Create or update the resource:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>kafka.yaml</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;kafka_configuration_file&gt;</em></code></pre>
 </div>
 </div>
 </li>
@@ -16137,7 +16140,7 @@ If the names of the auto-created topics are changed in a Kafka cluster that alre
 <p><a href="#con-optimization-goals-str">Optimization goals overview</a></p>
 </li>
 <li>
-<p><a href="#type-CruiseControlSpec-reference"><code>CruiseControlSpec</code> `schema reference</a></p>
+<p><a href="#type-CruiseControlSpec-reference"><code>CruiseControlSpec</code> schema reference</a></p>
 </li>
 </ul>
 </div>
@@ -16155,13 +16158,13 @@ You can use the results of the optimization proposal to rebalance your Kafka clu
 <div class="ulist">
 <ul>
 <li>
-<p><code>full</code></p>
+<p><code>full</code> (default)</p>
 </li>
 <li>
 <p><code>add-brokers</code></p>
 </li>
 <li>
-<p><code>remove-brokers</code>.</p>
+<p><code>remove-brokers</code></p>
 </li>
 </ul>
 </div>
@@ -16185,12 +16188,17 @@ For more information, see <a href="#con-optimization-proposals-modes-str">Rebala
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Create a <code>KafkaRebalance</code> resource:</p>
-<div class="olist loweralpha">
-<ol class="loweralpha" type="a">
-<li>
+<p>Create a <code>KafkaRebalance</code> resource and specify the appropriate mode.</p>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>full</code> mode (default)</dt>
+<dd>
+<div class="openblock">
+<div class="content">
+<div class="paragraph">
 <p>To use the <em>default optimization goals</em> defined in the <code>Kafka</code> resource, leave the <code>spec</code> property empty.
 Cruise Control rebalances a Kafka cluster in <code>full</code> mode by default.</p>
+</div>
 <div class="listingblock">
 <div class="title">Example configuration with full rebalancing by default</div>
 <div class="content">
@@ -16219,6 +16227,13 @@ spec:
   mode: full</code></pre>
 </div>
 </div>
+</div>
+</div>
+</dd>
+<dt class="hdlist1"><code>add-brokers</code> mode</dt>
+<dd>
+<div class="openblock">
+<div class="content">
 <div class="paragraph">
 <p>If you want to rebalance a Kafka cluster after scaling up, specify the <code>add-brokers</code> mode.</p>
 </div>
@@ -16247,6 +16262,13 @@ spec:
 </li>
 </ol>
 </div>
+</div>
+</div>
+</dd>
+<dt class="hdlist1"><code>remove-brokers</code> mode</dt>
+<dd>
+<div class="openblock">
+<div class="content">
 <div class="paragraph">
 <p>If you want to rebalance a Kafka cluster before scaling down, specify the <code>remove-brokers</code> mode.</p>
 </div>
@@ -16255,7 +16277,7 @@ spec:
 You need to specify the brokers that are being removed as a list.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example of rebalancing to run before a scale down by using the <code>remove-brokers</code> mode</div>
+<div class="title">Example configuration specifying <code>remove-brokers</code> mode</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaRebalance
@@ -16275,6 +16297,8 @@ spec:
 </li>
 </ol>
 </div>
+</div>
+</div>
 <div class="admonitionblock note">
 <table>
 <tr>
@@ -16286,6 +16310,9 @@ The following steps and the steps to approve or stop a rebalance are the same re
 </td>
 </tr>
 </table>
+</div>
+</dd>
+</dl>
 </div>
 </li>
 <li>
@@ -16326,14 +16353,11 @@ spec:
 </div>
 </div>
 </li>
-</ol>
-</div>
-</li>
 <li>
 <p>Create or update the resource:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>your-file</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;kafka_rebalance_configuration_file&gt;</em></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -16342,38 +16366,44 @@ This might take a few minutes depending on the size of the Kafka cluster.</p>
 </div>
 </li>
 <li>
-<p>Check the status of the <code>KafkaRebalance</code> resource:</p>
+<p>Wait for the status of the optimization proposal to change to <code>ProposalReady</code>:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl describe kafkarebalance <em>rebalance-cr-name</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafkarebalance -o wide -w -n <em>&lt;namespace&gt;</em></code></pre>
+</div>
+</div>
+<div class="openblock">
+<div class="content">
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>PendingProposal</code></dt>
+<dd>
+<p>A <code>PendingProposal</code> status means the rebalance operator is polling the Cruise Control API to check if the optimization proposal is ready.</p>
+</dd>
+<dt class="hdlist1"><code>ProposalReady</code></dt>
+<dd>
+<p>A <code>ProposalReady</code> status means the optimization proposal is ready for review and approval.</p>
+</dd>
+</dl>
+</div>
 </div>
 </div>
 <div class="paragraph">
-<p>Cruise Control returns one of two statuses:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>PendingProposal</code>: The rebalance operator is polling the Cruise Control API to check if the optimization proposal is ready.</p>
-</li>
-<li>
-<p><code>ProposalReady</code>: The optimization proposal is ready for review and, if desired, approval.
-The optimization proposal is contained in the <code>Status.Optimization Result</code> property of the <code>KafkaRebalance</code> resource.</p>
-</li>
-</ul>
+<p>When the status changes to <code>ProposalReady</code>, the optimization proposal is ready to approve.</p>
 </div>
 </li>
 <li>
 <p>Review the optimization proposal.</p>
+<div class="paragraph">
+<p>The optimization proposal is contained in the <code>Status.Optimization Result</code> property of the <code>KafkaRebalance</code> resource.</p>
+</div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl describe kafkarebalance <em>rebalance-cr-name</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl describe kafkarebalance <em>&lt;kafka_rebalance_resource_name&gt;</em></code></pre>
 </div>
-</div>
-<div class="paragraph">
-<p>Here is an example proposal:</p>
 </div>
 <div class="listingblock">
+<div class="title">Example optimization proposal</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Status:
   Conditions:
@@ -16492,7 +16522,7 @@ Cruise Control will then apply the optimization proposal to the Kafka cluster, r
 </div>
 <div class="paragraph">
 <div class="title">Procedure</div>
-<p>Perform these steps for the optimization proposal that you want to approve:</p>
+<p>Perform these steps for the optimization proposal that you want to approve.</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -16502,35 +16532,51 @@ To do so, refresh the optimization proposal to make sure it uses the latest clus
 <div class="olist loweralpha">
 <ol class="loweralpha" type="a">
 <li>
-<p>Annotate the <code>KafkaRebalance</code> resource in Kubernetes with <code>refresh</code>:</p>
+<p>Annotate the <code>KafkaRebalance</code> resource in Kubernetes with <code>strimzi.io/rebalance=refresh</code>:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafkarebalance <em>rebalance-cr-name</em> strimzi.io/rebalance=refresh</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafkarebalance <em>&lt;kafka_rebalance_resource_name&gt;</em> strimzi.io/rebalance=refresh</code></pre>
 </div>
 </div>
-</li>
-<li>
-<p>Check the status of the <code>KafkaRebalance</code> resource:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl describe kafkarebalance <em>rebalance-cr-name</em></code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Wait until the status changes to <code>ProposalReady</code>.</p>
 </li>
 </ol>
 </div>
 </li>
 <li>
+<p>Wait for the status of the optimization proposal to change to <code>ProposalReady</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafkarebalance -o wide -w -n <em>&lt;namespace&gt;</em></code></pre>
+</div>
+</div>
+<div class="openblock">
+<div class="content">
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>PendingProposal</code></dt>
+<dd>
+<p>A <code>PendingProposal</code> status means the rebalance operator is polling the Cruise Control API to check if the optimization proposal is ready.</p>
+</dd>
+<dt class="hdlist1"><code>ProposalReady</code></dt>
+<dd>
+<p>A <code>ProposalReady</code> status means the optimization proposal is ready for review and approval.</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>When the status changes to <code>ProposalReady</code>, the optimization proposal is ready to approve.</p>
+</div>
+</li>
+<li>
 <p>Approve the optimization proposal that you want Cruise Control to apply.</p>
 <div class="paragraph">
-<p>Annotate the <code>KafkaRebalance</code> resource in Kubernetes:</p>
+<p>Annotate the <code>KafkaRebalance</code> resource in Kubernetes with <code>strimzi.io/rebalance=approve</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafkarebalance <em>rebalance-cr-name</em> strimzi.io/rebalance=approve</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafkarebalance <em>&lt;kafka_rebalance_resource_name&gt;</em> strimzi.io/rebalance=approve</code></pre>
 </div>
 </div>
 </li>
@@ -16538,29 +16584,38 @@ To do so, refresh the optimization proposal to make sure it uses the latest clus
 <p>The Cluster Operator detects the annotated resource and instructs Cruise Control to rebalance the Kafka cluster.</p>
 </li>
 <li>
-<p>Check the status of the <code>KafkaRebalance</code> resource:</p>
+<p>Wait for the status of the optimization proposal to change to <code>Ready</code>:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl describe kafkarebalance <em>rebalance-cr-name</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafkarebalance -o wide -w -n <em>&lt;namespace&gt;</em></code></pre>
 </div>
 </div>
-</li>
-<li>
-<p>Cruise Control returns one of three statuses:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>Rebalancing: The cluster rebalance operation is in progress.</p>
-</li>
-<li>
-<p>Ready: The cluster rebalancing operation completed successfully.
-To use the same <code>KafkaRebalance</code> custom resource to generate another optimization proposal, apply the <code>refresh</code> annotation to the custom resource.
+<div class="openblock">
+<div class="content">
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>Rebalancing</code></dt>
+<dd>
+<p>A <code>Rebalancing</code> status means the the rebalancing is in progress.</p>
+</dd>
+<dt class="hdlist1"><code>Ready</code></dt>
+<dd>
+<p>A <code>Ready</code> status means the rebalance is complete.</p>
+</dd>
+<dt class="hdlist1"><code>NotReady</code></dt>
+<dd>
+<p>A <code>NotReady</code> status means an error occurred&#8212;&#8203;see <a href="#proc-fixing-problems-with-kafkarebalance-str">Fixing problems with a <code>KafkaRebalance</code> resource</a>.</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>When the status changes to <code>Ready</code>, the rebalance is complete.</p>
+</div>
+<div class="paragraph">
+<p>To use the same <code>KafkaRebalance</code> custom resource to generate another optimization proposal, apply the <code>refresh</code> annotation to the custom resource.
 This moves the custom resource to the <code>PendingProposal</code> or <code>ProposalReady</code> state. You can then review the optimization proposal and approve it, if desired.</p>
-</li>
-<li>
-<p>NotReady: An error occurred&#8212;&#8203;see <a href="#proc-fixing-problems-with-kafkarebalance-str">Fixing problems with a <code>KafkaRebalance</code> resource</a>.</p>
-</li>
-</ul>
 </div>
 </li>
 </ol>
