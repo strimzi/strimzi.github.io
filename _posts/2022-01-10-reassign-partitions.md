@@ -6,8 +6,7 @@ author: shubham_rawat
 ---
 
 As Apache Kafka users, we commonly deal with brokers and the partitions. 
-Sometimes we need to move the partitions from old brokers to the new brokers, in case the old broker gets faulty.
-Adding the new broker and assigning the partitions to it is a task which can be done using Control Control but in case we want to do partition reassignment manually, we can use the Kafka partition reassignment tool.
+Sometimes you might want to move the partitions from old brokers to the new brokers or maybe you want to change the ordering of the partition assignment list. Cruise Control can be used to tackle these issues easily but for any reason if you don't want to use Cruise Control and do the things manually then you can use the Kafka partition reassignment tool.
 Here is a guide on how you can use it.
 
 <!--more-->
