@@ -5,12 +5,10 @@ date: 2021-09-23
 author: shubham_rawat
 ---
 
-As Apache Kafka users, we sometimes want to scale up/down the number of Kafka brokers in our cluster in response to the load on the cluster.
-The ability to add extra brokers can be an advantage to handle increased load, and we can use Cruise Control for general rebalancing in Strimzi since it allows us to automate the balancing of load across the cluster but what if we are scaling down the clusters?
-Let us understand this with the help of an example, suppose there are certain number of brokers in a cluster and now we want to remove a broker from the cluster.
-We need to make sure that the broker which is going to be removed does not have any assigned partitions. Strimzi's integration of Cruise Control currently doesn't support doing this for you, but we are working on it [strimzi/proposals#52](https://github.com/strimzi/proposals/pull/52).
-You have to use some other tool to reassign the partitions from the broker to be removed, to the remaining brokers.
-The most convenient tool for this job is the Kafka partition reassignment tool.
+As Apache Kafka users, we commonly deal with brokers and the partitions. 
+Sometimes we need to move the partitions from old brokers to the new brokers, in case the old broker gets faulty.
+Adding the new broker and assigning the partitions to it is a task which can be done using Control Control but in case we want to do partition reassignment manually, we can use the Kafka partition reassignment tool.
+Here is a guide on how you can use it.
 
 <!--more-->
 
