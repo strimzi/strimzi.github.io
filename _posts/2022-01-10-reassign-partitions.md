@@ -94,33 +94,36 @@ Example Kafka configuration with plain listener.
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
-  name: <CLUSTER-NAME>
+   name: my-cluster
 spec:
-  kafka:
-    replicas: 5
-    listeners:
-      - name: plain
-        port: 9092
-        type: internal
-        tls: false
-    config:
-      offsets.topic.replication.factor: 3
-      transaction.state.log.replication.factor: 3
-      transaction.state.log.min.isr: 2
-    storage:
-      type: jbod
-      volumes:
-      - id: 0
-        type: persistent-claim
-        size: 100Gi
-  zookeeper:
-    replicas: 3
-    storage:
-      type: persistent-claim
-      size: 100Gi
-  entityOperator:
-    topicOperator: {}
-    userOperator: {}
+   kafka:
+      version: 3.2.0
+      replicas: 5
+      listeners:
+         - name: plain
+           port: 9092
+           type: internal
+           tls: false
+         - name: tls
+           port: 9093
+           type: internal
+           tls: true
+      config:
+         offsets.topic.replication.factor: 3
+         transaction.state.log.replication.factor: 3
+         transaction.state.log.min.isr: 2
+         default.replication.factor: 3
+         min.insync.replicas: 2
+         inter.broker.protocol.version: "3.2"
+      storage:
+         type: ephemeral
+   zookeeper:
+      replicas: 3
+      storage:
+         type: ephemeral
+   entityOperator:
+      topicOperator: {}
+      userOperator: {}
 ```
 
 Once the cluster is running, let's deploy some topics where we will send and receive the messages.
@@ -174,34 +177,34 @@ bin/kafka-topics.sh --describe --topic my-topic-two --bootstrap-server <CLUSTER-
 which will give us the following output:
 
 ```shell
-Topic: my-topic-two     TopicId: _aUFY9oMSjqBjvP9Ed3JDg PartitionCount: 10      ReplicationFactor: 3    Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
-        Topic: my-topic-two     Partition: 0    Leader: 0       Replicas: 0,3,1 Isr: 0,3,1
-        Topic: my-topic-two     Partition: 1    Leader: 1       Replicas: 1,0,4 Isr: 1,0,4
-        Topic: my-topic-two     Partition: 2    Leader: 4       Replicas: 4,1,2 Isr: 4,1,2
-        Topic: my-topic-two     Partition: 3    Leader: 2       Replicas: 2,4,3 Isr: 2,4,3
-        Topic: my-topic-two     Partition: 4    Leader: 3       Replicas: 3,2,0 Isr: 3,2,0
-        Topic: my-topic-two     Partition: 5    Leader: 0       Replicas: 0,1,4 Isr: 0,1,4
-        Topic: my-topic-two     Partition: 6    Leader: 1       Replicas: 1,4,2 Isr: 1,4,2
-        Topic: my-topic-two     Partition: 7    Leader: 4       Replicas: 4,2,3 Isr: 4,2,3
-        Topic: my-topic-two     Partition: 8    Leader: 2       Replicas: 2,3,0 Isr: 2,3,0
-        Topic: my-topic-two     Partition: 9    Leader: 3       Replicas: 3,0,1 Isr: 3,0,1
+Topic: my-topic-two     TopicId: RBVQ5cTgRSK4TNnGXZFkKw PartitionCount: 10      ReplicationFactor: 3    Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
+       Topic: my-topic-two     Partition: 0    Leader: 0       Replicas: 0,4,1 Isr: 0,4,1
+       Topic: my-topic-two     Partition: 1    Leader: 4       Replicas: 4,1,2 Isr: 4,1,2
+       Topic: my-topic-two     Partition: 2    Leader: 1       Replicas: 1,2,3 Isr: 1,2,3
+       Topic: my-topic-two     Partition: 3    Leader: 2       Replicas: 2,3,0 Isr: 2,3,0
+       Topic: my-topic-two     Partition: 4    Leader: 3       Replicas: 3,0,4 Isr: 3,0,4
+       Topic: my-topic-two     Partition: 5    Leader: 0       Replicas: 0,1,2 Isr: 0,1,2
+       Topic: my-topic-two     Partition: 6    Leader: 4       Replicas: 4,2,3 Isr: 4,2,3
+       Topic: my-topic-two     Partition: 7    Leader: 1       Replicas: 1,3,0 Isr: 1,3,0
+       Topic: my-topic-two     Partition: 8    Leader: 2       Replicas: 2,0,4 Isr: 2,0,4
+       Topic: my-topic-two     Partition: 9    Leader: 3       Replicas: 3,4,1 Isr: 3,4,1
 ```
 Note: Your topic details can vary and might not be same as the topic details present here. 
 
 In the same way you can get the details for the other topic `my-topic` also.
 
 ```sh
-Topic: my-topic TopicId: WyFKVZzLS8i54IGgm1ifrQ PartitionCount: 10      ReplicationFactor: 3    Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
-        Topic: my-topic Partition: 0    Leader: 0       Replicas: 0,2,1 Isr: 0,2,1
-        Topic: my-topic Partition: 1    Leader: 2       Replicas: 2,1,0 Isr: 0,2,1
-        Topic: my-topic Partition: 2    Leader: 1       Replicas: 1,0,2 Isr: 0,2,1
-        Topic: my-topic Partition: 3    Leader: 0       Replicas: 0,1,2 Isr: 0,2,1
-        Topic: my-topic Partition: 4    Leader: 2       Replicas: 2,0,1 Isr: 0,2,1
-        Topic: my-topic Partition: 5    Leader: 1       Replicas: 1,2,0 Isr: 0,2,1
-        Topic: my-topic Partition: 6    Leader: 0       Replicas: 0,2,1 Isr: 0,2,1
-        Topic: my-topic Partition: 7    Leader: 2       Replicas: 2,1,0 Isr: 0,2,1
-        Topic: my-topic Partition: 8    Leader: 1       Replicas: 1,0,2 Isr: 0,2,1
-        Topic: my-topic Partition: 9    Leader: 0       Replicas: 0,1,2 Isr: 0,2,1
+Topic: my-topic TopicId: hoGc8CoZQwujm4JCLruDQw PartitionCount: 10      ReplicationFactor: 3    Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
+       Topic: my-topic Partition: 0    Leader: 2       Replicas: 2,3,0 Isr: 2,3,0
+       Topic: my-topic Partition: 1    Leader: 3       Replicas: 3,0,4 Isr: 3,0,4
+       Topic: my-topic Partition: 2    Leader: 0       Replicas: 0,4,1 Isr: 0,4,1
+       Topic: my-topic Partition: 3    Leader: 4       Replicas: 4,1,2 Isr: 4,1,2
+       Topic: my-topic Partition: 4    Leader: 1       Replicas: 1,2,3 Isr: 1,2,3
+       Topic: my-topic Partition: 5    Leader: 2       Replicas: 2,0,4 Isr: 2,0,4
+       Topic: my-topic Partition: 6    Leader: 3       Replicas: 3,4,1 Isr: 3,4,1
+       Topic: my-topic Partition: 7    Leader: 0       Replicas: 0,1,2 Isr: 0,1,2
+       Topic: my-topic Partition: 8    Leader: 4       Replicas: 4,2,3 Isr: 4,2,3
+       Topic: my-topic Partition: 9    Leader: 1       Replicas: 1,3,0 Isr: 1,3,0
 ```
 
 From the above outputs, we see that `my-topic-two` has some replicas on broker 3 and 4 thus we need to reassign this topic onto other brokers. 
@@ -244,7 +247,7 @@ Once you run this command, you will be able to see the JSON data which is genera
 
 ```sh
 Current partition replica assignment
-{"version":1,"partitions":[{"topic":"my-topic-two","partition":0,"replicas":[0,3,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":1,"replicas":[1,0,4],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":2,"replicas":[4,1,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":3,"replicas":[2,4,3],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":4,"replicas":[3,2,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":5,"replicas":[0,1,4],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":6,"replicas":[1,4,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":7,"replicas":[4,2,3],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":8,"replicas":[2,3,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":9,"replicas":[3,0,1],"log_dirs":["any","any","any"]}]}
+{"version":1,"partitions":[{"topic":"my-topic-two","partition":0,"replicas":[0,4,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":1,"replicas":[4,1,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":2,"replicas":[1,2,3],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":3,"replicas":[2,3,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":4,"replicas":[3,0,4],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":5,"replicas":[0,1,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":6,"replicas":[4,2,3],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":7,"replicas":[1,3,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":8,"replicas":[2,0,4],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":9,"replicas":[3,4,1],"log_dirs":["any","any","any"]}]}
 
 Proposed partition reassignment configuration
 {"version":1,"partitions":[{"topic":"my-topic-two","partition":0,"replicas":[2,0,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":1,"replicas":[0,1,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":2,"replicas":[1,2,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":3,"replicas":[2,1,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":4,"replicas":[0,2,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":5,"replicas":[1,0,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":6,"replicas":[2,0,1],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":7,"replicas":[0,1,2],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":8,"replicas":[1,2,0],"log_dirs":["any","any","any"]},{"topic":"my-topic-two","partition":9,"replicas":[2,1,0],"log_dirs":["any","any","any"]}]}
@@ -311,17 +314,17 @@ Clearing topic-level throttles on topic my-topic-two
 When the partition reassignment is complete, the brokers we want to scale down will have no assigned partitions and can be removed safely. Note, if new topics are created before these brokers are removed from the cluster, partitions may be assigned to these brokers.
 
 ```sh
-Topic: my-topic-two     TopicId: _aUFY9oMSjqBjvP9Ed3JDg PartitionCount: 10      ReplicationFactor: 3    Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
-        Topic: my-topic-two     Partition: 0    Leader: 0       Replicas: 2,0,1 Isr: 0,1,2
-        Topic: my-topic-two     Partition: 1    Leader: 1       Replicas: 0,1,2 Isr: 1,0,2
-        Topic: my-topic-two     Partition: 2    Leader: 1       Replicas: 1,2,0 Isr: 1,2,0
-        Topic: my-topic-two     Partition: 3    Leader: 2       Replicas: 2,1,0 Isr: 0,1,2
-        Topic: my-topic-two     Partition: 4    Leader: 0       Replicas: 0,2,1 Isr: 2,0,1
-        Topic: my-topic-two     Partition: 5    Leader: 0       Replicas: 1,0,2 Isr: 0,1,2
-        Topic: my-topic-two     Partition: 6    Leader: 1       Replicas: 2,0,1 Isr: 1,2,0
-        Topic: my-topic-two     Partition: 7    Leader: 0       Replicas: 0,1,2 Isr: 0,1,2
-        Topic: my-topic-two     Partition: 8    Leader: 2       Replicas: 1,2,0 Isr: 2,0,1
-        Topic: my-topic-two     Partition: 9    Leader: 2       Replicas: 2,1,0 Isr: 0,1,2 
+Topic: my-topic-two     TopicId: RBVQ5cTgRSK4TNnGXZFkKw PartitionCount: 10      ReplicationFactor: 3    Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
+       Topic: my-topic-two     Partition: 0    Leader: 0       Replicas: 2,0,1 Isr: 0,1,2
+       Topic: my-topic-two     Partition: 1    Leader: 0       Replicas: 0,1,2 Isr: 1,2,0
+       Topic: my-topic-two     Partition: 2    Leader: 1       Replicas: 1,2,0 Isr: 1,2,0
+       Topic: my-topic-two     Partition: 3    Leader: 2       Replicas: 2,1,0 Isr: 2,0,1
+       Topic: my-topic-two     Partition: 4    Leader: 0       Replicas: 0,2,1 Isr: 0,1,2
+       Topic: my-topic-two     Partition: 5    Leader: 0       Replicas: 1,0,2 Isr: 0,1,2
+       Topic: my-topic-two     Partition: 6    Leader: 2       Replicas: 2,0,1 Isr: 0,1,2
+       Topic: my-topic-two     Partition: 7    Leader: 1       Replicas: 0,1,2 Isr: 1,0,2
+       Topic: my-topic-two     Partition: 8    Leader: 2       Replicas: 1,2,0 Isr: 2,0,1
+       Topic: my-topic-two     Partition: 9    Leader: 2       Replicas: 2,1,0 Isr: 0,1,2
 ```
 As you can see the partition are now removed from the pod to be scaled down and now they can be removed without any problems.
 
