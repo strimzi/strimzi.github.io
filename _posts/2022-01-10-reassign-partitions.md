@@ -6,8 +6,9 @@ author: shubham_rawat
 ---
 
 To optimize the operation of your Kafka cluster, you can change the assignment of partitions to brokers.
-Sometimes you might want to move the partitions from one broker to another or maybe you want to change the ordering of the partition assignment list.
-Cruise Control can be used to tackle these issues easily but for any reason if you don't want to use Cruise Control and do the things manually then you can use the Kafka partition reassignment tool.
+Sometimes you might want to move the partitions from one broker to another or maybe you want to change the ordering of partition assignment list.
+Cruise Control can be used to tackle these issues easily.
+However, if you don't want to use Cruise Control and prefer to do the reassignment manually, then you can use the Kafka partition reassignment tool.
 Here is a guide on how you can use it.
 
 <!--more-->
@@ -16,10 +17,9 @@ Here is a guide on how you can use it.
 
 The `bin/kafka-reassign-partitions.sh` tool allows you to reassign partitions to different brokers.
 
-While using the tool, you have to provide it with either of these two JSON files: `topics.json` and `reassignment.json`.
-Wondering what these two JSON files really do? Let's talk a bit about them:
+When using the tool you have to provide it with either of these two JSON files: `topics.json` or `reassignment.json`.
 
-- The `topics.json` basically consists of the topics that we want to reassign or move. Based on this JSON file, our tool will generate a proposal `reassignment.json` that we can use directly or modify further.
+- The `topic.json` basically consists of the topics that we want to reassign or move. Based on this JSON file, the reassignment script will generate a proposal (`reassignment.json`) that we can use directly or modify further.
 
 - The `reassignment.json` file is a configuration file that is used during the partition reassignment process. The reassignment partition tool will generate a proposal `reassignment.json` file based on a `topics.json` file. You can change the `reassignment.json` file as per your requirement and use it.
 
@@ -32,11 +32,12 @@ Some of these are listed here:
 - You can reassign partitions between the brokers. For example, it can be used when you want to scale down the number of brokers in your cluster.
    You can assign partitions from the broker to be scaled down to other brokers which will handle these partitions now.
 
-- You can change the ordering of the partition assignment list. It can be used to control leader imbalances between brokers.
+- You can change the ordering of partition assignment list. It can be used to control leader imbalances between brokers.
 
 
 ## Partition Reassignment Throttle
-Reassigning partitions between brokers often leads to additional interbroker network traffic, in addition to the normal traffic required for replication. To avoid overloading the cluster, it is recommended to always set a throttle rate to limit the bandwidth used by the reassignment. 
+Reassigning partitions between brokers often leads to additional inter-broker network traffic, in addition to the normal traffic required for replication.
+To avoid overloading the cluster, it is recommended to always set a throttle rate to limit the bandwidth used by the reassignment.
 This can be done using the `--throttle` flag which sets the maximum allowed bandwidth in bytes per second, for example `--throttle 5000000` sets the limit to 5 MB/s.
 
 Throttling might cause the reassignment to take longer to complete.
@@ -53,13 +54,13 @@ To do this, run the command again to increase the throttle, iterating until it l
 
 ## Actions that can be executed while using the tool
 
-It has three different actions:
+The partition reassignment tool has three different actions:
 
 | Action | Description |
 | :-----------: | ------------- |
-| `generate`  | Takes a set of topics and brokers and generates a reassignment JSON file. This action is optional if we already have `reassignment.json` file with us. You can use this action using `--generate`|
-| `execute` | Takes a reassignment JSON file and applies it to the partitions and brokers in the cluster. The `reassignment.json` file can be either the one proposed by the `generate` action or written by the user. `--execute`  is used to carry out this action |
-| `verify`  | Using the same reassignment JSON file as the `--execute` step, `--verify` checks whether all the partitions in the file have been moved to their intended brokers. If the reassignment is complete, `--verify` also removes any replication quotas (`--throttle`) that are in effect. Unless removed, throttles will continue to affect the cluster even after the reassignment has finished. This action can be executed using `--verify` |
+| `generate`  | Takes a set of topics and brokers and generates a reassignment JSON file. This action is optional if we already have `reassignment.json` file with us. You can use this action by using the `--generate` flag|
+| `execute` | Takes a reassignment JSON file and applies it to the partitions and brokers in the cluster. The `reassignment.json` file can be either the one proposed by the `generate` action or written by the user. The `--execute` flag  is used to carry out this action. |
+| `verify`  | Using the same reassignment JSON file as the `--execute` step, `--verify` checks whether all the partitions in the file have been moved to their intended brokers. If the reassignment is complete, `--verify` also removes any replication quotas (`--throttle`) that are in effect. Unless removed, throttles will continue to affect the cluster even after the reassignment has finished. This action can be executed using `--verify` flag. |
 
 ## Example
 
@@ -72,9 +73,9 @@ Through this example we will take a look at how the three actions of the Kafka r
 We will generate the JSON data that will be used in the `reassignment.json` file.
 We will then assign the partitions to the remaining broker using the `reassignment.json` file.
 
-Before proceeding with the steps. let's discuss one more curious question. Can you scale down any pod you want through this process?
+Before proceeding with the steps above, let's address an important issue. Can you scale down any pod you want through this process?
 The answer to this question is no.
-This is due to the fact Strimzi uses StatefulSets to manage broker pods.
+This is due to the fact Strimzi uses StatefulSets to manages broker pods.
 The Kubernetes StatefulSet controller managed pods with contiguous numbers starting from 0.
 So when scaling down it will always remove the the highest numbered pod(s).
 For example, in a cluster of 5 brokers the pods are named `my-cluster-kafka-0` up to `my-cluster-kafka-4`.
@@ -152,10 +153,11 @@ spec:
 When you have a Kafka cluster running with brokers and topics, you are ready to create the proposal JSON file.
 
 Let us create a separate interactive pod.
-This interactive pod is used to run all the reassignment commands. 
-One question might bug you. What is the need of a separate pod? Can't we just use one of the broker pods?
-In answer to this question, running commands from within a broker is not good practice.
-It will start another JVM inside the container designated for the broker and can cause disruption, cause the container to run out of memory and so on.
+This interactive pod is used to run all the reassignment commands.
+You may ask why we are using a separate pod to run the commands? Can't we just use one of the broker pods? 
+The issue is that running commands from within a broker is not good practice.
+Running any of the Kafka `/bin` scripts from within the broker container will start another JVM (with all the same settings as the Kafka broker).
+This can cause disruption, including causing the container to run out of memory.
 So it is always better to avoid running the command from a broker pod.
 
 So now it's time to get our interactive pod up and running. You can use the following command:
@@ -164,11 +166,12 @@ So now it's time to get our interactive pod up and running. You can use the foll
 kubectl run --restart=Never --image=quay.io/strimzi/kafka:0.29.0-kafka-3.2.0 my-pod -- /bin/sh -c "sleep 3600"
 ```
 
-Wait till the pod gets into the `Ready` state. Once the pod gets into `Ready` state, now our next step will be to generate our `topics.json` file. 
+Wait till the pod gets into the `Ready` state.
+Once it is ready, our next step will be to generate our `topics.json` file.
 As we discussed above, this file will have the topics that we need to reassign.
 
 Now a good question arises. What topics require reassignment?
-The answer to this is the topics that have their partitions assigned to broker `<CLUSTER-NAME>-kafka-3` and `<CLUSTER-NAME>-kafka-4` need reassignment, or these topics partition should move to the remaining 3 brokers nodes in our cluster.
+The answer to this is the topics that have their partitions assigned to broker `<CLUSTER-NAME>-kafka-3` and `<CLUSTER-NAME>-kafka-4` need reassignment, these topics partition should move to the remaining 3 brokers nodes in our cluster.
 
 To check the partitions details of a certain topic, we can use the `kafka-topics.sh` tool. We can run the following command from inside interactive pod after starting a shell process using `kubectl exec -ti <INTERACTIVE-POD-NAME> /bin/bash`
 :
