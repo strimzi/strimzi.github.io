@@ -19,7 +19,7 @@ The `bin/kafka-reassign-partitions.sh` tool allows you to reassign partitions to
 
 When using the tool you have to provide it with either of these two JSON files: `topics.json` or `reassignment.json`.
 
-- The `topic.json` basically consists of the topics that we want to reassign or move. Based on this JSON file, the reassignment script will generate a proposal (`reassignment.json`) that we can use directly or modify further.
+- The `topics.json` basically consists of the topics that we want to reassign or move. Based on this JSON file, the reassignment script will generate a proposal (`reassignment.json`) that we can use directly or modify further.
 
 - The `reassignment.json` file is a configuration file that is used during the partition reassignment process. The reassignment partition tool will generate a proposal `reassignment.json` file based on a `topics.json` file. You can change the `reassignment.json` file as per your requirement and use it.
 
