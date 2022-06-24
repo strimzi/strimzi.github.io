@@ -158,7 +158,7 @@ You may ask why we are using a separate pod to run the commands? Can't we just u
 The issue is that running commands from within a broker is not good practice.
 Running any of the Kafka `/bin` scripts from within the broker container will start another JVM (with all the same settings as the Kafka broker).
 This can cause disruption, including causing the container to run out of memory.
-So it is always better to avoid running the command from a broker pod.
+So it is always better to avoid running the commands from a broker pod.
 
 So now it's time to get our interactive pod up and running. You can use the following command:
 
@@ -167,7 +167,8 @@ kubectl run --restart=Never --image=quay.io/strimzi/kafka:0.29.0-kafka-3.2.0 my-
 ```
 
 Wait till the pod gets into the `Ready` state.
-Once it is ready, our next step will be to generate our `topics.json` file.
+Once it is ready, our next step will be to see which topics needs reassignment.
+
 As we discussed above, this file will have the topics that we need to reassign.
 
 Now a good question arises. What topics require reassignment?
