@@ -15,7 +15,7 @@ Here is a guide on how you can use it.
 
 ##  Kafka reassignment partition tool
 
-The `bin/kafka-reassign-partitions.sh` tool allows you to reassign partitions to different brokers.
+The `bin/kafka-reassign-partitions.sh` tool allows you to reassign partitions to different brokers or disks.
 
 When using the tool you have to provide it with either of these two JSON files: `topics.json` or `reassignment.json`.
 
@@ -76,7 +76,7 @@ We will then assign the partitions to the remaining broker using the `reassignme
 Before proceeding with the steps above, let's address an important issue. Can you scale down any pod you want through this process?
 The answer to this question is no.
 This is due to the fact Strimzi uses StatefulSets to manages broker pods.
-The Kubernetes StatefulSet controller managed pods with contiguous numbers starting from 0.
+The Kubernetes StatefulSet controller manages pods with contiguous numbers starting from 0.
 So when scaling down it will always remove the the highest numbered pod(s).
 For example, in a cluster of 5 brokers the pods are named `my-cluster-kafka-0` up to `my-cluster-kafka-4`.
 If you decide to scale down by two brokers, then `my-cluster-kafka-4` and `my-cluster-kafka-3` will be removed.
