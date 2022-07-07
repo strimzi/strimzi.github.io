@@ -181,13 +181,22 @@
 <li><a href="#con-cruise-control-overview-str">7.1. Why use Cruise Control?</a></li>
 <li><a href="#con-optimization-goals-str">7.2. Optimization goals overview</a>
 <ul class="sectlevel3">
-<li><a href="#goals_configuration_in_strimzi_custom_resources">7.2.1. Goals configuration in Strimzi custom resources</a></li>
+<li><a href="#goals_order_of_priority">7.2.1. Goals order of priority</a></li>
+<li><a href="#goals_configuration_in_strimzi_custom_resources">7.2.2. Goals configuration in Strimzi custom resources</a></li>
+<li><a href="#hard-soft-goals">7.2.3. Hard and soft optimization goals</a></li>
+<li><a href="#main-goals">7.2.4. Main optimization goals</a></li>
+<li><a href="#default-goals">7.2.5. Default optimization goals</a></li>
+<li><a href="#user-provided-goals">7.2.6. User-provided optimization goals</a></li>
 </ul>
 </li>
 <li><a href="#con-optimization-proposals-str">7.3. Optimization proposals overview</a>
 <ul class="sectlevel3">
-<li><a href="#approving_or_rejecting_an_optimization_proposal">7.3.1. Approving or rejecting an optimization proposal</a></li>
-<li><a href="#con-optimization-proposals-modes-str">7.3.2. Rebalancing modes</a></li>
+<li><a href="#con-optimization-proposals-modes-str">7.3.1. Rebalancing modes</a></li>
+<li><a href="#contents-optimization-proposals">7.3.2. The results of an optimization proposal</a></li>
+<li><a href="#approving_or_rejecting_an_optimization_proposal">7.3.3. Approving or rejecting an optimization proposal</a></li>
+<li><a href="#optimization_proposal_summary_properties">7.3.4. Optimization proposal summary properties</a></li>
+<li><a href="#broker_load_properties">7.3.5. Broker load properties</a></li>
+<li><a href="#cached_optimization_proposal">7.3.6. Cached optimization proposal</a></li>
 </ul>
 </li>
 <li><a href="#con-rebalance-str">7.4. Rebalance performance tuning overview</a>
@@ -15261,20 +15270,91 @@ The metrics are automatically enabled and contain information about:</p>
 <h2 id="cruise-control-concepts-str"><a class="link" href="#cruise-control-concepts-str">7. Cruise Control for cluster rebalancing</a></h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
-<p>You can deploy <a href="https://github.com/linkedin/cruise-control" target="_blank" rel="noopener">Cruise Control</a> to your Strimzi cluster and use it to <em>rebalance</em> the Kafka cluster.</p>
+<p>Cruise Control is an open source system for automating Kafka operations, such as monitoring cluster workload, rebalancing a cluster based on predefined constraints, and detecting and fixing anomalies.
+It consists of four main components&#8212;&#8203;the Load Monitor, the Analyzer, the Anomaly Detector, and the Executor&#8212;&#8203;and a REST API for client interactions.</p>
 </div>
 <div class="paragraph">
-<p>Cruise Control is an open source system for automating Kafka operations, such as monitoring cluster workload, rebalancing a cluster based on predefined constraints, and detecting and fixing anomalies.
-It consists of four main components&#8212;&#8203;the Load Monitor, the Analyzer, the Anomaly Detector, and the Executor&#8212;&#8203;and a REST API for client interactions.
-Strimzi utilizes the REST API to support the following Cruise Control features:</p>
+<p>You can deploy <a href="https://github.com/linkedin/cruise-control" target="_blank" rel="noopener">Cruise Control</a> to your Strimzi cluster and use it to <em>rebalance</em> a Kafka cluster.
+You deploy Cruise Control through configuration of a <code>Kafka</code> resource.
+You perform rebalances through the <code>KafkaRebalance</code> resource, which generates and applies optimization proposals.</p>
+</div>
+<div class="paragraph">
+<p>Strimzi utilizes the REST API to support the following Cruise Control features:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Generating <em>optimization proposals</em> from multiple <em>optimization goals</em>.</p>
+<p>Generating optimization proposals from optimization goals.</p>
 </li>
 <li>
 <p>Rebalancing a Kafka cluster based on an optimization proposal.</p>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Optimization goals</dt>
+<dd>
+<p>An optimization goal describes a specific objective to achieve from a rebalance.
+For example, a goal might be to distribute topic replicas across brokers more evenly.
+You can change what goals to include through configuration.
+A goal is defined as a hard goal or soft goal.
+You can add hard goals through Cruise Control deployment configuration.
+You also have main, default, and user-provided goals that fit into each of these categories.</p>
+<div class="openblock">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Hard goals</strong> are preset and must be satisfied for an optimization proposal to be successful.</p>
+</li>
+<li>
+<p><strong>Soft goals</strong> do not need to be satisfied for an optimization proposal to be successful.
+They can be set aside if it means that all hard goals are met.</p>
+</li>
+<li>
+<p><strong>Main goals</strong> are inherited from Cruise Control. Some are preset as hard goals.
+Main goals are used in optimization proposals by default.</p>
+</li>
+<li>
+<p><strong>Default goals</strong> are the same as the main goals by default.
+You can specify your own set of default goals.</p>
+</li>
+<li>
+<p><strong>User-defined</strong> goals are a subset of default goals that are configured for generating a specific optimization proposal.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</dd>
+<dt class="hdlist1">Optimization proposals</dt>
+<dd>
+<p>Optimization proposals comprise the goals you want to achieve from a rebalance.
+You generate an optimization proposal to create a summary of proposed changes and the results that are possible with the rebalance.
+The goals are assessed in a specific order of priority.
+You can then choose to approve or reject the proposal.
+You can reject the proposal to run it again with an adjusted set of goals.</p>
+<div class="paragraph">
+<p>You can generate an optimization proposal in one of three modes.</p>
+</div>
+<div class="openblock">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><strong><code>full</code></strong> is the default mode and runs a full rebalance.</p>
+</li>
+<li>
+<p><strong><code>add-brokers</code></strong> is the mode you use after adding brokers when scaling up a Kafka cluster.</p>
+</li>
+<li>
+<p><strong><code>remove-brokers</code></strong> is the mode you use before removing brokers when scaling down a Kafka cluster.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</dd>
+</dl>
+</div>
 </li>
 </ul>
 </div>
@@ -15287,7 +15367,7 @@ Example YAML configuration files for Cruise Control are provided in <code>exampl
 </div>
 <div class="sect2">
 <h3 id="con-cruise-control-overview-str"><a class="link" href="#con-cruise-control-overview-str">7.1. Why use Cruise Control?</a></h3>
-<div class="paragraph">
+<div class="paragraph _abstract">
 <p>Cruise Control reduces the time and effort involved in running an efficient and balanced Kafka cluster.</p>
 </div>
 <div class="paragraph">
@@ -15315,12 +15395,14 @@ When the cluster rebalancing operation is complete, the broker pods are used mor
 </div>
 <div class="sect2">
 <h3 id="con-optimization-goals-str"><a class="link" href="#con-optimization-goals-str">7.2. Optimization goals overview</a></h3>
-<div class="paragraph">
-<p>To rebalance a Kafka cluster, Cruise Control uses optimization goals to generate <a href="#con-optimization-proposals-str">optimization proposals</a>, which you can approve or reject.</p>
-</div>
-<div class="paragraph">
+<div class="paragraph _abstract">
 <p>Optimization goals are constraints on workload redistribution and resource utilization across a Kafka cluster.
-Strimzi supports most of the optimization goals developed in the Cruise Control project.
+To rebalance a Kafka cluster, Cruise Control uses optimization goals to generate <a href="#con-optimization-proposals-str">optimization proposals</a>, which you can approve or reject.</p>
+</div>
+<div class="sect3">
+<h4 id="goals_order_of_priority"><a class="link" href="#goals_order_of_priority">7.2.1. Goals order of priority</a></h4>
+<div class="paragraph">
+<p>Strimzi supports most of the optimization goals developed in the Cruise Control project.
 The supported goals, in the default descending order of priority, are as follows:</p>
 </div>
 <div class="olist arabic">
@@ -15413,11 +15495,31 @@ The supported goals, in the default descending order of priority, are as follows
 </tr>
 </table>
 </div>
+</div>
 <div class="sect3">
-<h4 id="goals_configuration_in_strimzi_custom_resources"><a class="link" href="#goals_configuration_in_strimzi_custom_resources">7.2.1. Goals configuration in Strimzi custom resources</a></h4>
+<h4 id="goals_configuration_in_strimzi_custom_resources"><a class="link" href="#goals_configuration_in_strimzi_custom_resources">7.2.2. Goals configuration in Strimzi custom resources</a></h4>
 <div class="paragraph">
 <p>You configure optimization goals in <code>Kafka</code> and <code>KafkaRebalance</code> custom resources.
-Cruise Control has configurations for <a href="#hard-soft-goals">hard</a> optimization goals that must be satisfied, as well as <a href="#main-goals">main</a>, <a href="#default-goals">default</a>, and <a href="#user-provided-goals">user-provided</a> optimization goals.</p>
+Cruise Control has configurations for hard optimization goals that must be satisfied, as well as main, default, and user-provided optimization goals.</p>
+</div>
+<div class="paragraph">
+<p>You can specify optimization goals in the following configuration:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Main goals</strong>&#8201;&#8212;&#8201;<code>Kafka.spec.cruiseControl.config.goals</code></p>
+</li>
+<li>
+<p><strong>Hard goals</strong>&#8201;&#8212;&#8201;<code>Kafka.spec.cruiseControl.config.hard.goals</code></p>
+</li>
+<li>
+<p><strong>Default goals</strong>&#8201;&#8212;&#8201;<code>Kafka.spec.cruiseControl.config.default.goals</code></p>
+</li>
+<li>
+<p><strong>User-defined goals</strong>&#8201;&#8212;&#8201;<code>KafkaRebalance.spec.goals</code></p>
+</li>
+</ul>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -15433,10 +15535,9 @@ Cruise Control has configurations for <a href="#hard-soft-goals">hard</a> optimi
 </tr>
 </table>
 </div>
-<div class="paragraph">
-<p>The following sections describe each goal configuration in more detail.</p>
 </div>
-<h5 id="hard-soft-goals" class="discrete">Hard goals and soft goals</h5>
+<div class="sect3">
+<h4 id="hard-soft-goals"><a class="link" href="#hard-soft-goals">7.2.3. Hard and soft optimization goals</a></h4>
 <div class="paragraph">
 <p>Hard goals are goals that <em>must</em> be satisfied in optimization proposals.
 Goals that are not configured as hard goals are known as <em>soft goals</em>.
@@ -15514,7 +15615,9 @@ spec:
 <p>If <code>skipHardGoalCheck: true</code> is specified in the <code>KafkaRebalance</code> custom resource, Cruise Control does <em>not</em> check that the list of user-provided optimization goals (in <code>KafkaRebalance.spec.goals</code>) contains <em>all</em> the configured hard goals (<code>hard.goals</code>).
 Therefore, if some, but not all, of the user-provided optimization goals are in the <code>hard.goals</code> list, Cruise Control will still treat them as hard goals even if <code>skipHardGoalCheck: true</code> is specified.</p>
 </div>
-<h5 id="main-goals" class="discrete">Main optimization goals</h5>
+</div>
+<div class="sect3">
+<h4 id="main-goals"><a class="link" href="#main-goals">7.2.4. Main optimization goals</a></h4>
 <div class="paragraph">
 <p>The <em>main optimization goals</em> are available to all users.
 Goals that are not listed in the main optimization goals are not available for use in Cruise Control operations.</p>
@@ -15528,7 +15631,7 @@ Goals that are not listed in the main optimization goals are not available for u
 </div>
 </div>
 <div class="paragraph">
-<p>Six of these goals are preset as <a href="#hard-soft-goals">hard goals</a>.</p>
+<p>Some of these goals are preset as <a href="#hard-soft-goals">hard goals</a>.</p>
 </div>
 <div class="paragraph">
 <p>To reduce complexity, we recommend that you use the inherited main optimization goals, unless you need to <em>completely</em> exclude one or more goals from use in <code>KafkaRebalance</code> resources. The priority order of the main optimization goals can be modified, if desired, in the configuration for <a href="#default-goals">default optimization goals</a>.</p>
@@ -15558,7 +15661,9 @@ If you change the inherited main optimization goals, you must ensure that the ha
 </tr>
 </table>
 </div>
-<h5 id="default-goals" class="discrete">Default optimization goals</h5>
+</div>
+<div class="sect3">
+<h4 id="default-goals"><a class="link" href="#default-goals">7.2.5. Default optimization goals</a></h4>
 <div class="paragraph">
 <p>Cruise Control uses the <em>default optimization goals</em> to generate the <em>cached optimization proposal</em>.
 For more information about the cached optimization proposal, see <a href="#con-optimization-proposals-str">Optimization proposals overview</a>.</p>
@@ -15611,7 +15716,9 @@ spec:
 <div class="paragraph">
 <p>If no default optimization goals are specified, the cached proposal is generated using the main optimization goals.</p>
 </div>
-<h5 id="user-provided-goals" class="discrete">User-provided optimization goals</h5>
+</div>
+<div class="sect3">
+<h4 id="user-provided-goals"><a class="link" href="#user-provided-goals">7.2.6. User-provided optimization goals</a></h4>
 <div class="paragraph">
 <p><em>User-provided optimization goals</em> narrow down the configured default goals for a particular optimization proposal.
 You can set them, as required, in <code>spec.goals</code> in a <code>KafkaRebalance</code> custom resource:</p>
@@ -15657,37 +15764,96 @@ So, you create a <code>KafkaRebalance</code> custom resource containing a single
 </div>
 <div class="sect2">
 <h3 id="con-optimization-proposals-str"><a class="link" href="#con-optimization-proposals-str">7.3. Optimization proposals overview</a></h3>
+<div class="paragraph _abstract">
+<p>You use the <code>KafkaRebalance</code> resource to generate and apply the changes suggested in optimization proposals.
+An <em>optimization proposal</em> is a summary of proposed changes that would produce a more balanced Kafka cluster, with partition workloads distributed more evenly among the brokers.</p>
+</div>
 <div class="paragraph">
-<p>An <em>optimization proposal</em> is a summary of proposed changes that would produce a more balanced Kafka cluster, with partition workloads distributed more evenly among the brokers.
-Each optimization proposal is based on the set of <a href="#con-optimization-goals-str">optimization goals</a> that was used to generate it, subject to any configured <a href="#property-cruise-control-broker-capacity-reference">capacity limits on broker resources</a>.</p>
+<p>Each optimization proposal is based on the set of <a href="#con-optimization-goals-str">optimization goals</a> that was used to generate it, subject to any configured <a href="#property-cruise-control-broker-capacity-reference">capacity limits on broker resources</a>.</p>
 </div>
 <div class="paragraph">
 <p>All optimization proposals are <em>estimates</em> of the impact of a proposed rebalance.
 You can approve or reject a proposal.
 You cannot approve a cluster rebalance without first generating the optimization proposal.</p>
 </div>
-<h4 id="contents-optimization-proposals" class="discrete">Contents of optimization proposals</h4>
 <div class="paragraph">
-<p>An optimization proposal comprises a summary and broker load.
-The summary is contained in the <code>KafkaRebalance</code> resource.</p>
+<p>You can run optimization proposals in one of the following rebalancing modes:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>full</code></p>
+</li>
+<li>
+<p><code>add-brokers</code></p>
+</li>
+<li>
+<p><code>remove-brokers</code></p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="con-optimization-proposals-modes-str"><a class="link" href="#con-optimization-proposals-modes-str">7.3.1. Rebalancing modes</a></h4>
+<div class="paragraph">
+<p>You specify a rebalancing mode using the <code>spec.mode</code> property of the <code>KafkaRebalance</code> custom resource.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>full</code></dt>
+<dd>
+<p>The <code>full</code> mode runs a full rebalance by moving replicas across all the brokers in the cluster.
+This is the default mode if the <code>spec.mode</code> property is not defined in the <code>KafkaRebalance</code> custom resource.</p>
+</dd>
+<dt class="hdlist1"><code>add-brokers</code></dt>
+<dd>
+<p>The <code>add-brokers</code> mode is used after scaling up a Kafka cluster by adding one or more brokers.
+Normally, after scaling up a Kafka cluster, new brokers are used to host only the partitions of newly created topics.
+If no new topics are created, the newly added brokers are not used and the existing brokers remain under the same load.
+By using the <code>add-brokers</code> mode immediately after adding brokers to the cluster, the rebalancing operation moves replicas from existing brokers to the newly added brokers.
+You specify the new brokers as a list using the <code>spec.brokers</code> property of the <code>KafkaRebalance</code> custom resource.</p>
+</dd>
+<dt class="hdlist1"><code>remove-brokers</code></dt>
+<dd>
+<p>The <code>remove-brokers</code> mode is used before scaling down a Kafka cluster by removing one or more brokers.
+If you scale down a Kafka cluster, brokers are shut down even if they host replicas.
+This can lead to under-replicated partitions and possibly result in some partitions being under their minimum ISR (in-sync replicas).
+To avoid this potential problem, the <code>remove-brokers</code> mode moves replicas off the brokers that are going to be removed.
+When these brokers are not hosting replicas anymore, you can safely run the scaling down operation.
+You specify the brokers you&#8217;re removing as a list in the <code>spec.brokers</code> property in the <code>KafkaRebalance</code> custom resource.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>In general, use the <code>full</code> rebalance mode to rebalance a Kafka cluster by spreading the load across brokers.
+Use the <code>add-brokers</code> and <code>remove-brokers</code> modes only if you want to scale your cluster up or down and rebalance the replicas accordingly.</p>
+</div>
+<div class="paragraph">
+<p>The procedure to run a rebalance is actually the same across the three different modes.
+The only difference is with specifying a mode through the <code>spec.mode</code> property and, if needed, listing brokers that have been added or will be removed through the <code>spec.brokers</code> property.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="contents-optimization-proposals"><a class="link" href="#contents-optimization-proposals">7.3.2. The results of an optimization proposal</a></h4>
+<div class="paragraph">
+<p>When an optimization proposal is generated, a summary and broker load is returned.</p>
 </div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Summary</dt>
 <dd>
-<p>The summary provides an overview of the proposed cluster rebalance and indicates the scale of the changes involved.
+<p>The summary is contained in the <code>KafkaRebalance</code> resource. The summary provides an overview of the proposed cluster rebalance and indicates the scale of the changes involved.
 A summary of a successfully generated optimization proposal is contained in the <code>Status.OptimizationResult</code> property of the <code>KafkaRebalance</code> resource.
 The information provided is a summary of the full optimization proposal.</p>
 </dd>
 <dt class="hdlist1">Broker load</dt>
 <dd>
-<p>The broker load shows before and after values for the proposed rebalance, so you can see the impact on each of the brokers in the cluster.
-A broker load is stored in a ConfigMap that contains data as a JSON string.</p>
+<p>The broker load is stored in a ConfigMap that contains data as a JSON string. The broker load shows before and after values for the proposed rebalance, so you can see the impact on each of the brokers in the cluster.</p>
 </dd>
 </dl>
 </div>
+</div>
 <div class="sect3">
-<h4 id="approving_or_rejecting_an_optimization_proposal"><a class="link" href="#approving_or_rejecting_an_optimization_proposal">7.3.1. Approving or rejecting an optimization proposal</a></h4>
+<h4 id="approving_or_rejecting_an_optimization_proposal"><a class="link" href="#approving_or_rejecting_an_optimization_proposal">7.3.3. Approving or rejecting an optimization proposal</a></h4>
 <div class="paragraph">
 <p>An optimization proposal summary shows the proposed scope of changes.</p>
 </div>
@@ -15791,7 +15957,9 @@ If all goals are satisfied, the score is 100.
 The score is reduced for each goal that will not be met.
 Compare the balancedness scores to see whether the Kafka cluster is less balanced than it could be following a rebalance.</p>
 </div>
-<h5 id="optimization_proposal_summary_properties" class="discrete">Optimization proposal summary properties</h5>
+</div>
+<div class="sect3">
+<h4 id="optimization_proposal_summary_properties"><a class="link" href="#optimization_proposal_summary_properties">7.3.4. Optimization proposal summary properties</a></h4>
 <div class="paragraph">
 <p>The following table explains the properties contained in the optimization proposal&#8217;s summary section.</p>
 </div>
@@ -15863,7 +16031,9 @@ These topics are excluded from the calculation of partition replica/leader movem
 </tr>
 </tbody>
 </table>
-<h5 id="broker_load_properties" class="discrete">Broker load properties</h5>
+</div>
+<div class="sect3">
+<h4 id="broker_load_properties"><a class="link" href="#broker_load_properties">7.3.5. Broker load properties</a></h4>
 <div class="paragraph">
 <p>The broker load is stored in a ConfigMap (with the same name as the KafkaRebalance custom resource) as a JSON formatted string. This JSON string consists of a JSON object with keys for each broker IDs linking to a number of metrics for each broker.
 Each metric consist of three values.
@@ -15952,7 +16122,9 @@ The ConfigMap appears when the KafkaRebalance resource is in the <code>ProposalR
 </tr>
 </tbody>
 </table>
-<h4 id="cached_optimization_proposal" class="discrete">Cached optimization proposal</h4>
+</div>
+<div class="sect3">
+<h4 id="cached_optimization_proposal"><a class="link" href="#cached_optimization_proposal">7.3.6. Cached optimization proposal</a></h4>
 <div class="paragraph">
 <p>Cruise Control maintains a <em>cached optimization proposal</em> based on the configured default optimization goals.
 Generated from the workload model, the cached optimization proposal is updated every 15 minutes to reflect the current state of the Kafka cluster.
@@ -15961,62 +16133,6 @@ If you generate an optimization proposal using the default optimization goals, C
 <div class="paragraph">
 <p>To change the cached optimization proposal refresh interval, edit the <code>proposal.expiration.ms</code> setting in the Cruise Control deployment configuration.
 Consider a shorter interval for fast changing clusters, although this increases the load on the Cruise Control server.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="con-optimization-proposals-modes-str"><a class="link" href="#con-optimization-proposals-modes-str">7.3.2. Rebalancing modes</a></h4>
-<div class="paragraph">
-<p>When using the <code>KafkaRebalance</code> custom resource for running a rebalancing operation, you have three available modes:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>full</code></p>
-</li>
-<li>
-<p><code>add-brokers</code></p>
-</li>
-<li>
-<p><code>remove-brokers</code></p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>You specify a mode using the <code>spec.mode</code> property of the <code>KafkaRebalance</code> custom resource.</p>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1"><code>full</code></dt>
-<dd>
-<p>The <code>full</code> mode runs a full rebalance by moving replicas across all the brokers in the cluster.
-This is the default mode if the <code>spec.mode</code> property is not defined in the <code>KafkaRebalance</code> custom resource.</p>
-</dd>
-<dt class="hdlist1"><code>add-brokers</code></dt>
-<dd>
-<p>The <code>add-brokers</code> mode is used after scaling up a Kafka cluster by adding one or more brokers.
-Normally, after scaling up a Kafka cluster, new brokers are used to host only the partitions of newly created topics.
-If no new topics are created, the newly added brokers are not used and the existing brokers remain under the same load.
-By using the <code>add-brokers</code> mode immediately after adding brokers to the cluster, the rebalancing operation moves replicas from existing brokers to the newly added brokers.
-You specify the new brokers as a list using the <code>spec.brokers</code> property of the <code>KafkaRebalance</code> custom resource.</p>
-</dd>
-<dt class="hdlist1"><code>remove-brokers</code></dt>
-<dd>
-<p>The <code>remove-brokers</code> mode is used before scaling down a Kafka cluster by removing one or more brokers.
-If you scale down a Kafka cluster, brokers are shut down even if they host replicas.
-This can lead to under-replicated partitions and possibly result in some partitions being under their minimum ISR (in-sync replicas).
-To avoid this potential problem, the <code>remove-brokers</code> mode moves replicas off the brokers that are going to be removed.
-When these brokers are not hosting replicas anymore, you can safely run the scaling down operation.
-You specify the brokers you&#8217;re removing as a list in the <code>spec.brokers</code> property in the <code>KafkaRebalance</code> custom resource.</p>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>In general, use the <code>full</code> rebalance mode to rebalance a Kafka cluster by spreading the load across brokers.
-Use the <code>add-brokers</code> and <code>remove-brokers</code> modes only if you want to scale your cluster up or down and rebalance the replicas accordingly.</p>
-</div>
-<div class="paragraph">
-<p>The procedure to run a rebalance is actually the same across the three different modes.
-The only difference is with specifying a mode through the <code>spec.mode</code> property and, if needed, listing brokers that have been added or will be removed through the <code>spec.brokers</code> property.</p>
 </div>
 <div class="ulist _additional-resources">
 <div class="title">Additional resources</div>
@@ -16338,7 +16454,7 @@ spec:
 <p><a href="#property-cruise-control-capacity-overrides-reference">Overrides set network capacity limits</a> for specific brokers when running on nodes with heterogeneous network resources.</p>
 </li>
 <li>
-<p>Cruise Control configuration. <a href="#property-kafka-config-reference">Standard Cruise Control configuration may be provided, restricted to those properties not managed directly by Strimzi</a>.</p>
+<p>Cruise Control configuration. <a href="#property-cruise-control-config-reference">Standard Cruise Control configuration may be provided, restricted to those properties not managed directly by Strimzi</a>.</p>
 </li>
 <li>
 <p><a href="#con-optimization-goals-str">Optimization goals configuration</a>, which can include configuration for default optimization goals (<code>default.goals</code>), main optimization goals (<code>goals</code>), and hard goals (<code>hard.goals</code>).</p>
