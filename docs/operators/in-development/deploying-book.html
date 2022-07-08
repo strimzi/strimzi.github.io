@@ -107,13 +107,6 @@
 </ul>
 </li>
 <li><a href="#proc-metrics-grafana-dashboard-str">9.5. Enabling the example Grafana dashboards</a></li>
-<li><a href="#proc-operator-restart-events-str">9.6. Monitoring Strimzi intitiated Kafka restarts</a>
-<ul class="sectlevel3">
-<li><a href="#observing_restart_events">9.6.1. Observing restart events</a></li>
-<li><a href="#current_reasons_why_strimzi_will_restart_a_kafka_pod">9.6.2. Current reasons why Strimzi will restart a Kafka pod</a></li>
-<li><a href="#monitoring_restart_events">9.6.3. Monitoring restart events</a></li>
-</ul>
-</li>
 </ul>
 </li>
 <li><a href="#assembly-upgrade-str">10. Upgrading Strimzi</a>
@@ -159,10 +152,17 @@
 </li>
 </ul>
 </li>
-<li><a href="#assembly-uninstalling-str">12. Uninstalling Strimzi</a>
+<li><a href="#assembly-deploy-restart-events-str">12. Finding information on Kafka restarts</a>
 <ul class="sectlevel2">
-<li><a href="#uninstalling-str">12.1. Uninstalling Strimzi using the CLI</a></li>
-<li><a href="#uninstalling-operator-hub-str">12.2. Uninstalling Strimzi from OperatorHub.io</a></li>
+<li><a href="#ref-operator-restart-events-reasons-str">12.1. Reasons for a restart event</a></li>
+<li><a href="#ref-operator-restart-events-fields-str">12.2. Restart event filters</a></li>
+<li><a href="#proc-operator-restart-events-str">12.3. Checking Kafka restarts</a></li>
+</ul>
+</li>
+<li><a href="#assembly-uninstalling-str">13. Uninstalling Strimzi</a>
+<ul class="sectlevel2">
+<li><a href="#uninstalling-str">13.1. Uninstalling Strimzi using the CLI</a></li>
+<li><a href="#uninstalling-operator-hub-str">13.2. Uninstalling Strimzi from OperatorHub.io</a></li>
 </ul>
 </li>
 </ul>
@@ -4630,9 +4630,6 @@ Strimzi includes example Grafana dashboards that you can customize to suit your 
 <p>With Prometheus and Grafana set up, you can use the example Grafana dashboards provided by Strimzi for monitoring.</p>
 </div>
 <div class="paragraph">
-<p>The Strimzi Operator <a href="#proc-operator-restart-events-str">emits Kubernetes events</a> when it restarts a Kafka broker that can help in understanding cluster behaviour.</p>
-</div>
-<div class="paragraph">
 <p>Additionally, you can configure your deployment to track messages end-to-end by <a href="./using.html#assembly-distributed-tracing-str" target="_blank" rel="noopener">setting up distributed tracing</a>.</p>
 </div>
 <div class="admonitionblock note">
@@ -6007,202 +6004,6 @@ The name of the Grafana pod is different for each user.</p>
 </div>
 <div class="paragraph">
 <p>The imported Grafana dashboards are available to view from the <strong>Dashboards</strong> home page.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="proc-operator-restart-events-str"><a class="link" href="#proc-operator-restart-events-str">9.6. Monitoring Strimzi intitiated Kafka restarts</a></h3>
-<div class="paragraph _abstract">
-<p>When the cluster operator restarts a Kafka pod, it emits a Kubernetes event into the pod&#8217;s namespace explaining why it did so.</p>
-</div>
-<div class="sect3">
-<h4 id="observing_restart_events"><a class="link" href="#observing_restart_events">9.6.1. Observing restart events</a></h4>
-<div class="paragraph">
-<p>Using <code>kubectl</code> you can list events, and filter for only those emitted by the cluster operator by setting the <code>source</code> field.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell-session hljs" data-lang="shell-session">~/ &gt; kubectl -n kafka get events --field-selector source=strimzi.io/cluster-operator
-LAST SEEN   TYPE     REASON                   OBJECT                        MESSAGE
-2m          Normal   JbodVolumesChanged       pod/strimzi-cluster-kafka-0   JBOD volumes were added or removed
-58m         Normal   PodForceRestartOnError   pod/strimzi-cluster-kafka-1   Pod needs to be forcibly restarted due to an error
-5m47s       Normal   ManualRollingUpdate      pod/strimzi-cluster-kafka-2   Pod was manually annotated to be rolled</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>To view more detailed information about an event or events, use an output format such as yaml. Note that this example is also filtering
-on <code>reason</code> to further limit the returned events.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell-session hljs" data-lang="shell-session">~/ &gt; kubectl -n kafka get events --field-selector source=strimzi.io/cluster-operator,reason=PodForceRestartOnError -o yaml</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
-items:
-- action: StrimziInitiatedPodRestart
-  apiVersion: v1
-  eventTime: "2022-05-13T00:22:34.168086Z"
-  firstTimestamp: null <b class="conum">(1)</b>
-  involvedObject:
-      kind: Pod
-      name: strimzi-cluster-kafka-1
-      namespace: kafka
-  kind: Event
-  lastTimestamp: null <b class="conum">(1)</b>
-  message: Pod needs to be forcibly restarted due to an error
-  metadata:
-      creationTimestamp: "2022-05-13T00:22:34Z"
-      generateName: strimzi-event
-      name: strimzi-eventwppk6
-      namespace: kafka
-      resourceVersion: "432961"
-      uid: 29fcdb9e-f2cf-4c95-a165-a5efcd48edfc
-  reason: PodForceRestartOnError
-  reportingComponent: strimzi.io/cluster-operator
-  reportingInstance: strimzi-cluster-operator-6458cfb4c6-6bpdp
-  source: {} <b class="conum">(1)</b>
-  type: Normal
-kind: List
-metadata:
-  resourceVersion: ""
-  selfLink: ""</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>These fields are deprecated, and will be removed in Kubernetes 1.25. As such, they are not populated for these events.</p>
-</li>
-</ol>
-</div>
-<div class="sect4">
-<h5 id="using_field_selectors_with_kubernetes_events"><a class="link" href="#using_field_selectors_with_kubernetes_events">Using field selectors with Kubernetes events</a></h5>
-<div class="paragraph">
-<p>The event APIs of Kubernetes are changing, so the event fields that can be selected to filter on are also changing names.</p>
-</div>
-<div class="sect5">
-<h6 id="kubernetes_1_24_and_earlier"><a class="link" href="#kubernetes_1_24_and_earlier">Kubernetes 1.24 and earlier</a></h6>
-<div class="paragraph">
-<p>The following fields are available when filtering events with  <code>--field-selector</code>:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>involvedObject.kind</code>: the involved object is the pod that was restarted, and for these events, the kind will always be "Pod".</p>
-</li>
-<li>
-<p><code>involvedObject.namespace</code>: the namespace that the pod belongs to.</p>
-</li>
-<li>
-<p><code>involvedObject.name</code>: the pod&#8217;s name, for example, <code>strimzi-cluster-kafka-0</code>.</p>
-</li>
-<li>
-<p><code>involvedObject.uid</code>: the unique id of the pod.</p>
-</li>
-<li>
-<p><code>reason</code>: why the pod was restarted, for example, <code>JbodVolumesChanged</code>.</p>
-</li>
-<li>
-<p><code>reportingComponent</code>: For Strimzi restart events, this will always be <code>strimzi.io/cluster-operator</code>.</p>
-</li>
-<li>
-<p><code>source</code>: An older version of the above field, this will also always be <code>strimzi.io/cluster-operator</code>.</p>
-</li>
-<li>
-<p><code>type</code>: This can be either <code>Warning</code> or <code>Normal</code>, for all current Strimzi restart events, it is currently always <code>Normal</code>.</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect5">
-<h6 id="kubernetes_1_25"><a class="link" href="#kubernetes_1_25">Kubernetes 1.25+</a></h6>
-<div class="paragraph">
-<p>When Kubernetes 1.25 is released and installed on your cluster, you will also be able to use these fields with  <code>--field-selector</code>:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>regarding.kind</code>: same as <code>involvedObject.kind</code></p>
-</li>
-<li>
-<p><code>regarding.namespace</code>: same as <code>involvedObject.namespace</code></p>
-</li>
-<li>
-<p><code>regarding.name</code>: same as <code>involvedObject.name</code></p>
-</li>
-<li>
-<p><code>regarding.name</code>: same as <code>involvedObject.uid</code></p>
-</li>
-<li>
-<p><code>reportingController</code>: same as <code>reportingComponent</code></p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="current_reasons_why_strimzi_will_restart_a_kafka_pod"><a class="link" href="#current_reasons_why_strimzi_will_restart_a_kafka_pod">9.6.2. Current reasons why Strimzi will restart a Kafka pod</a></h4>
-<div class="ulist">
-<ul>
-<li>
-<p><code>CaCertHasOldGeneration</code> -  The pod is still using a server certificate signed with an old CA, so needs to be restarted as part of updating that certificate</p>
-</li>
-<li>
-<p><code>CaCertRemoved</code> -  Expired CA certificates have been removed, and the pod is restarted to run with the current certificates</p>
-</li>
-<li>
-<p><code>CaCertRenewed</code> -  CA certificates have been renewed, and the pod is restarted to run with these updated certificates</p>
-</li>
-<li>
-<p><code>ClientCaCertKeyReplaced</code> -  The key used to sign client CA certificates has been replaced, and the pod is being restarted as part of the CA renewal process</p>
-</li>
-<li>
-<p><code>ClusterCaCertKeyReplaced</code> -  The key used to sign the cluster&#8217;s CA certificates has been replaced, and the pod is being restarted as part of the CA renewal process</p>
-</li>
-<li>
-<p><code>ConfigChangeRequiresRestart</code> -  Some Kafka configuration properties can be changed dynamically, but others require that the broker be restarted</p>
-</li>
-<li>
-<p><code>CustomListenerCaCertChanged</code> -  CA certificates used to secure the Kafka network listeners has changed, and the pod is restarted to use it</p>
-</li>
-<li>
-<p><code>FileSystemResizeNeeded</code> -  The file system size has been increased, and a restart is needed to apply it</p>
-</li>
-<li>
-<p><code>JbodVolumesChanged</code> -  A disk was added or removed from the Kafka volumes, and a restart is needed to apply the change</p>
-</li>
-<li>
-<p><code>ManualRollingUpdate</code> -  A user annotated the pod, or the stateful set / strimzi pod set it belongs to, to trigger a restart</p>
-</li>
-<li>
-<p><code>PodForceRestartOnError</code> -  An error occurred that requires restarting the pod to rectify</p>
-</li>
-<li>
-<p><code>PodHasOldGeneration</code> -  The stateful set that the pod is a member of has been updated, so the pod needs to be recreated</p>
-</li>
-<li>
-<p><code>PodHasOldRevision</code> -  The strimzi pod set that the pod is a member of has been updated, so the pod needs to be recreated</p>
-</li>
-<li>
-<p>`PodStuck ` -  The pod is still pending, and either unschedulable, or not scheduled, so the operator is going to restart it as a last ditch effort.</p>
-</li>
-<li>
-<p><code>PodUnresponsive</code> -  Strimzi was unable to connect to the pod, which can indicate a broker not coming up properly, so the operator will restart it to try to resolve the issue</p>
-</li>
-<li>
-<p><code>KafkaCertificatesChanged</code> -  One or more TLS certificates used by the Kafka broker have been updated, and a restart is needed to use them</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="monitoring_restart_events"><a class="link" href="#monitoring_restart_events">9.6.3. Monitoring restart events</a></h4>
-<div class="paragraph">
-<p>There are multiple open source projects that export Kubernetes events as metrics consumable by popular tools such as Prometheus, searching the web for "Kubernetes events exporter" will yield multiple projects you can use.</p>
-</div>
 </div>
 </div>
 </div>
@@ -7727,7 +7528,276 @@ The value of <code>log.message.format.version</code> and <code>inter.broker.prot
 </div>
 </div>
 <div class="sect1">
-<h2 id="assembly-uninstalling-str"><a class="link" href="#assembly-uninstalling-str">12. Uninstalling Strimzi</a></h2>
+<h2 id="assembly-deploy-restart-events-str"><a class="link" href="#assembly-deploy-restart-events-str">12. Finding information on Kafka restarts</a></h2>
+<div class="sectionbody">
+<div class="paragraph _abstract">
+<p>After the Cluster Operator restarts a Kafka pod in a Kubernetes cluster, it emits a Kubernetes event into the pod&#8217;s namespace explaining why the pod restarted.
+For help in understanding cluster behavior, you can check restart events from the command line.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Tip</div>
+</td>
+<td class="content">
+You can export and monitor restart events using metrics collection tools like Prometheus. Use the metrics tool with an <em>event exporter</em> that can export the output in a suitable format.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect2">
+<h3 id="ref-operator-restart-events-reasons-str"><a class="link" href="#ref-operator-restart-events-reasons-str">12.1. Reasons for a restart event</a></h3>
+<div class="paragraph _abstract">
+<p>The Cluster Operator initiates a restart event for a specific reason.
+You can check the reason by fetching information on the restart event.</p>
+</div>
+<div class="paragraph">
+<p>Restarts are made for the following reasons:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>CaCertHasOldGeneration</code></dt>
+<dd>
+<p>The pod is still using a server certificate signed with an old CA, so needs to be restarted as part of the certificate update.</p>
+</dd>
+<dt class="hdlist1"><code>CaCertRemoved</code></dt>
+<dd>
+<p>Expired CA certificates have been removed, and the pod is restarted to run with the current certificates.</p>
+</dd>
+<dt class="hdlist1"><code>CaCertRenewed</code></dt>
+<dd>
+<p>CA certificates have been renewed, and the pod is restarted to run with the updated certificates.</p>
+</dd>
+<dt class="hdlist1"><code>ClientCaCertKeyReplaced</code></dt>
+<dd>
+<p>The key used to sign client CA certificates has been replaced, and the pod is being restarted as part of the CA renewal process.</p>
+</dd>
+<dt class="hdlist1"><code>ClusterCaCertKeyReplaced</code></dt>
+<dd>
+<p>The key used to sign the cluster&#8217;s CA certificates has been replaced, and the pod is being restarted as part of the CA renewal process.</p>
+</dd>
+<dt class="hdlist1"><code>ConfigChangeRequiresRestart</code></dt>
+<dd>
+<p>Some Kafka configuration properties are changed dynamically, but others require that the broker be restarted.</p>
+</dd>
+<dt class="hdlist1"><code>CustomListenerCaCertChanged</code></dt>
+<dd>
+<p>The CA certificate used to secure the Kafka network listeners has changed, and the pod is restarted to use it.</p>
+</dd>
+<dt class="hdlist1"><code>FileSystemResizeNeeded</code></dt>
+<dd>
+<p>The file system size has been increased, and a restart is needed to apply it.</p>
+</dd>
+<dt class="hdlist1"><code>JbodVolumesChanged</code></dt>
+<dd>
+<p>A disk was added or removed from the Kafka volumes, and a restart is needed to apply the change.</p>
+</dd>
+<dt class="hdlist1"><code>ManualRollingUpdate</code></dt>
+<dd>
+<p>A user annotated the pod, or the <code>StatefulSet`</code> or <code>StrimziPodSet</code> set it belongs to, to trigger a restart.</p>
+</dd>
+<dt class="hdlist1"><code>PodForceRestartOnError</code></dt>
+<dd>
+<p>An error occurred that requires a pod restart to rectify.</p>
+</dd>
+<dt class="hdlist1"><code>PodHasOldGeneration</code></dt>
+<dd>
+<p>The <code>StatefulSet</code> that the pod is a member of has been updated, so the pod needs to be recreated.</p>
+</dd>
+<dt class="hdlist1"><code>PodHasOldRevision</code></dt>
+<dd>
+<p>The <code>StrimziPodSet</code> that the pod is a member of has been updated, so the pod needs to be recreated.</p>
+</dd>
+<dt class="hdlist1"><code>PodStuck</code></dt>
+<dd>
+<p>The pod is still pending, and either is not scheduled or cannot be scheduled, so the operator has restarted the pod in a final attempt to get it running.</p>
+</dd>
+<dt class="hdlist1"><code>PodUnresponsive</code></dt>
+<dd>
+<p>Strimzi was unable to connect to the pod, which can indicate a broker not starting correctly, so the operator restarted it in an attempt to resolve the issue.</p>
+</dd>
+<dt class="hdlist1"><code>KafkaCertificatesChanged</code></dt>
+<dd>
+<p>One or more TLS certificates used by the Kafka broker have been updated, and a restart is needed to use them.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="ref-operator-restart-events-fields-str"><a class="link" href="#ref-operator-restart-events-fields-str">12.2. Restart event filters</a></h3>
+<div class="paragraph _abstract">
+<p>When checking restart events from the command line, you can specify a <code>field-selector</code> to filter on Kubernetes event fields.</p>
+</div>
+<div class="paragraph">
+<p>The following fields are available when filtering events with <code>field-selector</code>.</p>
+</div>
+<div class="dlist">
+<div class="title">Event fields for Kubernetes 1.24 and earlier</div>
+<dl>
+<dt class="hdlist1"><code>involvedObject.kind</code></dt>
+<dd>
+<p>The object that was restarted, and for restart events, the kind is always <code>Pod</code>.</p>
+</dd>
+<dt class="hdlist1"><code>involvedObject.namespace</code></dt>
+<dd>
+<p>The namespace that the pod belongs to.</p>
+</dd>
+<dt class="hdlist1"><code>involvedObject.name</code></dt>
+<dd>
+<p>The pod&#8217;s name, for example, <code>strimzi-cluster-kafka-0</code>.</p>
+</dd>
+<dt class="hdlist1"><code>involvedObject.uid</code></dt>
+<dd>
+<p>The unique ID of the pod.</p>
+</dd>
+<dt class="hdlist1"><code>reason</code></dt>
+<dd>
+<p>The reason the pod was restarted, for example, <code>JbodVolumesChanged</code>.</p>
+</dd>
+<dt class="hdlist1"><code>reportingComponent</code></dt>
+<dd>
+<p>The reporting component is always <code>strimzi.io/cluster-operator</code> for Strimzi restart events.</p>
+</dd>
+<dt class="hdlist1"><code>source</code></dt>
+<dd>
+<p><code>source</code> is an older version of <code>reportingComponent</code>. The reporting component is always <code>strimzi.io/cluster-operator</code> for Strimzi restart events.</p>
+</dd>
+<dt class="hdlist1"><code>type</code></dt>
+<dd>
+<p>The event type, which is either <code>Warning</code> or <code>Normal</code>. For Strimzi restart events, the type is <code>Normal</code>.</p>
+</dd>
+</dl>
+</div>
+<div class="dlist">
+<div class="title">Additional event fields for Kubernetes 1.25 and later</div>
+<dl>
+<dt class="hdlist1"><code>regarding.kind</code></dt>
+<dd>
+<p>Same as <code>involvedObject.kind</code>.</p>
+</dd>
+<dt class="hdlist1"><code>regarding.namespace</code></dt>
+<dd>
+<p>Same as <code>involvedObject.namespace</code>.</p>
+</dd>
+<dt class="hdlist1"><code>regarding.name</code></dt>
+<dd>
+<p>Same as <code>involvedObject.name</code>.</p>
+</dd>
+<dt class="hdlist1"><code>regarding.uid</code></dt>
+<dd>
+<p>Same as <code>involvedObject.uid</code>.</p>
+</dd>
+<dt class="hdlist1"><code>reportingController</code></dt>
+<dd>
+<p>Same as <code>reportingComponent</code>.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-operator-restart-events-str"><a class="link" href="#proc-operator-restart-events-str">12.3. Checking Kafka restarts</a></h3>
+<div class="paragraph _abstract">
+<p>Use a <code>kubectl</code> command to list restart events initiated by the Cluster Operator.</p>
+</div>
+<div class="paragraph">
+<p>Filter restart events emitted by the Cluster Operator by setting the Cluster Operator as the reporting component using the <code>source</code> or <code>reportingComponent</code> event fields.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Cluster Operator is running in the Kubernetes cluster.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Get all restart events emitted by the Cluster Operator:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl -n kafka get events --field-selector source=strimzi.io/cluster-operator</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example showing events returned</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">LAST SEEN   TYPE     REASON                   OBJECT                        MESSAGE
+2m          Normal   JbodVolumesChanged       pod/strimzi-cluster-kafka-0   JBOD volumes were added or removed
+58m         Normal   PodForceRestartOnError   pod/strimzi-cluster-kafka-1   Pod needs to be forcibly restarted due to an error
+5m47s       Normal   ManualRollingUpdate      pod/strimzi-cluster-kafka-2   Pod was manually annotated to be rolled</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can also specify a <code>reason</code> or other <code>field-selector</code> options to constrain the events returned.</p>
+</div>
+<div class="paragraph">
+<p>Here, a specific reason is added:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl -n kafka get events --field-selector source=strimzi.io/cluster-operator,reason=PodForceRestartOnError</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Use an output format, such as YAML, to return more detailed information about one or more events.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell-session hljs" data-lang="shell-session">kubectl -n kafka get events --field-selector source=strimzi.io/cluster-operator,reason=PodForceRestartOnError -o yaml</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example showng detailed events output</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+items:
+- action: StrimziInitiatedPodRestart
+  apiVersion: v1
+  eventTime: "2022-05-13T00:22:34.168086Z"
+  firstTimestamp: null <b class="conum">(1)</b>
+  involvedObject:
+      kind: Pod
+      name: strimzi-cluster-kafka-1
+      namespace: kafka
+  kind: Event
+  lastTimestamp: null <b class="conum">(1)</b>
+  message: Pod needs to be forcibly restarted due to an error
+  metadata:
+      creationTimestamp: "2022-05-13T00:22:34Z"
+      generateName: strimzi-event
+      name: strimzi-eventwppk6
+      namespace: kafka
+      resourceVersion: "432961"
+      uid: 29fcdb9e-f2cf-4c95-a165-a5efcd48edfc
+  reason: PodForceRestartOnError
+  reportingComponent: strimzi.io/cluster-operator
+  reportingInstance: strimzi-cluster-operator-6458cfb4c6-6bpdp
+  source: {} <b class="conum">(1)</b>
+  type: Normal
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>These fields are deprecated, and will be removed in Kubernetes 1.25. As such, they are not populated for these events.</p>
+</li>
+</ol>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="assembly-uninstalling-str"><a class="link" href="#assembly-uninstalling-str">13. Uninstalling Strimzi</a></h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
 <p>You can uninstall Strimzi using the CLI or by unsubscribing from OperatorHub.io.</p>
@@ -7767,7 +7837,7 @@ Deleting <code>CustomResourceDefinitions</code> results in the garbage collectio
 </table>
 </div>
 <div class="sect2">
-<h3 id="uninstalling-str"><a class="link" href="#uninstalling-str">12.1. Uninstalling Strimzi using the CLI</a></h3>
+<h3 id="uninstalling-str"><a class="link" href="#uninstalling-str">13.1. Uninstalling Strimzi using the CLI</a></h3>
 <div class="paragraph _abstract">
 <p>This procedure describes how to use the <code>kubectl</code> command-line tool to uninstall Strimzi and remove resources related to the deployment.</p>
 </div>
@@ -7829,7 +7899,7 @@ Deleting <code>CustomResourceDefinitions</code> results in the garbage collectio
 </div>
 </div>
 <div class="sect2">
-<h3 id="uninstalling-operator-hub-str"><a class="link" href="#uninstalling-operator-hub-str">12.2. Uninstalling Strimzi from OperatorHub.io</a></h3>
+<h3 id="uninstalling-operator-hub-str"><a class="link" href="#uninstalling-operator-hub-str">13.2. Uninstalling Strimzi from OperatorHub.io</a></h3>
 <div class="paragraph _abstract">
 <p>This procedure describes how to uninstall Strimzi from OperatorHub.io and remove resources related to the deployment.</p>
 </div>
