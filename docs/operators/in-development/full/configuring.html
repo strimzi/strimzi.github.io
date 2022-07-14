@@ -486,13 +486,14 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#con-mirrormaker-str">2.4.1. MirrorMaker 2.0 data replication</a></li>
 <li><a href="#cluster_configuration">2.4.2. Cluster configuration</a></li>
 <li><a href="#con-config-mirrormaker2-connectors-str">2.4.3. Connector configuration</a></li>
-<li><a href="#con-mirrormaker-tasks-max-str">2.4.4. Specifying a maximum number of tasks</a></li>
-<li><a href="#con-mirrormaker-high-volume-messages-str">2.4.5. Handling high volumes of messages</a></li>
-<li><a href="#con-mirrormaker-acls-str">2.4.6. ACL rules synchronization</a></li>
-<li><a href="#proc-mirrormaker-replication-str">2.4.7. Configuring Kafka MirrorMaker 2.0</a></li>
-<li><a href="#proc-config-mirrormaker2-securing-connection-str">2.4.8. Securing a Kafka MirrorMaker 2.0 deployment</a></li>
-<li><a href="#proc-manual-restart-mirrormaker2-connector-str">2.4.9. Performing a restart of a Kafka MirrorMaker 2.0 connector</a></li>
-<li><a href="#proc-manual-restart-mirrormaker2-connector-task-str">2.4.10. Performing a restart of a Kafka MirrorMaker 2.0 connector task</a></li>
+<li><a href="#con-mirrormaker-producers-consumers-str">2.4.4. Connector producer and consumer configuration</a></li>
+<li><a href="#con-mirrormaker-tasks-max-str">2.4.5. Specifying a maximum number of tasks</a></li>
+<li><a href="#con-mirrormaker-high-volume-messages-str">2.4.6. Handling high volumes of messages</a></li>
+<li><a href="#con-mirrormaker-acls-str">2.4.7. ACL rules synchronization</a></li>
+<li><a href="#proc-mirrormaker-replication-str">2.4.8. Configuring Kafka MirrorMaker 2.0</a></li>
+<li><a href="#proc-config-mirrormaker2-securing-connection-str">2.4.9. Securing a Kafka MirrorMaker 2.0 deployment</a></li>
+<li><a href="#proc-manual-restart-mirrormaker2-connector-str">2.4.10. Performing a restart of a Kafka MirrorMaker 2.0 connector</a></li>
+<li><a href="#proc-manual-restart-mirrormaker2-connector-task-str">2.4.11. Performing a restart of a Kafka MirrorMaker 2.0 connector task</a></li>
 </ul>
 </li>
 <li><a href="#assembly-config-kafka-bridge-str">2.5. Kafka Bridge cluster configuration</a>
@@ -5629,7 +5630,183 @@ You can also change the frequency of checks for new consumer groups using the <c
 </table>
 </div>
 <div class="sect3">
-<h4 id="con-mirrormaker-tasks-max-str"><a class="link" href="#con-mirrormaker-tasks-max-str">2.4.4. Specifying a maximum number of tasks</a></h4>
+<h4 id="con-mirrormaker-producers-consumers-str"><a class="link" href="#con-mirrormaker-producers-consumers-str">2.4.4. Connector producer and consumer configuration</a></h4>
+<div class="paragraph _abstract">
+<p>MirrorMaker 2.0 connectors use internal producers and consumers.
+If needed, you can configure these producers and consumers to override the default settings.</p>
+</div>
+<div class="paragraph">
+<p>For example, you can increase the <code>batch.size</code> for the source producer that sends topics to the target Kafka cluster to better accommodate large volumes of messages.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+Producer and consumer configuration options depend on the MirrorMaker 2.0 implementation, and may be subject to change.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The following tables describe the producers and consumers for each of the connectors and where you can add configuration.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 2. Source connector producers and consumers</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Configuration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Producer</p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Sends topic messages to the target Kafka cluster. Consider tuning the configuration of this producer when it is handling large volumes of data.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mirrors.sourceConnector.config: producer.override.*</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Producer</p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Writes to the <code>offset-syncs</code> topic, which maps the source and target offsets for replicated topic partitions.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mirrors.sourceConnector.config: producer.*</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Consumer</p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Retrieves topic messages from the source Kafka cluster.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mirrors.sourceConnector.config: consumer.*</code></p></td>
+</tr>
+</tbody>
+</table>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 3. Checkpoint connector producers and consumers</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Configuration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Producer</p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Emits consumer offset checkpoints.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mirrors.checkpointConnector.config: producer.override.*</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Consumer</p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Loads the <code>offset-syncs</code> topic.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mirrors.checkpointConnector.config: consumer.*</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+You can set <code>offset-syncs.topic.location</code> to <code>target</code> to use the target Kafka cluster as the location of the <code>offset-syncs</code> topic.
+</td>
+</tr>
+</table>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 4. Heartbeat connector producer</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Configuration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Producer</p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Emits heartbeats.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mirrors.heartbeatConnector.config: producer.override.*</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The following example shows how you configure the producers and consumers.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example configuration for connector producers and consumers</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker2
+metadata:
+  name: my-mirror-maker2
+spec:
+  version: 3.2.0
+  # ...
+  mirrors:
+  - sourceCluster: "my-cluster-source"
+    targetCluster: "my-cluster-target"
+    sourceConnector:
+      tasksMax: 5
+      config:
+        producer.override.batch.size: 327680
+        producer.override.linger.ms: 100
+        producer.request.timeout.ms: 30000
+        consumer.fetch.max.bytes: 52428800
+        # ...
+    checkpointConnector:
+      config:
+        producer.override.request.timeout.ms: 30000
+        consumer.max.poll.interval.ms: 300000
+        # ...
+    heartbeatConnector:
+      config:
+        producer.override.request.timeout.ms: 30000
+        # ...</code></pre>
+</div>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#type-KafkaMirrorMaker2ConnectorSpec-reference"><code>KafkaMirrorMaker2ConnectorSpec</code> schema reference</a></p>
+</li>
+<li>
+<p><a href="#type-KafkaMirrorMaker2MirrorSpec-reference"><code>KafkaMirrorMaker2MirrorSpec</code> schema reference</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-mirrormaker-tasks-max-str"><a class="link" href="#con-mirrormaker-tasks-max-str">2.4.5. Specifying a maximum number of tasks</a></h4>
 <div class="paragraph _abstract">
 <p>Connectors create the tasks that are responsible for moving data in and out of Kafka.
 Each connector comprises one or more tasks that are distributed across a group of worker pods that run the tasks.</p>
@@ -5672,7 +5849,7 @@ The number of tasks that are started for these connectors is the lower value bet
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-mirrormaker-high-volume-messages-str"><a class="link" href="#con-mirrormaker-high-volume-messages-str">2.4.5. Handling high volumes of messages</a></h4>
+<h4 id="con-mirrormaker-high-volume-messages-str"><a class="link" href="#con-mirrormaker-high-volume-messages-str">2.4.6. Handling high volumes of messages</a></h4>
 <div class="paragraph _abstract">
 <p>If your MirrorMaker 2.0 deployment is going to be handling a high volume of messages, you might need to adjust its configuration to help manage throughput and issues with latency.
 Operations like tracking web activity can generate a high volume of messages.
@@ -5824,7 +6001,7 @@ The example MirrorMaker 2.0 Grafana dashboard provided with Strimzi shows the fo
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-mirrormaker-acls-str"><a class="link" href="#con-mirrormaker-acls-str">2.4.6. ACL rules synchronization</a></h4>
+<h4 id="con-mirrormaker-acls-str"><a class="link" href="#con-mirrormaker-acls-str">2.4.7. ACL rules synchronization</a></h4>
 <div class="paragraph">
 <p>ACL access to remote topics is possible if you are <strong>not</strong> using the User Operator.</p>
 </div>
@@ -5846,7 +6023,7 @@ OAuth 2.0 authorization does not support access to remote topics in this way.
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-mirrormaker-replication-str"><a class="link" href="#proc-mirrormaker-replication-str">2.4.7. Configuring Kafka MirrorMaker 2.0</a></h4>
+<h4 id="proc-mirrormaker-replication-str"><a class="link" href="#proc-mirrormaker-replication-str">2.4.8. Configuring Kafka MirrorMaker 2.0</a></h4>
 <div class="paragraph _abstract">
 <p>Use the properties of the <code>KafkaMirrorMaker2</code> resource to configure your Kafka MirrorMaker 2.0 deployment.
 Use MirrorMaker 2.0 to synchronize data between Kafka clusters</p>
@@ -6233,7 +6410,7 @@ You can also use <em>configuration provider plugins</em> to <a href="#assembly-l
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-config-mirrormaker2-securing-connection-str"><a class="link" href="#proc-config-mirrormaker2-securing-connection-str">2.4.8. Securing a Kafka MirrorMaker 2.0 deployment</a></h4>
+<h4 id="proc-config-mirrormaker2-securing-connection-str"><a class="link" href="#proc-config-mirrormaker2-securing-connection-str">2.4.9. Securing a Kafka MirrorMaker 2.0 deployment</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes in outline the configuration required to secure a MirrorMaker 2.0 deployment.</p>
 </div>
@@ -6762,7 +6939,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-restart-mirrormaker2-connector-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-str">2.4.9. Performing a restart of a Kafka MirrorMaker 2.0 connector</a></h4>
+<h4 id="proc-manual-restart-mirrormaker2-connector-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-str">2.4.10. Performing a restart of a Kafka MirrorMaker 2.0 connector</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to manually trigger a restart of a Kafka MirrorMaker 2.0 connector by using a Kubernetes annotation.</p>
 </div>
@@ -6821,7 +6998,7 @@ When the restart request is accepted, the annotation is removed from the <code>K
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-restart-mirrormaker2-connector-task-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-task-str">2.4.10. Performing a restart of a Kafka MirrorMaker 2.0 connector task</a></h4>
+<h4 id="proc-manual-restart-mirrormaker2-connector-task-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-task-str">2.4.11. Performing a restart of a Kafka MirrorMaker 2.0 connector task</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to manually trigger a restart of a Kafka MirrorMaker 2.0 connector task by using a Kubernetes annotation.</p>
 </div>
@@ -15655,7 +15832,7 @@ Feature gates might be removed when they reach GA. This means that the feature w
 </table>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 2. Feature gates and the Strimzi versions when they moved to alpha, beta, or GA</caption>
+<caption class="title">Table 5. Feature gates and the Strimzi versions when they moved to alpha, beta, or GA</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 25%;">
@@ -15702,7 +15879,7 @@ Feature gates might be removed when they reach GA. This means that the feature w
 The following table shows which feature gates you need to disable when upgrading or downgrading Strimzi versions.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 3. Feature gates to disable when upgrading or downgrading Strimzi</caption>
+<caption class="title">Table 6. Feature gates to disable when upgrading or downgrading Strimzi</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -16459,7 +16636,7 @@ Compare the balancedness scores to see whether the Kafka cluster is less balance
 <p>The following table explains the properties contained in the optimization proposal&#8217;s summary section.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 4. Properties contained in an optimization proposal summary</caption>
+<caption class="title">Table 7. Properties contained in an optimization proposal summary</caption>
 <colgroup>
 <col style="width: 35%;">
 <col style="width: 65%;">
@@ -16761,7 +16938,7 @@ You can set these tuning options when <a href="#proc-configuring-deploying-cruis
 <p>The relevant configurations are summarized in the following table.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 5. Rebalance performance tuning configuration</caption>
+<caption class="title">Table 8. Rebalance performance tuning configuration</caption>
 <colgroup>
 <col style="width: 36.3636%;">
 <col style="width: 36.3636%;">
@@ -17012,7 +17189,7 @@ The deployment is successful when the <code>AVAILABLE</code> output shows <code>
 <p>The following table shows the three topics that are automatically created when Cruise Control is deployed. These topics are required for Cruise Control to work properly and must not be deleted or changed. You can change the name of the topic using the specified configuration option.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 6. Auto-created topics</caption>
+<caption class="title">Table 9. Auto-created topics</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 16.6666%;">
@@ -19028,7 +19205,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </table>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 7. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
+<caption class="title">Table 10. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -19047,7 +19224,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 8. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
+<caption class="title">Table 11. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -19074,7 +19251,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 9. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-brokers</code> secret</caption>
+<caption class="title">Table 12. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-brokers</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -19105,7 +19282,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 10. Fields in the <code><em>&lt;cluster_name&gt;</em>-zookeeper-nodes</code> secret</caption>
+<caption class="title">Table 13. Fields in the <code><em>&lt;cluster_name&gt;</em>-zookeeper-nodes</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -19136,7 +19313,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 11. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
+<caption class="title">Table 14. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -19168,7 +19345,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 12. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
+<caption class="title">Table 15. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -19200,7 +19377,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 13. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
+<caption class="title">Table 16. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -19232,7 +19409,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 14. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
+<caption class="title">Table 17. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -19264,7 +19441,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 15. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
+<caption class="title">Table 18. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -19310,7 +19487,7 @@ This secret must be accessible to the Strimzi components and for administrative 
 You can enforce this using Kubernetes role-based access controls, if necessary.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 16. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
+<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -19329,7 +19506,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 17. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
+<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -19365,7 +19542,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 <p>When a user is created using the User Operator, a secret is generated using the name of the user.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 18. Fields in the <code><em>user_name</em></code> secret</caption>
+<caption class="title">Table 21. Fields in the <code><em>user_name</em></code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 30%;">
@@ -19675,7 +19852,7 @@ Instead, follow the procedure for <a href="#renewing-your-own-ca-certificates-st
 <li>
 <p>Apply the <code>strimzi.io/force-renew</code> annotation to the <code>Secret</code> that contains the CA certificate that you want to renew.</p>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 19. Annotation for the Secret that forces renewal of certificates</caption>
+<caption class="title">Table 22. Annotation for the Secret that forces renewal of certificates</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -19800,7 +19977,7 @@ Instead, follow the procedure for <a href="#renewing-your-own-ca-certificates-st
 <li>
 <p>Apply the <code>strimzi.io/force-replace</code> annotation to the <code>Secret</code> that contains the private key that you want to renew.</p>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 20. Commands for replacing private keys</caption>
+<caption class="title">Table 23. Commands for replacing private keys</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -20844,7 +21021,7 @@ A rolling update is also started if you update a Kafka listener certificate in a
 <p>For external listeners which have TLS encryption enabled, the hostnames you need to specify in certificates depends on the external listener <code>type</code>.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 21. SANs for each type of external listener</caption>
+<caption class="title">Table 24. SANs for each type of external listener</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -20924,7 +21101,7 @@ my-cluster   3                        3</code></pre>
 </div>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 22. Long and short names for each Strimzi resource</caption>
+<caption class="title">Table 25. Long and short names for each Strimzi resource</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -21083,7 +21260,7 @@ my-cluster-kafka-bootstrap.myproject.svc:9093</code></pre>
 <p>Several resources have a <code>status</code> property, as described in the following table.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 23. Custom resource status properties</caption>
+<caption class="title">Table 26. Custom resource status properties</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -25091,7 +25268,7 @@ The Cluster Operator sets default maximum and minimum heap values based on a per
 <p>The following table shows the default heap values.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 24. Default heap settings for components</caption>
+<caption class="title">Table 27. Default heap settings for components</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 25%;">
@@ -39483,7 +39660,7 @@ If not specified, the <code>full</code> mode is used by default.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-07-14 08:06:35 UTC
+Last updated 2022-07-14 22:29:51 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
