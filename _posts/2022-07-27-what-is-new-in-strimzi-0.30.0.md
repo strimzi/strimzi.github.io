@@ -7,7 +7,7 @@ author: jakub_scholz
 
 Strimzi 0.30.0 has been released with multiple new features and improvements.
 As with previous releases, we created a video which introduces the main changes.
-You can watch the video or in our YouTube channel.
+You can watch the video here or in our YouTube channel.
 
 <!--more-->
 
