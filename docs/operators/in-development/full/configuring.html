@@ -488,12 +488,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#con-config-mirrormaker2-connectors-str">2.4.3. Connector configuration</a></li>
 <li><a href="#con-mirrormaker-producers-consumers-str">2.4.4. Connector producer and consumer configuration</a></li>
 <li><a href="#con-mirrormaker-tasks-max-str">2.4.5. Specifying a maximum number of tasks</a></li>
-<li><a href="#con-mirrormaker-high-volume-messages-str">2.4.6. Handling high volumes of messages</a></li>
-<li><a href="#con-mirrormaker-acls-str">2.4.7. ACL rules synchronization</a></li>
-<li><a href="#proc-mirrormaker-replication-str">2.4.8. Configuring Kafka MirrorMaker 2.0</a></li>
-<li><a href="#proc-config-mirrormaker2-securing-connection-str">2.4.9. Securing a Kafka MirrorMaker 2.0 deployment</a></li>
-<li><a href="#proc-manual-restart-mirrormaker2-connector-str">2.4.10. Performing a restart of a Kafka MirrorMaker 2.0 connector</a></li>
-<li><a href="#proc-manual-restart-mirrormaker2-connector-task-str">2.4.11. Performing a restart of a Kafka MirrorMaker 2.0 connector task</a></li>
+<li><a href="#con-mirrormaker-acls-str">2.4.6. ACL rules synchronization</a></li>
+<li><a href="#proc-mirrormaker-replication-str">2.4.7. Configuring Kafka MirrorMaker 2.0</a></li>
+<li><a href="#proc-config-mirrormaker2-securing-connection-str">2.4.8. Securing a Kafka MirrorMaker 2.0 deployment</a></li>
+<li><a href="#proc-manual-restart-mirrormaker2-connector-str">2.4.9. Performing a restart of a Kafka MirrorMaker 2.0 connector</a></li>
+<li><a href="#proc-manual-restart-mirrormaker2-connector-task-str">2.4.10. Performing a restart of a Kafka MirrorMaker 2.0 connector task</a></li>
 </ul>
 </li>
 <li><a href="#assembly-config-kafka-bridge-str">2.5. Kafka Bridge cluster configuration</a>
@@ -798,7 +797,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#data_durability">11.4.2. Data durability</a></li>
 <li><a href="#ordered_delivery">11.4.3. Ordered delivery</a></li>
 <li><a href="#reliability_guarantees">11.4.4. Reliability guarantees</a></li>
-<li><a href="#optimizing_throughput_and_latency">11.4.5. Optimizing throughput and latency</a></li>
+<li><a href="#con-producer-config-properties-throughput-str">11.4.5. Optimizing producers for throughput and latency</a></li>
 </ul>
 </li>
 <li><a href="#con-consumer-config-properties-str">11.5. Kafka consumer configuration tuning</a>
@@ -806,11 +805,18 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#basic_consumer_configuration">11.5.1. Basic consumer configuration</a></li>
 <li><a href="#scaling_data_consumption_using_consumer_groups">11.5.2. Scaling data consumption using consumer groups</a></li>
 <li><a href="#message_ordering_guarantees">11.5.3. Message ordering guarantees</a></li>
-<li><a href="#optimizing_throughput_and_latency_2">11.5.4. Optimizing throughput and latency</a></li>
+<li><a href="#con-consumer-config-properties-throughput-str">11.5.4. Optimizing consumers for throughput and latency</a></li>
 <li><a href="#avoiding_data_loss_or_duplication_when_committing_offsets">11.5.5. Avoiding data loss or duplication when committing offsets</a></li>
 <li><a href="#recovering_from_failure_to_avoid_data_loss">11.5.6. Recovering from failure to avoid data loss</a></li>
 <li><a href="#managing_offset_policy">11.5.7. Managing offset policy</a></li>
 <li><a href="#minimizing_the_impact_of_rebalances">11.5.8. Minimizing the impact of rebalances</a></li>
+</ul>
+</li>
+<li><a href="#con-high-volume-config-properties-str">11.6. Handling high volumes of messages</a>
+<ul class="sectlevel3">
+<li><a href="#configuring_kafka_connect_for_high_volume_messages">11.6.1. Configuring Kafka Connect for high-volume messages</a></li>
+<li><a href="#configuring_mirrormaker_2_0_for_high_volume_messages">11.6.2. Configuring MirrorMaker 2.0 for high-volume messages</a></li>
+<li><a href="#checking_the_mirrormaker_2_0_message_flow">11.6.3. Checking the MirrorMaker 2.0 message flow</a></li>
 </ul>
 </li>
 </ul>
@@ -4156,6 +4162,11 @@ You can use ConfigMaps and Secrets to configure certain elements of a connector.
 You can then reference the configuration values in HTTP REST commands, which keeps the configuration separate and more secure, if needed.
 This method applies especially to confidential data, such as usernames, passwords, or certificates.</p>
 </div>
+<div class="paragraph">
+<div class="title">Handling high volumes of messages</div>
+<p>You can tune the configuration to handle high volumes of messages.
+For more information, see <a href="#con-high-volume-config-properties-str">Handling high volumes of messages</a>.</p>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -5923,159 +5934,7 @@ The example MirrorMaker 2.0 Grafana dashboard provided with Strimzi shows the fo
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-mirrormaker-high-volume-messages-str"><a class="link" href="#con-mirrormaker-high-volume-messages-str">2.4.6. Handling high volumes of messages</a></h4>
-<div class="paragraph _abstract">
-<p>If your MirrorMaker 2.0 deployment is going to be handling a high volume of messages, you might need to adjust its configuration to help manage throughput and issues with latency.
-Operations like tracking web activity can generate a high volume of messages.
-But even a source cluster with moderate throughput can produce a high volume of messages if it has a lot of existing data.</p>
-</div>
-<div class="paragraph">
-<p>MirrorMaker 2.0 fetches data from the source cluster and hands it to the Kafka Connect runtime producers so that it&#8217;s replicated to the target cluster.</p>
-</div>
-<div class="paragraph">
-<p>To control the streaming of high volumes of data, you can tune the configuration of the Kafka Connect runtime producers for optimal throughput.</p>
-</div>
-<div class="paragraph">
-<p>In certain circumstances, you might want to increase the size of the message batches sent in a single produce request.
-You increase the batch size using the <code>batch.size</code> producer configuration.
-A larger batch size reduces the number of outstanding messages ready to be sent and the size of the backlog in the message queue
-Messages being sent to the same partition are batched together.
-A produce request is sent to the target cluster when the batch size is reached.
-By increasing the batch size, produce requests are delayed and more messages are added to the batch and sent to brokers at the same time.
-This can improve throughput when you have just a few topic partitions that handle large numbers of messages.</p>
-</div>
-<div class="paragraph">
-<p>Consider the number and size of the records that the producer handles for a suitable producer batch size.</p>
-</div>
-<div class="paragraph">
-<p>Use <code>linger.ms</code> to add a wait time in milliseconds to delay produce requests when producer load decreases.
-The delay means that more records can be added to batches if they are under the maximum batch size.</p>
-</div>
-<div class="paragraph">
-<p>Configure the <code>batch.size</code> and <code>linger.ms</code> values at the source connector level (<code>producer.override.*</code>), as they relate to the specific producer that sends topic messages to the target Kafka cluster.</p>
-</div>
-<div class="paragraph">
-<p>The data replication pipeline to the target Kafka cluster is as follows:</p>
-</div>
-<div class="paragraph">
-<div class="title">Data replication pipeline</div>
-<p><strong>source topic &#8594; (Kafka Connect tasks) source message queue &#8594; producer buffer &#8594; target topic</strong>.</p>
-</div>
-<div class="paragraph">
-<p>The producer sends messages in its buffer to topics in the target Kafka cluster.
-While this is happening, Kafka Connect tasks continue to poll topics in the source Kafka cluster to add messages to the source message queue.</p>
-</div>
-<div class="paragraph">
-<p>The size of the producer buffer for the source connector is set using the <code>producer.override.buffer.memory</code> property.
-Tasks wait for a specified timeout period (<code>offset.flush.timeout.ms</code>) before the buffer is flushed.
-This should be enough time for the sent messages to be acknowledged by the brokers and offset data committed.
-The source task does not wait for the producer to empty the message queue before committing offsets, except during shutdown.</p>
-</div>
-<div class="paragraph">
-<p>If the producer is unable to keep up with the throughput of messages in the source message queue, buffering is blocked until there is space available in the buffer within a time period bounded by <code>max.block.ms</code>.
-Any unacknowledged messages still in the buffer are sent during this period.
-New messages are not added to the buffer until these messages are acknowledged and flushed.</p>
-</div>
-<div class="paragraph">
-<p>You can try the following configuration changes to keep the underlying source message queue of outstanding messages at a manageable size:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Increasing the default value in milliseconds of the <code>offset.flush.timeout.ms</code></p>
-</li>
-<li>
-<p>Ensuring that there are enough <a href="#con-common-configuration-resources-reference">CPU and memory resources</a></p>
-</li>
-<li>
-<p>Increasing the number of tasks that run in parallel by doing the following:</p>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="#con-mirrormaker-tasks-max-str">Increasing the number of tasks</a> using the <code>tasksMax</code> property</p>
-</li>
-<li>
-<p>Increasing the number of worker nodes that run tasks using the <code>replicas</code> property</p>
-</li>
-</ul>
-</div>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Consider the number of tasks that can run in parallel according to the available CPU and memory resources and number of worker nodes.
-You might need to keep adjusting the configuration values until they have the desired effect.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example MirrorMaker 2.0 configuration for handling high volumes of messages</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaMirrorMaker2
-metadata:
-  name: my-mirror-maker2
-spec:
-  version: 3.2.0
-  replicas: 1
-  connectCluster: "my-cluster-target"
-  clusters:
-  - alias: "my-cluster-source"
-    bootstrapServers: my-cluster-source-kafka-bootstrap:9092
-  - alias: "my-cluster-target"
-    config:
-      offset.flush.timeout.ms: 10000
-    bootstrapServers: my-cluster-target-kafka-bootstrap:9092
-  mirrors:
-  - sourceCluster: "my-cluster-source"
-    targetCluster: "my-cluster-target"
-    sourceConnector:
-      tasksMax: 2
-      config:
-        producer.override.batch.size: 327680
-        producer.override.linger.ms: 100
-    # ...
-  resources:
-    requests:
-      cpu: "1"
-      memory: Gi
-    limits:
-      cpu: "2"
-      memory: 4Gi</code></pre>
-</div>
-</div>
-<div class="sect4">
-<h5 id="checking_the_message_flow"><a class="link" href="#checking_the_message_flow">Checking the message flow</a></h5>
-<div class="paragraph">
-<p>If you are using Prometheus and Grafana to monitor your deployment, you can check the MirrorMaker 2.0 message flow.
-The example MirrorMaker 2.0 Grafana dashboard provided with Strimzi shows the following metrics related to the flush pipeline.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>The number of messages in Kafka Connect&#8217;s outstanding messages queue</p>
-</li>
-<li>
-<p>The available bytes of the producer buffer</p>
-</li>
-<li>
-<p>The offset commit timeout in milliseconds</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>You can use these metrics to gauge whether or not you need to tune your configuration based on the volume of messages.</p>
-</div>
-<div class="ulist _additional-resources">
-<div class="title">Additional resources</div>
-<ul>
-<li>
-<p><a href="./deploying.html#assembly-metrics-setup-str" target="_blank" rel="noopener">Grafana dashboards</a></p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="con-mirrormaker-acls-str"><a class="link" href="#con-mirrormaker-acls-str">2.4.7. ACL rules synchronization</a></h4>
+<h4 id="con-mirrormaker-acls-str"><a class="link" href="#con-mirrormaker-acls-str">2.4.6. ACL rules synchronization</a></h4>
 <div class="paragraph">
 <p>ACL access to remote topics is possible if you are <strong>not</strong> using the User Operator.</p>
 </div>
@@ -6097,7 +5956,7 @@ OAuth 2.0 authorization does not support access to remote topics in this way.
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-mirrormaker-replication-str"><a class="link" href="#proc-mirrormaker-replication-str">2.4.8. Configuring Kafka MirrorMaker 2.0</a></h4>
+<h4 id="proc-mirrormaker-replication-str"><a class="link" href="#proc-mirrormaker-replication-str">2.4.7. Configuring Kafka MirrorMaker 2.0</a></h4>
 <div class="paragraph _abstract">
 <p>Use the properties of the <code>KafkaMirrorMaker2</code> resource to configure your Kafka MirrorMaker 2.0 deployment.
 Use MirrorMaker 2.0 to synchronize data between Kafka clusters</p>
@@ -6178,6 +6037,11 @@ You can provide a list of names or use a regular expression.
 By default, all topics and consumer groups are replicated if you do not set the <code>topicsPattern</code> and <code>groupsPattern</code> properties.
 You can also replicate all topics and consumer groups by using <code>".*"</code> as a regular expression.
 However, try to specify only the topics and consumer groups you need to avoid causing any unnecessary extra load on the cluster.</p>
+</div>
+<div class="paragraph">
+<div class="title">Handling high volumes of messages</div>
+<p>You can tune the configuration to handle high volumes of messages.
+For more information, see <a href="#con-high-volume-config-properties-str">Handling high volumes of messages</a>.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -6484,7 +6348,7 @@ You can also use <em>configuration provider plugins</em> to <a href="#assembly-l
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-config-mirrormaker2-securing-connection-str"><a class="link" href="#proc-config-mirrormaker2-securing-connection-str">2.4.9. Securing a Kafka MirrorMaker 2.0 deployment</a></h4>
+<h4 id="proc-config-mirrormaker2-securing-connection-str"><a class="link" href="#proc-config-mirrormaker2-securing-connection-str">2.4.8. Securing a Kafka MirrorMaker 2.0 deployment</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes in outline the configuration required to secure a MirrorMaker 2.0 deployment.</p>
 </div>
@@ -7013,7 +6877,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-restart-mirrormaker2-connector-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-str">2.4.10. Performing a restart of a Kafka MirrorMaker 2.0 connector</a></h4>
+<h4 id="proc-manual-restart-mirrormaker2-connector-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-str">2.4.9. Performing a restart of a Kafka MirrorMaker 2.0 connector</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to manually trigger a restart of a Kafka MirrorMaker 2.0 connector by using a Kubernetes annotation.</p>
 </div>
@@ -7072,7 +6936,7 @@ When the restart request is accepted, the annotation is removed from the <code>K
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-restart-mirrormaker2-connector-task-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-task-str">2.4.11. Performing a restart of a Kafka MirrorMaker 2.0 connector task</a></h4>
+<h4 id="proc-manual-restart-mirrormaker2-connector-task-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-task-str">2.4.10. Performing a restart of a Kafka MirrorMaker 2.0 connector task</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to manually trigger a restart of a Kafka MirrorMaker 2.0 connector task by using a Kubernetes annotation.</p>
 </div>
@@ -23506,7 +23370,7 @@ Kafka can accommodate larger batches at a reduced throughput, assuming adequate 
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p><a href="#optimizing_throughput_and_latency">Producer-side message compression</a> writes compressed messages to the log.</p>
+<p><a href="#con-producer-config-properties-throughput-str">Producer-side message compression</a> writes compressed messages to the log.</p>
 </li>
 <li>
 <p>Reference-based messaging sends only a reference to data stored in some other system in the message’s value.</p>
@@ -23977,7 +23841,7 @@ or by computing the transactional id from the topic partition names using a func
 </div>
 </div>
 <div class="sect3">
-<h4 id="optimizing_throughput_and_latency"><a class="link" href="#optimizing_throughput_and_latency">11.4.5. Optimizing throughput and latency</a></h4>
+<h4 id="con-producer-config-properties-throughput-str"><a class="link" href="#con-producer-config-properties-throughput-str">11.4.5. Optimizing producers for throughput and latency</a></h4>
 <div class="paragraph">
 <p>Usually, the requirement of a system is to satisfy a particular throughput target for a proportion of messages within a given latency.
 For example, targeting 500,000 messages per second with 95% of messages being acknowledged within 2 seconds.</p>
@@ -24245,7 +24109,7 @@ Conversely, if a consumer is consuming messages from multiple partitions, the or
 </div>
 </div>
 <div class="sect3">
-<h4 id="optimizing_throughput_and_latency_2"><a class="link" href="#optimizing_throughput_and_latency_2">11.5.4. Optimizing throughput and latency</a></h4>
+<h4 id="con-consumer-config-properties-throughput-str"><a class="link" href="#con-consumer-config-properties-throughput-str">11.5.4. Optimizing consumers for throughput and latency</a></h4>
 <div class="paragraph">
 <p>Control the number of messages returned when your client application calls <code>KafkaConsumer.poll()</code>.</p>
 </div>
@@ -24542,6 +24406,332 @@ max.poll.records=500 <b class="conum">(3)</b>
 <p>Sets the number of processed records returned from the consumer.</p>
 </li>
 </ol>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="con-high-volume-config-properties-str"><a class="link" href="#con-high-volume-config-properties-str">11.6. Handling high volumes of messages</a></h3>
+<div class="paragraph _abstract">
+<p>If your Strimzi deployment needs to handle a high volume of messages, you can use configuration options to optimize for throughput and latency.</p>
+</div>
+<div class="paragraph">
+<p>Producer and consumer configuration can help control the size and frequency of requests to Kafka brokers.
+For more information on the configuration options, see the following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#con-producer-config-properties-throughput-str">Optimizing producers for throughput and latency</a></p>
+</li>
+<li>
+<p><a href="#con-consumer-config-properties-throughput-str">Optimizing consumers for throughput and latency</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>You can also use the same configuration options with the producers and consumers used by the Kafka Connect runtime source connectors (including MirrorMaker 2.0) and sink connectors.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Source connectors</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Producers from the Kafka Connect runtime send messages to the Kafka cluster.</p>
+</li>
+<li>
+<p>For MirrorMaker 2.0, since the source system is Kafka, consumers retrieve messages from a source Kafka cluster.</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">Sink connectors</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Consumers from the Kafka Connect runtime retrieve messages from the Kafka cluster.</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>For consumers, you might increase the amount of data fetched in a single fetch request to reduce latency.
+You increase the fetch request size using the <code>fetch.max.bytes</code> and <code>max.partition.fetch.bytes</code> properties.
+You can also set a maximum limit on the number of messages returned from the consumer buffer using the <code>max.poll.records</code> property.</p>
+</div>
+<div class="paragraph">
+<p>For MirrorMaker 2.0, configure the <code>fetch.max.bytes</code>, <code>max.partition.fetch.bytes</code>, and <code>max.poll.records</code> values at the source connector level (<code>consumer.*</code>), as they relate to the specific consumer that fetches messages from the source.</p>
+</div>
+<div class="paragraph">
+<p>For producers, you might increase the size of the message batches sent in a single produce request.
+You increase the batch size using the <code>batch.size</code> property.
+A larger batch size reduces the number of outstanding messages ready to be sent and the size of the backlog in the message queue.
+Messages being sent to the same partition are batched together.
+A produce request is sent to the target cluster when the batch size is reached.
+By increasing the batch size, produce requests are delayed and more messages are added to the batch and sent to brokers at the same time.
+This can improve throughput when you have just a few topic partitions that handle large numbers of messages.</p>
+</div>
+<div class="paragraph">
+<p>Consider the number and size of the records that the producer handles for a suitable producer batch size.</p>
+</div>
+<div class="paragraph">
+<p>Use <code>linger.ms</code> to add a wait time in milliseconds to delay produce requests when producer load decreases.
+The delay means that more records can be added to batches if they are under the maximum batch size.</p>
+</div>
+<div class="paragraph">
+<p>Configure the <code>batch.size</code> and <code>linger.ms</code> values at the source connector level (<code>producer.override.*</code>), as they relate to the specific producer that sends messages to the target Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>For Kafka Connect source connectors, the data streaming pipeline to the target Kafka cluster is as follows:</p>
+</div>
+<div class="paragraph">
+<div class="title">Data streaming pipeline for Kafka Connect source connector</div>
+<p><strong>external data source &#8594; (Kafka Connect tasks) source message queue &#8594; producer buffer &#8594; target Kafka topic</strong></p>
+</div>
+<div class="paragraph">
+<p>For Kafka Connect sink connectors, the data streaming pipeline to the target external data source is as follows:</p>
+</div>
+<div class="paragraph">
+<div class="title">Data streaming pipeline for Kafka Connect sink connector</div>
+<p><strong>source Kafka topic &#8594; (Kafka Connect tasks) sink message queue &#8594; consumer buffer &#8594; external data source</strong></p>
+</div>
+<div class="paragraph">
+<p>For MirrorMaker 2.0, the data mirroring pipeline to the target Kafka cluster is as follows:</p>
+</div>
+<div class="paragraph">
+<div class="title">Data mirroring pipeline for MirrorMaker 2.0</div>
+<p><strong>source Kafka topic &#8594; (Kafka Connect tasks) source message queue &#8594; producer buffer &#8594; target Kafka topic</strong></p>
+</div>
+<div class="paragraph">
+<p>The producer sends messages in its buffer to topics in the target Kafka cluster.
+While this is happening, Kafka Connect tasks continue to poll the data source to add messages to the source message queue.</p>
+</div>
+<div class="paragraph">
+<p>The size of the producer buffer for the source connector is set using the <code>producer.override.buffer.memory</code> property.
+Tasks wait for a specified timeout period (<code>offset.flush.timeout.ms</code>) before the buffer is flushed.
+This should be enough time for the sent messages to be acknowledged by the brokers and offset data committed.
+The source task does not wait for the producer to empty the message queue before committing offsets, except during shutdown.</p>
+</div>
+<div class="paragraph">
+<p>If the producer is unable to keep up with the throughput of messages in the source message queue, buffering is blocked until there is space available in the buffer within a time period bounded by <code>max.block.ms</code>.
+Any unacknowledged messages still in the buffer are sent during this period.
+New messages are not added to the buffer until these messages are acknowledged and flushed.</p>
+</div>
+<div class="paragraph">
+<p>You can try the following configuration changes to keep the underlying source message queue of outstanding messages at a manageable size:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Increasing the default value in milliseconds of the <code>offset.flush.timeout.ms</code></p>
+</li>
+<li>
+<p>Ensuring that there are enough <a href="#con-common-configuration-resources-reference">CPU and memory resources</a></p>
+</li>
+<li>
+<p>Increasing the number of tasks that run in parallel by doing the following:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Increasing the number of tasks that run in parallel using the <code>tasksMax</code> property</p>
+</li>
+<li>
+<p>Increasing the number of worker nodes that run tasks using the <code>replicas</code> property</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Consider the number of tasks that can run in parallel according to the available CPU and memory resources and number of worker nodes.
+You might need to keep adjusting the configuration values until they have the desired effect.</p>
+</div>
+<div class="sect3">
+<h4 id="configuring_kafka_connect_for_high_volume_messages"><a class="link" href="#configuring_kafka_connect_for_high_volume_messages">11.6.1. Configuring Kafka Connect for high-volume messages</a></h4>
+<div class="paragraph">
+<p>Kafka Connect fetches data from the source external data system and hands it to the Kafka Connect runtime producers so that it&#8217;s replicated to the target cluster.</p>
+</div>
+<div class="paragraph">
+<p>The following example shows configuration for Kafka Connect using the <code>KafkaConnect</code> custom resource.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Kafka Connect configuration for handling high volumes of messages</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster
+  annotations:
+    strimzi.io/use-connector-resources: "true"
+spec:
+  replicas: 3
+  config:
+    offset.flush.timeout.ms: 10000
+    # ...
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Producer configuration is added for the source connector, which is managed using the <code>KafkaConnector</code> custom resource.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example source connector configuration for handling high volumes of messages</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: my-source-connector
+  labels:
+    strimzi.io/cluster: my-connect-cluster
+spec:
+  class: org.apache.kafka.connect.file.FileStreamSourceConnector
+  tasksMax: 2
+  config:
+    producer.override.batch.size: 327680
+    producer.override.linger.ms: 100
+    # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Consumer configuration is added for the sink connector.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example sink connector configuration for handling high volumes of messages</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: my-sink-connector
+  labels:
+    strimzi.io/cluster: my-connect-cluster
+spec:
+  class: org.apache.kafka.connect.file.FileStreamSinkConnector
+  tasksMax: 2
+  config:
+    consumer.fetch.max.bytes: 52428800
+    consumer.max.partition.fetch.bytes: 1048576
+    consumer.max.poll.records: 500
+    # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you are using the Kafka Connect API instead of the <code>KafkaConnector</code> custom resource to manage your connectors, you can add the connector configuration as a JSON object.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example curl request to add source connector configuration for handling high volumes of messages</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-curl hljs" data-lang="curl">curl -X POST \
+  http://my-connect-cluster-connect-api:8083/connectors \
+  -H 'Content-Type: application/json' \
+  -d '{ "name": "my-source-connector",
+    "config":
+    {
+      "connector.class":"org.apache.kafka.connect.file.FileStreamSourceConnector",
+      "file": "/opt/kafka/LICENSE",
+      "topic":"my-topic",
+      "tasksMax": "4",
+      "type": "source"
+      "producer.override.batch.size": 327680
+      "producer.override.linger.ms": 100
+    }
+}'</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="configuring_mirrormaker_2_0_for_high_volume_messages"><a class="link" href="#configuring_mirrormaker_2_0_for_high_volume_messages">11.6.2. Configuring MirrorMaker 2.0 for high-volume messages</a></h4>
+<div class="paragraph">
+<p>MirrorMaker 2.0 fetches data from the source cluster and hands it to the Kafka Connect runtime producers so that it&#8217;s replicated to the target cluster.</p>
+</div>
+<div class="paragraph">
+<p>The following example shows the configuration for MirrorMaker 2.0 using the <code>KafkaMirrorMaker2</code> custom resource.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example MirrorMaker 2.0 configuration for handling high volumes of messages</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker2
+metadata:
+  name: my-mirror-maker2
+spec:
+  version: 3.2.0
+  replicas: 1
+  connectCluster: "my-cluster-target"
+  clusters:
+  - alias: "my-cluster-source"
+    bootstrapServers: my-cluster-source-kafka-bootstrap:9092
+  - alias: "my-cluster-target"
+    config:
+      offset.flush.timeout.ms: 10000
+    bootstrapServers: my-cluster-target-kafka-bootstrap:9092
+  mirrors:
+  - sourceCluster: "my-cluster-source"
+    targetCluster: "my-cluster-target"
+    sourceConnector:
+      tasksMax: 2
+      config:
+        producer.override.batch.size: 327680
+        producer.override.linger.ms: 100
+        consumer.fetch.max.bytes: 52428800
+        consumer.max.partition.fetch.bytes: 1048576
+        consumer.max.poll.records: 500
+    # ...
+  resources:
+    requests:
+      cpu: "1"
+      memory: Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="checking_the_mirrormaker_2_0_message_flow"><a class="link" href="#checking_the_mirrormaker_2_0_message_flow">11.6.3. Checking the MirrorMaker 2.0 message flow</a></h4>
+<div class="paragraph">
+<p>If you are using Prometheus and Grafana to monitor your deployment, you can check the MirrorMaker 2.0 message flow.</p>
+</div>
+<div class="paragraph">
+<p>The example MirrorMaker 2.0 Grafana dashboards provided with Strimzi show the following metrics related to the flush pipeline.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The number of messages in Kafka Connect&#8217;s outstanding messages queue</p>
+</li>
+<li>
+<p>The available bytes of the producer buffer</p>
+</li>
+<li>
+<p>The offset commit timeout in milliseconds</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>You can use these metrics to gauge whether or not you need to tune your configuration based on the volume of messages.</p>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="./deploying.html#assembly-metrics-setup-str" target="_blank" rel="noopener">Grafana dashboards</a></p>
+</li>
+<li>
+<p><a href="./deploying.html#assembly-creating-managing-connectors-str" target="_blank" rel="noopener">Creating and managing connectors</a></p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -39740,7 +39930,7 @@ If not specified, the <code>full</code> mode is used by default.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-07-27 11:21:25 UTC
+Last updated 2022-07-27 15:11:58 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
