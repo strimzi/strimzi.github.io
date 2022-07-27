@@ -5055,8 +5055,26 @@ If you choose to use MirrorMaker 2.0, there is currently no legacy support, so a
 </ul>
 </div>
 <div class="paragraph">
-<p>MirrorMaker 2.0 is based on the Kafka Connect framework, <em>connectors</em> managing the transfer of data between clusters.
-A MirrorMaker 2.0 <code>MirrorSourceConnector</code> replicates topics from a source cluster to a target cluster.</p>
+<p>MirrorMaker 2.0 is based on the Kafka Connect framework, <em>connectors</em> managing the transfer of data between clusters.</p>
+</div>
+<div class="paragraph">
+<p>MirrorMaker 2.0 uses the following connectors:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>MirrorSourceConnector</code></dt>
+<dd>
+<p>The source connector replicates topics from a source cluster to a target cluster.</p>
+</dd>
+<dt class="hdlist1"><code>MirrorCheckpointConnector</code></dt>
+<dd>
+<p>The checkpoint connector periodically tracks offsets. If enabled, it also synchronizes consumer group offsets between the source and target cluster.</p>
+</dd>
+<dt class="hdlist1"><code>MirrorHeartbeatConnector</code></dt>
+<dd>
+<p>The heartbeat connector periodically checks connectivity between the source and target cluster.</p>
+</dd>
+</dl>
 </div>
 <div class="paragraph">
 <p>The process of <em>mirroring</em> data from one cluster to another cluster is asynchronous.
@@ -5153,7 +5171,7 @@ Only MirrorMaker 2.0 can write to remote topics.</p>
 <div class="sect4">
 <h5 id="offset_tracking"><a class="link" href="#offset_tracking">Offset tracking</a></h5>
 <div class="paragraph">
-<p>MirrorMaker 2.0 tracks offsets for consumer groups using <em>internal topics</em>.</p>
+<p>MirrorMaker 2.0 tracks offsets for consumer groups using internal topics.</p>
 </div>
 <div class="ulist">
 <ul>
@@ -5166,11 +5184,9 @@ Only MirrorMaker 2.0 can write to remote topics.</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>Offsets for the <code>checkpoints</code> topic are tracked at predetermined intervals through configuration.
+<p><code>MirrorCheckpointConnector</code> emits <em>checkpoints</em> for offset tracking.
+Offsets for the <code>checkpoints</code> topic are tracked at predetermined intervals through configuration.
 Both topics enable replication to be fully restored from the correct offset position on failover.</p>
-</div>
-<div class="paragraph">
-<p>MirrorMaker 2.0 uses its <code>MirrorCheckpointConnector</code> to emit <em>checkpoints</em> for offset tracking.</p>
 </div>
 <div class="paragraph">
 <p>The location of the <code>offset-syncs</code> topic is the <code>source</code> cluster by default.
@@ -5215,13 +5231,11 @@ You can also change the frequency of checks for new consumer groups using the <c
 <div class="sect4">
 <h5 id="connectivity_checks"><a class="link" href="#connectivity_checks">Connectivity checks</a></h5>
 <div class="paragraph">
-<p>A <em>heartbeat</em> internal topic checks connectivity between clusters.</p>
+<p><code>MirrorHeartbeatConnector</code> emits <em>heartbeats</em> to check connectivity between clusters.</p>
 </div>
 <div class="paragraph">
-<p>The <em>heartbeat</em> topic is replicated from the source cluster.</p>
-</div>
-<div class="paragraph">
-<p>Target clusters use the topic to check:</p>
+<p>An internal <code>heartbeat</code> topic is replicated from the source cluster.
+Target clusters use the <code>heartbeat</code> topic to check the following:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -5232,9 +5246,6 @@ You can also change the frequency of checks for new consumer groups using the <c
 <p>The source cluster is available</p>
 </li>
 </ul>
-</div>
-<div class="paragraph">
-<p>MirrorMaker 2.0 uses its <code>MirrorHeartbeatConnector</code> to emit <em>heartbeats</em> that perform these checks.</p>
 </div>
 </div>
 </div>
@@ -5810,7 +5821,8 @@ spec:
 <h4 id="con-mirrormaker-tasks-max-str"><a class="link" href="#con-mirrormaker-tasks-max-str">2.4.5. Specifying a maximum number of tasks</a></h4>
 <div class="paragraph _abstract">
 <p>Connectors create the tasks that are responsible for moving data in and out of Kafka.
-Each connector comprises one or more tasks that are distributed across a group of worker pods that run the tasks.</p>
+Each connector comprises one or more tasks that are distributed across a group of worker pods that run the tasks.
+Increasing the number of tasks can help with performance issues when replicating a large number of partitions or synchronizing the offsets of a large number of consumer groups.</p>
 </div>
 <div class="paragraph">
 <p>Tasks run in parallel.
@@ -5820,11 +5832,26 @@ If there are more tasks than workers, workers handle multiple tasks.</p>
 </div>
 <div class="paragraph">
 <p>You can specify the maximum number of connector tasks in your MirrorMaker configuration using the <code>tasksMax</code> property.
-Without specifying a maximum number of tasks, the default setting is a single task.
-If the infrastructure supports the processing overhead, increasing the number of tasks can improve throughput.</p>
+Without specifying a maximum number of tasks, the default setting is a single task.</p>
+</div>
+<div class="paragraph">
+<p>The heartbeat connector always uses a single task.</p>
+</div>
+<div class="paragraph">
+<p>The number of tasks that are started for the source and checkpoint connectors is the lower value between the maximum number of possible tasks and the value for <code>tasksMax</code>.
+For the source connector, the maximum number of tasks possible is one for each partition being replicated from the source cluster.
+For the checkpoint connector, the maximum number of tasks possible is one for each consumer group being replicated from the source cluster.
+When setting a maximum number of tasks, consider the number of partitions and the hardware resources that support the process.</p>
+</div>
+<div class="paragraph">
+<p>If the infrastructure supports the processing overhead, increasing the number of tasks can improve throughput and latency.
+For example, adding more tasks reduces the time taken to poll the source cluster when there is a high number of partitions or consumer groups.</p>
+</div>
+<div class="paragraph">
+<p>Increasing the number of tasks for the checkpoint connector is useful when you have a large number of partitions.</p>
 </div>
 <div class="listingblock">
-<div class="title">tasksMax configuration for a MirrorMaker connector</div>
+<div class="title">Increasing the number of tasks for the source connector</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaMirrorMaker2
@@ -5841,12 +5868,58 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p>For the source connector, the maximum number of tasks possible is one for each partition being replicated from the source cluster.
-For the checkpoint connector, the maximum number of tasks possible is one for each group being replicated from the source cluster.
-The number of tasks that are started for these connectors is the lower value between the maximum number of possible tasks and the value for <code>tasksMax</code>.</p>
+<p>Increasing the number of tasks for the checkpoint connector is useful when you have a large number of consumer groups.</p>
+</div>
+<div class="listingblock">
+<div class="title">Increasing the number of tasks for the checkpoint connector</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker2
+metadata:
+  name: my-mirror-maker2
+spec:
+  # ...
+  mirrors:
+  - sourceCluster: "my-cluster-source"
+    targetCluster: "my-cluster-target"
+    checkpointConnector:
+      tasksMax: 10
+  # ...</code></pre>
+</div>
 </div>
 <div class="paragraph">
-<p>The heartbeat connector always uses a single task.</p>
+<p>By default, MirrorMaker 2.0 checks for new consumer groups every 10 minutes.
+You can adjust the <code>refresh.groups.interval.seconds</code> configuration to change the frequency.
+Take care when adjusting lower.
+More frequent checks can have a negative impact on performance.</p>
+</div>
+<div class="sect4">
+<h5 id="checking_connector_task_operations"><a class="link" href="#checking_connector_task_operations">Checking connector task operations</a></h5>
+<div class="paragraph">
+<p>If you are using Prometheus and Grafana to monitor your deployment, you can check MirrorMaker 2.0 performance.
+The example MirrorMaker 2.0 Grafana dashboard provided with Strimzi shows the following metrics related to tasks and latency.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The number of tasks</p>
+</li>
+<li>
+<p>Replication latency</p>
+</li>
+<li>
+<p>Offset synchronization latency</p>
+</li>
+</ul>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="./deploying.html#assembly-metrics-setup-str" target="_blank" rel="noopener">Grafana dashboards</a></p>
+</li>
+</ul>
+</div>
 </div>
 </div>
 <div class="sect3">
@@ -39667,7 +39740,7 @@ If not specified, the <code>full</code> mode is used by default.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-07-27 06:30:28 UTC
+Last updated 2022-07-27 08:32:13 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
