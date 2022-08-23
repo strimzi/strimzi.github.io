@@ -4,9 +4,14 @@
 <li><a href="#overview-str">1. Configuration overview</a>
 <ul class="sectlevel2">
 <li><a href="#configuration-points-overview-str">1.1. Configuring custom resources</a></li>
-<li><a href="#configuration-points-listeners-str">1.2. Configuring listeners to connect to Kafka brokers</a></li>
-<li><a href="#document-conventions-str">1.3. Document Conventions</a></li>
-<li><a href="#additional_resources">1.4. Additional resources</a></li>
+<li><a href="#configuration-points-configmaps-str">1.2. Using ConfigMaps to add configuration</a>
+<ul class="sectlevel3">
+<li><a href="#naming_custom_configmaps">1.2.1. Naming custom ConfigMaps</a></li>
+</ul>
+</li>
+<li><a href="#configuration-points-listeners-str">1.3. Configuring listeners to connect to Kafka brokers</a></li>
+<li><a href="#document-conventions-str">1.4. Document Conventions</a></li>
+<li><a href="#additional_resources">1.5. Additional resources</a></li>
 </ul>
 </li>
 <li><a href="#assembly-deployment-configuration-str">2. Configuring a Strimzi deployment</a>
@@ -85,7 +90,7 @@
 </li>
 <li><a href="#assembly-loading-config-with-providers-str">3. Loading configuration values from external sources</a>
 <ul class="sectlevel2">
-<li><a href="#proc-loading-config-from-config-map-str">3.1. Loading configuration values from a config map</a></li>
+<li><a href="#proc-loading-config-from-config-map-str">3.1. Loading configuration values from a ConfigMap</a></li>
 <li><a href="#proc-loading-config-from-env-vars-str">3.2. Loading configuration values from environment variables</a></li>
 </ul>
 </li>
@@ -613,7 +618,119 @@ This might include configuration that supports the following:</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="configuration-points-listeners-str"><a class="link" href="#configuration-points-listeners-str">1.2. Configuring listeners to connect to Kafka brokers</a></h3>
+<h3 id="configuration-points-configmaps-str"><a class="link" href="#configuration-points-configmaps-str">1.2. Using ConfigMaps to add configuration</a></h3>
+<div class="paragraph _abstract">
+<p>Use <code>ConfigMap</code> resources to add specific configuration to your Strimzi deployment.
+ConfigMaps use key-value pairs to store non-confidential data.
+Configuration data added to ConfigMaps is maintained in one place and can be reused amongst components.</p>
+</div>
+<div class="paragraph">
+<p>ConfigMaps can only store configuration data related to the following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Logging configuration</p>
+</li>
+<li>
+<p>Metrics configuration</p>
+</li>
+<li>
+<p>External configuration for Kafka Connect connectors</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>You can&#8217;t use ConfigMaps for other areas of configuration.</p>
+</div>
+<div class="paragraph">
+<p>When you configure a component, you can add a reference to a ConfigMap using the <code>configMapKeyRef</code> property.</p>
+</div>
+<div class="paragraph">
+<p>For example, you can use <code>configMapKeyRef</code> to reference a ConfigMap that provides configuration for logging.
+You might use a ConfigMap to pass a Log4j configuration file.
+You add the reference to the <code>logging</code> configuration.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example ConfigMap for logging</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">spec:
+  # ...
+  logging:
+    type: external
+    valueFrom:
+      configMapKeyRef:
+        name: my-config-map
+        key: my-config-map-key</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To use a ConfigMap for metrics configuration, you add a reference to the <code>metricsConfig</code> configuration of the component in the same way.</p>
+</div>
+<div class="paragraph">
+<p><code>ExternalConfiguration</code> properties make data from a ConfigMap (or Secret) mounted to a pod available as environment variables or volumes.
+You can use external configuration data for the connectors used by Kafka Connect.
+The data might be related to an external data source, providing the values needed for the connector to communicate with that data source.</p>
+</div>
+<div class="paragraph">
+<p>For example, you can use the <code>configMapKeyRef</code> property to pass configuration data from a ConfigMap as an environment variable.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example ConfigMap providing environment variable values</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  externalConfiguration:
+    env:
+      - name: MY_ENVIRONMENT_VARIABLE
+        valueFrom:
+          configMapKeyRef:
+            name: my-config-map
+            key: my-key</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you are using ConfigMaps that are managed externally, use configuration providers to load the data in the ConfigMaps.
+For more information on using configuration providers, see <a href="#assembly-loading-config-with-providers-str">Loading configuration values from external sources</a>.</p>
+</div>
+<div class="sect3">
+<h4 id="naming_custom_configmaps"><a class="link" href="#naming_custom_configmaps">1.2.1. Naming custom ConfigMaps</a></h4>
+<div class="paragraph">
+<p>Strimzi <a href="#ref-list-of-kafka-cluster-resources-str">creates its own ConfigMaps and other resources</a> when it is deployed to Kubernetes.
+The ConfigMaps contain data necessary for running components.
+The ConfigMaps created by Strimzi must not be edited.</p>
+</div>
+<div class="paragraph">
+<p>Make sure that any custom ConfigMaps you create do not have the same name as these default ConfigMaps. If they have the same name, they will be overwritten. For example, if your ConfigMap has the same name as the ConfigMap for the Kafka cluster, it will be overwritten when there is an update to the Kafka cluster.</p>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#ref-list-of-kafka-cluster-resources-str">List of Kafka cluster resources</a> (including ConfigMaps)</p>
+</li>
+<li>
+<p><a href="#external-logging_str">Logging configuration</a></p>
+</li>
+<li>
+<p><a href="#con-common-configuration-prometheus-reference"><code>metricsConfig</code></a></p>
+</li>
+<li>
+<p><a href="#type-ExternalConfiguration-reference"><code>ExternalConfiguration</code> schema reference</a></p>
+</li>
+<li>
+<p><a href="#assembly-loading-config-with-providers-str">Loading configuration values from external sources</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="configuration-points-listeners-str"><a class="link" href="#configuration-points-listeners-str">1.3. Configuring listeners to connect to Kafka brokers</a></h3>
 <div class="paragraph _abstract">
 <p>Listeners are used to connect to Kafka brokers.
 Strimzi provides a generic <code>GenericKafkaListener</code> schema with properties to configure listeners through the <code>Kafka</code> resource.</p>
@@ -664,7 +781,7 @@ If you scale your Kafka cluster while using external listeners, it might trigger
 </div>
 </div>
 <div class="sect2">
-<h3 id="document-conventions-str"><a class="link" href="#document-conventions-str">1.3. Document Conventions</a></h3>
+<h3 id="document-conventions-str"><a class="link" href="#document-conventions-str">1.4. Document Conventions</a></h3>
 <div class="paragraph">
 <div class="title">User-replaced values</div>
 <p>User-replaced values, also known as <em>replaceables</em>, are shown in <em>italics</em> with angle brackets (&lt; &gt;).
@@ -681,7 +798,7 @@ If the value refers to code or commands, <code>monospace</code> is also used.</p
 </div>
 </div>
 <div class="sect2 _additional-resources">
-<h3 id="additional_resources"><a class="link" href="#additional_resources">1.4. Additional resources</a></h3>
+<h3 id="additional_resources"><a class="link" href="#additional_resources">1.5. Additional resources</a></h3>
 <div class="ulist">
 <ul>
 <li>
@@ -7855,7 +7972,7 @@ Use them, for example, to provide the credentials for Kafka Connect connector co
 <dl>
 <dt class="hdlist1">Kubernetes Configuration Provider</dt>
 <dd>
-<p>The Kubernetes Configuration Provider plugin loads configuration data from Kubernetes secrets or config maps.</p>
+<p>The Kubernetes Configuration Provider plugin loads configuration data from Kubernetes secrets or ConfigMaps.</p>
 <div class="paragraph">
 <p>Suppose you have a <code>Secret</code> object that&#8217;s managed outside the Kafka namespace, or outside the Kafka cluster.
 The Kubernetes Configuration Provider allows you to reference the values of the secret in your configuration without extracting the files.
@@ -7868,7 +7985,7 @@ This capability avoids disruption when a Kafka Connect instance hosts multiple c
 <dd>
 <p>The Environment Variables Configuration Provider plugin loads configuration data from environment variables.</p>
 <div class="paragraph">
-<p>The values for the environment variables can be mapped from secrets or config maps.
+<p>The values for the environment variables can be mapped from secrets or ConfigMaps.
 You can use the Environment Variables Configuration Provider, for example, to load certificates or JAAS configuration from environment variables mapped from Kubernetes secrets.</p>
 </div>
 </dd>
@@ -7883,7 +8000,7 @@ You can use the Environment Variables Configuration Provider, for example, to lo
 <td class="content">
 Kubernetes Configuration Provider can&#8217;t use mounted files.
 For example, it can&#8217;t load values that need the location of a truststore or keystore.
-Instead, you can mount config maps or secrets into a Kafka Connect pod as environment variables or volumes.
+Instead, you can mount ConfigMaps or secrets into a Kafka Connect pod as environment variables or volumes.
 You can use the Environment Variables Configuration Provider to load values for environment variables.
 You add configuration using the <a href="#type-ExternalConfiguration-reference"><code>externalConfiguration</code> property</a> in <code>KafkaConnect.spec</code>.
 You don&#8217;t need to set up access rights with this approach.
@@ -7894,7 +8011,7 @@ This will cause disruption to all the Kafka Connect instance&#8217;s connectors.
 </table>
 </div>
 <div class="sect2">
-<h3 id="proc-loading-config-from-config-map-str"><a class="link" href="#proc-loading-config-from-config-map-str">3.1. Loading configuration values from a config map</a></h3>
+<h3 id="proc-loading-config-from-config-map-str"><a class="link" href="#proc-loading-config-from-config-map-str">3.1. Loading configuration values from a ConfigMap</a></h3>
 <div class="paragraph _abstract">
 <p>This procedure shows how to use the Kubernetes Configuration Provider plugin.</p>
 </div>
@@ -7939,7 +8056,7 @@ data:
 <li>
 <p>Specify the Kubernetes Configuration Provider in the Kafka Connect configuration.</p>
 <div class="paragraph">
-<p>The specification shown here can support loading values from secrets and config maps.</p>
+<p>The specification shown here can support loading values from secrets and ConfigMaps.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example Kafka Connect configuration to enable the Kubernetes Configuration Provider</div>
