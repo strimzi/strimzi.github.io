@@ -152,7 +152,8 @@
 <ul class="sectlevel3">
 <li><a href="#ref-operator-cluster-str">6.2.1. Cluster Operator configuration</a></li>
 <li><a href="#proc-configuring-proxy-config-cluster-operator-str">6.2.2. Configuring the Cluster Operator with default proxy settings</a></li>
-<li><a href="#proc-configuring-fips-mode-cluster-operator-str">6.2.3. Configuring FIPS mode in the Cluster Operator</a></li>
+<li><a href="#assembly-using-multiple-cluster-operator-replicas-str">6.2.3. Running multiple Cluster Operator replicas with leader election</a></li>
+<li><a href="#proc-configuring-fips-mode-cluster-operator-str">6.2.4. Configuring FIPS mode in the Cluster Operator</a></li>
 </ul>
 </li>
 <li><a href="#using-the-topic-operator-str">6.3. Using the Topic Operator</a>
@@ -13104,9 +13105,6 @@ increased when using Strimzi on clusters where regular Kubernetes operations tak
 <dt class="hdlist1"><code>STRIMZI_ZOOKEEPER_ADMIN_SESSION_TIMEOUT_MS</code></dt>
 <dd>
 <p>Optional, default 10000 ms.</p>
-</dd>
-</dl>
-</div>
 <div class="paragraph">
 <p>The session timeout (in milliseconds) for the Cluster Operator&#8217;s ZooKeeper admin client.
 This value should be increased if ZooKeeper requests from the Cluster Operator are regularly failing due to timeout issues.
@@ -13114,8 +13112,7 @@ There is a maximum allowed session time set on the ZooKeeper server side via the
 By default this session max value is 20 times the default <code>tickTime</code> (whose default is 2000) therefore 40000 ms.
 If you require a higher timeout, you will need to change the <code>maxSessionTimeout</code> ZooKeeper server config value.</p>
 </div>
-<div class="dlist">
-<dl>
+</dd>
 <dt class="hdlist1"><code>STRIMZI_OPERATIONS_THREAD_POOL_SIZE</code></dt>
 <dd>
 <p>Optional, default 10
@@ -13378,24 +13375,46 @@ Configures the pluggable <code>PodSecurityProvider</code> class which can be use
 </dd>
 </dl>
 </div>
-<div id="STRIMZI_LEADER_ELECTION_ENABLED" class="dlist">
+<div class="sect4">
+<h5 id="ref-operator-cluster-leader-election-str"><a class="link" href="#ref-operator-cluster-leader-election-str">Leader election environment variables</a></h5>
+<div class="paragraph">
+<p>Use leader election environment variables when <a href="#assembly-using-multiple-cluster-operator-replicas-str">running additional Cluster Operator replicas</a>.
+You might run additional replicas to safeguard against disruption caused by major failure.</p>
+</div>
+<div class="dlist">
 <dl>
 <dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_ENABLED</code></dt>
 <dd>
-<p>Optional, default <code>false</code>.
-Enables or disables the leader election which allows to run additional operator instances as a hot-stand-by.
-Disabled by default.</p>
+<p>Optional, disabled (<code>false</code>) by default.
+Enables or disables leader election, which allows additional Cluster Operator replicas to run on standby.</p>
 </dd>
+</dl>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Leader election is disabled by default.
+It is only enabled when applying this environment variable on installation.
+</td>
+</tr>
+</table>
+</div>
+<div class="dlist">
+<dl>
 <dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_LEASE_NAME</code></dt>
 <dd>
 <p>Required when leader election is enabled.
-The name of the Kubernetes Lease resource which is used for the leader election.</p>
+The name of the Kubernetes <code>Lease</code> resource that is used for the leader election.</p>
 </dd>
 <dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_LEASE_NAMESPACE</code></dt>
 <dd>
 <p>Required when leader election is enabled.
-The namespace where the Kubernetes Lease resource used for the leader election will be created.
-You can use the <a href="https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/#the-downward-api" target="_blank" rel="noopener">Kubernetes Downward API</a> to configure it to the namespace where the operator is deployed.</p>
+The namespace where the Kubernetes <code>Lease</code> resource used for leader election is created.
+You can use the <a href="https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/#the-downward-api" target="_blank" rel="noopener">Kubernetes Downward API</a> to configure it to the namespace where the Cluster Operator is deployed.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
@@ -13409,9 +13428,9 @@ You can use the <a href="https://kubernetes.io/docs/tasks/inject-data-applicatio
 <dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_IDENTITY</code></dt>
 <dd>
 <p>Required when leader election is enabled.
-Configures the identity of given operator instance used during the leader election.
-Should be unique for each operator instance
-You can use the <a href="https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/#the-downward-api" target="_blank" rel="noopener">Kubernetes Downward API</a> to configure it to the name of the operator pod.</p>
+Configures the identity of a given Cluster Operator instance used during the leader election.
+The identity must be unique for each operator instance.
+You can use the <a href="https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/#the-downward-api" target="_blank" rel="noopener">Kubernetes Downward API</a> to configure it to the name of the pod where the Cluster Operator is deployed.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
@@ -13425,19 +13444,20 @@ You can use the <a href="https://kubernetes.io/docs/tasks/inject-data-applicatio
 <dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_LEASE_DURATION_MS</code></dt>
 <dd>
 <p>Optional, default 15000 ms.
-Configures the duration for which the acquired lease is valid.</p>
+Specifies the duration the acquired lease is valid.</p>
 </dd>
 <dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_RENEW_DEADLINE_MS</code></dt>
 <dd>
 <p>Optional, default 10000 ms.
-Configures the duration for which should the leader retry to maintain the leadership</p>
+Specifies the period the leader should try to maintain leadership.</p>
 </dd>
 <dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_RETRY_PERIOD_MS</code></dt>
 <dd>
 <p>Optional, default 2000 ms.
-Configures how often does the leader update the lease lock</p>
+Specifies the frequency of updates to the lease lock by the leader.</p>
 </dd>
 </dl>
+</div>
 </div>
 <div class="sect4">
 <h5 id="logging_configuration_by_configmap"><a class="link" href="#logging_configuration_by_configmap">Logging configuration by ConfigMap</a></h5>
@@ -13521,33 +13541,6 @@ if the operator is not running, or if a notification is not received for any rea
 <div class="paragraph">
 <p>In order to handle failovers properly, a periodic reconciliation process is executed by the Cluster Operator so that it can compare the state of the desired resources with the current cluster deployments in order to have a consistent state across all of them.
 You can set the time interval for the periodic reconciliations using the <a href="#STRIMZI_FULL_RECONCILIATION_INTERVAL_MS"><code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code></a> variable.</p>
-</div>
-</div>
-<div class="sect4">
-<h5 id="running_multiple_operator_replicas"><a class="link" href="#running_multiple_operator_replicas">Running multiple operator replicas</a></h5>
-<div class="paragraph">
-<p>With the <a href="#STRIMZI_LEADER_ELECTION_ENABLED">leader election</a> enabled in the Cluster Operator configuration, you can run multiple parallel replicas of the operator.
-One of them will be elected as a leader and will actively operate the deployed operands.
-The other replicas will be running in a stand-by mode.
-When the leader stops or crashes, one of the stand-by replicas will be elected as a new leader and will start operating the deployed resources.</p>
-</div>
-<div class="paragraph">
-<p>Running the operator with multiple replicas is not required.
-When using only single replica, the single replica will be always the leader replica.
-And when the single replica is stopped or crashed, Kubernetes will automatically start a new replica.</p>
-</div>
-<div class="paragraph">
-<p>But in some situations it might be an advantage to have the stand-by replicas already scheduled and running.
-For example during large scale disruptions such as crash of multiple worker nodes or of a whole availability zone.</p>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">NOTE</dt>
-<dd>
-<p>The default installation files contain the RBAC permissions to use the Kubernetes <code>Lease</code> resource with name <code>strimzi-cluster-operator</code> in the same namespace where the Cluster Operator runs.
-If you decide to use other <code>Lease</code> name or a different namespace, you have to update the <code>ClusterRole</code> and <code>RoleBinding</code> files accordingly.</p>
-</dd>
-</dl>
 </div>
 </div>
 <div class="sect4">
@@ -14311,7 +14304,203 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-configuring-fips-mode-cluster-operator-str"><a class="link" href="#proc-configuring-fips-mode-cluster-operator-str">6.2.3. Configuring FIPS mode in the Cluster Operator</a></h4>
+<h4 id="assembly-using-multiple-cluster-operator-replicas-str"><a class="link" href="#assembly-using-multiple-cluster-operator-replicas-str">6.2.3. Running multiple Cluster Operator replicas with leader election</a></h4>
+<div class="paragraph _abstract">
+<p>The default Cluster Operator configuration enables <a href="#ref-operator-cluster-leader-election-str">leader election</a>.
+Use leader election to run multiple parallel replicas of the Cluster Operator.
+One replica is elected as the active leader and operates the deployed resources.
+The other replicas run in standby mode.
+When the leader stops or fails, one of the standby replicas is elected as the new leader and starts operating the deployed resources.</p>
+</div>
+<div class="paragraph">
+<p>By default, Strimzi runs with a single Cluster Operator replica that is always the leader replica.
+When a single Cluster Operator replica stops or fails, Kubernetes starts a new replica.</p>
+</div>
+<div class="paragraph">
+<p>Running the Cluster Operator with multiple replicas is not essential.
+But it&#8217;s useful to have replicas on standby in case of large-scale disruptions.
+For example, suppose multiple worker nodes or an entire availability zone fails.
+This failure might cause the Cluster Operator pod and many Kafka pods to go down at the same time.
+If subsequent pod scheduling causes congestion through lack of resources, this can delay operations when running a single Cluster Operator.</p>
+</div>
+<div class="sect4">
+<h5 id="assembly-configuring-proxy-config-cluster-operator-str"><a class="link" href="#assembly-configuring-proxy-config-cluster-operator-str">Configuring Cluster Operator replicas</a></h5>
+<div class="paragraph _abstract">
+<p>To run additional Cluster Operator replicas in standby mode, you will need to increase the number of replicas and enable leader election.
+To configure leader election, use the leader election environment variables.</p>
+</div>
+<div class="paragraph">
+<p>To make the required changes, configure the following Cluster Operator installation files located in <code>install/cluster-operator/</code>:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>060-Deployment-strimzi-cluster-operator.yaml</p>
+</li>
+<li>
+<p>022-ClusterRole-strimzi-cluster-operator-role.yaml</p>
+</li>
+<li>
+<p>022-RoleBinding-strimzi-cluster-operator.yaml</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Leader election has its own <code>ClusterRole</code> and <code>RoleBinding</code> RBAC resources that target the namespace where the Cluster Operator is running, rather than the namespace it is watching.</p>
+</div>
+<div class="paragraph">
+<p>The default deployment configuration creates a <code>Lease</code> resource called <code>strimzi-cluster-operator</code> in the same namespace as the Cluster Operator.
+The Cluster Operator uses leases to manage leader election.
+The RBAC resources provide the permissions to use the <code>Lease</code> resource.
+If you use a different <code>Lease</code> name or namespace, update the <code>ClusterRole</code> and <code>RoleBinding</code> files accordingly.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>You need an account with permission to create and manage <code>CustomResourceDefinition</code> and RBAC (<code>ClusterRole</code>, and <code>RoleBinding</code>) resources.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Procedure</div>
+<p>Edit the <code>Deployment</code> resource that is used to deploy the Cluster Operator, which is defined in the <code>060-Deployment-strimzi-cluster-operator.yaml</code> file.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Change the <code>replicas</code> property from the default (1) to a value that matches the required number of replicas.</p>
+<div class="listingblock">
+<div class="title">Increasing the number of Cluster Operator replicas</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: strimzi-cluster-operator
+  labels:
+    app: strimzi
+spec:
+  replicas: 3</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Check that the leader election <code>env</code> properties are set.</p>
+<div class="paragraph">
+<p>If they are not set, configure them.</p>
+</div>
+<div class="paragraph">
+<p>To enable leader election, <code>STRIMZI_LEADER_ELECTION_ENABLED</code> must be set to <code>true</code> (default).</p>
+</div>
+<div class="paragraph">
+<p>In this example, the name of the lease is changed to <code>my-strimzi-cluster-operator</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Configuring leader election environment variables for the Cluster Operator</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml"># ...
+spec
+  containers:
+    - name: strimzi-cluster-operator
+      # ...
+      env:
+        - name: STRIMZI_LEADER_ELECTION_ENABLED
+          value: "true"
+        - name: STRIMZI_LEADER_ELECTION_LEASE_NAME
+          value: "my-strimzi-cluster-operator"
+        - name: STRIMZI_LEADER_ELECTION_LEASE_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        - name: STRIMZI_LEADER_ELECTION_IDENTITY
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For a description of the available environment variables, see <a href="#ref-operator-cluster-leader-election-str">Leader election environment variables</a>.</p>
+</div>
+<div class="paragraph">
+<p>If you specified a different name or namespace for the <code>Lease</code> resource used in leader election, update the RBAC resources.</p>
+</div>
+</li>
+<li>
+<p>(optional) Edit the <code>ClusterRole</code> resource in the <code>022-ClusterRole-strimzi-cluster-operator-role.yaml</code> file.</p>
+<div class="paragraph">
+<p>Update <code>resourceNames</code> with the name of the <code>Lease</code> resource.</p>
+</div>
+<div class="listingblock">
+<div class="title">Updating the ClusterRole references to the lease</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: strimzi-cluster-operator-leader-election
+  labels:
+    app: strimzi
+rules:
+    resourceNames:
+      - my-strimzi-cluster-operator
+# ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>(optional) Edit the the <code>RoleBinding</code> resource in the <code>022-RoleBinding-strimzi-cluster-operator.yaml</code> file.</p>
+<div class="paragraph">
+<p>Update <code>subjects.name</code> and <code>subjects.namespace</code> with the name of the <code>Lease</code> resource and the namespace where it was created.</p>
+</div>
+<div class="listingblock">
+<div class="title">Updating the RoleBinding references to the lease</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: strimzi-cluster-operator-leader-election
+  labels:
+    app: strimzi
+subjects:
+  - kind: ServiceAccount
+    name: my-strimzi-cluster-operator
+    namespace: myproject
+# ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Deploy the Cluster Operator:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f install/cluster-operator -n myproject</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Check the status of the deployment:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get deployments -n myproject</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Output shows the deployment name and readiness</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                      READY  UP-TO-DATE  AVAILABLE
+strimzi-cluster-operator  3/3    3           3</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>READY</code> shows the number of replicas that are ready/expected.
+The deployment is successful when the <code>AVAILABLE</code> output shows the correct number of replicas.</p>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-configuring-fips-mode-cluster-operator-str"><a class="link" href="#proc-configuring-fips-mode-cluster-operator-str">6.2.4. Configuring FIPS mode in the Cluster Operator</a></h4>
 <div class="paragraph _abstract">
 <p>Federal Information Processing Standards (FIPS) are standards for computer security and interoperability.
 When running Strimzi on a FIPS-enabled Kubernetes cluster, the OpenJDK used in Strimzi container images will automatically switch to FIPS mode.
