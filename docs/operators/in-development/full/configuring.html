@@ -592,10 +592,12 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#con-operators-namespaces-str">6.1. Watching namespaces with Strimzi operators</a></li>
 <li><a href="#using-the-cluster-operator-str">6.2. Using the Cluster Operator</a>
 <ul class="sectlevel3">
-<li><a href="#ref-operator-cluster-str">6.2.1. Cluster Operator configuration</a></li>
-<li><a href="#proc-configuring-proxy-config-cluster-operator-str">6.2.2. Configuring the Cluster Operator with default proxy settings</a></li>
-<li><a href="#assembly-using-multiple-cluster-operator-replicas-str">6.2.3. Running multiple Cluster Operator replicas with leader election</a></li>
-<li><a href="#proc-configuring-fips-mode-cluster-operator-str">6.2.4. Configuring FIPS mode in the Cluster Operator</a></li>
+<li><a href="#ref-operator-cluster-rbac-resources-str">6.2.1. Role-Based Access Control (RBAC) resources</a></li>
+<li><a href="#ref-operator-cluster-logging-configmap-str">6.2.2. ConfigMap for Cluster Operator logging</a></li>
+<li><a href="#ref-operator-cluster-str">6.2.3. Configuring the Cluster Operator with environment variables</a></li>
+<li><a href="#proc-configuring-proxy-config-cluster-operator-str">6.2.4. Configuring the Cluster Operator with default proxy settings</a></li>
+<li><a href="#assembly-using-multiple-cluster-operator-replicas-str">6.2.5. Running multiple Cluster Operator replicas with leader election</a></li>
+<li><a href="#proc-configuring-fips-mode-cluster-operator-str">6.2.6. Configuring FIPS mode in the Cluster Operator</a></li>
 </ul>
 </li>
 <li><a href="#using-the-topic-operator-str">6.3. Using the Topic Operator</a>
@@ -3667,7 +3669,7 @@ Maintenance time windows must therefore be at least this long.
 <div class="title">Additional resources</div>
 <ul>
 <li>
-<p>For more information about the Cluster Operator configuration, see <a href="#ref-operator-cluster-str">Cluster Operator configuration</a>.</p>
+<p>For more information about the Cluster Operator configuration, see <a href="#ref-operator-cluster-str">Configuring the Cluster Operator with environment variables</a>.</p>
 </li>
 </ul>
 </div>
@@ -8084,7 +8086,7 @@ Default logging is used if the <code>name</code> or <code>key</code> is not set.
 <div class="title">Operator logging</div>
 <ul>
 <li>
-<p><a href="#logging_configuration_by_configmap">Cluster Operator logging</a></p>
+<p><a href="#ref-operator-cluster-logging-configmap-str">Cluster Operator logging</a></p>
 </li>
 <li>
 <p><a href="#property-topic-operator-logging-reference">Topic Operator logging</a></p>
@@ -8390,7 +8392,7 @@ appender.console.filter.filter1.marker=KafkaTopic(my-namespace/my-topic)
 <p><a href="#proc-config-kafka-str">Configuring Kafka</a></p>
 </li>
 <li>
-<p><a href="#logging_configuration_by_configmap">Cluster Operator logging</a></p>
+<p><a href="#ref-operator-cluster-logging-configmap-str">Cluster Operator logging</a></p>
 </li>
 <li>
 <p><a href="#property-topic-operator-logging-reference">Topic Operator logging</a></p>
@@ -13509,561 +13511,178 @@ You can also specify a namespace using <code>watchedNamespace</code> in the oper
 <p>For information on deploying the Cluster Operator, see <a href="./deploying.html#cluster-operator-str" target="_blank" rel="noopener">Deploying the Cluster Operator</a>.</p>
 </div>
 <div class="sect3">
-<h4 id="ref-operator-cluster-str"><a class="link" href="#ref-operator-cluster-str">6.2.1. Cluster Operator configuration</a></h4>
+<h4 id="ref-operator-cluster-rbac-resources-str"><a class="link" href="#ref-operator-cluster-rbac-resources-str">6.2.1. Role-Based Access Control (RBAC) resources</a></h4>
 <div class="paragraph _abstract">
-<p>You can configure the Cluster Operator using supported environment variables, and through its logging configuration.</p>
+<p>The Cluster Operator creates and manages RBAC resources for Strimzi components that need access to Kubernetes resources.</p>
 </div>
 <div class="paragraph">
-<p>The environment variables relate to container configuration for the deployment of the Cluster Operator image.
-For more information on <code>image</code> configuration, see, <a href="#con-common-configuration-images-reference"><code>image</code></a>.</p>
+<p>For the Cluster Operator to function, it needs permission within the Kubernetes cluster to interact with Kafka resources, such as <code>Kafka</code> and <code>KafkaConnect</code>, as well as managed resources like <code>ConfigMap</code>, <code>Pod</code>, <code>Deployment</code>, <code>StatefulSet</code>, and <code>Service</code>.</p>
 </div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1"><code>STRIMZI_NAMESPACE</code></dt>
-<dd>
-<p>A comma-separated list of namespaces that the operator should operate in.
-When not set, set to empty string, or set to <code>*</code>, the Cluster Operator will operate in all namespaces.
-The Cluster Operator deployment might use the <a href="https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/#the-downward-api" target="_blank" rel="noopener">Kubernetes Downward API</a>
-to set this automatically to the namespace the Cluster Operator is deployed in.</p>
-<div class="listingblock">
-<div class="title">Example configuration for Cluster Operator namespaces</div>
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
-  - name: STRIMZI_NAMESPACE
-    valueFrom:
-      fieldRef:
-        fieldPath: metadata.namespace</code></pre>
-</div>
-</div>
-</dd>
-<dt class="hdlist1"><a id="STRIMZI_FULL_RECONCILIATION_INTERVAL_MS"></a> <code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code></dt>
-<dd>
-<p>Optional, default is 120000 ms. The interval between periodic reconciliations, in milliseconds.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_OPERATION_TIMEOUT_MS</code></dt>
-<dd>
-<p>Optional, default 300000 ms.
-The timeout for internal operations, in milliseconds. This value should be
-increased when using Strimzi on clusters where regular Kubernetes operations take longer than usual (because of slow downloading of Docker images, for example).</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_ZOOKEEPER_ADMIN_SESSION_TIMEOUT_MS</code></dt>
-<dd>
-<p>Optional, default 10000 ms.</p>
 <div class="paragraph">
-<p>The session timeout (in milliseconds) for the Cluster Operator&#8217;s ZooKeeper admin client.
-This value should be increased if ZooKeeper requests from the Cluster Operator are regularly failing due to timeout issues.
-There is a maximum allowed session time set on the ZooKeeper server side via the <code>maxSessionTimeout</code> config.
-By default this session max value is 20 times the default <code>tickTime</code> (whose default is 2000) therefore 40000 ms.
-If you require a higher timeout, you will need to change the <code>maxSessionTimeout</code> ZooKeeper server config value.</p>
-</div>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_OPERATIONS_THREAD_POOL_SIZE</code></dt>
-<dd>
-<p>Optional, default 10
-The worker thread pool size, which is used for various asynchronous and blocking operations that are run by the cluster operator.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_OPERATOR_NAME</code></dt>
-<dd>
-<p>Optional, defaults to pod&#8217;s hostname.
-The operator name identifies the Strimzi instance when <a href="./deploying.html#proc-operator-restart-events-str" target="_blank" rel="noopener">emitting Kubernetes events</a>.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_OPERATOR_NAMESPACE</code></dt>
-<dd>
-<p>The name of the namespace where the Strimzi Cluster Operator is running.
-Do not configure this variable manually. Use the Kubernetes Downward API.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
-  - name: STRIMZI_OPERATOR_NAMESPACE
-    valueFrom:
-      fieldRef:
-        fieldPath: metadata.namespace</code></pre>
-</div>
-</div>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_OPERATOR_NAMESPACE_LABELS</code></dt>
-<dd>
-<p>Optional.
-The labels of the namespace where the Strimzi Cluster Operator is running.
-Namespace labels are used to configure the namespace selector in network policies to allow the Strimzi Cluster Operator to only have access to the operands from the namespace with these labels.
-When not set, the namespace selector in network policies is configured to allow access to the Strimzi Cluster Operator from any namespace in the Kubernetes cluster.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
-  - name: STRIMZI_OPERATOR_NAMESPACE_LABELS
-    value: label1=value1,label2=value2</code></pre>
-</div>
-</div>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_LABELS_EXCLUSION_PATTERN</code></dt>
-<dd>
-<p>Optional, default regex pattern is <code>^app.kubernetes.io/(?!part-of).*</code>.
-Specifies the regex exclusion pattern used to filter labels propagation from the main custom resource to its subresources.
-The labels exclusion filter is not applied to labels in template sections such as <code>spec.kafka.template.pod.metadata.labels</code>.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
-  - name: STRIMZI_LABELS_EXCLUSION_PATTERN
-    value: "^key1.*"</code></pre>
-</div>
-</div>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_CUSTOM_{COMPONENT_NAME}_LABELS</code></dt>
-<dd>
-<p>Optional.
-One or more custom labels to apply to all the pods created by the <code>{COMPONENT_NAME}</code> custom resource.
-The Cluster Operator labels the pods when the custom resource is created or is next reconciled.</p>
-<div class="paragraph">
-<p>Environment variables exist for the following components:</p>
+<p>Permission is specified through Kubernetes role-based access control (RBAC) resources:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><code>KAFKA</code></p>
+<p><code>ServiceAccount</code></p>
 </li>
 <li>
-<p><code>KAFKA_CONNECT</code></p>
+<p><code>Role</code> and <code>ClusterRole</code></p>
 </li>
 <li>
-<p><code>KAFKA_CONNECT_BUILD</code></p>
-</li>
-<li>
-<p><code>ZOOKEEPER</code></p>
-</li>
-<li>
-<p><code>ENTITY_OPERATOR</code></p>
-</li>
-<li>
-<p><code>KAFKA_MIRROR_MAKER2</code></p>
-</li>
-<li>
-<p><code>KAFKA_MIRROR_MAKER</code></p>
-</li>
-<li>
-<p><code>CRUISE_CONTROL</code></p>
-</li>
-<li>
-<p><code>KAFKA_BRIDGE</code></p>
-</li>
-<li>
-<p><code>KAFKA_EXPORTER</code></p>
-</li>
-<li>
-<p><code>JMX_TRANS</code></p>
+<p><code>RoleBinding</code> and <code>ClusterRoleBinding</code></p>
 </li>
 </ul>
 </div>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_CUSTOM_RESOURCE_SELECTOR</code></dt>
-<dd>
-<p>Optional.
-Specifies label selector used to filter the custom resources handled by the operator.
-The operator will operate only on those custom resources which will have the specified labels set.
-Resources without these labels will not be seen by the operator.
-The label selector applies to <code>Kafka</code>, <code>KafkaConnect</code>, <code>KafkaBridge</code>, <code>KafkaMirrorMaker</code>, and <code>KafkaMirrorMaker2</code> resources.
-<code>KafkaRebalance</code> and <code>KafkaConnector</code> resources will be operated only when their corresponding Kafka and Kafka Connect clusters have the matching labels.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
-  - name: STRIMZI_CUSTOM_RESOURCE_SELECTOR
-    value: label1=value1,label2=value2</code></pre>
-</div>
-</div>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_KAFKA_IMAGES</code></dt>
-<dd>
-<p>Required.
-This provides a mapping from Kafka version to the corresponding Docker image containing a Kafka broker of that version.
-The required syntax is whitespace or comma separated <code><em>&lt;version&gt;</em>=<em>&lt;image&gt;</em></code> pairs.
-For example <code>3.1.0=quay.io/strimzi/kafka:latest-kafka-3.1.0, 3.2.1=quay.io/strimzi/kafka:latest-kafka-3.2.1</code>.
-This is used when a <code>Kafka.spec.kafka.version</code> property is specified but not the <code>Kafka.spec.kafka.image</code> in the <code>Kafka</code> resource.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_DEFAULT_KAFKA_INIT_IMAGE</code></dt>
-<dd>
-<p>Optional, default <code>quay.io/strimzi/operator:latest</code>.
-The image name to use as default for the init container started before the broker for initial configuration work (that is, rack support), if no image is specified as the <code>kafka-init-image</code> in the <code>Kafka</code> resource.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_KAFKA_CONNECT_IMAGES</code></dt>
-<dd>
-<p>Required.
-This provides a mapping from the Kafka version to the corresponding Docker image containing a Kafka connect of that version.
-The required syntax is whitespace or comma separated <code><em>&lt;version&gt;</em>=<em>&lt;image&gt;</em></code> pairs.
-For example <code>3.1.0=quay.io/strimzi/kafka:latest-kafka-3.1.0, 3.2.1=quay.io/strimzi/kafka:latest-kafka-3.2.1</code>.
-This is used when a <code>KafkaConnect.spec.version</code> property is specified but not the <code>KafkaConnect.spec.image</code>.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_KAFKA_MIRROR_MAKER_IMAGES</code></dt>
-<dd>
-<p>Required.
-This provides a mapping from the Kafka version to the corresponding Docker image containing a Kafka mirror maker of that version.
-The required syntax is whitespace or comma separated <code><em>&lt;version&gt;</em>=<em>&lt;image&gt;</em></code> pairs.
-For example <code>3.1.0=quay.io/strimzi/kafka:latest-kafka-3.1.0, 3.2.1=quay.io/strimzi/kafka:latest-kafka-3.2.1</code>.
-This is used when a <code>KafkaMirrorMaker.spec.version</code> property is specified but not the <code>KafkaMirrorMaker.spec.image</code>.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE</code></dt>
-<dd>
-<p>Optional, default <code>quay.io/strimzi/operator:latest</code>.
-The image name to use as the default when deploying the topic operator,
-if no image is specified as the <code>Kafka.spec.entityOperator.topicOperator.image</code> in <code>Kafka</code> resource.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_DEFAULT_USER_OPERATOR_IMAGE</code></dt>
-<dd>
-<p>Optional, default <code>quay.io/strimzi/operator:latest</code>.
-The image name to use as the default when deploying the user operator,
-if no image is specified as the <code>Kafka.spec.entityOperator.userOperator.image</code> in the <code>Kafka</code> resource.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_DEFAULT_TLS_SIDECAR_ENTITY_OPERATOR_IMAGE</code></dt>
-<dd>
-<p>Optional, default <code>quay.io/strimzi/kafka:latest-kafka-3.2.1</code>.
-The image name to use as the default when deploying the sidecar container which provides TLS support for the Entity Operator, if
-no image is specified as the <code>Kafka.spec.entityOperator.tlsSidecar.image</code> in the <code>Kafka</code> resource.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_IMAGE_PULL_POLICY</code></dt>
-<dd>
-<p>Optional.
-The <code>ImagePullPolicy</code> which will be applied to containers in all pods managed by Strimzi Cluster Operator.
-The valid values are <code>Always</code>, <code>IfNotPresent</code>, and <code>Never</code>.
-If not specified, the Kubernetes defaults will be used.
-Changing the policy will result in a rolling update of all your Kafka, Kafka Connect, and Kafka MirrorMaker clusters.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_IMAGE_PULL_SECRETS</code></dt>
-<dd>
-<p>Optional.
-A comma-separated list of <code>Secret</code> names.
-The secrets referenced here contain the credentials to the container registries where the container images are pulled from.
-The secrets are used in the <code>imagePullSecrets</code> field for all <code>Pods</code> created by the Cluster Operator.
-Changing this list results in a rolling update of all your Kafka, Kafka Connect, and Kafka MirrorMaker clusters.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_KUBERNETES_VERSION</code></dt>
-<dd>
-<p>Optional.
-Overrides the Kubernetes version information detected from the API server.</p>
-<div class="listingblock">
-<div class="title">Example configuration for Kubernetes version override</div>
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
-  - name: STRIMZI_KUBERNETES_VERSION
-    value: |
-           major=1
-           minor=16
-           gitVersion=v1.16.2
-           gitCommit=c97fe5036ef3df2967d086711e6c0c405941e14b
-           gitTreeState=clean
-           buildDate=2019-10-15T19:09:08Z
-           goVersion=go1.12.10
-           compiler=gc
-           platform=linux/amd64</code></pre>
-</div>
-</div>
-</dd>
-<dt class="hdlist1"><code>KUBERNETES_SERVICE_DNS_DOMAIN</code></dt>
-<dd>
-<p>Optional.
-Overrides the default Kubernetes DNS domain name suffix.</p>
-<div class="paragraph">
-<p>By default, services assigned in the Kubernetes cluster have a DNS domain name that uses the default suffix <code>cluster.local</code>.</p>
-</div>
-<div class="paragraph">
-<p>For example, for broker <em>kafka-0</em>:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"><em>&lt;cluster-name&gt;</em>-kafka-0.<em>&lt;cluster-name&gt;</em>-kafka-brokers.<em>&lt;namespace&gt;</em>.svc.<em>cluster.local</em></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The DNS domain name is added to the Kafka broker certificates used for hostname verification.</p>
-</div>
-<div class="paragraph">
-<p>If you are using a different DNS domain name suffix in your cluster, change the <code>KUBERNETES_SERVICE_DNS_DOMAIN</code> environment variable from the default to the one you are using in order to establish a connection with the Kafka brokers.</p>
-</div>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_CONNECT_BUILD_TIMEOUT_MS</code></dt>
-<dd>
-<p>Optional, default 300000 ms.
-The timeout for building new Kafka Connect images with additional connectors, in milliseconds.
-This value should be increased when using Strimzi to build container images containing many connectors or using a slow container registry.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_NETWORK_POLICY_GENERATION</code> </dt>
-<dd>
-<p>Optional, default <code>true</code>.
-Controls whether Strimzi generates network policy resources.
-Network policies allow connections between Kafka components.</p>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>Set this environment variable to <code>false</code> to disable network policy generation. You might do this, for example, if you want to use custom network policies. Custom network policies allow more control over maintaining the connections between components.</p>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1"><code>STRIMZI_DNS_CACHE_TTL</code> </dt>
-<dd>
-<p>Optional, default <code>30</code>.
-Number of seconds to cache successful name lookups in local DNS resolver. Any negative value means cache forever. Zero means do not cache. This can be useful to avoid connection errors due to long caching policies being applied.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_POD_SET_RECONCILIATION_ONLY</code> </dt>
-<dd>
-<p>Optional, default <code>false</code>.
-When set to <code>true</code>, the Cluster Operator will reconcile only the <code>StrimziPodSet</code> resources and any changes to the other custom resources (<code>Kafka</code>, <code>KafkaConnect</code>, and so on) will be ignored.
-This mode is useful to ensure that your Pods will be recreated if needed, but no other changes happen to your clusters.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_FEATURE_GATES</code></dt>
-<dd>
-<p>Optional.
-Enables or disables features and functionality controlled by <a href="#ref-operator-cluster-feature-gates-str">feature gates</a>.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_POD_SECURITY_PROVIDER_CLASS</code></dt>
-<dd>
-<p>Optional.
-Configures the pluggable <code>PodSecurityProvider</code> class which can be used to provide the security context configuration for Pods and containers.</p>
-</dd>
-</dl>
-</div>
 <div class="sect4">
-<h5 id="ref-operator-cluster-leader-election-str"><a class="link" href="#ref-operator-cluster-leader-election-str">Leader election environment variables</a></h5>
+<h5 id="delegated-privileges-str"><a class="link" href="#delegated-privileges-str">Delegating privileges to Strimzi components</a></h5>
 <div class="paragraph">
-<p>Use leader election environment variables when <a href="#assembly-using-multiple-cluster-operator-replicas-str">running additional Cluster Operator replicas</a>.
-You might run additional replicas to safeguard against disruption caused by major failure.</p>
+<p>The Cluster Operator runs under a service account called <code>strimzi-cluster-operator</code>.
+It is assigned cluster roles that give it permission to create the RBAC resources for Strimzi components.
+Role bindings associate the cluster roles with the service account.</p>
 </div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_ENABLED</code></dt>
-<dd>
-<p>Optional, disabled (<code>false</code>) by default.
-Enables or disables leader election, which allows additional Cluster Operator replicas to run on standby.</p>
-</dd>
-</dl>
+<div class="paragraph">
+<p>Kubernetes prevents components operating under one <code>ServiceAccount</code> from granting another <code>ServiceAccount</code> privileges that the granting <code>ServiceAccount</code> does not have.
+Because the Cluster Operator creates the <code>RoleBinding</code> and <code>ClusterRoleBinding</code> RBAC resources needed by the resources it manages, it requires a role that gives it the same privileges.</p>
 </div>
-<div class="admonitionblock note">
-<table>
+<div class="paragraph">
+<p>The following tables describe the RBAC resources created by the Cluster Operator.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 5. <code>ServiceAccount</code> resources</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
 <tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Leader election is disabled by default.
-It is only enabled when applying this environment variable on installation.
-</td>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Used by</th>
 </tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><em>&lt;cluster_name&gt;</em>-kafka</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka broker pods</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><em>&lt;cluster_name&gt;</em>-zookeeper</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ZooKeeper pods</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><em>&lt;cluster_name&gt;</em>-cluster-connect</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka Connect pods</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><em>&lt;cluster_name&gt;</em>-mirror-maker</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MirrorMaker pods</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><em>&lt;cluster_name&gt;</em>-mirrormaker2</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MirrorMaker 2.0 pods</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><em>&lt;cluster_name&gt;</em>-bridge</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka Bridge pods</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><em>&lt;cluster_name&gt;</em>-entity-operator</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Entity Operator</p></td>
+</tr>
+</tbody>
+</table>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 6. <code>ClusterRole</code> resources</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Used by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi-cluster-operator-namespaced</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cluster Operator</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi-cluster-operator-global</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cluster Operator</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi-cluster-operator-leader-election</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cluster Operator</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi-kafka-broker</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cluster Operator, rack feature (when used)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi-entity-operator</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cluster Operator, Topic Operator, User Operator</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi-kafka-client</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cluster Operator, Kafka clients for rack awareness</p></td>
+</tr>
+</tbody>
+</table>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 7. <code>ClusterRoleBinding</code> resources</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Used by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi-cluster-operator</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cluster Operator</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi-cluster-operator-kafka-broker-delegation</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cluster Operator, Kafka brokers for rack awareness</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi-cluster-operator-kafka-client-delegation</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cluster Operator, Kafka clients for rack awareness</p></td>
+</tr>
+</tbody>
+</table>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 8. <code>RoleBinding</code> resources</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Used by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi-cluster-operator</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cluster Operator</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi-cluster-operator-kafka-broker-delegation</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cluster Operator, Kafka brokers for rack awareness</p></td>
+</tr>
+</tbody>
 </table>
 </div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_LEASE_NAME</code></dt>
-<dd>
-<p>Required when leader election is enabled.
-The name of the Kubernetes <code>Lease</code> resource that is used for the leader election.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_LEASE_NAMESPACE</code></dt>
-<dd>
-<p>Required when leader election is enabled.
-The namespace where the Kubernetes <code>Lease</code> resource used for leader election is created.
-You can use the <a href="https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/#the-downward-api" target="_blank" rel="noopener">Kubernetes Downward API</a> to configure it to the namespace where the Cluster Operator is deployed.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
-  - name: STRIMZI_LEADER_ELECTION_LEASE_NAMESPACE
-    valueFrom:
-      fieldRef:
-        fieldPath: metadata.namespace</code></pre>
-</div>
-</div>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_IDENTITY</code></dt>
-<dd>
-<p>Required when leader election is enabled.
-Configures the identity of a given Cluster Operator instance used during the leader election.
-The identity must be unique for each operator instance.
-You can use the <a href="https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/#the-downward-api" target="_blank" rel="noopener">Kubernetes Downward API</a> to configure it to the name of the pod where the Cluster Operator is deployed.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
-  - name: STRIMZI_LEADER_ELECTION_IDENTITY
-    valueFrom:
-      fieldRef:
-        fieldPath: metadata.name</code></pre>
-</div>
-</div>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_LEASE_DURATION_MS</code></dt>
-<dd>
-<p>Optional, default 15000 ms.
-Specifies the duration the acquired lease is valid.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_RENEW_DEADLINE_MS</code></dt>
-<dd>
-<p>Optional, default 10000 ms.
-Specifies the period the leader should try to maintain leadership.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_RETRY_PERIOD_MS</code></dt>
-<dd>
-<p>Optional, default 2000 ms.
-Specifies the frequency of updates to the lease lock by the leader.</p>
-</dd>
-</dl>
-</div>
-</div>
 <div class="sect4">
-<h5 id="logging_configuration_by_configmap"><a class="link" href="#logging_configuration_by_configmap">Logging configuration by ConfigMap</a></h5>
-<div class="paragraph">
-<p>The Cluster Operator&#8217;s logging is configured by the <code>strimzi-cluster-operator</code> <code>ConfigMap</code>.</p>
-</div>
-<div class="paragraph">
-<p>A <code>ConfigMap</code> containing logging configuration is created when installing the Cluster Operator.
-This <code>ConfigMap</code> is described in the file <code>install/cluster-operator/050-ConfigMap-strimzi-cluster-operator.yaml</code>.
-You configure Cluster Operator logging by changing the data field <code>log4j2.properties</code> in this <code>ConfigMap</code>.</p>
-</div>
-<div class="paragraph">
-<p>To update the logging configuration, you can edit the <code>050-ConfigMap-strimzi-cluster-operator.yaml</code> file and then run the following command:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f <em>install/cluster-operator/050-ConfigMap-strimzi-cluster-operator.yaml</em></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Alternatively, edit the <code>ConfigMap</code> directly:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit configmap strimzi-cluster-operator</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>To change the frequency of the reload interval, set a time in seconds in the <code>monitorInterval</code> option in the created <code>ConfigMap</code>.</p>
-</div>
-<div class="paragraph">
-<p>If the <code>ConfigMap</code> is missing when the Cluster Operator is deployed, the default logging values are used.</p>
-</div>
-<div class="paragraph">
-<p>If the <code>ConfigMap</code> is accidentally deleted after the Cluster Operator is deployed, the most recently loaded logging configuration is used.
-Create a new <code>ConfigMap</code> to load a new logging configuration.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Do not remove the <code>monitorInterval</code> option from the ConfigMap.
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect4">
-<h5 id="restricting_cluster_operator_access_with_network_policy"><a class="link" href="#restricting_cluster_operator_access_with_network_policy">Restricting Cluster Operator access with network policy</a></h5>
-<div class="paragraph">
-<p>The Cluster Operator can run in the same namespace as the resources it manages, or in a separate namespace.
-By default, the <code>STRIMZI_OPERATOR_NAMESPACE</code> environment variable is configured to use the Kubernetes Downward API to find which namespace the Cluster Operator is running in.
-If the Cluster Operator is running in the same namespace as the resources, only local access is required, and allowed by Strimzi.</p>
-</div>
-<div class="paragraph">
-<p>If the Cluster Operator is running in a separate namespace to the resources it manages, any namespace in the Kubernetes cluster is allowed access to the Cluster Operator unless network policy is configured.
-Use the optional <code>STRIMZI_OPERATOR_NAMESPACE_LABELS</code> environment variable to establish network policy for the Cluster Operator using namespace labels.
-By adding namespace labels, access to the Cluster Operator is restricted to the namespaces specified.</p>
-</div>
-<div class="listingblock">
-<div class="title">Network policy configured for the Cluster Operator deployment</div>
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">#...
-env:
-  # ...
-  - name: STRIMZI_OPERATOR_NAMESPACE_LABELS
-    value: label1=value1,label2=value2
-  #...</code></pre>
-</div>
-</div>
-</div>
-<div class="sect4">
-<h5 id="periodic_reconciliation"><a class="link" href="#periodic_reconciliation">Periodic reconciliation</a></h5>
-<div class="paragraph">
-<p>Although the Cluster Operator reacts to all notifications about the desired cluster resources received from the Kubernetes cluster,
-if the operator is not running, or if a notification is not received for any reason, the desired resources will get out of sync with the state of the running Kubernetes cluster.</p>
-</div>
-<div class="paragraph">
-<p>In order to handle failovers properly, a periodic reconciliation process is executed by the Cluster Operator so that it can compare the state of the desired resources with the current cluster deployments in order to have a consistent state across all of them.
-You can set the time interval for the periodic reconciliations using the <a href="#STRIMZI_FULL_RECONCILIATION_INTERVAL_MS"><code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code></a> variable.</p>
-</div>
-</div>
-<div class="sect4">
-<h5 id="provisioning_role_based_access_control_rbac"><a class="link" href="#provisioning_role_based_access_control_rbac">Provisioning Role-Based Access Control (RBAC)</a></h5>
-<div class="paragraph">
-<p>For the Cluster Operator to function it needs permission within the Kubernetes cluster to interact with resources such as <code>Kafka</code>, <code>KafkaConnect</code>, and so on, as well as the managed resources, such as <code>ConfigMaps</code>, <code>Pods</code>, <code>Deployments</code>, <code>StatefulSets</code> and <code>Services</code>.
-Such permission is described in terms of Kubernetes role-based access control (RBAC) resources:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>ServiceAccount</code>,</p>
-</li>
-<li>
-<p><code>Role</code> and <code>ClusterRole</code>,</p>
-</li>
-<li>
-<p><code>RoleBinding</code> and <code>ClusterRoleBinding</code>.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>In addition to running under its own <code>ServiceAccount</code> with a <code>ClusterRoleBinding</code>, the Cluster Operator manages some RBAC resources for the components that need access to Kubernetes resources.</p>
-</div>
-<div class="paragraph">
-<p>Kubernetes also includes privilege escalation protections that prevent components operating under one <code>ServiceAccount</code> from granting other <code>ServiceAccounts</code> privileges that the granting <code>ServiceAccount</code> does not have.
-Because the Cluster Operator must be able to create the <code>ClusterRoleBindings</code>, and <code>RoleBindings</code> needed by resources it manages, the Cluster Operator must also have those same privileges.</p>
-</div>
-</div>
-<div class="sect4">
-<h5 id="delegated-privileges-str"><a class="link" href="#delegated-privileges-str">Delegated privileges</a></h5>
-<div class="paragraph">
-<p>When the Cluster Operator deploys resources for a desired <code>Kafka</code> resource it also creates <code>ServiceAccounts</code>, <code>RoleBindings</code>, and <code>ClusterRoleBindings</code>, as follows:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>The Kafka broker pods use a <code>ServiceAccount</code> called <code><em>cluster-name</em>-kafka</code></p>
-<div class="ulist">
-<ul>
-<li>
-<p>When the rack feature is used, the <code>strimzi-<em>cluster-name</em>-kafka-init</code> <code>ClusterRoleBinding</code> is used to grant this <code>ServiceAccount</code> access to the nodes within the cluster via a <code>ClusterRole</code> called <code>strimzi-kafka-broker</code></p>
-</li>
-<li>
-<p>When the rack feature is not used and the cluster is not exposed via nodeport, no binding is created</p>
-</li>
-</ul>
-</div>
-</li>
-<li>
-<p>The ZooKeeper pods use a <code>ServiceAccount</code> called <code><em>cluster-name</em>-zookeeper</code></p>
-</li>
-<li>
-<p>The Entity Operator pod uses a <code>ServiceAccount</code> called <code><em>cluster-name</em>-entity-operator</code></p>
-<div class="ulist">
-<ul>
-<li>
-<p>The Topic Operator produces Kubernetes events with status information, so the <code>ServiceAccount</code> is bound to a <code>ClusterRole</code> called <code>strimzi-entity-operator</code> which grants this access via the <code>strimzi-entity-operator</code> <code>RoleBinding</code></p>
-</li>
-</ul>
-</div>
-</li>
-<li>
-<p>The pods for <code>KafkaConnect</code> resource uses a <code>ServiceAccount</code> called <code><em>cluster-name</em>-cluster-connect</code></p>
-</li>
-<li>
-<p>The pods for <code>KafkaMirrorMaker</code> use a <code>ServiceAccount</code> called <code><em>cluster-name</em>-mirror-maker</code></p>
-</li>
-<li>
-<p>The pods for <code>KafkaMirrorMaker2</code> use a <code>ServiceAccount</code> called <code><em>cluster-name</em>-mirrormaker2</code></p>
-</li>
-<li>
-<p>The pods for <code>KafkaBridge</code> use a <code>ServiceAccount</code> called <code><em>cluster-name</em>-bridge</code></p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect4">
-<h5 id="serviceaccount"><a class="link" href="#serviceaccount"><code>ServiceAccount</code></a></h5>
+<h5 id="running_the_cluster_operator_using_a_serviceaccount"><a class="link" href="#running_the_cluster_operator_using_a_serviceaccount">Running the Cluster Operator using a <code>ServiceAccount</code></a></h5>
 <div class="paragraph">
 <p>The Cluster Operator is best run using a <code>ServiceAccount</code>:</p>
 </div>
@@ -14101,14 +13720,14 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p>Note line 12, where the <code>strimzi-cluster-operator</code> <code>ServiceAccount</code> is specified as the <code>serviceAccountName</code>.</p>
+<p>Note line 12, where <code>strimzi-cluster-operator</code> is specified as the <code>serviceAccountName</code>.</p>
 </div>
 </div>
 <div class="sect4">
-<h5 id="clusterroles"><a class="link" href="#clusterroles"><code>ClusterRoles</code></a></h5>
+<h5 id="clusterrole_resources"><a class="link" href="#clusterrole_resources"><code>ClusterRole</code> resources</a></h5>
 <div class="paragraph">
-<p>The Cluster Operator needs to operate using <code>ClusterRoles</code> that gives access to the necessary resources.
-Depending on the Kubernetes cluster setup, a cluster administrator might be needed to create the <code>ClusterRoles</code>.</p>
+<p>The Cluster Operator uses <code>ClusterRole</code> resources to provide the necessary access to resources.
+Depending on the Kubernetes cluster setup, a cluster administrator might be needed to create the cluster roles.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -14117,17 +13736,20 @@ Depending on the Kubernetes cluster setup, a cluster administrator might be need
 <div class="title">Note</div>
 </td>
 <td class="content">
-Cluster administrator rights are only needed for the creation of the <code>ClusterRoles</code>.
-The Cluster Operator will not run under the cluster admin account.
+Cluster administrator rights are only needed for the creation of <code>ClusterRole</code> resources.
+The Cluster Operator will not run under a cluster admin account.
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>The <code>ClusterRoles</code> follow the <em>principle of least privilege</em> and contain only those privileges needed by the Cluster Operator to operate Kafka, Kafka Connect, and ZooKeeper clusters. The first set of assigned privileges allow the Cluster Operator to manage Kubernetes resources such as <code>StatefulSets</code>, <code>Deployments</code>, <code>Pods</code>, and <code>ConfigMaps</code>.</p>
+<p><code>ClusterRole</code> resources follow the <em>principle of least privilege</em> and contain only those privileges needed by the Cluster Operator to operate the cluster of the Kafka component. The first set of assigned privileges allow the Cluster Operator to manage Kubernetes resources such as <code>StatefulSet</code>, <code>Deployment</code>, <code>Pod</code>, and <code>ConfigMap</code>.</p>
 </div>
 <div class="paragraph">
-<p>Cluster Operator uses ClusterRoles to grant permission at the namespace-scoped resources level and cluster-scoped resources level:</p>
+<p>All cluster roles are required by the Cluster Operator in order to delegate privileges.</p>
+</div>
+<div class="paragraph">
+<p>The Cluster Operator uses the <code>strimzi-cluster-operator-namespaced</code> and <code>strimzi-cluster-operator-global</code> cluster roles to grant permission at the namespace-scoped resources level and cluster-scoped resources level.</p>
 </div>
 <div class="listingblock">
 <div class="title"><code>ClusterRole</code> with namespaced resources for the Cluster Operator</div>
@@ -14346,9 +13968,6 @@ rules:
       - update</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>The second includes the permissions needed for cluster-scoped resources.</p>
-</div>
 <div class="listingblock">
 <div class="title"><code>ClusterRole</code> with cluster-scoped resources for the Cluster Operator</div>
 <div class="content">
@@ -14393,7 +14012,7 @@ rules:
 </div>
 </div>
 <div class="paragraph">
-<p>The <code>strimzi-cluster-operator-leader-election</code> <code>ClusterRole</code> represents the permissions needed for the leader election.</p>
+<p>The <code>strimzi-cluster-operator-leader-election</code> cluster role represents the permissions needed for the leader election.</p>
 </div>
 <div class="listingblock">
 <div class="title"><code>ClusterRole</code> with leader election permissions</div>
@@ -14432,7 +14051,11 @@ rules:
 </div>
 </div>
 <div class="paragraph">
-<p>The <code>strimzi-kafka-broker</code> <code>ClusterRole</code> represents the access needed by the init container in Kafka pods that is used for the rack feature. As described in the <a href="#delegated-privileges-str">Delegated privileges</a> section, this role is also needed by the Cluster Operator in order to be able to delegate this access.</p>
+<p>The <code>strimzi-kafka-broker</code> cluster role represents the access needed by the init container in Kafka pods that use rack awareness.</p>
+</div>
+<div class="paragraph">
+<p>A role binding named <code>strimzi-<em>&lt;cluster_name&gt;</em>-kafka-init</code> grants the <code><em>&lt;cluster_name&gt;</em>-kafka</code> service account access to nodes within a cluster using the <code>strimzi-kafka-broker</code> role.
+If the rack feature is not used and the cluster is not exposed through <code>nodeport</code>, no binding is created.</p>
 </div>
 <div class="listingblock">
 <div class="title"><code>ClusterRole</code> for the Cluster Operator allowing it to delegate access to Kubernetes nodes to the Kafka broker pods</div>
@@ -14455,7 +14078,10 @@ rules:
 </div>
 </div>
 <div class="paragraph">
-<p>The <code>strimzi-entity-operator</code> <code>ClusterRole</code> represents the access needed by the Topic and User Operators. As described in the <a href="#delegated-privileges-str">Delegated privileges</a> section, this role is also needed by the Cluster Operator in order to be able to delegate this access.</p>
+<p>The <code>strimzi-entity-operator</code> cluster role represents the access needed by the Topic Operator and User Operator.</p>
+</div>
+<div class="paragraph">
+<p>The Topic Operator produces Kubernetes events with status information, so the <code><em>&lt;cluster_name&gt;</em>-entity-operator</code> service account is bound to the <code>strimzi-entity-operator</code> role, which grants this access via the <code>strimzi-entity-operator</code> role binding.</p>
 </div>
 <div class="listingblock">
 <div class="title"><code>ClusterRole</code> for the Cluster Operator allowing it to delegate access to events to the Topic and User Operators</div>
@@ -14507,11 +14133,10 @@ rules:
 </div>
 </div>
 <div class="paragraph">
-<p>The <code>strimzi-kafka-client</code> <code>ClusterRole</code> represents the access needed by the components based on Kafka clients which use the client rack-awareness.
-As described in the <a href="#delegated-privileges-str">Delegated privileges</a> section, this role is also needed by the Cluster Operator in order to be able to delegate this access.</p>
+<p>The <code>strimzi-kafka-client</code> cluster role represents the access needed by Kafka clients that use rack awareness.</p>
 </div>
 <div class="listingblock">
-<div class="title"><code>ClusterRole</code> for the Cluster Operator allowing it to delegate access to Kubernetes nodes to the Kafka client based pods</div>
+<div class="title"><code>ClusterRole</code> for the Cluster Operator allowing it to delegate access to Kubernetes nodes to the Kafka client-based pods</div>
 <div class="content">
 <pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -14533,10 +14158,10 @@ rules:
 </div>
 </div>
 <div class="sect4">
-<h5 id="clusterrolebindings"><a class="link" href="#clusterrolebindings"><code>ClusterRoleBindings</code></a></h5>
+<h5 id="clusterrolebinding_resources"><a class="link" href="#clusterrolebinding_resources"><code>ClusterRoleBinding</code> resources</a></h5>
 <div class="paragraph">
-<p>The operator needs <code>ClusterRoleBindings</code> and <code>RoleBindings</code> which associates its <code>ClusterRole</code> with its <code>ServiceAccount</code>:
-<code>ClusterRoleBindings</code> are needed for <code>ClusterRoles</code> containing cluster-scoped resources.</p>
+<p>The Cluster Operator uses <code>ClusterRoleBinding</code> and <code>RoleBinding</code> resources to associate its <code>ClusterRole</code> with its <code>ServiceAccount</code>:
+Cluster role bindings are required by cluster roles containing cluster-scoped resources.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example <code>ClusterRoleBinding</code> for the Cluster Operator</div>
@@ -14558,10 +14183,10 @@ roleRef:
 </div>
 </div>
 <div class="paragraph">
-<p><code>ClusterRoleBindings</code> are also needed for the <code>ClusterRoles</code> needed for delegation:</p>
+<p>Cluster role bindings are also needed for the cluster roles used in delegating privileges:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example <code>ClusterRoleBinding</code> for the Cluster Operator for the Kafka broker rack-awareness</div>
+<div class="title">Example <code>ClusterRoleBinding</code> for the Cluster Operator and Kafka broker rack awareness</div>
 <div class="content">
 <pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -14581,11 +14206,8 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>and</p>
-</div>
 <div class="listingblock">
-<div class="title">Example <code>ClusterRoleBinding</code> for the Cluster Operator for the Kafka client rack-awareness</div>
+<div class="title">Example <code>ClusterRoleBinding</code> for the Cluster Operator and Kafka client rack awareness</div>
 <div class="content">
 <pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -14607,9 +14229,10 @@ roleRef:
 </div>
 </div>
 <div class="paragraph">
-<p><code>ClusterRoles</code> containing only namespaced resources are bound using <code>RoleBindings</code> only.</p>
+<p>Cluster roles containing only namespaced resources are bound using role bindings only.</p>
 </div>
 <div class="listingblock">
+<div class="title">Example <code>RoleBinding</code> for the Cluster Operator</div>
 <div class="content">
 <pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -14628,6 +14251,7 @@ roleRef:
 </div>
 </div>
 <div class="listingblock">
+<div class="title">Example <code>RoleBinding</code> for the Cluster Operator and Kafka broker rack awareness</div>
 <div class="content">
 <pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -14650,7 +14274,505 @@ roleRef:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-configuring-proxy-config-cluster-operator-str"><a class="link" href="#proc-configuring-proxy-config-cluster-operator-str">6.2.2. Configuring the Cluster Operator with default proxy settings</a></h4>
+<h4 id="ref-operator-cluster-logging-configmap-str"><a class="link" href="#ref-operator-cluster-logging-configmap-str">6.2.2. ConfigMap for Cluster Operator logging</a></h4>
+<div class="paragraph _abstract">
+<p>Cluster Operator logging is configured through a <code>ConfigMap</code> named <code>strimzi-cluster-operator</code>.</p>
+</div>
+<div class="paragraph">
+<p>A <code>ConfigMap</code> containing logging configuration is created when installing the Cluster Operator.
+This <code>ConfigMap</code> is described in the file <code>install/cluster-operator/050-ConfigMap-strimzi-cluster-operator.yaml</code>.
+You configure Cluster Operator logging by changing the data field <code>log4j2.properties</code> in this <code>ConfigMap</code>.</p>
+</div>
+<div class="paragraph">
+<p>To update the logging configuration, you can edit the <code>050-ConfigMap-strimzi-cluster-operator.yaml</code> file and then run the following command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f <em>install/cluster-operator/050-ConfigMap-strimzi-cluster-operator.yaml</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Alternatively, edit the <code>ConfigMap</code> directly:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit configmap strimzi-cluster-operator</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To change the frequency of the reload interval, set a time in seconds in the <code>monitorInterval</code> option in the created <code>ConfigMap</code>.</p>
+</div>
+<div class="paragraph">
+<p>If the <code>ConfigMap</code> is missing when the Cluster Operator is deployed, the default logging values are used.</p>
+</div>
+<div class="paragraph">
+<p>If the <code>ConfigMap</code> is accidentally deleted after the Cluster Operator is deployed, the most recently loaded logging configuration is used.
+Create a new <code>ConfigMap</code> to load a new logging configuration.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Do not remove the <code>monitorInterval</code> option from the <code>ConfigMap</code>.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="ref-operator-cluster-str"><a class="link" href="#ref-operator-cluster-str">6.2.3. Configuring the Cluster Operator with environment variables</a></h4>
+<div class="paragraph _abstract">
+<p>You can configure the Cluster Operator using environment variables.
+The supported environment variables are listed here.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The environment variables relate to the container configuration for the deployment of the Cluster Operator image.
+For more information on <code>image</code> configuration, see, <a href="#con-common-configuration-images-reference"><code>image</code></a>.
+</td>
+</tr>
+</table>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>STRIMZI_NAMESPACE</code></dt>
+<dd>
+<p>A comma-separated list of namespaces that the operator operates in.
+When not set, set to empty string, or set to <code>*</code>, the Cluster Operator operates in all namespaces.</p>
+<div class="paragraph">
+<p>The Cluster Operator deployment might use the downward API to set this automatically to the namespace the Cluster Operator is deployed in.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example configuration for Cluster Operator namespaces</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
+  - name: STRIMZI_NAMESPACE
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace</code></pre>
+</div>
+</div>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code></dt>
+<dd>
+<p>Optional, default is 120000 ms.
+The interval between <a href="#ref-operator-cluster-periodic-reconciliation-str">periodic reconciliations</a>, in milliseconds.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_OPERATION_TIMEOUT_MS</code></dt>
+<dd>
+<p>Optional, default 300000 ms.
+The timeout for internal operations, in milliseconds. Increase this value when using Strimzi on clusters where regular Kubernetes operations take longer than usual (because of slow downloading of Docker images, for example).</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_ZOOKEEPER_ADMIN_SESSION_TIMEOUT_MS</code></dt>
+<dd>
+<p>Optional, default 10000 ms.
+The session timeout for the Cluster Operator&#8217;s ZooKeeper admin client, in milliseconds.
+Increase the value if ZooKeeper requests from the Cluster Operator are regularly failing due to timeout issues.
+There is a maximum allowed session time set on the ZooKeeper server side via the <code>maxSessionTimeout</code> config.
+By default, the maximum session timeout value is 20 times the default <code>tickTime</code> (whose default is 2000) at 40000 ms.
+If you require a higher timeout, change the <code>maxSessionTimeout</code> ZooKeeper server configuration value.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_OPERATIONS_THREAD_POOL_SIZE</code></dt>
+<dd>
+<p>Optional, default 10.
+The worker thread pool size, which is used for various asynchronous and blocking operations that are run by the Cluster Operator.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_OPERATOR_NAME</code></dt>
+<dd>
+<p>Optional, defaults to the pod&#8217;s hostname.
+The operator name identifies the Strimzi instance when <a href="./deploying.html#proc-operator-restart-events-str" target="_blank" rel="noopener">emitting Kubernetes events</a>.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_OPERATOR_NAMESPACE</code></dt>
+<dd>
+<p>The name of the namespace where the Cluster Operator is running.
+Do not configure this variable manually. Use the downward API.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
+  - name: STRIMZI_OPERATOR_NAMESPACE
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace</code></pre>
+</div>
+</div>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_OPERATOR_NAMESPACE_LABELS</code></dt>
+<dd>
+<p>Optional.
+The labels of the namespace where the Strimzi Cluster Operator is running.
+Use namespace labels to configure the namespace selector in <a href="#ref-operator-cluster-network-policy-str">network policies</a>.
+Network policies allow the Strimzi Cluster Operator access only to the operands from the namespace with these labels.
+When not set, the namespace selector in network policies is configured to allow access to the Cluster Operator from any namespace in the Kubernetes cluster.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
+  - name: STRIMZI_OPERATOR_NAMESPACE_LABELS
+    value: label1=value1,label2=value2</code></pre>
+</div>
+</div>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_LABELS_EXCLUSION_PATTERN</code></dt>
+<dd>
+<p>Optional, default regex pattern is <code>^app.kubernetes.io/(?!part-of).*</code>.
+The regex exclusion pattern used to filter labels propagation from the main custom resource to its subresources.
+The labels exclusion filter is not applied to labels in template sections such as <code>spec.kafka.template.pod.metadata.labels</code>.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
+  - name: STRIMZI_LABELS_EXCLUSION_PATTERN
+    value: "^key1.*"</code></pre>
+</div>
+</div>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_CUSTOM_{COMPONENT_NAME}_LABELS</code></dt>
+<dd>
+<p>Optional.
+One or more custom labels to apply to all the pods created by the <code>{COMPONENT_NAME}</code> custom resource.
+The Cluster Operator labels the pods when the custom resource is created or is next reconciled.</p>
+<div class="paragraph">
+<p>Labels can be applied to the following components:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>KAFKA</code></p>
+</li>
+<li>
+<p><code>KAFKA_CONNECT</code></p>
+</li>
+<li>
+<p><code>KAFKA_CONNECT_BUILD</code></p>
+</li>
+<li>
+<p><code>ZOOKEEPER</code></p>
+</li>
+<li>
+<p><code>ENTITY_OPERATOR</code></p>
+</li>
+<li>
+<p><code>KAFKA_MIRROR_MAKER2</code></p>
+</li>
+<li>
+<p><code>KAFKA_MIRROR_MAKER</code></p>
+</li>
+<li>
+<p><code>CRUISE_CONTROL</code></p>
+</li>
+<li>
+<p><code>KAFKA_BRIDGE</code></p>
+</li>
+<li>
+<p><code>KAFKA_EXPORTER</code></p>
+</li>
+<li>
+<p><code>JMX_TRANS</code></p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_CUSTOM_RESOURCE_SELECTOR</code></dt>
+<dd>
+<p>Optional.
+The label selector to filter the custom resources handled by the Cluster Operator.
+The operator will operate only on those custom resources that have the specified labels set.
+Resources without these labels will not be seen by the operator.
+The label selector applies to <code>Kafka</code>, <code>KafkaConnect</code>, <code>KafkaBridge</code>, <code>KafkaMirrorMaker</code>, and <code>KafkaMirrorMaker2</code> resources.
+<code>KafkaRebalance</code> and <code>KafkaConnector</code> resources are operated only when their corresponding Kafka and Kafka Connect clusters have the matching labels.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
+  - name: STRIMZI_CUSTOM_RESOURCE_SELECTOR
+    value: label1=value1,label2=value2</code></pre>
+</div>
+</div>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_KAFKA_IMAGES</code></dt>
+<dd>
+<p>Required.
+The mapping from the Kafka version to the corresponding Docker image containing a Kafka broker for that version.
+The required syntax is whitespace or comma-separated <code><em>&lt;version&gt;</em>=<em>&lt;image&gt;</em></code> pairs.
+For example <code>3.1.0=quay.io/strimzi/kafka:latest-kafka-3.1.0, 3.2.1=quay.io/strimzi/kafka:latest-kafka-3.2.1</code>.
+This is used when a <code>Kafka.spec.kafka.version</code> property is specified but not the <code>Kafka.spec.kafka.image</code> in the <code>Kafka</code> resource.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_DEFAULT_KAFKA_INIT_IMAGE</code></dt>
+<dd>
+<p>Optional, default <code>quay.io/strimzi/operator:latest</code>.
+The image name to use as default for the init container if no image is specified as the <code>kafka-init-image</code> in the <code>Kafka</code> resource.
+The init container is started before the broker for initial configuration work, such as rack support.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_KAFKA_CONNECT_IMAGES</code></dt>
+<dd>
+<p>Required.
+The mapping from the Kafka version to the corresponding Docker image of Kafka Connect for that version.
+The required syntax is whitespace or comma-separated <code><em>&lt;version&gt;</em>=<em>&lt;image&gt;</em></code> pairs.
+For example <code>3.1.0=quay.io/strimzi/kafka:latest-kafka-3.1.0, 3.2.1=quay.io/strimzi/kafka:latest-kafka-3.2.1</code>.
+This is used when a <code>KafkaConnect.spec.version</code> property is specified but not the <code>KafkaConnect.spec.image</code>.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_KAFKA_MIRROR_MAKER_IMAGES</code></dt>
+<dd>
+<p>Required.
+The mapping from the Kafka version to the corresponding Docker image of MirrorMaker for that version.
+The required syntax is whitespace or comma-separated <code><em>&lt;version&gt;</em>=<em>&lt;image&gt;</em></code> pairs.
+For example <code>3.1.0=quay.io/strimzi/kafka:latest-kafka-3.1.0, 3.2.1=quay.io/strimzi/kafka:latest-kafka-3.2.1</code>.
+This is used when a <code>KafkaMirrorMaker.spec.version</code> property is specified but not the <code>KafkaMirrorMaker.spec.image</code>.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE</code></dt>
+<dd>
+<p>Optional, default <code>quay.io/strimzi/operator:latest</code>.
+The image name to use as the default when deploying the Topic Operator
+if no image is specified as the <code>Kafka.spec.entityOperator.topicOperator.image</code> in the <code>Kafka</code> resource.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_DEFAULT_USER_OPERATOR_IMAGE</code></dt>
+<dd>
+<p>Optional, default <code>quay.io/strimzi/operator:latest</code>.
+The image name to use as the default when deploying the User Operator
+if no image is specified as the <code>Kafka.spec.entityOperator.userOperator.image</code> in the <code>Kafka</code> resource.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_DEFAULT_TLS_SIDECAR_ENTITY_OPERATOR_IMAGE</code></dt>
+<dd>
+<p>Optional, default <code>quay.io/strimzi/kafka:latest-kafka-3.2.1</code>.
+The image name to use as the default when deploying the sidecar container for the Entity Operator if
+no image is specified as the <code>Kafka.spec.entityOperator.tlsSidecar.image</code> in the <code>Kafka</code> resource.
+The sidecar provides TLS support.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_IMAGE_PULL_POLICY</code></dt>
+<dd>
+<p>Optional.
+The <code>ImagePullPolicy</code> that is applied to containers in all pods managed by the Cluster Operator.
+The valid values are <code>Always</code>, <code>IfNotPresent</code>, and <code>Never</code>.
+If not specified, the Kubernetes defaults are used.
+Changing the policy will result in a rolling update of all your Kafka, Kafka Connect, and Kafka MirrorMaker clusters.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_IMAGE_PULL_SECRETS</code></dt>
+<dd>
+<p>Optional.
+A comma-separated list of <code>Secret</code> names.
+The secrets referenced here contain the credentials to the container registries where the container images are pulled from.
+The secrets are specified in the <code>imagePullSecrets</code> property for all pods created by the Cluster Operator.
+Changing this list results in a rolling update of all your Kafka, Kafka Connect, and Kafka MirrorMaker clusters.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_KUBERNETES_VERSION</code></dt>
+<dd>
+<p>Optional.
+Overrides the Kubernetes version information detected from the API server.</p>
+<div class="listingblock">
+<div class="title">Example configuration for Kubernetes version override</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
+  - name: STRIMZI_KUBERNETES_VERSION
+    value: |
+           major=1
+           minor=16
+           gitVersion=v1.16.2
+           gitCommit=c97fe5036ef3df2967d086711e6c0c405941e14b
+           gitTreeState=clean
+           buildDate=2019-10-15T19:09:08Z
+           goVersion=go1.12.10
+           compiler=gc
+           platform=linux/amd64</code></pre>
+</div>
+</div>
+</dd>
+<dt class="hdlist1"><code>KUBERNETES_SERVICE_DNS_DOMAIN</code></dt>
+<dd>
+<p>Optional.
+Overrides the default Kubernetes DNS domain name suffix.</p>
+<div class="paragraph">
+<p>By default, services assigned in the Kubernetes cluster have a DNS domain name that uses the default suffix <code>cluster.local</code>.</p>
+</div>
+<div class="paragraph">
+<p>For example, for broker <em>kafka-0</em>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"><em>&lt;cluster-name&gt;</em>-kafka-0.<em>&lt;cluster-name&gt;</em>-kafka-brokers.<em>&lt;namespace&gt;</em>.svc.<em>cluster.local</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The DNS domain name is added to the Kafka broker certificates used for hostname verification.</p>
+</div>
+<div class="paragraph">
+<p>If you are using a different DNS domain name suffix in your cluster, change the <code>KUBERNETES_SERVICE_DNS_DOMAIN</code> environment variable from the default to the one you are using in order to establish a connection with the Kafka brokers.</p>
+</div>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_CONNECT_BUILD_TIMEOUT_MS</code></dt>
+<dd>
+<p>Optional, default 300000 ms.
+The timeout for building new Kafka Connect images with additional connectors, in milliseconds.
+Consider increasing this value when using Strimzi to build container images containing many connectors or using a slow container registry.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_NETWORK_POLICY_GENERATION</code></dt>
+<dd>
+<p>Optional, default <code>true</code>.
+Network policy for resources.
+Network policies allow connections between Kafka components.</p>
+<div class="paragraph">
+<p>Set this environment variable to <code>false</code> to disable network policy generation. You might do this, for example, if you want to use custom network policies. Custom network policies allow more control over maintaining the connections between components.</p>
+</div>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_DNS_CACHE_TTL</code></dt>
+<dd>
+<p>Optional, default <code>30</code>.
+Number of seconds to cache successful name lookups in local DNS resolver. Any negative value means cache forever. Zero means do not cache, which can be useful for avoiding connection errors due to long caching policies being applied.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_POD_SET_RECONCILIATION_ONLY</code></dt>
+<dd>
+<p>Optional, default <code>false</code>.
+When set to <code>true</code>, the Cluster Operator reconciles only the <code>StrimziPodSet</code> resources and any changes to the other custom resources (<code>Kafka</code>, <code>KafkaConnect</code>, and so on) are ignored.
+This mode is useful for ensuring that your pods are recreated if needed, but no other changes happen to the clusters.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_FEATURE_GATES</code></dt>
+<dd>
+<p>Optional.
+Enables or disables the features and functionality controlled by <a href="#ref-operator-cluster-feature-gates-str">feature gates</a>.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_POD_SECURITY_PROVIDER_CLASS</code></dt>
+<dd>
+<p>Optional.
+Configuration for the pluggable <code>PodSecurityProvider</code> class, which can be used to provide the security context configuration for Pods and containers.</p>
+</dd>
+</dl>
+</div>
+<div class="sect4">
+<h5 id="ref-operator-cluster-leader-election-str"><a class="link" href="#ref-operator-cluster-leader-election-str">Leader election environment variables</a></h5>
+<div class="paragraph">
+<p>Use leader election environment variables when <a href="#assembly-using-multiple-cluster-operator-replicas-str">running additional Cluster Operator replicas</a>.
+You might run additional replicas to safeguard against disruption caused by major failure.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_ENABLED</code></dt>
+<dd>
+<p>Optional, disabled (<code>false</code>) by default.
+Enables or disables leader election, which allows additional Cluster Operator replicas to run on standby.</p>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Leader election is disabled by default.
+It is only enabled when applying this environment variable on installation.
+</td>
+</tr>
+</table>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_LEASE_NAME</code></dt>
+<dd>
+<p>Required when leader election is enabled.
+The name of the Kubernetes <code>Lease</code> resource that is used for the leader election.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_LEASE_NAMESPACE</code></dt>
+<dd>
+<p>Required when leader election is enabled.
+The namespace where the Kubernetes <code>Lease</code> resource used for leader election is created.
+You can use the downward API to configure it to the namespace where the Cluster Operator is deployed.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
+  - name: STRIMZI_LEADER_ELECTION_LEASE_NAMESPACE
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace</code></pre>
+</div>
+</div>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_IDENTITY</code></dt>
+<dd>
+<p>Required when leader election is enabled.
+Configures the identity of a given Cluster Operator instance used during the leader election.
+The identity must be unique for each operator instance.
+You can use the downward API to configure it to the name of the pod where the Cluster Operator is deployed.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
+  - name: STRIMZI_LEADER_ELECTION_IDENTITY
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name</code></pre>
+</div>
+</div>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_LEASE_DURATION_MS</code></dt>
+<dd>
+<p>Optional, default 15000 ms.
+Specifies the duration the acquired lease is valid.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_RENEW_DEADLINE_MS</code></dt>
+<dd>
+<p>Optional, default 10000 ms.
+Specifies the period the leader should try to maintain leadership.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_LEADER_ELECTION_RETRY_PERIOD_MS</code></dt>
+<dd>
+<p>Optional, default 2000 ms.
+Specifies the frequency of updates to the lease lock by the leader.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="ref-operator-cluster-network-policy-str"><a class="link" href="#ref-operator-cluster-network-policy-str">Restricting Cluster Operator access with network policy</a></h5>
+<div class="paragraph">
+<p>Use the <code>STRIMZI_OPERATOR_NAMESPACE_LABELS</code> environment variable to establish network policy for the Cluster Operator using namespace labels.</p>
+</div>
+<div class="paragraph">
+<p>The Cluster Operator can run in the same namespace as the resources it manages, or in a separate namespace.
+By default, the <code>STRIMZI_OPERATOR_NAMESPACE</code> environment variable is configured to use the downward API to find the namespace the Cluster Operator is running in.
+If the Cluster Operator is running in the same namespace as the resources, only local access is required and allowed by Strimzi.</p>
+</div>
+<div class="paragraph">
+<p>If the Cluster Operator is running in a separate namespace to the resources it manages, any namespace in the Kubernetes cluster is allowed access to the Cluster Operator unless network policy is configured.
+By adding namespace labels, access to the Cluster Operator is restricted to the namespaces specified.</p>
+</div>
+<div class="listingblock">
+<div class="title">Network policy configured for the Cluster Operator deployment</div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">#...
+env:
+  # ...
+  - name: STRIMZI_OPERATOR_NAMESPACE_LABELS
+    value: label1=value1,label2=value2
+  #...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="ref-operator-cluster-periodic-reconciliation-str"><a class="link" href="#ref-operator-cluster-periodic-reconciliation-str">Setting the time interval for periodic reconciliation</a></h5>
+<div class="paragraph">
+<p>Use the <code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code> variable to set the time interval for periodic reconciliations.</p>
+</div>
+<div class="paragraph">
+<p>The Cluster Operator reacts to all notifications about applicable cluster resources received from the Kubernetes cluster.
+If the operator is not running, or if a notification is not received for any reason, resources will get out of sync with the state of the running Kubernetes cluster.
+In order to handle failovers properly, a periodic reconciliation process is executed by the Cluster Operator so that it can compare the state of the resources with the current cluster deployments in order to have a consistent state across all of them.</p>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/#the-downward-api" target="_blank" rel="noopener">Downward API</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-configuring-proxy-config-cluster-operator-str"><a class="link" href="#proc-configuring-proxy-config-cluster-operator-str">6.2.4. Configuring the Cluster Operator with default proxy settings</a></h4>
 <div class="paragraph _abstract">
 <p>If you are running a Kafka cluster behind a HTTP proxy, you can still pass data in and out of the cluster.
 For example, you can run Kafka Connect with connectors that push and pull data from outside the proxy.
@@ -14748,7 +14870,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-using-multiple-cluster-operator-replicas-str"><a class="link" href="#assembly-using-multiple-cluster-operator-replicas-str">6.2.3. Running multiple Cluster Operator replicas with leader election</a></h4>
+<h4 id="assembly-using-multiple-cluster-operator-replicas-str"><a class="link" href="#assembly-using-multiple-cluster-operator-replicas-str">6.2.5. Running multiple Cluster Operator replicas with leader election</a></h4>
 <div class="paragraph _abstract">
 <p>The default Cluster Operator configuration enables <a href="#ref-operator-cluster-leader-election-str">leader election</a>.
 Use leader election to run multiple parallel replicas of the Cluster Operator.
@@ -14944,7 +15066,7 @@ The deployment is successful when the <code>AVAILABLE</code> output shows the co
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-configuring-fips-mode-cluster-operator-str"><a class="link" href="#proc-configuring-fips-mode-cluster-operator-str">6.2.4. Configuring FIPS mode in the Cluster Operator</a></h4>
+<h4 id="proc-configuring-fips-mode-cluster-operator-str"><a class="link" href="#proc-configuring-fips-mode-cluster-operator-str">6.2.6. Configuring FIPS mode in the Cluster Operator</a></h4>
 <div class="paragraph _abstract">
 <p>Federal Information Processing Standards (FIPS) are standards for computer security and interoperability.
 When running Strimzi on a FIPS-enabled Kubernetes cluster, the OpenJDK used in Strimzi container images will automatically switch to FIPS mode.
@@ -16208,7 +16330,7 @@ Feature gates might be removed when they reach GA. This means that the feature w
 </table>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 5. Feature gates and the Strimzi versions when they moved to alpha, beta, or GA</caption>
+<caption class="title">Table 9. Feature gates and the Strimzi versions when they moved to alpha, beta, or GA</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 25%;">
@@ -16255,7 +16377,7 @@ Feature gates might be removed when they reach GA. This means that the feature w
 The following table shows which feature gates you need to disable when upgrading or downgrading Strimzi versions.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 6. Feature gates to disable when upgrading or downgrading Strimzi</caption>
+<caption class="title">Table 10. Feature gates to disable when upgrading or downgrading Strimzi</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -17012,7 +17134,7 @@ Compare the balancedness scores to see whether the Kafka cluster is less balance
 <p>The following table explains the properties contained in the optimization proposal&#8217;s summary section.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 7. Properties contained in an optimization proposal summary</caption>
+<caption class="title">Table 11. Properties contained in an optimization proposal summary</caption>
 <colgroup>
 <col style="width: 35%;">
 <col style="width: 65%;">
@@ -17314,7 +17436,7 @@ You can set these tuning options when <a href="#proc-configuring-deploying-cruis
 <p>The relevant configurations are summarized in the following table.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 8. Rebalance performance tuning configuration</caption>
+<caption class="title">Table 12. Rebalance performance tuning configuration</caption>
 <colgroup>
 <col style="width: 36.3636%;">
 <col style="width: 36.3636%;">
@@ -17565,7 +17687,7 @@ The deployment is successful when the <code>AVAILABLE</code> output shows <code>
 <p>The following table shows the three topics that are automatically created when Cruise Control is deployed. These topics are required for Cruise Control to work properly and must not be deleted or changed. You can change the name of the topic using the specified configuration option.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 9. Auto-created topics</caption>
+<caption class="title">Table 13. Auto-created topics</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 16.6666%;">
@@ -19603,7 +19725,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </table>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 10. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
+<caption class="title">Table 14. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -19622,7 +19744,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 11. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
+<caption class="title">Table 15. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -19649,7 +19771,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 12. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-brokers</code> secret</caption>
+<caption class="title">Table 16. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-brokers</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -19680,7 +19802,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 13. Fields in the <code><em>&lt;cluster_name&gt;</em>-zookeeper-nodes</code> secret</caption>
+<caption class="title">Table 17. Fields in the <code><em>&lt;cluster_name&gt;</em>-zookeeper-nodes</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -19711,7 +19833,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 14. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
+<caption class="title">Table 18. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -19743,7 +19865,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 15. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
+<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -19775,7 +19897,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 16. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
+<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -19807,7 +19929,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 17. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
+<caption class="title">Table 21. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -19839,7 +19961,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 18. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
+<caption class="title">Table 22. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -19885,7 +20007,7 @@ This secret must be accessible to the Strimzi components and for administrative 
 You can enforce this using Kubernetes role-based access controls, if necessary.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
+<caption class="title">Table 23. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -19904,7 +20026,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
+<caption class="title">Table 24. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -19940,7 +20062,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 <p>When a user is created using the User Operator, a secret is generated using the name of the user.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 21. Fields in the <code><em>user_name</em></code> secret</caption>
+<caption class="title">Table 25. Fields in the <code><em>user_name</em></code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 30%;">
@@ -20250,7 +20372,7 @@ Instead, follow the procedure for <a href="#renewing-your-own-ca-certificates-st
 <li>
 <p>Apply the <code>strimzi.io/force-renew</code> annotation to the <code>Secret</code> that contains the CA certificate that you want to renew.</p>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 22. Annotation for the Secret that forces renewal of certificates</caption>
+<caption class="title">Table 26. Annotation for the Secret that forces renewal of certificates</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -20375,7 +20497,7 @@ Instead, follow the procedure for <a href="#renewing-your-own-ca-certificates-st
 <li>
 <p>Apply the <code>strimzi.io/force-replace</code> annotation to the <code>Secret</code> that contains the private key that you want to renew.</p>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 23. Commands for replacing private keys</caption>
+<caption class="title">Table 27. Commands for replacing private keys</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -21419,7 +21541,7 @@ A rolling update is also started if you update a Kafka listener certificate in a
 <p>For external listeners which have TLS encryption enabled, the hostnames you need to specify in certificates depends on the external listener <code>type</code>.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 24. SANs for each type of external listener</caption>
+<caption class="title">Table 28. SANs for each type of external listener</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -21499,7 +21621,7 @@ my-cluster   3                        3</code></pre>
 </div>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 25. Long and short names for each Strimzi resource</caption>
+<caption class="title">Table 29. Long and short names for each Strimzi resource</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -21658,7 +21780,7 @@ my-cluster-kafka-bootstrap.myproject.svc:9093</code></pre>
 <p>Several resources have a <code>status</code> property, as described in the following table.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 26. Custom resource status properties</caption>
+<caption class="title">Table 30. Custom resource status properties</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -26010,7 +26132,7 @@ The Cluster Operator sets default maximum and minimum heap values based on a per
 <p>The following table shows the default heap values.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 27. Default heap settings for components</caption>
+<caption class="title">Table 31. Default heap settings for components</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 25%;">
@@ -28160,7 +28282,7 @@ Default is <code>false</code>.</p>
 </div>
 <div class="paragraph">
 <p>If your Kubernetes cluster uses a different service suffix than <code>.cluster.local</code>, you can configure the suffix using the <code>KUBERNETES_SERVICE_DNS_DOMAIN</code> environment variable in the Cluster Operator configuration.
-See <a href="#ref-operator-cluster-str">Cluster Operator configuration</a> for more details.</p>
+See <a href="#ref-operator-cluster-str">Configuring the Cluster Operator with environment variables</a> for more details.</p>
 </div>
 </div>
 <div class="sect4">
@@ -40405,7 +40527,7 @@ If not specified, the <code>full</code> mode is used by default.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-08-31 09:38:27 UTC
+Last updated 2022-08-31 20:09:47 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
