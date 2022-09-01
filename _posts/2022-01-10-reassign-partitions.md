@@ -41,9 +41,9 @@ There are a couple of other common use cases where the tool can be used:
   Followed by forcing the election of the preferred leader, this can be used to change the leadership of a given partition.
 * Moving data from one volume to another on the same broker.
   This is necessary prior to removing a volume from JBOD storage.
-  (To utilise a newly added JBOD volume it's more convenient to perform a global rebalance using `KafkaRebalance` once the volume has been added).
+  (To utilise a newly added JBOD volume it's probably more convenient to perform a global rebalance using `KafkaRebalance` once the volume has been added).
 
-In the rest of this post we'll dive into how the tool works, and then go through some examples base on these use cases.
+In the rest of this post we'll dive into how the tool works, and then go through some examples based on these use cases.
 
 ## Tool modes
 
@@ -54,14 +54,14 @@ The tool has two fundamental modes of operation:
 - `--execute`: This initiates a ressignment that you describe using a JSON file. We'll refer to this file throughout as reassignment.json, though you can name it how you like. Note that when the execution of an --execute command completes the reassignment has only been started.
 - `--verify`: This checks whether reassignment that you previously started (using --execute) has actually completed.
 
-Constructing a reassignment.json can anything from a bit tedious to a piece of work in its own right. To help with this the tool provides an optional third mode, `--generate`, to generate one from a list of topics you provide in a different JSON file, which we'll be calling topics.json. You can use the reassignment.json that is produced by a --generate invocation directly, or modify it further prior to actually making changes using --execute.
+Constructing a reassignment.json can be anything from a bit tedious to a piece of work in its own right. To help with this the tool provides an optional third mode, `--generate`, to generate one from a list of topics you provide in a different JSON file, which we'll be calling topics.json. You can use the reassignment.json that is produced by a --generate invocation directly, or modify it further prior to actually making changes using --execute.
 
 ## Partition Reassignment in detail
 
-When you make changes to a partition there are three possible cases:
+When you make changes to a partition's assignment to brokers there are three possible cases:
 
 1. Changes which require moving data between brokers.
-2. Changes which require moving data between volumes on the same broker.
+2. Changes which require moving data between volumes on _the same_ broker.
 3. Change which require no data movement at all.
 
 The first case leads to additional inter-broker network traffic, in addition to the normal traffic required for replication.
@@ -75,9 +75,9 @@ Throttling might cause the reassignment to take longer to complete.
 
 * If the throttle is too high, the overall health of the cluster may be impacted.
 
-You can use the `kafka.server:type=FetcherLagMetrics,name=ConsumerLag,clientId=([-.\w]+),topic=([-.\w]+),partition=([0-9]+)` metric (which with the default `spec.kafka.metrics` settings in your Kafka CR would be named in Prometheus as `kafka_server-fetcherlagmetrics_consumerlag`) to observe how far the followers are lagging behind the leader. You can also refer to this [example](https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/kafka-metrics.yaml) for configuring metrics
+You can use the `kafka.server:type=FetcherLagMetrics,name=ConsumerLag,clientId=([-.\w]+),topic=([-.\w]+),partition=([0-9]+)` metric (which with the default `spec.kafka.metrics` settings in your Kafka CR would be named in Prometheus as `kafka_server-fetcherlagmetrics_consumerlag`) to observe how far the followers are lagging behind the leader. You can refer to this [example](https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/kafka-metrics.yaml) for configuring metrics
 
-The best way to set the value for throttle is to start with a safe value.
+The best way to set the value for `--throttle` is to start with a safe value.
 If the lag is growing, or decreasing too slowly to catch up within a reasonable time, then the throttle should be increased.
 To do this, run the command again to increase the throttle, iterating until it looks like the broker will join the ISR within a reasonable time.
 
@@ -195,7 +195,7 @@ When we just created the `my-topic-two` topic we specified `spec.replicas` as 4.
 In hindsight that's actually more replicas than we need, so let's reduce it to 3.
 To do this we can simply remove the last replica from the list of replicas of each partition of that topic.
 
-Since we're operating on a single topic it's going to be easiest to use the `--generate` mode of `kafka-reassign-partitions.sh` and then edit that (either by hand or using a tool like `jq`).
+Since we're operating on a single topic it's going to be easiest to use the `--generate` mode of `kafka-reassign-partitions.sh` and then edit that (either by hand or using a tool like [jq](https://stedolan.github.io/jq/)).
 
 ### Creating a proposal `reassignment.json` file
 
@@ -237,7 +237,7 @@ Here `topics-to-move-json-file` points towards the `topics.json file` and `--bro
 
 Once you run this command, you will be able to see the JSON data which is generated by the Kafka reassignment partition tool. You get the current replica assignment and the proposed `reassignment.json` data.
 
-```sh
+```json
 Current partition replica assignment
 {"version":1,"partitions":[{"topic":"my-topic-two","partition":0,"replicas":[3,4,2,0],"log_dirs":["any","any","any","any"]},{"topic":"my-topic-two","partition":1,"replicas":[0,2,3,1],"log_dirs":["any","any","any","any"]},{"topic":"my-topic-two","partition":2,"replicas":[1,3,0,4],"log_dirs":["any","any","any","any"]}]}
 
@@ -248,13 +248,13 @@ Proposed partition reassignment configuration
 
 You can copy this proposed partition reassignment and paste it in a local `reassignment.json` file
 
-Edit the `reassignment.json` to remove a replica from each partition
+Edit the `reassignment.json` to remove a replica from each partition, for example using `jq` to simply remove the last replica in the list for each partition of the topic:
 
 ```sh
 echo "$( jq 'del(.partitions[].replicas[3])' reassignment.json)" > reassignment.json
 ```
 
-We then copy the `reassignment.json` file to the interactive pod container.
+We then copy the modified `reassignment.json` file to the interactive pod container.
 
 ```sh
 kubectl cp reassignment.json my-pod:/tmp/reassignment.json
@@ -267,7 +267,8 @@ kubectl exec -ti my-pod /bin/bash -- bin/kafka-reassign-partitions.sh --bootstra
 --execute
 ```
 Because removing replicas from a broker doesn't require any interbroker data movement there is no need to supply a `--throttle` in this case.
-And since deleting data is very quick the reassignment will probably be complete almost immediately.
+(Interbroker data movement would be needed if you were increasing the replication factor, so in that case a `--throttle` would be recommended).
+Since deleting data is very quick the reassignment will probably be complete almost immediately.
 We can use the `--verify` action to when if the partition reassignment is done.
 
 ```sh
@@ -299,9 +300,11 @@ Topic: my-topic-two     Partition: 2    Leader: 0       Replicas: 2,3,0 Isr: 0,2
 
 Let's now change the preferred leader of `my-topic-two` partition 0.
 
-Changing the order of the replicas will change the preferred leader. We can edit our previous `reassignment.json` file to edit the order of the replicas for partition 0
+The preferred replica is the first one in the list of `Replicas` in the output above, so changing the order of the replicas will change the preferred leader.
+However doing that won't, on it's own, force the current leadership to be changed to match the new preferred leader.
+Let's start by editing our previous `reassignment.json` file to edit the order of the replicas for partition 0
 
-```shell
+```json
 {"version":1,"partitions":[{"topic":"my-topic-two","partition":0,"replicas":[1,0,2]},{"topic":"my-topic-two","partition":1,"replicas":[1,2,3]},{"topic":"my-topic-two","partition":2,"replicas":[2,3,4]}]}
 ```
 Now we can use the `--execute` mode to apply our new `reassignment.json` file
@@ -319,11 +322,322 @@ Now we can see if the preferred leader is now changed or not
         Topic: my-topic-two     Partition: 0    Leader: 0       Replicas: 1,0,2 Isr: 0,1,2
         Topic: my-topic-two     Partition: 1    Leader: 2       Replicas: 1,2,3 Isr: 2,3,1
         Topic: my-topic-two     Partition: 2    Leader: 3       Replicas: 2,3,4 Isr: 2,3,4
+```
 
+## Example 3: Changing the log dirs 
+
+Lets see how we can move a partition to use a certain JBOD volume.
+
+Let say we have deployed a Kafka Resource with JBOD storage and deployed a topic with `spec.replicas` as 4.
+
+Now our second task is to check which `logdir` are currently being used by Strimzi. You can use the `kafka-log-dir.sh` tool to check this
+
+```shell
+kubectl exec -n myproject -ti my-pod /bin/bash -- bin/kafka-log-dirs.sh --describe --bootstrap-server my-cluster-kafka-bootstrap:9092  --broker-list 0,1,2,3 --topic-list my-topic-two
+```
+
+You will get a `json` which represents the log directories being used by the brokers
+
+```json
+[
+  {
+    "broker": 0,
+    "logDirs": [
+      {
+        "logDir": "/var/lib/kafka/data-0/kafka-log0",
+        "error": null,
+        "partitions": [
+          {
+            "partition": "my-topic-two-1",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          },
+          {
+            "partition": "my-topic-two-2",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          }
+        ]
+      },
+      {
+        "logDir": "/var/lib/kafka/data-1/kafka-log0",
+        "error": null,
+        "partitions": [
+          {
+            "partition": "my-topic-two-0",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "broker": 1,
+    "logDirs": [
+      {
+        "logDir": "/var/lib/kafka/data-1/kafka-log1",
+        "error": null,
+        "partitions": [
+          {
+            "partition": "my-topic-two-1",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          }
+        ]
+      },
+      {
+        "logDir": "/var/lib/kafka/data-0/kafka-log1",
+        "error": null,
+        "partitions": [
+          {
+            "partition": "my-topic-two-2",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          },
+          {
+            "partition": "my-topic-two-0",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "broker": 2,
+    "logDirs": [
+      {
+        "logDir": "/var/lib/kafka/data-0/kafka-log2",
+        "error": null,
+        "partitions": [
+          {
+            "partition": "my-topic-two-2",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          }
+        ]
+      },
+      {
+        "logDir": "/var/lib/kafka/data-1/kafka-log2",
+        "error": null,
+        "partitions": [
+          {
+            "partition": "my-topic-two-0",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "broker": 3,
+    "logDirs": [
+      {
+        "logDir": "/var/lib/kafka/data-0/kafka-log3",
+        "error": null,
+        "partitions": [
+          {
+            "partition": "my-topic-two-1",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          }
+        ]
+      },
+      {
+        "logDir": "/var/lib/kafka/data-1/kafka-log3",
+        "error": null,
+        "partitions": [
+          {
+            "partition": "my-topic-two-0",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          }
+        ]
+      }
+    ]
+  }
+]
+```
+
+Now we can try to move `my-topic-two-1` to use the log directory `/var/lib/kafka/data-1/kafka-log0`
+
+
+We can again generate the `reassignment.json` in the same way we generated it for the other examples.
+
+```shell
+{"version":1,"partitions":[{"topic":"my-topic-two","partition":0,"replicas":[0,3,1,2],"log_dirs":["any","any","any","any"]},{"topic":"my-topic-two","partition":1,"replicas":[1,0,2,3],"log_dirs":["any","any","any","any"]},{"topic":"my-topic-two","partition":2,"replicas":[2,1,3,0],"log_dirs":["any","any","any","any"]}]}
+```
+
+Lets edit our `reassignment.json`and make the changes in log directory for partition 1.
+
+```json
+{"version":1,"partitions":[{"topic":"my-topic-two","partition":0,"replicas":[0,3,1,2],"log_dirs":["any","any","any","any"]},{"topic":"my-topic-two","partition":1,"replicas":[1,0,2,3],"log_dirs":["any","/var/lib/kafka/data-1/kafka-log0","any","any"]},{"topic":"my-topic-two","partition":2,"replicas":[2,1,3,0],"log_dirs":["any","any","any","any"]}]}
+```
+Now we can use the `--execute` mode of the tool to apply our `reassignment.json` file and after that use the `--verify` mode to check if the assignment is done or not just like we did in the above steps.
+
+ Once the assignment is done, you can check whether the log directory for partition 1 is now using the log directory `/var/lib/kafka/data-1/kafka-log0`
+
+```json
+[
+  {
+    "broker": 0,
+    "logDirs": [
+      {
+        "logDir": "/var/lib/kafka/data-0/kafka-log0",
+        "error": null,
+        "partitions": [
+          {
+            "partition": "my-topic-two-2",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          }
+        ]
+      },
+      {
+        "logDir": "/var/lib/kafka/data-1/kafka-log0",
+        "error": null,
+        "partitions": [
+          {
+            "partition": "my-topic-two-1",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          },
+          {
+            "partition": "my-topic-two-0",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "broker": 1,
+    "logDirs": [
+      {
+        "logDir": "/var/lib/kafka/data-1/kafka-log1",
+        "error": null,
+        "partitions": [
+          {
+            "partition": "my-topic-two-1",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          }
+        ]
+      },
+      {
+        "logDir": "/var/lib/kafka/data-0/kafka-log1",
+        "error": null,
+        "partitions": [
+          {
+            "partition": "my-topic-two-2",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          },
+          {
+            "partition": "my-topic-two-0",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "broker": 2,
+    "logDirs": [
+      {
+        "logDir": "/var/lib/kafka/data-0/kafka-log2",
+        "error": null,
+        "partitions": [
+          {
+            "partition": "my-topic-two-1",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          },
+          {
+            "partition": "my-topic-two-2",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          }
+        ]
+      },
+      {
+        "logDir": "/var/lib/kafka/data-1/kafka-log2",
+        "error": null,
+        "partitions": [
+          {
+            "partition": "my-topic-two-0",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "broker": 3,
+    "logDirs": [
+      {
+        "logDir": "/var/lib/kafka/data-0/kafka-log3",
+        "error": null,
+        "partitions": [
+          {
+            "partition": "my-topic-two-1",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          },
+          {
+            "partition": "my-topic-two-2",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          }
+        ]
+      },
+      {
+        "logDir": "/var/lib/kafka/data-1/kafka-log3",
+        "error": null,
+        "partitions": [
+          {
+            "partition": "my-topic-two-0",
+            "size": 0,
+            "offsetLag": 0,
+            "isFuture": false
+          }
+        ]
+      }
+    ]
+  }
+]
 ```
 
 # Conclusion
 
-This example provides a brief introduction to the `--generate`, `--execute`, and `--verify` actions of the Kafka reassignment partition tool. These are the crucial points you should know before attempting reassigning partitions in your Kafka cluster.
+In this post we've discussed the use cases where you can use Strimzi's KafkaRebalance CR for partition reassignment. We've looked in more detail at the use cases where you have to reassign partitions manually.
 
-You can also take a look at our documentation on using the partition reassignment tool for [Scaling up the Kafka cluster](https://strimzi.io/docs/operators/in-development/using.html#proc-scaling-up-a-kafka-cluster-str) and [Scaling down the Kafka cluster](https://strimzi.io/docs/operators/in-development/using.html#proc-scaling-down-a-kafka-cluster-str).
+We've explained the the different modes of the kafka-reassign-partitions.sh tool (--generate, --execute, and --verify) and seen examples of using it for the manual reassignment cases.
+
+You can also take a look at our documentation on using the partition reassignment tool for Scaling up the Kafka cluster and Scaling down the Kafka cluster.
