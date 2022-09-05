@@ -9,9 +9,8 @@ Apache Kafka brokers host replicas of partitions. How many and which partitions 
 One broker often ends up experiencing more load than others, and the most loaded broker can become a bottleneck within the cluster.
 Strimzi supports the use of Cruise Control and we recommend using it to balance the load across the brokers.
 That's because when there are more than a handful of partitions in your cluster it becomes very hard to find the best, or even a "good enough", assignment.
-But sometimes you might need to make small changes to the replica assignment.
-
-This blog post will guide you through when you might need to do reassignments using Kafka's partition reassignment rool, and how to do so.
+But sometimes you might need to make small changes to the replica assignment. 
+This blog post will guide you through when you might need to do reassignments using Kafka's partition reassignment tool, and how to do so.
 
 <!--more-->
 
@@ -20,22 +19,20 @@ This blog post will guide you through when you might need to do reassignments us
 As mentioned, we recommend using Cruise Control where possible.
 Currently Strimzi offers first-class support for three use cases:
 
-* Global cluster balancing.
+* Balancing the whole cluster.
   This uses the `KafkaRebalance` custom resource.
-* Automatically assigning replicas to newly-added brokers. This uses a `KafkaRebalance` with `spec.mode` set to `add-broker`, which was added in Strimzi 0.29.
-* Automatically reassigning replicas away from brokers prior to scaling down the cluster. This uses a `KafkaRebalance` with `spec.model` set to `remove-broker`. This was also added in Strimzi 0.29.
+* Assigning replicas to newly-added brokers. This uses a `KafkaRebalance` with `spec.mode` set to `add-broker`, which was added in Strimzi 0.29.
+* Reassigning replicas away from brokers prior to scaling down the cluster. This uses a `KafkaRebalance` with `spec.model` set to `remove-broker`. This was also added in Strimzi 0.29.
 
 These use cases are covered extensively in [the documentation](https://strimzi.io/docs/operators/latest/configuring.html#cruise-control-concepts-str).
-So if this is the kind of rebalancing you need you can stop reading the rest of this post.
 
 The Strimzi community is also planning further integration with Cruise Control:
 
 * Simplifying the existing rebalancing functionality using [auto-approval](https://github.com/strimzi/proposals/blob/main/038-optimization-proposal-autoapproval.md).
+* Automatic rebalance on scaling the broker up/down [auto-rebalance](https://github.com/strimzi/proposals/pull/57).  
 * Better supporting [changing the replication factor](https://github.com/strimzi/proposals/pull/50) of individual topics using the Topic Operator.
 
-Until those improvements are implemented it's possible to use the reassignment tool for these cases.
-
-There are a couple of other common use cases where the tool can be used:
+There are a couple of common use cases where the tool can be used:
 
 * Changing the preferred leader of one or more partitions.
   Followed by forcing the election of the preferred leader, this can be used to change the leadership of a given partition.
@@ -66,7 +63,7 @@ When you make changes to a partition's assignment to brokers there are three pos
 
 The first case leads to additional inter-broker network traffic, in addition to the normal traffic required for replication.
 To avoid overloading the cluster, it is recommended to always set a throttle rate to limit the bandwidth used by the reassignment.
-This can be done using the `--throttle` option in the `--execute` model.
+This can be done using the `--throttle` option in the `--execute` mode.
 This sets the maximum allowed bandwidth in bytes per second, for example `kafka-reassign-partitions.sh --execute --throttle 5000000 ...` would set the limit to 5 MB/s.
 
 Throttling might cause the reassignment to take longer to complete.
@@ -75,7 +72,7 @@ Throttling might cause the reassignment to take longer to complete.
 
 * If the throttle is too high, the overall health of the cluster may be impacted.
 
-You can use the `kafka.server:type=FetcherLagMetrics,name=ConsumerLag,clientId=([-.\w]+),topic=([-.\w]+),partition=([0-9]+)` metric (which with the default `spec.kafka.metrics` settings in your Kafka CR would be named in Prometheus as `kafka_server-fetcherlagmetrics_consumerlag`) to observe how far the followers are lagging behind the leader. You can refer to this [example](https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/kafka-metrics.yaml) for configuring metrics
+You can use the `kafka.server:type=FetcherLagMetrics,name=ConsumerLag,clientId=([-.\w]+),topic=([-.\w]+),partition=([0-9]+)` metric (which with the `spec.kafka.metrics` settings in your Kafka CR would be named in Prometheus as `kafka_server-fetcherlagmetrics_consumerlag`) to observe how far the followers are lagging behind the leader. You can refer to this [example](https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/kafka-metrics.yaml) for configuring metrics
 
 The best way to set the value for `--throttle` is to start with a safe value.
 If the lag is growing, or decreasing too slowly to catch up within a reasonable time, then the throttle should be increased.
@@ -85,13 +82,13 @@ The `--verify` mode checks whether all the partitions in have been moved to thei
 If the reassignment is complete, `--verify` also removes any replication quotas (`--throttle`) that are in effect.
 Unless removed, throttles will continue to affect the cluster even after the reassignment has finished.
 
-To summarise, a typical reasignment might look like this:
+To summarise, a typical reassignment might look like this:
 
 1. Start the reassignment: `kafka-reassign-partitions.sh --execute --throttle 5000000 ...`
 2. Observe a growing lag
 3. Increase the throttle: `kafka-reassign-partitions.sh --execute --throttle 8000000 ...`
-4. Maybe now the lag is falling, but too slowly to expect the reassingment to be complete within a tolerable time.
-5. So increase the throttle agin: `kafka-reassign-partitions.sh --execute --throttle 10000000 ...`
+4. Maybe now the lag is falling, but too slowly to expect the reassignment to be complete within a tolerable time.
+5. So increase the throttle again: `kafka-reassign-partitions.sh --execute --throttle 10000000 ...`
 6. Check for completion: `kafka-reassign-partitions.sh --verify ...`, but it's not complete.
 7. Check for completion: `kafka-reassign-partitions.sh --verify ...`, this time the reassignment is complete, so this invocation will have removed the throttle.
 
@@ -113,17 +110,13 @@ metadata:
    name: my-cluster
 spec:
    kafka:
-      version: 3.2.1
-      replicas: 3
+      version: 3.2.0
+      replicas: 5
       listeners:
          - name: plain
            port: 9092
            type: internal
            tls: false
-         - name: tls
-           port: 9093
-           type: internal
-           tls: true
       config:
          offsets.topic.replication.factor: 3
          transaction.state.log.replication.factor: 3
@@ -143,7 +136,7 @@ spec:
               size: 100Gi
               deleteClaim: false
    zookeeper:
-      replicas: 3
+      replicas: 4
       storage:
          type: persistent-claim
          size: 100Gi
@@ -164,8 +157,8 @@ metadata:
   labels:
     strimzi.io/cluster: my-cluster
 spec:
-  partitions: 10
-  replicas: 3
+  partitions: 3
+  replicas: 4
   config:
     retention.ms: 7200000
     segment.bytes: 1073741824
@@ -183,7 +176,7 @@ Finally, let us create a separate interactive pod for running the commands in.
 You can use the following command to create a pod called `my-pod`:
 
 ```sh
-kubectl run --restart=Never --image=quay.io/strimzi/kafka:0.29.0-kafka-3.2.0 my-pod -- /bin/sh -c "sleep 3600"
+kubectl run --restart=Never --image=quay.io/strimzi/kafka:0.30.0-kafka-3.2.0 my-pod -- /bin/sh -c "sleep 3600"
 ```
 
 Wait till the pod gets into the `Ready` state.
@@ -326,9 +319,9 @@ Now we can see if the preferred leader is now changed or not
 
 ## Example 3: Changing the log dirs 
 
-Lets see how we can move a partition to use a certain JBOD volume.
+Let's see how we can move a partition to use a certain JBOD volume.
 
-Let say we have deployed a Kafka Resource with JBOD storage and deployed a topic with `spec.replicas` as 4.
+Assume we have deployed a Kafka Resource with JBOD storage and deployed a topic with `spec.replicas` as 4.
 
 Now our second task is to check which `logdir` are currently being used by Strimzi. You can use the `kafka-log-dir.sh` tool to check this
 
@@ -374,116 +367,121 @@ You will get a `json` which represents the log directories being used by the bro
         ]
       }
     ]
-  },
+  }
+] // ...
+```
+
+Now we can try to move `my-topic-two-1` to use the log directory `/var/lib/kafka/data-1/kafka-log0` on broker 0.
+
+
+We can again generate the `reassignment.json` in the same way we generated it for the other examples.
+
+```json
+[
   {
-    "broker": 1,
-    "logDirs": [
-      {
-        "logDir": "/var/lib/kafka/data-1/kafka-log1",
-        "error": null,
-        "partitions": [
-          {
-            "partition": "my-topic-two-1",
-            "size": 0,
-            "offsetLag": 0,
-            "isFuture": false
-          }
-        ]
-      },
-      {
-        "logDir": "/var/lib/kafka/data-0/kafka-log1",
-        "error": null,
-        "partitions": [
-          {
-            "partition": "my-topic-two-2",
-            "size": 0,
-            "offsetLag": 0,
-            "isFuture": false
-          },
-          {
-            "partition": "my-topic-two-0",
-            "size": 0,
-            "offsetLag": 0,
-            "isFuture": false
-          }
-        ]
-      }
+    "topic": "my-topic-two",
+    "partition": 0,
+    "replicas": [
+      0,
+      3,
+      1,
+      2
+    ],
+    "log_dirs": [
+      "any",
+      "any",
+      "any",
+      "any"
     ]
   },
   {
-    "broker": 2,
-    "logDirs": [
-      {
-        "logDir": "/var/lib/kafka/data-0/kafka-log2",
-        "error": null,
-        "partitions": [
-          {
-            "partition": "my-topic-two-2",
-            "size": 0,
-            "offsetLag": 0,
-            "isFuture": false
-          }
-        ]
-      },
-      {
-        "logDir": "/var/lib/kafka/data-1/kafka-log2",
-        "error": null,
-        "partitions": [
-          {
-            "partition": "my-topic-two-0",
-            "size": 0,
-            "offsetLag": 0,
-            "isFuture": false
-          }
-        ]
-      }
+    "topic": "my-topic-two",
+    "partition": 1,
+    "replicas": [
+      1,
+      0,
+      2,
+      3
+    ],
+    "log_dirs": [
+      "any",
+      "any",
+      "any",
+      "any"
     ]
   },
   {
-    "broker": 3,
-    "logDirs": [
-      {
-        "logDir": "/var/lib/kafka/data-0/kafka-log3",
-        "error": null,
-        "partitions": [
-          {
-            "partition": "my-topic-two-1",
-            "size": 0,
-            "offsetLag": 0,
-            "isFuture": false
-          }
-        ]
-      },
-      {
-        "logDir": "/var/lib/kafka/data-1/kafka-log3",
-        "error": null,
-        "partitions": [
-          {
-            "partition": "my-topic-two-0",
-            "size": 0,
-            "offsetLag": 0,
-            "isFuture": false
-          }
-        ]
-      }
+    "topic": "my-topic-two",
+    "partition": 2,
+    "replicas": [
+      2,
+      1,
+      3,
+      0
+    ],
+    "log_dirs": [
+      "any",
+      "any",
+      "any",
+      "any"
     ]
   }
 ]
 ```
 
-Now we can try to move `my-topic-two-1` to use the log directory `/var/lib/kafka/data-1/kafka-log0`
-
-
-We can again generate the `reassignment.json` in the same way we generated it for the other examples.
-
-```shell
-{"version":1,"partitions":[{"topic":"my-topic-two","partition":0,"replicas":[0,3,1,2],"log_dirs":["any","any","any","any"]},{"topic":"my-topic-two","partition":1,"replicas":[1,0,2,3],"log_dirs":["any","any","any","any"]},{"topic":"my-topic-two","partition":2,"replicas":[2,1,3,0],"log_dirs":["any","any","any","any"]}]}
-```
-
-Lets edit our `reassignment.json`and make the changes in log directory for partition 1.
+Let's edit our `reassignment.json`and make the changes in log directory for partition 1.
 
 ```json
-{"version":1,"partitions":[{"topic":"my-topic-two","partition":0,"replicas":[0,3,1,2],"log_dirs":["any","any","any","any"]},{"topic":"my-topic-two","partition":1,"replicas":[1,0,2,3],"log_dirs":["any","/var/lib/kafka/data-1/kafka-log0","any","any"]},{"topic":"my-topic-two","partition":2,"replicas":[2,1,3,0],"log_dirs":["any","any","any","any"]}]}
+[
+  {
+    "topic": "my-topic-two",
+    "partition": 0,
+    "replicas": [
+      0,
+      3,
+      1,
+      2
+    ],
+    "log_dirs": [
+      "any",
+      "any",
+      "any",
+      "any"
+    ]
+  },
+  {
+    "topic": "my-topic-two",
+    "partition": 1,
+    "replicas": [
+      1,
+      0,
+      2,
+      3
+    ],
+    "log_dirs": [
+      "any",
+      "/var/lib/kafka/data-1/kafka-log0",
+      "any",
+      "any"
+    ]
+  },
+  {
+    "topic": "my-topic-two",
+    "partition": 2,
+    "replicas": [
+      2,
+      1,
+      3,
+      0
+    ],
+    "log_dirs": [
+      "any",
+      "any",
+      "any",
+      "any"
+    ]
+  }
+]
 ```
 Now we can use the `--execute` mode of the tool to apply our `reassignment.json` file and after that use the `--verify` mode to check if the assignment is done or not just like we did in the above steps.
 
@@ -525,119 +523,15 @@ Now we can use the `--execute` mode of the tool to apply our `reassignment.json`
         ]
       }
     ]
-  },
-  {
-    "broker": 1,
-    "logDirs": [
-      {
-        "logDir": "/var/lib/kafka/data-1/kafka-log1",
-        "error": null,
-        "partitions": [
-          {
-            "partition": "my-topic-two-1",
-            "size": 0,
-            "offsetLag": 0,
-            "isFuture": false
-          }
-        ]
-      },
-      {
-        "logDir": "/var/lib/kafka/data-0/kafka-log1",
-        "error": null,
-        "partitions": [
-          {
-            "partition": "my-topic-two-2",
-            "size": 0,
-            "offsetLag": 0,
-            "isFuture": false
-          },
-          {
-            "partition": "my-topic-two-0",
-            "size": 0,
-            "offsetLag": 0,
-            "isFuture": false
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "broker": 2,
-    "logDirs": [
-      {
-        "logDir": "/var/lib/kafka/data-0/kafka-log2",
-        "error": null,
-        "partitions": [
-          {
-            "partition": "my-topic-two-1",
-            "size": 0,
-            "offsetLag": 0,
-            "isFuture": false
-          },
-          {
-            "partition": "my-topic-two-2",
-            "size": 0,
-            "offsetLag": 0,
-            "isFuture": false
-          }
-        ]
-      },
-      {
-        "logDir": "/var/lib/kafka/data-1/kafka-log2",
-        "error": null,
-        "partitions": [
-          {
-            "partition": "my-topic-two-0",
-            "size": 0,
-            "offsetLag": 0,
-            "isFuture": false
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "broker": 3,
-    "logDirs": [
-      {
-        "logDir": "/var/lib/kafka/data-0/kafka-log3",
-        "error": null,
-        "partitions": [
-          {
-            "partition": "my-topic-two-1",
-            "size": 0,
-            "offsetLag": 0,
-            "isFuture": false
-          },
-          {
-            "partition": "my-topic-two-2",
-            "size": 0,
-            "offsetLag": 0,
-            "isFuture": false
-          }
-        ]
-      },
-      {
-        "logDir": "/var/lib/kafka/data-1/kafka-log3",
-        "error": null,
-        "partitions": [
-          {
-            "partition": "my-topic-two-0",
-            "size": 0,
-            "offsetLag": 0,
-            "isFuture": false
-          }
-        ]
-      }
-    ]
   }
-]
+]   // ... 
 ```
 
-# Conclusion
+## Conclusion
 
-In this post we've discussed the use cases where you can use Strimzi's KafkaRebalance CR for partition reassignment. We've looked in more detail at the use cases where you have to reassign partitions manually.
+In this post we've discussed the use cases where you cannot use Strimzi's `KafkaRebalance` CR for partition reassignment.
+We've looked in more detail at the use cases where you have to reassign partitions manually.
 
-We've explained the the different modes of the kafka-reassign-partitions.sh tool (--generate, --execute, and --verify) and seen examples of using it for the manual reassignment cases.
+We've explained the the different modes of the `kafka-reassign-partitions.sh` tool (`--generate`, `--execute`, and `--verify`) and seen examples of using it for the manual reassignment cases.
 
-You can also take a look at our documentation on using the partition reassignment tool for Scaling up the Kafka cluster and Scaling down the Kafka cluster.
+You can also take a look at our documentation on using the partition reassignment tool for [Scaling up the Kafka cluster](https://strimzi.io/docs/operators/in-development/using.html#proc-scaling-up-a-kafka-cluster-str) and [Scaling down the Kafka cluster](https://strimzi.io/docs/operators/in-development/using.html#proc-scaling-down-a-kafka-cluster-str).
