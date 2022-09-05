@@ -1,13 +1,13 @@
 ---
 layout: post
 title: "Configuring security context of Strimzi-managed pods"
-date: 2022-09-04
+date: 2022-09-09
 author: jakub_scholz
 ---
 
 Security is important for all of us.
 That is why we always try to do our best to make sure that our code doesn't contain any security vulnerabilities.
-But you can never be sure that there are no unknown bugs which can be misused to gain access to you system.
+But you can never be sure that there are no unknown bugs which can be misused to gain access to your system.
 And you never know whether the a new zero-day vulnerability will be announced tomorrow.
 That is why it is important to also make sure that your applications have only the permissions and privileges they actually need.
 On Kubernetes, one of the features which can be used to restrict what your applications can do are Pod and container security contexts.
@@ -65,7 +65,17 @@ These providers correspond to the _baseline_ and _restricted_ profiles as define
 
 The Baseline provider is the default provider which is used when you don't configure any other provider.
 If you want, you can also enable it explicitly by setting the `STRIMZI_POD_SECURITY_PROVIDER_CLASS` environment variable to `io.strimzi.plugin.security.profiles.impl.BaselinePodSecurityProvider`.
-Alternatively, you can also use the _shortcut_ `baseline`.
+Alternatively, you can also use the _shortcut_ `baseline`:
+
+```yaml
+# ...
+env:
+  # ...
+  - name: STRIMZI_POD_SECURITY_PROVIDER_CLASS
+    value: baseline
+  # ...
+```
+
 The Baseline provider configures the Strimzi managed pods according to the [Kubernetes _baseline_ profile](https://kubernetes.io/docs/concepts/security/pod-security-standards/#baseline).
 It also provides backwards compatibility because it configures the pods in exactly the same way as previous Strimzi versions.
 So with this provider, there will be no change to how the Strimzi-managed pods are configured.
@@ -80,7 +90,7 @@ Or you can also use the _shortcut_ keyword `restricted`:
 env:
   # ...
   - name: STRIMZI_POD_SECURITY_PROVIDER_CLASS
-    value: io.strimzi.plugin.security.profiles.impl.RestrictedPodSecurityProvider
+    value: restricted
   # ...
 ```
 
@@ -148,7 +158,7 @@ The Pod Security Provider plugins are used to configure security context for the
 But what about the Cluster Operator itself?
 The Cluster Operator deployment by default does not have any special security context set.
 That means that out of the box it runs under the Kubernetes `baseline` profile.
-But if you want, the operator can run under the `restructed` profile as well.
+But if you want, the operator can run under the `restricted` profile as well.
 You can simply edit the Deployment and configure the security context:
 
 ```yaml
