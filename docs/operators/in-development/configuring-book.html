@@ -201,10 +201,11 @@
 <ul class="sectlevel3">
 <li><a href="#con-optimization-proposals-modes-str">7.3.1. Rebalancing modes</a></li>
 <li><a href="#contents-optimization-proposals">7.3.2. The results of an optimization proposal</a></li>
-<li><a href="#approving_or_rejecting_an_optimization_proposal">7.3.3. Approving or rejecting an optimization proposal</a></li>
-<li><a href="#optimization_proposal_summary_properties">7.3.4. Optimization proposal summary properties</a></li>
-<li><a href="#broker_load_properties">7.3.5. Broker load properties</a></li>
-<li><a href="#cached_optimization_proposal">7.3.6. Cached optimization proposal</a></li>
+<li><a href="#manually_approving_or_rejecting_an_optimization_proposal">7.3.3. Manually approving or rejecting an optimization proposal</a></li>
+<li><a href="#automatically_approving_an_optimization_proposal">7.3.4. Automatically approving an optimization proposal</a></li>
+<li><a href="#optimization_proposal_summary_properties">7.3.5. Optimization proposal summary properties</a></li>
+<li><a href="#broker_load_properties">7.3.6. Broker load properties</a></li>
+<li><a href="#cached_optimization_proposal">7.3.7. Cached optimization proposal</a></li>
 </ul>
 </li>
 <li><a href="#con-rebalance-str">7.4. Rebalance performance tuning overview</a>
@@ -16584,7 +16585,7 @@ The information provided is a summary of the full optimization proposal.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="approving_or_rejecting_an_optimization_proposal"><a class="link" href="#approving_or_rejecting_an_optimization_proposal">7.3.3. Approving or rejecting an optimization proposal</a></h4>
+<h4 id="manually_approving_or_rejecting_an_optimization_proposal"><a class="link" href="#manually_approving_or_rejecting_an_optimization_proposal">7.3.3. Manually approving or rejecting an optimization proposal</a></h4>
 <div class="paragraph">
 <p>An optimization proposal summary shows the proposed scope of changes.</p>
 </div>
@@ -16690,7 +16691,38 @@ Compare the balancedness scores to see whether the Kafka cluster is less balance
 </div>
 </div>
 <div class="sect3">
-<h4 id="optimization_proposal_summary_properties"><a class="link" href="#optimization_proposal_summary_properties">7.3.4. Optimization proposal summary properties</a></h4>
+<h4 id="automatically_approving_an_optimization_proposal"><a class="link" href="#automatically_approving_an_optimization_proposal">7.3.4. Automatically approving an optimization proposal</a></h4>
+<div class="paragraph">
+<p>To save time, you can automate the process of approving optimization proposals.
+With automation, when you generate an optimization proposal it goes straight into a cluster rebalance.</p>
+</div>
+<div class="paragraph">
+<p>To enable the optimization proposal auto-approval mechanism, create the <code>KafkaRebalance</code> resource with the <code>strimzi.io/rebalance-auto-approval</code> annotation set to <code>true</code>.
+If the annotation is not set or set to <code>false</code>, the optimization proposal requires manual approval.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example rebalance request with auto-approval mechanism enabled</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaRebalance
+metadata:
+  name: my-rebalance
+  labels:
+    strimzi.io/cluster: my-cluster
+  annotations:
+    strimzi.io/rebalance-auto-approval: true
+spec:
+  mode: # any mode
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can still check the status when automatically approving an optimization proposal.
+The status of the <code>KafkaRebalance</code> resource moves to <code>Ready</code> when the rebalance is complete.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="optimization_proposal_summary_properties"><a class="link" href="#optimization_proposal_summary_properties">7.3.5. Optimization proposal summary properties</a></h4>
 <div class="paragraph">
 <p>The following table explains the properties contained in the optimization proposal&#8217;s summary section.</p>
 </div>
@@ -16764,7 +16796,7 @@ These topics are excluded from the calculation of partition replica/leader movem
 </table>
 </div>
 <div class="sect3">
-<h4 id="broker_load_properties"><a class="link" href="#broker_load_properties">7.3.5. Broker load properties</a></h4>
+<h4 id="broker_load_properties"><a class="link" href="#broker_load_properties">7.3.6. Broker load properties</a></h4>
 <div class="paragraph">
 <p>The broker load is stored in a ConfigMap (with the same name as the KafkaRebalance custom resource) as a JSON formatted string. This JSON string consists of a JSON object with keys for each broker IDs linking to a number of metrics for each broker.
 Each metric consist of three values.
@@ -16855,7 +16887,7 @@ The ConfigMap appears when the KafkaRebalance resource is in the <code>ProposalR
 </table>
 </div>
 <div class="sect3">
-<h4 id="cached_optimization_proposal"><a class="link" href="#cached_optimization_proposal">7.3.6. Cached optimization proposal</a></h4>
+<h4 id="cached_optimization_proposal"><a class="link" href="#cached_optimization_proposal">7.3.7. Cached optimization proposal</a></h4>
 <div class="paragraph">
 <p>Cruise Control maintains a <em>cached optimization proposal</em> based on the configured default optimization goals.
 Generated from the workload model, the cached optimization proposal is updated every 15 minutes to reflect the current state of the Kafka cluster.
@@ -17524,6 +17556,26 @@ spec:
 </div>
 </li>
 <li>
+<p>(Optional) To approve the optimization proposal automatically, set the <code>strimzi.io/rebalance-auto-approval</code> annotation to <code>true</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaRebalance
+metadata:
+  name: my-rebalance
+  labels:
+    strimzi.io/cluster: my-cluster
+  annotations:
+    strimzi.io/rebalance-auto-approval: true
+spec:
+  goals:
+    - RackAwareGoal
+    - ReplicaCapacityGoal
+  skipHardGoalCheck: true</code></pre>
+</div>
+</div>
+</li>
+<li>
 <p>Create or update the resource:</p>
 <div class="listingblock">
 <div class="content">
@@ -17536,7 +17588,8 @@ This might take a few minutes depending on the size of the Kafka cluster.</p>
 </div>
 </li>
 <li>
-<p>Wait for the status of the optimization proposal to change to <code>ProposalReady</code>:</p>
+<p>If you used the automatic approval mechanism, wait for the status of the optimization proposal to change to <code>Ready</code>.
+If you haven&#8217;t enabled the automatic approval mechanism, wait for the status of the optimization proposal to change to <code>ProposalReady</code>:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafkarebalance -o wide -w -n <em>&lt;namespace&gt;</em></code></pre>
