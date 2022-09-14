@@ -6,8 +6,8 @@ author: jakub_scholz
 ---
 
 Leader Election is one of the new features in Strimzi 0.31.0.
-In our new video, we look at it in more detail.
-We explain how it works, when is it useful and show a demo of Leader Election in action.
+In our new video, we look at the feature in more detail.
+We explain how leader election works, when it's useful, and demo Leader Election in action.
 You can watch the video here or in our YouTube channel.
 
 <!--more-->
