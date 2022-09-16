@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Reassigning partitions in Apache Kafka Cluster"
-date: 2021-09-23
+date: 2022-09-16
 author: shubham_rawat
 ---
 
