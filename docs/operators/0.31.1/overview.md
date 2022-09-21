@@ -1,5 +1,5 @@
 ---
-title: Strimzi Overview guide (0.31.0)
+title: Strimzi Overview guide (0.31.1)
 layout: default
 ---
 
