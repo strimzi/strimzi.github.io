@@ -7135,7 +7135,7 @@ To have end-to-end tracing, you must configure tracing in your HTTP clients.</p>
 <div class="sect3">
 <h4 id="proc-enabling-tracing-in-connect-mirror-maker-bridge-resources-str"><a class="link" href="#proc-enabling-tracing-in-connect-mirror-maker-bridge-resources-str">10.4.1. Enabling tracing in MirrorMaker, Kafka Connect, and Kafka Bridge resources</a></h4>
 <div class="paragraph">
-<p>Update the configuration of <code>KafkaMirrorMaker</code>, <code>KafkaMirrorMaker2</code>, <code>KafkaConnect</code>, and <code>KafkaBridge</code> custom resources to specify and configure a Jaeger tracer service for each resource. Updating a tracing-enabled resource in your Kubernetes cluster triggers two events:</p>
+<p>Update the configuration of <code>KafkaMirrorMaker</code>, <code>KafkaMirrorMaker2</code>, <code>KafkaConnect</code>, and <code>KafkaBridge</code> custom resources to specify and configure a tracer service for each resource. Updating a tracing-enabled resource in your Kubernetes cluster triggers the following events:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -7143,12 +7143,15 @@ To have end-to-end tracing, you must configure tracing in your HTTP clients.</p>
 <p>Interceptor classes are updated in the integrated consumers and producers in MirrorMaker, MirrorMaker 2.0, Kafka Connect, or the Strimzi Kafka Bridge.</p>
 </li>
 <li>
-<p>For MirrorMaker, MirrorMaker 2.0, and Kafka Connect, the tracing agent initializes a Jaeger tracer based on the tracing configuration defined in the resource.</p>
+<p>For MirrorMaker, MirrorMaker 2.0, and Kafka Connect, the tracing agent initializes a tracer based on the tracing configuration defined in the resource.</p>
 </li>
 <li>
-<p>For the Kafka Bridge, a Jaeger tracer based on the tracing configuration defined in the resource is initialized by the Kafka Bridge itself.</p>
+<p>For the Kafka Bridge, a tracer based on the tracing configuration defined in the resource is initialized by the Kafka Bridge itself.</p>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>You can enable tracing using OpenTelemetry or OpenTracing.</p>
 </div>
 <div class="paragraph">
 <div class="title">Procedure</div>
@@ -7157,11 +7160,19 @@ To have end-to-end tracing, you must configure tracing in your HTTP clients.</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>In the <code>spec.template</code> property, configure the Jaeger tracer service. For example:</p>
-<div class="openblock">
-<div class="content">
+<p>In the <code>spec.template</code> property, configure the tracer service.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Use the <a href="#ref-tracing-environment-variables-str">tracing environment variables</a> as template configuration properties.</p>
+</li>
+<li>
+<p>For OpenTelemetry, set the <code>spec.tracing.type</code> property to <code>opentelemetry</code>.</p>
+</li>
+<li>
+<p>For OpenTracing, set the <code>spec.tracing.type</code> property to <code>jaeger</code>.</p>
 <div class="listingblock">
-<div class="title">Jaeger tracer configuration for Kafka Connect</div>
+<div class="title">Example tracing configuration for Kafka Connect using OpenTelemetry</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnect
@@ -7170,7 +7181,97 @@ metadata:
 spec:
   #...
   template:
-    connectContainer: <b class="conum">(1)</b>
+    connectContainer:
+      env:
+        - name: OTEL_SERVICE_NAME
+          value: my-otel-service
+        - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+          value: "http://jaeger-host:14250"
+  tracing:
+    type: opentelemetry
+  #...</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="title">Example tracing configuration for MirrorMaker using OpenTelemetry</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker
+metadata:
+  name: my-mirror-maker
+spec:
+  #...
+  template:
+    mirrorMakerContainer:
+      env:
+        - name: OTEL_SERVICE_NAME
+          value: my-otel-service
+        - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+          value: "http://jaeger-host:14250"
+  tracing:
+    type: opentelemetry
+#...</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example tracing configuration for MirrorMaker 2.0 using OpenTelemetry</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker2
+metadata:
+  name: my-mm2-cluster
+spec:
+  #...
+  template:
+    connectContainer:
+      env:
+        - name: OTEL_SERVICE_NAME
+          value: my-otel-service
+        - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+          value: "http://jaeger-host:14250"
+  tracing:
+    type: opentelemetry
+#...</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example tracing configuration for the Kafka Bridge using OpenTelemetry</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaBridge
+metadata:
+  name: my-bridge
+spec:
+  #...
+  template:
+    bridgeContainer:
+      env:
+        - name: OTEL_SERVICE_NAME
+          value: my-otel-service
+        - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+          value: "http://jaeger-host:14250"
+  tracing:
+    type: opentelemetry
+#...</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example tracing configuration for Kafka Connect using OpenTracing</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster
+spec:
+  #...
+  template:
+    connectContainer:
       env:
         - name: JAEGER_SERVICE_NAME
           value: my-jaeger-service
@@ -7178,13 +7279,13 @@ spec:
           value: jaeger-agent-name
         - name: JAEGER_AGENT_PORT
           value: "6831"
-  tracing: <b class="conum">(2)</b>
+  tracing:
     type: jaeger
   #...</code></pre>
 </div>
 </div>
 <div class="listingblock">
-<div class="title">Jaeger tracer configuration for MirrorMaker</div>
+<div class="title">Example tracing configuration for MirrorMaker using OpenTracing</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaMirrorMaker
@@ -7207,7 +7308,7 @@ spec:
 </div>
 </div>
 <div class="listingblock">
-<div class="title">Jaeger tracer configuration for MirrorMaker 2.0</div>
+<div class="title">Example tracing configuration for MirrorMaker 2.0 using OpenTracing</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaMirrorMaker2
@@ -7230,7 +7331,7 @@ spec:
 </div>
 </div>
 <div class="listingblock">
-<div class="title">Jaeger tracer configuration for the Kafka Bridge</div>
+<div class="title">Example tracing configuration for the Kafka Bridge using OpenTracing</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaBridge
@@ -7252,24 +7353,13 @@ spec:
 #...</code></pre>
 </div>
 </div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Use the <a href="#ref-tracing-environment-variables-str">tracing environment variables</a> as template configuration properties.</p>
-</li>
-<li>
-<p>Set the <code>spec.tracing.type</code> property to <code>jaeger</code>.</p>
-</li>
-</ol>
-</div>
-</div>
-</div>
-</li>
+<div class="olist arabic">
+<ol class="arabic">
 <li>
 <p>Create or update the resource:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f your-file</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f _&lt;resource_configuration_file&gt;_</code></pre>
 </div>
 </div>
 </li>
@@ -9321,7 +9411,7 @@ Deleting <code>CustomResourceDefinitions</code> results in the garbage collectio
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-09-27 16:35:47 UTC
+Last updated 2022-09-27 16:45:01 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
