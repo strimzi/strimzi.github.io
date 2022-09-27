@@ -932,16 +932,15 @@ An empty body can be used to create a consumer with the default values.</p>
 <div class="sect2">
 <h3 id="con-requests-kafka-bridge-cors-bridge"><a class="link" href="#con-requests-kafka-bridge-cors-bridge">1.7. CORS</a></h3>
 <div class="paragraph">
-<p>Cross-Origin Resource Sharing (CORS) allows you to specify allowed methods and originating URLs for accessing the Kafka cluster in your Kafka Bridge HTTP configuration.</p>
+<p>In general, it is not possible for an HTTP client to issue requests across different domains.</p>
 </div>
-<div class="listingblock">
-<div class="title">Example CORS configuration for Kafka Bridge</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties"># ...
-http.cors.enabled=true
-http.cors.allowedOrigins=https://strimzi.io
-http.cors.allowedMethods=GET,POST,PUT,DELETE,OPTIONS,PATCH</code></pre>
-</div>
+<div class="paragraph">
+<p>For example, suppose the Kafka Bridge you deployed alongside a Kafka cluster is accessible using the <code>http://my-bridge.io</code> domain.
+HTTP clients can use the URL to interact with the Kafka Bridge and exchange messages through the Kafka cluster.
+However, your client is running as a web application in the <code>http://my-web-application.io</code> domain.
+The client (source) domain is different from the Kafka Bridge (target) domain.
+Because of same-origin policy restrictions, requests from the client fail.
+You can avoid this situation by using Cross-Origin Resource Sharing (CORS).</p>
 </div>
 <div class="paragraph">
 <p>CORS allows for <em>simple</em> and <em>preflighted</em> requests between origin sources on different domains.</p>
@@ -958,28 +957,41 @@ and use non-standard headers.</p>
 <div class="paragraph">
 <p>All requests require an <em>origins</em> value in their header, which is the source of the HTTP request.</p>
 </div>
+<div class="paragraph">
+<p>CORS allows you to specify allowed methods and originating URLs for accessing the Kafka cluster in your Kafka Bridge HTTP configuration.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example CORS configuration for Kafka Bridge</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties"># ...
+http.cors.enabled=true
+http.cors.allowedOrigins=http://my-web-application.io
+http.cors.allowedMethods=GET,POST,PUT,DELETE,OPTIONS,PATCH</code></pre>
+</div>
+</div>
 <div class="sect3">
 <h4 id="simple_request"><a class="link" href="#simple_request">1.7.1. Simple request</a></h4>
 <div class="paragraph">
-<p>For example, this simple request header specifies the origin as <code>https://strimzi.io</code>.</p>
+<p>For example, this simple request header specifies the origin as <code>http://my-web-application.io</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-http hljs" data-lang="http">Origin: https://strimzi.io</code></pre>
+<pre class="highlightjs highlight"><code class="language-http hljs" data-lang="http">Origin: http://my-web-application.io</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The header information is added to the request.</p>
+<p>The header information is added to the request to consume records.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-http hljs" data-lang="http">curl -v -X GET <em>HTTP-ADDRESS</em>/bridge-consumer/records \
--H 'Origin: https://strimzi.io'\
+<pre class="highlightjs highlight"><code class="language-http hljs" data-lang="http">curl -v -X GET <em>HTTP-BRIDGE-ADDRESS</em>/consumers/my-group/instances/my-consumer/records \
+-H 'Origin: http://my-web-application.io'\
 -H 'content-type: application/vnd.kafka.v2+json'</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>In the response from the Kafka Bridge, an <code>Access-Control-Allow-Origin</code> header is returned.</p>
+<p>In the response from the Kafka Bridge, an <code>Access-Control-Allow-Origin</code> header is returned.
+It contains the list of domains from where HTTP requests can be issued to the bridge.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1002,12 +1014,12 @@ Access-Control-Allow-Origin: * <b class="conum">(1)</b></code></pre>
 The <em>HTTP OPTIONS</em> request sends header information to check that Kafka Bridge will allow the actual request.</p>
 </div>
 <div class="paragraph">
-<p>Here the preflight request checks that a <code>POST</code> request is valid from <code>https://strimzi.io</code>.</p>
+<p>Here the preflight request checks that a <code>POST</code> request is valid from <code>http://my-web-application.io</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-http hljs" data-lang="http">OPTIONS /my-group/instances/my-user/subscription HTTP/1.1
-Origin: https://strimzi.io
+<pre class="highlightjs highlight"><code class="language-http hljs" data-lang="http">OPTIONS /my-group/instances/my-consumer/subscription HTTP/1.1
+Origin: http://my-web-application.io
 Access-Control-Request-Method: POST <b class="conum">(1)</b>
 Access-Control-Request-Headers: Content-Type <b class="conum">(2)</b></code></pre>
 </div>
@@ -1027,7 +1039,7 @@ Access-Control-Request-Headers: Content-Type <b class="conum">(2)</b></code></pr
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-http hljs" data-lang="http">curl -v -X OPTIONS -H 'Origin: https://strimzi.io' \
+<pre class="highlightjs highlight"><code class="language-http hljs" data-lang="http">curl -v -X OPTIONS -H 'Origin: http://my-web-application.io' \
 -H 'Access-Control-Request-Method: POST' \
 -H 'content-type: application/vnd.kafka.v2+json'</code></pre>
 </div>
@@ -1039,7 +1051,7 @@ The response header returns allowed origins, methods and headers.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-http hljs" data-lang="http">HTTP/1.1 200 OK
-Access-Control-Allow-Origin: https://strimzi.io
+Access-Control-Allow-Origin: http://my-web-application.io
 Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS,PATCH
 Access-Control-Allow-Headers: content-type</code></pre>
 </div>
@@ -1053,8 +1065,8 @@ but it does require the origin header.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-http hljs" data-lang="http">curl -v -X POST <em>HTTP-ADDRESS</em>/topics/bridge-topic \
--H 'Origin: https://strimzi.io' \
+<pre class="highlightjs highlight"><code class="language-http hljs" data-lang="http">curl -v -X POST <em>HTTP-BRIDGE-ADDRESS</em>/topics/bridge-topic \
+-H 'Origin: http://my-web-application.io' \
 -H 'content-type: application/vnd.kafka.v2+json'</code></pre>
 </div>
 </div>
@@ -1064,7 +1076,7 @@ but it does require the origin header.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-http hljs" data-lang="http">HTTP/1.1 200 OK
-Access-Control-Allow-Origin: https://strimzi.io</code></pre>
+Access-Control-Allow-Origin: http://my-web-application.io</code></pre>
 </div>
 </div>
 <div class="ulist _additional-resources">
@@ -6655,7 +6667,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </div>
 </div>
 <div class="paragraph">
-<p><em>Revised on 2022-09-23 13:32:41 UTC</em></p>
+<p><em>Revised on 2022-09-27 17:29:11 UTC</em></p>
 </div>
 </div>
 </div>
@@ -6666,7 +6678,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-09-23 13:31:59 UTC
+Last updated 2022-09-27 17:28:36 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
