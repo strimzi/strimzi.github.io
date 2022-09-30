@@ -10,7 +10,7 @@ If you want to know what Strimzi does, there's the [Overview](https://strimzi.io
 If you want to get up-and-running quickly, the [Quick Start guide](https://strimzi.io/docs/operators/latest/quickstart.html) can help. If you want to go deeper, we have specialized docs for [Deploying and Upgrading](https://strimzi.io/docs/operators/latest/deploying.html) or [Configuring](https://strimzi.io/docs/operators/latest/configuring.html) Strimzi.
 Kafka Bridge has its own [documentation](https://strimzi.io/docs/bridge/latest/) too. 
 
-But what don't we have have? And what do you want?
+But what don't we have? And what do you want?
 That's the purpose of this post. 
 We're looking for your input on Strimzi's supporting documentation. 
 
