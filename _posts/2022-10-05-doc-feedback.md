@@ -50,7 +50,7 @@ The [Strimzi Documentation Contributor Guide](https://strimzi.io/contributing/gu
 
 You can also raise a [GitHub issue](https://github.com/strimzi/strimzi-kafka-operator/issues) against the documentation. Be sure to label it `documenation`.
 
-If you want to suggest a bigger change to the documentation before plunging in, you can always [raise a proposal](https://github.com/strimzi/proposals) for consideration.
+If you want to suggest a bigger change to the documentation before plunging in, you can always raise it with the community for consideration.
 
 ## Feedback channels
 
