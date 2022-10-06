@@ -7290,31 +7290,33 @@ For OpenTelemetry, the process is the same but you need to create a custom <code
 </li>
 <li>
 <p>To instrument Kafka Streams with OpenTelemetry, you&#8217;ll need to write a custom <code>TracingKafkaClientSupplier</code>.</p>
+</li>
+<li>
+<p>The custom <code>TracingKafkaClientSupplier</code> can extend Kafka&#8217;s <code>DefaultKafkaClientSupplier</code>, overriding the producer and consumer creation methods to wrap the instances with the telemetry-related code.</p>
 <div class="listingblock">
 <div class="title">Example custom <code>TracingKafkaClientSupplier</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">private static class TracingKafkaClientSupplier implements KafkaClientSupplier {
-    @Override
-    public Admin getAdmin(Map&lt;String, Object&gt; config) {
-        return Admin.create(config);
-    }
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">private class TracingKafkaClientSupplier extends DefaultKafkaClientSupplier {
     @Override
     public Producer&lt;byte[], byte[]&gt; getProducer(Map&lt;String, Object&gt; config) {
-        KafkaTracing tracing = KafkaTracing.create(GlobalOpenTelemetry.get());
-        return tracing.wrap(new KafkaProducer&lt;&gt;(config));
+        KafkaTelemetry telemetry = KafkaTelemetry.create(GlobalOpenTelemetry.get());
+        return telemetry.wrap(super.getProducer(config));
     }
+
     @Override
     public Consumer&lt;byte[], byte[]&gt; getConsumer(Map&lt;String, Object&gt; config) {
-        KafkaTracing tracing = KafkaTracing.create(GlobalOpenTelemetry.get());
-        return tracing.wrap(new KafkaConsumer&lt;&gt;(config));
+        KafkaTelemetry telemetry = KafkaTelemetry.create(GlobalOpenTelemetry.get());
+        return telemetry.wrap(super.getConsumer(config));
     }
+
     @Override
     public Consumer&lt;byte[], byte[]&gt; getRestoreConsumer(Map&lt;String, Object&gt; config) {
-        return getConsumer(config);
+        return this.getConsumer(config);
     }
+
     @Override
     public Consumer&lt;byte[], byte[]&gt; getGlobalConsumer(Map&lt;String, Object&gt; config) {
-        return getConsumer(config);
+        return this.getConsumer(config);
     }
 }</code></pre>
 </div>
@@ -9481,7 +9483,7 @@ Deleting <code>CustomResourceDefinitions</code> results in the garbage collectio
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-10-06 11:57:23 UTC
+Last updated 2022-10-06 12:06:00 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
