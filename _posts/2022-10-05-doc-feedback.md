@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "How to improve the Strimzi documentation"
-date: 2022-10-05
+date: 2022-10-12
 author: paul_mellor
 ---
 
@@ -48,7 +48,7 @@ As well as feeding back, we really encourage the community to be involved with d
 The documentation is written in asciidoc, a lightweight markup language similar to markdown.
 The [Strimzi Documentation Contributor Guide](https://strimzi.io/contributing/guide/#style-guide) shows how to make a change and push that change to the Strimzi [GitHub repository](https://github.com/strimzi/strimzi-kafka-operator).
 
-You can also raise a [GitHub issue](https://github.com/strimzi/strimzi-kafka-operator/issues) against the documentation. Be sure to label it `documenation`.
+You can also raise a [GitHub issue](https://github.com/strimzi/strimzi-kafka-operator/issues) against the documentation. Be sure to label it `documentation`.
 
 If you want to suggest a bigger change to the documentation before plunging in, you can always raise it with the community for consideration.
 
