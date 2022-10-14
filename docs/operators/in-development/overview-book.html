@@ -51,7 +51,12 @@
 <li><a href="#configuration-points-resources_str">7.1. Custom resources</a></li>
 <li><a href="#configuration-points-common_str">7.2. Common configuration</a></li>
 <li><a href="#configuration-points-broker_str">7.3. Kafka cluster configuration</a></li>
-<li><a href="#configuration-points-topic_str">7.4. Kafka MirrorMaker configuration</a></li>
+<li><a href="#con-configuration-points-mm2-str">7.4. Kafka MirrorMaker configuration</a>
+<ul class="sectlevel3">
+<li><a href="#con-overview-mm2-str">7.4.1. MirrorMaker 2.0 configuration</a></li>
+<li><a href="#mirrormaker_configuration">7.4.2. MirrorMaker configuration</a></li>
+</ul>
+</li>
 <li><a href="#configuration-points-connect_str">7.5. Kafka Connect configuration</a></li>
 <li><a href="#configuration-points-bridge_str">7.6. Kafka Bridge configuration</a></li>
 </ul>
@@ -1319,16 +1324,17 @@ spec:
 </div>
 </div>
 <div class="sect2">
-<h3 id="configuration-points-topic_str"><a class="link" href="#configuration-points-topic_str">7.4. Kafka MirrorMaker configuration</a></h3>
-<div class="paragraph">
+<h3 id="con-configuration-points-mm2-str"><a class="link" href="#con-configuration-points-mm2-str">7.4. Kafka MirrorMaker configuration</a></h3>
+<div class="paragraph _abstract">
 <p>To set up MirrorMaker, a source and target (destination) Kafka cluster must be running.</p>
 </div>
 <div class="paragraph">
 <p>You can use Strimzi with MirrorMaker 2.0, although the earlier version of MirrorMaker continues to be supported.</p>
 </div>
-<h4 id="mirrormaker_2_0" class="discrete">MirrorMaker 2.0</h4>
-<div class="paragraph">
-<p>MirrorMaker 2.0 is based on the Kafka Connect framework, <em>connectors</em> managing the transfer of data between clusters.</p>
+<div class="sect3">
+<h4 id="con-overview-mm2-str"><a class="link" href="#con-overview-mm2-str">7.4.1. MirrorMaker 2.0 configuration</a></h4>
+<div class="paragraph _abstract">
+<p>MirrorMaker 2.0 consumes messages from a source Kafka cluster and writes them to a target Kafka cluster.</p>
 </div>
 <div class="paragraph">
 <p>MirrorMaker 2.0 uses:</p>
@@ -1343,80 +1349,116 @@ spec:
 </li>
 </ul>
 </div>
-<h5 id="cluster_configuration" class="discrete">Cluster configuration</h5>
 <div class="paragraph">
-<p>You can use MirrorMaker 2.0 in <em>active/passive</em> or <em>active/active</em> cluster configurations.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>In an <em>active/active</em> configuration, both clusters are active and provide the same data simultaneously, which is useful if you want to make the same data available locally in different geographical locations.</p>
-</li>
-<li>
-<p>In an <em>active/passive</em> configuration, the data from an active cluster is replicated in a passive cluster, which remains on standby, for example, for data recovery in the event of system failure.</p>
-</li>
-</ul>
+<p>MirrorMaker 2.0 is based on the Kafka Connect framework, <em>connectors</em> managing the transfer of data between clusters.</p>
 </div>
 <div class="paragraph">
-<p>You configure a <code>KafkaMirrorMaker2</code> custom resource to define the Kafka Connect deployment, including the connection details of the source and target clusters,
-and then run a set of MirrorMaker 2.0 connectors to make the connection.</p>
+<p>You configure a <code>KafkaMirrorMaker2</code> custom resource to define the Kafka Connect deployment, including the connection details of the source and target clusters, and then run a set of MirrorMaker 2.0 connectors to make the connection.</p>
 </div>
 <div class="paragraph">
-<p>Topic configuration is automatically synchronized between the source and target clusters according to the topics defined in the <code>KafkaMirrorMaker2</code> custom resource.
-Configuration changes are propagated to remote topics so that new topics and partitions are detected and created.
-Topic replication is defined using regular expression patterns to include or exclude topics.</p>
-</div>
-<div class="paragraph">
-<p>The following MirrorMaker 2.0 connectors and related internal topics help manage the transfer and synchronization of data between the clusters.</p>
+<p>MirrorMaker 2.0 consists of the following connectors:</p>
 </div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1">MirrorSourceConnector</dt>
+<dt class="hdlist1"><code>MirrorSourceConnector</code></dt>
 <dd>
-<p>A <em>MirrorSourceConnector</em> creates remote topics from the source cluster.</p>
+<p>The source connector replicates topics from a source cluster to a target cluster. It also replicates ACLs and is necessary for the <code>MirrorCheckpointConnector</code> to run.</p>
 </dd>
-<dt class="hdlist1">MirrorCheckpointConnector</dt>
+<dt class="hdlist1"><code>MirrorCheckpointConnector</code></dt>
 <dd>
-<p>A <em>MirrorCheckpointConnector</em> tracks and maps offsets for specified consumer groups using an <code>offset-syncs</code> topic and <code>checkpoints</code> topic.
-The offset sync topic maps the source and target offsets for replicated topic partitions from record metadata.
-A checkpoint is emitted from each source cluster and replicated in the target cluster through the checkpoint topic.
-The checkpoint topic maps the last committed offset in the source and target cluster for replicated topic partitions in each consumer group.</p>
+<p>The checkpoint connector periodically tracks offsets. If enabled, it also synchronizes consumer group offsets between the source and target cluster.</p>
 </dd>
-<dt class="hdlist1">MirrorHeartbeatConnector</dt>
+<dt class="hdlist1"><code>MirrorHeartbeatConnector</code></dt>
 <dd>
-<p>A <em>MirrorHeartbeatConnector</em> periodically checks connectivity between clusters.
-A heartbeat is produced every second by the MirrorHeartbeatConnector into a <em>heartbeat</em> topic that is created on the local cluster.
-If you have MirrorMaker 2.0 at both the remote and local locations, the heartbeat emitted at the remote location by the MirrorHeartbeatConnector is treated like any remote topic and mirrored by the MirrorSourceConnector at the local cluster.
-The heartbeat topic makes it easy to check that the remote cluster is available and the clusters are connected.
-If things go wrong, the heartbeat topic offset positions and time stamps can help with recovery and diagnosis.</p>
+<p>The heartbeat connector periodically checks connectivity between the source and target cluster.</p>
 </dd>
 </dl>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If you are using the User Operator to manage ACLs, ACL replication through the connector is not possible.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The process of <em>mirroring</em> data from a source cluster to a target cluster is asynchronous.
+Each MirrorMaker 2.0 instance mirrors data from one source cluster to one target cluster.
+You can use more than one MirrorMaker 2.0 instance to mirror data between any number of clusters.</p>
+</div>
 <div class="imageblock">
 <div class="content">
-<img src="images/mirrormaker.png" alt="MirrorMaker 2.0 replication between a Kafka cluster in Region 1 and a Kafka cluster in Region 2">
+<img src="images/mirrormaker.png" alt="MirrorMaker 2.0 replication">
 </div>
 <div class="title">Figure 1. Replication across two clusters</div>
 </div>
-<h5 id="bidirectional_replication_across_two_clusters" class="discrete">Bidirectional replication across two clusters</h5>
 <div class="paragraph">
-<p>The MirrorMaker 2.0 architecture supports bidirectional replication in an <em>active/active</em> cluster configuration,
-so both clusters are active and provide the same data simultaneously.
+<p>By default, a check for new topics in the source cluster is made every 10 minutes.
+You can change the frequency by adding <code>refresh.topics.interval.seconds</code> to the source connector configuration.</p>
+</div>
+<div class="sect4">
+<h5 id="cluster_configuration"><a class="link" href="#cluster_configuration">Cluster configuration</a></h5>
+<div class="paragraph">
+<p>You can use MirrorMaker 2.0 in <em>active/passive</em> or <em>active/active</em> cluster configurations.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">active/active cluster configuration</dt>
+<dd>
+<p>An active/active configuration has two active clusters replicating data bidirectionally. Applications can use either cluster. Each cluster can provide the same data. In this way,  you can make the same data available in different geographical locations. As consumer groups are active in both clusters, consumer offsets for replicated topics are not synchronized back to the source cluster.</p>
+</dd>
+<dt class="hdlist1">active/passive cluster configuration</dt>
+<dd>
+<p>An active/passive configuration has an active cluster replicating data to a passive cluster. The passive cluster remains on standby. You might use the passive cluster for data recovery in the event of system failure.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>The expectation is that producers and consumers connect to active clusters only.
 A MirrorMaker 2.0 cluster is required at each target destination.</p>
 </div>
+</div>
+<div class="sect4">
+<h5 id="bidirectional_replication_activeactive"><a class="link" href="#bidirectional_replication_activeactive">Bidirectional replication (active/active)</a></h5>
 <div class="paragraph">
-<p>Remote topics are distinguished by automatic renaming that prepends the name of cluster to the name of the topic.
-This is useful if you want to make the same data available locally in different geographical locations.</p>
+<p>The MirrorMaker 2.0 architecture supports bidirectional replication in an <em>active/active</em> cluster configuration.</p>
 </div>
 <div class="paragraph">
-<p>However, if you want to backup or migrate data in an active/passive cluster configuration, you might want to keep the original names of the topics.
-If so, you can configure MirrorMaker 2.0 to turn off automatic renaming.</p>
+<p>Each cluster replicates the data of the other cluster using the concept of <em>source</em> and <em>remote</em> topics.
+As the same topics are stored in each cluster, remote topics are automatically renamed by MirrorMaker 2.0 to represent the source cluster.
+The name of the originating cluster is prepended to the name of the topic.</p>
 </div>
 <div class="imageblock">
 <div class="content">
 <img src="images/mirrormaker-renaming.png" alt="MirrorMaker 2.0 bidirectional architecture">
 </div>
-<div class="title">Figure 2. Bidirectional replication</div>
+<div class="title">Figure 2. Topic renaming</div>
+</div>
+<div class="paragraph">
+<p>By flagging the originating cluster, topics are not replicated back to that cluster.</p>
+</div>
+<div class="paragraph">
+<p>The concept of replication through <em>remote</em> topics is useful when configuring an architecture that requires data aggregation.
+Consumers can subscribe to source and remote topics within the same cluster, without the need for a separate aggregation cluster.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="unidirectional_replication_activepassive"><a class="link" href="#unidirectional_replication_activepassive">Unidirectional replication (active/passive)</a></h5>
+<div class="paragraph">
+<p>The MirrorMaker 2.0 architecture supports unidirectional replication in an <em>active/passive</em> cluster configuration.</p>
+</div>
+<div class="paragraph">
+<p>You can use an <em>active/passive</em> cluster configuration to make backups or migrate data to another cluster.
+In this situation, you might not want automatic renaming of remote topics.</p>
+</div>
+<div class="paragraph">
+<p>You can override automatic renaming by adding <code>IdentityReplicationPolicy</code> to the source connector configuration.
+With this configuration applied, topics retain their original names.</p>
 </div>
 <h5 id="example_yaml_showing_mirrormaker_2_0_configuration" class="discrete">Example YAML showing MirrorMaker 2.0 configuration</h5>
 <div class="listingblock">
@@ -1441,7 +1483,10 @@ If so, you can configure MirrorMaker 2.0 to turn off automatic renaming.</p>
       groupsPattern: "group1|group2|group3"</code></pre>
 </div>
 </div>
-<h4 id="mirrormaker" class="discrete">MirrorMaker</h4>
+</div>
+</div>
+<div class="sect3">
+<h4 id="mirrormaker_configuration"><a class="link" href="#mirrormaker_configuration">7.4.2. MirrorMaker configuration</a></h4>
 <div class="paragraph">
 <p>The earlier version of MirrorMaker uses producers and consumers to replicate data across clusters.</p>
 </div>
@@ -1511,6 +1556,7 @@ spec:
     # ...
   include: "my-topic|other-topic"
   # ...</code></pre>
+</div>
 </div>
 </div>
 </div>
