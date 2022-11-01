@@ -5,11 +5,17 @@ date: 2022-10-31
 author: kyle_liberti
 ---
 
-For some time now, Strimzi has offered Kubernetes native support Cruise Control allowing users to safely configure and communicate with Cruise Control through Strimzi custom resources.
-This is great but sometimes it is a better user experience to interact with applications like Cruise Control through a UI.
+For some time now, Strimzi has used Cruise Control for automated partition rebalancing and has offered Strimzi custom resources for safely configuring, deploying, and communicating with Cruise Control through the Strimzi Operator.
+These custom resources not only provide a strong abstraction leaving Cruise Control as an implementation detail but also offer great declaritive support.
+That being said, it is sometimes a better user experience to interact with applications like Cruise Control through a UI.
 Although Strimzi does not offer direct support for the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) it can still be run alongside and connected to a Strimzi managed Cruise Control instance.
 
 This post will walk through how to do so! 
+
+## Motivation
+
+Maybe you want a pretty dashboard to view your cluster status, maybe you want to preform Cruise Control operations without having to open a text editor, or maybe you are just a visual person, reguardless of the reason, we have been getting a lot of requests for how to set up the Cruise Control UI with a Strimzi managed Kafka cluster.
+We want to provide some basic instructions for getting you started!
 
 ## Prerequisites
 
@@ -83,9 +89,9 @@ With our Strimzi managed Kafka cluster deployed, we can now create a Cruise Cont
 Kubernetes Land                                          Kafka Cluster
 ```
 
-### Inside the Cruise Control UI pod
+### Inside the Cruise Control UI container
 
-Following the instructions on the [Cruise Control UI wiki] (https://github.com/linkedin/cruise-control-ui/wiki/CCFE-(Dev-Mode)---Docker), we can configure an Nginx server as a reverse-proxy to forward Cruise Control UI requests to the Cruise Control REST API.
+Following the instructions on the [Cruise Control UI wiki](https://github.com/linkedin/cruise-control-ui/wiki/CCFE-(Dev-Mode)---Docker), we can configure an Nginx server as a reverse-proxy to forward Cruise Control UI requests to the Cruise Control REST API.
 
 ```
                                 +-------------+
@@ -105,7 +111,7 @@ Following the instructions on the [Cruise Control UI wiki] (https://github.com/l
 Cruise Control UI pod
 ```
 
-### Building the Cruise Control UI pod
+### Building the Cruise Control UI container
 
 We can build our own Cruise Control image with a configured Ngnix server and Cruise Control UI binaries following the instructions on the [Cruise Control UI wiki](https://github.com/linkedin/cruise-control-ui/wiki/CCFE-(Dev-Mode)---Docker), creating a Dockerfile like the following:
 
@@ -238,4 +244,4 @@ Although it is possible to run a Cruise Control UI instance alonside a Strimzi m
 To allow the Cruise Control UI access to the Cruise Control Rest API we must disable the REST API security settings.
 Having these security settings disabled gives users full access to the Cruise Control API and allows them to perform potentially destructive Cruise Control operations that are not coordinated or supported by Strimzi Operator.
 If using the Cruise Control UI with a Strimzi managed Kafka cluster, it is best to stick with using it solely for monitoring your cluster, not for operating on it.
-That beng said, use at your own risk!
+That being said, use at your own risk!
