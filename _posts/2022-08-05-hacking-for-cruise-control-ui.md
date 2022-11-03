@@ -5,21 +5,24 @@ date: 2022-10-31
 author: kyle_liberti
 ---
 
-For some time now, Strimzi has used Cruise Control for automated partition rebalancing and has offered Strimzi custom resources for safely configuring, deploying, and communicating with Cruise Control through the Strimzi Operator.
+For some time now, Strimzi has used for [Cruise Control](https://github.com/linkedin/cruise-control) for automated partition rebalancing and has offered Strimzi custom resources for safely configuring, deploying, and communicating with Cruise Control through the Strimzi Operator.
 These custom resources not only provide a strong abstraction leaving Cruise Control as an implementation detail but also offer great declaritive support.
 That being said, it is sometimes a better user experience to interact with applications like Cruise Control through a UI.
-Although Strimzi does not offer direct support for the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) it can still be run alongside and connected to a Strimzi managed Cruise Control instance.
+LinkedIn provides such a [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) application which supports several Cruise Control operations like viewing Kafka cluster status, getting Kafka cluster load information at the broker and partition level, and executing partition rebalances, all with just a couple button clicks.
+Although Strimzi does not offer direct support for the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) it can still be run alongside and connected to a Strimzi-managed Cruise Control instance.
 
 This post will walk through how to do so! 
 
+![Cruise Control Frontend]({{ "/assets/images/posts/2019-08-08-cruise-control-frontend.png" }})
+
 ## Motivation
 
-Maybe you want a pretty dashboard to view your cluster status, maybe you want to preform Cruise Control operations without having to open a text editor, or maybe you are just a visual person, reguardless of the reason, we have been getting a lot of requests for how to set up the Cruise Control UI with a Strimzi managed Kafka cluster.
+Maybe you want a pretty dashboard to view your cluster status, maybe you want to preform Cruise Control operations without having to open a text editor, or maybe you are just a visual person, reguardless of the reason, we have been getting a lot of requests for how to set up the Cruise Control UI with a Strimzi-managed Kafka cluster.
 We want to provide some basic instructions for getting you started!
 
 ## Prerequisites
 
-For starters we will need a Strimzi managed Kafka cluster with Cruise Control enabled.  
+For starters we will need a Strimzi-managed Kafka cluster with Cruise Control enabled.
 
 ```
                            *  *
@@ -44,9 +47,9 @@ For starters we will need a Strimzi managed Kafka cluster with Cruise Control en
 
 Kubernetes Land                                          Kafka Cluster
 ```
-Since the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) does not support HTTPs and Strimzi does not support creating custom Cruise Control API user roles we will need to disable Cruise Control SSL and HTTP basic authentication settings. 
+Since the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) does not support HTTPS and Strimzi does not support creating custom Cruise Control API user roles we will need to disable Cruise Control SSL and HTTP basic authentication settings.
 
-We can do so by configuring a Kafka custom resource like this:
+We can do so by configuring Cruise Control within a `Kafka` resource like this:
 
 ``` 
 # kafka-cruise-control.yaml
@@ -63,7 +66,7 @@ spec:
 
 ## Cruise Control UI
 
-With our Strimzi managed Kafka cluster deployed, we can now create a Cruise Control UI instance to run alongside it.
+With our Strimzi-managed Kafka cluster deployed, we can now create a Cruise Control UI instance to run alongside it.
 
 ```
     *  *                   *  *
@@ -142,7 +145,7 @@ docker push <registry>/<cruise-control-ui-image-name>
 
 ### Deploying the Cruise Control UI pod
 
-Then we can create a Deployment, ConfigMap, and Service for running the Cruise Control UI:
+Then we can create a `Deployment`, `ConfigMap`, and `Service` for running the Cruise Control UI:
 
 ```yaml
 # cruise-control-ui.yaml
@@ -240,8 +243,8 @@ Then navigate ‘http://127.0.0.1:8090’ in your browser
 
 ## Conclusion
 
-Although it is possible to run a Cruise Control UI instance alonside a Strimzi managed Kafka cluster like this, it is still dangerous!
+Although it is possible to run a Cruise Control UI instance alongside a Strimzi-managed Kafka cluster like this, it is still dangerous!
 To allow the Cruise Control UI access to the Cruise Control Rest API we must disable the REST API security settings.
 Having these security settings disabled gives users full access to the Cruise Control API and allows them to perform potentially destructive Cruise Control operations that are not coordinated or supported by Strimzi Operator.
-If using the Cruise Control UI with a Strimzi managed Kafka cluster, it is best to stick with using it solely for monitoring your cluster, not for operating on it.
+If using the Cruise Control UI with a Strimzi-managed Kafka cluster, it is best to stick with using it solely for monitoring your cluster, not for operating on it.
 That being said, use at your own risk!
