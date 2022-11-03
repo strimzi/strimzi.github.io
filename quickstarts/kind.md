@@ -107,6 +107,16 @@ kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:{{site.dat
 
 Enjoy your Apache Kafka cluster, running on Kind!
 
+# Deleting your Apache Kafka cluster
+
+When you are finished with your Apache Kafka cluster you can delete it by running:
+
+```shell
+kubectl -n kafka delete kafka my-cluster
+```
+
+This will remove the Apache Kafka cluster but leave the Strimzi Cluster Operator running so that it can respond to new Kafka CRs.
+
 # Where next?
 
 * If that was a little too quick, you might prefer a more [descriptive introduction to Strimzi](/docs/operators/latest/quickstart.html), covering the same ground but with more explanation.

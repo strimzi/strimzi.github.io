@@ -1,32 +1,29 @@
-Minikube provides a local Kubernetes, designed to make it easy to learn and develop for Kubernetes.
-The Kubernetes cluster is started inside a virtual machine, running a Linux kernel and a Docker daemon.
+Docker Desktop comes includes a standalone Kubernetes server and client, designed for local testing of Kubernetes.
+The Kubernetes cluster is started as a single-node cluster within a Docker container on your local system.
 
 # Installing the dependencies
 
-This quickstart assumes that you have the latest version of the `minikube` binary, which you can get [here](https://minikube.sigs.k8s.io/docs/start/).
+This quickstart assumes that you have the latest version of Docker Desktop, which you can get [here](https://docs.docker.com/desktop/).
 
-Minikube requires a container or virtual machine manager.
-The Minikube documentation includes a list of suggested options in the [getting started guide](https://minikube.sigs.k8s.io/docs/start/).
+If you are running on Linux you'll need to install the `kubectl` binary separately, which you can get by following the instructions [here](https://kubernetes.io/docs/tasks/tools/).
 
-You'll also need the `kubectl` binary, which you can get by following the instructions [here](https://kubernetes.io/docs/tasks/tools/).
-
-Once you have all the binaries installed, make sure everything works:
+Once you have all the binary installed, make sure everything works:
 
 ```shell
-# Validate minikube
-minikube version
-
-# Validate kubectl
+# Validate kubectl if on Linux
 kubectl version
 ```
 
 # Starting Kubernetes cluster
 
-This will start a local development cluster of [Minikube](https://minikube.sigs.k8s.io/docs/start/) which runs in a container or virtual machine manager.
+This will start a local development cluster of Kubernetes with [Docker Desktop](https://docs.docker.com/desktop/kubernetes/) which runs in a container on your local machine.
 
-```shell
-minikube start --memory=4096 # 2GB default memory isn't always enough
-```
+1. From the Docker Dashboard, select the Setting icon, or Preferences icon if you use a macOS.
+1. Select Kubernetes from the left sidebar.
+1. Next to Enable Kubernetes, select the checkbox.
+1. Select Apply & Restart to save the settings and then click Install to confirm.
+   This instantiates images required to run the Kubernetes server as containers, and installs the `/usr/local/bin/kubectl` command on your machine.
+
 
 # Applying Strimzi installation file
 
@@ -89,7 +86,7 @@ And to receive them in a different terminal you can run:
 kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:{{site.data.releases.operator[0].version}}-kafka-{{site.data.releases.operator[0].defaultKafkaVersion}} --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic --from-beginning
 ```
 
-Enjoy your Apache Kafka cluster, running on Minikube!
+Enjoy your Apache Kafka cluster, running on Docker Desktop Kubernetes!
 
 # Deleting your Apache Kafka cluster
 
