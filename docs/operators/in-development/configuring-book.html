@@ -9,7 +9,13 @@
 <li><a href="#naming_custom_configmaps">1.2.1. Naming custom ConfigMaps</a></li>
 </ul>
 </li>
-<li><a href="#configuration-points-listeners-str">1.3. Configuring listeners to connect to Kafka brokers</a></li>
+<li><a href="#configuration-points-listeners-str">1.3. Configuring listeners to connect to Kafka brokers</a>
+<ul class="sectlevel3">
+<li><a href="#configuring_internal_listeners">1.3.1. Configuring internal listeners</a></li>
+<li><a href="#configuring_external_listeners">1.3.2. Configuring external listeners</a></li>
+<li><a href="#providing_listener_certificates">1.3.3. Providing listener certificates</a></li>
+</ul>
+</li>
 <li><a href="#document-conventions-str">1.4. Document Conventions</a></li>
 <li><a href="#additional_resources">1.5. Additional resources</a></li>
 </ul>
@@ -728,39 +734,47 @@ The ConfigMaps created by Strimzi must not be edited.</p>
 <div class="sect2">
 <h3 id="configuration-points-listeners-str"><a class="link" href="#configuration-points-listeners-str">1.3. Configuring listeners to connect to Kafka brokers</a></h3>
 <div class="paragraph _abstract">
-<p>Listeners are used to connect to Kafka brokers.
+<p>Listeners are used for client connection to Kafka brokers.
 Strimzi provides a generic <code>GenericKafkaListener</code> schema with properties to configure listeners through the <code>Kafka</code> resource.</p>
 </div>
 <div class="paragraph">
 <p>The <code>GenericKafkaListener</code> provides a flexible approach to listener configuration.
-You can specify properties to configure <em>internal</em> listeners for connecting within the Kubernetes cluster, or <em>external</em> listeners for connecting outside the Kubernetes cluster.</p>
+You can specify properties to configure <em>internal</em> listeners for connecting within the Kubernetes cluster or <em>external</em> listeners for connecting outside the Kubernetes cluster.</p>
 </div>
 <div class="paragraph">
 <p>Each listener is <a href="#proc-config-kafka-str">defined as an array in the <code>Kafka</code> resource</a>.
-You can configure as many listeners as required, as long as their names and ports are unique.</p>
+You can configure as many listeners as required, as long as their names and ports are unique.
+You can configure listeners for secure connection using authentication.</p>
+</div>
+<div class="sect3">
+<h4 id="configuring_internal_listeners"><a class="link" href="#configuring_internal_listeners">1.3.1. Configuring internal listeners</a></h4>
+<div class="paragraph">
+<p>Internal listeners connect clients to Kafka brokers within the Kubernetes cluster.
+An <code>internal</code> type listener configuration uses a headless service and the DNS names given to the broker pods.</p>
 </div>
 <div class="paragraph">
-<p>You might want to configure multiple external listeners, for example, to handle access from networks that require different authentication mechanisms.
-Or you might need to join your Kubernetes network to an outside network.
-In which case, you can configure internal listeners (using the <code>useServiceDnsDomain</code> property) so that the Kubernetes service DNS domain (typically <code>.cluster.local</code>) is not used.</p>
+<p>You might need to join your Kubernetes network to an outside network.
+In which case, you can configure an <code>internal</code> type listener (using the <code>useServiceDnsDomain</code> property) so that the Kubernetes service DNS domain (typically <code>.cluster.local</code>) is not used.</p>
 </div>
 <div class="paragraph">
-<p>For more information on the configuration options available for listeners,
-see the <a href="./using.html#type-GenericKafkaListener-reference"><code>GenericKafkaListener</code> schema reference</a>.</p>
+<p>You can also configure a <code>cluster-ip</code> type of listener that exposes a Kafka cluster based on per-broker <code>ClusterIP</code> services.
+This is a useful option when you can&#8217;t route through the headless service or you wish to incorporate a custom access mechanism.
+For example, you might use this listener when building your own type of external listener for a specific Ingress controller or the Kubernetes Gateway API.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="configuring_external_listeners"><a class="link" href="#configuring_external_listeners">1.3.2. Configuring external listeners</a></h4>
+<div class="paragraph">
+<p>Configure external listeners to handle access to a Kafka cluster from networks that require different authentication mechanisms.</p>
 </div>
 <div class="paragraph">
-<div class="title">Configuring listeners to secure access to Kafka brokers</div>
-<p>You can configure listeners for secure connection using authentication.
-For more information, see <a href="#assembly-securing-kafka-str">Securing access to Kafka brokers</a>.</p>
+<p>You can configure external listeners for client access outside a Kubernetes environment using a specified connection mechanism, such as a loadbalancer or route.</p>
 </div>
-<div class="paragraph">
-<div class="title">Configuring external listeners for client access outside Kubernetes</div>
-<p>You can configure external listeners for client access outside a Kubernetes environment using a specified connection mechanism, such as a loadbalancer.
-For more information on the configuration options for connecting an external client, see <a href="#assembly-accessing-kafka-outside-cluster-str">Accessing Kafka from external clients outside of the Kubernetes cluster</a>.</p>
 </div>
+<div class="sect3">
+<h4 id="providing_listener_certificates"><a class="link" href="#providing_listener_certificates">1.3.3. Providing listener certificates</a></h4>
 <div class="paragraph">
-<div class="title">Listener certificates</div>
-<p>You can provide your own server certificates, called <em>Kafka listener certificates</em>, for listeners which have TLS encryption enabled.
+<p>You can provide your own server certificates, called <em>Kafka listener certificates</em>, for TLS listeners or external listeners which have TLS encryption enabled.
 For more information, see <a href="#kafka-listener-certificates-str">Kafka listener certificates</a>.</p>
 </div>
 <div class="admonitionblock note">
@@ -774,6 +788,21 @@ If you scale your Kafka cluster while using external listeners, it might trigger
 </td>
 </tr>
 </table>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#type-GenericKafkaListener-reference"><code>GenericKafkaListener</code> schema reference</a></p>
+</li>
+<li>
+<p><a href="#assembly-accessing-kafka-outside-cluster-str">Accessing Kafka outside of the Kubernetes cluster</a></p>
+</li>
+<li>
+<p><a href="#assembly-securing-kafka-str">Securing access to Kafka brokers</a></p>
+</li>
+</ul>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -1127,7 +1156,7 @@ spec:
 <p>Port number used by the listener inside Kafka. The port number has to be unique within a given Kafka cluster. Allowed port numbers are 9092 and higher with the exception of ports 9404 and 9999, which are already used for Prometheus and JMX. Depending on the listener type, the port number might not be the same as the port number that connects Kafka clients.</p>
 </li>
 <li>
-<p>Listener type specified as <code>internal</code>, or for external listeners, as <code>route</code>, <code>loadbalancer</code>, <code>nodeport</code> or <code>ingress</code>.</p>
+<p>Listener type specified as <code>internal</code> or <code>cluster-ip</code> (to expose Kafka using per-broker <code>ClusterIP</code> services), or for external listeners, as <code>route</code>, <code>loadbalancer</code>, <code>nodeport</code> or <code>ingress</code>.</p>
 </li>
 <li>
 <p>Enables TLS encryption for each listener. Default is <code>false</code>. TLS encryption is not required for <code>route</code> listeners.</p>
@@ -8672,10 +8701,10 @@ Although you can still create and manage your own SCCs.</p>
 <div class="ulist">
 <ul>
 <li>
-<p><code>nodeport</code> uses <code>NodePort</code> type <code>Services</code></p>
+<p><code>nodeport</code> uses a <code>NodePort</code> type <code>Service</code></p>
 </li>
 <li>
-<p><code>loadbalancer</code> uses <code>Loadbalancer</code> type <code>Services</code></p>
+<p><code>loadbalancer</code> uses a <code>Loadbalancer</code> type <code>Service</code></p>
 </li>
 <li>
 <p><code>ingress</code> uses Kubernetes <code>Ingress</code> and the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a></p>
@@ -9172,6 +9201,8 @@ Specify the listener authentication type using the <code>Kafka.spec.kafka.listen
 </div>
 <div class="paragraph">
 <p>For clients inside the Kubernetes cluster, you can create <code>plain</code> (without encryption) or <code>tls</code> <em>internal</em> listeners.
+<code>The internal</code> listener type use a headless service and the DNS names given to the broker pods.
+As an alternative to the headless service, you can also create a <code>cluster-ip</code> type of internal listener to expose Kafka using per-broker <code>ClusterIP</code> services.
 For clients outside the Kubernetes cluster, you create <em>external</em> listeners and specify a connection mechanism,
 which can be <code>nodeport</code>, <code>loadbalancer</code>, <code>ingress</code>, or <code>route</code> (on OpenShift).</p>
 </div>
@@ -26240,7 +26271,8 @@ you can configure multiple listeners.</p>
 <h5 id="type"><a class="link" href="#type"><code>type</code></a></h5>
 <div class="paragraph">
 <p>The type is set as <code>internal</code>,
-or for external listeners, as <code>route</code>, <code>loadbalancer</code>, <code>nodeport</code>, <code>ingress</code> or <code>cluster-ip</code>.</p>
+or for external listeners, as <code>route</code>, <code>loadbalancer</code>, <code>nodeport</code>, <code>ingress</code> or <code>cluster-ip</code>.
+You can also configure a <code>cluster-ip</code> listener, a type of internal listener you can use to build custom access mechanisms.</p>
 </div>
 <div class="dlist">
 <dl>
@@ -26355,7 +26387,7 @@ External listeners using <code>Ingress</code> are currently only tested with the
 </dd>
 <dt class="hdlist1">loadbalancer</dt>
 <dd>
-<p>Configures an external listener to expose Kafka <code>Loadbalancer</code> type <code>Services</code>.</p>
+<p>Configures an external listener to expose Kafka using a <code>Loadbalancer</code> type <code>Service</code>.</p>
 <div class="paragraph">
 <p>A new loadbalancer service is created for every Kafka broker pod.
 An additional loadbalancer is created to serve as a Kafka <em>bootstrap</em> address.
@@ -26386,7 +26418,7 @@ spec:
 </dd>
 <dt class="hdlist1">nodeport</dt>
 <dd>
-<p>Configures an external listener to expose Kafka using <code>NodePort</code> type <code>Services</code>.</p>
+<p>Configures an external listener to expose Kafka using a <code>NodePort</code> type <code>Service</code>.</p>
 <div class="paragraph">
 <p>Kafka clients connect directly to the nodes of Kubernetes.
 An additional <code>NodePort</code> type of service is created to serve as a Kafka bootstrap address.</p>
@@ -26428,13 +26460,16 @@ TLS hostname verification is not currently supported when exposing Kafka cluster
 </dd>
 <dt class="hdlist1">cluster-ip</dt>
 <dd>
-<p>Create a listener which uses per-broker <code>Services</code> instead of the headless Service.</p>
+<p>Configures an internal listener to expose Kafka using a per-broker <code>ClusterIP</code> type <code>Service</code>.</p>
 <div class="paragraph">
-<p>This listener type can be useful to expose the cluster outside of Kuebrnetes with some custom mechanisms such as TCP Ingress or other Ingress controllers etc</p>
+<p>The listener does not use a headless service and its DNS names to route traffic to Kafka brokers.
+You can use this type of listener to expose a Kafka cluster when using the headless service is unsuitable.
+You might use it with a custom access mechanism, such as one that uses a specific Ingress controller or the Kubernetes Gateway API.</p>
 </div>
 <div class="paragraph">
-<p>A new clusterIP service is created for each Kafka broker pod.
-An additional clusterIP is created to serve as a Kafka <em>bootstrap</em> address.</p>
+<p>A new <code>ClusterIP</code> service is created for each Kafka broker pod.
+The service is assigned a <code>ClusterIP</code> address to serve as a Kafka <em>bootstrap</em> address with a per-broker port number.
+For example, you can configure the listener to expose a Kafka cluster over an Nginx Ingress Controller with TCP port configuration.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example <code>cluster-ip</code> listener configuration</div>
@@ -26463,7 +26498,7 @@ spec:
 <div class="ulist">
 <ul>
 <li>
-<p><code>loadbalancer</code> listeners use the specified port number, as do <code>internal</code> listeners</p>
+<p><code>loadbalancer</code> listeners use the specified port number, as do <code>internal</code> and <code>cluster-ip</code> listeners</p>
 </li>
 <li>
 <p><code>ingress</code> and <code>route</code> listeners use port 443 for access</p>
@@ -26537,7 +26572,25 @@ To enable it, set the <code>tls</code> property to <code>true</code>.</p>
 <p>Use <code>networkPolicyPeers</code> to configure network policies that restrict access to a listener at the network level.
 The following example shows a <code>networkPolicyPeers</code> configuration for a <code>plain</code> and a <code>tls</code> listener.</p>
 </div>
+<div class="paragraph">
+<p>In the following example:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Only application pods matching the labels <code>app: kafka-sasl-consumer</code> and <code>app: kafka-sasl-producer</code> can connect to the <code>plain</code> listener.
+The application pods must be running in the same namespace as the Kafka broker.</p>
+</li>
+<li>
+<p>Only application pods running in namespaces matching the labels <code>project: myproject</code> and <code>project: myproject2</code> can connect to the <code>tls</code> listener.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The syntax of the <code>networkPolicyPeers</code> property is the same as the <code>from</code> property in <code>NetworkPolicy</code> resources.</p>
+</div>
 <div class="listingblock">
+<div class="title">Exanmple network policy configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">listeners:
   #...
@@ -26569,23 +26622,6 @@ The following example shows a <code>networkPolicyPeers</code> configuration for 
             project: myproject2
 # ...</code></pre>
 </div>
-</div>
-<div class="paragraph">
-<p>In the example:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Only application pods matching the labels <code>app: kafka-sasl-consumer</code> and <code>app: kafka-sasl-producer</code> can connect to the <code>plain</code> listener.
-The application pods must be running in the same namespace as the Kafka broker.</p>
-</li>
-<li>
-<p>Only application pods running in namespaces matching the labels <code>project: myproject</code> and <code>project: myproject2</code> can connect to the <code>tls</code> listener.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>The syntax of the <code>networkPolicyPeers</code> field is the same as the <code>from</code> field in <code>NetworkPolicy</code> resources.</p>
 </div>
 </div>
 <div class="sect4">
@@ -26640,10 +26676,10 @@ The application pods must be running in the same namespace as the Kafka broker.<
 <p><code>nodeport</code> type uses NodePort type services to expose Kafka.</p>
 </li>
 <li>
-<p><code>ingress</code> type uses Kubernetes Nginx Ingress to expose Kafka with TLS passthrought.</p>
+<p><code>ingress</code> type uses Kubernetes Nginx Ingress to expose Kafka with TLS passthrough.</p>
 </li>
 <li>
-<p><code>cluster-ip</code> type uses ClusterIP service with per broker port number. Can be exposed over Nginx Ingress Controller with tcp port config.</p>
+<p><code>cluster-ip</code> type uses a per-broker <code>ClusterIP</code> service.</p>
 </li>
 </ul>
 </div></div></td>
