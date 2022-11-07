@@ -7,7 +7,7 @@ author: kyle_liberti
 
 For some time now, Strimzi has used for [Cruise Control](https://github.com/linkedin/cruise-control) for automated partition rebalancing and has offered Strimzi custom resources for safely configuring, deploying, and communicating with Cruise Control through the Strimzi Operator.
 These custom resources not only provide a strong abstraction leaving Cruise Control as an implementation detail but also offer great declaritive support.
-That being said, it is sometimes a better user experience to interact with applications like Cruise Control through a graphical user interface.
+That being said, rather than working with custom resources, you might prefer to interact with applications like Cruise Control through a graphical user interface.
 LinkedIn provides such a [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) application which supports several Cruise Control operations like viewing Kafka cluster status, getting Kafka cluster load information at the broker and partition level, and executing partition rebalances, all with just a couple button clicks.
 Although Strimzi does not offer direct support for the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) it can still be run alongside and connected to a Strimzi-managed Cruise Control instance.
 
@@ -114,6 +114,10 @@ Following the instructions on the [Cruise Control UI wiki](https://github.com/li
 Cruise Control UI pod
 ```
 
+Here user requests from the Cruise Control UI are sent to the NGINX server where they are forwarded to the Cruise Control REST API.
+The responses from the Cruise Control REST API are then returned to the NGINX server where they are then returned to the Cruise Control UI for user view.
+
+
 ### Building the Cruise Control UI container
 
 We can build our own Cruise Control image with a configured NGINX server and Cruise Control UI binaries following the instructions on the [Cruise Control UI wiki](https://github.com/linkedin/cruise-control-ui/wiki/CCFE-(Dev-Mode)---Docker), creating a Dockerfile like the following:
@@ -133,7 +137,7 @@ RUN curl -LO https://github.com/linkedin/cruise-control-ui/releases/download/v${
 EXPOSE 80
 ```
 
-Then building and pushing the image to a container registry
+Then building and pushing the image to a container registry:
 ```
 # When building, tag the image with the name of a container registry
 # that is accessible by the Kubernetes cluster.
@@ -231,7 +235,9 @@ kubectl apply -f cruise-control-ui.yaml -n <namespace>
 
 ## Using Cruise Control Front End
 
-After being deployed, port-forward the Cruise Control UI service to access it locally:
+After being deployed, the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) application will be accessible via the cruise-control-ui `service`.
+
+If running the cluster locally with [minikube](https://github.com/kubernetes/minikube), you can port-forward the Cruise Control UI `service` to access it locally:
 
 ```
 kubectl port-forward svc/cruise-control-ui 8090:80
