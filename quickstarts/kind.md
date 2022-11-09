@@ -52,7 +52,7 @@ Before deploying the Strimzi cluster operator, create a namespace called `kafka`
 kubectl create namespace kafka
 ```
 
-Apply the Strimzi install files, including `ClusterRoles`, `ClusterRoleBindings` and some **Custom Resource Definitions** (`CRDs`). The CRDs define the schemas used for declarative management of the Kafka cluster, Kafka topics and users.
+Apply the Strimzi install files, including `ClusterRoles`, `ClusterRoleBindings` and some **Custom Resource Definitions** (`CRDs`). The CRDs define the schemas used for the custom resources (CRs, such as `Kafka`, `KafkaTopic` and so on) you will be using to manage Kafka clusters, topics and users.
 
 ```shell
 kubectl create -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
@@ -72,6 +72,8 @@ You can also follow the operator's log:
 ```shell
 kubectl logs deployment/strimzi-cluster-operator -n kafka -f
 ```
+
+Once the operator is running it will watch for new custom resources and create the Kafka cluster, topics or users that correspond to those custom resources.
 
 # Configure an Apache Kafka cluster
 
