@@ -8,12 +8,12 @@ author: kyle_liberti
 For some time now, Strimzi has used for [Cruise Control](https://github.com/linkedin/cruise-control) for automated partition rebalancing and has offered Strimzi custom resources for safely configuring, deploying, and communicating with Cruise Control through the Strimzi Operator.
 These custom resources not only provide a strong abstraction leaving Cruise Control as an implementation detail but also offer great declaritive support.
 That being said, rather than working with custom resources, you might prefer to interact with applications like Cruise Control through a graphical user interface.
-LinkedIn provides such a [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) application which supports several Cruise Control operations like viewing Kafka cluster status, getting Kafka cluster load information at the broker and partition level, and executing partition rebalances, all with just a couple button clicks.
-Although Strimzi does not offer direct support for the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) it can still be run alongside and connected to a Strimzi-managed Cruise Control instance.
+LinkedIn provides such an interface with their [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) application which supports several Cruise Control operations like viewing Kafka cluster status, getting Kafka cluster load information at the broker and partition level, and executing partition rebalances, all with just a couple button clicks.
+Although Strimzi does not offer direct support for the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) it can still be run with and connected to a Strimzi-managed Cruise Control instance.
 
 This post will walk through how to do so! 
 
-![Cruise Control Frontend]({{ "/assets/images/posts/2019-08-08-cruise-control-frontend.png" }})
+![Cruise Control Frontend](/assets/images/posts/2019-08-08-cruise-control-frontend.png)
 
 ## Motivation
 
@@ -24,29 +24,8 @@ We want to provide some basic instructions for getting you started!
 
 For starters we will need a Strimzi-managed Kafka cluster with Cruise Control enabled.
 
-```
-                           *  *
-                        *        *
-                       *  Cruise  *
-                       *  Control *
-                        *        *
-                           *  *
-                            ^                   *  *         *  *          *  *
-                            |                *        *   *        *    *        *
-+----------+                |               *  Kafka   * *  Kafka   *  *  Kafka   *
-|          |               *  *             *   Pod    * *   Pod    *  *   Pod    *
-|  Kafka   |            *        *           *        *   *        *    *        *
-| Resource | <------+  * Cluster  * ----->      *  *         *  *          *  *
-|          | +------>  * Operator *
-|          |            *        *              *  *         *  *          *  *
-+----------+               *  *              *        *   *        *    *        *
-                                            * Zookeeper* * Zookeeper*  * Zookeeper*
-                                            *   Pod    * *   Pod    *  *   Pod    *
-                                             *        *   *        *    *        *
-                                                *  *         *  *          *  *
+![](/assets/images/posts/2022-10-31-hacking-for-cruise-control-ui-1.png)
 
-Kubernetes Land                                          Kafka Cluster
-```
 Since the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) does not support HTTPS and Strimzi does not support creating custom Cruise Control API user roles we will need to disable Cruise Control SSL and HTTP basic authentication settings.
 
 We can do so by configuring Cruise Control within a `Kafka` resource like this:
@@ -64,58 +43,103 @@ spec:
       webserver.ssl.enable: false  
 ```
 
-## Cruise Control UI
+After configuring our Strimzi-managed Kafka cluster, we can deploy and connect the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) in one of two ways:
 
-With our Strimzi-managed Kafka cluster deployed, we can now create a Cruise Control UI instance to run alongside it.
+* METHOD ONE: Inside the Cruise Control Pod
+* METHOD TWO: Outside the Cruise Control Pod
+
+## METHOD ONE: Inside the Cruise Control Pod 
+
+With our Strimzi-managed Kafka cluster deployed, we can create and deploy a custom Cruise Control image which includes the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) application inside of it.
+
+![](/assets/images/posts/2022-10-31-hacking-for-cruise-control-ui-1.png)
+
+
+### Inside the custom Cruise Control container
+
+Here the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) will run alongside Cruise Control application in the same container making its requests directly to the Cruise Control REST API.
+
+![](/assets/images/posts/2022-10-31-hacking-for-cruise-control-ui-3.png)
+
+### Building the Cruise Control UI container
+
+We can base our custom Cruise Control image on the original Strimzi Kafka image and install the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) bits on top:
+
+```bash
+#Dockerfile
+FROM quay.io/strimzi/kafka:latest-kafka-3.2.3
+
+ENV CC_UI_VERSION=0.4.0
+ENV CC_UI_HOME=./cruise-control-ui/dist/
+
+USER root
+
+RUN mkdir -p ${CC_UI_HOME}
+
+RUN curl -LO https://github.com/linkedin/cruise-control-ui/releases/download/v${CC_UI_VERSION}/cruise-control-ui-${CC_UI_VERSION}.tar.gz; \
+    tar xvfz cruise-control-ui-${CC_UI_VERSION}.tar.gz -C ${CC_UI_HOME} --strip-components=2; \
+    rm -f cruise-control-ui-${CC_UI_VERSION}.tar.gz*; \
+    echo "dev,dev,/kafkacruisecontrol/" > "${CC_UI_HOME}"static/config.csv;
+
+USER 1001
+```
+
+Then building and pushing the image to a container registry:
+```
+# When building, tag the image with the name of a container registry
+# that is accessible by the Kubernetes cluster.
+docker build . -t <registry>/<cruise-control-ui-image-name>
+
+# Push the image to that container registry
+docker push <registry>/<cruise-control-ui-image-name>
+```
+
+### Deploying the custom Cruise Control pod
+
+To deploy our custom Cruise Control pod we must edit our Strimzi Cluster Operator `Deployment`:
 
 ```
-    *  *                   *  *
- *       *              *        *
-*  Cruise  *   +---->  *  Cruise  *
-*  Control *   <----+  *  Control *
- *   UI  *              *        *
-    *  *                   *  *
-                            ^                   *  *         *  *          *  *
-                            |                *        *   *        *    *        *
-+----------+                |               *  Kafka   * *  Kafka   *  *  Kafka   *
-|          |               *  *             *   Pod    * *   Pod    *  *   Pod    *
-|  Kafka   |            *        *           *        *   *        *    *        *
-| Resource | <------+  * Cluster  * ----->      *  *         *  *          *  *
-|          | +------>  * Operator *
-|          |            *        *              *  *         *  *          *  *
-+----------+               *  *              *        *   *        *    *        *
-                                            * Zookeeper* * Zookeeper*  * Zookeeper*
-                                            *   Pod    * *   Pod    *  *   Pod    *
-                                             *        *   *        *    *        *
-                                                *  *         *  *          *  *
-
-Kubernetes Land                                          Kafka Cluster
+kubectl edit deployment strizi-cluster-operator
 ```
+
+Updating the env section of the spec with the custom Cruise Control image:
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: strimzi-cluster-operator
+  ...
+spec:
+  ...
+  template:
+    ...
+    spec:
+      containers:
+      - args:
+        - /opt/strimzi/bin/cluster_operator_run.sh
+        env:
+          ...
+        - name: STRIMZI_DEFAULT_CRUISE_CONTROL_IMAGE
+          value: <registry>/<cruise-control-ui-image-name>
+
+```
+
+After updating the deployment, the Cluster Operator will pull the new custom Cruise Control image and run it.
+
+## METHOD TWO: Outside the Cruise Control Pod
+
+With our Strimzi-managed Kafka cluster deployed, we can now create a Cruise Control UI pod to run alongside it.
+
+![](/assets/images/posts/2022-10-31-hacking-for-cruise-control-ui-2.png)
 
 ### Inside the Cruise Control UI container
 
 Following the instructions on the [Cruise Control UI wiki](https://github.com/linkedin/cruise-control-ui/wiki/CCFE-(Dev-Mode)---Docker), we can configure an Nginx server as a reverse-proxy to forward Cruise Control UI requests to the Cruise Control REST API.
 
-```
-                                +-------------+
-                                |             |      
-+----------------+  GET /       |             |
-|                |              |    nginx    |       
-|   User / CCFE  +<------------>+             |       
-|                |   CCFE FILES |             |       
-+-------+--------+              |  10.0.0.4   |----------->
-        ^                       |  port 80    |  CC REST API request     
-        |                       |             |  (/kafkacruisecontrol)    
-        |                       |             |   
-        +---------------------->+             +        
-      {GET,POST}                |             |      
-      /kafkacruisecontrol       +-------------+
-
-Cruise Control UI pod
-```
+![](/assets/images/posts/2022-10-31-hacking-for-cruise-control-ui-4.png)
 
 Here user requests from the Cruise Control UI are sent to the NGINX server where they are forwarded to the Cruise Control REST API.
-The responses from the Cruise Control REST API are then returned to the NGINX server where they are then returned to the Cruise Control UI for user view.
+The responses from the Cruise Control REST API are then returned to the NGINX server where they are then returned to the Cruise Control UI.
 
 
 ### Building the Cruise Control UI container
@@ -245,7 +269,7 @@ kubectl port-forward svc/cruise-control-ui 8090:80
 
 Then navigate [‘http://127.0.0.1:8090’](http://127.0.0.1:8090) in your browser
 
-![Cruise Control Frontend]({{ "/assets/images/posts/2019-08-08-cruise-control-frontend.png" }})
+![Cruise Control Frontend](/assets/images/posts/2019-08-08-cruise-control-frontend.png)
 
 ## Conclusion
 
