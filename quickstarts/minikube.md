@@ -1,5 +1,5 @@
 Minikube provides a local Kubernetes, designed to make it easy to learn and develop for Kubernetes.
-The Kubernetes cluster is started inside a virtual machine, running a Linux kernel and a Docker daemon.
+The Kubernetes cluster is started either inside a virtual machine, a container or on bare-metal, depending on the minikube driver you choose.
 
 # Installing the dependencies
 
@@ -95,10 +95,18 @@ Enjoy your Apache Kafka cluster, running on Minikube!
 When you are finished with your Apache Kafka cluster, you can delete it by running:
 
 ```shell
-kubectl -n kafka delete kafka my-cluster
+kubectl -n kafka delete $(kubectl get strimzi -o name -n kafka)
 ```
 
-This will remove the Apache Kafka cluster but leave the Strimzi cluster operator running so that it can respond to new Kafka custom resources.
+This will remove all Strimzi custom resources, including the Apache Kafka cluster and any KafkaTopic custom resources but leave the Strimzi cluster operator running so that it can respond to new Kafka custom resources.
+
+# Deleting the Strimzi cluster operator
+
+When you want to fully remove the Strimzi cluster operator and associated definitions, you can run:
+
+```shell
+kubectl -n kafka delete -f 'https://strimzi.io/install/latest?namespace=kafka'
+```
 
 # Where next?
 
