@@ -17,7 +17,7 @@ This post will walk through how to do so!
 
 ## Motivation
 
-Maybe you want a pretty dashboard to view your cluster status, maybe you want to preform Cruise Control operations without having to open a text editor, or maybe you are just a visual person, reguardless of the reason, we have been getting a lot of requests for how to set up the Cruise Control UI with a Strimzi-managed Kafka cluster.
+Maybe you want a pretty dashboard to view your cluster status, maybe you want to preform Cruise Control operations without having to open a text editor, or maybe you are just a visual person, regardless of the reason, we have been getting a lot of requests for how to set up the Cruise Control UI with a Strimzi-managed Kafka cluster.
 We want to provide some basic instructions for getting you started!
 
 ## Prerequisites
@@ -57,7 +57,7 @@ With our Strimzi-managed Kafka cluster deployed, we can create and deploy a cust
 
 ### Inside the custom Cruise Control container
 
-Here the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) will run alongside Cruise Control application in the same container making its requests directly to the Cruise Control REST API.
+Here the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) will run alongside the Cruise Control application in the same container making its requests directly to the Cruise Control REST API.
 
 ![](/assets/images/posts/2022-10-31-hacking-for-cruise-control-ui-3.png)
 
