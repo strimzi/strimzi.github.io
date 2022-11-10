@@ -59,9 +59,9 @@ kubectl logs deployment/strimzi-cluster-operator -n kafka -f
 
 Once the operator is running it will watch for new custom resources and create the Kafka cluster, topics or users that correspond to those custom resources.
 
-# Configure an Apache Kafka cluster
+# Create an Apache Kafka cluster
 
-Configure a new Kafka custom resource to create a small persistent Apache Kafka Cluster with one node for Apache Zookeeper and Apache Kafka:
+Create a new Kafka custom resource to get a small persistent Apache Kafka Cluster with one node for Apache Zookeeper and Apache Kafka:
 
 ```shell
 # Apply the `Kafka` Cluster CR file
