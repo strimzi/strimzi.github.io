@@ -184,7 +184,7 @@ docker push <registry>/<cruise-control-ui-image-name>
 
 ### Deploying the Cruise Control UI pod
 
-Then we can create a `Deployment`, `ConfigMap`, and `Service` for running the Cruise Control UI:
+Then we can create a `Deployment`, `ConfigMap`, `Service`, and `NetworkPolicy` for running the Cruise Control UI:
 
 ```yaml
 # cruise-control-ui.yaml
@@ -261,6 +261,25 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cruise-control-ui
+spec:
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: cruise-control-ui
+    ports:
+    - port: 9090
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      strimzi.io/name: my-cluster-cruise-control
+  policyTypes:
+  - Ingress
 ```
 
 Then run it:
