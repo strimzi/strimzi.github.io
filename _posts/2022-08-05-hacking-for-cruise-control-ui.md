@@ -99,10 +99,10 @@ Then building and pushing the image to a container registry:
 ```
 # When building, tag the image with the name of a container registry
 # that is accessible by the Kubernetes cluster.
-docker build . -t <registry>/<cruise-control-ui-image-name>
+docker build . -t <registry>/<cruise-control-with-ui-image-name>
 
 # Push the image to that container registry
-docker push <registry>/<cruise-control-ui-image-name>
+docker push <registry>/<cruise-control-with-ui-image-name>
 ```
 
 ### Deploying the custom Cruise Control pod
@@ -131,7 +131,7 @@ spec:
         env:
           ...
         - name: STRIMZI_DEFAULT_CRUISE_CONTROL_IMAGE
-          value: <registry>/<cruise-control-ui-image-name>
+          value: <registry>/<cruise-control-with-ui-image-name>
 
 ```
 
