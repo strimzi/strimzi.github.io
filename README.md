@@ -23,12 +23,7 @@ Once running the website is accessibly at `localhost:4000`.
 
 To avoid needing to install Ruby you can build and run the web site locally inside a container, run:
 
-    docker run -d -v ${PWD}:/srv/jekyll -p 4000:4000 -it jekyll/jekyll jekyll serve
-
-To see the progress of the build, run:
-
-    docker container ls
-    docker logs <ID> -f
+    docker run --rm -v ${PWD}:/srv/jekyll -p 4000:4000 -it jekyll/jekyll jekyll serve
 
 It can take several minutes to complete, look for the message "Server running...".
 
