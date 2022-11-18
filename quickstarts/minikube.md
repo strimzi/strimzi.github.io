@@ -1,62 +1,37 @@
-# Starting Minikube
+Minikube provides a local Kubernetes, designed to make it easy to learn and develop for Kubernetes.
+The Kubernetes cluster is started either inside a virtual machine, a container or on bare-metal, depending on the minikube driver you choose.
 
-This assumes that you have the latest version of the `minikube` binary, which you can get [here](https://kubernetes.io/docs/setup/minikube/#installation).
+# Installing the dependencies
+
+This quickstart assumes that you have the latest version of the `minikube` binary, which you can get from the [minikube website](https://minikube.sigs.k8s.io/docs/start/).
+
+Minikube requires a container or virtual machine manager.
+The Minikube documentation includes a list of suggested options in the [getting started guide](https://minikube.sigs.k8s.io/docs/start/).
+
+You'll also need the `kubectl` binary, which you can get by following the [`kubectl` installation instructions](https://kubernetes.io/docs/tasks/tools/) from the Kubernetes website.
+
+Once you have all the binaries installed, make sure everything works:
+
+```shell
+# Validate minikube
+minikube version
+
+# Validate kubectl
+kubectl version
+```
+
+# Starting the Kubernetes cluster
+
+Start a local development cluster of [Minikube](https://minikube.sigs.k8s.io/docs/start/) that runs in a container or virtual machine manager.
 
 ```shell
 minikube start --memory=4096 # 2GB default memory isn't always enough
 ```
 
-> NOTE: Make sure to start `minikube` with your configured VM. If need help look at the [documentation](https://kubernetes.io/docs/setup/minikube/#quickstart) for more.
-
-Once Minikube is started, let's create our `kafka` namespace:
-
-```shell
-kubectl create namespace kafka
-```
-
-# Applying Strimzi installation file
-
-Next we apply the Strimzi install files, including `ClusterRoles`, `ClusterRoleBindings` and some **Custom Resource Definitions** (`CRDs`). The CRDs define the schemas used for declarative management of the Kafka cluster, Kafka topics and users.
-
-```shell
-kubectl create -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
-```
-
-# Provision the Apache Kafka cluster
-
-After that we feed Strimzi with a simple **Custom Resource**, which will then give you a small persistent Apache Kafka Cluster with one node each for Apache Zookeeper and Apache Kafka:
-
-```shell
-# Apply the `Kafka` Cluster CR file
-kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka 
-```
-
-We now need to wait while Kubernetes starts the required pods, services and so on:
-
-```shell
-kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka 
-```
-
-The above command might timeout if you're downloading images over a slow connection. If that happens you can always run it again.
-
-# Send and receive messages
-
-Once the cluster is running, you can run a simple producer to send messages to a Kafka topic (the topic will be automatically created):
-
-```shell
-kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:{{site.data.releases.operator[0].version}}-kafka-{{site.data.releases.operator[0].defaultKafkaVersion}} --rm=true --restart=Never -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic
-```
-
-And to receive them in a different terminal you can run:
-
-```shell
-kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:{{site.data.releases.operator[0].version}}-kafka-{{site.data.releases.operator[0].defaultKafkaVersion}} --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic --from-beginning
-```
+{% include quickstarts/create-commands.md %}
 
 Enjoy your Apache Kafka cluster, running on Minikube!
 
-# Where next?
+{% include quickstarts/delete-commands.md %}
 
-* If that was a little too quick, you might prefer a more [descriptive introduction to Strimzi](/docs/operators/latest/quickstart.html), covering the same ground but with more explanation.
-* For an overview of the Strimzi components check out the [overview guide](/docs/operators/latest/overview.html).
-* For alternative examples of the custom resource which defines the Kafka cluster have a look at these [examples]({{site.github_url}}/strimzi-kafka-operator/tree/{{site.data.releases.operator[0].version}}/examples/kafka)
+{% include quickstarts/next-steps.md %}
