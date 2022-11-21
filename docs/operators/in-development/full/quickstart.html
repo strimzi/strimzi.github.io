@@ -459,6 +459,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#proc-install-product-str">2.3. Installing Strimzi</a></li>
 <li><a href="#proc-kafka-cluster-str">2.4. Creating a cluster</a></li>
 <li><a href="#proc-using-amq-streams-str">2.5. Sending and receiving messages from a topic</a></li>
+<li><a href="#proc-uninstall-product-str">2.6. Uninstalling Strimzi</a></li>
 </ul>
 </li>
 </ul>
@@ -469,7 +470,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <h2 id="overview-str"><a class="link" href="#overview-str">1. Overview of Strimzi</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Strimzi simplifies the process of running Apache Kafka in a Kubernetes cluster.</p>
+<p>Strimzi simplifies the process of running <a href="https://kafka.apache.org/" target="_blank" rel="noopener">Apache Kafka</a> in a Kubernetes cluster.</p>
 </div>
 <div class="paragraph">
 <p>This guide provides instructions for evaluating a working environment of Strimzi.
@@ -591,7 +592,7 @@ The Operators provided with Strimzi are purpose-built with specialist operationa
 <div class="sect2">
 <h3 id="key-features-operators_str"><a class="link" href="#key-features-operators_str">1.4. Operators</a></h3>
 <div class="paragraph">
-<p>Strimzi provides Operators for managing a Kafka cluster running within a Kubernetes cluster.</p>
+<p>Strimzi provides <a href="https://kubernetes.io/docs/concepts/extend-kubernetes/operator/" target="_blank" rel="noopener">operators</a> for managing a Kafka cluster running within a Kubernetes cluster.</p>
 </div>
 <div class="dlist">
 <dl>
@@ -666,6 +667,9 @@ If the value refers to code or commands, <code>monospace</code> is also used.</p
 <li>
 <p>Access the Kafka cluster to send and receive messages</p>
 </li>
+<li>
+<p>Remove the Kafka cluster and uninstall Strimzi</p>
+</li>
 </ul>
 </div>
 <div class="sect2">
@@ -733,7 +737,8 @@ Use namespaces to separate functions.</p>
 <div class="title">Prerequisites</div>
 <ul>
 <li>
-<p>Installation requires a Kubernetes account with cluster admin credentials.</p>
+<p>Installation requires a Kubernetes account with privileges to install Custom Resource Definitions and role bindings.
+The default install of Minikube has these privileges.</p>
 </li>
 </ul>
 </div>
@@ -741,7 +746,12 @@ Use namespaces to separate functions.</p>
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Log in to the Kubernetes cluster using an account that has cluster admin privileges.</p>
+<p>Navigate to the directory where you extracted the Strimzi ZIP file.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">cd strimzi-<em>&lt;version&gt;</em></code></pre>
+</div>
+</div>
 </li>
 <li>
 <p>Create a new <code>kafka</code> namespace for the Strimzi Kafka Cluster Operator.</p>
@@ -782,6 +792,10 @@ By default, the files work in the <code>myproject</code> namespace.
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">sed -i '' 's/namespace: .*/namespace: kafka/' install/cluster-operator/*RoleBinding*.yaml</code></pre>
 </div>
 </div>
+</li>
+<li>
+<p>On Windows, open each file in <code>install/cluster-operator</code> directory that has <code>RoleBinding</code> in the name and find the key <code>namespace</code>.
+Replace the value <code>myproject</code> with <code>kafka</code>.</p>
 </li>
 </ul>
 </div>
@@ -847,10 +861,26 @@ env:
 </div>
 </li>
 <li>
-<p>Deploy the CRDs and role-based access control (RBAC) resources to manage the CRDs.</p>
+<p>Deploy the CRDs, role-based access control (RBAC) resources to manage the CRDs and the deployment to run the Cluster Operator.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f install/cluster-operator/ -n kafka</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Follow the deployment of the Cluster Operator until it is marked as <code>Ready</code>.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n kafka --watch</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can also follow the operator&#8217;s logs:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl logs deployment/strimzi-cluster-operator -n kafka -f</code></pre>
 </div>
 </div>
 </li>
@@ -880,7 +910,8 @@ env:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Log in to the Kubernetes cluster as a non-privileged user.</p>
+<p>Log in to the Kubernetes cluster as a non-privileged user.
+If using Minikube, you can continue with the same user.</p>
 </li>
 <li>
 <p>Create a new <code>my-cluster</code> Kafka cluster with one ZooKeeper and one Kafka broker.</p>
@@ -1053,12 +1084,39 @@ EOF</code></pre>
 </ol>
 </div>
 </div>
+<div class="sect2">
+<h3 id="proc-uninstall-product-str"><a class="link" href="#proc-uninstall-product-str">2.6. Uninstalling Strimzi</a></h3>
+<div class="paragraph">
+<p>This task describes how to remove the Kafka cluster and topic, and then how to fully remove Strimzi.</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>To remove the Kafka cluster and associated topics, remove all Strimzi Custom Resources in the <code>my-kafka-project</code> namespace.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl -n my-kafka-project delete $(kubectl get strimzi -o name -n my-kafka-project)</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>When the Kafka cluster has been removed, delete the CRDs, role-based access control (RBAC) resources and the deployment for the Cluster Operator.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete -f install/cluster-operator/ -n kafka</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-11-21 15:41:57 UTC
+Last updated 2022-11-21 17:24:20 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
