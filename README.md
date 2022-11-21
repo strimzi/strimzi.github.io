@@ -17,17 +17,19 @@ In order to build and serve the web site locally, run :
     bundle install
     bundle exec jekyll serve
 
-Once running the website is accessibly at `localhost:4000`.
+When running, the website is accessible at `localhost:4000`.
 
 ## Build using a container
 
-To avoid needing to install Ruby you can build and run the web site locally inside a container, run:
+To avoid needing to install Ruby, you can build and run the web site locally inside a container.
+Run the following command:
 
     docker run --rm -v ${PWD}:/srv/jekyll -p 4000:4000 -it jekyll/jekyll jekyll serve
 
-It can take several minutes to complete, look for the message "Server running...".
+The build can take several minutes to complete.
+When it's done, you'll see the message "Server running...".
 
-**Note:** If you see the error `require': cannot load such file -- webrick (LoadError)` add the following to the `Gemfile`:
+**Note:** If you see the error `require': cannot load such file -- webrick (LoadError)`, add the following to the `Gemfile`:
 
     gem "webrick"
 
