@@ -55,3 +55,35 @@ We try to use the following process for blog posts:
 4. Once the content is good we'll do a final review pass focussing on things like spelling and grammar.
    Don't worry if you're not a native English speaker; our main intent here isn't necessarily _perfect_ English, but to ensure the content is easily understood.
 
+## Quick starts
+
+[Strimzi quick starts](https://strimzi.io/quickstarts/) provide instructions for evaluating Strimzi using _Minikube_, _Kubernetes kind_ or _Docker Desktop_.
+
+The source markdown files for the quick starts are maintained in the [`quickstarts`](/quickstarts) and [`/_includes/quickstarts`](/_includes/quickstarts) folders.
+
+If you spot something that needs updating or changing in the quick starts, you can open an issue or open a PR and contribute directly. 
+
+For more information on contributing to the Strimzi documentation, see the [Strimzi Documentation Contributor Guide](https://strimzi.io/contributing/guide/).
+
+# Contributing
+
+You can contribute by:
+
+* Raising any issues you find using Strimzi
+* Fixing issues by opening Pull Requests
+* Improving documentation
+* Talking about Strimzi
+
+All bugs, tasks or enhancements are tracked as [GitHub issues](https://github.com/strimzi/strimzi-kafka-operator/issues). 
+Issues which might be a good start for new contributors are marked with the ["good-start"](https://github.com/strimzi/strimzi-kafka-operator/labels/good-start) label.
+
+The [Development Guide for Strimzi](https://github.com/strimzi/strimzi-kafka-operator/blob/main/development-docs/DEV_GUIDE.md) describes how to build Strimzi and how to test your changes before submitting a patch or opening a PR.
+
+If you want to get in touch with us first before contributing, you can use:
+
+* [#strimzi channel on CNCF Slack](https://slack.cncf.io/)
+* [Strimzi Dev mailing list](https://lists.cncf.io/g/cncf-strimzi-dev/topics)
+
+Learn more on how you can contribute on our [Join Us](https://strimzi.io/join-us/) page.
+
+
