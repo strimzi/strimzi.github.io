@@ -566,19 +566,17 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#assembly-distributed-tracing-str">10. Introducing distributed tracing</a>
 <ul class="sectlevel2">
-<li><a href="#outline_of_procedures">10.1. Outline of procedures</a></li>
-<li><a href="#prerequisites">10.2. Prerequisites</a></li>
-<li><a href="#con-overview-tracing-str">10.3. Tracing options</a></li>
-<li><a href="#ref-tracing-environment-variables-str">10.4. Environment variables for tracing</a></li>
-<li><a href="#proc-enabling-tracing-in-connect-mirror-maker-bridge-resources-str">10.5. Enabling tracing in MirrorMaker, Kafka Connect, and Kafka Bridge resources</a></li>
-<li><a href="#proc-configuring-tracers-kafka-clients-str">10.6. Initializing tracing for Kafka clients</a></li>
-<li><a href="#proc-instrumenting-producers-consumers-for-opentracing-str">10.7. Instrumenting producers and consumers for tracing</a></li>
-<li><a href="#proc-instrumenting-kafka-streams-with-tracers-str">10.8. Instrumenting Kafka Streams applications for tracing</a></li>
-<li><a href="#proc-enabling-tracing-type-str">10.9. Introducing a different OpenTelemetry tracing system</a></li>
-<li><a href="#ref-tracing-span-names-str">10.10. Custom span names</a>
+<li><a href="#con-overview-tracing-str">10.1. Tracing options</a></li>
+<li><a href="#ref-tracing-environment-variables-str">10.2. Environment variables for tracing</a></li>
+<li><a href="#assembly-distributed-tracing-procedures-str">10.3. Setting up distributed tracing</a>
 <ul class="sectlevel3">
-<li><a href="#specifying_span_names_for_opentelemetry">10.10.1. Specifying span names for OpenTelemetry</a></li>
-<li><a href="#specifying_span_names_for_opentracing">10.10.2. Specifying span names for OpenTracing</a></li>
+<li><a href="#prerequisites">10.3.1. Prerequisites</a></li>
+<li><a href="#proc-enabling-tracing-in-connect-mirror-maker-bridge-resources-str">10.3.2. Enabling tracing in MirrorMaker, Kafka Connect, and Kafka Bridge resources</a></li>
+<li><a href="#proc-configuring-tracers-kafka-clients-str">10.3.3. Initializing tracing for Kafka clients</a></li>
+<li><a href="#proc-instrumenting-producers-consumers-for-opentracing-str">10.3.4. Instrumenting producers and consumers for tracing</a></li>
+<li><a href="#proc-instrumenting-kafka-streams-with-tracers-str">10.3.5. Instrumenting Kafka Streams applications for tracing</a></li>
+<li><a href="#proc-enabling-tracing-type-str">10.3.6. Introducing a different OpenTelemetry tracing system</a></li>
+<li><a href="#ref-tracing-span-names-str">10.3.7. Custom span names</a></li>
 </ul>
 </li>
 </ul>
@@ -6489,11 +6487,14 @@ The name of the Grafana pod is different for each user.</p>
 <div class="sect1">
 <h2 id="assembly-distributed-tracing-str"><a class="link" href="#assembly-distributed-tracing-str">10. Introducing distributed tracing</a></h2>
 <div class="sectionbody">
-<div class="paragraph">
-<p>Distributed tracing allows you to track the progress of transactions between applications in a distributed system. In a microservices architecture, tracing tracks the progress of transactions between services. Trace data is useful for monitoring application performance and investigating issues with target systems and end-user applications.</p>
+<div class="paragraph _abstract">
+<p>Distributed tracing tracks the progress of transactions between applications in a distributed system.
+In a microservices architecture, tracing tracks the progress of transactions between services.
+Trace data is useful for monitoring application performance and investigating issues with target systems and end-user applications.</p>
 </div>
 <div class="paragraph">
-<p>In Strimzi, tracing facilitates the end-to-end tracking of messages: from source systems to Kafka, and then from Kafka to target systems and applications. It complements the metrics that are available to view in <a href="./deploying.html#assembly-metrics-setup-str">Grafana dashboards</a>, as well as the component loggers.</p>
+<p>In Strimzi, tracing facilitates the end-to-end tracking of messages: from source systems to Kafka, and then from Kafka to target systems and applications.
+Distributed tracing complements the monitoring of metrics in Grafana dashboards, as well as the component loggers.</p>
 </div>
 <div class="paragraph">
 <p>Support for tracing is built in to the following Kafka components:</p>
@@ -6501,16 +6502,13 @@ The name of the Grafana pod is different for each user.</p>
 <div class="ulist">
 <ul>
 <li>
-<p>Kafka Connect</p>
+<p>MirrorMaker to trace messages from a source cluster to a target cluster</p>
 </li>
 <li>
-<p>MirrorMaker</p>
+<p>Kafka Connect to trace messages consumed and produced by Kafka Connect</p>
 </li>
 <li>
-<p>MirrorMaker 2.0</p>
-</li>
-<li>
-<p>Strimzi Kafka Bridge</p>
+<p>Kafka Bridge to trace messages between Kafka and HTTP client applications</p>
 </li>
 </ul>
 </div>
@@ -6519,20 +6517,22 @@ The name of the Grafana pod is different for each user.</p>
 </div>
 <div class="paragraph">
 <p>You enable and configure tracing for these components through their custom resources.
-You enable tracing by specifying a tracing type using the <code>spec.tracing.type</code> property:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>opentelemetry</code> for OpenTelemetry with the OTLP Exporter</p>
-</li>
-<li>
-<p><code>jaeger</code> for OpenTracing with Jaeger</p>
-</li>
-</ul>
+You add tracing configuration using <code>spec.template</code> properties.</p>
 </div>
 <div class="paragraph">
-<p>You add tracing configuration using <code>spec.template</code> properties.</p>
+<p>You enable tracing by specifying a tracing type using the <code>spec.tracing.type</code> property:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>opentelemetry</code></dt>
+<dd>
+<p>Specify <code>type: opentelemetry</code> to use OpenTelemetry. By Default, OpenTelemetry uses the OTLP (OpenTelemetry Protocol) exporter and endpoint to get trace data. You can specify other tracing systems supported by OpenTelemetry, including Jaeger tracing. To do this, you change the OpenTelemetry exporter and endpoint in the tracing configuration.</p>
+</dd>
+<dt class="hdlist1"><code>jaeger</code></dt>
+<dd>
+<p>Specify <code>type:jaeger</code> to use OpenTracing and the Jaeger client to get trace data.</p>
+</dd>
+</dl>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -6552,74 +6552,8 @@ Please migrate to OpenTelemetry as soon as possible.</p>
 </tr>
 </table>
 </div>
-<div class="paragraph">
-<p>To enable tracing in Kafka producers, consumers, and Kafka Streams API applications, you <em>instrument</em> application code.
-When instrumented, clients generate trace data; for example, when producing messages or writing offsets to the log.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-<div class="paragraph">
-<p>Setting up tracing for applications and systems beyond Strimzi is outside the scope of this content.</p>
-</div>
-</td>
-</tr>
-</table>
-</div>
 <div class="sect2">
-<h3 id="outline_of_procedures"><a class="link" href="#outline_of_procedures">10.1. Outline of procedures</a></h3>
-<div class="paragraph">
-<p>To set up tracing for Strimzi, follow these procedures in order:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="#proc-enabling-tracing-in-connect-mirror-maker-bridge-resources-str">Enable tracing for MirrorMaker, Kafka Connect, and the Kafka Bridge</a></p>
-</li>
-<li>
-<p>Set up tracing for clients:</p>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="#proc-configuring-tracers-kafka-clients-str">Initialize a Jaeger tracer for Kafka clients</a></p>
-</li>
-</ul>
-</div>
-</li>
-<li>
-<p>Instrument clients with tracers:</p>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="#proc-instrumenting-producers-consumers-for-opentracing-str">Instrument producers and consumers for tracing</a></p>
-</li>
-<li>
-<p><a href="#proc-instrumenting-kafka-streams-with-tracers-str">Instrument Kafka Streams applications for tracing</a></p>
-</li>
-</ul>
-</div>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect2">
-<h3 id="prerequisites"><a class="link" href="#prerequisites">10.2. Prerequisites</a></h3>
-<div class="ulist">
-<ul>
-<li>
-<p>The Jaeger backend components are deployed to your Kubernetes cluster.
-We recommend using the Jaeger operator for deploying Jaeger on your Kubernetes cluster.
-For deployment instructions, see the <a href="https://www.jaegertracing.io/docs/" target="_blank" rel="noopener">Jaeger documentation</a>.</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect2">
-<h3 id="con-overview-tracing-str"><a class="link" href="#con-overview-tracing-str">10.3. Tracing options</a></h3>
+<h3 id="con-overview-tracing-str"><a class="link" href="#con-overview-tracing-str">10.1. Tracing options</a></h3>
 <div class="paragraph _abstract">
 <p>Use OpenTelemetry or OpenTracing (deprecated) with the Jaeger tracing system.</p>
 </div>
@@ -6672,7 +6606,7 @@ For deployment instructions, see the <a href="https://www.jaegertracing.io/docs/
 </div>
 </div>
 <div class="sect2">
-<h3 id="ref-tracing-environment-variables-str"><a class="link" href="#ref-tracing-environment-variables-str">10.4. Environment variables for tracing</a></h3>
+<h3 id="ref-tracing-environment-variables-str"><a class="link" href="#ref-tracing-environment-variables-str">10.2. Environment variables for tracing</a></h3>
 <div class="paragraph _abstract">
 <p>Use environment variables when you are enabling tracing for Kafka components or initializing a tracer for Kafka clients.</p>
 </div>
@@ -6751,7 +6685,70 @@ If you are using another tracing implementation, <a href="#proc-enabling-tracing
 </table>
 </div>
 <div class="sect2">
-<h3 id="proc-enabling-tracing-in-connect-mirror-maker-bridge-resources-str"><a class="link" href="#proc-enabling-tracing-in-connect-mirror-maker-bridge-resources-str">10.5. Enabling tracing in MirrorMaker, Kafka Connect, and Kafka Bridge resources</a></h3>
+<h3 id="assembly-distributed-tracing-procedures-str"><a class="link" href="#assembly-distributed-tracing-procedures-str">10.3. Setting up distributed tracing</a></h3>
+<div class="paragraph _abstract">
+<p>Enable distributed tracing in Kafka components by specifying a tracing type in the custom resource.
+Instrument tracers in Kafka clients for end-to-end tracking of messages.</p>
+</div>
+<div class="paragraph">
+<p>To set up distributed tracing, follow these procedures in order:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#proc-enabling-tracing-in-connect-mirror-maker-bridge-resources-str">Enable tracing for MirrorMaker, Kafka Connect, and the Kafka Bridge</a></p>
+</li>
+<li>
+<p>Set up tracing for clients:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#proc-configuring-tracers-kafka-clients-str">Initialize a Jaeger tracer for Kafka clients</a></p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Instrument clients with tracers:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#proc-instrumenting-producers-consumers-for-opentracing-str">Instrument producers and consumers for tracing</a></p>
+</li>
+<li>
+<p><a href="#proc-instrumenting-kafka-streams-with-tracers-str">Instrument Kafka Streams applications for tracing</a></p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="prerequisites"><a class="link" href="#prerequisites">10.3.1. Prerequisites</a></h4>
+<div class="paragraph">
+<p>Before setting up distributed tracing, make sure Jaeger backend components are deployed to your Kubernetes cluster.
+We recommend using the Jaeger operator for deploying Jaeger on your Kubernetes cluster.</p>
+</div>
+<div class="paragraph">
+<p>For deployment instructions, see the <a href="https://www.jaegertracing.io/docs/" target="_blank" rel="noopener">Jaeger documentation</a>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Setting up tracing for applications and systems beyond Strimzi is outside the scope of this content.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-enabling-tracing-in-connect-mirror-maker-bridge-resources-str"><a class="link" href="#proc-enabling-tracing-in-connect-mirror-maker-bridge-resources-str">10.3.2. Enabling tracing in MirrorMaker, Kafka Connect, and Kafka Bridge resources</a></h4>
 <div class="paragraph _abstract">
 <p>Distributed tracing is supported for MirrorMaker, MirrorMaker 2.0, Kafka Connect, and the Strimzi Kafka Bridge.
 Configure the custom resource of the component to specify and enable a tracer service.</p>
@@ -7005,8 +7002,8 @@ spec:
 </ol>
 </div>
 </div>
-<div class="sect2">
-<h3 id="proc-configuring-tracers-kafka-clients-str"><a class="link" href="#proc-configuring-tracers-kafka-clients-str">10.6. Initializing tracing for Kafka clients</a></h3>
+<div class="sect3">
+<h4 id="proc-configuring-tracers-kafka-clients-str"><a class="link" href="#proc-configuring-tracers-kafka-clients-str">10.3.3. Initializing tracing for Kafka clients</a></h4>
 <div class="paragraph _abstract">
 <p>Initialize a tracer, then instrument your client applications for distributed tracing.
 You can instrument Kafka producer and consumer clients, and Kafka Streams API applications.
@@ -7101,10 +7098,11 @@ You can initialize a tracer for OpenTracing or OpenTelemetry.</p>
 </ol>
 </div>
 </div>
-<div class="sect2">
-<h3 id="proc-instrumenting-producers-consumers-for-opentracing-str"><a class="link" href="#proc-instrumenting-producers-consumers-for-opentracing-str">10.7. Instrumenting producers and consumers for tracing</a></h3>
+<div class="sect3">
+<h4 id="proc-instrumenting-producers-consumers-for-opentracing-str"><a class="link" href="#proc-instrumenting-producers-consumers-for-opentracing-str">10.3.4. Instrumenting producers and consumers for tracing</a></h4>
 <div class="paragraph _abstract">
-<p>Use a decorator pattern or interceptors to instrument your Java producer and consumer application code for tracing.
+<p>Instrument application code to enable tracing in Kafka producers and consumers.
+Use a decorator pattern or interceptors to instrument your Java producer and consumer application code for tracing.
 You can then record traces when messages are produced or retrieved from a topic.</p>
 </div>
 <div class="paragraph">
@@ -7222,10 +7220,11 @@ SpanContext spanContext = TracingKafkaUtils.extractSpanContext(record.headers(),
 </ul>
 </div>
 </div>
-<div class="sect2">
-<h3 id="proc-instrumenting-kafka-streams-with-tracers-str"><a class="link" href="#proc-instrumenting-kafka-streams-with-tracers-str">10.8. Instrumenting Kafka Streams applications for tracing</a></h3>
+<div class="sect3">
+<h4 id="proc-instrumenting-kafka-streams-with-tracers-str"><a class="link" href="#proc-instrumenting-kafka-streams-with-tracers-str">10.3.5. Instrumenting Kafka Streams applications for tracing</a></h4>
 <div class="paragraph _abstract">
-<p>Use a decorator pattern or interceptors to instrument your Kafka Streams API applications for tracing.
+<p>Instrument application code to enable tracing in Kafka Streams API applications.
+Use a decorator pattern or interceptors to instrument your Kafka Streams API applications for tracing.
 You can then record traces when messages are produced or retrieved from a topic.</p>
 </div>
 <div class="dlist">
@@ -7320,8 +7319,8 @@ props.put(StreamsConfig.CONSUMER_PREFIX + ConsumerConfig.INTERCEPTOR_CLASSES_CON
 </ul>
 </div>
 </div>
-<div class="sect2">
-<h3 id="proc-enabling-tracing-type-str"><a class="link" href="#proc-enabling-tracing-type-str">10.9. Introducing a different OpenTelemetry tracing system</a></h3>
+<div class="sect3">
+<h4 id="proc-enabling-tracing-type-str"><a class="link" href="#proc-enabling-tracing-type-str">10.3.6. Introducing a different OpenTelemetry tracing system</a></h4>
 <div class="paragraph _abstract">
 <p>Instead of the default OTLP system, you can specify other tracing systems that are supported by OpenTelemetry.
 You do this by adding the required artifacts to the Kafka image provided with Strimzi.
@@ -7385,8 +7384,8 @@ spec:
 </ol>
 </div>
 </div>
-<div class="sect2">
-<h3 id="ref-tracing-span-names-str"><a class="link" href="#ref-tracing-span-names-str">10.10. Custom span names</a></h3>
+<div class="sect3">
+<h4 id="ref-tracing-span-names-str"><a class="link" href="#ref-tracing-span-names-str">10.3.7. Custom span names</a></h4>
 <div class="paragraph _abstract">
 <p>A tracing <em>span</em> is a logical unit of work in Jaeger, with an operation name, start time, and duration.
 Spans have built-in names, but you can specify custom span names in your Kafka client instrumentation where used.</p>
@@ -7394,8 +7393,8 @@ Spans have built-in names, but you can specify custom span names in your Kafka c
 <div class="paragraph">
 <p>Specifying custom span names is optional and only applies when using a decorator pattern <a href="#proc-instrumenting-producers-consumers-for-opentracing-str">in producer and consumer client instrumentation</a> or <a href="#proc-instrumenting-kafka-streams-with-tracers-str">Kafka Streams instrumentation</a>.</p>
 </div>
-<div class="sect3">
-<h4 id="specifying_span_names_for_opentelemetry"><a class="link" href="#specifying_span_names_for_opentelemetry">10.10.1. Specifying span names for OpenTelemetry</a></h4>
+<div class="sect4">
+<h5 id="specifying_span_names_for_opentelemetry"><a class="link" href="#specifying_span_names_for_opentelemetry">Specifying span names for OpenTelemetry</a></h5>
 <div class="paragraph">
 <p>Custom span names cannot be specified directly with OpenTelemetry.
 Instead, you retrieve span names by adding code to your client application to extract additional tags and attributes.</p>
@@ -7437,13 +7436,14 @@ public static void main(String[] args) throws Exception {
 </div>
 </div>
 </div>
-<div class="sect3">
-<h4 id="specifying_span_names_for_opentracing"><a class="link" href="#specifying_span_names_for_opentracing">10.10.2. Specifying span names for OpenTracing</a></h4>
+<div class="sect4">
+<h5 id="specifying_span_names_for_opentracing"><a class="link" href="#specifying_span_names_for_opentracing">Specifying span names for OpenTracing</a></h5>
 <div class="paragraph">
 <p>To specify custom span names for OpenTracing, pass a <code>BiFunction</code> object as an additional argument when instrumenting producers and consumers.</p>
 </div>
 <div class="paragraph">
 <p>For more information on built-in names and specifying custom span names to instrument client application code in a decorator pattern, see the <a href="https://github.com/opentracing-contrib/java-kafka-client">OpenTracing Apache Kafka client instrumentation</a>.</p>
+</div>
 </div>
 </div>
 </div>
@@ -9497,7 +9497,7 @@ Deleting <code>CustomResourceDefinitions</code> results in the garbage collectio
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-12-06 20:01:34 UTC
+Last updated 2022-12-07 11:05:40 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>

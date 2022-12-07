@@ -1186,7 +1186,7 @@ spec:
 <div class="paragraph">
 <p>A kafka cluster comprises one or more brokers.
 For producers and consumers to be able to access topics within the brokers, Kafka configuration must define how data is stored in the cluster, and how the data is accessed.
-You can configure a Kafka cluster to run with multiple broker nodes across <em>racks</em>.</p>
+You can configure a Kafka cluster to run with multiple broker nodes across racks.</p>
 </div>
 <div class="dlist">
 <dl>
@@ -1312,7 +1312,16 @@ For example, you can use the listener with a custom Ingress controller or the Ku
 <dl>
 <dt class="hdlist1">Rack awareness</dt>
 <dd>
-<p>Rack awareness is a configuration feature that distributes Kafka broker pods and topic replicas across <em>racks</em>, which represent data centers or racks in data centers, or availability zones.</p>
+<p>Racks represent data centers, or racks in data centers, or availability zones.
+Configure rack awareness to distribute Kafka broker pods and topic replicas across racks.
+Enable rack awareness using the <code>rack</code> property to specify a <code>topologyKey</code>.
+The <code>topologyKey</code> is the name of the label assigned to Kubernetes worker nodes, which identifies the rack.
+Strimzi assigns a rack ID to each Kafka broker.
+Kafka brokers use the IDs to spread partition replicas across racks.
+You can also specify the <code>RackAwareReplicaSelector</code> selector plugin to use with rack awareness.
+The plugin matches the rack IDs of brokers and consumers, so that messages are consumed from the closest replica.
+To use the the plugin, consumers must also have rack awareness enabled.
+You can enable rack awareness in Kafka Connect, MirrorMaker 2.0, and the Kafka Bridge.</p>
 </dd>
 </dl>
 </div>
@@ -1346,6 +1355,8 @@ spec:
     # ...
     rack:
       topologyKey: topology.kubernetes.io/zone
+    config:
+      replica.selector.class: org.apache.kafka.common.replica.RackAwareReplicaSelector
     # ...</code></pre>
 </div>
 </div>
@@ -2231,47 +2242,29 @@ Example metrics configuration files are provided with Strimzi.</p>
 <div class="title">Metrics and monitoring tools</div>
 <p>Strimzi can employ the following tools for metrics and monitoring:</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p><strong>Prometheus</strong> pulls metrics from Kafka, ZooKeeper and Kafka Connect clusters. The Prometheus <strong>Alertmanager</strong> plugin handles alerts and routes them to a notification service.</p>
-</li>
-<li>
-<p><strong>Kafka Exporter</strong> adds additional Prometheus metrics</p>
-</li>
-<li>
-<p><strong>Grafana</strong> provides dashboard visualizations of Prometheus metrics</p>
-</li>
-<li>
-<p><strong>Jaeger</strong> provides distributed tracing support to track transactions between applications</p>
-</li>
-<li>
-<p><strong>Cruise Control</strong> balances data across a Kafka cluster</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Supporting documentation for metrics and monitoring tools</div>
-<p>For more information on the metrics and monitoring tools, refer to the supporting documentation:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="https://github.com/prometheus" target="_blank" rel="noopener">Prometheus</a></p>
-</li>
-<li>
-<p><a href="https://github.com/danielqsj/kafka_exporter" target="_blank" rel="noopener">Kafka Exporter</a></p>
-</li>
-<li>
-<p><a href="https://grafana.com/" target="_blank" rel="noopener">Grafana Labs</a></p>
-</li>
-<li>
-<p>{JaegerHome}</p>
-</li>
-<li>
-<p><a href="https://github.com/linkedin/cruise-control/wiki" target="_blank" rel="noopener">Cruise Control Wiki</a></p>
-</li>
-</ul>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Prometheus</dt>
+<dd>
+<p><a href="https://github.com/prometheus" target="_blank" rel="noopener">Prometheus</a> pulls metrics from Kafka, ZooKeeper and Kafka Connect clusters. The Prometheus <strong>Alertmanager</strong> plugin handles alerts and routes them to a notification service.</p>
+</dd>
+<dt class="hdlist1">Kafka Exporter</dt>
+<dd>
+<p><a href="https://github.com/danielqsj/kafka_exporter" target="_blank" rel="noopener">Kafka Exporter</a> adds additional Prometheus metrics.</p>
+</dd>
+<dt class="hdlist1">Grafana</dt>
+<dd>
+<p><a href="https://grafana.com/" target="_blank" rel="noopener">Grafana Labs</a> provides dashboard visualizations of Prometheus metrics.</p>
+</dd>
+<dt class="hdlist1">Jaeger</dt>
+<dd>
+<p><a href="https://www.jaegertracing.io/docs/" target="_blank" rel="noopener">Jaeger documentation</a> provides distributed tracing support to track transactions between applications.</p>
+</dd>
+<dt class="hdlist1">Cruise Control</dt>
+<dd>
+<p><a href="https://github.com/linkedin/cruise-control" target="_blank" rel="noopener">Cruise Control</a> monitors data distribution and performs data rebalances across a Kafka cluster.</p>
+</dd>
+</dl>
 </div>
 <div class="sect2">
 <h3 id="metrics-overview-tools-str"><a class="link" href="#metrics-overview-tools-str">9.1. Prometheus</a></h3>
@@ -2314,8 +2307,17 @@ You can use the Grafana dashboard provided to visualize the data collected by Pr
 </div>
 <div class="sect2">
 <h3 id="metrics-overview-tracing_str"><a class="link" href="#metrics-overview-tracing_str">9.4. Distributed tracing</a></h3>
+<div class="paragraph _abstract">
+<p>Distributed tracing tracks the progress of transactions between applications in a distributed system.
+In a microservices architecture, tracing tracks the progress of transactions between services.
+Trace data is useful for monitoring application performance and investigating issues with target systems and end-user applications.</p>
+</div>
 <div class="paragraph">
-<p>Within a Kafka deployment, distributed tracing using Jaeger is supported for:</p>
+<p>In Strimzi, tracing facilitates the end-to-end tracking of messages: from source systems to Kafka, and then from Kafka to target systems and applications.
+Distributed tracing complements the monitoring of metrics in Grafana dashboards, as well as the component loggers.</p>
+</div>
+<div class="paragraph">
+<p>Support for tracing is built in to the following Kafka components:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -2326,12 +2328,49 @@ You can use the Grafana dashboard provided to visualize the data collected by Pr
 <p>Kafka Connect to trace messages consumed and produced by Kafka Connect</p>
 </li>
 <li>
-<p>Kafka Bridge to trace messages consumed and produced by Kafka Bridge, and HTTP requests from client applications</p>
+<p>Kafka Bridge to trace messages between Kafka and HTTP client applications</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>Template configuration properties are set for the Kafka resources, which describe tracing environment variables.</p>
+<p>Tracing is not supported for Kafka brokers.</p>
+</div>
+<div class="paragraph">
+<p>You enable and configure tracing for these components through their custom resources.
+You add tracing configuration using <code>spec.template</code> properties.</p>
+</div>
+<div class="paragraph">
+<p>You enable tracing by specifying a tracing type using the <code>spec.tracing.type</code> property:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>opentelemetry</code></dt>
+<dd>
+<p>Specify <code>type: opentelemetry</code> to use OpenTelemetry. By Default, OpenTelemetry uses the OTLP (OpenTelemetry Protocol) exporter and endpoint to get trace data. You can specify other tracing systems supported by OpenTelemetry, including Jaeger tracing. To do this, you change the OpenTelemetry exporter and endpoint in the tracing configuration.</p>
+</dd>
+<dt class="hdlist1"><code>jaeger</code></dt>
+<dd>
+<p>Specify <code>type:jaeger</code> to use OpenTracing and the Jaeger client to get trace data.</p>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Support for <code>type: jaeger</code> tracing is deprecated.
+The Jaeger clients are now retired and the OpenTracing project archived.
+As such, we cannot guarantee their support for future Kafka versions.
+If possible, we will maintain the support for <code>type: jaeger</code> tracing until June 2023 and remove it afterwards.
+Please migrate to OpenTelemetry as soon as possible.</p>
+</div>
+</td>
+</tr>
+</table>
 </div>
 <h4 id="tracing_for_kafka_clients" class="discrete">Tracing for Kafka clients</h4>
 <div class="paragraph">
@@ -2341,25 +2380,54 @@ Clients are configured with a tracing profile, and a tracer is initialized for t
 </div>
 <div class="sect2">
 <h3 id="metrics-overview-cruisecontrol_str"><a class="link" href="#metrics-overview-cruisecontrol_str">9.5. Cruise Control</a></h3>
-<div class="paragraph">
-<p>Cruise Control is an open source project for simplifying the monitoring and balancing of data across a Kafka cluster.
-Cruise Control is deployed alongside a Kafka cluster to monitor its traffic, propose more balanced partition assignments, and trigger partition reassignments based on those proposals.</p>
+<div class="paragraph _abstract">
+<p>Cruise Control is an open source system that supports the following Kafka operations:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Monitoring cluster workload</p>
+</li>
+<li>
+<p>Rebalancing a cluster based on predefined constraints</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
-<p>Cruise Control collects resource utilization information to model and analyze the workload of the Kafka cluster.
-Based on <em>optimization goals</em> that have been defined, Cruise Control generates <em>optimization proposals</em> outlining how the cluster can be effectively rebalanced.
-When an <em>optimization proposal</em> is approved, Cruise Control applies the rebalancing outlined in the proposal.</p>
+<p>The operations help with running a more balanced Kafka cluster that uses broker pods more efficiently.</p>
+</div>
+<div class="paragraph">
+<p>A typical cluster can become unevenly loaded over time.
+Partitions that handle large amounts of message traffic might not be evenly distributed across the available brokers.
+To rebalance the cluster, administrators must monitor the load on brokers and manually reassign busy partitions to brokers with spare capacity.</p>
+</div>
+<div class="paragraph">
+<p>Cruise Control automates the cluster rebalancing process.
+It constructs a <em>workload model</em> of resource utilization for the cluster&#8212;&#8203;based on CPU, disk, and network load&#8212;&#8203;and generates optimization proposals (that you can approve or reject) for more balanced partition assignments.
+A set of configurable optimization goals is used to calculate these proposals.</p>
 </div>
 <div class="paragraph">
 <p>You can generate optimization proposals in specific modes.
-The <code>full</code> mode rebalances across all brokers and is used by default.
-Other modes accommodate changes when scaling a cluster up or down.
-Generate an optimization proposal in <code>add-brokers</code> mode to move data from existing brokers to newly added ones.
-Generate an optimization proposal in <code>remove-brokers</code> mode to move all data off brokers to be removed, before scaling down.</p>
+The default <code>full</code> mode rebalances partitions across all brokers.
+You can also use the <code>add-brokers</code> and <code>remove-brokers</code> modes to accommodate changes when scaling a cluster up or down.</p>
 </div>
 <div class="paragraph">
-<p>Prometheus can extract Cruise Control metrics data, including data related to optimization proposals and rebalancing operations.
-A sample configuration file and Grafana dashboard for Cruise Control are provided with Strimzi.</p>
+<p>When you approve an optimization proposal, Cruise Control applies it to your Kafka cluster.
+You configure and generate optimization proposals using a <code>KafkaRebalance</code> resource.
+You can configure the resource using an annotation so that optimization proposals are approved automatically or manually.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Prometheus can extract Cruise Control metrics data, including data related to optimization proposals and rebalancing operations.
+A sample configuration file and Grafana dashboard for Cruise Control are provided with Strimzi.
+</td>
+</tr>
+</table>
 </div>
 </div>
 </div>
