@@ -37,7 +37,7 @@ For starters we will need a Strimzi-managed Kafka cluster with Cruise Control en
 
 ![](/assets/images/posts/2022-10-31-hacking-for-cruise-control-ui-1.png)
 
-Since the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) does not support HTTPS and Strimzi does not support creating custom Cruise Control API user roles we will need to disable Cruise Control SSL and HTTP basic authentication settings.
+Since Strimzi does not support creating custom Cruise Control API user roles we will need to disable HTTP basic authentication settings.
 
 We can do so by configuring Cruise Control within a `Kafka` resource like this:
 
@@ -51,7 +51,6 @@ spec:
   cruiseControl:
     config:
       webserver.security.enable: false
-      webserver.ssl.enable: false  
 ```
 
 After configuring our Strimzi-managed Kafka cluster, we can deploy and connect the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) in one of two ways:
@@ -152,7 +151,6 @@ Following the instructions on the [Cruise Control UI wiki](https://github.com/li
 Here user requests from the Cruise Control UI are sent to the NGINX server where they are forwarded to the Cruise Control REST API.
 The responses from the Cruise Control REST API are then returned to the NGINX server where they are then returned to the Cruise Control UI.
 
-
 ### Building the Cruise Control UI container
 
 We can build our own Cruise Control image with a configured NGINX server and Cruise Control UI binaries following the instructions on the [Cruise Control UI wiki](https://github.com/linkedin/cruise-control-ui/wiki/CCFE-(Dev-Mode)---Docker), creating a Dockerfile like the following:
@@ -169,7 +167,7 @@ RUN curl -LO https://github.com/linkedin/cruise-control-ui/releases/download/v${
     rm -f cruise-control-ui-${CRUISE_CONTROL_UI_VERSION}.tar.gz*; \
     echo "dev,dev,/kafkacruisecontrol/" > "${NGINX_HOME}"static/config.csv;
 
-EXPOSE 80
+EXPOSE 9090
 ```
 
 Then building and pushing the image to a container registry:
@@ -206,16 +204,26 @@ spec:
     spec:
       containers:
       - name: cruise-control-ui
-        image: <registry>/<cruise-control-ui-image-name>
+        image: <registry>/<cruise-control-ui-image-name>>
         ports:
-        - containerPort: 80
+        - containerPort: 9090
         volumeMounts:
         - name: cruise-control-ui
           mountPath: /etc/nginx/conf.d
+        - name: cluster-ca-certs
+          mountPath: /etc/ssl/certs/
       volumes:
         - name: cruise-control-ui
           configMap:
             name: cruise-control-ui
+        - name: api-auth-config
+          secret:
+            defaultMode: 292
+            secretName: my-cluster-cruise-control-api
+        - name: cluster-ca-certs
+          secret:
+            defaultMode: 292
+            secretName: my-cluster-cruise-control-certs
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -226,10 +234,11 @@ metadata:
 data:
   default.conf: |2+
         server {
-        listen       80;
-        listen  [::]:80;
-        server_name  localhost;
-
+        listen 9090 ssl;
+        server_name localhost; 
+        ssl_certificate     /etc/ssl/certs/cruise-control.crt;
+        ssl_certificate_key /etc/ssl/certs/cruise-control.key;
+       
         location / {
             root   /usr/share/nginx/html;
             index  index.html index.htm;
@@ -239,7 +248,8 @@ data:
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_buffering off;
-            proxy_pass http://my-cluster-cruise-control:9090/kafkacruisecontrol/;
+            proxy_pass https://my-cluster-cruise-control:9090/kafkacruisecontrol/;
+            proxy_ssl_verify              off;
         }
         
         error_page   500 502 503 504  /50x.html;
@@ -259,27 +269,8 @@ spec:
     app: cruise-control-ui
   ports:
     - protocol: TCP
-      port: 80
-      targetPort: 80
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: cruise-control-ui
-spec:
-  ingress:
-  - from:
-    - podSelector:
-        matchLabels:
-          app: cruise-control-ui
-    ports:
-    - port: 9090
-      protocol: TCP
-  podSelector:
-    matchLabels:
-      strimzi.io/name: my-cluster-cruise-control
-  policyTypes:
-  - Ingress
+      port: 9090
+      targetPort: 9090
 ```
 
 Then run it:
@@ -294,10 +285,10 @@ After being deployed, the [Cruise Control UI](https://github.com/linkedin/cruise
 If running the cluster locally with [minikube](https://github.com/kubernetes/minikube), you can port-forward the Cruise Control UI `service` to access it locally:
 
 ```
-kubectl port-forward svc/cruise-control-ui 8090:80
+kubectl port-forward svc/cruise-control-ui 9090:9090
 ```
 
-Then navigate [‘http://127.0.0.1:8090’](http://127.0.0.1:8090) in your browser
+Then navigate [‘https://127.0.0.1:9090’](https://127.0.0.1:9090) in your browser
 
 ![Cruise Control Frontend](/assets/images/posts/2019-08-08-cruise-control-frontend.png)
 
