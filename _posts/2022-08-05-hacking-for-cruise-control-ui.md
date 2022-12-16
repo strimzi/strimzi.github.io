@@ -296,5 +296,5 @@ Then navigate to [‘https://127.0.0.1:9090’](https://127.0.0.1:9090) in your 
 
 Now we have a graphical user interface for Cruise Control running alongside and connected to a Strimzi-managed Kafka cluster. 
 This UI is great for monitoring your Kafka cluster and getting more insight on the data and operations Cruise Control has to offer!
-In one of the future versions, the Strimzi community hopes to add the option for creating custom Cruise Control API users.
-This would remove the requirement for the Cruise Control API security settings to be disabled for applications like the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) to work with Strimzi but until then, hack away!
+In a future version, the Strimzi community hopes to add the option for creating custom Cruise Control API users.
+This would remove the requirement for the Cruise Control API security settings to be disabled for applications like the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) to work with Strimzi. Until then, hack away!
