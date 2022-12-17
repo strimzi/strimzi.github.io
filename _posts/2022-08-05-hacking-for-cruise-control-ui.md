@@ -15,8 +15,9 @@ This post will walk through how to do so!
 
 **Warning**
 
-Setting up the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) as described in this blog post requires disabling Cruise Control REST API settings.
+Setting up the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) as described in this blog post requires disabling some of the Cruise Control REST API security settings.
 Having these security settings disabled exposes the Cruise Control API to potentially destructive Cruise Control operations that are not coordinated or supported by Strimzi Operator.
+For example, it would allow users to manually decomission brokers and trigger partition rebalances, operations which could interfere with Strimzi operations. 
 If using the Cruise Control UI with a Strimzi-managed Kafka cluster, it is best to stick with using it solely for monitoring your cluster, not for operating on it.
 That being said, use at your own risk!
 
@@ -27,7 +28,7 @@ That being said, use at your own risk!
 
 We have been getting a lot of requests for how to set up the Cruise Control UI with a Strimzi-managed Kafka cluster.
 Maybe you want a pretty dashboard to view your cluster status.
-Maybe you want to preform Cruise Control operations without having to open a text editor.
+Maybe you want to compare optimization proposals without having to open a text editor.
 Maybe you are just a visual person.
 Regardless of the reason, we want to provide some basic instructions for getting you started!
 
@@ -55,10 +56,10 @@ spec:
 
 After configuring our Strimzi-managed Kafka cluster, we can deploy and connect the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) in one of two ways:
 
-* METHOD ONE: Inside the Cruise Control pod
-* METHOD TWO: Outside the Cruise Control pod
+* METHOD ONE: Inside a dedicated Cruise Control pod
+* METHOD TWO: Outside a dedicated Cruise Control pod
 
-## METHOD ONE: Inside the Cruise Control pod 
+## METHOD ONE: Inside a dedicated Cruise Control pod 
 
 With our Strimzi-managed Kafka cluster deployed, we can create and deploy a custom Cruise Control image which includes the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) application inside of it.
 
@@ -136,7 +137,7 @@ spec:
 
 After updating the deployment, the Cluster Operator will pull the new custom Cruise Control image and run it.
 
-## METHOD TWO: Outside the Cruise Control pod
+## METHOD TWO: Outside a dedicated Cruise Control pod
 
 With our Strimzi-managed Kafka cluster deployed, we can now create a Cruise Control UI pod to run alongside it.
 
@@ -282,9 +283,13 @@ kubectl apply -f cruise-control-ui.yaml -n <namespace>
 
 After deployment, the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) application will be accessible via the cruise-control-ui `service`.
 
-If running the cluster locally with [minikube](https://github.com/kubernetes/minikube), you can port-forward the Cruise Control UI `service` to access it locally:
+If running the cluster locally with [minikube](https://github.com/kubernetes/minikube), you can port-forward the appropriate Cruise Control `service` to access it locally:
 
 ```
+# METHOD ONE
+kubectl port-forward svc/my-cluster-cruise-control 9090:9090
+
+# METHOD TWO
 kubectl port-forward svc/cruise-control-ui 9090:9090
 ```
 
