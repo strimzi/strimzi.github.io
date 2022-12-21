@@ -107,7 +107,37 @@ docker push <registry>/<cruise-control-with-ui-image-name>
 
 ### Deploying the custom Cruise Control pod
 
-To deploy our custom Cruise Control pod we must edit our Strimzi Cluster Operator `Deployment`:
+We can deploy our custom Cruise Control pod in one of two ways:
+
+* Deployment via `Kafka` custom resource
+* Deployment via Strimzi Cluster Operator `Deployment`
+
+#### Deployment via `Kafka` custom resource
+
+This method will restart the Cruise Control instance associated with our `Kafka` resource.
+We can edit our `Kafka` resource like this:
+
+```
+kubectl edit kafka <kafka-custom-resource-name>
+```
+
+Updating the `cruiseControl.image` section of the spec with the custom Cruise Control image:
+
+```
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+   ...
+spec:
+   cruiseControl:
+     image: <registry>/<cruise-control-with-ui-image-name>
+   ...
+```
+
+#### Deployment via Strimzi Cluster Operator `Deployment`
+
+This method will restart the Cluster Operator pod and all Cruise Control instances.
+We can edit our Strimzi Cluster Operator `Deployment` like this:
 
 ```
 kubectl edit deployment strizi-cluster-operator
