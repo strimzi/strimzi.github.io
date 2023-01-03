@@ -559,7 +559,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel2">
 <li><a href="#proc-accessing-kafka-using-nodeports-str">5.1. Accessing Kafka using node ports</a></li>
 <li><a href="#proc-accessing-kafka-using-loadbalancers-str">5.2. Accessing Kafka using loadbalancers</a></li>
-<li><a href="#proc-accessing-kafka-using-ingress-str">5.3. Accessing Kafka using ingress</a></li>
+<li><a href="#proc-accessing-kafka-using-ingress-str">5.3. Accessing Kafka using an Ingress NGINX Controller for Kubernetes</a></li>
 <li><a href="#proc-accessing-kafka-using-routes-str">5.4. Accessing Kafka using OpenShift routes</a></li>
 </ul>
 </li>
@@ -9184,7 +9184,7 @@ Although you can still create and manage your own SCCs.</p>
 <p><code>loadbalancer</code> uses a <code>Loadbalancer</code> type <code>Service</code></p>
 </li>
 <li>
-<p><code>ingress</code> uses Kubernetes <code>Ingress</code> and the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a></p>
+<p><code>ingress</code> uses Kubernetes <code>Ingress</code> and the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">Ingress NGINX Controller for Kubernetes</a></p>
 </li>
 <li>
 <p><code>route</code> uses OpenShift <code>Routes</code> and the HAProxy router</p>
@@ -9400,42 +9400,51 @@ If you enabled any authentication, you will also need to configure it in your cl
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-accessing-kafka-using-ingress-str"><a class="link" href="#proc-accessing-kafka-using-ingress-str">5.3. Accessing Kafka using ingress</a></h3>
-<div class="paragraph">
-<p>This procedure shows how to access a Strimzi Kafka cluster from an external client outside of Kubernetes using Nginx Ingress.</p>
+<h3 id="proc-accessing-kafka-using-ingress-str"><a class="link" href="#proc-accessing-kafka-using-ingress-str">5.3. Accessing Kafka using an Ingress NGINX Controller for Kubernetes</a></h3>
+<div class="paragraph _abstract">
+<p>Use an <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">Ingress NGINX Controller for Kubernetes</a> to access a Strimzi Kafka cluster from clients outside the Kubernetes cluster.</p>
 </div>
 <div class="paragraph">
-<p>To connect to a broker, you need a hostname (advertised address) for the Ingress <em>bootstrap address</em>,
-as well as the certificate used for authentication.</p>
+<p>To be able to use an Ingress NGINX Controller for Kubernetes, add configuration for an <code>ingress</code> type listener in the <code>Kafka</code> custom resource.
+When applied, the configuration creates a dedicated ingress and service for an external bootstrap and each broker in the cluster.
+Clients connect to the bootstrap ingress, which routes them through the bootstrap service to connect to a broker.
+Per-broker connections are then established using DNS names, which route traffic from the client to the broker through the broker-specific ingresses and services.</p>
 </div>
 <div class="paragraph">
-<p>For access using Ingress, the port is always 443.</p>
+<p>To connect to a broker, you specify a hostname for the ingress bootstrap address, as well as the TLS certificate.
+Authentication is optional.</p>
+</div>
+<div class="paragraph">
+<p>For access using an ingress, the port used in the Kafka client is typically 443.</p>
 </div>
 <div class="paragraph">
 <div class="title">TLS passthrough</div>
-<p>Kafka uses a binary protocol over TCP, but the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a> is designed to work with the HTTP protocol.
-To be able to pass the Kafka connections through the Ingress, Strimzi uses the TLS passthrough feature of the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a>.
-Ensure TLS passthrough is enabled in your <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a> deployment.</p>
+<p>Make sure that you enable TLS passthrough in your Ingress NGINX Controller for Kubernetes deployment.
+Kafka uses a binary protocol over TCP, but the Ingress NGINX Controller for Kubernetes is designed to work with a HTTP protocol.
+To be able to route TCP traffic through ingresses, Strimzi uses TLS passthrough with Server Name Indication (SNI).</p>
 </div>
 <div class="paragraph">
-<p>Because it is using the TLS passthrough functionality, TLS encryption cannot be disabled when exposing Kafka using <code>Ingress</code>.</p>
+<p>SNI helps with identifying and passing connection to Kafka brokers.
+In passthrough mode, TLS encryption is always used.
+Because the connection passes to the brokers, the listeners use the TLS certificates signed by the internal cluster CA and not the ingress certificates.
+To configure listeners to use your own listener certificates, <a href="#proc-installing-certs-per-listener-str">use the <code>brokerCertChainAndKey</code> property</a>.</p>
 </div>
 <div class="paragraph">
-<p>For more information about enabling TLS passthrough, see <a href="https://kubernetes.github.io/ingress-nginx/user-guide/tls/#ssl-passthrough">TLS passthrough documentation</a>.</p>
+<p>For more information about enabling TLS passthrough, see the <a href="https://kubernetes.github.io/ingress-nginx/user-guide/tls/#ssl-passthrough">TLS passthrough documentation</a>.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
 <li>
-<p>Kubernetes cluster</p>
-</li>
-<li>
-<p>Deployed <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a> with TLS passthrough enabled</p>
+<p>An Ingress NGINX Controller for Kubernetes is running with TLS passthrough enabled</p>
 </li>
 <li>
 <p>A running Cluster Operator</p>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>In this procedure, the Kafka cluster name is <code>my-cluster</code>.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -9443,7 +9452,8 @@ Ensure TLS passthrough is enabled in your <a href="https://github.com/kubernetes
 <li>
 <p>Configure a <code>Kafka</code> resource with an external listener set to the <code>ingress</code> type.</p>
 <div class="paragraph">
-<p>Specify the Ingress hosts for the bootstrap service and Kafka brokers.</p>
+<p>Specify an ingress hostname for the bootstrap service and each of the Kafka brokers in the Kafka cluster.
+Add any hostname to the <code>bootstrap</code> and <code>broker-&lt;index&gt;</code> prefixes that identify the bootstrap and brokers.</p>
 </div>
 <div class="paragraph">
 <p>For example:</p>
@@ -9452,6 +9462,11 @@ Ensure TLS passthrough is enabled in your <a href="https://github.com/kubernetes
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
+metadata:
+  labels:
+    app: my-cluster
+  name: my-cluster
+  namespace: myproject
 spec:
   kafka:
     # ...
@@ -9462,7 +9477,7 @@ spec:
         tls: true
         authentication:
           type: tls
-        configuration: <b class="conum">(1)</b>
+        configuration:
           bootstrap:
             host: bootstrap.myingress.com
           brokers:
@@ -9472,6 +9487,7 @@ spec:
             host: broker-1.myingress.com
           - broker: 2
             host: broker-2.myingress.com
+          class: nginx  # <b class="conum">(1)</b>
     # ...
   zookeeper:
     # ...</code></pre>
@@ -9480,7 +9496,7 @@ spec:
 <div class="colist arabic">
 <ol>
 <li>
-<p>Ingress hosts for the bootstrap service and Kafka brokers.</p>
+<p>(Optional) Class that specifies the ingress controller to use. You might need to add a class if you have not set up a default and a class name is missing in the ingresses created.</p>
 </li>
 </ol>
 </div>
@@ -9493,55 +9509,152 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p><code>ClusterIP</code> type services are created for each Kafka broker, as well as an additional <em>bootstrap service</em>.
-These services are used by the Ingress controller to route traffic to the Kafka brokers.
-An <code>Ingress</code> resource is also created for each service to expose them using the Ingress controller.
-The Ingress hosts are propagated to the <code>status</code> of each service.</p>
+<p>A cluster CA certificate to verify the identity of the kafka brokers is created in the secret <code>my-cluster-cluster-ca-cert</code>.</p>
 </div>
 <div class="paragraph">
-<p>The cluster CA certificate to verify the identity of the kafka brokers is also created in the secret <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code>.</p>
+<p><code>ClusterIP</code> type services are created for each Kafka broker, as well as an external bootstrap service.</p>
 </div>
 <div class="paragraph">
-<p>Use the address for the bootstrap host you specified in the <code>configuration</code> and port 443 (<em>BOOTSTRAP-HOST:443</em>) in your Kafka client as the <em>bootstrap address</em> to connect to the Kafka cluster.</p>
+<p>An <code>ingress</code> is also created for each service, with a DNS address to expose them using the Ingress NGINX Controller for Kubernetes.</p>
+</div>
+<div class="listingblock">
+<div class="title">Ingresses created for the bootstrap and brokers</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                        CLASS  HOSTS                    ADDRESS               PORTS
+my-cluster-kafka-0          nginx  broker-0.myingress.com   external.ingress.com  80,443
+my-cluster-kafka-1          nginx  broker-1.myingress.com   external.ingress.com  80,443
+my-cluster-kafka-2          nginx  broker-2.myingress.com   external.ingress.com  80,443
+my-cluster-kafka-bootstrap  nginx  bootstrap.myingress.com  external.ingress.com  80,443</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The DNS addresses used for client connection are propagated to the <code>status</code> of each ingress.</p>
+</div>
+<div class="listingblock">
+<div class="title">Status for the bootstrap ingress</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">status:
+  loadBalancer:
+    ingress:
+      - hostname: external.ingress.com
+ # ...</code></pre>
+</div>
 </div>
 </li>
 <li>
-<p>Extract the public certificate of the broker certificate authority.</p>
+<p>Use a target broker to check the client-server TLS connection on port 443 using the OpenSSL <code>s_client</code>.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">openssl s_client -connect broker-0.myingress.com:443 -servername broker-0.myingress.com -showcerts</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Use the extracted certificate in your Kafka client to configure the TLS connection.
-If you enabled any authentication, you will also need to configure it in your client.</p>
+<p>The server name is the SNI for passing the connection to the broker.</p>
+</div>
+<div class="paragraph">
+<p>If the connection is successful, the certificates for the broker are returned.</p>
+</div>
+<div class="listingblock">
+<div class="title">Certificates for the broker</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Certificate chain
+ 0 s:O = io.strimzi, CN = my-cluster-kafka
+   i:O = io.strimzi, CN = cluster-ca v0</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Extract the cluster CA certificate.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret my-cluster-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Configure your client to connect to the brokers.</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>Specify the bootstrap host (from the listener <code>configuration</code>) and port 443 in your Kafka client as the bootstrap address to connect to the Kafka cluster. For example, <code>bootstrap.myingress.com:443</code>.</p>
+</li>
+<li>
+<p>Add the extracted certificate to the truststore of your Kafka client to configure a TLS connection.</p>
+<div class="paragraph">
+<p>If you enabled any authentication, you will also need to configure it in your client.</p>
 </div>
 </li>
 </ol>
 </div>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If you are using your own listener certificates, check whether you need to add the CA certificate to the client&#8217;s truststore configuration.
+If it is a public (external) CA, you usually won&#8217;t need to add it.
+</td>
+</tr>
+</table>
+</div>
 </div>
 <div class="sect2">
 <h3 id="proc-accessing-kafka-using-routes-str"><a class="link" href="#proc-accessing-kafka-using-routes-str">5.4. Accessing Kafka using OpenShift routes</a></h3>
-<div class="paragraph">
-<p>This procedure describes how to access a Strimzi Kafka cluster from an external client outside of OpenShift using routes.</p>
+<div class="paragraph _abstract">
+<p>Use OpenShift routes to access a Strimzi Kafka cluster from clients outside the OpenShift cluster.</p>
 </div>
 <div class="paragraph">
-<p>To connect to a broker, you need a hostname for the route <em>bootstrap address</em>,
-as well as the certificate used for TLS encryption.</p>
+<p>To be able to use routes, add configuration for a <code>route</code> type listener in the <code>Kafka</code> custom resource.
+When applied, the configuration creates a dedicated route and service for an external bootstrap and each broker in the cluster.
+Clients connect to the bootstrap route, which routes them through the bootstrap service to connect to a broker.
+Per-broker connections are then established using DNS names, which route traffic from the client to the broker through the broker-specific routes and services.</p>
+</div>
+<div class="paragraph">
+<p>To connect to a broker, you specify a hostname for the route bootstrap address, as well as the certificate used for authentication.</p>
 </div>
 <div class="paragraph">
 <p>For access using routes, the port is always 443.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+An OpenShift route address comprises the name of the Kafka cluster, the name of the listener, and the name of the project it is created in.
+For example, <code>my-cluster-kafka-listener1-bootstrap-myproject</code> (&lt;cluster_name&gt;-kafka-&lt;listener_name&gt;-bootstrap-&lt;namespace&gt;). Be careful that the whole length of the address does not exceed a maximum limit of 63 characters.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<div class="title">TLS passthrough</div>
+<p>TLS passthrough is enabled for routes created by Strimzi.
+Kafka uses a binary protocol over TCP, but routes are designed to work with a HTTP protocol.
+To be able to route TCP traffic through routes, Strimzi uses TLS passthrough with Server Name Indication (SNI).</p>
+</div>
+<div class="paragraph">
+<p>SNI helps with identifying and passing connection to Kafka brokers.
+In passthrough mode, TLS encryption is always used.
+Because the connection passes to the brokers, the listeners use TLS certificates signed by the internal cluster CA and not the ingress certificates.
+To configure listeners to use your own listener certificates, <a href="#proc-installing-certs-per-listener-str">use the <code>brokerCertChainAndKey</code> property</a>.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
 <li>
-<p>An OpenShift cluster</p>
-</li>
-<li>
 <p>A running Cluster Operator</p>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>In this procedure, the Kafka cluster name is <code>my-cluster</code>.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -9574,19 +9687,6 @@ spec:
     # ...</code></pre>
 </div>
 </div>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Warning</div>
-</td>
-<td class="content">
-An OpenShift Route address comprises the name of the Kafka cluster, the name of the listener, and the name of the namespace it is created in.
-For example, <code>my-cluster-kafka-listener1-bootstrap-myproject</code> (<em>CLUSTER-NAME</em>-kafka-<em>LISTENER-NAME</em>-bootstrap-<em>NAMESPACE</em>). Be careful that the whole length of the address does not exceed a maximum limit of 63 characters.
-</td>
-</tr>
-</table>
-</div>
 </li>
 <li>
 <p>Create or update the resource.</p>
@@ -9596,44 +9696,114 @@ For example, <code>my-cluster-kafka-listener1-bootstrap-myproject</code> (<em>CL
 </div>
 </div>
 <div class="paragraph">
-<p><code>ClusterIP</code> type services are created for each Kafka broker, as well as an external <em>bootstrap service</em>.
-The services route the traffic from the OpenShift Routes to the Kafka brokers.
-An OpenShift <code>Route</code> resource is also created for each service to expose them using the HAProxy load balancer.
-DNS addresses used for connection are propagated to the <code>status</code> of each service.</p>
+<p>A cluster CA certificate to verify the identity of the kafka brokers is created in the secret <code>my-cluster-cluster-ca-cert</code>.</p>
 </div>
 <div class="paragraph">
-<p>The cluster CA certificate to verify the identity of the kafka brokers is also created in the secret <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code>.</p>
+<p><code>ClusterIP</code> type services are created for each Kafka broker, as well as an external bootstrap service.</p>
+</div>
+<div class="paragraph">
+<p>A <code>route</code> is also created for each service, with a DNS address (host/port) to expose them using the default OpenShift HAProxy router.</p>
+</div>
+<div class="paragraph">
+<p>The routes are preconfigured with TLS passthrough.</p>
+</div>
+<div class="listingblock">
+<div class="title">Routes created for the bootstraps and brokers</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                                  HOST/PORT                                                   SERVICES                              PORT  TERMINATION
+my-cluster-kafka-listener1-0          my-cluster-kafka-listener1-0-my-project.router.com          my-cluster-kafka-listener1-0          9094  passthrough
+my-cluster-kafka-listener1-1          my-cluster-kafka-listener1-1-my-project.router.com          my-cluster-kafka-listener1-1          9094  passthrough
+my-cluster-kafka-listener1-2          my-cluster-kafka-listener1-2-my-project.router.com          my-cluster-kafka-listener1-2          9094  passthrough
+my-cluster-kafka-listener1-bootstrap  my-cluster-kafka-listener1-bootstrap-my-project.router.com  my-cluster-kafka-listener1-bootstrap  9094  passthrough</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The DNS addresses used for client connection are propagated to the <code>status</code> of each route.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example status for the bootstrap route</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">status:
+  ingress:
+    - host: &gt;-
+        my-cluster-kafka-listener1-bootstrap-my-project.router.com
+ # ...</code></pre>
+</div>
 </div>
 </li>
 <li>
-<p>Retrieve the address of the bootstrap service you can use to access the Kafka cluster from the status of the <code>Kafka</code> resource.</p>
+<p>Use a target broker to check the client-server TLS connection on port 443 using the OpenSSL <code>s_client</code>.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka <em>&lt;kafka_cluster_name&gt;</em> -o=jsonpath='{.status.listeners[?(@.name=="<em>&lt;listener_name&gt;</em>")].bootstrapServers}{"\n"}'</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">openssl s_client -connect my-cluster-kafka-listener1-0-my-project.router.com:443 -servername my-cluster-kafka-listener1-0-my-project.router.com -showcerts</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>For example:</p>
+<p>The server name is the SNI for passing the connection to the broker.</p>
+</div>
+<div class="paragraph">
+<p>If the connection is successful, the certificates for the broker are returned.</p>
 </div>
 <div class="listingblock">
+<div class="title">Certificates for the broker</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.name=="listener1")].bootstrapServers}{"\n"}'</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Certificate chain
+ 0 s:O = io.strimzi, CN = my-cluster-kafka
+   i:O = io.strimzi, CN = cluster-ca v0</code></pre>
 </div>
 </div>
 </li>
 <li>
-<p>Extract the public certificate of the broker certification authority.</p>
+<p>Retrieve the address of the bootstrap service from the status of the <code>Kafka</code> resource.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.name=="listener1")].bootstrapServers}{"\n"}'
+
+my-cluster-kafka-listener1-bootstrap-my-project.router.com:443</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Use the extracted certificate in your Kafka client to configure TLS connection.
-If you enabled any authentication, you will also need to configure it in your client.</p>
+<p>The address comprises the cluster name, the listener name, the project name and the domain of the router (<code>router.com</code> in this example).</p>
+</div>
+</li>
+<li>
+<p>Extract the cluster CA certificate.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret my-cluster-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Configure your client to connect to the brokers.</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>Specify the address for the bootstrap service and port 443 in your Kafka client as the bootstrap address to connect to the Kafka cluster.</p>
+</li>
+<li>
+<p>Add the extracted certificate to the truststore of your Kafka client to configure a TLS connection.</p>
+<div class="paragraph">
+<p>If you enabled any authentication, you will also need to configure it in your client.</p>
 </div>
 </li>
 </ol>
+</div>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If you are using your own listener certificates, check whether you need to add the CA certificate to the client&#8217;s truststore configuration.
+If it is a public (external) CA, you usually won&#8217;t need to add it.
+</td>
+</tr>
+</table>
 </div>
 </div>
 </div>
@@ -26991,7 +27161,7 @@ spec:
 </dd>
 <dt class="hdlist1">ingress</dt>
 <dd>
-<p>Configures an external listener to expose Kafka using Kubernetes <code>Ingress</code> and the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a>.</p>
+<p>Configures an external listener to expose Kafka using Kubernetes <code>Ingress</code> and the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">Ingress NGINX Controller for Kubernetes</a>.</p>
 <div class="paragraph">
 <p>A dedicated <code>Ingress</code> resource is created for every Kafka broker pod.
 An additional <code>Ingress</code> resource is created to serve as a Kafka bootstrap address.
@@ -27039,7 +27209,7 @@ spec:
 <div class="title">Note</div>
 </td>
 <td class="content">
-External listeners using <code>Ingress</code> are currently only tested with the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">NGINX Ingress Controller for Kubernetes</a>.
+External listeners using <code>Ingress</code> are currently only tested with the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">Ingress NGINX Controller for Kubernetes</a>.
 </td>
 </tr>
 </table>
@@ -40870,7 +41040,7 @@ If not specified, the <code>full</code> mode is used by default.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-12-24 13:03:06 UTC
+Last updated 2023-01-03 13:26:48 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
