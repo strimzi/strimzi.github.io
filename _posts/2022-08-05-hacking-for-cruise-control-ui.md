@@ -15,9 +15,8 @@ This post will walk through how to do so!
 
 **Warning**
 
-Setting up the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) as described in this blog post requires disabling some of the Cruise Control REST API security settings.
-Having these security settings disabled exposes the Cruise Control API to potentially destructive Cruise Control operations that are not coordinated or supported by Strimzi Operator.
-For example, it would allow users to manually decomission brokers and trigger partition rebalances, operations which could interfere with Strimzi operations. 
+Setting up the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) as described in this blog post requires disabling HTTP basic authentication for the Cruise Control REST API.
+Without authentication, anybody with access to the Cruise Control API can use all the available endpoints and trigger administrative actions such as rebalancing partitions or decommissioning brokers.
 If using the Cruise Control UI with a Strimzi-managed Kafka cluster, it is best to stick with using it solely for monitoring your cluster, not for operating on it.
 That being said, use at your own risk!
 
@@ -34,11 +33,11 @@ Regardless of the reason, we want to provide some basic instructions for getting
 
 ## Prerequisites
 
-For starters we will need a Strimzi-managed Kafka cluster with Cruise Control enabled.
+For starters we need a Strimzi-managed Kafka cluster with Cruise Control enabled.
 
 ![](/assets/images/posts/2022-10-31-hacking-for-cruise-control-ui-1.png)
 
-Since Strimzi does not support creating custom Cruise Control API user roles we will need to disable HTTP basic authentication settings.
+Since Strimzi does not support creating custom Cruise Control API user roles we need to disable HTTP basic authentication settings.
 
 We can do so by configuring Cruise Control within a `Kafka` resource like this:
 
@@ -56,10 +55,10 @@ spec:
 
 After configuring our Strimzi-managed Kafka cluster, we can deploy and connect the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) in one of two ways:
 
-* METHOD ONE: Inside a dedicated Cruise Control pod
-* METHOD TWO: Outside a dedicated Cruise Control pod
+* METHOD ONE: Customizing the Cruise Control pod
+* METHOD TWO: Creating a dedicated Cruise Control UI pod
 
-## METHOD ONE: Inside a dedicated Cruise Control pod 
+## METHOD ONE: Customizing the Cruise Control pod
 
 With our Strimzi-managed Kafka cluster deployed, we can create and deploy a custom Cruise Control image which includes the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) application inside of it.
 
@@ -167,7 +166,7 @@ spec:
 
 After updating the deployment, the Cluster Operator will pull the new custom Cruise Control image and run it.
 
-## METHOD TWO: Outside a dedicated Cruise Control pod
+## METHOD TWO: Creating a dedicated Cruise Control UI pod
 
 With our Strimzi-managed Kafka cluster deployed, we can now create a Cruise Control UI pod to run alongside it.
 
@@ -311,7 +310,7 @@ kubectl apply -f cruise-control-ui.yaml -n <namespace>
 
 ## Using Cruise Control Front End
 
-After deployment, the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) application will be accessible via the cruise-control-ui `service`.
+After deployment, the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) application will be accessible via a Cruise Control `service`.
 
 If running the cluster locally with [minikube](https://github.com/kubernetes/minikube), you can port-forward the appropriate Cruise Control `service` to access it locally:
 
@@ -323,7 +322,7 @@ kubectl port-forward svc/my-cluster-cruise-control 9090:9090
 kubectl port-forward svc/cruise-control-ui 9090:9090
 ```
 
-Then navigate to [‘https://127.0.0.1:9090’](https://127.0.0.1:9090) in your browser
+Then navigate to [https://127.0.0.1:9090](https://127.0.0.1:9090) in your browser
 
 ![Cruise Control Frontend](/assets/images/posts/2019-08-08-cruise-control-frontend.png)
 
