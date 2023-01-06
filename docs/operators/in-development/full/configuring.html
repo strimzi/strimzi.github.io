@@ -12194,11 +12194,98 @@ kubectl get pod -w</code></pre>
 </div>
 <div class="sect4">
 <h5 id="proc-oauth-client-config-str"><a class="link" href="#proc-oauth-client-config-str">Configuring Kafka Java clients to use OAuth 2.0</a></h5>
-<div class="paragraph">
-<p>This procedure describes how to configure Kafka producer and consumer APIs to use OAuth 2.0 for interaction with Kafka brokers.</p>
+<div class="paragraph _abstract">
+<p>Configure Kafka producer and consumer APIs to use OAuth 2.0 for interaction with Kafka brokers.
+Add a callback plugin to your client <code>pom.xml</code> file, then configure your client for OAuth 2.0.</p>
 </div>
 <div class="paragraph">
-<p>Add a client callback plugin to your <em>pom.xml</em> file, and configure the system properties.</p>
+<p>Specify the following in your client configuration:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A SASL (Simple Authentication and Security Layer) security protocol:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>SASL_SSL</code> for authentication over TLS encrypted connections</p>
+</li>
+<li>
+<p><code>SASL_PLAINTEXT</code> for authentication over unencrypted connections</p>
+<div class="paragraph">
+<p>Use <code>SASL_SSL</code> for production and <code>SASL_PLAINTEXT</code> for local development only.
+When using <code>SASL_SSL</code>, additional <code>ssl.truststore</code> configuration is needed.
+The truststore configuration is required for secure connection (<code>https://</code>) to the OAuth 2.0 authorization server.
+To verify the OAuth 2.0 authorization server, add the CA certificate for the authorization server to the truststore in your client configuration.
+You can configure a truststore in PEM or PKCS #12 format.</p>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>A Kafka SASL mechanism:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>OAUTHBEARER</code> for credentials exchange using a bearer token</p>
+</li>
+<li>
+<p><code>PLAIN</code> to pass client credentials (clientId + secret) or an access token</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>A JAAS (Java Authentication and Authorization Service) module that implements the SASL mechanism:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule</code> implements the OAUTHBEARER mechanism</p>
+</li>
+<li>
+<p><code>org.apache.kafka.common.security.plain.PlainLoginModule</code> implements the PLAIN mechanism</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>SASL authentication properties, which support the following authentication methods:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>OAuth 2.0 client credentials</p>
+</li>
+<li>
+<p>OAuth 2.0 password grant (deprecated)</p>
+</li>
+<li>
+<p>Access token</p>
+</li>
+<li>
+<p>Refresh token</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Add the SASL authentication properties as JAAS configuration (<code>sasl.jaas.config</code>).
+How you configure the authentication properties depends on the authentication method you are using to access the OAuth 2.0 authorization server.
+In this procedure, the properties are specified in a properties file, then loaded into the client configuration.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+You can also specify authentication properties as environment variables, or as Java system properties. For Java system properties, you can set them using <code>setProperty</code> and pass them on the command line using the <code>-D</code> option.
+</td>
+</tr>
+</table>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -12230,21 +12317,52 @@ kubectl get pod -w</code></pre>
 </div>
 </li>
 <li>
-<p>Configure the system properties for the callback:</p>
+<p>Configure the client properties by specifying the following configuration in a properties file:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>The security protocol</p>
+</li>
+<li>
+<p>The SASL mechanism</p>
+</li>
+<li>
+<p>The JAAS module and authentication properties according to the method being used</p>
 <div class="paragraph">
-<p>For example:</p>
+<p>For example, we can add the following to a <code>client.properties</code> file:</p>
 </div>
-<div class="listingblock">
+<div class="openblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env">System.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, “<em>https://&lt;auth-server-address&gt;/auth/realms/master/protocol/openid-connect/token</em>”); <b class="conum">(1)</b>
-System.setProperty(ClientConfig.OAUTH_CLIENT_ID, "<em>&lt;client_name&gt;</em>"); <b class="conum">(2)</b>
-System.setProperty(ClientConfig.OAUTH_CLIENT_SECRET, "<em>&lt;client_secret&gt;</em>"); <b class="conum">(3)</b>
-System.setProperty(ClientConfig.OAUTH_SCOPE, "<em>&lt;scope_value&gt;</em>") <b class="conum">(4)</b>
-System.setProperty(ClientConfig.OAUTH_AUDIENCE, "<em>&lt;audience_value</em>") <b class="conum">(5)</b></code></pre>
+<div class="listingblock">
+<div class="title">Client credentials mechanism properties</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">security.protocol=SASL_SSL # <b class="conum">(1)</b>
+sasl.mechanism=OAUTHBEARER # <b class="conum">(2)</b>
+ssl.truststore.location=/tmp/truststore.p12 <b class="conum">(3)</b>
+ssl.truststore.password=$STOREPASS
+ssl.truststore.type=PKCS12
+sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+  oauth.token.endpoint.uri="<em>&lt;token_endpoint_url&gt;</em>" \ # <b class="conum">(4)</b>
+  oauth.client.id="<em>&lt;client_id&gt;</em>" \ # <b class="conum">(5)</b>
+  oauth.client.secret="<em>&lt;client_secret&gt;</em>" \ # <b class="conum">(6)</b>
+  oauth.ssl.truststore.location="/tmp/oauth-truststore.p12" \ <b class="conum">(7)</b>
+  oauth.ssl.truststore.password="$STOREPASS" \ <b class="conum">(8)</b>
+  oauth.ssl.truststore.type="PKCS12" \ <b class="conum">(9)</b>
+  oauth.scope="<em>&lt;scope&gt;</em>" \ # <b class="conum">(10)</b>
+  oauth.audience="<em>&lt;audience&gt;</em>" ; # <b class="conum">(11)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <ol>
+<li>
+<p><code>SASL_SSL</code> security protocol for TLS-encrypted connections. Use <code>SASL_PLAINTEXT</code> over unencrypted connections for local development only.</p>
+</li>
+<li>
+<p>The SASL mechanism specified as <code>OAUTHBEARER</code> or <code>PLAIN</code>.</p>
+</li>
+<li>
+<p>The truststore configuration for secure access to the Kafka cluster.</p>
+</li>
 <li>
 <p>URI of the authorization server token endpoint.</p>
 </li>
@@ -12253,6 +12371,15 @@ System.setProperty(ClientConfig.OAUTH_AUDIENCE, "<em>&lt;audience_value</em>") <
 </li>
 <li>
 <p>Client secret created when creating the <em>client</em> in the authorization server.</p>
+</li>
+<li>
+<p>The location contains the public key certificate (<code>truststore.p12</code>) for the authorization server.</p>
+</li>
+<li>
+<p>The password for accessing the truststore.</p>
+</li>
+<li>
+<p>the truststore type.</p>
 </li>
 <li>
 <p>(Optional) The <code>scope</code> for requesting the token from the token endpoint.
@@ -12264,35 +12391,137 @@ An authorization server may require a client to specify the audience.</p>
 </li>
 </ol>
 </div>
-</li>
-<li>
-<p>Enable the <em>OAUTHBEARER</em> or <em>PLAIN</em> mechanism on a TLS encrypted connection in the Kafka client configuration.</p>
-<div class="paragraph">
-<p>For example:</p>
 </div>
-<div class="listingblock">
-<div class="title">Enabling OAUTHBEARER for a Kafka client</div>
+</div>
+<div class="openblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env">props.put("sasl.jaas.config", "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;");
-props.put("security.protocol", "SASL_SSL");
-props.put("sasl.mechanism", "OAUTHBEARER");
-props.put("sasl.login.callback.handler.class", "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler");</code></pre>
-</div>
-</div>
 <div class="listingblock">
-<div class="title">Enabling PLAIN for a Kafka client</div>
+<div class="title">Password grants mechanism properties</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env">props.put("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$CLIENT_ID_OR_ACCOUNT_NAME\" password=\"$SECRET_OR_ACCESS_TOKEN\" ;");
-props.put("security.protocol", "SASL_SSL"); <b class="conum">(1)</b>
-props.put("sasl.mechanism", "PLAIN");</code></pre>
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">security.protocol=SASL_SSL
+sasl.mechanism=OAUTHBEARER
+ssl.truststore.location=/tmp/truststore.p12
+ssl.truststore.password=$STOREPASS
+ssl.truststore.type=PKCS12
+sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+  oauth.token.endpoint.uri="<em>&lt;token_endpoint_url&gt;</em>" \
+  oauth.client.id="<em>&lt;client_id&gt;</em>" \ # <b class="conum">(1)</b>
+  oauth.client.secret="<em>&lt;client_secret&gt;</em>" \ # <b class="conum">(2)</b>
+  oauth.password.grant.username="<em>&lt;username&gt;</em>" \ # <b class="conum">(3)</b>
+  oauth.password.grant.password="<em>&lt;password&gt;</em>" \ # <b class="conum">(4)</b>
+  oauth.ssl.truststore.location="/tmp/oauth-truststore.p12" \
+  oauth.ssl.truststore.password="$STOREPASS" \
+  oauth.ssl.truststore.type="PKCS12" \
+  oauth.scope="<em>&lt;scope&gt;</em>" \
+  oauth.audience="<em>&lt;audience&gt;</em>" ;</code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <ol>
 <li>
-<p>Here we use <code>SASL_SSL</code> for use over TLS encrypted connections. Use <code>SASL_PLAINTEXT</code> over unencrypted connections for local development only.</p>
+<p>Client ID, which is the name used when creating the <em>client</em> in the authorization server.</p>
+</li>
+<li>
+<p>(Optional) Client secret created when creating the <em>client</em> in the authorization server.</p>
+</li>
+<li>
+<p>Username for password grant authentication. OAuth password grant configuration (username and password) uses the OAuth 2.0 password grant method. To use password grants, create a user account for a client on your authorization server with limited permissions. The account should act like a service account. Use in environments where user accounts are required for authentication, but consider using a refresh token first.</p>
+</li>
+<li>
+<p>Password for password grant authentication.</p>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+SASL PLAIN does not support passing a username and password (password grants) using the OAuth 2.0 password grant method.
+</td>
+</tr>
+</table>
+</div>
 </li>
 </ol>
+</div>
+</div>
+</div>
+<div class="openblock">
+<div class="content">
+<div class="listingblock">
+<div class="title">Access token properties</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">security.protocol=SASL_SSL
+sasl.mechanism=OAUTHBEARER
+ssl.truststore.location=/tmp/truststore.p12
+ssl.truststore.password=$STOREPASS
+ssl.truststore.type=PKCS12
+sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+  oauth.token.endpoint.uri="<em>&lt;token_endpoint_url&gt;</em>" \
+  oauth.access.token="<em>&lt;access_token&gt;</em>" ; # <b class="conum">(1)</b>
+  oauth.ssl.truststore.location="/tmp/oauth-truststore.p12" \
+  oauth.ssl.truststore.password="$STOREPASS" \
+  oauth.ssl.truststore.type="PKCS12" \</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Long-lived access token for Kafka clients.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="openblock">
+<div class="content">
+<div class="listingblock">
+<div class="title">Refresh token properties</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">security.protocol=SASL_SSL
+sasl.mechanism=OAUTHBEARER
+ssl.truststore.location=/tmp/truststore.p12
+ssl.truststore.password=$STOREPASS
+ssl.truststore.type=PKCS12
+sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+  oauth.token.endpoint.uri="<em>&lt;token_endpoint_url&gt;</em>" \
+  oauth.client.id="<em>&lt;client_id&gt;</em>" \ # <b class="conum">(1)</b>
+  oauth.client.secret="<em>&lt;client_secret&gt;</em>" \ # <b class="conum">(2)</b>
+  oauth.refresh.token="<em>&lt;refresh_token&gt;</em>" ; # <b class="conum">(3)</b>
+  oauth.ssl.truststore.location="/tmp/oauth-truststore.p12" \
+  oauth.ssl.truststore.password="$STOREPASS" \
+  oauth.ssl.truststore.type="PKCS12" \</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Client ID, which is the name used when creating the <em>client</em> in the authorization server.</p>
+</li>
+<li>
+<p>(Optional) Client secret created when creating the <em>client</em> in the authorization server.</p>
+</li>
+<li>
+<p>Long-lived refresh token for Kafka clients.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Input the client properties for OAUTH 2.0 authentication into the Java client code.</p>
+<div class="listingblock">
+<div class="title">Example showing input of client properties</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">Properties props = new Properties();
+try (FileReader reader = new FileReader("client.properties", StandardCharsets.UTF_8)) {
+  props.load(reader);
+}</code></pre>
+</div>
 </div>
 </li>
 <li>
@@ -41068,7 +41297,7 @@ If not specified, the <code>full</code> mode is used by default.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-01-06 10:45:52 UTC
+Last updated 2023-01-06 12:08:06 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
