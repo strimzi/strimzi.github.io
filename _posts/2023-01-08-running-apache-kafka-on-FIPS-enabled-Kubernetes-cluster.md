@@ -6,23 +6,23 @@ author: jakub_scholz
 ---
 
 FIPS ([Federal Information Processing Standards](https://en.wikipedia.org/wiki/Federal_Information_Processing_Standards)) are standards for computer security and interoperability.
-One of these standards - FIPS-140 - among other things specifies some requirements for cryptography modules.
+One of these standards - FIPS-140 - among other things, specifies certain requirements for cryptography modules.
 When running Strimzi on a FIPS-enabled Kubernetes cluster, the OpenJDK Java runtime used in our container images automatically detects it and switches into a special _FIPS mode_.
 In this mode, only the approved and validated security libraries and algorithms can be used.
 
 <!--more-->
 
 In older Strimzi versions, Strimzi did not work well with the FIPS mode enabled.
-The features which were not enabled by OpenJDK in the FIPS mode include support for TLS certificates in the PKCS12 formats.
+The features which were not enabled by OpenJDK in the FIPS mode included support for TLS certificates in PKCS12 format.
 And since Strimzi relies on these, it meant that it did not work properly.
 
-That is why we added in Strimzi 0.28 a new configuration option to disable FIPS mode in the OpenJDK Java runtime.
+That is why we added a configuration option in Strimzi 0.28 to disable FIPS mode in the OpenJDK Java runtime.
 You can set the environment variable `FIPS_MODE` in the Strimzi Cluster Operator deployment to `disabled` and the operator will disable the OpenJDK FIPS mode.
 This allows you to run Strimzi and Apache Kafka on your FIPS-enabled cluster.
 But of course, it will also use unapproved and unvalidated cryptography modules.
 So your Kafka cluster will not be FIPS compliant.
 
-## Improvements in Strimzi 0.33
+## Improvements to FIPS support in Strimzi 0.33
 
 In Strimzi 0.33, we bring further improvements to how we support FIPS.
 One of the main changes in 0.33 is that Strimzi moved to Java 17 in its container images.
@@ -32,13 +32,13 @@ Thanks to that, Strimzi can now work and use TLS without disabling the FIPS mode
 
 But to get everything working, we needed to do a bit more.
 
-### PKCS12 Algorithms
+### Updates to PKCS12 algorithms
 
 While OpenJDK 17 added PKCS12 support in the FIPS mode, it still requires the PKCS12 stores to use specific algorithms for key and certificate encryption or as the MAC digest.
 So we had to update how we generate the PKCS12 certificate stores in Strimzi.
 This was done already in Strimzi 0.30 as we were aware of this requirement.
 
-### Secure Random
+### Using the default SecureRandom implementation
 
 In previous Strimzi versions, we have also always automatically configured the SecureRandom implementation in the Kafka brokers to `SHA1PRNG`.
 In older Java versions, `SHA1PRNG` was delivering significant performance improvements over the default SecureRandom.
@@ -49,9 +49,9 @@ In Strimzi 0.33, we decided to not automatically configure `SHA1PRNG` anymore.
 We now use the SecureRandom implementation which is the default in the Java environment.
 When running with FIPS enabled, this provides a SecureRandom implementation that is FIPS compliant.
 
-If you for some reason want to use some specific SecureRandom implementation, you can configure it in the `Kafka` CR, in the path `.spec.kafka.config` using the [`ssl.secure.random.implementation` configuration option](https://kafka.apache.org/documentation/#brokerconfigs_ssl.secure.random.implementation).
+If for some reason you want to use a specific SecureRandom implementation, you can configure it in the `Kafka` CR, in the path `.spec.kafka.config` using the [`ssl.secure.random.implementation` configuration option](https://kafka.apache.org/documentation/#brokerconfigs_ssl.secure.random.implementation).
 
-### SCRAM-SHA credentials
+### Changing the default password length for SCRAM-SHA credentials
 
 Another issue we had to deal with was the credentials for SCRAM-SHA-512 authentication.
 The SCRAM-SHA-512 authentication which is supported by Strimzi is FIPS compatible.
@@ -85,30 +85,29 @@ The environment variable can be set in the `Kafka` custom resource in `.spec.ent
 Thanks to the improvements described above, when you deploy a new Apache Kafka cluster with Strimzi 0.33 or newer on a FIPS-enabled Kubernetes cluster, everything should work out of the box.
 But what if you are already running Strimzi and Apache Kafka on a FIPS-enabled Kubernetes cluster with the FIPS mode disabled through Strimzi's `FIPS_MODE` options?
 
-In such case, you can of course move to run under the FIPS mode as well.
-But to avoid any possible issues, you should go through the following steps.
+In such a case, you can also run in FIPS mode.
+But to avoid any possible issues, you need to go through the following steps.
 
 First, upgrade to Strimzi 0.33 or newer, but keep the `FIPS_MODE` environment variable still set to `disabled` to disable the FIPS mode.
-Once you are running the new Strimzi version, but with the FIPS mode still disabled, you should update the certificates and the SCRAM-SHA passwords:
+Once you are running the new Strimzi version, but with the FIPS mode still disabled, you update the certificates and the SCRAM-SHA passwords:
 
-* If you initially deployed your cluster with a Strimzi version older than 0.30, it might still use the PKCS12 stores using old encryption and digest algorithms which will not be supported with FIPS enabled.
+* If you initially deployed your cluster with a Strimzi version older than 0.30, it might still use the PKCS12 stores using old encryption and digest algorithms which are not supported with FIPS enabled.
   To get the certificates recreated with the new algorithms, you should renew the Cluster and Clients CA.
   If you use CAs generated by the Cluster Operator, you can use an [annotation to trigger the renewal](https://strimzi.io/docs/operators/latest/full/configuring.html#proc-renewing-ca-certs-manually-str).
-  If you use your own CAs, you can follow the docs about [renewing your own CA certificates](https://strimzi.io/docs/operators/latest/full/configuring.html#renewing-your-own-ca-certificates-str).
+  If you use your own CAs, you can follow the docs to [renew your own CA certificates](https://strimzi.io/docs/operators/latest/full/configuring.html#renewing-your-own-ca-certificates-str).
 
 * If you use SCRAM-SHA authentication, you have to check the password length of your users.
   If they are less than 32 characters long, you will have to generate a new password for them.
   You can do that by deleting the user secret and having the User Operator generate a new one with a new password with sufficient length.
-  Alternatively, if you provided your password using the `.spec.authentication.password` section of the `KafkaUser` custom resource, you have to update the password in the Kubernetes Secret referenced here.
+  Alternatively, if you provided your password using the `.spec.authentication.password` section of the `KafkaUser` custom resource, you have to update the password in the Kubernetes secret referenced in the same password configuration.
   Don't forget to update your clients to use the new passwords.
 
-Once all the certificates are using the correct algorithms and the SCRAM-SHA passwords are sufficiently long, you can now enable the FIPS mode.
-You can do so by removing the environment variable `FIPS_MODE` from the Strimzi Cluster Operator deployment.
-The operator will restart and will roll all the operands to re-enable the FIPS mode.
-And once it is done, all your Kafka clusters will now run with the OpenJDK FIPS mode enabled.
+When all the certificates are using the correct algorithms and the SCRAM-SHA passwords are sufficiently long, you can enable the FIPS mode.
+You do so by removing the environment variable `FIPS_MODE` from the Strimzi Cluster Operator deployment.
+When the operator restarts, it rolls all the operands to enable the FIPS mode.
+When complete, all your Kafka clusters will be running with the OpenJDK FIPS mode enabled.
 
 Of course, if you still prefer to run with the FIPS mode disabled, the `FIPS_MODE` configuration option added in Strimzi 0.28 is still available.
-So if you want, you can keep using it as well.
 
 ## Known limitations
 
@@ -128,7 +127,7 @@ _For more information, please read the related [Strimzi proposal](https://github
 
 While this blog post covers improvements to FIPS support in Strimzi, most of the work was done by the OpenJDK project.
 Without their support, we would not have been able to achieve such a great improvement.
-The changes done directly in Strimzi were very small compared to it.
+The changes done directly in Strimzi were very small in comparison.
 
 Also, keep in mind that the actual configuration and environment of each user might differ.
 So if you run FIPS-enabled Kubernetes clusters, don't forget to test the improved FIPS support first in your test environments before enabling it in production.
