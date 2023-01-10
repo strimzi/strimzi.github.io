@@ -25,7 +25,7 @@ That being said, use at your own risk!
 
 ## Motivation
 
-We have been getting a lot of requests for how to set up the Cruise Control UI with a Strimzi-managed Kafka cluster.
+From time to time, we get a question about how to set up the Cruise Control UI with a Strimzi-managed Kafka cluster.
 Maybe you want a pretty dashboard to view your cluster status.
 Maybe you want to compare optimization proposals without having to open a text editor.
 Maybe you are just a visual person.
@@ -34,9 +34,6 @@ Regardless of the reason, we want to provide some basic instructions for getting
 ## Prerequisites
 
 For starters we need a Strimzi-managed Kafka cluster with Cruise Control enabled.
-
-![](/assets/images/posts/2022-10-31-hacking-for-cruise-control-ui-1.png)
-
 Since Strimzi does not support creating custom Cruise Control API user roles we need to disable HTTP basic authentication settings.
 
 We can do so by configuring Cruise Control within a `Kafka` resource like this:
@@ -75,9 +72,10 @@ Here the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) will
 
 We can base our custom Cruise Control image on the original Strimzi Kafka image and install the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) bits on top:
 
-```bash
-#Dockerfile
-FROM quay.io/strimzi/kafka:latest-kafka-3.2.3
+```Dockerfile
+# The base image referenced here should point to the latest released Strimzi and a supported Kafka version.
+# At the time of this post it is 0.32.0 and 3.3.1 respectively.
+FROM quay.io/strimzi/kafka:0.32.0-kafka-3.3.1
 
 ENV CC_UI_VERSION=0.4.0
 ENV CC_UI_HOME=./cruise-control-ui/dist/
@@ -98,10 +96,13 @@ Then building and pushing the image to a container registry:
 ```
 # When building, tag the image with the name of a container registry
 # that is accessible by the Kubernetes cluster.
-docker build . -t <registry>/<cruise-control-with-ui-image-name>
+# For example: quay.io/kliberti/cruise-control-with-ui:latest
+
+# Build and tag the image
+docker build . -t <registry>/<repository>/<cruise-control-with-ui-image-name>
 
 # Push the image to that container registry
-docker push <registry>/<cruise-control-with-ui-image-name>
+docker push <registry>/<repository>/<cruise-control-with-ui-image-name>
 ```
 
 ### Deploying the custom Cruise Control pod
@@ -129,7 +130,7 @@ metadata:
    ...
 spec:
    cruiseControl:
-     image: <registry>/<cruise-control-with-ui-image-name>
+     image: <registry>/<repository>/<cruise-control-with-ui-image-name>
    ...
 ```
 
@@ -160,7 +161,7 @@ spec:
         env:
           ...
         - name: STRIMZI_DEFAULT_CRUISE_CONTROL_IMAGE
-          value: <registry>/<cruise-control-with-ui-image-name>
+          value: <registry>/<repository>/<cruise-control-with-ui-image-name>
 
 ```
 
@@ -185,8 +186,7 @@ The responses from the Cruise Control REST API are then returned to the NGINX se
 
 We can build our own Cruise Control image with a configured NGINX server and Cruise Control UI binaries following the instructions on the [Cruise Control UI wiki](https://github.com/linkedin/cruise-control-ui/wiki/CCFE-(Dev-Mode)---Docker), creating a Dockerfile like the following:
 
-```bash
-# Dockerfile
+```Dockerfile
 FROM nginx
 
 ENV CRUISE_CONTROL_UI_VERSION=0.4.0
@@ -204,10 +204,13 @@ Then building and pushing the image to a container registry:
 ```
 # When building, tag the image with the name of a container registry
 # that is accessible by the Kubernetes cluster.
-docker build . -t <registry>/<cruise-control-ui-image-name>
+# For example: quay.io/kliberti/cruise-control-with-ui:latest
+
+# Build and tag the image
+docker build . -t <registry>/<repository>/<cruise-control-ui-image-name>
 
 # Push the image to that container registry
-docker push <registry>/<cruise-control-ui-image-name>
+docker push <registry>/<repository>/<cruise-control-ui-image-name>
 ```
 
 ### Deploying the Cruise Control UI pod
@@ -234,7 +237,7 @@ spec:
     spec:
       containers:
       - name: cruise-control-ui
-        image: <registry>/<cruise-control-ui-image-name>>
+        image: <registry>/<repository>/<cruise-control-ui-image-name>>
         ports:
         - containerPort: 9090
         volumeMounts:
