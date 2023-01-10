@@ -91,6 +91,8 @@ RUN curl -LO https://github.com/linkedin/cruise-control-ui/releases/download/v${
 
 USER 1001
 ```
+In the Dockerfile above, we unpack the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) files into the `/cruise-control-ui/dist/` directory.
+This directory must match the value specified by the Cruise Control [Cruise Control](https://github.com/linkedin/cruise-control/wiki/Configurations) `webserver.ui.diskpath` configuration, the directory Cruise Control checks for UI files to serve.
 
 Then building and pushing the image to a container registry:
 ```
