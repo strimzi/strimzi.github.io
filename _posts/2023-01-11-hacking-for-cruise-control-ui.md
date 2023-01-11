@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Hacking Strimzi for Cruise Control UI"
-date: 2022-10-31
+date: 2023-01-11
 author: kyle_liberti
 ---
 
@@ -59,14 +59,14 @@ After configuring our Strimzi-managed Kafka cluster, we can deploy and connect t
 
 With our Strimzi-managed Kafka cluster deployed, we can create and deploy a custom Cruise Control image which includes the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) application inside of it.
 
-![](/assets/images/posts/2022-10-31-hacking-for-cruise-control-ui-1.png)
+![](/assets/images/posts/2023-01-11-hacking-for-cruise-control-ui-1.png)
 
 
 ### Inside the custom Cruise Control container
 
 Here the [Cruise Control UI](https://github.com/linkedin/cruise-control-ui) will run alongside the Cruise Control application in the same container making its requests directly to the Cruise Control REST API.
 
-![](/assets/images/posts/2022-10-31-hacking-for-cruise-control-ui-3.png)
+![](/assets/images/posts/2023-01-11-hacking-for-cruise-control-ui-3.png)
 
 ### Building the Cruise Control UI container
 
@@ -173,13 +173,13 @@ After updating the deployment, the Cluster Operator will pull the new custom Cru
 
 With our Strimzi-managed Kafka cluster deployed, we can now create a Cruise Control UI pod to run alongside it.
 
-![](/assets/images/posts/2022-10-31-hacking-for-cruise-control-ui-2.png)
+![](/assets/images/posts/2023-01-11-hacking-for-cruise-control-ui-2.png)
 
 ### Inside the Cruise Control UI container
 
 Following the instructions on the [Cruise Control UI wiki](https://github.com/linkedin/cruise-control-ui/wiki/CCFE-(Dev-Mode)---Docker), we can configure an Nginx server as a reverse-proxy to forward Cruise Control UI requests to the Cruise Control REST API.
 
-![](/assets/images/posts/2022-10-31-hacking-for-cruise-control-ui-4.png)
+![](/assets/images/posts/2023-01-11-hacking-for-cruise-control-ui-4.png)
 
 Here user requests from the Cruise Control UI are sent to the NGINX server where they are forwarded to the Cruise Control REST API.
 The responses from the Cruise Control REST API are then returned to the NGINX server where they are then returned to the Cruise Control UI.
