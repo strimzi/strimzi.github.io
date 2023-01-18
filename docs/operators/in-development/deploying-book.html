@@ -62,9 +62,8 @@
 <li><a href="#kafka-connect-str">5.4. Deploying Kafka Connect</a>
 <ul class="sectlevel3">
 <li><a href="#deploying-kafka-connect-str">5.4.1. Deploying Kafka Connect to your Kubernetes cluster</a></li>
-<li><a href="#con-kafka-connect-multiple-instances-str">5.4.2. Kafka Connect configuration for multiple instances</a></li>
-<li><a href="#using-kafka-connect-with-plug-ins-str">5.4.3. Extending Kafka Connect with connector plugins</a></li>
-<li><a href="#assembly-creating-managing-connectors-str">5.4.4. Creating and managing connectors</a></li>
+<li><a href="#con-kafka-connect-multiple-instances-str">5.4.2. Configuring Kafka Connect for multiple instances</a></li>
+<li><a href="#using-kafka-connect-with-plug-ins-str">5.4.3. Adding connectors</a></li>
 </ul>
 </li>
 <li><a href="#kafka-mirror-maker-str">5.5. Deploying Kafka MirrorMaker</a>
@@ -2055,7 +2054,8 @@ The deployment is successful when the <code>STATUS</code> shows as <code>Running
 <div class="sect2">
 <h3 id="kafka-connect-str"><a class="link" href="#kafka-connect-str">5.4. Deploying Kafka Connect</a></h3>
 <div class="paragraph _abstract">
-<p><a href="https://kafka.apache.org/documentation/#connect" target="_blank" rel="noopener">Kafka Connect</a> is a tool for streaming data between Apache Kafka and external systems.</p>
+<p><a href="https://kafka.apache.org/documentation/#connect" target="_blank" rel="noopener">Kafka Connect</a> is a tool for streaming data between Apache Kafka and other systems.
+For example, Kafka Connect might integrate Kafka with external databases or storage and messaging systems.</p>
 </div>
 <div class="paragraph">
 <p>In Strimzi, Kafka Connect is deployed in distributed mode.
@@ -2065,30 +2065,18 @@ Kafka Connect can also work in standalone mode, but this is not supported by Str
 <p>Using the concept of <em>connectors</em>, Kafka Connect provides a framework for moving large amounts of data into and out of your Kafka cluster while maintaining scalability and reliability.</p>
 </div>
 <div class="paragraph">
-<p>Kafka Connect is typically used to integrate Kafka with external databases and storage and messaging systems.</p>
-</div>
-<div class="paragraph">
 <p>The Cluster Operator manages Kafka Connect clusters deployed using the <code>KafkaConnect</code> resource and connectors created using the <code>KafkaConnector</code> resource.</p>
 </div>
 <div class="paragraph">
-<p>The following procedures show how to deploy Kafka Connect and set up connectors for streaming data:</p>
+<p>In order to use Kafka Connect, you need to do the following.</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><a href="#deploying-kafka-connect-str">Deploying Kafka Connect to your Kubernetes cluster</a></p>
+<p><a href="#deploying-kafka-connect-str">Deploy a Kafka Connect cluster</a></p>
 </li>
 <li>
-<p><a href="#con-kafka-connect-multiple-instances-str">Kafka Connect configuration for multiple instances</a></p>
-</li>
-<li>
-<p><a href="#using-kafka-connect-with-plug-ins-str">Extending Kafka Connect with connector plugins</a></p>
-</li>
-<li>
-<p><a href="#assembly-creating-managing-connectors-str">Creating and managing connectors</a></p>
-</li>
-<li>
-<p><a href="#proc-deploying-kafkaconnector-str">Deploying example KafkaConnector resources</a></p>
+<p><a href="#using-kafka-connect-with-plug-ins-str">Add connectors to integrate with other systems</a></p>
 </li>
 </ul>
 </div>
@@ -2180,7 +2168,7 @@ The deployment is successful when the <code>AVAILABLE</code> output shows <code>
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-kafka-connect-multiple-instances-str"><a class="link" href="#con-kafka-connect-multiple-instances-str">5.4.2. Kafka Connect configuration for multiple instances</a></h4>
+<h4 id="con-kafka-connect-multiple-instances-str"><a class="link" href="#con-kafka-connect-multiple-instances-str">5.4.2. Configuring Kafka Connect for multiple instances</a></h4>
 <div class="paragraph">
 <p>If you are running multiple instances of Kafka Connect, you have to change the default configuration of the following <code>config</code> properties:</p>
 </div>
@@ -2241,66 +2229,65 @@ What happens, in effect, is all instances are coupled to run in a cluster and us
 </div>
 </div>
 <div class="sect3">
-<h4 id="using-kafka-connect-with-plug-ins-str"><a class="link" href="#using-kafka-connect-with-plug-ins-str">5.4.3. Extending Kafka Connect with connector plugins</a></h4>
+<h4 id="using-kafka-connect-with-plug-ins-str"><a class="link" href="#using-kafka-connect-with-plug-ins-str">5.4.3. Adding connectors</a></h4>
 <div class="paragraph _abstract">
-<p>Kafka Connect uses connector instances to integrate with other systems to stream data.
-Connectors can be one of the following type:</p>
+<p>Kafka Connect uses connectors to integrate with other systems to stream data.
+A connector is an instance of a Kafka <code>Connector</code> class, which can be one of the following type:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Source connector</dt>
+<dd>
+<p>A source connector is a runtime entity that fetches data from an external system and feeds it to Kafka as messages.</p>
+</dd>
+<dt class="hdlist1">Sink connector</dt>
+<dd>
+<p>A sink connector is a runtime entity that fetches messages from Kafka topics and feeds them to an external system.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>Kafka Connect uses a plugin architecture to provide the implementation artifacts for connectors.
+Plugins allow connections to other systems and provide additional configuration to manipulate data.
+Plugins include connectors and other components, such as data converters and transforms.
+A connector operates with a specific type of external system.
+Each connector defines a schema for its configuration.
+You supply the configuration to Kafka Connect to create a connector instance within Kafka Connect.
+Connector instances then define a set of tasks for moving data between systems.</p>
+</div>
+<div class="paragraph">
+<p>Add connector plugins to Kafka Connect in one of the following ways:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Source connectors that push data into Kafka</p>
+<p><a href="#creating-new-image-using-kafka-connect-build-str">Configure Kafka Connect to build a new container image with plugins automatically</a></p>
 </li>
 <li>
-<p>Sink connectors that extract data out of Kafka</p>
+<p><a href="#creating-new-image-from-base-str">Create a Docker image from the base Kafka Connect image</a> (manually or using continuous integration)</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>The procedures in this section describe how you can add connectors by doing one of the following:</p>
+<p>After plugins have been added to the container image, you can start, stop, and manage connector instances in the following ways:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><a href="#creating-new-image-using-kafka-connect-build-str">Creating a new container image automatically using Strimzi</a></p>
+<p><a href="#proc-deploying-kafkaconnector-str">Using Strimzi’s <code>KafkaConnector</code> custom resource</a></p>
 </li>
 <li>
-<p><a href="#creating-new-image-from-base-str">Creating a Docker image from the Kafka Connect base image</a>(manually or using continuous integration)</p>
+<p><a href="#con-exposing-kafka-connect-api-str">Using the Kafka Connect API</a></p>
 </li>
 </ul>
 </div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-You create the configuration for connectors directly <a href="#assembly-creating-managing-connectors-str">using the Kafka Connect REST API or <code>KafkaConnector</code> custom resources</a>.
-</td>
-</tr>
-</table>
-</div>
 <div class="paragraph">
-<p>You can use your own connectors or try the example <code>FileStreamSourceConnector</code> and  <code>FileStreamSinkConnector</code> connectors for moving file-based data into and out of a Kafka cluster.
-For information on deploying the example file connectors as <code>KafkaConnector</code> resources, see <a href="#proc-deploying-kafkaconnector-str">Deploying example KafkaConnector resources</a>.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Up until Apache Kafka 3.1.0, the Strimzi container images for Kafka Connect included the example file connectors. From Apache Kafka 3.1.1 and 3.2.0, these connectors are no longer included and must be deployed like any connector.
-</td>
-</tr>
-</table>
+<p>You can also create new connector instances using these options.</p>
 </div>
 <div class="sect4">
-<h5 id="creating-new-image-using-kafka-connect-build-str"><a class="link" href="#creating-new-image-using-kafka-connect-build-str">Creating a new container image automatically using Strimzi</a></h5>
-<div class="paragraph">
-<p>This procedure shows how to configure Kafka Connect so that Strimzi automatically builds a new container image with additional connectors.
+<h5 id="creating-new-image-using-kafka-connect-build-str"><a class="link" href="#creating-new-image-using-kafka-connect-build-str">Building a new container image with connector plugins automatically</a></h5>
+<div class="paragraph _abstract">
+<p>Configure Kafka Connect so that Strimzi automatically builds a new container image with additional connectors.
 You define the connector plugins using the <code>.spec.build.plugins</code> property of the <code>KafkaConnect</code> custom resource.
 Strimzi will automatically download and add the connector plugins into a new container image.
 The container is pushed into the container repository specified in <code>.spec.build.output</code> and automatically used in the Kafka Connect deployment.</p>
@@ -2370,7 +2357,7 @@ spec: # <b class="conum">(1)</b>
 <p>Create or update the resource:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">$ kubectl apply -f <em>KAFKA-CONNECT-CONFIG-FILE</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-none hljs">$ kubectl apply -f &lt;kafka_connect_configuration_file&gt;</code></pre>
 </div>
 </div>
 </li>
@@ -2378,15 +2365,12 @@ spec: # <b class="conum">(1)</b>
 <p>Wait for the new container image to build, and for the Kafka Connect cluster to be deployed.</p>
 </li>
 <li>
-<p>Use the Kafka Connect REST API or the KafkaConnector custom resources to use the connector plugins you added.</p>
+<p>Use the Kafka Connect REST API or <code>KafkaConnector</code> custom resources to use the connector plugins you added.</p>
 </li>
 </ol>
 </div>
-<div class="paragraph _additional-resources">
+<div class="ulist _additional-resources">
 <div class="title">Additional resources</div>
-<p>See the <em>Using Strimzi</em> guide for more information on:</p>
-</div>
-<div class="ulist">
 <ul>
 <li>
 <p><a href="./configuring.html#type-Build-reference" target="_blank" rel="noopener">Kafka Connect <code>Build</code> schema reference</a></p>
@@ -2395,9 +2379,10 @@ spec: # <b class="conum">(1)</b>
 </div>
 </div>
 <div class="sect4">
-<h5 id="creating-new-image-from-base-str"><a class="link" href="#creating-new-image-from-base-str">Creating a Docker image from the Kafka Connect base image</a></h5>
-<div class="paragraph">
-<p>This procedure shows how to create a custom image and add it to the <code>/opt/kafka/plugins</code> directory.</p>
+<h5 id="creating-new-image-from-base-str"><a class="link" href="#creating-new-image-from-base-str">Building a new container image with connector plugins from the Kafka Connect base image</a></h5>
+<div class="paragraph _abstract">
+<p>Create a custom Docker image with connector plugins from the Kafka Connect base image
+Add the custom image to the <code>/opt/kafka/plugins</code> directory.</p>
 </div>
 <div class="paragraph">
 <p>You can use the Kafka container image on <a href="https://quay.io/organization/strimzi" target="_blank" rel="noopener">Container Registry</a> as a base image for creating your own custom image with additional connector plugins.</p>
@@ -2427,55 +2412,50 @@ USER 1001</code></pre>
 </div>
 </div>
 <div class="listingblock">
-<div class="title">Example plug-in file</div>
+<div class="title">Example plugins file</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">$ tree ./<em>my-plugins</em>/
 ./<em>my-plugins</em>/
 ├── debezium-connector-mongodb
-│   ├── bson-3.4.2.jar
+│   ├── bson-&lt;version&gt;.jar
 │   ├── CHANGELOG.md
 │   ├── CONTRIBUTE.md
 │   ├── COPYRIGHT.txt
-│   ├── debezium-connector-mongodb-0.7.1.jar
-│   ├── debezium-core-0.7.1.jar
+│   ├── debezium-connector-mongodb-&lt;version&gt;.jar
+│   ├── debezium-core-&lt;version&gt;.jar
 │   ├── LICENSE.txt
-│   ├── mongodb-driver-3.4.2.jar
-│   ├── mongodb-driver-core-3.4.2.jar
-│   └── README.md
+│   ├── mongodb-driver-core-&lt;version&gt;.jar
+│   ├── README.md
+│   └── # ...
 ├── debezium-connector-mysql
 │   ├── CHANGELOG.md
 │   ├── CONTRIBUTE.md
 │   ├── COPYRIGHT.txt
-│   ├── debezium-connector-mysql-0.7.1.jar
-│   ├── debezium-core-0.7.1.jar
+│   ├── debezium-connector-mysql-&lt;version&gt;.jar
+│   ├── debezium-core-&lt;version&gt;.jar
 │   ├── LICENSE.txt
-│   ├── mysql-binlog-connector-java-0.13.0.jar
-│   ├── mysql-connector-java-5.1.40.jar
+│   ├── mysql-binlog-connector-java-&lt;version&gt;.jar
+│   ├── mysql-connector-java-&lt;version&gt;.jar
 │   ├── README.md
-│   └── wkb-1.0.2.jar
+│   └── # ...
 └── debezium-connector-postgres
     ├── CHANGELOG.md
     ├── CONTRIBUTE.md
     ├── COPYRIGHT.txt
-    ├── debezium-connector-postgres-0.7.1.jar
-    ├── debezium-core-0.7.1.jar
+    ├── debezium-connector-postgres-&lt;version&gt;.jar
+    ├── debezium-core-&lt;version&gt;.jar
     ├── LICENSE.txt
-    ├── postgresql-42.0.0.jar
-    ├── protobuf-java-2.6.1.jar
-    └── README.md</code></pre>
+    ├── postgresql-&lt;version&gt;.jar
+    ├── protobuf-java-&lt;version&gt;.jar
+    ├── README.md
+    └── # ...</code></pre>
 </div>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-This example uses the Debezium connectors for MongoDB, MySQL, and PostgreSQL. Debezium running in Kafka Connect looks the same as any other Kafka Connect task.
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p>The COPY command points to the plugin files to copy to the container image.</p>
+</div>
+<div class="paragraph">
+<p>This example adds plugins for Debezium connectors (MongoDB, MySQL, and PostgreSQL), though not all files are listed for brevity. Debezium running in Kafka Connect looks the same as any other Kafka Connect task.</p>
 </div>
 </li>
 <li>
@@ -2487,14 +2467,14 @@ This example uses the Debezium connectors for MongoDB, MySQL, and PostgreSQL. De
 <li>
 <p>Point to the new container image.</p>
 <div class="paragraph">
-<p>You can either:</p>
+<p>You can point to the image in one of the following ways:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
 <p>Edit the <code>KafkaConnect.spec.image</code> property of the <code>KafkaConnect</code> custom resource.</p>
 <div class="paragraph">
-<p>If set, this property overrides the <code>STRIMZI_KAFKA_CONNECT_IMAGES</code> variable in the Cluster Operator.</p>
+<p>If set, this property overrides the <code>STRIMZI_KAFKA_CONNECT_IMAGES</code> environment variable in the Cluster Operator.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2522,12 +2502,9 @@ spec: <b class="conum">(1)</b>
 </li>
 </ol>
 </div>
-<div class="paragraph">
-<p>or</p>
-</div>
 </li>
 <li>
-<p>In the <code>install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml</code> file, edit the <code>STRIMZI_KAFKA_CONNECT_IMAGES</code> variable to point to the new container image, and then reinstall the Cluster Operator.</p>
+<p>Edit the <code>STRIMZI_KAFKA_CONNECT_IMAGES</code> environment variable in the <code>install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml</code> file to point to the new container image, and then reinstall the Cluster Operator.</p>
 </li>
 </ul>
 </div>
@@ -2546,154 +2523,33 @@ spec: <b class="conum">(1)</b>
 </ul>
 </div>
 </div>
-</div>
-<div class="sect3 _abstract">
-<h4 id="assembly-creating-managing-connectors-str"><a class="link" href="#assembly-creating-managing-connectors-str">5.4.4. Creating and managing connectors</a></h4>
-<div class="paragraph">
-<p>When you have created a container image for your connector plug-in, you need to create a connector instance in your Kafka Connect cluster.
-You can then configure, monitor, and manage a running connector instance.</p>
-</div>
-<div class="paragraph">
-<p>A connector is an instance of a particular <em>connector class</em> that knows how to communicate with the relevant external system in terms of messages.
-Connectors are available for many external systems, or you can create your own.</p>
-</div>
-<div class="paragraph">
-<p>You can create <em>source</em> and <em>sink</em> types of connector.</p>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Source connector</dt>
-<dd>
-<p>A source connector is a runtime entity that fetches data from an external system and feeds it to Kafka as messages.</p>
-</dd>
-<dt class="hdlist1">Sink connector</dt>
-<dd>
-<p>A sink connector is a runtime entity that fetches messages from Kafka topics and feeds them to an external system.</p>
-</dd>
-</dl>
-</div>
 <div class="sect4">
-<h5 id="con-deploy-kafka-connect-config-connectors-str"><a class="link" href="#con-deploy-kafka-connect-config-connectors-str">APIs for creating and managing connectors</a></h5>
+<h5 id="proc-deploying-kafkaconnector-str"><a class="link" href="#proc-deploying-kafkaconnector-str">Deploying KafkaConnector resources</a></h5>
 <div class="paragraph _abstract">
-<p>Strimzi provides two APIs for creating and managing connectors:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>KafkaConnector</code> custom resources (referred to as KafkaConnectors)</p>
-</li>
-<li>
-<p>The Kafka Connect REST API</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Using the APIs, you can:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Check the status of a connector instance</p>
-</li>
-<li>
-<p>Reconfigure a running connector</p>
-</li>
-<li>
-<p>Increase or decrease the number of connector tasks for a connector instance</p>
-</li>
-<li>
-<p>Restart connectors</p>
-</li>
-<li>
-<p>Restart connector tasks, including failed tasks</p>
-</li>
-<li>
-<p>Pause a connector instance</p>
-</li>
-<li>
-<p>Resume a previously paused connector instance</p>
-</li>
-<li>
-<p>Delete a connector instance</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">KafkaConnector custom resources</div>
-<p>KafkaConnectors allow you to create and manage connector instances for Kafka Connect in a Kubernetes-native way, so an HTTP client such as cURL is not required.
-Like other Kafka resources, you declare a connector’s desired state in a <code>KafkaConnector</code> YAML file that is deployed to your Kubernetes cluster to create the connector instance.
-<code>KafkaConnector</code> resources must be deployed to the same namespace as the Kafka Connect cluster they link to.</p>
-</div>
-<div class="paragraph">
-<p>You manage a running connector instance by updating its corresponding <code>KafkaConnector</code> resource, and then applying the updates.
+<p>Deploy <code>KafkaConnector</code> resources to manage connectors.
+The <code>KafkaConnector</code> custom resource offers a Kubernetes-native approach to management of connectors by the Cluster Operator.
+You don&#8217;t need to send HTTP requests to manage connectors, as with the Kafka Connect REST API.
+You manage a running connector instance by updating its corresponding <code>KafkaConnector</code> resource, and then applying the updates.
+The Cluster Operator updates the configurations of the running connector instances.
 You remove a connector by deleting its corresponding <code>KafkaConnector</code>.</p>
 </div>
 <div class="paragraph">
-<p>To ensure compatibility with earlier versions of Strimzi, KafkaConnectors are disabled by default.
-To enable KafkaConnectors for a Kafka Connect cluster, you set the <code>strimzi.io/use-connector-resources</code> annotation to <code>true</code> in the <code>KafkaConnect</code> resource.
-For instructions, see <a href="./configuring.html#proc-kafka-connect-config-str" target="_blank" rel="noopener">Configuring Kafka Connect</a>.</p>
+<p><code>KafkaConnector</code> resources must be deployed to the same namespace as the Kafka Connect cluster they link to.</p>
 </div>
 <div class="paragraph">
-<p>When KafkaConnectors are enabled, the Cluster Operator begins to watch for them.
-It updates the configurations of running connector instances to match the configurations defined in their KafkaConnectors.</p>
+<p>In the configuration shown in this procedure, the <code>autoRestart</code> property is set to <code>true</code>.
+This enables automatic restarts of failed connectors and tasks.
+Up to seven restart attempts are made, after which restarts must be made manually.
+You annotate the <code>KafkaConnector</code> resource to <a href="#proc-manual-restart-connector-str">restart a connector</a> or <a href="#proc-manual-restart-connector-task-str">restart a connector task</a> manually.</p>
 </div>
 <div class="paragraph">
-<p>Strimzi provides an example <code>KafkaConnector</code> configuration file, which you can use <a href="#proc-deploying-kafkaconnector-str">to create and manage a <code>FileStreamSourceConnector</code> and a <code>FileStreamSinkConnector</code></a>.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-You can <a href="#proc-manual-restart-connector-str">restart a connector</a> or <a href="#proc-manual-restart-connector-task-str">restart a connector task</a> by annotating a <code>KafkaConnector</code> resource.
-</td>
-</tr>
-</table>
+<div class="title">Example connectors</div>
+<p>You can use your own connectors or try the examples provided by Strimzi.
+Up until Apache Kafka 3.1.0, example file connector plugins were included with Apache Kafka.
+Starting from the 3.1.1 and 3.2.0 releases of Apache Kafka, the examples need to be <a href="#using-kafka-connect-with-plug-ins-str">added to the plugin path as any other connector</a>.</p>
 </div>
 <div class="paragraph">
-<div class="title">Kafka Connect API</div>
-<p>The operations supported by the Kafka Connect REST API are described in the <a href="https://kafka.apache.org/documentation#connect_rest" target="_blank" rel="noopener">Apache Kafka Connect API documentation</a>.</p>
-</div>
-<div class="paragraph">
-<div class="title">Switching from using the Kafka Connect API to using KafkaConnectors</div>
-<p>You can switch from using the Kafka Connect API to using KafkaConnectors to manage your connectors.
-To make the switch, do the following in the order shown:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Deploy <code>KafkaConnector</code> resources with the configuration to create your connector instances.</p>
-</li>
-<li>
-<p>Enable KafkaConnectors in your Kafka Connect configuration by setting the <code>strimzi.io/use-connector-resources</code> annotation to <code>true</code>.</p>
-</li>
-</ol>
-</div>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Warning</div>
-</td>
-<td class="content">
-If you enable KafkaConnectors before creating the resources, you will delete all your connectors.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>To switch from using KafkaConnectors to using the Kafka Connect API, first remove the annotation that enables the KafkaConnectors from your Kafka Connect configuration.
-Otherwise, manual changes made directly using the Kafka Connect REST API are reverted by the Cluster Operator.</p>
-</div>
-</div>
-<div class="sect4">
-<h5 id="proc-deploying-kafkaconnector-str"><a class="link" href="#proc-deploying-kafkaconnector-str">Deploying example KafkaConnector resources</a></h5>
-<div class="paragraph _abstract">
-<p>The <code>KafkaConnector</code> resource offers a Kubernetes-native approach to management of connectors by the Cluster Operator.
-Strimzi provides <a href="#deploy-examples-str">example configuration files</a>.
-In this procedure, we use the <code>examples/connect/source-connector.yaml</code> file to create the following connector instances as <code>KafkaConnector</code> resources:</p>
+<p>Strimzi provides an <a href="#deploy-examples-str">example <code>KafkaConnector</code> configuration file</a> (<code>examples/connect/source-connector.yaml</code>) for the example file connector plugins, which creates the following connector instances as <code>KafkaConnector</code> resources:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -2706,10 +2562,7 @@ In this procedure, we use the <code>examples/connect/source-connector.yaml</code
 </ul>
 </div>
 <div class="paragraph">
-<p>Alternatively, you can use the <code>examples/connect/kafka-connect-build.yaml</code> file to build a new Kafka Connect image with the file connectors.</p>
-</div>
-<div class="paragraph">
-<p>Up until Apache Kafka 3.1.0, the example file connector plugins were included with Apache Kafka. Starting from the 3.1.1 and 3.2.0 releases of Apache Kafka, the examples need to be added to the plugin path as any other connector. See <a href="#using-kafka-connect-with-plug-ins-str">Extending Kafka Connect with connector plugins</a> for more details.</p>
+<p>We use the example file to create connectors in this procedure.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -2718,12 +2571,7 @@ In this procedure, we use the <code>examples/connect/source-connector.yaml</code
 <div class="title">Note</div>
 </td>
 <td class="content">
-<div class="paragraph">
-<p>In a production environment, you prepare container images with the required Kafka Connect connectors, as described in <a href="#using-kafka-connect-with-plug-ins-str">Extending Kafka Connect with connector plugins</a>.</p>
-</div>
-<div class="paragraph">
-<p>The <code>FileStreamSourceConnector</code> and <code>FileStreamSinkConnector</code> are provided as examples. Running these connectors in containers as described here is unlikely to be suitable for production use cases.</p>
-</div>
+The example connectors are not intended for use in a production environment.
 </td>
 </tr>
 </table>
@@ -2735,9 +2583,6 @@ In this procedure, we use the <code>examples/connect/source-connector.yaml</code
 <p>A Kafka Connect deployment</p>
 </li>
 <li>
-<p><a href="./configuring.html#proc-kafka-connect-config-str" target="_blank" rel="noopener">KafkaConnectors are enabled in the Kafka Connect deployment</a></p>
-</li>
-<li>
 <p>The Cluster Operator is running</p>
 </li>
 </ul>
@@ -2746,21 +2591,54 @@ In this procedure, we use the <code>examples/connect/source-connector.yaml</code
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
+<p>Add the <code>FileStreamSourceConnector</code> and <code>FileStreamSinkConnector</code> plugins to Kafka Connect in one of the following ways:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#creating-new-image-using-kafka-connect-build-str">Configure Kafka Connect to build a new container image with plugins automatically</a></p>
+</li>
+<li>
+<p><a href="#creating-new-image-from-base-str">Create a Docker image from the base Kafka Connect image</a> (manually or using continuous integration)</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Set the <code>strimzi.io/use-connector-resources annotation</code> to <code>true</code> in the Kafka Connect configuration.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect <b class="conum">(1)</b>
+metadata:
+  name: my-connect-cluster
+  annotations:
+    strimzi.io/use-connector-resources: "true"
+spec:
+    # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>With the <code>KafkaConnector</code> resources enabled, the Cluster Operator watches for them.</p>
+</div>
+</li>
+<li>
 <p>Edit the <code>examples/connect/source-connector.yaml</code> file:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
 metadata:
-  name: my-source-connector <b class="conum">(1)</b>
+  name: my-source-connector # <b class="conum">(1)</b>
   labels:
-    strimzi.io/cluster: my-connect-cluster <b class="conum">(2)</b>
+    strimzi.io/cluster: my-connect-cluster # <b class="conum">(2)</b>
 spec:
-  class: org.apache.kafka.connect.file.FileStreamSourceConnector <b class="conum">(3)</b>
-  tasksMax: 2 <b class="conum">(4)</b>
-  config: <b class="conum">(5)</b>
-    file: "/opt/kafka/LICENSE" <b class="conum">(6)</b>
-    topic: my-topic <b class="conum">(7)</b>
+  class: org.apache.kafka.connect.file.FileStreamSourceConnector # <b class="conum">(3)</b>
+  tasksMax: 2 # <b class="conum">(4)</b>
+  autoRestart: # <b class="conum">(5)</b>
+    enabled: true
+  config: # <b class="conum">(6)</b>
+    file: "/opt/kafka/LICENSE" # <b class="conum">(7)</b>
+    topic: my-topic <b class="conum">(8)</b>
     # ...</code></pre>
 </div>
 </div>
@@ -2776,7 +2654,10 @@ spec:
 <p>Full name or alias of the connector class. This should be present in the image being used by the Kafka Connect cluster.</p>
 </li>
 <li>
-<p>Maximum number of Kafka Connect <code>Tasks</code> that the connector can create.</p>
+<p>Maximum number of Kafka Connect tasks that the connector can create.</p>
+</li>
+<li>
+<p>Enables automatic restarts of failed connectors and tasks.</p>
 </li>
 <li>
 <p><a href="#kafkaconnector-configs">Connector configuration</a> as key-value pairs.</p>
@@ -2853,22 +2734,25 @@ spec:
 <p>Check that the connector resources were created:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kctr --selector strimzi.io/cluster=<em>MY-CONNECT-CLUSTER</em> -o name
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kctr --selector strimzi.io/cluster=&lt;my_connect_cluster&gt; -o name
 
 my-source-connector
 my-sink-connector</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Replace <em>MY-CONNECT-CLUSTER</em> with your Kafka Connect cluster.</p>
+<p>Replace &lt;my_connect_cluster&gt; with the name of your Kafka Connect cluster.</p>
 </div>
 </li>
 <li>
 <p>In the container, execute <code>kafka-console-consumer.sh</code> to read the messages that were written to the topic by the source connector:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec <em>MY-CLUSTER</em>-kafka-0 -i -t -- bin/kafka-console-consumer.sh --bootstrap-server <em>MY-CLUSTER</em>-kafka-bootstrap.<em>NAMESPACE</em>.svc:9092 --topic my-topic --from-beginning</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec &lt;my_kafka_cluster&gt;-kafka-0 -i -t -- bin/kafka-console-consumer.sh --bootstrap-server &lt;my_kafka_cluster&gt;-kafka-bootstrap.<em>NAMESPACE</em>.svc:9092 --topic my-topic --from-beginning</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>Replace &lt;my_kafka_cluster&gt; with the name of your Kafka cluster.</p>
 </div>
 </li>
 </ol>
@@ -2951,9 +2835,9 @@ Other connectors support different configuration options.</p>
 </table>
 </div>
 <div class="sect4">
-<h5 id="proc-manual-restart-connector-str"><a class="link" href="#proc-manual-restart-connector-str">Performing a restart of a Kafka connector</a></h5>
-<div class="paragraph">
-<p>This procedure describes how to manually trigger a restart of a Kafka connector by using a Kubernetes annotation.</p>
+<h5 id="proc-manual-restart-connector-str"><a class="link" href="#proc-manual-restart-connector-str">Manually restarting connectors</a></h5>
+<div class="paragraph _abstract">
+<p>If you are using <code>KafkaConnector</code> resources to manage connectors, use the <code>restart</code> annotation to manually trigger a restart of a connector.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -2975,12 +2859,14 @@ Other connectors support different configuration options.</p>
 </div>
 </li>
 <li>
-<p>To restart the connector, annotate the <code>KafkaConnector</code> resource in Kubernetes.
-For example, using <code>kubectl annotate</code>:</p>
+<p>Restart the connector by annotating the <code>KafkaConnector</code> resource in Kubernetes.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate KafkaConnector <em>KAFKACONNECTOR-NAME</em> strimzi.io/restart=true</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate KafkaConnector &lt;kafka_connector_name&gt; strimzi.io/restart=true</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>The <code>restart</code> annotation is set to <code>true</code>.</p>
 </div>
 </li>
 <li>
@@ -2994,9 +2880,9 @@ When Kafka Connect accepts the restart request, the annotation is removed from t
 </div>
 </div>
 <div class="sect4">
-<h5 id="proc-manual-restart-connector-task-str"><a class="link" href="#proc-manual-restart-connector-task-str">Performing a restart of a Kafka connector task</a></h5>
-<div class="paragraph">
-<p>This procedure describes how to manually trigger a restart of a Kafka connector task by using a Kubernetes annotation.</p>
+<h5 id="proc-manual-restart-connector-task-str"><a class="link" href="#proc-manual-restart-connector-task-str">Manually restarting Kafka connector tasks</a></h5>
+<div class="paragraph _abstract">
+<p>If you are using <code>KafkaConnector</code> resources to manage connectors, use the <code>restart-task</code> annotation to manually trigger a restart of a connector task.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -3019,20 +2905,22 @@ When Kafka Connect accepts the restart request, the annotation is removed from t
 </li>
 <li>
 <p>Find the ID of the task to be restarted from the <code>KafkaConnector</code> custom resource.
-Task IDs are non-negative integers, starting from 0.</p>
+Task IDs are non-negative integers, starting from 0:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl describe KafkaConnector <em>KAFKACONNECTOR-NAME</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl describe KafkaConnector &lt;kafka_connector_name&gt;</code></pre>
 </div>
 </div>
 </li>
 <li>
-<p>To restart the connector task, annotate the <code>KafkaConnector</code> resource in Kubernetes.
-For example, using <code>kubectl annotate</code> to restart task 0:</p>
+<p>Use the ID to restart the connector task by annotating the <code>KafkaConnector</code> resource in Kubernetes:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate KafkaConnector <em>KAFKACONNECTOR-NAME</em> strimzi.io/restart-task=0</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate KafkaConnector &lt;kafka_connector_name&gt; strimzi.io/restart-task=0</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>In this example, task <code>0</code> is restarted.</p>
 </div>
 </li>
 <li>
@@ -3051,6 +2939,9 @@ When Kafka Connect accepts the restart request, the annotation is removed from t
 <p>Use the Kafka Connect REST API as an alternative to using <code>KafkaConnector</code> resources to manage connectors.
 The Kafka Connect REST API is available as a service running on <code><em>&lt;connect_cluster_name&gt;</em>-connect-api:8083</code>, where <em>&lt;connect_cluster_name&gt;</em> is the name of your Kafka Connect cluster.
 The service is created when you create a Kafka Connect instance.</p>
+</div>
+<div class="paragraph">
+<p>The operations supported by the Kafka Connect REST API are described in the <a href="https://kafka.apache.org/documentation#connect_rest" target="_blank" rel="noopener">Apache Kafka Connect API documentation</a>.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -3177,6 +3068,44 @@ spec:
 </div>
 <div class="paragraph">
 <p>To add the connector configuration outside the cluster, use the URL of the resource that exposes the API in the curl command.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="con-switching-api-to-kafka-connector-str"><a class="link" href="#con-switching-api-to-kafka-connector-str">Switching from using the Kafka Connect API to using KafkaConnector custom resources</a></h5>
+<div class="paragraph _abstract">
+<p>You can switch from using the Kafka Connect API to using <code>KafkaConnector</code> custom resources to manage your connectors.
+To make the switch, do the following in the order shown:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Deploy <code>KafkaConnector</code> resources with the configuration to create your connector instances.</p>
+</li>
+<li>
+<p>Enable <code>KafkaConnector</code> resources in your Kafka Connect configuration by setting the <code>strimzi.io/use-connector-resources</code> annotation to <code>true</code>.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+If you enable <code>KafkaConnector</code> resources before creating them, you delete all connectors.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>To switch from using <code>KafkaConnector</code> resources to using the Kafka Connect API, first remove the annotation that enables the <code>KafkaConnector</code> resources from your Kafka Connect configuration.
+Otherwise, manual changes made directly using the Kafka Connect REST API are reverted by the Cluster Operator.</p>
+</div>
+<div class="paragraph">
+<p>When making the switch, <a href="./configuring.html#con-custom-resources-status-str" target="_blank" rel="noopener">check the status of the <code>KafkaConnect</code> resource</a>.
+The value of <code>metadata.generation</code> (the current version of the deployment) must match <code>status.observedGeneration</code> (the latest reconciliation of the resource).
+When the Kafka Connect cluster is <code>Ready</code>, you can delete the <code>KafkaConnector</code> resources.</p>
 </div>
 </div>
 </div>
