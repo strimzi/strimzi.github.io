@@ -13813,18 +13813,42 @@ The example deploys a single-node Kafka cluster with <code>keycloak</code> autho
 SSO_HOST_PORT=$SSO_HOST:443
 STOREPASS=storepass
 
-echo "Q" | openssl s_client -showcerts -connect $SSO_HOST_PORT 2&gt;/dev/null | awk ' /BEGIN CERTIFICATE/,/END CERTIFICATE/ { print $0 } ' &gt; /tmp/sso.crt</code></pre>
+echo "Q" | openssl s_client -showcerts -connect $SSO_HOST_PORT 2&gt;/dev/null | awk ' /BEGIN CERTIFICATE/,/END CERTIFICATE/ { print $0 } ' &gt; /tmp/sso.pem</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>The certificate is required as Kubernetes ingress is used to make a secure (HTTPS) connection.</p>
+</div>
+<div class="paragraph">
+<p>Usually there is not one single certificate, but a certificate chain. You only have to provide the top-most issuer CA which is listed as last in the <code>/tmp/sso.pem</code>.
+You can extract it manually or using the following commands:</p>
+</div>
+<div class="listingblock">
+<div class="title">Example command to extract the top CA certificate in a certificate chain</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">split -p "-----BEGIN CERTIFICATE-----" sso.pem sso-
+for f in $(ls sso-*); do mv $f $f.pem; done
+cp $(ls sso-* | sort -r | head -n 1) sso-ca.crt</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The proper way to obtain the trusted CA certificate is from a trusted source, and not by using the <code>openssl</code> command.
+</td>
+</tr>
+</table>
 </div>
 </li>
 <li>
 <p>Deploy the certificate to Kubernetes as a secret.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create secret generic oauth-server-cert --from-file=/tmp/sso.crt -n $NS</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create secret generic oauth-server-cert --from-file=/tmp/sso-ca.crt -n $NS</code></pre>
 </div>
 </div>
 </li>
@@ -13908,15 +13932,39 @@ If <code>kubectl</code> times out waiting on the image download, subsequent atte
 SSO_HOST_PORT=$SSO_HOST:443
 STOREPASS=storepass
 
-echo "Q" | openssl s_client -showcerts -connect $SSO_HOST_PORT 2&gt;/dev/null | awk ' /BEGIN CERTIFICATE/,/END CERTIFICATE/ { print $0 } ' &gt; /tmp/sso.crt</code></pre>
+echo "Q" | openssl s_client -showcerts -connect $SSO_HOST_PORT 2&gt;/dev/null | awk ' /BEGIN CERTIFICATE/,/END CERTIFICATE/ { print $0 } ' &gt; /tmp/sso.pem</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>Usually there is not one single certificate, but a certificate chain. You only have to provide the top-most issuer CA which is listed as last in the <code>/tmp/sso.pem</code>.
+You can extract it manually or using the following command:</p>
+</div>
+<div class="listingblock">
+<div class="title">Example command to extract the top CA certificate in a certificate chain</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">split -p "-----BEGIN CERTIFICATE-----" sso.pem sso-
+for f in $(ls sso-*); do mv $f $f.pem; done
+cp $(ls sso-* | sort -r | head -n 1) sso-ca.crt</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The proper way to obtain the trusted CA certificate is from a trusted source, and not by using the <code>openssl</code> command.
+</td>
+</tr>
+</table>
 </div>
 </li>
 <li>
 <p>Create a truststore for TLS connection to the Kafka brokers.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">keytool -keystore /tmp/truststore.p12 -storetype pkcs12 -alias sso -storepass $STOREPASS -import -file /tmp/sso.crt -noprompt</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">keytool -keystore /tmp/truststore.p12 -storetype pkcs12 -alias sso -storepass $STOREPASS -import -file /tmp/sso-ca.crt -noprompt</code></pre>
 </div>
 </div>
 </li>
@@ -13927,15 +13975,43 @@ echo "Q" | openssl s_client -showcerts -connect $SSO_HOST_PORT 2&gt;/dev/null | 
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">KAFKA_HOST_PORT=my-cluster-kafka-bootstrap:9093
 STOREPASS=storepass
 
-echo "Q" | openssl s_client -showcerts -connect $KAFKA_HOST_PORT 2&gt;/dev/null | awk ' /BEGIN CERTIFICATE/,/END CERTIFICATE/ { print $0 } ' &gt; /tmp/my-cluster-kafka.crt</code></pre>
+echo "Q" | openssl s_client -showcerts -connect $KAFKA_HOST_PORT 2&gt;/dev/null | awk ' /BEGIN CERTIFICATE/,/END CERTIFICATE/ { print $0 } ' &gt; /tmp/my-cluster-kafka.pem</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>The obtained <code>.pem</code> file is usually not one single certificate, but a certificate chain. You only have to provide the top-most issuer CA which is listed as last in the <code>/tmp/my-cluster-kafka.pem</code>.
+You can extract it manually or using the following command:</p>
+</div>
+<div class="listingblock">
+<div class="title">Example command to extract the top CA certificate in a certificate chain</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">split -p "-----BEGIN CERTIFICATE-----" /tmp/my-cluster-kafka.pem kafka-
+for f in $(ls kafka-*); do mv $f $f.pem; done
+cp $(ls kafka-* | sort -r | head -n 1) my-cluster-kafka-ca.crt</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The proper way to obtain the trusted CA certificate is from a trusted source, and not by using the <code>openssl</code> command.
+      For this example we assume the client is running in a pod in the same namespace where the Kafka cluster was deployed.
+      If the client accessed the Kafka cluster from outside the Kubernetes cluster you would have to first determine the bootstrap address.
+      In that case you can also get the cluster certificate directly from the Kubernetes Secret, no need for <code>openssl</code>.
+      See <a href="#assembly-accessing-kafka-outside-cluster-str">Accessing Kafka outside of the Kubernetes cluster</a> for more information.
+</td>
+</tr>
+</table>
 </div>
 </li>
 <li>
 <p>Add the certificate for the Kafka broker to the truststore.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">keytool -keystore /tmp/truststore.p12 -storetype pkcs12 -alias my-cluster-kafka -storepass $STOREPASS -import -file /tmp/my-cluster-kafka.crt -noprompt</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">keytool -keystore /tmp/truststore.p12 -storetype pkcs12 -alias my-cluster-kafka -storepass $STOREPASS -import -file /tmp/my-cluster-kafka-ca.crt -noprompt</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -41323,7 +41399,7 @@ If not specified, the <code>full</code> mode is used by default.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-01-21 19:11:35 UTC
+Last updated 2023-01-23 00:37:53 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
