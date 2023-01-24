@@ -6,7 +6,7 @@ author: jakub_scholz
 ---
 
 Apache Kafka Connect provides a framework for integrating Apache Kafka with external systems using connectors.
-Connectors run inside the Kafka Connect deployment, connect to the external system, and help to push data from Kafka to the external system or the other way around.
+Connectors run inside the Kafka Connect deployment, connect to the external system, and push data from Kafka to the external system or the other way around.
 When running Kafka Connect, you have to monitor not only the state of the Kafka Connect deployment, but also the state of the connectors and their tasks.
 If a connector or one of its tasks fail, you check the reason it failed so you know how to fix it.
 In many cases, the issue is something temporary like a network glitch or an outage of the external system.
@@ -174,12 +174,12 @@ spec:
       - name: echo-sink-connector
         artifacts:
           - type: jar
-            url: https://github.com/scholzj/echo-sink/releases/download/1.3.0/echo-sink-1.3.0.jar
-            sha512sum: 7a32ab28734e4e489a2f946e379ad4266e81689d1ae1a54b6cd484ca54174eb52f271ed683f62e2fd838f48d69a847c11a6dbb4d31bf9fc5b7edd6f5463cd0b5
+            url: https://github.com/scholzj/echo-sink/releases/download/1.3.1/echo-sink-1.3.1.jar
+            sha512sum: 1d59ede165c0d547e3217d20fd40d7f67ed820c78fc9b5551a3cea53c5928479dc8f5ddf8806d1775e9080bac6a59d044456402c375ae5393f67b96171df7caf
 ```
 
 When the Kafka Connect cluster is running, we create the connector.
-Notice, that it enabled the auto-restart feature and configures the connector to have its task fail after receiving 6 messages.
+Notice, that it enabled the auto-restart feature and configured the connector to have its task fail after receiving 5 messages.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -203,7 +203,7 @@ spec:
 ```
 
 After we create the connector, it creates the task and runs without any issues because it is not receiving any messages yet.
-So we have to start a producer and send the first 6 messages.
+So we have to start a producer and send the first 5 messages.
 
 ```
 kubectl run kafka-producer -ti --image=quay.io/strimzi/kafka:0.33.0-kafka-3.3.2 --rm=true --restart=Never -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic
@@ -213,10 +213,9 @@ If you don't see a command prompt, try pressing enter.
 >Hello World 3
 >Hello World 4
 >Hello World 5
->Hello World 6
 ```
 
-After the sixth message, the following error shows in the Kafka Connect log:
+After the fifth message, the following error shows in the Kafka Connect log:
 
 ```
 2023-01-22 23:02:52,246 WARN [echo-sink|task-0] Failing as requested after 5 records (cz.scholz.kafka.connect.echosink.EchoSinkTask) [task-thread-echo-sink-0]
@@ -262,7 +261,13 @@ status:
 
 If you want, you can send another batch of messages to see it fail again, and check that with every restart the restart counter increases and takes longer before the next restart happens.
 Or you can stop sending messages.
-In that case, the connector and its task keeps running and the auto-restart counter eventually resets to 0 again.
+In that case, the connector and its task keep running and the auto-restart counter eventually resets to 0 again.
+The reset of the auto-restart counter uses the same back-off mechanism as the restarts.
+The more restarts were needed to get the connector running, the longer it takes to reset the counter.
+For example, if the connector needed only one restart to recover, the counter will reset if the connector is still running after 2 minutes.
+If it needed 2 restarts to recover, the counter will be reset only if it is running 6 minutes after the last restart.
+And so on.
+
 The reset of the auto-restart counter is logged in the operator logs as well:
 
 ```
