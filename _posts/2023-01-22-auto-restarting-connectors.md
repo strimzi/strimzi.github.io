@@ -179,7 +179,7 @@ spec:
 ```
 
 When the Kafka Connect cluster is running, we create the connector.
-Notice, that it enabled the auto-restart feature and configured the connector to have its task fail after receiving 5 messages.
+Notice, that we enabled the auto-restart feature and configured the connector to have its task fail after receiving 5 messages.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
