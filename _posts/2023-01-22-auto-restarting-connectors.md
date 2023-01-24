@@ -51,6 +51,7 @@ If even the second restart doesn't help, the next restart will be done only afte
 And so on.
 This leaves more time for the root cause of the failure to be resolved. 
 Thanks to this back-off mechanism, even if the network outage takes over 10 minutes, the auto-restart will help your connectors to recover from it.
+The last 7th restart will happen approximately only after 112 minutes after the initial failure.
 But if the issue is not resolved even after the 7th restart, the operator will stop restarting and it is up to you to solve it manually.
 
 You can track the restarting progress in the `.status` section of the `KafkaConnector` resource:
@@ -233,23 +234,6 @@ java.lang.RuntimeException: Intentional task failure after receiving 5 records.
 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
 	at java.base/java.lang.Thread.run(Thread.java:833)
-2023-01-22 23:02:52,249 ERROR [echo-sink|task-0] WorkerSinkTask{id=echo-sink-0} Task threw an uncaught and unrecoverable exception. Task is being killed and will not recover until manually restarted (org.apache.kafka.connect.runtime.WorkerTask) [task-thread-echo-sink-0]
-org.apache.kafka.connect.errors.ConnectException: Exiting WorkerSinkTask due to unrecoverable exception.
-	at org.apache.kafka.connect.runtime.WorkerSinkTask.deliverMessages(WorkerSinkTask.java:611)
-	at org.apache.kafka.connect.runtime.WorkerSinkTask.poll(WorkerSinkTask.java:333)
-	at org.apache.kafka.connect.runtime.WorkerSinkTask.iteration(WorkerSinkTask.java:234)
-	at org.apache.kafka.connect.runtime.WorkerSinkTask.execute(WorkerSinkTask.java:203)
-	at org.apache.kafka.connect.runtime.WorkerTask.doRun(WorkerTask.java:189)
-	at org.apache.kafka.connect.runtime.WorkerTask.run(WorkerTask.java:244)
-	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
-	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
-	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
-	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
-	at java.base/java.lang.Thread.run(Thread.java:833)
-Caused by: java.lang.RuntimeException: Intentional task failure after receiving 5 records.
-	at cz.scholz.kafka.connect.echosink.EchoSinkTask.put(EchoSinkTask.java:131)
-	at org.apache.kafka.connect.runtime.WorkerSinkTask.deliverMessages(WorkerSinkTask.java:581)
-	... 10 more
 ```
 
 And the task fails.
