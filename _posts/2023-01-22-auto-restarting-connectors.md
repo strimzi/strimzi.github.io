@@ -143,8 +143,6 @@ Then, we have to deploy the Kafka Connect cluster.
 It enables the connector operator with the `strimzi.io/use-connector-resources` annotation.
 And it adds a custom [Echo Sink connector](https://github.com/scholzj/echo-sink) to the deployment.
 The Echo Sink connector is my _test_ connector which gets the messages from Kafka Connect, but instead of sending them to some external system, it simply logs them to the standard output.
-It has also a special option `fail.task.after.records` which makes the connector tasks fail after receiving a pre-configured amount of messages.
-And we will use this feature to demonstrate the auto-restart feature.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -178,8 +176,10 @@ spec:
             sha512sum: 1d59ede165c0d547e3217d20fd40d7f67ed820c78fc9b5551a3cea53c5928479dc8f5ddf8806d1775e9080bac6a59d044456402c375ae5393f67b96171df7caf
 ```
 
-When the Kafka Connect cluster is running, we create the connector.
-Notice, that we enabled the auto-restart feature and configured the connector to have its task fail after receiving 5 messages.
+When the Kafka Connect cluster is ready, we create the connector.
+The Echo Sink connector has a special option `fail.task.after.records` which makes the connector tasks fail after receiving a pre-configured amount of messages.
+We will use this option to demonstrate the auto-restart feature.
+We enable the auto-restart feature and configure the connector to have its task fail after receiving 5 messages.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
