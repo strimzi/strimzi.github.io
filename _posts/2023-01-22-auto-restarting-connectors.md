@@ -5,23 +5,23 @@ date: 2023-01-22
 author: jakub_scholz
 ---
 
-Apache Kafka Connect provides a framework to integrate Apache Kafka with external systems using connectors.
-Connectors run inside the Connect deployment, connect to the external system and help to push data from Kafka to the external system or the other way around.
-When running Apache Kafka Connect, you have to monitor not only the state of the Connect deployment but also the state of the connectors and their tasks.
-When the connector or one of its tasks fail, you have to analyze the issue to see how to fix it.
-In many cases, you will find out that the issue was caused just by some simple temporary issue such as a network glitch or a temporary outage of the external system.
+Apache Kafka Connect provides a framework for integrating Apache Kafka with external systems using connectors.
+Connectors run inside the Kafka Connect deployment, connect to the external system, and help to push data from Kafka to the external system or the other way around.
+When running Kafka Connect, you have to monitor not only the state of the Kafka Connect deployment, but also the state of the connectors and their tasks.
+If a connector or one of its tasks fail, you check the reason it failed so you know how to fix it.
+In many cases, the issue is something temporary like a network glitch or an outage of the external system.
 And all you need to do to fix it is just restart the connector or task.
 Could this be something the operator might do for you?
 
 <!--more-->
 
-Having the operator automatically restart failed connectors or their tasks was one of the most common feature requests.
+Having the operator automatically restart failed connectors or their tasks was one of the most common feature requests received by Strimzi.
 And in Strimzi 0.33, this feature was contributed by [Thomas Dangleterre](https://github.com/ThomasDangleterre).
 So, how does it work?
 
 The auto-restart feature is supported only when using the _connector operator_ and the `KafkaConnector` custom resources to manage the connectors.
 It is disabled by default.
-You can enable it in the `.spec.autoRestart` section of the `KafkaConnector` resource:
+You can enable it using the `.spec.autoRestart` property of the `KafkaConnector` resource:
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -35,8 +35,8 @@ spec:
   # ...
 ```
 
-Once enabled, the Strimzi cluster operator will in every reconciliation watch the connector and its tasks for failures.
-And if it sees that any of them are failed, it will automatically restart them.
+When enabled, the Strimzi Cluster Operator watches the connector and its tasks for failures in every reconciliation.
+And if it sees that any of them have failed, it automatically restarts them.
 
 Not every error can be solved by a restart.
 If the connector or its task failed by some temporary problem such as the network issue mentioned earlier, a restart is an obvious solution.
@@ -69,7 +69,7 @@ status:
     lastRestartTimestamp: "2023-01-22T21:38:24.402461310Z"
 ```
 
-If the connector recovers and keeps running, the counter of the restarts will be of course reset as well.
+If the connector recovers and keeps running, the counter of the restarts is reset as well.
 And when the next issue happens - possibly days or weeks later - it will start again from 0.
 
 ### Example
@@ -138,7 +138,7 @@ spec:
     segment.bytes: 1073741824
 ```
 
-Then, we have to deploy the Apache Kafka Connect cluster.
+Then, we have to deploy the Kafka Connect cluster.
 It enables the connector operator with the `strimzi.io/use-connector-resources` annotation.
 And it adds a custom [Echo Sink connector](https://github.com/scholzj/echo-sink) to the deployment.
 The Echo Sink connector is my _test_ connector which gets the messages from Kafka Connect, but instead of sending them to some external system, it simply logs them to the standard output.
@@ -177,7 +177,7 @@ spec:
             sha512sum: 7a32ab28734e4e489a2f946e379ad4266e81689d1ae1a54b6cd484ca54174eb52f271ed683f62e2fd838f48d69a847c11a6dbb4d31bf9fc5b7edd6f5463cd0b5
 ```
 
-And once the Connect cluster is running, we can finally create the connector.
+When the Kafka Connect cluster is running, we create the connector.
 Notice, that it enabled the auto-restart feature and configures the connector to have its task fail after receiving 6 messages.
 
 ```yaml
@@ -201,7 +201,7 @@ spec:
     value.converter.schemas.enable: false
 ```
 
-After we create the connector, it will create the task and it will be running without any issues because it is not receiving any messages yet.
+After we create the connector, it creates the task and runs without any issues because it is not receiving any messages yet.
 So we have to start a producer and send the first 6 messages.
 
 ```
@@ -215,7 +215,7 @@ If you don't see a command prompt, try pressing enter.
 >Hello World 6
 ```
 
-After the sixth message, you should see the following error in the Kafka Connect log:
+After the sixth message, the following error shows in the Kafka Connect log:
 
 ```
 2023-01-22 23:02:52,246 WARN [echo-sink|task-0] Failing as requested after 5 records (cz.scholz.kafka.connect.echosink.EchoSinkTask) [task-thread-echo-sink-0]
@@ -252,9 +252,9 @@ Caused by: java.lang.RuntimeException: Intentional task failure after receiving 
 	... 10 more
 ```
 
-And the task will fail.
-In the next reconciliation, the operator will restart it.
-You can see this also in the operator log:
+And the task fails.
+In the next reconciliation, the operator restarts the task.
+You can see this in the operator log:
 
 ```
 2023-01-22 23:04:24 INFO  AbstractOperator:239 - Reconciliation #73(timer) KafkaConnect(myproject/my-connect): KafkaConnect my-connect will be checked for creation or modification
@@ -276,21 +276,21 @@ status:
     lastRestartTimestamp: "2023-01-22T23:04:24.386944356Z"
 ```
 
-If you want, you can send another batch of messages to see it fail again and check that with every restart, the restart counter increases and it takes longer before the next restart happens.
+If you want, you can send another batch of messages to see it fail again, and check that with every restart the restart counter increases and takes longer before the next restart happens.
 Or you can stop sending messages.
-In that case, the connector and its task will keep running and after some time, the auto-restart counter will reset to 0 again.
+In that case, the connector and its task keeps running and the auto-restart counter eventually resets to 0 again.
 The reset of the auto-restart counter is logged in the operator logs as well:
 
 ```
 2023-01-22 23:26:24 INFO  AbstractConnectOperator:660 - Reconciliation #100(timer) KafkaConnect(myproject/my-connect): Resetting the auto-restart status of connector echo-sink
 ```
 
-### Mirror Maker 2
+### MirrorMaker 2
 
-So far, we talked only about Kafka Connect.
-But when using Strimzi to run Kafka Mirror Maker 2, Strimzi will deploy it on top of Kafka Connect as well.
-And you can use the same mechanism to restart the Mirror Maker 2 connectors as well.
-The only difference is that this time, you would configure it in the `KafkaMirrorMaker2` custom resource:
+So far, we've only talked about Kafka Connect.
+Strimzi runs Kafka MirrorMaker 2 on top of Kafka Connect.
+So you can actually use the same mechanism to restart MirrorMaker 2 connectors too.
+The only difference is that you configure it in the `KafkaMirrorMaker2` custom resource:
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -320,8 +320,8 @@ But even if it helps only in some situations, it is still a great addition to St
 
 Having it contributed by a user also shows the value of the Strimzi community.
 If you have some feature you are missing in Strimzi, we are always open to contributions.
-It is not always easy as we need to make sure that the added features can be maintained, tested, and follows the right direction.
-But it is one of the ways how can help to improve Strimzi and make it even better.
+It is not always easy as we need to make sure that the added features can be maintained, tested, and follow the right direction.
+But it is one of the ways you can help make Strimzi even better.
 If you want to start, the best way is to read the [_Join Us_ page](https://strimzi.io/join-us/) on our website or [get in touch with us](https://github.com/strimzi/strimzi-kafka-operator#getting-help) on Slack, our mailing list, or GitHub Discussions.
 
 Thanks a lot to Thomas for this great contribution!
