@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Running Apache Kafka on FIPS-enabled Kubernetes clusters"
-date: 2023-01-08
+date: 2023-01-25
 author: jakub_scholz
 ---
 
