@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Auto-restarting connectors in Apache Kafka Connect and Mirror Maker 2"
-date: 2023-01-22
+date: 2023-01-25
 author: jakub_scholz
 ---
 
