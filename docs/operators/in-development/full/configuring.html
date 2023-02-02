@@ -678,11 +678,14 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </ul>
 </li>
 <li><a href="#proc-pausing-reconciliation-str">8.2. Pausing reconciliation of custom resources</a></li>
-<li><a href="#assembly-drain-cleaner-str">8.3. Evicting pods with Strimzi Drain Cleaner</a>
+<li><a href="#assembly-drain-cleaner-str">8.3. Evicting pods with the Strimzi Drain Cleaner</a>
 <ul class="sectlevel3">
-<li><a href="#drain-cleaner-prereqs-str">8.3.1. Prerequisites</a></li>
-<li><a href="#proc-drain-cleaner-deploying-str">8.3.2. Deploying the Strimzi Drain Cleaner</a></li>
-<li><a href="#proc-drain-cleaner-using-str">8.3.3. Using the Strimzi Drain Cleaner</a></li>
+<li><a href="#drain-cleaner-prereqs-str">8.3.1. Downloading the Strimzi Drain Cleaner deployment files</a></li>
+<li><a href="#proc-drain-cleaner-deploying-str">8.3.2. Deploying the Strimzi Drain Cleaner using installation files</a></li>
+<li><a href="#deploying-cluster-operator-helm-chart-str">8.3.3. Deploying the Strimzi Drain Cleaner using Helm</a></li>
+<li><a href="#proc-drain-cleaner-using-str">8.3.4. Using the Strimzi Drain Cleaner</a></li>
+<li><a href="#proc-drain-cleaner-certs-str">8.3.5. Adding or renewing the TLS certificates used by the Strimzi Drain Cleaner</a></li>
+<li><a href="#proc-drain-cleaner-certs-renewing-str">8.3.6. Watching the TLS certificates used by the Strimzi Drain Cleaner</a></li>
 </ul>
 </li>
 <li><a href="#assembly-rolling-updates-str">8.4. Manually starting rolling updates of Kafka and ZooKeeper clusters</a>
@@ -16690,11 +16693,12 @@ status:
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-drain-cleaner-str"><a class="link" href="#assembly-drain-cleaner-str">8.3. Evicting pods with Strimzi Drain Cleaner</a></h3>
+<h3 id="assembly-drain-cleaner-str"><a class="link" href="#assembly-drain-cleaner-str">8.3. Evicting pods with the Strimzi Drain Cleaner</a></h3>
 <div class="paragraph _abstract">
-<p>Kafka and ZooKeeper pods might be evicted during Kubernetes upgrades, maintenance or pod rescheduling.
+<p>Kafka and ZooKeeper pods might be evicted during Kubernetes upgrades, maintenance, or pod rescheduling.
 If your Kafka broker and ZooKeeper pods were deployed by Strimzi, you can use the Strimzi Drain Cleaner tool to handle the pod evictions.
-Since the Strimzi Drain Cleaner will handle the eviction instead of Kubernetes, you need to set the <code>podDisruptionBudget</code> for your Kafka deployment to <code>0</code> (zero).
+The Strimzi Drain Cleaner handles the eviction instead of Kubernetes.
+You must set the <code>podDisruptionBudget</code> for your Kafka deployment to <code>0</code> (zero).
 Kubernetes will then no longer be allowed to evict the pod automatically.</p>
 </div>
 <div class="paragraph">
@@ -16761,7 +16765,7 @@ webhooks:
 </div>
 </div>
 <div class="sect3">
-<h4 id="drain-cleaner-prereqs-str"><a class="link" href="#drain-cleaner-prereqs-str">8.3.1. Prerequisites</a></h4>
+<h4 id="drain-cleaner-prereqs-str"><a class="link" href="#drain-cleaner-prereqs-str">8.3.1. Downloading the Strimzi Drain Cleaner deployment files</a></h4>
 <div class="paragraph">
 <p>To deploy and use the Strimzi Drain Cleaner, you need to download the deployment files.</p>
 </div>
@@ -16770,7 +16774,7 @@ webhooks:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-drain-cleaner-deploying-str"><a class="link" href="#proc-drain-cleaner-deploying-str">8.3.2. Deploying the Strimzi Drain Cleaner</a></h4>
+<h4 id="proc-drain-cleaner-deploying-str"><a class="link" href="#proc-drain-cleaner-deploying-str">8.3.2. Deploying the Strimzi Drain Cleaner using installation files</a></h4>
 <div class="paragraph _abstract">
 <p>Deploy the Strimzi Drain Cleaner to the Kubernetes cluster where the Cluster Operator and Kafka cluster are running.</p>
 </div>
@@ -16810,10 +16814,21 @@ spec:
 </ul>
 </div>
 <div class="paragraph">
-<div class="title">Excluding ZooKeeper</div>
-<p>If you don&#8217;t want to include ZooKeeper, you can remove the <code>--zookeeper</code> command option from the Strimzi Drain Cleaner <code>Deployment</code> configuration file.</p>
+<div class="title">Excluding Kafka or ZooKeeper</div>
+<p>If you don&#8217;t want to include Kafka or ZooKeeper pods in Drain Cleaner operations, change the default environment variables in the Drain Cleaner <code>Deployment</code> configuration file.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Set <code>STRIMZI_DRAIN_KAFKA</code> to <code>false</code> to exclude Kafka pods</p>
+</li>
+<li>
+<p>Set <code>STRIMZI_DRAIN_ZOOKEEPER</code> to <code>false</code> to exclude ZooKeeper pods</p>
+</li>
+</ul>
 </div>
 <div class="listingblock">
+<div class="title">Example configuration to exclude ZooKeeper pods</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: apps/v1
 kind: Deployment
@@ -16825,20 +16840,13 @@ spec:
       containers:
         - name: strimzi-drain-cleaner
           # ...
-          command:
-            - "/application"
-            - "-Dquarkus.http.host=0.0.0.0"
-            - "--kafka"
-            - "--zookeeper" <b class="conum">(1)</b>
+          env:
+            - name: STRIMZI_DRAIN_KAFKA
+              value: "true"
+            - name: STRIMZI_DRAIN_ZOOKEEPER
+              value: "false"
           # ...</code></pre>
 </div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Remove this option to exclude ZooKeeper from Strimzi Drain Cleaner operations.</p>
-</li>
-</ol>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -16879,7 +16887,7 @@ leaving the Strimzi Drain Cleaner and Strimzi Cluster Operator to roll the pod w
 <p>Update the <code>Kafka</code> resource:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;kafka-configuration-file&gt;</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f &lt;kafka_configuration_file&gt;</code></pre>
 </div>
 </div>
 </li>
@@ -16887,9 +16895,6 @@ leaving the Strimzi Drain Cleaner and Strimzi Cluster Operator to roll the pod w
 <p>Deploy the Strimzi Drain Cleaner.</p>
 <div class="openblock">
 <div class="content">
-<div class="paragraph">
-<p>You can use <a href="https://cert-manager.io/docs/" target="_blank" rel="noopener"><code>cert-manager</code></a> in the deployment process.</p>
-</div>
 <div class="ulist">
 <ul>
 <li>
@@ -16904,30 +16909,24 @@ leaving the Strimzi Drain Cleaner and Strimzi Cluster Operator to roll the pod w
 </div>
 </li>
 <li>
-<p>If you are not using <code>cert-manager</code> with Kubernetes, apply the resources in the <code>/install/drain-cleaner/kubernetes</code> directory.</p>
+<p>If you are not using <code>cert-manager</code> with Kubernetes, do the following:</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p><a href="#proc-drain-cleaner-certs-str">Add TLS certificates to use in the deployment</a>.</p>
+<div class="paragraph">
+<p>Any certificates you add must be renewed before they expire.</p>
+</div>
+</li>
+<li>
+<p>Apply the resources in the <code>/install/drain-cleaner/kubernetes</code> directory.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f ./install/drain-cleaner/kubernetes</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>The resources are configured with TLS certificates that have already been generated.
-Use these certificates if you are not changing any configuration for the Strimzi Drain Cleaner, such as namespaces, service names, or pod names.
-Otherwise, you can generate and use your own certificates.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-You can use the build script and files provided in <a href="https://github.com/strimzi/drain-cleaner/tree/main/install/kubernetes/webhook-certificates" target="_blank" rel="noopener"><code>webhook-certificates</code></a>
-to generate your own certificates. The script uses the <a href="https://github.com/cloudflare/cfssl" target="_blank" rel="noopener"><code>CFSSL</code></a> and <a href="https://www.openssl.org/">openSSL</a> tools to generate the certificates.
-After you have generated the certificates, you need to add them to the <code>040-Secret.yaml</code> and <code>070-ValidatingWebhookConfiguration.yaml</code> files.
-</td>
-</tr>
-</table>
+</li>
+</ol>
 </div>
 </li>
 </ul>
@@ -16951,7 +16950,171 @@ After you have generated the certificates, you need to add them to the <code>040
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-drain-cleaner-using-str"><a class="link" href="#proc-drain-cleaner-using-str">8.3.3. Using the Strimzi Drain Cleaner</a></h4>
+<h4 id="deploying-cluster-operator-helm-chart-str"><a class="link" href="#deploying-cluster-operator-helm-chart-str">8.3.3. Deploying the Strimzi Drain Cleaner using Helm</a></h4>
+<div class="paragraph _abstract">
+<p><a href="https://helm.sh/">Helm</a> charts are used to package, configure, and deploy Kubernetes resources.
+Strimzi provides a Helm chart to deploy the Strimzi Drain Cleaner.</p>
+</div>
+<div class="paragraph">
+<p>The Drain Cleaner is deployed on the Kubernetes cluster with the default chart configuration, which assumes that <code>cert-manager</code> issues the TLS certificates required by the Drain Cleaner.</p>
+</div>
+<div class="paragraph">
+<p>You can install the Drain Cleaner with <code>cert-manager</code> support or provide your own TLS certificates.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>You have <a href="#drain-cleaner-prereqs-str">downloaded the Strimzi Drain Cleaner deployment files</a>.</p>
+</li>
+<li>
+<p>The Helm client must be installed on a local machine.</p>
+</li>
+<li>
+<p>Helm must be installed to the Kubernetes cluster.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Default configuration values</div>
+<p>Default configuration values are passed into the chart using parameters defined in a <code>values.yaml</code> file.
+If you don&#8217;t want to use the default configuration, you can override the defaults when you install the chart using the <code>--set</code> argument.
+You specify values in the format <code>--set key=value[,key=value]</code>.
+The <code>values.yaml</code> file supplied with the Helm deployment files describes the available configuration parameters, including those shown in the following table.</p>
+</div>
+<div class="paragraph">
+<p>You can override the default image settings.
+You can also set <code>secret.create</code> as <code>true</code> and add your own TLS certificates instead of using <code>cert-manager</code> to generate the certificates.
+For information on using OpenSSL to generate certificates, see <a href="#proc-drain-cleaner-certs-str">Adding or renewing the TLS certificates used by the Strimzi Drain Cleaner</a>.</p>
+</div>
+<div class="paragraph">
+<p>Any certificates you add must be renewed before they expire.
+You can use the configuration to control how certificates are watched for updates using environment variables.
+For more information on how the environment variables work, see <a href="#proc-drain-cleaner-certs-renewing-str">Watching the TLS certificates used by the Strimzi Drain Cleaner</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 30. Chart configuration options</caption>
+<colgroup>
+<col style="width: 45.4545%;">
+<col style="width: 36.3636%;">
+<col style="width: 18.1819%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Parameter</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>replicaCount</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Number of replicas of the Drain Cleaner webhook</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>1</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>image.registry</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Drain Cleaner image registry</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>quay.io</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>image.repository</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Drain Cleaner image repository</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>image.name</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Drain Cleaner image name</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>drain-cleaner</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>image.tag</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Drain Cleaner image tag</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>latest</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>image.imagePullPolicy</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Image pull policy for all pods deployed by the Drain Cleaner</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>nil</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>secret.create</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set to <code>true</code> and add certificates when not using <code>cert-manager</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>namespace.name</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Default namespace for the Drain Cleaner deployment.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi-drain-cleaner</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>resources</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Configures resources for the Drain Cleaner pod</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>[]</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>nodeSelector</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Add a node selector to the Drain Cleaner pod</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>{}</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>tolerations</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Add tolerations to the Drain Cleaner pod</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>[]</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>topologySpreadConstraints</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Add topology spread constraints to the Drain Cleaner pod</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>{}</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>affinity</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Add affinities to the Drain Cleaner pod</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>{}</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Use the Helm command line tool to add the Strimzi Helm chart repository:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">helm repo add strimzi https://strimzi.io/charts/</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Deploy the Drain Cleaner:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">helm install drain-cleaner strimzi/strimzi-drain-cleaner</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Specify any changes to the default configuration as parameter values.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example configuration that changes the number of webhook replicas</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">helm install --name drain-cleaner --set replicas=2 strimzi/strimzi-drain-cleaner</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Verify that the Cluster Operator has been deployed successfully:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">helm ls</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-drain-cleaner-using-str"><a class="link" href="#proc-drain-cleaner-using-str">8.3.4. Using the Strimzi Drain Cleaner</a></h4>
 <div class="paragraph _abstract">
 <p>Use the Strimzi Drain Cleaner in combination with the Cluster Operator to move Kafka broker or ZooKeeper pods from nodes that are being drained.
 When you run the Strimzi Drain Cleaner, it annotates pods with a rolling update pod annotation.
@@ -17004,6 +17167,327 @@ INFO  AbstractOperator:500 - Reconciliation #13(timer) Kafka(my-project/my-clust
 </div>
 </li>
 </ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-drain-cleaner-certs-str"><a class="link" href="#proc-drain-cleaner-certs-str">8.3.5. Adding or renewing the TLS certificates used by the Strimzi Drain Cleaner</a></h4>
+<div class="paragraph _abstract">
+<p>The Drain Cleaner uses a webhook to receive eviction notifications from the Kubernetes API.
+The webhook uses a secure TLS connection and authenticates using TLS certificates.
+If you are not deploying the Drain Cleaner using the <code>cert-manager</code> or on Openshift, you must create and renew the TLS certificates.
+You must then add them to the files used to deploy the Drain Cleaner.
+The certificates must also be renewed before they expire.
+To renew the certificates, you repeat the steps used to generate and add the certificates to the initial deployment of the Drain Cleaner.</p>
+</div>
+<div class="paragraph">
+<p>Generate and add certificates to the standard installation files or your Helm configuration when deploying the Drain Cleaner on Kubernetes without <code>cert-manager</code>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If you are using <code>cert-manager</code> to deploy the Drain Cleaner, you don&#8217;t need to add or renew TLS certificates. The same applies when deploying the Drain Cleaner on OpenShift, as OpenShift injects the certificates. In both cases, TLS certificates are added and renewed automatically.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The <a href="https://www.openssl.org/">OpenSSL</a> TLS management tool for generating certificates.</p>
+<div class="paragraph">
+<p>Use <code>openssl help</code> for command-line descriptions of the options used.</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Generating and renewing TLS certificates</div>
+<ol class="arabic">
+<li>
+<p>From the command line, create a directory called <code>tls-certificate</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">mkdir tls-certificate
+cd tls-certificate</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now use OpenSSL to create the certificates in the <code>tls-certificate</code> directory.</p>
+</div>
+</li>
+<li>
+<p>Generate a CA (Certificate Authority) public certificate and private key:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">openssl req -nodes -new -x509 -keyout ca.key -out ca.crt -subj "/CN=Strimzi Drain Cleaner CA"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A <code>ca.crt</code> and <code>ca.key</code> file are created.</p>
+</div>
+</li>
+<li>
+<p>Generate a private key for the Drain Cleaner:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">openssl genrsa -out tls.key 2048</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A <code>tls.key</code> file is created.</p>
+</div>
+</li>
+<li>
+<p>Generate a CSR (Certificate Signing Request) and sign it by adding the CA public certificate (<code>ca.crt</code>) you generated:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">openssl req -new -key tls.key -subj "/CN=strimzi-drain-cleaner.strimzi-drain-cleaner.svc" \
+  | openssl x509 -req -CA ca.crt -CAkey ca.key -CAcreateserial -extfile &lt;(printf "subjectAltName=DNS:strimzi-drain-cleaner.strimzi-drain-cleaner.svc") -out tls.crt</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A <code>tls.crt</code> file is created.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If you change the name of the Strimzi Drain Cleaner service or install it into a different namespace, you must change the SAN (Subject Alternative Name) of the certificate, following the format <code>&lt;service_name&gt;.&lt;namespace_name&gt;.svc</code>.
+</td>
+</tr>
+</table>
+</div>
+</li>
+<li>
+<p>Encode the CA public certificate into base64.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">base64 tls-certificate/ca.crt</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>With the certificates generated, add them to the installation files or to your Helm configuration depending on your deployment method.</p>
+</div>
+</li>
+</ol>
+</div>
+<div class="olist arabic">
+<div class="title">Adding the TLS certificates to the Drain Cleaner installation files</div>
+<ol class="arabic">
+<li>
+<p>Copy the base64-encoded CA public certificate as the value for the <code>caBundle</code> property of the <code>070-ValidatingWebhookConfiguration.yaml</code> installation file:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+clientConfig:
+  service:
+    namespace: "strimzi-drain-cleaner"
+    name: "strimzi-drain-cleaner"
+    path: /drainer
+    port: 443
+  caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0...
+# ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create a namespace called <code>strimzi-drain-cleaner</code> in your Kubernetes cluster:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create ns strimzi-drain-cleaner</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create a secret named <code>strimzi-drain-cleaner</code> with the <code>tls.crt</code> and <code>tls.key</code> files you generated:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create secret tls strimzi-drain-cleaner \
+  -n strimzi-drain-cleaner  \
+  --cert=tls-certificate/tls.crt \
+  --key=tls-certificate/tls.key</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The secret is used in the Drain Cleaner deployment.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example secret for the Drain Cleaner deployment</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: Secret
+metadata:
+  # ...
+  name: strimzi-drain-cleaner
+  namespace: strimzi-drain-cleaner
+# ...
+data:
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS...
+  tls.key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLR...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can now use the certificates and updated installation files <a href="#proc-drain-cleaner-deploying-str">to deploy the Drain Cleaner using installation files</a>.</p>
+</div>
+</li>
+</ol>
+</div>
+<div class="olist arabic">
+<div class="title">Adding the TLS certificates to a Helm deployment</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>values.yaml</code> configuration file used in the Helm deployment.</p>
+</li>
+<li>
+<p>Set the <code>certManager.create</code> parameter to <code>false</code>.</p>
+</li>
+<li>
+<p>Set the <code>secret.create</code> parameter to <code>true</code>.</p>
+</li>
+<li>
+<p>Copy the certificates as <code>secret</code> parameters.</p>
+<div class="listingblock">
+<div class="title">Example secret configuration for the Drain Cleaner deployment</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+certManager:
+  create: false
+
+secret:
+  create: true
+  tls_crt: "Cg==" # <b class="conum">(1)</b>
+  tls_key: "Cg==" # <b class="conum">(2)</b>
+  ca_bundle: "Cg==" # <b class="conum">(3)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The public key (<code>tls.crt</code>) signed by the CA public certificate.</p>
+</li>
+<li>
+<p>The private key (<code>tls.key</code>).</p>
+</li>
+<li>
+<p>The base-64 encoded CA public certificate (<code>ca.crt</code>).</p>
+</li>
+</ol>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>You can now use the certificates and updated configuration file <a href="#deploying-cluster-operator-helm-chart-str">to deploy the Drain Cleaner using Helm</a>.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-drain-cleaner-certs-renewing-str"><a class="link" href="#proc-drain-cleaner-certs-renewing-str">8.3.6. Watching the TLS certificates used by the Strimzi Drain Cleaner</a></h4>
+<div class="paragraph _abstract">
+<p>By default, the Drain Cleaner deployment watches the secret containing the TLS certificates its uses for authentication.
+The Drain Cleaner watches for changes, such as certificate renewals.
+If it detects a change, it restarts to reload the TLS certificates.
+The Drain Cleaner installation files enable this behavior by default.
+But you can disable the watching of certificates by setting the <code>STRIMZI_CERTIFICATE_WATCH_ENABLED</code> environment variable to <code>false</code> in the <code>Deployment</code> configuration (<code>060-Deployment.yaml</code>) of the Drain Cleaner installation files.</p>
+</div>
+<div class="paragraph">
+<p>With <code>STRIMZI_CERTIFICATE_WATCH_ENABLED</code> enabled, you can also use the following environment variables for watching TLS certificates.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 31. Drain Cleaner environment variables for watching TLS certificates</caption>
+<colgroup>
+<col style="width: 45.4545%;">
+<col style="width: 36.3636%;">
+<col style="width: 18.1819%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Environment Variable</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>STRIMZI_CERTIFICATE_WATCH_ENABLED</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Enables or disables the certificate watch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>false</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>STRIMZI_CERTIFICATE_WATCH_NAMESPACE</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The namespace where the Drain Cleaner is deployed and where the certificate secret exists</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi-drain-cleaner</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>STRIMZI_CERTIFICATE_WATCH_POD_NAME</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The Drain Cleaner pod name</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>STRIMZI_CERTIFICATE_WATCH_SECRET_NAME</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The name of the secret containing TLS certificates</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>strimzi-drain-cleaner</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>STRIMZI_CERTIFICATE_WATCH_SECRET_KEYS</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The list of fields inside the secret that contain the TLS certificates</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>tls.crt, tls.key</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="listingblock">
+<div class="title">Example environment variable configuration to control watch operations</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: strimzi-drain-cleaner
+  labels:
+    app: strimzi-drain-cleaner
+  namespace: strimzi-drain-cleaner
+spec:
+  # ...
+    spec:
+      serviceAccountName: strimzi-drain-cleaner
+      containers:
+        - name: strimzi-drain-cleaner
+          # ...
+          env:
+            - name: STRIMZI_DRAIN_KAFKA
+              value: "true"
+            - name: STRIMZI_DRAIN_ZOOKEEPER
+              value: "true"
+            - name: STRIMZI_CERTIFICATE_WATCH_ENABLED
+              value: "true"
+            - name: STRIMZI_CERTIFICATE_WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: STRIMZI_CERTIFICATE_WATCH_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+              # ...</code></pre>
+</div>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Tip</div>
+</td>
+<td class="content">
+Use the <a href="https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/#the-downward-api" target="_blank" rel="noopener">Downward API</a> mechanism to configure <code>STRIMZI_CERTIFICATE_WATCH_NAMESPACE</code> and <code>STRIMZI_CERTIFICATE_WATCH_POD_NAME</code>.
+</td>
+</tr>
+</table>
 </div>
 </div>
 </div>
@@ -18915,7 +19399,7 @@ You can also override <code>min.insync.replicas</code> at the topic level in the
 <p>The following table describes how this configuration operates depending on the availability of followers that replicate the leader replica.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 30. Follower availability</caption>
+<caption class="title">Table 32. Follower availability</caption>
 <colgroup>
 <col style="width: 28.5714%;">
 <col style="width: 42.8571%;">
@@ -20781,7 +21265,7 @@ The Cluster Operator sets default maximum and minimum heap values based on a per
 <p>The following table shows the default heap values.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 31. Default heap settings for components</caption>
+<caption class="title">Table 33. Default heap settings for components</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 25%;">
@@ -35655,7 +36139,7 @@ If not specified, the <code>full</code> mode is used by default.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-02-02 10:29:07 UTC
+Last updated 2023-02-02 10:39:56 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
