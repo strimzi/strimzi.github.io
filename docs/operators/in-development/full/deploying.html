@@ -3536,10 +3536,10 @@ If you want to make the Kafka Connect API accessible to applications running out
 <p><code>LoadBalancer</code> or <code>NodePort</code> type services</p>
 </li>
 <li>
-<p><code>Ingress</code> resources</p>
+<p><code>Ingress</code> resources (Kubernetes only)</p>
 </li>
 <li>
-<p>OpenShift routes</p>
+<p>OpenShift routes (OpenShift only)</p>
 </li>
 </ul>
 </div>
@@ -3920,10 +3920,10 @@ These applications use the <code><em>&lt;kafka_bridge_name&gt;</em>-bridge-servi
 <p><code>LoadBalancer</code> or <code>NodePort</code> type services</p>
 </li>
 <li>
-<p><code>Ingress</code> resources</p>
+<p><code>Ingress</code> resources (Kubernetes only)</p>
 </li>
 <li>
-<p>OpenShift routes</p>
+<p>OpenShift routes (OpenShift only)</p>
 </li>
 </ul>
 </div>
@@ -4643,7 +4643,7 @@ The following listener types are supported:</p>
 <p><code>loadbalancer</code> to use loadbalancer services</p>
 </li>
 <li>
-<p><code>ingress</code> to use Kubernetes Ingress and the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">Ingress NGINX Controller for Kubernetes</a> (Kubernetes only)</p>
+<p><code>ingress</code> to use Kubernetes <code>Ingress</code> and the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">Ingress NGINX Controller for Kubernetes</a> (Kubernetes only)</p>
 </li>
 <li>
 <p><code>route</code> to use OpenShift <code>Route</code> and the default HAProxy router (OpenShift only)</p>
@@ -4901,7 +4901,7 @@ spec:
 <p>Port number used by the listener inside Kafka. The port number has to be unique within a given Kafka cluster. Allowed port numbers are 9092 and higher with the exception of ports 9404 and 9999, which are already used for Prometheus and JMX. Depending on the listener type, the port number might not be the same as the port number that connects Kafka clients.</p>
 </li>
 <li>
-<p>External listener type specified as <code>route</code>, <code>loadbalancer</code>, <code>nodeport</code> or <code>ingress</code>. An internal listener is specified as <code>internal</code> or <code>cluster-ip</code>.</p>
+<p>External listener type specified as <code>route</code> (OpenShift only), <code>loadbalancer</code>, <code>nodeport</code> or <code>ingress</code> (Kubernetes only). An internal listener is specified as <code>internal</code> or <code>cluster-ip</code>.</p>
 </li>
 <li>
 <p>Required. TLS encryption on the listener. For <code>route</code> and <code>ingress</code> type listeners it must be set to <code>true</code>. For mTLS authentication, also use the <code>authentication</code> property.</p>
@@ -5188,23 +5188,48 @@ props.put(SslConfigs.SSL_KEYSTORE_KEY_CONFIG, "----BEGIN PRIVATE KEY-----\n<em>&
 </div>
 <div class="sect2">
 <h3 id="proc-accessing-kafka-using-nodeports-str"><a class="link" href="#proc-accessing-kafka-using-nodeports-str">8.4. Accessing Kafka using node ports</a></h3>
-<div class="paragraph">
-<p>This procedure describes how to access a Strimzi Kafka cluster from an external client using node ports.</p>
+<div class="paragraph _abstract">
+<p>Use node ports to access a Strimzi Kafka cluster from an external client outside the Kubernetes cluster.</p>
 </div>
 <div class="paragraph">
-<p>To connect to a broker, you need a hostname and port number for the Kafka <em>bootstrap address</em>,
-as well as the certificate used for authentication.</p>
+<p>To connect to a broker, you specify a hostname and port number for the Kafka bootstrap address, as well as the certificate used for TLS encryption.</p>
+</div>
+<div class="paragraph">
+<p>The procedure shows basic <code>nodeport</code> listener configuration.
+You can use listener properties to enable TLS encryption (<code>tls</code>) and specify a client authentication mechanism (<code>authentication</code>).
+Add additional configuration using <code>configuration</code> properties.
+For example, you can use the following configuration properties with <code>nodeport</code> listeners:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>preferredNodePortAddressType</code></dt>
+<dd>
+<p>Specifies the first address type that&#8217;s checked as the node address.</p>
+</dd>
+<dt class="hdlist1"><code>externalTrafficPolicy</code></dt>
+<dd>
+<p>Specifies whether the service routes external traffic to node-local or cluster-wide endpoints.</p>
+</dd>
+<dt class="hdlist1"><code>nodePort</code></dt>
+<dd>
+<p>Overrides the assigned node port numbers for the bootstrap and broker services.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>For more information on listener configuration, see the <a href="./configuring.html#type-GenericKafkaListener-reference" target="_blank" rel="noopener"><code>GenericKafkaListener</code> schema reference</a>.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
 <li>
-<p>A Kubernetes cluster</p>
-</li>
-<li>
 <p>A running Cluster Operator</p>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>In this procedure, the Kafka cluster name is <code>my-cluster</code>.
+The name of the listener is <code>external</code>.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -5218,6 +5243,11 @@ as well as the certificate used for authentication.</p>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
+metadata:
+  labels:
+    app: my-cluster
+  name: my-cluster
+  namespace: myproject
 spec:
   kafka:
     # ...
@@ -5243,64 +5273,145 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p><code>NodePort</code> type services are created for each Kafka broker, as well as an external <em>bootstrap service</em>.
-The bootstrap service routes external traffic to the Kafka brokers.
-Node addresses used for connection are propagated to the <code>status</code> of the Kafka custom resource.</p>
+<p>A cluster CA certificate to verify the identity of the kafka brokers is created in the secret <code>my-cluster-cluster-ca-cert</code>.</p>
 </div>
 <div class="paragraph">
-<p>The cluster CA certificate to verify the identity of the kafka brokers is also created in the secret <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code>.</p>
+<p><code>NodePort</code> type services are created for each Kafka broker, as well as an external bootstrap service.</p>
+</div>
+<div class="listingblock">
+<div class="title">Node port services created for the bootstrap and brokers</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                                 TYPE      CLUSTER-IP      PORT(S)
+my-cluster-kafka-external-0          NodePort  172.30.55.13    9094:31789/TCP
+my-cluster-kafka-external-1          NodePort  172.30.250.248  9094:30028/TCP
+my-cluster-kafka-external-2          NodePort  172.30.115.81   9094:32650/TCP
+my-cluster-kafka-external-bootstrap  NodePort  172.30.30.23    9094:32650/TCP</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The bootstrap address used for client connection is propagated to the <code>status</code> of the <code>Kafka</code> resource.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example status for the bootstrap address</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">status:
+  clusterId: Y_RJQDGKRXmNF7fEcWldJQ
+  conditions:
+    - lastTransitionTime: '2023-01-31T14:59:37.113630Z'
+      status: 'True'
+      type: Ready
+  listeners:
+    # ...
+    - addresses:
+        - host: ip-10-0-224-199.us-west-2.compute.internal
+          port: 32650
+      bootstrapServers: 'ip-10-0-224-199.us-west-2.compute.internal:32650'
+      certificates:
+        - |
+          -----BEGIN CERTIFICATE-----
+
+          -----END CERTIFICATE-----
+      name: external
+      type: external
+  observedGeneration: 2
+ # ...</code></pre>
+</div>
 </div>
 </li>
 <li>
 <p>Retrieve the bootstrap address you can use to access the Kafka cluster from the status of the <code>Kafka</code> resource.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka <em>&lt;kafka_cluster_name&gt;</em> -o=jsonpath='{.status.listeners[?(@.name=="<em>&lt;listener_name&gt;</em>")].bootstrapServers}{"\n"}'</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>For example:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.name=="external")].bootstrapServers}{"\n"}'</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.name=="external")].bootstrapServers}{"\n"}'
+
+ip-10-0-224-199.us-west-2.compute.internal:32650</code></pre>
 </div>
 </div>
 </li>
 <li>
-<p>If TLS encryption is enabled, extract the public certificate of the broker certification authority.</p>
+<p>Extract the cluster CA certificate.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret my-cluster-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
 </div>
 </div>
+</li>
+<li>
+<p>Configure your client to connect to the brokers.</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>Specify the bootstrap host and port in your Kafka client as the bootstrap address to connect to the Kafka cluster. For example, <code>ip-10-0-224-199.us-west-2.compute.internal:32650</code>.</p>
+</li>
+<li>
+<p>Add the extracted certificate to the truststore of your Kafka client to configure a TLS connection.</p>
 <div class="paragraph">
-<p>Use the extracted certificate in your Kafka client to configure TLS connection.
-If you enabled any authentication, you will also need to configure it in your client.</p>
+<p>If you enabled a client authentication mechanism, you will also need to configure it in your client.</p>
 </div>
 </li>
 </ol>
 </div>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If you are using your own listener certificates, check whether you need to add the CA certificate to the client&#8217;s truststore configuration.
+If it is a public (external) CA, you usually won&#8217;t need to add it.
+</td>
+</tr>
+</table>
+</div>
 </div>
 <div class="sect2">
 <h3 id="proc-accessing-kafka-using-loadbalancers-str"><a class="link" href="#proc-accessing-kafka-using-loadbalancers-str">8.5. Accessing Kafka using loadbalancers</a></h3>
-<div class="paragraph">
-<p>This procedure describes how to access a Strimzi Kafka cluster from an external client using loadbalancers.</p>
+<div class="paragraph _abstract">
+<p>Use loadbalancers to access a Strimzi Kafka cluster from an external client outside the Kubernetes cluster.</p>
 </div>
 <div class="paragraph">
-<p>To connect to a broker, you need the address of the <em>bootstrap loadbalancer</em>,
-as well as the certificate used for TLS encryption.</p>
+<p>To connect to a broker, you specify a hostname and port number for the Kafka bootstrap address, as well as the certificate used for TLS encryption.</p>
+</div>
+<div class="paragraph">
+<p>The procedure shows basic <code>loadbalancer</code> listener configuration.
+You can use listener properties to enable TLS encryption (<code>tls</code>) and specify a client authentication mechanism (<code>authentication</code>).
+Add additional configuration using <code>configuration</code> properties.
+For example, you can use the following configuration properties with <code>loadbalancer</code> listeners:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>loadBalancerSourceRanges</code></dt>
+<dd>
+<p>Restricts traffic to a specified list of CIDR (Classless Inter-Domain Routing) ranges.</p>
+</dd>
+<dt class="hdlist1"><code>externalTrafficPolicy</code></dt>
+<dd>
+<p>Specifies whether the service routes external traffic to node-local or cluster-wide endpoints.</p>
+</dd>
+<dt class="hdlist1"><code>loadBalancerIP</code></dt>
+<dd>
+<p>Requests a specific IP address when creating a loadbalancer.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>For more information on listener configuration, see the <a href="./configuring.html#type-GenericKafkaListener-reference" target="_blank" rel="noopener"><code>GenericKafkaListener</code> schema reference</a>.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
 <li>
-<p>A Kubernetes cluster</p>
-</li>
-<li>
 <p>A running Cluster Operator</p>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>In this procedure, the Kafka cluster name is <code>my-cluster</code>.
+The name of the listener is <code>external</code>.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -5314,14 +5425,21 @@ as well as the certificate used for TLS encryption.</p>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
+metadata:
+  labels:
+    app: my-cluster
+  name: my-cluster
+  namespace: myproject
 spec:
   kafka:
     # ...
     listeners:
       - name: external
-        port: 9094
+        port: 9095
         type: loadbalancer
         tls: true
+        authentication:
+          type: tls
         # ...
     # ...
   zookeeper:
@@ -5337,43 +5455,121 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p><code>loadbalancer</code> type services and loadbalancers are created for each Kafka broker, as well as an external <em>bootstrap service</em>.
-The bootstrap service routes external traffic to all Kafka brokers.
-DNS names and IP addresses used for connection are propagated to the <code>status</code> of each service.</p>
+<p>A cluster CA certificate to verify the identity of the kafka brokers is also created in the secret <code>my-cluster-cluster-ca-cert</code>.</p>
 </div>
 <div class="paragraph">
-<p>The cluster CA certificate to verify the identity of the kafka brokers is also created in the secret <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code>.</p>
+<p><code>loadbalancer</code> type services and loadbalancers are created for each Kafka broker, as well as an external bootstrap service.</p>
+</div>
+<div class="listingblock">
+<div class="title">Loadbalancer services and loadbalancers created for the bootstraps and brokers</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                                  TYPE            CLUSTER-IP      PORT(S)
+my-cluster-kafka-external-0          LoadBalancer     172.30.204.234  9095:30011/TCP
+my-cluster-kafka-external-1          LoadBalancer     172.30.164.89   9095:32544/TCP
+my-cluster-kafka-external-2          LoadBalancer     172.30.73.151   9095:32504/TCP
+my-cluster-kafka-external-bootstrap  LoadBalancer     172.30.30.228   9095:30371/TCP
+
+NAME                                 EXTERNAL-IP (loadbalancer)
+my-cluster-kafka-external-0          a8a519e464b924000b6c0f0a05e19f0d-1132975133.us-west-2.elb.amazonaws.com
+my-cluster-kafka-external-1          ab6adc22b556343afb0db5ea05d07347-611832211.us-west-2.elb.amazonaws.com
+my-cluster-kafka-external-2          a9173e8ccb1914778aeb17eca98713c0-777597560.us-west-2.elb.amazonaws.com
+my-cluster-kafka-external-bootstrap  a8d4a6fb363bf447fb6e475fc3040176-36312313.us-west-2.elb.amazonaws.com</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The bootstrap address used for client connection is propagated to the <code>status</code> of the <code>Kafka</code> resource.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example status for the bootstrap address</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">status:
+  clusterId: Y_RJQDGKRXmNF7fEcWldJQ
+  conditions:
+    - lastTransitionTime: '2023-01-31T14:59:37.113630Z'
+      status: 'True'
+      type: Ready
+  listeners:
+    # ...
+    - addresses:
+        - host: &gt;-
+            a8d4a6fb363bf447fb6e475fc3040176-36312313.us-west-2.elb.amazonaws.com
+          port: 9095
+      bootstrapServers: &gt;-
+        a8d4a6fb363bf447fb6e475fc3040176-36312313.us-west-2.elb.amazonaws.com:9095
+      certificates:
+        - |
+          -----BEGIN CERTIFICATE-----
+
+          -----END CERTIFICATE-----
+      name: external
+      type: external
+  observedGeneration: 2
+ # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The DNS addresses used for client connection are propagated to the <code>status</code> of each loadbalancer service.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example status for the bootstrap loadbalancer</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">status:
+  loadBalancer:
+    ingress:
+      - hostname: &gt;-
+          a8d4a6fb363bf447fb6e475fc3040176-36312313.us-west-2.elb.amazonaws.com
+ # ...</code></pre>
+</div>
 </div>
 </li>
 <li>
-<p>Retrieve the address of the bootstrap service you can use to access the Kafka cluster from the status of the <code>Kafka</code> resource.</p>
+<p>Retrieve the bootstrap address you can use to access the Kafka cluster from the status of the <code>Kafka</code> resource.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka <em>&lt;kafka_cluster_name&gt;</em> -o=jsonpath='{.status.listeners[?(@.name=="<em>&lt;listener_name&gt;</em>")].bootstrapServers}{"\n"}'</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>For example:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.name=="external")].bootstrapServers}{"\n"}'</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.name=="external")].bootstrapServers}{"\n"}'
+
+a8d4a6fb363bf447fb6e475fc3040176-36312313.us-west-2.elb.amazonaws.com:9095</code></pre>
 </div>
 </div>
 </li>
 <li>
-<p>If TLS encryption is enabled, extract the public certificate of the broker certification authority.</p>
+<p>Extract the cluster CA certificate.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret <em>KAFKA-CLUSTER-NAME</em>-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret my-cluster-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
 </div>
 </div>
+</li>
+<li>
+<p>Configure your client to connect to the brokers.</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>Specify the bootstrap host and port in your Kafka client as the bootstrap address to connect to the Kafka cluster. For example, <code>a8d4a6fb363bf447fb6e475fc3040176-36312313.us-west-2.elb.amazonaws.com:9095</code>.</p>
+</li>
+<li>
+<p>Add the extracted certificate to the truststore of your Kafka client to configure a TLS connection.</p>
 <div class="paragraph">
-<p>Use the extracted certificate in your Kafka client to configure the TLS connection.
-If you enabled any authentication, you will also need to configure it in your client.</p>
+<p>If you enabled a client authentication mechanism, you will also need to configure it in your client.</p>
 </div>
 </li>
 </ol>
+</div>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If you are using your own listener certificates, check whether you need to add the CA certificate to the client&#8217;s truststore configuration.
+If it is a public (external) CA, you usually won&#8217;t need to add it.
+</td>
+</tr>
+</table>
 </div>
 </div>
 <div class="sect2">
@@ -5388,11 +5584,18 @@ Clients connect to the bootstrap ingress, which routes them through the bootstra
 Per-broker connections are then established using DNS names, which route traffic from the client to the broker through the broker-specific ingresses and services.</p>
 </div>
 <div class="paragraph">
-<p>To connect to a broker, you specify a hostname for the ingress bootstrap address, as well as the TLS certificate.
-Authentication is optional.</p>
+<p>To connect to a broker, you specify a hostname for the ingress bootstrap address, as well as the certificate used for TLS encryption.
+For access using an ingress, the port used in the Kafka client is typically 443.</p>
 </div>
 <div class="paragraph">
-<p>For access using an ingress, the port used in the Kafka client is typically 443.</p>
+<p>The procedure shows basic <code>ingress</code> listener configuration.
+TLS encryption (<code>tls</code>) must be enabled.
+You can also specify a client authentication mechanism (<code>authentication</code>).
+Add additional configuration using <code>configuration</code> properties.
+For example, you can use the <code>class</code> configuration property with <code>ingress</code> listeners to specify the ingress controller used.</p>
+</div>
+<div class="paragraph">
+<p>For more information on listener configuration, see the <a href="./configuring.html#type-GenericKafkaListener-reference" target="_blank" rel="noopener"><code>GenericKafkaListener</code> schema reference</a>.</p>
 </div>
 <div class="paragraph">
 <div class="title">TLS passthrough</div>
@@ -5421,7 +5624,8 @@ To configure listeners to use your own listener certificates, <a href="#proc-ins
 </ul>
 </div>
 <div class="paragraph">
-<p>In this procedure, the Kafka cluster name is <code>my-cluster</code>.</p>
+<p>In this procedure, the Kafka cluster name is <code>my-cluster</code>.
+The name of the listener is <code>external</code>.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -5561,7 +5765,7 @@ my-cluster-kafka-bootstrap  nginx  bootstrap.myingress.com  external.ingress.com
 <li>
 <p>Add the extracted certificate to the truststore of your Kafka client to configure a TLS connection.</p>
 <div class="paragraph">
-<p>If you enabled any authentication, you will also need to configure it in your client.</p>
+<p>If you enabled a client authentication mechanism, you will also need to configure it in your client.</p>
 </div>
 </li>
 </ol>
@@ -5595,10 +5799,8 @@ Clients connect to the bootstrap route, which routes them through the bootstrap 
 Per-broker connections are then established using DNS names, which route traffic from the client to the broker through the broker-specific routes and services.</p>
 </div>
 <div class="paragraph">
-<p>To connect to a broker, you specify a hostname for the route bootstrap address, as well as the certificate used for authentication.</p>
-</div>
-<div class="paragraph">
-<p>For access using routes, the port is always 443.</p>
+<p>To connect to a broker, you specify a hostname for the route bootstrap address, as well as the certificate used for TLS encryption.
+For access using routes, the port is always 443.</p>
 </div>
 <div class="admonitionblock warning">
 <table>
@@ -5608,10 +5810,20 @@ Per-broker connections are then established using DNS names, which route traffic
 </td>
 <td class="content">
 An OpenShift route address comprises the name of the Kafka cluster, the name of the listener, and the name of the project it is created in.
-For example, <code>my-cluster-kafka-listener1-bootstrap-myproject</code> (&lt;cluster_name&gt;-kafka-&lt;listener_name&gt;-bootstrap-&lt;namespace&gt;). Be careful that the whole length of the address does not exceed a maximum limit of 63 characters.
+For example, <code>my-cluster-kafka-external-bootstrap-myproject</code> (&lt;cluster_name&gt;-kafka-&lt;listener_name&gt;-bootstrap-&lt;namespace&gt;). Be careful that the whole length of the address does not exceed a maximum limit of 63 characters.
 </td>
 </tr>
 </table>
+</div>
+<div class="paragraph">
+<p>The procedure shows basic listener configuration.
+TLS encryption (<code>tls</code>) must be enabled.
+You can also specify a client authentication mechanism (<code>authentication</code>).
+Add additional configuration using <code>configuration</code> properties.
+For example, you can use the <code>host</code> configuration property with <code>route</code> listeners to specify the hostnames used by the bootstrap and per-broker services.</p>
+</div>
+<div class="paragraph">
+<p>For more information on listener configuration, see the <a href="./configuring.html#type-GenericKafkaListener-reference" target="_blank" rel="noopener"><code>GenericKafkaListener</code> schema reference</a>.</p>
 </div>
 <div class="paragraph">
 <div class="title">TLS passthrough</div>
@@ -5634,7 +5846,8 @@ To configure listeners to use your own listener certificates, <a href="#proc-ins
 </ul>
 </div>
 <div class="paragraph">
-<p>In this procedure, the Kafka cluster name is <code>my-cluster</code>.</p>
+<p>In this procedure, the Kafka cluster name is <code>my-cluster</code>.
+The name of the listener is <code>external</code>.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -5657,10 +5870,12 @@ spec:
   kafka:
     # ...
     listeners:
-      - name: listener1
+      - name: external
         port: 9094
         type: route
         tls: true # <b class="conum">(1)</b>
+        authentication:
+          type: tls
         # ...
     # ...
   zookeeper:
@@ -5698,10 +5913,10 @@ spec:
 <div class="title">Routes created for the bootstraps and brokers</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                                  HOST/PORT                                                   SERVICES                              PORT  TERMINATION
-my-cluster-kafka-listener1-0          my-cluster-kafka-listener1-0-my-project.router.com          my-cluster-kafka-listener1-0          9094  passthrough
-my-cluster-kafka-listener1-1          my-cluster-kafka-listener1-1-my-project.router.com          my-cluster-kafka-listener1-1          9094  passthrough
-my-cluster-kafka-listener1-2          my-cluster-kafka-listener1-2-my-project.router.com          my-cluster-kafka-listener1-2          9094  passthrough
-my-cluster-kafka-listener1-bootstrap  my-cluster-kafka-listener1-bootstrap-my-project.router.com  my-cluster-kafka-listener1-bootstrap  9094  passthrough</code></pre>
+my-cluster-kafka-external-0          my-cluster-kafka-external-0-my-project.router.com          my-cluster-kafka-external-0          9094  passthrough
+my-cluster-kafka-external-1          my-cluster-kafka-external-1-my-project.router.com          my-cluster-kafka-external-1          9094  passthrough
+my-cluster-kafka-external-2          my-cluster-kafka-external-2-my-project.router.com          my-cluster-kafka-external-2          9094  passthrough
+my-cluster-kafka-external-bootstrap  my-cluster-kafka-external-bootstrap-my-project.router.com  my-cluster-kafka-external-bootstrap  9094  passthrough</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -5713,7 +5928,7 @@ my-cluster-kafka-listener1-bootstrap  my-cluster-kafka-listener1-bootstrap-my-pr
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">status:
   ingress:
     - host: &gt;-
-        my-cluster-kafka-listener1-bootstrap-my-project.router.com
+        my-cluster-kafka-external-bootstrap-my-project.router.com
  # ...</code></pre>
 </div>
 </div>
@@ -5722,7 +5937,7 @@ my-cluster-kafka-listener1-bootstrap  my-cluster-kafka-listener1-bootstrap-my-pr
 <p>Use a target broker to check the client-server TLS connection on port 443 using the OpenSSL <code>s_client</code>.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">openssl s_client -connect my-cluster-kafka-listener1-0-my-project.router.com:443 -servername my-cluster-kafka-listener1-0-my-project.router.com -showcerts</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">openssl s_client -connect my-cluster-kafka-external-0-my-project.router.com:443 -servername my-cluster-kafka-external-0-my-project.router.com -showcerts</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -5744,9 +5959,9 @@ my-cluster-kafka-listener1-bootstrap  my-cluster-kafka-listener1-bootstrap-my-pr
 <p>Retrieve the address of the bootstrap service from the status of the <code>Kafka</code> resource.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.name=="listener1")].bootstrapServers}{"\n"}'
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.name=="external")].bootstrapServers}{"\n"}'
 
-my-cluster-kafka-listener1-bootstrap-my-project.router.com:443</code></pre>
+my-cluster-kafka-external-bootstrap-my-project.router.com:443</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -5771,7 +5986,7 @@ my-cluster-kafka-listener1-bootstrap-my-project.router.com:443</code></pre>
 <li>
 <p>Add the extracted certificate to the truststore of your Kafka client to configure a TLS connection.</p>
 <div class="paragraph">
-<p>If you enabled any authentication, you will also need to configure it in your client.</p>
+<p>If you enabled a client authentication mechanism, you will also need to configure it in your client.</p>
 </div>
 </li>
 </ol>
@@ -5838,7 +6053,7 @@ Specify the listener authentication type using the <code>Kafka.spec.kafka.listen
 The <code>internal</code> listener type use a headless service and the DNS names given to the broker pods.
 As an alternative to the headless service, you can also create a <code>cluster-ip</code> type of internal listener to expose Kafka using per-broker <code>ClusterIP</code> services.
 For clients outside the Kubernetes cluster, you create <em>external</em> listeners and specify a connection mechanism,
-which can be <code>nodeport</code>, <code>loadbalancer</code>, <code>ingress</code>, or <code>route</code> (on OpenShift).</p>
+which can be <code>nodeport</code>, <code>loadbalancer</code>, <code>ingress</code> (Kubernetes only), or <code>route</code> (OpenShift only).</p>
 </div>
 <div class="paragraph">
 <p>For more information on the configuration options for connecting an external client, see <a href="#deploy-client-access-str">Setting up client access to a Kafka cluster</a>.</p>
@@ -9897,7 +10112,7 @@ kubectl get -n $NS secret $SECRET_NAME -o yaml | grep PASSWORD | awk '{print $2}
 <li>
 <p>Log in to the Admin Console with the username <code>admin</code> and the password you obtained.</p>
 <div class="paragraph">
-<p>Use <code>https://<em>HOSTNAME</em></code> to access the Kubernetes ingress.</p>
+<p>Use <code>https://<em>HOSTNAME</em></code> to access the Kubernetes <code>Ingress</code>.</p>
 </div>
 <div class="paragraph">
 <p>You can now upload the example realm to Keycloak using the Admin Console.</p>
@@ -10031,7 +10246,7 @@ echo "Q" | openssl s_client -showcerts -connect $SSO_HOST_PORT 2&gt;/dev/null | 
 </div>
 </div>
 <div class="paragraph">
-<p>The certificate is required as Kubernetes ingress is used to make a secure (HTTPS) connection.</p>
+<p>The certificate is required as Kubernetes <code>Ingress</code> is used to make a secure (HTTPS) connection.</p>
 </div>
 <div class="paragraph">
 <p>Usually there is not one single certificate, but a certificate chain. You only have to provide the top-most issuer CA, which is listed last in the <code>/tmp/sso.pem</code> file.
@@ -17273,7 +17488,7 @@ Deleting <code>CustomResourceDefinitions</code> results in the garbage collectio
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-02-05 15:45:10 UTC
+Last updated 2023-02-06 12:17:57 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
