@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Apache Kafka tracing with Strimzi: from OpenTracing to OpenTelemetry"
-date: 2023-03-06
+date: 2023-02-27
 author: paolo_patierno
 ---
 
@@ -13,8 +13,10 @@ This is where distributed tracing comes into the picture, by addressing differen
 * profile messages latency in order to help optimizing performance.
 * provide an overall picture about how microservices communicate across boundaries.
 
-Strimzi have been provided tracing support, for Kafka Connect, Kafka Mirror Maker(s) and the HTTP bridge, since the 0.14.0 release leveraging the [OpenTracing](https://opentracing.io/) project. Tracing is not supported for Kafka brokers.
+Strimzi have been provided tracing support, for Kafka Connect, Kafka Mirror Maker(s) and the HTTP bridge, since the 0.14.0 release leveraging the [OpenTracing](https://opentracing.io/) project.
 But since then, the distributed tracing ecosystem has changed, the OpenTracing project was archived and replaced by a new project, [OpenTelemetry](https://opentelemetry.io/).
+
+> Tha Apache Kafka project itself doesn't have support for tracing so when messages flow through brokers no further tracing information are added.
 
 This blog post will show you, how to use OpenTelemetry within the Strimzi project and what are the differences with OpenTracing which is now deprecated and will be removed in the coming months.
 
@@ -24,7 +26,7 @@ OpenTelemetry is an open source and vendor neutral project providing tools, APIs
 It is part of the Cloud Native Computing Foundation and it is available across several languages.
 It is not just about tracing but it has support for metrics and logs as well.
 
-> The Strimzi project supports with OpenTelemetry is about tracing only. There are no actual plans to support OpenTelemetry metrics and logs at this time.
+> The Strimzi project support of OpenTelemetry is about tracing only. There are no actual plans to support OpenTelemetry metrics and logs at this time.
 
 While the OpenTracing support in Strimzi is strictly tight to the Jaeger implementation, by using the Jaeger client underneath, with OpenTelemetry we have a different approach.
 The tracer uses an exporter in order to export traces in a specific format to the backend system.
@@ -46,7 +48,7 @@ The sampler mechanism can be configured through environment variables.
 ## How to enable OpenTelemetry
 
 Before adding the support for OpenTelemetry, it was already possible to enable the distributed tracing on the `KafkaConnect`, `KafkaMirrorMaker`, `KafkaMirrorMaker2` and `KafkaBridge` custom resources by setting the `spec.tracing.type` property to `jaeger` to use OpenTracing.
-Since the Strimzi 0.32.0 release, you can set the corresponding `opentelemetry` value for using OpenTelemetry instead.
+Since the Strimzi 0.33.0 release, you can set the corresponding `opentelemetry` value for using OpenTelemetry instead.
 
 ```yaml
 # ...
@@ -79,7 +81,7 @@ It is using the service name `my-otel-service` which will show up in the backend
 
 > The service name is specific to the operand you are using in order to group multiple traces together. You should use a different service name for any other operand (i.e. Kafka Connect, Kafka Mirror Maker, ...)
 
-Assuming, for example, you are using Jaeger backend, it configures the tracer to send the traces to the `http://jaeger-host:4317` OTLP endpoint on the backend.
+Assuming, for example, you are using Jaeger backend, it configures the tracer to send the traces to the `http://jaeger-host:4317` OTLP endpoint on the backend. The `jaeger-host` is just a placeholder for the Jaeger backend URL. The port `4317` is where the OTLP endpoint is exposed.
 By default, the exporter uses the OTLP protocol which has to be enabled on the Jaeger backend.
 If you want to change to a different exporting protocol, for example using the `jaeger` one, set the `OTEL_TRACES_EXPORTER` environment variable as well but you also need to add the corresponding artifact in the Kafka image. More details about how to do that in the official documentation [here](https://strimzi.io/docs/operators/latest/deploying.html#proc-enabling-tracing-type-str).
 You would also need to set the `OTEL_EXPORTER_JAEGER_ENDPOINT` instead of the above `OTEL_EXPORTER_OTLP_ENDPOINT` to specify a Jaeger protocol endpoint.
@@ -188,7 +190,7 @@ kubectl apply -f deployment-tracing-opentelemetry.yaml
 
 When the HTTP clients exchange the messages we can see the traces and the corresponding spans in the Jaeger Web UI.
 
-![](/assets/images/posts/2023-03-06-opentelemetry-01.png)
+![](/assets/images/posts/2023-02-27-opentelemetry-01.png)
 
 In the above picture, the HTTP producer sends a message and it is received by the HTTP consumer.
 
@@ -198,7 +200,7 @@ When the HTTP client sends a producer request, you can see three spans linked to
 * the second span describes the HTTP `send` operation requested by the client and tracked on the bridge. This span is created by the bridge application itself instrumented with OpenTelemetry. It is linked to the first span with a "CHILD_OF" relationship.
 * the third span describes the low level Kafka `send` operation to the `my-topic` topic which is a "CHILD_OF" the previous one. This span is created by the instrumented Kafka client provided by the OpenTelemetry project. It uses a producer interceptor for creating the span.
 
-![](/assets/images/posts/2023-03-06-opentelemetry-02.png)
+![](/assets/images/posts/2023-02-27-opentelemetry-02.png)
 
 In the same way, when the HTTP consumer sends a poll request for receiving the messages, you can see three spans linked together as part of the same trace:
 
@@ -206,7 +208,7 @@ In the same way, when the HTTP consumer sends a poll request for receiving the m
 * the second span describes the HTTP `poll` operation requested by the client and tracked on the bridge. This span is created by the bridge application itself instrumented with OpenTelemetry. It is linked to the first span with a "CHILD_OF" relationship.
 * the third span describes the low level Kafka `receive` operation on the `my-topic` topic related to the message received. It is "CHILD_OF" the previous span but at the same time it is referencing the external trace related to the producer with a "FOLLOW_FROM" relationship. This span is created by the instrumented Kafka client provided by the OpenTelemetry project.
 
-![](/assets/images/posts/2023-03-06-opentelemetry-03.png)
+![](/assets/images/posts/2023-02-27-opentelemetry-03.png)
 
 It is interesting to highlight that, due to the asynchronous nature of the communication between producer and consumer through the HTTP bridge and Kafka, the producing and consuming parts are traced with two different traces.
 The consuming related spans are linked to the producing trace spans by using a "FOLLOW_FROM" relationship.
