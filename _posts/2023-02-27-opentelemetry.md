@@ -70,14 +70,14 @@ spec:
     bridgeContainer:
       env:
         - name: OTEL_SERVICE_NAME
-          value: my-otel-service
+          value: my-bridge-otel-service
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: "http://jaeger-host:4317"
   tracing:
     type: opentelemetry
 ```
 
-It is using the service name `my-otel-service` which will show up in the backend UI.
+It is using the service name `my-bridge-otel-service` which will show up in the backend UI.
 
 > The service name is specific to the operand you are using in order to group multiple traces together. You should use a different service name for any other operand (i.e. Kafka Connect, Kafka Mirror Maker, ...)
 
@@ -152,7 +152,7 @@ spec:
     bridgeContainer:
       env:
         - name: OTEL_SERVICE_NAME
-          value: my-otel-service
+          value: my-bridge-otel-service
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: http://simplest-collector:4317
   tracing:
@@ -170,13 +170,11 @@ By getting the [deployment-tracing-opentelemetry.yaml](https://raw.githubusercon
 
 Both applications are configured in order to trace the HTTP requests they send to the bridge.
 
-Get the above file and change the OpenTelemetry exporter configuration environment variables to match with what we have already deployed and configured in the `KafkaBridge` custom resource.
+Get the above file and change the OpenTelemetry exporter configuration `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable related to the Jaeger OTLP endpoint for sending the traces.
 
 ```yaml
 env:
   # ...
-  - name: OTEL_SERVICE_NAME
-    value: my-bridge-otel-service
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: http://simplest-collector:4317
   # ...
