@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Apache Kafka tracing with Strimzi: from OpenTracing to OpenTelemetry"
+title: "Tracing in Apache Kafka: from OpenTracing to OpenTelemetry"
 date: 2023-02-27
 author: paolo_patierno
 ---
