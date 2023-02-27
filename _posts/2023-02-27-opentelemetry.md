@@ -176,7 +176,7 @@ Get the above file and change the OpenTelemetry exporter configuration environme
 env:
   # ...
   - name: OTEL_SERVICE_NAME
-    value: my-otel-service
+    value: my-bridge-otel-service
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: http://simplest-collector:4317
   # ...
