@@ -5,7 +5,7 @@ date: 2023-02-27
 author: paolo_patierno
 ---
 
-Apache Kafka has emerged as a popular platform for event and data streaming, providing a reliable backbone for microservices communication in distributed systems.
+[Apache Kafka](https://kafka.apache.org/) has emerged as a popular platform for event and data streaming, providing a reliable backbone for microservices communication in distributed systems.
 One of the most challenging aspects of working with distributed systems is gaining visibility into the data flow and accurately assessing performance.
 This is where distributed tracing comes into the picture, by addressing the following issues:
 
@@ -23,13 +23,13 @@ This blog post will show you how to use OpenTelemetry within the Strimzi project
 ## What is OpenTelemetry?
 
 OpenTelemetry is an open source and vendor neutral project providing tools, APIs, and SDKs used to generate, collect and export telemetry data.
-It is part of the Cloud Native Computing Foundation and it is available across several languages.
+It is part of the [Cloud Native Computing Foundation](https://www.cncf.io/) and it is available across several languages.
 It is not just about tracing, as the OpenTelemetry project has support for metrics and logs as well.
 The Strimzi project support of OpenTelemetry is about tracing only. There are no actual plans to support OpenTelemetry metrics and logs at this time.
 
 OpenTracing support in Strimzi is strictly coupled with the Jaeger implementation, as it uses the Jaeger client underneath, but with OpenTelemetry we have a different approach.
 The tracer uses an exporter in order to export traces in a specific format to the backend system.
-While a Jaeger-based exporter is available to allow current users to continue using the Jaeger protocol, the OTLP (OpenTeLemetry Protocol) exporter is used by default and the OpenTelemetry community encourage its adoption.
+While a Jaeger-based exporter is available to allow current users to continue using the Jaeger protocol, the OTLP (OpenTeLemetry Protocol) exporter is used by default and the OpenTelemetry community encourages its adoption.
 You can also use Zipkin or develop your own exporter for a custom backend system.
 
 Using a specific exporter protocol means that the corresponding backend system has to support it.
@@ -46,7 +46,7 @@ As it happens, with OpenTracing even the OpenTelemetry exporter doesn't send all
 ## How to enable OpenTelemetry
 
 Prior to the addition of OpenTelemetry support, users could enable distributed tracing on custom resources such as `KafkaConnect`, `KafkaMirrorMaker`, `KafkaMirrorMaker2`, and `KafkaBridge` by setting the `spec.tracing.type` property to `jaeger`, which allowed them to use OpenTracing.
-Since the Strimzi 0.33.0 release, you can set the corresponding `opentelemetry` value for using OpenTelemetry instead.
+Since Strimzi 0.33.0, you can use OpenTelemetry instead by setting that property to `opentelemetry`.
 
 ```yaml
 # ...
@@ -75,7 +75,8 @@ spec:
     type: opentelemetry
 ```
 
-It is using the service name `my-bridge-otel-service` which will show up in the list of available services in the Jaeger backend UI.
+This example is using `my-bridge-otel-service` as the service name.
+For example if you are using a Jaeger backend, this name will appear in the list of available services in the UI.
 
 > The service name is specific to the operand you are using in order to group multiple traces together. You should use a different service name for any other operand (i.e. Kafka Connect, Kafka MirrorMaker, ...)
 
@@ -127,14 +128,14 @@ kubectl apply -f simplest-jaeger.yaml
 
 With the Jaeger instance running, an OTLP endpoint for getting the traces is exposed through the `http://simplest-collector:4317` service.
 
-> If using Minikube, you can use the port-forwarding to easily access the Jaeger Web UI from your local browser at `http://localhost:16686`. Just use the corresponding command `kubectl port-forward svc/simplest-query 16686:16686`.
+> If using Minikube, you can use port-forwarding to easily access the Jaeger Web UI from your local browser at `http://localhost:16686`. Just use the following command `kubectl port-forward svc/simplest-query 16686:16686`.
 
 For more details, the [official Jaeger documentation](https://www.jaegertracing.io/docs/latest/operator/) explains all the steps.
 
 ## Let's trace the Kafka Bridge traffic
 
 Let's take the Strimzi Kafka Bridge as an example of tracing to show how OpenTelemetry works.
-The first step is to deploy a `KafkaBridge` instance with the tracing enabled and the corresponding environment variables to configure the OTLP exporter.
+The first step is to deploy a `KafkaBridge` instance with tracing enabled and the corresponding environment variables to configure the OTLP exporter.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -214,7 +215,7 @@ Having different consumer traces linked to the producer trace makes more sense t
 ## Adding OpenTelemetry tracing to Kafka Connect and MirrorMaker
 
 As already mentioned before, Strimzi supports tracing on Kafka Connect and MirrorMaker.
-In this blog [post](https://strimzi.io/blog/2019/10/08/strimzi-apache-kafka-and-tracing/) we already covered them by using OpenTracing at that time.
+In a [previous blog post](https://strimzi.io/blog/2019/10/08/strimzi-apache-kafka-and-tracing/) we already covered them by using OpenTracing at that time.
 In order to use OpenTelemetry instead, the set up is quite similar but with the following changes:
 
 * The `spec.tracing.type` has to be `opentelemetry`.
@@ -241,5 +242,5 @@ After the OpenTracing project was archived, the Cloud Native Computing Foundatio
 Strimzi is already moving forward in that direction, by deprecating OpenTracing and providing you support for OpenTelemetry.
 The plan is to support, if possible, OpenTracing until June 2023 and remove it afterward.
 We encourage you to move as soon as possible.
-In the coming months, the OpenTracing support will be removed from all the Strimzi components and OpenTelemetry will be the only one.
-For any kind of problems don't hesitate to get in touch with the Strimzi community, we'll be happy to help you!
+In the coming months, the OpenTracing support will be removed from all the Strimzi components and OpenTelemetry will be the only supported tracing option.
+For any kind of problems don't hesitate to [get in touch](https://strimzi.io/join-us/) with the Strimzi community, we'll be happy to help you!
