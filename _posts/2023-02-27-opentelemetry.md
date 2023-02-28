@@ -59,7 +59,7 @@ spec:
 
 With the above setting, the Strimzi operator initializes the OpenTelemetry tracer using the default OTLP exporter, for sending traces to the tracing backend.
 But you also need to specify environment variables to configure the exporter itself, by using the `spec.template` properties.
-The following example is for `KafkaBridge` configuration:
+Here is an example `KafkaBridge` configuration:
 
 ```yaml
 spec:
@@ -97,7 +97,7 @@ As already mentioned, the Jaeger backend can still be used together with the OTL
 The easiest way to deploy the Jaeger backend on Kubernetes is to use the Jaeger Operator.
 One of the pre-requisites for the latest releases is having the cert-manager already installed as well.
 
-The cert-manager installation is just about running the following command:
+You can install cert-manager by running the following command:
 
 ```shell
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.6.3/cert-manager.yaml
