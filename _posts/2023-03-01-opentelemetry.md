@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Tracing in Apache Kafka: from OpenTracing to OpenTelemetry"
-date: 2023-02-27
+date: 2023-03-01
 author: paolo_patierno
 ---
 
@@ -187,7 +187,7 @@ kubectl apply -f deployment-tracing-opentelemetry.yaml
 
 When the HTTP clients exchange the messages we can see the traces and the corresponding spans in the Jaeger Web UI.
 
-![](/assets/images/posts/2023-02-27-opentelemetry-01.png)
+![](/assets/images/posts/2023-03-01-opentelemetry-01.png)
 
 In the above screen capture, the HTTP producer sends a message and it is received by the HTTP consumer.
 
@@ -197,7 +197,7 @@ When the HTTP client sends a producer request, you can see three spans linked to
 * The second span describes the HTTP `send` operation requested by the client and tracked on the bridge. This span is created by the bridge application itself instrumented with OpenTelemetry. It is linked to the first span with a "CHILD_OF" relationship.
 * The third span describes the low level Kafka `send` operation to the `my-topic` topic which is a "CHILD_OF" the previous one. This span is created by the instrumented Kafka client provided by the OpenTelemetry project. It uses a producer interceptor for creating the span.
 
-![](/assets/images/posts/2023-02-27-opentelemetry-02.png)
+![](/assets/images/posts/2023-03-01-opentelemetry-02.png)
 
 In the same way, when the HTTP consumer sends a poll request for receiving the messages, you can see three spans linked together as part of the same trace:
 
@@ -205,7 +205,7 @@ In the same way, when the HTTP consumer sends a poll request for receiving the m
 * The second span describes the HTTP `poll` operation requested by the client and tracked on the bridge. This span is created by the bridge application itself instrumented with OpenTelemetry. It is linked to the first span with a "CHILD_OF" relationship.
 * The third span describes the low level Kafka `receive` operation on the `my-topic` topic related to the message received. It is "CHILD_OF" the previous span but at the same time it is referencing the external trace related to the producer with a "FOLLOW_FROM" relationship. This span is created by the instrumented Kafka client provided by the OpenTelemetry project.
 
-![](/assets/images/posts/2023-02-27-opentelemetry-03.png)
+![](/assets/images/posts/2023-03-01-opentelemetry-03.png)
 
 It is interesting to highlight that, due to the asynchronous nature of the communication between producer and consumer through the Kafka Bridge and Kafka, the producing and consuming parts are traced with two different traces.
 The consumer-related spans are linked to the producing trace spans by using a "FOLLOW_FROM" relationship.
