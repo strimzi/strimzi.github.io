@@ -196,6 +196,7 @@
 <li><a href="#proc-generating-reassignment-json-files-str">12.2. Generating a reassignment JSON file to reassign partitions</a></li>
 <li><a href="#proc-scaling-up-a-kafka-cluster-str">12.3. Reassigning partitions after adding brokers</a></li>
 <li><a href="#proc-scaling-down-a-kafka-cluster-str">12.4. Reassigning partitions before removing brokers</a></li>
+<li><a href="#proc-changing-topic-replicas-str">12.5. Changing the replication factor of topics</a></li>
 </ul>
 </li>
 <li><a href="#assembly-operators-str">13. Using Strimzi Operators</a>
@@ -12835,6 +12836,18 @@ However, you can change the replication factor of a topic using the <code>kafka-
 However, it is recommended to use <a href="#cruise-control-concepts-str">Cruise Control for automated partition reassignments and cluster rebalancing</a>.
 Cruise Control can move topics from one broker to another without any downtime, and it is the most efficient way to reassign partitions.</p>
 </div>
+<div class="paragraph">
+<p>It is recommended to run the <code>kafka-reassign-partitions.sh</code> tool as a separate interactive pod rather than within the broker container.
+Running the Kafka <code>bin/</code> scripts within the broker container may cause a JVM to start with the same settings as the Kafka broker, which can potentially cause disruptions.
+By running the <code>kafka-reassign-partitions.sh</code> tool in a separate pod, you can avoid this issue.
+Running a pod with the <code>-ti</code> option creates an interactive pod with a terminal for running shell commands inside the pod.</p>
+</div>
+<div class="listingblock">
+<div class="title">Running an interactive pod with a terminal</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl run helper-pod -ti --image={DockerKafkaImage} --rm=true --restart=Never -- bash</code></pre>
+</div>
+</div>
 <div class="sect2">
 <h3 id="con-partition-reassignment-str"><a class="link" href="#con-partition-reassignment-str">12.1. Partition reassignment tool overview</a></h3>
 <div class="paragraph _abstract">
@@ -13288,16 +13301,18 @@ ssl.keystore.password=<em>&lt;keystore_password&gt;</em> <b class="conum">(6)</b
 <p>Specify topic names as a comma-separated list.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example JSON file to reassign all the partitions of <code>topic-a</code> and <code>topic-b</code></div>
+<div class="title">Example JSON file to reassign all the partitions of <code>my-topic</code></div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">{
   "version": 1,
   "topics": [
-    { "topic": "topic-a"},
-    { "topic": "topic-b"}
+    { "topic": "my-topic"}
   ]
 }</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>You can also use this file to <a href="#proc-changing-topic-replicas-str">change the replication factor of a topic</a>.</p>
 </div>
 </div>
 </div>
@@ -13324,12 +13339,12 @@ ssl.keystore.password=<em>&lt;keystore_password&gt;</em> <b class="conum">(6)</b
 <li>
 <p>Use the <code>kafka-reassign-partitions.sh</code> command to generate the reassignment JSON.</p>
 <div class="listingblock">
-<div class="title">Example command to move all the partitions of <code>topic-a</code> and <code>topic-b</code> to brokers <code>0</code>, <code>1</code> and <code>2</code></div>
+<div class="title">Example command to move the partitions of <code>my-topic</code> to specified brokers</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-reassign-partitions.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 \
   --command-config /tmp/config.properties \
   --topics-to-move-json-file /tmp/topics.json \
-  --broker-list 0,1,2 \
+  --broker-list 0,1,2,3,4 \
   --generate</code></pre>
 </div>
 </div>
@@ -13408,7 +13423,7 @@ Cruise Control can move topics from one broker to another without any downtime, 
 <p>If you haven&#8217;t done so, <a href="#proc-generating-reassignment-json-files-str">run an interactive pod container to generate a reassignment JSON file</a> named <code>reassignment.json</code>.</p>
 </li>
 <li>
-<p>Copy the <code><em>reassignment.json</em></code> file to the interactive pod container.</p>
+<p>Copy the <code>reassignment.json</code> file to the interactive pod container.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl cp reassignment.json <em>&lt;interactive_pod_name&gt;</em>:/tmp/reassignment.json</code></pre>
@@ -13552,7 +13567,7 @@ Cruise Control can move topics from one broker to another without any downtime, 
 <p>If you haven&#8217;t done so, <a href="#proc-generating-reassignment-json-files-str">run an interactive pod container to generate a reassignment JSON file</a> named <code>reassignment.json</code>.</p>
 </li>
 <li>
-<p>Copy the <code><em>reassignment.json</em></code> file to the interactive pod container.</p>
+<p>Copy the <code>reassignment.json</code> file to the interactive pod container.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl cp reassignment.json <em>&lt;interactive_pod_name&gt;</em>:/tmp/reassignment.json</code></pre>
@@ -13665,6 +13680,175 @@ In this case, either the reassignment has not finished or the reassignment JSON 
 </li>
 <li>
 <p>When you have confirmed that the broker has no live partitions, you can edit the <code>Kafka.spec.kafka.replicas</code> property of your <code>Kafka</code> resource to reduce the number of brokers.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-changing-topic-replicas-str"><a class="link" href="#proc-changing-topic-replicas-str">12.5. Changing the replication factor of topics</a></h3>
+<div class="paragraph _abstract">
+<p>To change the replication factor of topics in a Kafka cluster, use the <code>kafka-reassign-partitions.sh</code> tool.
+This can be done by running the tool from an interactive pod container that is connected to the Kafka cluster,
+and using a reassignment file to describe how the topic replicas should be changed.</p>
+</div>
+<div class="paragraph">
+<p>This procedure describes a secure process that uses TLS.
+You&#8217;ll need a Kafka cluster that uses TLS encryption and mTLS authentication.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>You have a running Kafka cluster based on a <code>Kafka</code> resource configured with internal TLS encryption and mTLS authentication.</p>
+</li>
+<li>
+<p>You are running an interactive pod container that is connected to the running Kafka broker.</p>
+</li>
+<li>
+<p>You have generated a reassignment JSON file named <code>reassignment.json</code>.</p>
+</li>
+<li>
+<p>You are connected as a <code>KafkaUser</code> configured with ACL rules that specify permission to manage the Kafka cluster and its topics.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>See <a href="#proc-generating-reassignment-json-files-str">Generating reassignment JSON files</a>.</p>
+</div>
+<div class="paragraph">
+<p>In this procedure, a topic called <code>my-topic</code> has 4 replicas and we want to reduce it to 3.
+A JSON file named <code>topics.json</code> specifies the topic, and was used to generate the <code>reassignment.json</code> file.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example JSON file specifies <code>my-topic</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">{
+  "version": 1,
+  "topics": [
+    { "topic": "my-topic"}
+  ]
+}</code></pre>
+</div>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>If you haven&#8217;t done so, <a href="#proc-generating-reassignment-json-files-str">run an interactive pod container to generate a reassignment JSON file</a> named <code>reassignment.json</code>.</p>
+<div class="listingblock">
+<div class="title">Example reassignment JSON file showing the current and proposed replica assignment</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Current partition replica assignment
+{"version":1,"partitions":[{"topic":"my-topic","partition":0,"replicas":[3,4,2,0],"log_dirs":["any","any","any","any"]},{"topic":"my-topic","partition":1,"replicas":[0,2,3,1],"log_dirs":["any","any","any","any"]},{"topic":"my-topic","partition":2,"replicas":[1,3,0,4],"log_dirs":["any","any","any","any"]}]}
+
+Proposed partition reassignment configuration
+{"version":1,"partitions":[{"topic":"my-topic","partition":0,"replicas":[0,1,2,3],"log_dirs":["any","any","any","any"]},{"topic":"my-topic","partition":1,"replicas":[1,2,3,4],"log_dirs":["any","any","any","any"]},{"topic":"my-topic","partition":2,"replicas":[2,3,4,0],"log_dirs":["any","any","any","any"]}]}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Save a copy of this file locally in case you need to revert the changes later on.</p>
+</div>
+</li>
+<li>
+<p>Edit the <code>reassignment.json</code> to remove a replica from each partition.</p>
+<div class="paragraph">
+<p>For example use <code>jq</code> to remove the last replica in the list for each partition of the topic:</p>
+</div>
+<div class="listingblock">
+<div class="title">Removing the last topic replica for each partition</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">jq '.partitions[].replicas |= del(.[-1])' reassignment.json &gt; reassignment.json</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example reassignment file showing the updated replicas</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">{"version":1,"partitions":[{"topic":"my-topic","partition":0,"replicas":[0,1,2],"log_dirs":["any","any","any","any"]},{"topic":"my-topic","partition":1,"replicas":[1,2,3],"log_dirs":["any","any","any","any"]},{"topic":"my-topic","partition":2,"replicas":[2,3,4],"log_dirs":["any","any","any","any"]}]}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Copy the <code>reassignment.json</code> file to the interactive pod container.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl cp reassignment.json <em>&lt;interactive_pod_name&gt;</em>:/tmp/reassignment.json</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace <em>&lt;interactive_pod_name&gt;</em> with the name of the pod.</p>
+</div>
+</li>
+<li>
+<p>Start a shell process in the interactive pod container.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec -n <em>&lt;namespace&gt;</em> -ti <em>&lt;interactive_pod_name&gt;</em> /bin/bash</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace <em>&lt;namespace&gt;</em> with the Kubernetes namespace where the pod is running.</p>
+</div>
+</li>
+<li>
+<p>Make the topic replica change using the <code>kafka-reassign-partitions.sh</code> script from the interactive pod container.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-reassign-partitions.sh --bootstrap-server
+ <em>&lt;cluster_name&gt;</em>-kafka-bootstrap:9093 \
+ --command-config /tmp/config.properties \
+ --reassignment-json-file /tmp/reassignment.json \
+ --execute</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Removing replicas from a broker does not require any inter-broker data movement, so there is no need to throttle replication.
+If you are adding replicas, then you may want to change the throttle rate.
+</td>
+</tr>
+</table>
+</div>
+</li>
+<li>
+<p>Verify that the change to the topic replicas has completed using the <code>kafka-reassign-partitions.sh</code> command line tool from any of the broker pods.
+This is the same command as the previous step, but with the <code>--verify</code> option instead of the <code>--execute</code> option.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-reassign-partitions.sh --bootstrap-server
+  <em>&lt;cluster_name&gt;</em>-kafka-bootstrap:9093 \
+  --command-config /tmp/config.properties \
+  --reassignment-json-file /tmp/reassignment.json \
+  --verify</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The reassignment has finished when the <code>--verify</code> command reports that each of the partitions being moved has completed successfully.
+This final <code>--verify</code> will also have the effect of removing any reassignment throttles.</p>
+</div>
+</li>
+<li>
+<p>Run the <code>bin/kafka-topics.sh</code> command with the <code>--describe</code> option to see the results of the change to the topics.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --bootstrap-server
+  <em>&lt;cluster_name&gt;</em>-kafka-bootstrap:9093 \
+  --command-config /tmp/config.properties \
+  --describe</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Results of reducing the number of replicas for a topic</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">my-topic  Partition: 0  Leader: 0  Replicas: 0,1,2 Isr: 0,1,2
+my-topic  Partition: 1  Leader: 2  Replicas: 1,2,3 Isr: 1,2,3
+my-topic  Partition: 2  Leader: 3  Replicas: 2,3,4 Isr: 2,3,4</code></pre>
+</div>
+</div>
 </li>
 </ol>
 </div>
