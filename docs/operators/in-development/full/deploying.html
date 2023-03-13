@@ -8839,8 +8839,10 @@ Otherwise, you may need to configure the truststore with proper certificates or 
     clientScope: <em>SCOPE</em> <b class="conum">(12)</b>
     connectTimeoutSeconds: 60 <b class="conum">(13)</b>
     readTimeoutSeconds: 60 <b class="conum">(14)</b>
-    groupsClaim: "$.groups" <b class="conum">(15)</b>
-    groupsClaimDelimiter: "," <b class="conum">(16)</b></code></pre>
+    httpRetries: 2 <b class="conum">(15)</b>
+    httpRetryPauseMs: 300 <b class="conum">(16)</b>
+    groupsClaim: "$.groups" <b class="conum">(17)</b>
+    groupsClaimDelimiter: "," <b class="conum">(18)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -8889,10 +8891,16 @@ For production, always use <code>https://</code> urls.</p>
 <p>The read timeout in seconds when connecting to the authorization server. The default value is 60.</p>
 </li>
 <li>
-<p>A JsonPath query used to extract groups information from JWT token or introspection endpoint response. Not set by default. This can be used by a custom authorizer to make authorization decisions based on user groups.</p>
+<p>The maximum number of times to retry a failed HTTP request to the authorization server. The default value is <code>0</code>, meaning that no retries are performed. To use this option effectively, consider reducing the timeout times for the <code>connectTimeoutSeconds</code> and <code>readTimeoutSeconds</code> options. However, note that retries may prevent the current worker thread from being available to other requests, and if too many requests stall, it could make the Kafka broker unresponsive.</p>
 </li>
 <li>
-<p>A delimiter used to parse groups information when returned as a single delimited string. The default value is ',' (comma).</p>
+<p>The time to wait before attempting another retry of a failed HTTP request to the authorization server. By default, this time is set to zero, meaning that no pause is applied. This is because many issues that cause failed requests are per-request network glitches or proxy issues that can be resolved quickly. However, if your authorization server is under stress or experiencing high traffic, you may want to set this option to a value of 100 ms or more to reduce the load on the server and increase the likelihood of successful retries.</p>
+</li>
+<li>
+<p>A JsonPath query that is used to extract groups information from either the JWT token or the introspection endpoint response. This option is not set by default. By configuring this option, a custom authorizer can make authorization decisions based on user groups.</p>
+</li>
+<li>
+<p>A delimiter used to parse groups information when it is returned as a single delimited string. The default value is ',' (comma).</p>
 </li>
 </ol>
 </div>
@@ -9042,7 +9050,7 @@ You can also specify authentication properties as environment variables, or as J
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
  &lt;groupId&gt;io.strimzi&lt;/groupId&gt;
  &lt;artifactId&gt;kafka-oauth-client&lt;/artifactId&gt;
- &lt;version&gt;0.11.0&lt;/version&gt;
+ &lt;version&gt;0.12.0&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -9411,7 +9419,9 @@ spec:
     scope: any <b class="conum">(4)</b>
     audience: kafka <b class="conum">(5)</b>
     connectTimeoutSeconds: 60 <b class="conum">(6)</b>
-    readTimeoutSeconds: 60 <b class="conum">(7)</b></code></pre>
+    readTimeoutSeconds: 60 <b class="conum">(7)</b>
+    httpRetries: 2 <b class="conum">(8)</b>
+    httpRetryPauseMs: 300 <b class="conum">(9)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -9440,6 +9450,12 @@ In this case it is <code>kafka</code>.</p>
 </li>
 <li>
 <p>(Optional) The read timeout in seconds when connecting to the authorization server. The default value is 60.</p>
+</li>
+<li>
+<p>(Optional) The maximum number of times to retry a failed HTTP request to the authorization server. The default value is <code>0</code>, meaning that no retries are performed. To use this option effectively, consider reducing the timeout times for the <code>connectTimeoutSeconds</code> and <code>readTimeoutSeconds</code> options. However, note that retries may prevent the current worker thread from being available to other requests, and if too many requests stall, it could make the Kafka broker unresponsive.</p>
+</li>
+<li>
+<p>(Optional) The time to wait before attempting another retry of a failed HTTP request to the authorization server. By default, this time is set to zero, meaning that no pause is applied. This is because many issues that cause failed requests are per-request network glitches or proxy issues that can be resolved quickly. However, if your authorization server is under stress or experiencing high traffic, you may want to set this option to a value of 100 ms or more to reduce the load on the server and increase the likelihood of successful retries.</p>
 </li>
 </ol>
 </div>
@@ -9485,10 +9501,10 @@ kubectl get pod -w</code></pre>
 <p><a href="https://strimzi.io/2019/10/25/kafka-authentication-using-oauth-2.0.html" target="_blank" rel="noopener">Kafka authentication using OAuth 2.0</a></p>
 </li>
 <li>
-<p><a href="https://github.com/strimzi/strimzi-kafka-oauth/tree/0.11.0/examples" target="_blank" rel="noopener">Using Keycloak as the OAuth 2.0 authorization server</a></p>
+<p><a href="https://github.com/strimzi/strimzi-kafka-oauth/tree/0.12.0/examples" target="_blank" rel="noopener">Using Keycloak as the OAuth 2.0 authorization server</a></p>
 </li>
 <li>
-<p><a href="https://github.com/strimzi/strimzi-kafka-oauth/tree/0.11.0/examples/docker#running-with-hydra-using-ssl-and-opaque-tokens" target="_blank" rel="noopener">Using Hydra as the OAuth 2.0 authorization server</a></p>
+<p><a href="https://github.com/strimzi/strimzi-kafka-oauth/tree/0.12.0/examples/docker#running-with-hydra-using-ssl-and-opaque-tokens" target="_blank" rel="noopener">Using Hydra as the OAuth 2.0 authorization server</a></p>
 </li>
 </ul>
 </div>
@@ -9647,6 +9663,7 @@ spec:
       grantsRefreshPoolSize: 5 <b class="conum">(9)</b>
       connectTimeoutSeconds: 60 <b class="conum">(10)</b>
       readTimeoutSeconds: 60 <b class="conum">(11)</b>
+      httpRetries: 2 <b class="conum">(12)</b>
     #...</code></pre>
 </div>
 </div>
@@ -9687,6 +9704,9 @@ Default is <code>false</code>.</p>
 </li>
 <li>
 <p>(Optional) The read timeout in seconds when connecting to the Keycloak token endpoint. The default value is 60.</p>
+</li>
+<li>
+<p>(Optional) The maximum number of times to retry (without pausing) a failed HTTP request to the authorization server. The default value is <code>0</code>, meaning that no retries are performed. To use this option effectively, consider reducing the timeout times for the <code>connectTimeoutSeconds</code> and <code>readTimeoutSeconds</code> options. However, note that retries may prevent the current worker thread from being available to other requests, and if too many requests stall, it could make the Kafka broker unresponsive.</p>
 </li>
 </ol>
 </div>
@@ -28413,7 +28433,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-03-13 14:53:11 UTC
+Last updated 2023-03-13 20:11:03 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
