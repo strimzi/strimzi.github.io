@@ -672,9 +672,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel2">
 <li><a href="#con-partition-reassignment-str">13.1. Partition reassignment tool overview</a>
 <ul class="sectlevel3">
-<li><a href="#specifying_topics_in_a_partition_reassignment_json_file">13.1.1. Specifying topics in a partition reassignment JSON file</a></li>
-<li><a href="#reassigning_partitions_between_jbod_volumes">13.1.2. Reassigning partitions between JBOD volumes</a></li>
-<li><a href="#throttling_partition_reassignment">13.1.3. Throttling partition reassignment</a></li>
+<li><a href="#generating_a_partition_reassignment_plan">13.1.1. Generating a partition reassignment plan</a></li>
+<li><a href="#specifying_topics_in_a_partition_reassignment_json_file">13.1.2. Specifying topics in a partition reassignment JSON file</a></li>
+<li><a href="#reassigning_partitions_between_jbod_volumes">13.1.3. Reassigning partitions between JBOD volumes</a></li>
+<li><a href="#throttling_partition_reassignment">13.1.4. Throttling partition reassignment</a></li>
 </ul>
 </li>
 <li><a href="#proc-generating-reassignment-json-files-str">13.2. Generating a reassignment JSON file to reassign partitions</a></li>
@@ -15564,6 +15565,33 @@ Running a pod with the <code>-ti</code> option creates an interactive pod with a
 <div class="sect2">
 <h3 id="con-partition-reassignment-str"><a class="link" href="#con-partition-reassignment-str">13.1. Partition reassignment tool overview</a></h3>
 <div class="paragraph _abstract">
+<p>The partition reassignment tool provides the following capabilities for managing Kafka partitions and brokers:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Redistributing partition replicas</dt>
+<dd>
+<p>Scale your cluster up and down by adding or removing brokers, and move Kafka partitions from heavily loaded brokers to under-utilized brokers.
+To do this, you must create a partition reassignment plan that identifies which topics and partitions to move and where to move them.
+Cruise Control is recommended for this type of operation as it <a href="#cruise-control-concepts-str">automates the cluster rebalancing process</a>.</p>
+</dd>
+<dt class="hdlist1">Scaling topic replication factor up and down</dt>
+<dd>
+<p>Increase or decrease the replication factor of your Kafka topics. To do this, you must create a partition reassignment plan that identifies the existing replication assignment across partitions and an updated assignment with the replication factor changes.</p>
+</dd>
+<dt class="hdlist1">Changing the preferred leader</dt>
+<dd>
+<p>Change the preferred leader of a Kafka partition. This can be useful if the current preferred leader is unavailable or if you want to redistribute load across the brokers in the cluster. To do this, you must create a partition reassignment plan that specifies the new preferred leader for each partition by changing the order of replicas.</p>
+</dd>
+<dt class="hdlist1">Changing the log directories to use a specific JBOD volume</dt>
+<dd>
+<p>Change the log directories of your Kafka brokers to use a specific JBOD volume. This can be useful if you want to move your Kafka data to a different disk or storage device. To do this, you must create a partition reassignment plan that specifies the new log directory for each topic.</p>
+</dd>
+</dl>
+</div>
+<div class="sect3">
+<h4 id="generating_a_partition_reassignment_plan"><a class="link" href="#generating_a_partition_reassignment_plan">13.1.1. Generating a partition reassignment plan</a></h4>
+<div class="paragraph">
 <p>The partition reassignment tool (<code>kafka-reassign-partitions.sh</code>) works by generating a partition assignment plan that specifies which partitions should be moved from their current broker to a new broker.</p>
 </div>
 <div class="paragraph">
@@ -15609,18 +15637,19 @@ Unless removed, throttles will continue to affect the cluster even after the rea
 </div>
 <div class="paragraph">
 <p>It is only possible to have one reassignment running in a cluster at any given time, and it is not possible to cancel a running reassignment.
-If you need to cancel a reassignment, wait for it to complete and then perform another reassignment to revert the effects of the first reassignment.
+If you must cancel a reassignment, wait for it to complete and then perform another reassignment to revert the effects of the first reassignment.
 The <code>kafka-reassign-partitions.sh</code> will print the reassignment JSON for this reversion as part of its output.
-Very large reassignments should be broken down into a number of smaller reassignments in case there is a need to stop in-progress reassignment.</p>
+Very large reassignments should be broken down into a number of smaller reassignments in case there is a must stop in-progress reassignment.</p>
+</div>
 </div>
 <div class="sect3">
-<h4 id="specifying_topics_in_a_partition_reassignment_json_file"><a class="link" href="#specifying_topics_in_a_partition_reassignment_json_file">13.1.1. Specifying topics in a partition reassignment JSON file</a></h4>
+<h4 id="specifying_topics_in_a_partition_reassignment_json_file"><a class="link" href="#specifying_topics_in_a_partition_reassignment_json_file">13.1.2. Specifying topics in a partition reassignment JSON file</a></h4>
 <div class="paragraph">
 <p>The tool uses a reassignment JSON file that specifies the topics to reassign.
 You can generate a reassignment JSON file or create a file manually if you want to move specific partitions.</p>
 </div>
 <div class="paragraph">
-<p>The <em>reassignment JSON file</em> has the following structure:</p>
+<p>The reassignment JSON file has the following structure:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -15643,18 +15672,6 @@ You can generate a reassignment JSON file or create a file manually if you want 
   "replicas": [ <em>&lt;AssignedBrokerIds&gt;</em> ]
 }</code></pre>
 </div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Although Kafka also supports a <code>"log_dirs"</code> property this should not be used in Strimzi.
-</td>
-</tr>
-</table>
 </div>
 <div class="paragraph">
 <p>The following is an example reassignment JSON file that assigns partition <code>4</code> of topic <code>topic-a</code> to brokers <code>2</code>, <code>4</code> and <code>7</code>, and partition <code>2</code> of topic <code>topic-b</code> to brokers <code>1</code>, <code>5</code> and <code>7</code>:</p>
@@ -15684,7 +15701,7 @@ Although Kafka also supports a <code>"log_dirs"</code> property this should not 
 </div>
 </div>
 <div class="sect3">
-<h4 id="reassigning_partitions_between_jbod_volumes"><a class="link" href="#reassigning_partitions_between_jbod_volumes">13.1.2. Reassigning partitions between JBOD volumes</a></h4>
+<h4 id="reassigning_partitions_between_jbod_volumes"><a class="link" href="#reassigning_partitions_between_jbod_volumes">13.1.3. Reassigning partitions between JBOD volumes</a></h4>
 <div class="paragraph">
 <p>When using JBOD storage in your Kafka cluster, you can choose to reassign the partitions between specific volumes and their log directories (each volume has a single log directory).
 To reassign a partition to a specific volume, add the <code>log_dirs</code> option to <em>&lt;PartitionObjects&gt;</em> in the reassignment JSON file.</p>
@@ -15716,7 +15733,7 @@ The value should be either an absolute path to the log directory, or the <code>a
 </div>
 </div>
 <div class="sect3">
-<h4 id="throttling_partition_reassignment"><a class="link" href="#throttling_partition_reassignment">13.1.3. Throttling partition reassignment</a></h4>
+<h4 id="throttling_partition_reassignment"><a class="link" href="#throttling_partition_reassignment">13.1.4. Throttling partition reassignment</a></h4>
 <div class="paragraph">
 <p>Partition reassignment can be a slow process because it involves transferring large amounts of data between brokers.
 To avoid a detrimental impact on clients, you can throttle the reassignment process.
@@ -28347,7 +28364,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-03-23 09:07:45 UTC
+Last updated 2023-03-23 16:44:50 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
