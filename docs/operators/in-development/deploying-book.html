@@ -447,7 +447,7 @@
 </li>
 <li><a href="#assembly-rolling-updates-str">21.4. Manually starting rolling updates of Kafka and ZooKeeper clusters</a>
 <ul class="sectlevel3">
-<li><a href="#proc-manual-rolling-update-statefulset-str">21.4.1. Performing a rolling update using a pod management annotation</a></li>
+<li><a href="#proc-manual-rolling-update-strimzipodset-str">21.4.1. Performing a rolling update using a pod management annotation</a></li>
 <li><a href="#proc-manual-rolling-update-pods-str">21.4.2. Performing a rolling update using a pod annotation</a></li>
 </ul>
 </li>
@@ -632,7 +632,7 @@ For more information, see <a href="#adding-users-the-strimzi-admin-role-str">Des
 <div class="title">Warning</div>
 </td>
 <td class="content">
-When CRDs are deleted, custom resources of that type are also deleted. Additionally, the resources created by the custom resource, such as pods and statefulsets are also deleted.
+When a <code>CustomResourceDefinition</code> is deleted, custom resources of that type are also deleted. Additionally, Kubernetes resources created by the custom resource are also deleted, such as <code>Deployment</code>, <code>Pod</code>, <code>Service</code> and <code>ConfigMap</code> resources.
 </td>
 </tr>
 </table>
@@ -1638,7 +1638,7 @@ For more information, see <a href="#con-operators-namespaces-str">Watching names
 </ul>
 </div>
 <div class="paragraph">
-<p>When one of these resources is created in the Kubernetes cluster, the operator gets the cluster description from the resource and starts creating a new cluster for the resource by creating the necessary Kubernetes resources, such as StatefulSets, Services and ConfigMaps.</p>
+<p>When one of these resources is created in the Kubernetes cluster, the operator gets the cluster description from the resource and starts creating a new cluster for the resource by creating the necessary Kubernetes resources, such as Deployments, Pods, Services and ConfigMaps.</p>
 </div>
 <div class="paragraph">
 <p>Each time a Kafka resource is updated, the operator performs corresponding updates on the Kubernetes resources that make up the cluster for the resource.</p>
@@ -16198,7 +16198,7 @@ You can also specify a namespace using <code>watchedNamespace</code> in the oper
 <p>The Cluster Operator creates and manages RBAC resources for Strimzi components that need access to Kubernetes resources.</p>
 </div>
 <div class="paragraph">
-<p>For the Cluster Operator to function, it needs permission within the Kubernetes cluster to interact with Kafka resources, such as <code>Kafka</code> and <code>KafkaConnect</code>, as well as managed resources like <code>ConfigMap</code>, <code>Pod</code>, <code>Deployment</code>, <code>StatefulSet</code>, and <code>Service</code>.</p>
+<p>For the Cluster Operator to function, it needs permission within the Kubernetes cluster to interact with Kafka resources, such as <code>Kafka</code> and <code>KafkaConnect</code>, as well as managed resources like <code>ConfigMap</code>, <code>Pod</code>, <code>Deployment</code>, and <code>Service</code>.</p>
 </div>
 <div class="paragraph">
 <p>Permission is specified through Kubernetes role-based access control (RBAC) resources:</p>
@@ -16425,7 +16425,7 @@ The Cluster Operator will not run under a cluster admin account.
 </table>
 </div>
 <div class="paragraph">
-<p><code>ClusterRole</code> resources follow the <em>principle of least privilege</em> and contain only those privileges needed by the Cluster Operator to operate the cluster of the Kafka component. The first set of assigned privileges allow the Cluster Operator to manage Kubernetes resources such as <code>StatefulSet</code>, <code>Deployment</code>, <code>Pod</code>, and <code>ConfigMap</code>.</p>
+<p><code>ClusterRole</code> resources follow the <em>principle of least privilege</em> and contain only those privileges needed by the Cluster Operator to operate the cluster of the Kafka component. The first set of assigned privileges allow the Cluster Operator to manage Kubernetes resources such as <code>Deployment</code>, <code>Pod</code>, and <code>ConfigMap</code>.</p>
 </div>
 <div class="paragraph">
 <p>All cluster roles are required by the Cluster Operator in order to delegate privileges.</p>
@@ -18757,36 +18757,8 @@ For example, when you change service account labels or annotations using the <co
 <div class="sect3">
 <h4 id="ref-operator-use-strimzi-pod-sets-feature-gate-str"><a class="link" href="#ref-operator-use-strimzi-pod-sets-feature-gate-str">14.5.3. UseStrimziPodSets feature gate</a></h4>
 <div class="paragraph">
-<p>The <code>UseStrimziPodSets</code> feature gate has a default state of <em>enabled</em>.</p>
-</div>
-<div class="paragraph">
-<p>The <code>UseStrimziPodSets</code> feature gate introduces a resource for managing pods called <code>StrimziPodSet</code>.
-When the feature gate is enabled, this resource is used instead of the StatefulSets.
-Strimzi handles the creation and management of pods instead of Kubernetes.
-Using StrimziPodSets instead of StatefulSets provides more control over the functionality.</p>
-</div>
-<div class="paragraph">
-<p>When this feature gate is disabled, Strimzi relies on StatefulSets to create and manage pods for the ZooKeeper and Kafka clusters.
-Strimzi creates the StatefulSet and Kubernetes creates the pods according to the StatefulSet definition.
-When a pod is deleted, Kubernetes is responsible for recreating it.
-The use of StatefulSets has the following limitations:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Pods are always created or removed based on their index numbers</p>
-</li>
-<li>
-<p>All pods in the StatefulSet need to have a similar configuration</p>
-</li>
-<li>
-<p>Changing storage configuration for the Pods in the StatefulSet is complicated</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Disabling the UseStrimziPodSets feature gate</div>
-<p>To disable the <code>UseStrimziPodSets</code> feature gate, specify <code>-UseStrimziPodSets</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.</p>
+<p>The <code>UseStrimziPodSets</code> feature gate has moved to GA, which means it is now permanently enabled and cannot be disabled.
+Support for <code>StatefulSets</code> has been removed and Strimzi is now always using <code>StrimziPodSets</code> to manage Kafka and ZooKeeper pods.</p>
 </div>
 <div class="admonitionblock important">
 <table>
@@ -18795,7 +18767,8 @@ The use of StatefulSets has the following limitations:</p>
 <div class="title">Important</div>
 </td>
 <td class="content">
-The <code>UseStrimziPodSets</code> feature gate must be disabled when downgrading to Strimzi 0.27 and earlier versions.
+Downgrade to Strimzi 0.27 and earlier versions is not possible when using <code>StrimziPodSets</code>.
+If you need to downgrade to Strimzi 0.27 or earlier, you have to first downgrade to Strimzi 0.28 - 0.34, disable the <code>USeStrimziPodSets</code> feature gate and only then downgrade to Strimzi 0.27 or earlier.
 </td>
 </tr>
 </table>
@@ -18861,19 +18834,6 @@ Kafka clusters with separate <code>controller</code> and <code>broker</code> nod
 <div class="title">Enabling the UseStrimziPodSets feature gate</div>
 <p>To enable the <code>UseKRaft</code> feature gate, specify <code>+UseKRaft</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.</p>
 </div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-The <code>UseKRaft</code> feature gate depends on the <code>UseStrimziPodSets</code> feature gate.
-When enabling the <code>UseKRaft</code> feature gate, make sure that the <code>USeStrimziPodSets</code> feature gate is enabled as well.
-</td>
-</tr>
-</table>
-</div>
 </div>
 <div class="sect3">
 <h4 id="ref-operator-stable-connect-identities-feature-gate-str"><a class="link" href="#ref-operator-stable-connect-identities-feature-gate-str">14.5.5. StableConnectIdentities feature gate</a></h4>
@@ -18935,8 +18895,7 @@ Alpha and beta stage features are removed if they do not prove to be useful.</p>
 <p>The <code>ServiceAccountPatching</code> feature gate moved to GA stage in Strimzi 0.30. It is now permanently enabled and cannot be disabled.</p>
 </li>
 <li>
-<p>The <code>UseStrimziPodSets</code> feature gate moved to beta stage in Strimzi 0.30.
-It moves to GA in Strimzi 0.35 when the support for StatefulSets is completely removed.</p>
+<p>The <code>UseStrimziPodSets</code> feature gate moved to GA stage in Strimzi 0.35 and the support for StatefulSets is completely removed. It is now permanently enabled and cannot be disabled.</p>
 </li>
 <li>
 <p>The <code>UseKRaft</code> feature gate is available for development only and does not currently have a planned release for moving to the beta phase.</p>
@@ -18992,7 +18951,7 @@ Feature gates might be removed when they reach GA. This means that the feature w
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>UseStrimziPodSets</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0.28</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0.30</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">0.35 (planned)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.35</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>UseKRaft</code></p></td>
@@ -23040,28 +22999,20 @@ You can export and monitor restart events using metrics collection tools like Pr
 <p>The Cluster Operator initiates a restart event for a specific reason.
 You can check the reason by fetching information on the restart event.</p>
 </div>
-<div class="paragraph">
-<p>The reason given depends on whether you are using <code>StrimziPodSet</code> or <code>StatefulSet</code> resources for the creation and management of pods.</p>
-</div>
 <table class="tableblock frame-all grid-all stretch">
 <caption class="title">Table 32. Restart reasons</caption>
 <colgroup>
-<col style="width: 25%;">
-<col style="width: 25%;">
-<col style="width: 50%;">
+<col style="width: 33.3333%;">
+<col style="width: 66.6667%;">
 </colgroup>
 <thead>
 <tr>
-<th class="tableblock halign-left valign-top">StrimziPodSet</th>
-<th class="tableblock halign-left valign-top">StatefulSet</th>
+<th class="tableblock halign-left valign-top">Event</th>
 <th class="tableblock halign-left valign-top">Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>CaCertHasOldGeneration</p>
-</div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>CaCertHasOldGeneration</p>
 </div></div></td>
@@ -23071,15 +23022,9 @@ You can check the reason by fetching information on the restart event.</p>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>CaCertRemoved</p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>CaCertRemoved</p>
-</div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Expired CA certificates have been removed, and the pod is restarted to run with the current certificates.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>CaCertRenewed</p>
-</div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>CaCertRenewed</p>
 </div></div></td>
@@ -23089,15 +23034,9 @@ You can check the reason by fetching information on the restart event.</p>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>ClientCaCertKeyReplaced</p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>ClientCaCertKeyReplaced</p>
-</div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The key used to sign clients CA certificates has been replaced, and the pod is being restarted as part of the CA renewal process.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>ClusterCaCertKeyReplaced</p>
-</div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>ClusterCaCertKeyReplaced</p>
 </div></div></td>
@@ -23107,24 +23046,9 @@ You can check the reason by fetching information on the restart event.</p>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>ConfigChangeRequiresRestart</p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>ConfigChangeRequiresRestart</p>
-</div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Some Kafka configuration properties are changed dynamically, but others require that the broker be restarted.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>CustomListenerCaCertChanged</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>CustomListenerCaCertChanged</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The CA certificate used to secure the Kafka network listeners has changed, and the pod is restarted to use it.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>FileSystemResizeNeeded</p>
-</div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>FileSystemResizeNeeded</p>
 </div></div></td>
@@ -23134,24 +23058,15 @@ You can check the reason by fetching information on the restart event.</p>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>KafkaCertificatesChanged</p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>KafkaCertificatesChanged</p>
-</div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">One or more TLS certificates used by the Kafka broker have been updated, and a restart is needed to use them.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>ManualRollingUpdate</p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>ManualRollingUpdate</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A user annotated the pod, or the <code>StatefulSet</code> or <code>StrimziPodSet</code> set it belongs to, to trigger a restart.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A user annotated the pod, or the <code>StrimziPodSet</code> set it belongs to, to trigger a restart.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>PodForceRestartOnError</p>
-</div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>PodForceRestartOnError</p>
 </div></div></td>
@@ -23161,33 +23076,21 @@ You can check the reason by fetching information on the restart event.</p>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>PodHasOldRevision</p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>JbodVolumesChanged</p>
-</div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">A disk was added or removed from the Kafka volumes, and a restart is needed to apply the change. When using <code>StrimziPodSet</code> resources, the same reason is given if the pod needs to be recreated.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>PodHasOldRevision</p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>PodHasOldGeneration</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The <code>StatefulSet</code> or <code>StrimziPodSet</code> that the pod is a member of has been updated, so the pod needs to be recreated. When using <code>StrimziPodSet</code> resources, the same reason is given if a disk was added or removed from the Kafka volumes.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The <code>StrimziPodSet</code> that the pod is a member of has been updated, so the pod needs to be recreated. When using <code>StrimziPodSet</code> resources, the same reason is given if a disk was added or removed from the Kafka volumes.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>PodStuck</p>
-</div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>PodStuck</p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The pod is still pending, and is not scheduled or cannot be scheduled, so the operator has restarted the pod in a final attempt to get it running.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>PodUnresponsive</p>
-</div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>PodUnresponsive</p>
 </div></div></td>
@@ -26022,7 +25925,7 @@ spec:
 <div class="title">Additional resources</div>
 <ul>
 <li>
-<p><a href="#proc-manual-rolling-update-statefulset-str">Performing a rolling update using a pod management annotation</a></p>
+<p><a href="#proc-manual-rolling-update-strimzipodset-str">Performing a rolling update using a pod management annotation</a></p>
 </li>
 <li>
 <p><a href="#proc-manual-rolling-update-pods-str">Performing a rolling update using a pod annotation</a></p>
@@ -26052,13 +25955,10 @@ However, rather than deleting the pods directly, if you perform the rolling upda
 </ul>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-rolling-update-statefulset-str"><a class="link" href="#proc-manual-rolling-update-statefulset-str">21.4.1. Performing a rolling update using a pod management annotation</a></h4>
+<h4 id="proc-manual-rolling-update-strimzipodset-str"><a class="link" href="#proc-manual-rolling-update-strimzipodset-str">21.4.1. Performing a rolling update using a pod management annotation</a></h4>
 <div class="paragraph _abstract">
-<p>This procedure describes how to trigger a rolling update of a Kafka cluster or ZooKeeper cluster.</p>
-</div>
-<div class="paragraph">
-<p>To trigger the update, you add an annotation to the resource you are using to manage the pods running on the cluster.
-You annotate the <code>StatefulSet</code> or <code>StrimziPodSet</code> resource (if you enabled the <code>UseStrimziPodSets</code> feature gate).</p>
+<p>This procedure describes how to trigger a rolling update of a Kafka cluster or ZooKeeper cluster.
+To trigger the update, you add an annotation to the <code>StrimziPodSet</code> that manages the pods running on the cluster.</p>
 </div>
 <div class="paragraph">
 <div class="title">Prerequisites</div>
@@ -26075,14 +25975,6 @@ You annotate the <code>StatefulSet</code> or <code>StrimziPodSet</code> resource
 </li>
 <li>
 <p>Use <code>kubectl annotate</code> to annotate the appropriate resource in Kubernetes.</p>
-<div class="listingblock">
-<div class="title">Annotating a StatefulSet</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate statefulset <em>&lt;cluster_name&gt;</em>-kafka strimzi.io/manual-rolling-update=true
-
-kubectl annotate statefulset <em>&lt;cluster_name&gt;</em>-zookeeper strimzi.io/manual-rolling-update=true</code></pre>
-</div>
-</div>
 <div class="listingblock">
 <div class="title">Annotating a StrimziPodSet</div>
 <div class="content">
@@ -27626,7 +27518,7 @@ spec:
 <div class="title">Warning</div>
 </td>
 <td class="content">
-Deleting <code>CustomResourceDefinitions</code> results in the garbage collection of the corresponding custom resources (<code>Kafka</code>, <code>KafkaConnect</code>, <code>KafkaMirrorMaker</code>, or <code>KafkaBridge</code>) and the resources dependent on them (Deployments, StatefulSets, and other dependent resources).
+Deleting a <code>CustomResourceDefinition</code> results in the garbage collection of the corresponding custom resources (<code>Kafka</code>, <code>KafkaConnect</code>, <code>KafkaMirrorMaker</code>, or <code>KafkaBridge</code>) and dependent resources  (<code>Deployment</code>, <code>Pod</code>, <code>Service</code>, and so on).
 </td>
 </tr>
 </table>
