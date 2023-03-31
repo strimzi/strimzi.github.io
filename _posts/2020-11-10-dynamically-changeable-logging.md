@@ -73,7 +73,7 @@ Example of `inline` logging.
 logging:
   type: inline
   loggers:
-    kafka.root.logger.level = INFO
+    kafka.root.logger.level: INFO
 ...
 ```
 
