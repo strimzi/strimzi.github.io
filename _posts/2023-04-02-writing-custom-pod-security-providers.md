@@ -88,7 +88,7 @@ For example, the interface defines the following methods for the Kafka pods:
 * `SecurityContext kafkaInitContainerSecurityContext(ContainerSecurityProviderContext context)` for the security context of the main Apache Kafka container
 
 When these methods are called by Strimzi, they will always get an object of type `PodSecurityProviderContext` or `ContainerSecurityProviderContext` as a parameter.
-the context contains two types of information:
+The context contains two types of information:
 * The storage configuration that might be needed to set some specific configuration for the stateful operands concerning their storage.
   We do not care about the storage in this example, so we can ignore it.
 * The Security Context configured by the user directly in the custom resource.
