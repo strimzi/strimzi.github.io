@@ -20,7 +20,7 @@ This blog post assumes that you have at least some basic knowledge of Java and t
 If you want to try using custom Pod Security Providers in Strimzi, you can either use the provided example or write your own provider. 
 To do so, you will need to have Java and Maven installed on your computer. 
 Strimzi uses Java 17.
-To be able to add your custom provider to the Strimzi container image, you will also need to have a [Docker](https://www.docker.com/products/docker-desktop/) (or one of the Docker alternatives such as [Podman](https://podman.io/)) installed.
+To be able to add your custom provider to the Strimzi container image, you will also need to have [Docker](https://www.docker.com/products/docker-desktop/) (or one of the Docker alternatives such as [Podman](https://podman.io/)) installed.
 And finally, you will need to have a container registry to store the newly built container image.
 It can be a private container registry that is part of your Kubernetes platform or for example a [Docker Hub](https://hub.docker.com/) or [Quay.io](https://quay.io/) account.
 
@@ -54,7 +54,6 @@ Or you can take an existing provider and modify it by extending it.
 When you decide to implement your custom Pod Security Provider from scratch, the best way to do it is to implement the [`PodSecurityProvider` interface](https://github.com/strimzi/strimzi-kafka-operator/blob/main/api/src/main/java/io/strimzi/plugin/security/profiles/PodSecurityProvider.java).
 This interface contains several methods that must be implemented in your code.
 In this example, we will implement a provider which will configure all containers to use a read-only root filesystem.
-In this example, we will show you how to implement a provider that configures all containers to use a read-only root filesystem. 
 This means that the filesystem of the container image will always be read-only, and the containers will only be able to write to folders mounted as volumes in the Pod definition.
 
 To get started, we create a new class `CustomPodSecurityProvider` and let it implement the `PodSecurityProvider`
@@ -70,7 +69,7 @@ public class CustomPodSecurityProvider implements PodSecurityProvider {
 ```
 
 The `configure(...)` method is called when the provider is loaded, and can be used to configure and initialize the provider.
-This method consumes as a single parameter a [`PlatformFeatures` object](https://github.com/strimzi/strimzi-kafka-operator/blob/main/api/src/main/java/io/strimzi/platform/PlatformFeatures.java).
+This method consumes a single [`PlatformFeatures`](https://github.com/strimzi/strimzi-kafka-operator/blob/main/api/src/main/java/io/strimzi/platform/PlatformFeatures.java) parameter.
 You can use this object to find out more about the environment in which the operator is running - in particular the Kubernetes version.
 You can use this if the security context should be set differently for different Kubernetes versions.
 In many cases, you will not have anything to configure.
@@ -136,9 +135,9 @@ If you want to do only some small changes to an existing provider, you do not ne
 You can just extend the provider and re-implement only the methods you want to change.
 Strimzi currently includes two providers: [`BaselinePodSecurityProvider` and `RestrictedPodSecurityProvider`](https://github.com/strimzi/strimzi-kafka-operator/tree/main/api/src/main/java/io/strimzi/plugin/security/profiles/impl)
 
-For our example, we are going to take the [`RestrictedPodSecurityProvider`](https://github.com/strimzi/strimzi-kafka-operator/blob/main/api/src/main/java/io/strimzi/plugin/security/profiles/impl/RestrictedPodSecurityProvider.java).
+For our example, we are going to extend the [`RestrictedPodSecurityProvider`](https://github.com/strimzi/strimzi-kafka-operator/blob/main/api/src/main/java/io/strimzi/plugin/security/profiles/impl/RestrictedPodSecurityProvider.java).
 It configures the security context of the Strimzi operands to match Kubernetes' _restricted_ security profile.
-When you try to use the Kafka Connect Build and its [Kaniko](https://github.com/GoogleContainerTools/kaniko) builder with this provider, it will [throw an exception](https://github.com/strimzi/strimzi-kafka-operator/blob/main/api/src/main/java/io/strimzi/plugin/security/profiles/impl/RestrictedPodSecurityProvider.java#L94-L103) because the Kaniko container builder does not work under the _restricted_ profile.
+When you try to use the Kafka Connect Build and its [Kaniko](https://github.com/GoogleContainerTools/kaniko) builder with this provider, it will [throw an exception](https://github.com/strimzi/strimzi-kafka-operator/blob/0.34.0/api/src/main/java/io/strimzi/plugin/security/profiles/impl/RestrictedPodSecurityProvider.java#L98-L108) because the Kaniko container builder does not work under the _restricted_ profile.
 Let's say you want to use the `RestrictedPodSecurityProvider` to secure the operand Pods, but you also want to use the Kafka Connect Build feature without any restrictions.
 
 In such a case, you can simply extend the `RestrictedPodSecurityProvider` and override the `kafkaConnectBuildContainerSecurityContext` method with your implementation, which will just let it run instead of throwing an exception:
@@ -167,10 +166,11 @@ This way you achieved what you wanted and you did not need to implement all the 
 
 #### Service Loader configuration
 
-When Strimzi uses the Pod Security Providers, it is using the [Java ServiceLoad](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/ServiceLoader.html) to load the implementations.
+When Strimzi uses the Pod Security Providers, it is using the [Java ServiceLoader](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/ServiceLoader.html) to load the implementations.
 To allow Strimzi to load your custom provider, you have to create a provider configuration file.
 The provider configuration file must be part of the custom provider source code and be packaged into the JAR file.
 The file should be named `io.strimzi.plugin.security.profiles.PodSecurityProvider` (the name of the interface which it implements) and placed in the `resources/META-INF/services/` path.
+Alternatively, you can also configure the provider in the `module-info.java` file.
 It should contain the names of the classes the implementation provides (including the package name).
 So in our case, it should contain the following classes:
 
@@ -265,7 +265,7 @@ spec:
 
 ### Conclusion and examples
 
-Hopefully, this blog post helps you to write your own Pod Security Providers and extend your Strimzi installation.
+Hopefully, this blog post helps you to write your own Pod Security Providers and extend your Strimzi installation should you need to.
 To help you get started, all the code mentioned in this post is also available on GitHub.
 You can find it in the [Custom Strimzi Pod Security Providers](https://github.com/scholzj/custom-pod-security-providers) repository.
 The example repository contains the Java classes for custom providers, as well as the required provider configuration file and the Dockerfile.
