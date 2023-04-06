@@ -66,6 +66,7 @@
 <li><a href="#security-configuration-encryption_str">8.1. Encryption</a></li>
 <li><a href="#security-configuration-authentication_str">8.2. Authentication</a></li>
 <li><a href="#security-configuration-authorization_str">8.3. Authorization</a></li>
+<li><a href="#security-configuration-fips_str">8.4. Federal Information Processing Standards (FIPS)</a></li>
 </ul>
 </li>
 <li><a href="#metrics-overview_str">9. Monitoring</a>
@@ -1020,7 +1021,7 @@ Your application needs to use the user and its credentials for authentication an
 <p>Feature gates are set in the operator configuration and have three stages of maturity: alpha, beta, or General Availability (GA).</p>
 </div>
 <div class="paragraph">
-<p>For more information, see <a href="./configuring.html#ref-operator-cluster-feature-gates-str">Feature gates</a>.</p>
+<p>For more information, see <a href="./deploying.html#ref-operator-cluster-feature-gates-str">Feature gates</a>.</p>
 </div>
 </div>
 </div>
@@ -1364,10 +1365,8 @@ spec:
 <div class="sect2">
 <h3 id="con-configuration-points-mm2-str"><a class="link" href="#con-configuration-points-mm2-str">7.4. Kafka MirrorMaker configuration</a></h3>
 <div class="paragraph _abstract">
-<p>To set up MirrorMaker, a source and target (destination) Kafka cluster must be running.</p>
-</div>
-<div class="paragraph">
-<p>You can use Strimzi with MirrorMaker 2, although the earlier version of MirrorMaker continues to be supported.</p>
+<p>Kafka MirrorMaker replicates data between two or more active Kafka clusters, within or across data centers.
+To set up MirrorMaker, a source and target (destination) Kafka cluster must be running.</p>
 </div>
 <div class="sect3">
 <h4 id="con-overview-mm2-str"><a class="link" href="#con-overview-mm2-str">7.4.1. MirrorMaker 2 configuration</a></h4>
@@ -1526,26 +1525,35 @@ With this configuration applied, topics retain their original names.</p>
 <div class="sect3">
 <h4 id="mirrormaker_configuration"><a class="link" href="#mirrormaker_configuration">7.4.2. MirrorMaker configuration</a></h4>
 <div class="paragraph">
-<p>The earlier version of MirrorMaker uses producers and consumers to replicate data across clusters.</p>
-</div>
-<div class="paragraph">
-<p>MirrorMaker uses:</p>
+<p>Kafka MirrorMaker (also referred to as MirrorMaker 1) uses producers and consumers to replicate data across clusters as follows:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Consumer configuration to consume data from the source cluster</p>
+<p>Consumers consume data from the source cluster</p>
 </li>
 <li>
-<p>Producer configuration to output data to the target cluster</p>
+<p>Producers output data to the target cluster</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>Consumer and producer configuration includes any authentication and encryption settings.</p>
+<p>Consumer and producer configuration includes any required authentication and encryption settings.
+An <code>include</code> property defines the topics to mirror from the source to the target cluster.</p>
 </div>
-<div class="paragraph">
-<p>The <code>include</code> field defines the topics to mirror from a source to a target cluster.</p>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+MirrorMaker was deprecated in Kafka 3.0.0 and will be removed in Kafka 4.0.0.
+As a consequence, the Strimzi <code>KafkaMirrorMaker</code> custom resource which is used to deploy MirrorMaker has been deprecated.
+The <code>KafkaMirrorMaker</code> resource will be removed from Strimzi when Kafka 4.0.0 is adopted.
+</td>
+</tr>
+</table>
 </div>
 <h5 id="key_consumer_configuration" class="discrete">Key Consumer configuration</h5>
 <div class="dlist">
@@ -1916,7 +1924,7 @@ spec:
 <div class="title">Note</div>
 </td>
 <td class="content">
-You can <a href="./configuring.html#proc-loading-config-with-provider-str" target="_blank" rel="noopener">load confidential configuration values for a connector</a> from Kubernetes Secrets or ConfigMaps.
+You can <a href="./configuring.html#assembly-loading-config-with-providers-str" target="_blank" rel="noopener">load confidential configuration values for a connector</a> from Kubernetes Secrets or ConfigMaps.
 </td>
 </tr>
 </table>
@@ -1992,7 +2000,7 @@ Use advisedly as the connection is insecure.
 <p><a href="./deploying.html#kafkaconnector-configs" target="_blank" rel="noopener">Source and sink connector configuration options</a></p>
 </li>
 <li>
-<p><a href="./configuring.html#proc-loading-config-with-provider-str" target="_blank" rel="noopener">Loading configuration values from external sources</a></p>
+<p><a href="./configuring.html#assembly-loading-config-with-providers-str" target="_blank" rel="noopener">Loading configuration values from external sources</a></p>
 </li>
 </ul>
 </div>
@@ -2067,7 +2075,7 @@ spec:
 <h2 id="security-overview_str"><a class="link" href="#security-overview_str">8. Securing Kafka</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>A secure deployment of Strimzi can encompass:</p>
+<p>A secure deployment of Strimzi might encompass one or more of the following security measures:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -2079,6 +2087,9 @@ spec:
 </li>
 <li>
 <p>Authorization to allow or decline actions executed by users</p>
+</li>
+<li>
+<p>Running Strimzi on FIPS-enabled Kubernetes clusters to ensure data security and system interoperability.</p>
 </li>
 </ul>
 </div>
@@ -2214,6 +2225,25 @@ Security policies and permissions used to grant access to resources on Kafka bro
 <div class="paragraph">
 <p>URLs are used to connect to the authorization server and verify that an operation requested by a client or user is allowed or denied.
 Users and clients are matched against the policies created in the authorization server that permit access to perform specific actions on Kafka brokers.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="security-configuration-fips_str"><a class="link" href="#security-configuration-fips_str">8.4. Federal Information Processing Standards (FIPS)</a></h3>
+<div class="paragraph _abstract">
+<p>Federal Information Processing Standards (FIPS) are a set of security standards established by the US government to ensure the confidentiality, integrity, and availability of sensitive data and information that is processed or transmitted by information systems.
+The OpenJDK used in Strimzi container images automatically enables FIPS mode when running on a FIPS-enabled Kubernetes cluster.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If you don&#8217;t want to use FIPS, you can disable it in the deployment configuration of the Cluster Operator using the <code>FIPS_MODE</code> environment variable.
+</td>
+</tr>
+</table>
 </div>
 </div>
 </div>
