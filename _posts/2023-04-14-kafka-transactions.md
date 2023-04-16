@@ -199,9 +199,9 @@ $ zookeeper-server-start.sh -daemon $KAFKA_HOME/config/zookeeper.properties \
 
 # open a new terminal, get and run the application (Ctrl+C to stop)
 $ git clone git@github.com:fvaleri/examples.git -n --depth=1 --filter=tree:0 && cd examples \
-  && git sparse-checkout set --no-cone kafka/kafka-txn && git checkout d864fba4a25e3188de35c6436a1a2d581aeeac8c
+  && git sparse-checkout set --no-cone kafka/kafka-txn && git checkout 5907e0bd31175b5f411dc0e0804cf69cde76ec90
 ...
-HEAD is now at d864fba Improve error handling
+HEAD is now at 5907e0b Add SerializationException
 
 $ export BOOTSTRAP_SERVERS="localhost:9092" INSTANCE_ID="kafka-txn-0" \
   GROUP_ID="my-group" INPUT_TOPIC="input-topic" OUTPUT_TOPIC="output-topic"
