@@ -22,7 +22,7 @@ This helps in maintaining high levels of reliability and consistency as data is 
 ### Delivery guarantees
 
 In distributed systems like Kafka, any component can fail independently and you have to deal with this fact.
-A broker may crash or a network failure may happen while the producer is sending a message to a topic.
+For example, a broker may crash or a network failure may happen while the producer is sending a message to a topic.
 
 Depending on the configuration, you can have three different delivery semantics:
 
@@ -31,9 +31,9 @@ Depending on the configuration, you can have three different delivery semantics:
 - **exactly-once**: even if the producer retries sending a message, it is written exactly once (idempotency)
 
 With at-least-once, there is no way for the producer to know the nature of the failure, so it simply assumes that the message was not written and retries.
-There are use cases in which lost or duplicated messages are acceptable, but in others this would cause serious business problems (e.g. financial institutions).
+There are use cases in which lost or duplicated messages are acceptable, but in others this would cause serious business problems (e.g. a duplicate debit from a bank account).
 
-To be fair, there is no such thing as exactly-once delivery in distributed systems (two generals problem), but we can fake it by implementing idempotent log append.
+To be fair, there is no such thing as exactly-once delivery in distributed systems ([two generals' problem](https://en.wikipedia.org/wiki/Two_Generals%27_Problem)), but we can fake it by implementing idempotent log append.
 Another way to achieve EOS is to apply a deduplication logic at the consumer side, but this is a stateful logic that needs to be replicated in every consumer.
 
 > Idempotence is the property of certain operations in mathematics and computer science whereby they can be applied multiple times without changing the result beyond the initial application.
@@ -48,19 +48,19 @@ Whenever a new batch arrives, the broker checks if the last received number is e
 
 Unfortunately, the idempotent producer does not guarantee duplicate protection across restarts and when you need to write to multiple partitions as a single unit of work.
 This is the typical scenario with many stream processing applications that run read-process-write cycles.
-In this case, you can use transactions API or Streams API to make these cycles atomic.
-The transaction API is low level and you need to ensure the right configuration and to commit offsets within the scope of the transaction.
-Instead, with the Streams API you can simply set `processing.guarantee=exactly_once_v2` to enable EOS on your existing topology.
+In this case, you can make these cycles atomic using Kafka Producer or Kafka Streams APIs.
+The Kafka Producer API is low level, so you need to ensure the right configuration and to commit offsets within the scope of the transaction.
+Instead, with the Kafka Streams API you can simply set `processing.guarantee=exactly_once_v2` to enable EOS on your existing topology.
 
 ### Considerations
 
 Each producer must configure its own static and unique [`transactional.id`](https://kafka.apache.org/documentation/#producerconfigs_transactional.id) to enable the zombie fencing logic, which avoids message duplicates.
-The TID is used to uniquely identify the same producer instance across process restarts, and it is associated with the producer session.
-When starting, the producer must call `initTransactions` one time, so that the broker can complete any open transaction with the given TID and increment the epoch.
-Once the epoch is incremented, any producers with the same TID and an older epoch are considered zombies, and are fenced off as soon as they try to send data.
+The `transactional.id` is used to uniquely identify the same producer instance across process restarts, and it is associated with the producer session.
+When starting, the producer must call `initTransactions` one time, so the broker can tidy up the state associated with any previous incarnations of this producer, as identified by the `transactional.id`.
+Thereafter, any existing producers using the same `transactional.id` are considered zombies, and are fenced off as soon as they try to send data.
 
-> Before Kafka 2.6 the TID had to be a static encoding of the input partitions in order to avoid ownership transfer between application instances during rebalances, that would invalidate the fencing logic.
-> This limitation was ugely inefficient, because an application instance couldn't reuse a single thread-safe producer instance, but had to create one for each input partition. 
+> Before Kafka 2.6 the `transactional.id` had to be a static encoding of the input partitions in order to avoid ownership transfer between application instances during rebalances, that would invalidate the fencing logic.
+> This limitation was hugely inefficient, because an application instance couldn't reuse a single thread-safe producer instance, but had to create one for each input partition. 
 > It was fixed with by forcing the producer to send the consumer group metadata along with the offsets to commit ([KIP-447](https://cwiki.apache.org/confluence/display/KAFKA/KIP-447%3A+Producer+scalability+for+exactly+once+semantics)).
 
 To guarantee message ordering, a given producer can have at most one open transaction.
@@ -71,7 +71,7 @@ Each coordinator owns a subset of the partitions in the internal `__transaction_
 The coordinator automatically aborts any ongoing transaction that is not completed within `transaction.timeout.ms`.
 
 It is important to note that transactions are only supported inside a single Kafka cluster.
-If the transaction scope includes external systems, you would need to use an additional component such as `ChainedKafkaTransactionManager` from the SpringBoot project.
+If the transaction scope includes processors with externally observable side-effects, you would need to use an additional component such as `ChainedKafkaTransactionManager` from the SpringBoot project.
 This component is able to synchronize a database transaction with the Kafka transaction.
 
 #### Transaction states
@@ -127,7 +127,7 @@ kafka.network:type=RequestMetrics,name=ResponseSendTimeMs,request=([\w]+)
 attributes:Count,99thPercentile
 ```
 
-Producer metrics are more difficult to collect, but they help when broker logs reveal some misbehavior.
+Likewise the following producer metrics can be helpful, perhaps after broker logs reveal some misbehavior.
 
 ```sh
 kafka.producer:type=producer-metrics,client-id=([-.\w]+)
@@ -151,10 +151,11 @@ Most of this latency is on the producer side, where the transactions API is impl
 The performance degradation can be significant when having short transaction commit intervals.
 Increasing the transaction duration also increases the end-to-end latency and may require some additional tuning, so it's a matter of tradeoff.
 
-Another potential drawback is hanging transactions, which are transactions with a missing or out of order control record.
-They may be caused by a network issue causing delayed messages (see [KIP-890](https://cwiki.apache.org/confluence/display/KAFKA/KIP-890%3A+Transactions+Server-Side+Defense)).
+Another potential drawback is hanging transactions, which are transactions with a missing or out-of-order control record.
+They may be caused by a network issue causing delayed messages ([KIP-890](https://cwiki.apache.org/confluence/display/KAFKA/KIP-890%3A+Transactions+Server-Side+Defense)).
+This issue is rare, but it's important to be aware and set alerts, because it can impact service availability.
 
-A hanging transaction is usually revealed by a stuck application with growing lag.
+A hanging transaction is usually revealed by a stuck application with growing lag ([KIP-664](https://cwiki.apache.org/confluence/display/KAFKA/KIP-664%3A+Provide+tooling+to+detect+and+abort+hanging+transactions)).
 Despite messages being produced, consumers can't make any progress because the LSO does not grow anymore.
 
 ```sh
@@ -202,15 +203,15 @@ $ $KAFKA_HOME/bin/zookeeper-server-start.sh -daemon $KAFKA_HOME/config/zookeeper
 
 # open a new terminal, get and run the application (Ctrl+C to stop)
 $ git clone git@github.com:fvaleri/examples.git -n --depth=1 --filter=tree:0 && cd examples \
-  && git sparse-checkout set --no-cone kafka/kafka-txn && git checkout 5907e0bd31175b5f411dc0e0804cf69cde76ec90
+  && git sparse-checkout set --no-cone kafka/kafka-txn && git checkout 412c0e4f7ccdd9db32f311594358479ab001231b
 ...
-HEAD is now at 5907e0b Add SerializationException
+HEAD is now at 412c0e4 Update start log
 
 $ export BOOTSTRAP_SERVERS="localhost:9092" INSTANCE_ID="kafka-txn-0" \
   GROUP_ID="my-group" INPUT_TOPIC="input-topic" OUTPUT_TOPIC="output-topic"
 
 $ mvn clean compile exec:java -q -f kafka/kafka-txn/pom.xml
-Starting instance with TID kafka-txn-0
+Starting instance kafka-txn-0
 Created topics: input-topic
 Waiting for new data
 ...
