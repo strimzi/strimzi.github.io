@@ -14,7 +14,7 @@ As messages flow through Kafka, they can be processed by multiple consumers, and
 The EOS guarantees that any set of operations inside Kafka will be completed atomically, either all of the operations succeed or none of them do.
 This is done by defining transaction boundaries that dictate which operations can be grouped together in a single transaction.
 These operations can include reading from topics, writing to topics, and committing offsets.
-A failure during processing can cause a transaction to be aborted, in which case none of the messages from the transaction will be readable by consumers.
+A failure during processing can cause a transaction to be aborted, in which case none of the messages from the transaction will be readable by transactional consumers.
 This helps in maintaining high levels of reliability and consistency as data is processed throughout the application's lifetime.
 
 <!--more-->
@@ -33,10 +33,12 @@ Depending on the configuration, you can have three different delivery semantics:
 With at-least-once, there is no way for the producer to know the nature of the failure, so it simply assumes that the message was not written and retries.
 There are use cases in which lost or duplicated messages are acceptable, but in others this would cause serious business problems (e.g. financial institutions).
 
-To be fair, there is no such thing as exactly-once delivery in distributed systems (two generals problem), but we can fake it by implementing idempotent operations.
+To be fair, there is no such thing as exactly-once delivery in distributed systems (two generals problem), but we can fake it by implementing idempotent log append.
 Another way to achieve EOS is to apply a deduplication logic at the consumer side, but this is a stateful logic that needs to be replicated in every consumer.
 
-Since Kafka 3.0, the producer enables the strongest delivery guarantees by default (`acks=all`, `enable.idempotence=true`).
+> Idempotence is the property of certain operations in mathematics and computer science whereby they can be applied multiple times without changing the result beyond the initial application.
+
+Since Kafka 3.0, the producer enables the stronger delivery guarantees by default (`acks=all`, `enable.idempotence=true`).
 In addition to durability, this provides partition level message ordering and duplicates protection.
 
 When the idempotent producer is enabled, the broker registers the producer id (PID) and the epoch (producer session).
@@ -44,7 +46,7 @@ A sequence number is assigned to each record when the batch is first added to a 
 The broker keeps track of the sequence number per producer and partition, periodically storing this information in `.snapshot` files.
 Whenever a new batch arrives, the broker checks if the last received number is equal to the first batch number plus one, then the batch is acknowledged, otherwise it is rejected.
 
-Unfortunately, the idempotent producer does not guarantee atomicity when you need to write to multiple partitions as a single unit of work.
+Unfortunately, the idempotent producer does not guarantee duplicate protection across restarts and when you need to write to multiple partitions as a single unit of work.
 This is the typical scenario with many stream processing applications that run read-process-write cycles.
 In this case, you can use transactions API or Streams API to make these cycles atomic.
 The transaction API is low level and you need to ensure the right configuration and to commit offsets within the scope of the transaction.
@@ -52,7 +54,7 @@ Instead, with the Streams API you can simply set `processing.guarantee=exactly_o
 
 ### Considerations
 
-Each producer must configure its own static and unique `transactional.id` (TID) to enable the zombie fencing logic, which avoids message duplicates.
+Each producer must configure its own static and unique [`transactional.id`](https://kafka.apache.org/documentation/#producerconfigs_transactional.id) to enable the zombie fencing logic, which avoids message duplicates.
 The TID is used to uniquely identify the same producer instance across process restarts, and it is associated with the producer session.
 When starting, the producer must call `initTransactions` one time, so that the broker can complete any open transaction with the given TID and increment the epoch.
 Once the epoch is incremented, any producers with the same TID and an older epoch are considered zombies, and are fenced off as soon as they try to send data.
@@ -102,7 +104,8 @@ $ kafka-acls.sh --bootstrap-server:9092 --command-config client.properties --add
 
 If any of the send operations inside the transaction scope fails, the final `commitTransaction` will fail and throw the exception from the last failed send.
 When this happens, your application should call `abortTransaction` to reset the state and apply a retry strategy.
-Some errors cannot be recovered and the application should terminate (`ProducerFencedException`, `FencedInstanceIdException`, `OutOfOrderSequenceException`).
+Some errors cannot be recovered (`ProducerFencedException`, `FencedInstanceIdException`, `OutOfOrderSequenceException`) and the application should close the current producer instance and create a new one.
+When running on a Kubernetes platform and you don't need fast recovery times, another option could be to terminate the app and let the platform restart the application. 
 
 #### Monitoring
 
@@ -146,7 +149,7 @@ For each transaction we have the following overhead, which is independent of the
 
 Most of this latency is on the producer side, where the transactions API is implemented.
 The performance degradation can be significant when having short transaction commit intervals.
-Increasing the transaction duration also increases the end-to-end latency, so it's a matter of tradeoff.
+Increasing the transaction duration also increases the end-to-end latency and may require some additional tuning, so it's a matter of tradeoff.
 
 Another potential drawback is hanging transactions, which are transactions with a missing or out of order control record.
 They may be caused by a network issue causing delayed messages (see [KIP-890](https://cwiki.apache.org/confluence/display/KAFKA/KIP-890%3A+Transactions+Server-Side+Defense)).
@@ -167,18 +170,18 @@ After that, the LSO starts to increment again on every transaction completion an
 
 ```sh
 # find all hanging transactions in a broker
-$ kafka-transactions.sh --bootstrap-server :9092 find-hanging --broker 0
+$ $KAFKA_HOME/bin/kafka-transactions.sh --bootstrap-server :9092 find-hanging --broker 0
 Topic                  Partition   ProducerId  ProducerEpoch   StartOffset LastTimestamp               Duration(s)
 __consumer_offsets     27          171100      1               913095344   2022-06-06T03:16:47Z        209793
 
 # abort an hanging transaction
-$ kafka-transactions.sh --bootstrap-server :9092 abort --topic __consumer_offsets --partition 27 --start-offset 913095344
+$ $KAFKA_HOME/bin/kafka-transactions.sh --bootstrap-server :9092 abort --topic __consumer_offsets --partition 27 --start-offset 913095344
 ```
 
 ### Basic example
 
 Let's now run a basic example to see how transactions work at the partition level.
-You just need a computer with few essential command line tools.
+You just need an environment with few command line tools (curl, tar, java, mvn).
 
 This application consumes text messages from the `input-topic`, reverts their content and sends the result to the `output-topic`.
 
@@ -189,13 +192,13 @@ For the sake of simplicity, we use a single-node Kafka cluster running on localh
 
 ```sh
 # download the Apache Kafka binary and start a single-node Kafka cluster in background
-$ KAFKA_VERSION="3.4.0" KAFKA_HOME="$(mktemp -d -t kafka.XXXXXXX)" PATH="$KAFKA_HOME/bin:$PATH" && export KAFKA_HOME PATH
+$ KAFKA_VERSION="3.4.0" KAFKA_HOME="$(mktemp -d -t kafka.XXXXXXX)" && export KAFKA_HOME
 
 $ curl -sLk "https://archive.apache.org/dist/kafka/$KAFKA_VERSION/kafka_2.13-$KAFKA_VERSION.tgz" \
   | tar xz -C "$KAFKA_HOME" --strip-components 1
 
-$ zookeeper-server-start.sh -daemon $KAFKA_HOME/config/zookeeper.properties \
-  && sleep 5 && kafka-server-start.sh -daemon $KAFKA_HOME/config/server.properties
+$ $KAFKA_HOME/bin/zookeeper-server-start.sh -daemon $KAFKA_HOME/config/zookeeper.properties \
+  && sleep 5 && $KAFKA_HOME/bin/kafka-server-start.sh -daemon $KAFKA_HOME/config/server.properties
 
 # open a new terminal, get and run the application (Ctrl+C to stop)
 $ git clone git@github.com:fvaleri/examples.git -n --depth=1 --filter=tree:0 && cd examples \
@@ -212,16 +215,16 @@ Created topics: input-topic
 Waiting for new data
 ...
 
-# come back to the previus terminal and send a test message
-$ kafka-console-producer.sh --bootstrap-server :9092 --topic input-topic
+# come back to the previous terminal and send a test message
+$ $KAFKA_HOME/bin/kafka-console-producer.sh --bootstrap-server :9092 --topic input-topic
 >test
 >^C
 ```
 
-All of this is pretty boring, but now comes the interesting part.
+All of this is pretty normal, but now comes the interesting part.
 
 How can we identify which partitions are involved in this transaction and inspect their content?
-We are writing to the `output-topic` which has only one partition, but the internal topics for storing CG offsets and transaction states have 50 partitions each by default.
+We are writing to the `output-topic` which has only one partition, but the internal topics for storing consumer group offsets and transaction states have 50 partitions each by default.
 
 To avoid looking at 100 partitions in the worst case scenario, we can use the same hashing function that Kafka uses to find the coordinating partition.
 This function maps `group.id` to `__consumer_offsets` partition, and `transactional.id` to `__transaction_state` partition.
@@ -248,7 +251,7 @@ Note how we pass the decoder parameter when dumping from internal topics, whose 
 
 ```sh
 # dump output-topic-0
-$ kafka-dump-log.sh --deep-iteration --print-data-log --files /tmp/kafka-logs/output-topic-0/00000000000000000000.log
+$ $KAFKA_HOME/bin/kafka-dump-log.sh --deep-iteration --print-data-log --files /tmp/kafka-logs/output-topic-0/00000000000000000000.log
 Dumping /tmp/kafka-logs/output-topic-0/00000000000000000000.log
 Log starting offset: 0
 baseOffset: 0 lastOffset: 0 count: 1 baseSequence: 0 lastSequence: 0 producerId: 0 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: false deleteHorizonMs: OptionalLong.empty position: 0 CreateTime: 1680383687941 size: 82 magic: 2 compresscodec: none crc: 2785707995 isvalid: true
@@ -257,7 +260,7 @@ baseOffset: 1 lastOffset: 1 count: 1 baseSequence: -1 lastSequence: -1 producerI
 | offset: 1 CreateTime: 1680383688163 keySize: 4 valueSize: 6 sequence: -1 headerKeys: [] endTxnMarker: COMMIT coordinatorEpoch: 0
 
 # dump __consumer_offsets-12 using the offsets decoder
-$ kafka-dump-log.sh --deep-iteration --print-data-log --offsets-decoder --files /tmp/kafka-logs/__consumer_offsets-12/00000000000000000000.log
+$ $KAFKA_HOME/bin/kafka-dump-log.sh --deep-iteration --print-data-log --offsets-decoder --files /tmp/kafka-logs/__consumer_offsets-12/00000000000000000000.log
 Dumping /tmp/kafka-logs/__consumer_offsets-12/00000000000000000000.log
 Starting offset: 0
 ...
@@ -276,7 +279,7 @@ In `__consumer_offsets-12`, the consumer group offset commit batch is followed b
 We can also look at how the transaction states are stored by the coordinator.
 
 ```sh
-# dump __transaction_state-20 using the transaction log decoder
+# $KAFKA_HOME/bin/dump __transaction_state-20 using the transaction log decoder
 kafka-dump-log.sh --deep-iteration --print-data-log --transaction-log-decoder --files /tmp/kafka-logs/__transaction_state-30/00000000000000000000.log
 Dumping /tmp/kafka-logs/__transaction_state-30/00000000000000000000.log
 Log starting offset: 0
