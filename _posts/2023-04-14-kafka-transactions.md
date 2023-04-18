@@ -27,7 +27,7 @@ For example, a broker may crash or a network failure may happen while the produc
 Depending on the configuration, you can have three different delivery semantics:
 
 - **at-most-once**: the producer does not retry when there is a timeout or error (data loss risk)
-- **at-least-once**: the producer retries but the broker can fail after writing but before sending the ack (duplicates risk)
+- **at-least-once**: the producer retries but the broker can fail after writing but before sending the ack (duplicate messages risk)
 - **exactly-once**: even if the producer retries sending a message, it is written exactly once (idempotency)
 
 With at-least-once, there is no way for the producer to know the nature of the failure, so it simply assumes that the message was not written and retries.
@@ -48,7 +48,7 @@ Whenever a new batch arrives, the broker checks if the last received number is e
 
 Unfortunately, the idempotent producer does not guarantee duplicate protection across restarts and when you need to write to multiple partitions as a single unit of work.
 This is the typical scenario with many stream processing applications that run read-process-write cycles.
-In this case, you can make these cycles atomic using Kafka Producer or Kafka Streams APIs.
+In this case, you can make these cycles atomic using the Kafka Producer or Kafka Streams APIs.
 The Kafka Producer API is low level, so you need to ensure the right configuration and to commit offsets within the scope of the transaction.
 Instead, with the Kafka Streams API you can simply set `processing.guarantee=exactly_once_v2` to enable EOS on your existing topology.
 
@@ -93,7 +93,7 @@ The LSO is equal to the FUO if it's lower than the HW, otherwise it's the HW (LS
 
 #### Error handling
 
-If Kafka authorization is enabled, you need to configure the appropriate ACLs rules to avoid `TransactionalIdAuthorizationException`.
+The `TransactionalIdAuthorizationException` happens when you have authorization enabled without the appropriate ACLs rules.
 
 In the following example we allow any `transactional.id` from any user.
 
@@ -141,11 +141,13 @@ There are a few drawbacks when using Kafka transactions that developers should b
 Firstly, transactions can add some latency to an application due to the write amplification required to ensure EOS.
 While this may not be a significant issue for some applications, those that require real-time processing may be affected.
 
-For each transaction we have the following overhead, which is independent of the number of messages: 
+Each transaction in Kafka incurs some overhead that is independent of the number of messages involved. 
+This overhead includes the following:
 
-- some RPCs to register the partitions with the coordinator (can be batched)
-- one marker has to be written to each partition when completing a transaction
-- few state change records are appended to the internal transaction state log
+- A small number of Remote Procedure Calls (RPCs) to register the partitions with the coordinator. 
+  These RPCs can be batched together to reduce overhead.
+- A marker that must be written to each partition when the transaction is completed.
+- A few state change records that are appended to the internal transaction state log.
 
 Most of this latency is on the producer side, where the transactions API is implemented.
 The performance degradation can be significant when having short transaction commit intervals.
@@ -158,6 +160,8 @@ This issue is rare, but it's important to be aware and set alerts, because it ca
 A hanging transaction is usually revealed by a stuck application with growing lag ([KIP-664](https://cwiki.apache.org/confluence/display/KAFKA/KIP-664%3A+Provide+tooling+to+detect+and+abort+hanging+transactions)).
 Despite messages being produced, consumers can't make any progress because the LSO does not grow anymore.
 
+For example, you will see the following messages in the consumer logs:
+
 ```sh
 [Consumer clientId=my-client, groupId=my-group] The following partitions still have unstable offsets which are not cleared on the broker side: [__consumer_offsets-27], 
 this could be either transactional offsets waiting for completion, or normal offsets waiting for replication after appending to local log
@@ -166,7 +170,7 @@ this could be either transactional offsets waiting for completion, or normal off
 Additionally, if the partition belongs to a compacted topic, this causes the unbounded partition growth, because the `LogCleaner` does not clean beyond the LSO.
 If not detected and fixed in time, this may lead to disk space exhaustion and service disruption.
 
-Fortunately, there are embedded tools that can be used to find all hanging transactions and rollback them.
+Fortunately, there are embedded tools that can be used to find all hanging transactions and roll them back.
 After that, the LSO starts to increment again on every transaction completion and the application should be able to recover.
 
 ```sh
@@ -181,14 +185,14 @@ $ $KAFKA_HOME/bin/kafka-transactions.sh --bootstrap-server :9092 abort --topic _
 
 ### Basic example
 
-Let's now run a basic example to see how transactions work at the partition level.
+Let's run a basic example to see how transactions work at the partition level.
 You just need an environment with few command line tools (curl, tar, java, mvn).
 
-This application consumes text messages from the `input-topic`, reverts their content and sends the result to the `output-topic`.
+This application consumes text messages from the `input-topic`, reverts their content, and sends the result to the `output-topic`.
 
 ![txn app](/assets/images/posts/2023-04-14-kafka-txn-app.png)
 
-In the following snippet we start the cluster, run the application and create a single transaction.
+In the following snippet we start the cluster, run the application, and create a single transaction.
 For the sake of simplicity, we use a single-node Kafka cluster running on localhost, but the example also works with a multi-node cluster.
 
 ```sh
