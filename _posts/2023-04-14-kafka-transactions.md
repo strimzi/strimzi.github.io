@@ -47,7 +47,7 @@ Another way to achieve EOS is to apply a deduplication logic at the consumer sid
 Since Kafka 3.0, the producer enables the stronger delivery guarantees by default (`acks=all`, `enable.idempotence=true`).
 In addition to durability, this provides partition level message ordering and duplicates protection.
 
-When the idempotent producer is enabled, the broker registers the producer id (PID) and the epoch (producer session).
+When the idempotent producer is enabled, the broker registers a producer id (PID) for every new producer instance, including restarts.
 A sequence number is assigned to each record when the batch is first added to a produce request and never changed, even if the batch is resent.
 The broker keeps track of the sequence number per producer and partition, periodically storing this information in a `.snapshot` file.
 Whenever a new batch arrives, the broker checks if the last received number is equal to the first batch number plus one, then the batch is acknowledged, otherwise it is rejected.
@@ -56,15 +56,18 @@ Unfortunately, the idempotent producer does not guarantee duplicate protection a
 This is the typical scenario with many stream processing applications that run read-process-write cycles.
 In this case, you can make these cycles atomic using the transaction support of the Kafka Producer or Kafka Streams APIs.
 
-The Kafka Producer API is low level, so you need to ensure the right configuration and to commit offsets within the scope of the transaction.
-A transaction should be aborted in case failure during processing, which means none of the messages from the transaction will be readable by transactional consumers.
-Instead, with the Kafka Streams API you can simply set `processing.guarantee=exactly_once_v2` to enable EOS on your existing topology.
+The transaction support exposed by the Producer API is low level, and needs to be used with carefully in order to actually get transactional semantics.
+For those using Kafka Streams it is much simpler: setting `processing.guarantee=exactly_once_v2` will enable EOS on your existing topology.
 
 ### Considerations
 
 Each producer must configure its own static and unique [`transactional.id`](https://kafka.apache.org/documentation/#producerconfigs_transactional.id) to enable the zombie fencing logic, which avoids message duplicates.
-The `transactional.id` is used to uniquely identify the same producer instance across process restarts, and it is associated with the producer session.
-When starting, the producer must call `initTransactions` one time, so the broker can tidy up the state associated with any previous incarnations of this producer, as identified by the `transactional.id`.
+
+The `transactional.id` is used to uniquely identify the same logical producer across process restarts.
+In contrast to the idempotent producer, a transactional producer instance will be allocated the same PID (but incremented producer epoch), as any previous instance with the same `transactional.id`. 
+Together the PID and producer epoch identify a logical producer session.
+
+When starting, the producer call `initTransactions` to initialize the producer session, allowing the broker to tidy up state associated with any previous incarnations of this producer, as identified by the `transactional.id`.
 Thereafter, any existing producers using the same `transactional.id` are considered zombies, and are fenced off as soon as they try to send data.
 
 > Before Kafka 2.6 the `transactional.id` had to be a static encoding of the input partitions in order to avoid ownership transfer between application instances during rebalances, that would invalidate the fencing logic.
@@ -74,7 +77,7 @@ Thereafter, any existing producers using the same `transactional.id` are conside
 To guarantee message ordering, a given producer can have at most one open transaction (they are executed serially).
 Consumers with `isolation.level=read_committed` are not allowed to advance to offsets which include open transactions, while messages from aborted transactions are filtered out.
 
-The transaction coordinator is a module running inside every Kafka broker.
+The transaction coordinator is a module running inside a Kafka broker.
 Each coordinator owns a subset of the partitions in the internal `__transaction_state` topic (i.e. the partitions for which its broker is the leader).
 The coordinator automatically aborts any ongoing transaction that is not completed within `transaction.timeout.ms`.
 
@@ -84,9 +87,10 @@ This component is able to synchronize a database transaction with the Kafka tran
 
 #### Transaction metadata
 
-A control record is a special type of record that is used for internal operations within Kafka, rather than for normal message processing.
-They are primarily used by the Kafka brokers themselves to manage topics, partitions, and other metadata, but may sometimes be used by administrators or monitoring tools as well.
-Control records are typically not visible to Kafka consumers, as they are meant to be processed only by the Kafka brokers.
+In order to implement transactions Kafka brokers need to include extra book-keeping information in logs.
+Information about producers and their transactions is stored in the `__transaction_state` log which is appended to by the transaction coordinator.
+Within user logs in addition to the usual batches of user records, partition leaders append control records to track which batches have actually been committed and which rolled back.
+Control records are not exposed to Kafka applications by Kafka consumers, as they are an internal implementation detail of the transaction support.
 
 An end transaction marker (`COMMIT` or `ABORT`) is a special control record that indicates the end of a transaction (decision).
 It is used to ensure that the transaction is either completed successfully or aborted in case of a failure.
@@ -107,13 +111,13 @@ The final step consists of writing the end transaction markers to each involved 
 
 ![txn log](/assets/images/posts/2023-04-14-kafka-txn-log.png)
 
-The last stable offset (LSO) is the offset such that all lower offsets have been decided and it is always present.
-The first unstable offset (FUO) is the earliest offset that is part of the ongoing transaction, if present.
+The last stable offset (LSO) is the offset in a user partition such that all lower offsets have been decided and it is always present.
+The first unstable offset (FUO) is the earliest offset in a user partition that is part of the ongoing transaction, if present.
 
 The LSO is equal to the FUO if it's lower than the HW, otherwise it's the HW.
 We have that `LSO <= HW <= LEO`, which can be the same offset when there is no open transaction and all partitions are in-sync.
 
-#### Error handling
+#### Authorization
 
 The `TransactionalIdAuthorizationException` happens when you have authorization enabled without the appropriate ACLs rules.
 
@@ -123,6 +127,8 @@ In the following example we allow any `transactional.id` from any user.
 $ $KAFKA_HOME/bin/kafka-acls.sh --bootstrap-server :9092 --command-config client.properties --add \
   --allow-principal User:* --operation write --transactional-id *
 ```
+
+#### Error handling
 
 If any of the send operations inside the transaction scope fails, the final `commitTransaction` will fail and throw the exception from the last failed send.
 When this happens, your application should call `abortTransaction` to reset the state and apply a retry strategy.
@@ -274,9 +280,11 @@ $ kafka-cp() {
     run("'"$id"'", '"$part"');' | jshell -
 }
 
+# the applications offsets are in partition 12 of __consumer_offsets
 $ kafka-cp my-group
 12
 
+# the transaction states are in partition 30 of __transaction_state
 $ kafka-cp kafka-txn-0
 30
 ```
@@ -313,7 +321,7 @@ In `__consumer_offsets-12` dump, we have the consumer group's offset commit reco
 We can also look at how the transaction states are stored by the transaction coordinator.
 
 ```sh
- 1 # dump __transaction_state-20 using the transaction log decoder
+ 1 # dump __transaction_state-30 using the transaction log decoder
  2 $KAFKA_HOME/bin/kafka-dump-log.sh --deep-iteration --print-data-log --transaction-log-decoder --files /tmp/kafka-logs/__transaction_state-30/00000000000000000000.log
  3 Dumping /tmp/kafka-logs/__transaction_state-30/00000000000000000000.log
  4 Log starting offset: 0
@@ -329,7 +337,7 @@ We can also look at how the transaction states are stored by the transaction coo
 14 | offset: 4 CreateTime: 1680383688180 keySize: 17 valueSize: 37 sequence: -1 headerKeys: [] key: transaction_metadata::transactionalId=kafka-txn-0 payload: producerId:0,producerEpoch:0,state=CompleteCommit,partitions=[],txnLastUpdateTimestamp=1680383688154,txnTimeoutMs=60000
 ```
 
-In `__transaction_state-20` dump, we can see all state changes keyed by `transactionalId` (lines 6, 8, 10, 12, 14).
+In `__transaction_state-30` dump, we can see all state changes keyed by `transactionalId` (lines 6, 8, 10, 12, 14).
 The transaction starts in the `Empty` state, then we have the `Ongoing` state change every time a new partition is registered.
 When the commit is called, a process similar to the two-phase commit produces the two final state changes: `PrepareCommit` and `CompleteCommit`.
 
