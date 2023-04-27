@@ -50,7 +50,7 @@ In addition to durability, this provides partition level message ordering and du
 When the idempotent producer is enabled, the broker registers a producer id (PID) for every new producer instance, including restarts.
 A sequence number is assigned to each record when the batch is first added to a produce request and never changed, even if the batch is resent.
 The broker keeps track of the sequence number per producer and partition, periodically storing this information in a `.snapshot` file.
-Whenever a new batch arrives, the broker checks if the last received number is equal to the first batch number plus one, then the batch is acknowledged, otherwise it is rejected.
+Whenever a new batch arrives, the broker checks if the received sequence number is equal to the last-appended batch's sequence number plus one, then the batch is acknowledged, otherwise it is rejected.
 
 Unfortunately, the idempotent producer does not guarantee duplicate protection across restarts and when you need to write to multiple partitions as a single unit of work.
 This is the typical scenario with many stream processing applications that run read-process-write cycles.
@@ -70,15 +70,13 @@ Together the PID and producer epoch identify a logical producer session.
 > Before Kafka 2.6 the `transactional.id` had to be a static encoding of the input partitions in order to avoid ownership transfer between application instances during rebalances, that would invalidate the fencing logic.
 > This limitation was hugely inefficient, because an application instance couldn't reuse a single thread-safe producer instance, but had to create one for each input partition.
 > It was fixed with by forcing the producer to send the consumer group metadata along with the offsets to commit ([KIP-447](https://cwiki.apache.org/confluence/display/KAFKA/KIP-447%3A+Producer+scalability+for+exactly+once+semantics)).
- 
-When starting, the producer call `initTransactions` to initialize the producer session, allowing the broker to tidy up state associated with any previous incarnations of this producer, as identified by the `transactional.id`.
+
+When starting, the client application calls `Producer.initTransactions` to initialize the producer session, allowing the broker to tidy up state associated with any previous incarnations of this producer, as identified by the `transactional.id`.
 Thereafter, any existing producers using the same `transactional.id` are considered zombies, and are fenced off as soon as they try to send data.
 
 To guarantee message ordering, a given producer can have at most one ongoing transaction (they are executed serially).
-Consumers with `isolation.level=read_committed` are not allowed to advance to offsets which include ongoing transactions, while messages from aborted transactions are filtered out.
-
-The transaction coordinator is a module running inside a Kafka broker.
-Each coordinator owns a subset of the partitions in the `__transaction_state` topic (i.e. the partitions for which its broker is the leader).
+Brokers will prevent consumers with `isolation.level=read_committed` from advancing to offsets which include open transactions.
+Messages from aborted transactions are filtered out within the consumer, and are never observed by the client application.
 
 It is important to note that transactions are only supported inside a single Kafka cluster.
 If the transaction scope includes processors with externally observable side-effects, you would need to use additional components.
@@ -88,9 +86,10 @@ The [transactional outbox pattern](https://microservices.io/patterns/data/transa
 
 In order to implement transactions Kafka brokers need to include extra book-keeping information in logs.
 
-Information about producers and their transactions is stored in the `__transaction_state` topic which is appended to by the transaction coordinator.
+Information about producers and their transactions is stored in the `__transaction_state` topic which is appended to by the transaction coordinator running inside a broker.
+Each coordinator owns a subset of the partitions in the `__transaction_state` topic (i.e. the partitions for which its broker is the leader).
 
-Within user logs, in addition to the usual batches of user records, partition leaders append control records to track which batches have actually been committed and which rolled back.
+Within user logs in addition to the usual batches of user records, transaction coordinators cause partition leaders append control records, which contain commit/abort markers, to track which batches have actually been committed and which rolled back.
 Control records are not exposed to applications by Kafka consumers, as they are an internal implementation detail of the transaction support.
 
 Non-transactional records are considered decided immediately, but transactional records are only decided when the corresponding commit or abort marker is written.
@@ -145,7 +144,8 @@ Hanging transactions have a missing or out-of-order control record and may be ca
 This issue is rare, but it's important to be aware and set alerts, because the consequences can impact cluster availability.
 
 The transaction coordinator automatically aborts any ongoing transaction that is not completed within `transaction.timeout.ms`.
-This mechanism does not work for hanging transactions because they are marked as completed.
+This mechanism does not work for hanging transactions because from the coordinator's point of view the transaction was completed and a transaction marker written (and no longer needs to be timed out).
+But from the partition leader's point of view there is a data record for a transaction after the commit/abort marker, which is indistinguishable from the start of a new transaction.
 
 A hanging transaction is usually revealed by a stuck application with growing lag ([KIP-664](https://cwiki.apache.org/confluence/display/KAFKA/KIP-664%3A+Provide+tooling+to+detect+and+abort+hanging+transactions)).
 Despite messages being produced, consumers can't make any progress because the LSO does not grow anymore.
