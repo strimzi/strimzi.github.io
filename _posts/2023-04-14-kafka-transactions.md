@@ -69,7 +69,7 @@ Together the PID and producer epoch identify a logical producer session.
 
 > Before Kafka 2.6 the `transactional.id` had to be a static encoding of the input partitions in order to avoid ownership transfer between application instances during rebalances, that would invalidate the fencing logic.
 > This limitation was hugely inefficient, because an application instance couldn't reuse a single thread-safe producer instance, but had to create one for each input partition.
-> It was fixed with by forcing the producer to send the consumer group metadata along with the offsets to commit ([KIP-447](https://cwiki.apache.org/confluence/display/KAFKA/KIP-447%3A+Producer+scalability+for+exactly+once+semantics)).
+> It was fixed by forcing the producer to send the consumer group metadata along with the offsets to commit ([KIP-447](https://cwiki.apache.org/confluence/display/KAFKA/KIP-447%3A+Producer+scalability+for+exactly+once+semantics)).
 
 When starting, the client application calls `Producer.initTransactions` to initialize the producer session, allowing the broker to tidy up state associated with any previous incarnations of this producer, as identified by the `transactional.id`.
 Thereafter, any existing producers using the same `transactional.id` are considered zombies, and are fenced off as soon as they try to send data.
@@ -86,10 +86,10 @@ The [transactional outbox pattern](https://microservices.io/patterns/data/transa
 
 In order to implement transactions Kafka brokers need to include extra book-keeping information in logs.
 
-Information about producers and their transactions is stored in the `__transaction_state` topic which is appended to by the transaction coordinator running inside a broker.
-Each coordinator owns a subset of the partitions in the `__transaction_state` topic (i.e. the partitions for which its broker is the leader).
+Information about producers and their transactions is stored in the `__transaction_state` topic which is used by the transaction coordinator running inside a broker.
+Each transaction coordinator owns a subset of the partitions in the `__transaction_state` topic (i.e. the partitions for which its broker is the leader).
 
-Within user logs in addition to the usual batches of user records, transaction coordinators cause partition leaders append control records, which contain commit/abort markers, to track which batches have actually been committed and which rolled back.
+Within user logs in addition to the usual batches of data records, transaction coordinators cause partition leaders append control records (commit/abort markers) to track which batches have actually been committed and which rolled back.
 Control records are not exposed to applications by Kafka consumers, as they are an internal implementation detail of the transaction support.
 
 Non-transactional records are considered decided immediately, but transactional records are only decided when the corresponding commit or abort marker is written.
@@ -103,14 +103,13 @@ A transaction goes through the following states:
 This is handled through a process similar to the two-phase commit protocol, where the state is tracked by a series of control records witten to `__transaction_state` topic.
 Every time some data is written to a new partition inside a transaction, we have the `Ongoing` state, which includes the list of involved partitions.
 When the transaction completes, we have the `PrepareCommit` or `PrepareAbort` state change.
-Once the control records are written to each involved partition, we have the `CompleteCommit` or `CompleteAbort` control record.
+Once the control record is written to each involved partition, we have the `CompleteCommit` or `CompleteAbort` state change.
 
 ![txn log](/assets/images/posts/2023-04-14-kafka-txn-log.png)
 
 The last stable offset (LSO) is the offset in a user partition such that all lower offsets have been decided and it is always present.
 The first unstable offset (FUO) is the earliest offset in a user partition that is part of the ongoing transaction, if present.
 
-The LSO is equal to the FUO if it's lower than the HW, otherwise it's the HW.
 We have that `LSO <= HW <= LEO`, which can be the same offset when there is no open transaction and all partitions are in-sync.
 
 #### Performance
@@ -124,12 +123,11 @@ This is where frameworks can provide useful abstractions over multiple producer 
 Then, transactions can add some latency to an application due to the write amplification required to ensure EOS.
 While this may not be a significant issue for some applications, those that require real-time processing may be affected.
 
-Each transaction in Kafka incurs some overhead that is independent of the number of messages involved.
+Each transaction incurs some overhead that is independent of the number of messages involved.
 This overhead includes the following:
 
-- A small number of Remote Procedure Calls (RPCs) to register the partitions with the coordinator.
-  These RPCs can be batched together to reduce overhead.
-- A marker that must be written to each partition when the transaction is completed.
+- A small number of Remote Procedure Calls (RPCs) to register the partitions with the coordinator (these RPCs can be batched together to reduce overhead).
+- A transaction marker record that must be written to each involved partition when the transaction is completed.
 - A few state change records that are appended to the internal transaction state log.
 
 Most of this latency is on the producer side, where the transactions API is implemented.
@@ -141,13 +139,13 @@ Increasing the transaction duration also increases the end-to-end latency and ma
 #### Hanging transactions
 
 Hanging transactions have a missing or out-of-order control record and may be caused by delayed messages due to a network issue ([KIP-890](https://cwiki.apache.org/confluence/display/KAFKA/KIP-890%3A+Transactions+Server-Side+Defense)).
-This issue is rare, but it's important to be aware and set alerts, because the consequences can impact cluster availability.
+This issue is rare, but it's important to be aware and set alerts, because the consequences can impact the service availability.
 
 The transaction coordinator automatically aborts any ongoing transaction that is not completed within `transaction.timeout.ms`.
 This mechanism does not work for hanging transactions because from the coordinator's point of view the transaction was completed and a transaction marker written (and no longer needs to be timed out).
 But from the partition leader's point of view there is a data record for a transaction after the commit/abort marker, which is indistinguishable from the start of a new transaction.
 
-A hanging transaction is usually revealed by a stuck application with growing lag ([KIP-664](https://cwiki.apache.org/confluence/display/KAFKA/KIP-664%3A+Provide+tooling+to+detect+and+abort+hanging+transactions)).
+A hanging transaction is usually revealed by a stuck application with growing lag.
 Despite messages being produced, consumers can't make any progress because the LSO does not grow anymore.
 
 For example, you will see the following messages in the consumer logs:
@@ -160,7 +158,7 @@ this could be either transactional offsets waiting for completion, or normal off
 Additionally, if the partition belongs to a compacted topic, this causes the unbounded partition growth, because the `LogCleaner` does not clean beyond the LSO.
 If not detected and fixed in time, this may lead to disk space exhaustion and service disruption.
 
-Fortunately, there are embedded tools that can be used to find all hanging transactions and roll them back.
+Fortunately, there are embedded tools that can be used to find all hanging transactions and roll them back ([KIP-664](https://cwiki.apache.org/confluence/display/KAFKA/KIP-664%3A+Provide+tooling+to+detect+and+abort+hanging+transactions)).
 When doing that, it is important to understand the business context surrounding the records in this transaction and possibly append those records again using a new transaction.
 
 ```sh
@@ -186,8 +184,8 @@ $ $KAFKA_HOME/bin/kafka-acls.sh --bootstrap-server :9092 --command-config client
 
 #### Error handling
 
-If any of the send operations inside the transaction scope fails, the final `commitTransaction` will fail and throw the exception from the last failed send.
-When this happens, your application should call `abortTransaction` to reset the state and apply a retry strategy.
+If any of the send operations inside the transaction scope fails, the final `Producer.commitTransaction` will fail and throw the exception from the last failed send.
+When this happens, your application should call `Producer.abortTransaction` to reset the state and apply a retry strategy.
 
 Unlike other exceptions thrown from the producer, `ProducerFencedException`, `FencedInstanceIdException` and `OutOfOrderSequenceException` cannot be recovered. 
 The application should catch these exceptions, close the current producer instance and create a new one.
@@ -195,7 +193,7 @@ When running on a Kubernetes platform, another option could be to simply shutdow
 
 #### Monitoring
 
-When running in production, it is important to collect metrics provided by your Kafka deployments.
+It is important to collect metrics provided by your Kafka deployments.
 
 If you've not collected the metrics then you have no information to go on when something goes wrong. 
 You're often left with no choice but to reconfigure with the right metrics and wait for the problem to happen again in order to understand it. 
@@ -233,8 +231,8 @@ The following diagram shows the relevant RPCs.
 
 ![txn app](/assets/images/posts/2023-04-14-kafka-txn-app.png)
 
-In the following snippet we start the cluster, run the application, and create a single transaction.
-For the sake of simplicity, we use a single-node Kafka cluster running on localhost, but the example also works with a multi-node cluster.
+In the following snippet we start the Kafka cluster, run the application, and create a single transaction.
+For the sake of simplicity, we use a single-node cluster running on localhost, but the example also works with a multi-node cluster.
 
 ```sh
 # download the Apache Kafka binary and start a single-node Kafka cluster in background
@@ -248,9 +246,9 @@ $ $KAFKA_HOME/bin/zookeeper-server-start.sh -daemon $KAFKA_HOME/config/zookeeper
 
 # open a new terminal, get and run the application (Ctrl+C to stop)
 $ git clone git@github.com:fvaleri/examples.git -n --depth=1 --filter=tree:0 && cd examples \
-  && git sparse-checkout set --no-cone kafka/kafka-txn && git checkout f7d7af28dae029ebe0d380062ad0f0564b71ace0
+  && git sparse-checkout set --no-cone kafka/kafka-txn && git checkout 957981f5d8ede82a265f695d9a10c83a50af718f
 ...
-HEAD is now at f7d7af2 Update kafka examples
+HEAD is now at 957981f Only reset affected partitions
 
 $ export BOOTSTRAP_SERVERS="localhost:9092" INSTANCE_ID="kafka-txn-0" \
   GROUP_ID="my-group" INPUT_TOPIC="input-topic" OUTPUT_TOPIC="output-topic"
@@ -270,14 +268,12 @@ $ $KAFKA_HOME/bin/kafka-console-producer.sh --bootstrap-server :9092 --topic inp
 All of this is pretty normal, but now comes the interesting part.
 
 How can we identify which partitions are involved in this transaction and inspect their content?
-We are writing to the `output-topic` which has only one partition, but the internal topics for storing consumer group offsets and transaction states have 50 partitions each by default.
+We are writing to the `output-topic` which has only one partition, but the two internal topics have 50 partitions each by default.
 
-How can we identify which `__transaction_state` and `__consumer_offsets` partitions are involved?
-We can use the same hashing function that Kafka uses to find the coordinating partition.
+To avoid looking at 100 partitions in the worst case, we can use the same hashing function that Kafka uses to find the coordinating partition.
 This function maps `group.id` to `__consumer_offsets` partition, and `transactional.id` to `__transaction_state` partition.
 
 ```sh
-# define the function and find the coordinating partitions
 $ kafka-cp() {
   local id="${1-}" part="${2-50}"
   if [[ -z $id ]]; then echo "Missing id parameter" && return; fi
@@ -286,11 +282,11 @@ $ kafka-cp() {
     run("'"$id"'", '"$part"');' | jshell -
 }
 
-# the applications offsets are in partition 12 of __consumer_offsets
+# applications offsets are in partition 12 of __consumer_offsets
 $ kafka-cp my-group
 12
 
-# the transaction states are in partition 30 of __transaction_state
+# transaction states are in partition 30 of __transaction_state
 $ kafka-cp kafka-txn-0
 30
 ```
@@ -325,7 +321,7 @@ In `wc-output-0` dump, we see that the data batch is transactional and contains 
 In `__consumer_offsets-12` dump, we have the consumer group's offset commit record (line 16).
 
 We can also look at how the transaction states are stored.
-This metadata are different from the transaction markers seen above, and they are only used by the transaction coordinator.
+These metadata are different from the transaction markers seen above, and they are only used by the transaction coordinator.
 
 ```sh
  1 # dump __transaction_state-30 using the transaction log decoder
@@ -345,11 +341,10 @@ This metadata are different from the transaction markers seen above, and they ar
 ```
 
 In `__transaction_state-30` dump, we can see all state changes keyed by `transactionalId` (lines 6, 8, 10, 12, 14).
-The transaction starts in the `Empty` state, then we have the `Ongoing` state change every time a new partition is registered.
-When the commit is called, a process similar to the two-phase commit produces the two final state changes: `PrepareCommit` and `CompleteCommit`.
+The transaction starts in `Empty` state, then we have `Ongoing` state for every new partition and finally `PrepareCommit` and `CompleteCommit` states when the commit is called.
 
 ### Conclusion
 
 Kafka transactions provide an essential means of ensuring data reliability and integrity, making them a crucial feature of the Kafka platform.
 However, these advantages come at the cost of reduced throughput and additional latency, which may require some tuning.
-If not monitored, hanging transactions can have an impact on your cluster availability.
+If not monitored, hanging transactions can have an impact on the service availability.
