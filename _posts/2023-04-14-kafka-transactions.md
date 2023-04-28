@@ -226,7 +226,7 @@ kafka.producer:type=producer-metrics,client-id=([-.\w]+)
 Let's run a basic example to see how transactions work at the partition level.
 You just need an environment with few command line tools (curl, tar, java, mvn).
 
-This application consumes text messages from the `input-topic`, reverts their content, and sends the result to the `output-topic`.
+This application consumes text messages from the `input-topic`, reverses their content, and sends the result to the `output-topic`.
 All of this happens as part of single atomic operation, which also includes committing the consumer offsets.
 
 The following diagram shows the relevant RPCs.
