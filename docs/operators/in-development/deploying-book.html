@@ -22482,7 +22482,21 @@ Before upgrading Kubernetes, <a href="https://strimzi.io/downloads/" target="_bl
 </ol>
 </div>
 <div class="paragraph">
-<p>You have to configure the pod disruption budget before using one of the methods to roll your pods.</p>
+<p>When using either of the methods to roll the pods, you must set a pod disruption budget of zero using the <code>maxUnavailable</code> property.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<code>StrimziPodSet</code> custom resources manage Kafka and ZooKeeper pods using a custom controller that cannot use the <code>maxUnavailable</code> value directly.
+Instead, the <code>maxUnavailable</code> value is converted to a <code>minAvailable</code> value.
+If there are three broker pods and the <code>maxUnavailable</code> property is set to <code>0</code> (zero), the <code>minAvailable</code> setting is <code>3</code>, requiring all three broker pods to be available and allowing zero pods to be unavailable.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>For Kafka to stay operational, topics must also be replicated for high availability.
@@ -22512,7 +22526,7 @@ spec:
 <div class="sect3">
 <h4 id="rolling_pods_using_the_strimzi_drain_cleaner"><a class="link" href="#rolling_pods_using_the_strimzi_drain_cleaner">18.3.1. Rolling pods using the Strimzi Drain Cleaner</a></h4>
 <div class="paragraph">
-<p>You can use the Strimzi Drain Cleaner tool to evict nodes during an upgrade.
+<p>You can use the <a href="#assembly-drain-cleaner-str">Strimzi Drain Cleaner</a> to evict nodes during an upgrade.
 The Strimzi Drain Cleaner annotates pods with a rolling update pod annotation.
 This informs the Cluster Operator to perform a rolling update of an evicted pod.</p>
 </div>
@@ -22525,8 +22539,8 @@ During planned maintenance of Kafka broker pods, a pod disruption budget ensures
 By default, pod disruption budgets allow only a single pod to be unavailable at a given time.</p>
 </div>
 <div class="paragraph">
-<p>To do this, you set <code>maxUnavailable</code> to <code>0</code> (zero).
-Reducing the maximum pod disruption budget to zero prevents voluntary disruptions, so pods must be evicted manually.</p>
+<p>In order to use the Drain Cleaner to roll pods, you set <code>maxUnavailable</code> to <code>0</code> (zero).
+Reducing the pod disruption budget to zero prevents voluntary disruptions, so pods must be evicted manually.</p>
 </div>
 <div class="listingblock">
 <div class="title">Specifying a pod disruption budget</div>
@@ -26983,6 +26997,15 @@ webhooks:
 <div class="paragraph _abstract">
 <p>Deploy the Strimzi Drain Cleaner to the Kubernetes cluster where the Cluster Operator and Kafka cluster are running.</p>
 </div>
+<div class="paragraph">
+<p>Strimzi sets a default <code>PodDisruptionBudget</code> (PDB) that allows only one Kafka or ZooKeeper pod to be unavailable at any given time.
+To use the Drain Cleaner for planned maintenance or upgrades, you must set a PDB of zero.
+This is to prevent voluntary evictions of pods, and ensure that the Kafka or ZooKeeper cluster remains available.
+You do this by setting the <code>maxUnavailable</code> value to zero in the <code>Kafka</code> or <code>ZooKeeper</code> template.
+<code>StrimziPodSet</code> custom resources manage Kafka and ZooKeeper pods using a custom controller that cannot use the <code>maxUnavailable</code> value directly.
+Instead, the <code>maxUnavailable</code> value is converted to a <code>minAvailable</code> value.
+For example, if there are three broker pods and the <code>maxUnavailable</code> property is set to <code>0</code> (zero), the <code>minAvailable</code> setting is <code>3</code>, requiring all three broker pods to be available and allowing zero pods to be unavailable.</p>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -27057,7 +27080,7 @@ spec:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Configure a pod disruption budget of <code>0</code> (zero) for your Kafka deployment using <code>template</code> settings in the <code>Kafka</code> resource.</p>
+<p>Set <code>maxUnavailable</code> to <code>0</code> (zero) in the Kafka and ZooKeeper sections of the <code>Kafka</code> resource using <code>template</code> settings.</p>
 <div class="listingblock">
 <div class="title">Specifying a pod disruption budget</div>
 <div class="content">
@@ -27081,8 +27104,8 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p>Reducing the maximum pod disruption budget to zero prevents Kubernetes from automatically evicting the pods in case of voluntary disruptions,
-leaving the Strimzi Drain Cleaner and Strimzi Cluster Operator to roll the pod which will be scheduled by Kubernetes on a different worker node.</p>
+<p>This setting prevents the automatic eviction of pods in case of planned disruptions,
+leaving the Strimzi Drain Cleaner and Cluster Operator to roll the pods on different worker nodes.</p>
 </div>
 <div class="paragraph">
 <p>Add the same configuration for ZooKeeper if you want to use Strimzi Drain Cleaner to drain ZooKeeper nodes.</p>
