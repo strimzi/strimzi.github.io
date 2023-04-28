@@ -318,8 +318,8 @@ Note how we pass the decoder parameter when dumping from internal topics, whose 
 19 ...
 ```
 
-The consumer offsets and the output message are committed as an atomic unit (lines 8 and 18).
-In `wc-output-0` dump, we see that the data batch is transactional and contains the producer's state (line 5).
+The consumer offsets and the output message are committed (lines 8 and 18).
+In `wc-output-0` dump, we see that the data batch is transactional and contains the producer session (line 5).
 In `__consumer_offsets-12` dump, we have the consumer group's offset commit record (line 16).
 
 We can also look at how the transaction states are stored.
