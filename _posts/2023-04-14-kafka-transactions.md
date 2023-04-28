@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Kafka transactions (exactly-once semantics)"
+title: "Exactly-once semantics with Kafka transactions"
 date: 2023-04-14
 author: federico_valeri
 ---
@@ -14,14 +14,14 @@ Transactions provide the guarantee of atomicity, consistency, isolation, and dur
 This means that either all messages within the transaction will be successfully written to Kafka or none of the messages will be written.
 This is a crucial feature when it comes to ensuring data consistency and avoiding any data loss.
 
-Kafka transactions are particularly important in scenarios where data integrity is critical, such as financial transactions, logging systems, and messaging platforms.
+Kafka transactions are particularly important in scenarios where data integrity is critical, such as financial transactions and logging systems.
 Additionally, using Kafka transactions can help ensure that the ordering of events is preserved, which can be necessary for certain applications.
 
 In this post you will learn how EOS works in Kafka, which are the main components that are involved in a transaction lifetime and their requirements. 
-Then, you will learn about the drawbacks, so that you can anticipate any issue long before your application reach production stage.
+Then, you will learn about the drawbacks, so that you can anticipate any issue long before your application reaches production stage.
 Finally, you will see a basic example that helps to understand how transactions metadata are stored, which is useful for troubleshooting.
 
-A general understanding of how the log replication protocol works is required to fully understand some of the concepts presented here.
+A general understanding of how the [log replication protocol](https://kafka.apache.org/documentation/#replication) works is required to fully understand some of the concepts presented here.
 
 <!--more-->
 
@@ -47,7 +47,7 @@ Another way to achieve EOS is to apply a deduplication logic at the consumer sid
 Since Kafka 3.0, the producer enables the stronger delivery guarantees by default (`acks=all`, `enable.idempotence=true`).
 In addition to durability, this provides partition level message ordering and duplicates protection.
 
-When the idempotent producer is enabled, the broker registers a producer id (PID) for every new producer instance, including restarts.
+When the idempotent producer is enabled, the broker registers a producer id (PID) for every new producer instance.
 A sequence number is assigned to each record when the batch is first added to a produce request and never changed, even if the batch is resent.
 The broker keeps track of the sequence number per producer and partition, periodically storing this information in a `.snapshot` file.
 Whenever a new batch arrives, the broker checks if the received sequence number is equal to the last-appended batch's sequence number plus one, then the batch is acknowledged, otherwise it is rejected.
@@ -61,7 +61,7 @@ For those using Kafka Streams it is much simpler: setting `processing.guarantee=
 
 ### Considerations
 
-Each producer must configure its own static and unique [`transactional.id`](https://kafka.apache.org/documentation/#producerconfigs_transactional.id) to enable the zombie fencing logic, which avoids message duplicates.
+Each producer must configure its own static and unique [`transactional.id`](https://kafka.apache.org/documentation/#producerconfigs_transactional.id).
 
 The `transactional.id` is used to uniquely identify the same logical producer across process restarts.
 In contrast to the idempotent producer, a transactional producer instance will be allocated the same PID (but incremented producer epoch), as any previous instance with the same `transactional.id`. 
@@ -86,8 +86,8 @@ The [transactional outbox pattern](https://microservices.io/patterns/data/transa
 
 In order to implement transactions Kafka brokers need to include extra book-keeping information in logs.
 
-Information about producers and their transactions is stored in the `__transaction_state` topic which is used by the transaction coordinator running inside a broker.
-Each transaction coordinator owns a subset of the partitions in the `__transaction_state` topic (i.e. the partitions for which its broker is the leader).
+Information about producers and their transactions is stored in the `__transaction_state` topic which is used a broker component called the transaction coordinator.
+Each transaction coordinator owns a subset of the partitions in this topic (i.e. the partitions for which its broker is the leader).
 
 Within user logs in addition to the usual batches of data records, transaction coordinators cause partition leaders append control records (commit/abort markers) to track which batches have actually been committed and which rolled back.
 Control records are not exposed to applications by Kafka consumers, as they are an internal implementation detail of the transaction support.
@@ -227,6 +227,8 @@ Let's run a basic example to see how transactions work at the partition level.
 You just need an environment with few command line tools (curl, tar, java, mvn).
 
 This application consumes text messages from the `input-topic`, reverts their content, and sends the result to the `output-topic`.
+All of this happens as part of single atomic operation, which also includes committing the consumer offsets.
+
 The following diagram shows the relevant RPCs.
 
 ![txn app](/assets/images/posts/2023-04-14-kafka-txn-app.png)
@@ -291,7 +293,7 @@ $ kafka-cp kafka-txn-0
 30
 ```
 
-Knowing the user and coordinating partitions, we can take a look at their content using the embedded dump tool.
+Knowing the `output-topic` and coordinating partitions, we can take a look at their content using the embedded dump tool.
 Note how we pass the decoder parameter when dumping from internal topics, whose content is encoded for performance reasons.
 
 ```sh
@@ -312,7 +314,7 @@ Note how we pass the decoder parameter when dumping from internal topics, whose 
 15 baseOffset: 1 lastOffset: 1 count: 1 baseSequence: 0 lastSequence: 0 producerId: 0 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: false deleteHorizonMs: OptionalLong.empty position: 339 CreateTime: 1665506597950 size: 118 magic: 2 compresscodec: none crc: 4199759988 isvalid: true
 16 | offset: 1 CreateTime: 1680383688085 keySize: 26 valueSize: 24 sequence: 0 headerKeys: [] key: offset_commit::group=my-group,partition=input-topic-0 payload: offset=1
 17 baseOffset: 2 lastOffset: 2 count: 1 baseSequence: -1 lastSequence: -1 producerId: 0 producerEpoch: 0 partitionLeaderEpoch: 0 isTransactional: true isControl: true deleteHorizonMs: OptionalLong.empty position: 457 CreateTime: 1665506597998 size: 78 magic: 2 compresscodec: none crc: 3355926470 isvalid: true
-18 | offset: 2 CreateTime: 1680383688163 keySize: 4 valueSize: 6 sequence: -1 headerKeys: [] endTxnMarker: COMMIT coordinatorEpoch: 0
+18 | offset: 2 CreateTime: 1665506597998 keySize: 4 valueSize: 6 sequence: -1 headerKeys: [] endTxnMarker: COMMIT coordinatorEpoch: 0
 19 ...
 ```
 
