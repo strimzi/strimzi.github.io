@@ -86,10 +86,10 @@ The [transactional outbox pattern](https://microservices.io/patterns/data/transa
 
 In order to implement transactions Kafka brokers need to include extra book-keeping information in logs.
 
-Information about producers and their transactions is stored in the `__transaction_state` topic which is used a broker component called the transaction coordinator.
+Information about producers and their transactions is stored in the `__transaction_state` topic which is used by a broker component called the transaction coordinator.
 Each transaction coordinator owns a subset of the partitions in this topic (i.e. the partitions for which its broker is the leader).
 
-Within user logs in addition to the usual batches of data records, transaction coordinators cause partition leaders append control records (commit/abort markers) to track which batches have actually been committed and which rolled back.
+Within user logs in addition to the usual batches of data records, transaction coordinators cause partition leaders to append control records (commit/abort markers) for tracking which batches have actually been committed and which rolled back.
 Control records are not exposed to applications by Kafka consumers, as they are an internal implementation detail of the transaction support.
 
 Non-transactional records are considered decided immediately, but transactional records are only decided when the corresponding commit or abort marker is written.
@@ -109,6 +109,8 @@ Once the control record is written to each involved partition, we have the `Comp
 
 The last stable offset (LSO) is the offset in a user partition such that all lower offsets have been decided and it is always present.
 The first unstable offset (FUO) is the earliest offset in a user partition that is part of the ongoing transaction, if present.
+The high watermark (HW) is the offset of the last message that was successfully copied to all of the log's in-sync replicas.
+The log end offset (LEO) is the the highest offset of the partition.
 
 We have that `LSO <= HW <= LEO`, which can be the same offset when there is no open transaction and all partitions are in-sync.
 
