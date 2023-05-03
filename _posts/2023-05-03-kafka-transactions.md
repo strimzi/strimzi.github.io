@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Exactly-once semantics with Kafka transactions"
-date: 2023-04-14
+date: 2023-05-03
 author: federico_valeri
 ---
 
@@ -105,7 +105,7 @@ Every time some data is written to a new partition inside a transaction, we have
 When the transaction completes, we have the `PrepareCommit` or `PrepareAbort` state change.
 Once the control record is written to each involved partition, we have the `CompleteCommit` or `CompleteAbort` state change.
 
-![txn log](/assets/images/posts/2023-04-14-kafka-txn-log.png)
+![txn log](/assets/images/posts/2023-05-03-kafka-txn-log.png)
 
 The last stable offset (LSO) is the offset in a user partition such that all lower offsets have been decided and it is always present.
 The first unstable offset (FUO) is the earliest offset in a user partition that is part of the ongoing transaction, if present.
@@ -233,7 +233,7 @@ All of this happens as part of single atomic operation, which also includes comm
 
 The following diagram shows the relevant RPCs.
 
-![txn app](/assets/images/posts/2023-04-14-kafka-txn-app.png)
+![txn app](/assets/images/posts/2023-05-03-kafka-txn-app.png)
 
 In the following snippet we start the Kafka cluster, run the application, and create a single transaction.
 For the sake of simplicity, we use a single-node cluster running on localhost, but the example also works with a multi-node cluster.
