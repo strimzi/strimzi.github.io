@@ -479,7 +479,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#assembly-mirrormaker-str">2.3. Kafka MirrorMaker 2 cluster configuration</a>
 <ul class="sectlevel3">
-<li><a href="#con-mirrormaker-str">2.3.1. MirrorMaker 2 data replication</a></li>
+<li><a href="#con-mirrormaker-str">2.3.1. Replicating data using MirrorMaker 2</a></li>
 <li><a href="#con-config-mirrormaker2-connectors-str">2.3.2. Connector configuration</a></li>
 <li><a href="#con-mirrormaker-producers-consumers-str">2.3.3. Connector producer and consumer configuration</a></li>
 <li><a href="#con-mirrormaker-tasks-max-str">2.3.4. Specifying a maximum number of tasks</a></li>
@@ -3468,7 +3468,7 @@ MirrorMaker 2 replicates data between two or more Kafka clusters, within or acro
 If you choose to use MirrorMaker 2, there is currently no legacy support, so any resources must be manually converted into the new format.</p>
 </div>
 <div class="sect3">
-<h4 id="con-mirrormaker-str"><a class="link" href="#con-mirrormaker-str">2.3.1. MirrorMaker 2 data replication</a></h4>
+<h4 id="con-mirrormaker-str"><a class="link" href="#con-mirrormaker-str">2.3.1. Replicating data using MirrorMaker 2</a></h4>
 <div class="paragraph _abstract">
 <p>Data replication across clusters supports scenarios that require:</p>
 </div>
@@ -3719,23 +3719,27 @@ If you have an application written in Java, you can use the <code>RemoteClusterU
 </div>
 </div>
 <div class="sect4">
-<h5 id="connectivity_checks"><a class="link" href="#connectivity_checks">Connectivity checks</a></h5>
+<h5 id="deciding_when_to_use_the_heartbeat_connector"><a class="link" href="#deciding_when_to_use_the_heartbeat_connector">Deciding when to use the heartbeat connector</a></h5>
 <div class="paragraph">
-<p><code>MirrorHeartbeatConnector</code> emits <em>heartbeats</em> to check connectivity between clusters.</p>
-</div>
-<div class="paragraph">
-<p>An internal <code>heartbeat</code> topic is replicated from the source cluster.
-Target clusters use the <code>heartbeat</code> topic to check the following:</p>
+<p>The heartbeat connector emits heartbeats to check connectivity between source and target Kafka clusters.
+An internal <code>heartbeat</code> topic is replicated from the source cluster, which means that the heartbeat connector must be connected to the source cluster.
+The <code>heartbeat</code> topic is located on the target cluster, which allows it to do the following:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>The connector managing connectivity between clusters is running</p>
+<p>Identify all source clusters it is mirroring data from</p>
 </li>
 <li>
-<p>The source cluster is available</p>
+<p>Verify the liveness and latency of the mirroring process</p>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>This helps to make sure that the process is not stuck or has stopped for any reason.
+While the heartbeat connector can be a valuable tool for monitoring the mirroring processes between Kafka clusters, it&#8217;s not always necessary to use it.
+For example, if your deployment has low network latency or a small number of topics, you might prefer to monitor the mirroring process using log messages or other monitoring tools.
+If you decide not to use the heartbeat connector, simply omit it from your MirrorMaker 2 configuration.</p>
 </div>
 </div>
 </div>
@@ -4338,7 +4342,7 @@ When setting a maximum number of tasks, consider the number of partitions and th
 For example, adding more tasks reduces the time taken to poll the source cluster when there is a high number of partitions or consumer groups.</p>
 </div>
 <div class="paragraph">
-<p>Increasing the number of tasks for the checkpoint connector is useful when you have a large number of partitions.</p>
+<p>Increasing the number of tasks for the source connector is useful when you have a large number of partitions.</p>
 </div>
 <div class="listingblock">
 <div class="title">Increasing the number of tasks for the source connector</div>
@@ -23007,7 +23011,7 @@ If not specified, the <code>full</code> mode is used by default.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-05-04 13:04:35 UTC
+Last updated 2023-05-04 16:39:41 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
