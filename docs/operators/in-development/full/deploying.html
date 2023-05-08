@@ -781,7 +781,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel2">
 <li><a href="#con-upgrade-paths-str">18.1. Strimzi upgrade paths</a>
 <ul class="sectlevel3">
-<li><a href="#con-upgrade-paths-kafka-versions-str">18.1.1. Supported Kafka versions</a></li>
+<li><a href="#con-upgrade-paths-kafka-versions-str">18.1.1. Support for Kafka versions when upgrading</a></li>
 <li><a href="#con-upgrade-paths-earlier-versions-str">18.1.2. Upgrading from a Strimzi version earlier than 0.22</a></li>
 </ul>
 </li>
@@ -22740,19 +22740,30 @@ A reduction in cluster availability increases the chance that a broker failure w
 <div class="sect2">
 <h3 id="con-upgrade-paths-str"><a class="link" href="#con-upgrade-paths-str">18.1. Strimzi upgrade paths</a></h3>
 <div class="paragraph _abstract">
-<p>Two Strimzi upgrade paths are possible.</p>
+<p>Two upgrade paths are available for Strimzi.</p>
 </div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Incremental upgrade</dt>
 <dd>
-<p>Upgrading Strimzi from the previous minor version to version latest.</p>
+<p>An incremental upgrade involves upgrading Strimzi from the previous minor version to version latest.</p>
 </dd>
 <dt class="hdlist1">Multi-version upgrade</dt>
 <dd>
-<p>Upgrading Strimzi from an old version to version latest within a single upgrade (skipping one or more intermediate versions).</p>
+<p>A multi-version upgrade involves upgrading an older version of Strimzi to version latest within a single upgrade, skipping one or more intermediate versions.
+For example, upgrading directly from Strimzi 0.30.0 to Strimzi latest is possible.</p>
+</dd>
+</dl>
+</div>
+<div class="sect3">
+<h4 id="con-upgrade-paths-kafka-versions-str"><a class="link" href="#con-upgrade-paths-kafka-versions-str">18.1.1. Support for Kafka versions when upgrading</a></h4>
 <div class="paragraph">
-<p>For example, upgrading from Strimzi 0.24.0 directly to Strimzi latest.</p>
+<p>When upgrading Strimzi, it is important to ensure compatibility with the Kafka version being used.</p>
+</div>
+<div class="paragraph">
+<p>Multi-version upgrades are possible even if the supported Kafka versions differ between the old and new versions.
+However, if you attempt to upgrade to a new Strimzi version that does not support the current Kafka version, <a href="#con-upgrade-cluster-operator-unsupported-kafka-str">an error indicating that the Kafka version is not supported is generated</a>.
+In this case, you must upgrade the Kafka version as part of the Strimzi upgrade by changing the <code>spec.kafka.version</code> in the <code>Kafka</code> custom resource to the supported version for the new Strimzi version.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -22761,19 +22772,8 @@ A reduction in cluster availability increases the chance that a broker failure w
 <div class="title">Note</div>
 </td>
 <td class="content">
-A multi-version Strimzi upgrade might still support the current version of a Kafka deployment.
-</td>
-</tr>
-</table>
-</div>
-</dd>
-</dl>
-</div>
-<div class="sect3">
-<h4 id="con-upgrade-paths-kafka-versions-str"><a class="link" href="#con-upgrade-paths-kafka-versions-str">18.1.1. Supported Kafka versions</a></h4>
 <div class="paragraph">
-<p>Decide which Kafka version to upgrade to before starting the Strimzi upgrade process.
-You can review supported Kafka versions in the <a href="https://strimzi.io/downloads/" target="_blank" rel="noopener">Supported versions</a> table.</p>
+<p>You can review supported Kafka versions in the <a href="https://strimzi.io/downloads/" target="_blank" rel="noopener">Supported versions</a> table.</p>
 </div>
 <div class="ulist">
 <ul>
@@ -22785,10 +22785,9 @@ You can review supported Kafka versions in the <a href="https://strimzi.io/downl
 </li>
 </ul>
 </div>
-<div class="paragraph">
-<p>You can only use a Kafka version supported by the version of Strimzi you are using.
-You can upgrade to a higher Kafka version as long as it is supported by your version of Strimzi.
-In some cases, you can also downgrade to a previous supported Kafka version.</p>
+</td>
+</tr>
+</table>
 </div>
 </div>
 <div class="sect3">
@@ -23111,11 +23110,8 @@ You can access the CRDs from the <a href="https://github.com/strimzi/strimzi-kaf
 <div class="sect3">
 <h4 id="con-upgrade-cluster-operator-unsupported-kafka-str"><a class="link" href="#con-upgrade-cluster-operator-unsupported-kafka-str">18.4.1. Upgrading the Cluster Operator returns Kafka version error</a></h4>
 <div class="paragraph">
-<p>If you upgrade the Cluster Operator and get an <em>unsupported Kafka version</em> error, your Kafka cluster deployment has an older Kafka version that is not supported by the new operator version.
-This error applies to all installation methods.</p>
-</div>
-<div class="paragraph">
-<p>If this error occurs, upgrade Kafka to a supported Kafka version.
+<p>If you upgrade the Cluster Operator to a version that does not support the current version of Kafka you are using, you get an <em>unsupported Kafka version</em> error.
+This error applies to all installation methods and means that you must upgrade Kafka to a supported Kafka version.
 Change the <code>spec.kafka.version</code> in the <code>Kafka</code> resource to the supported version.</p>
 </div>
 <div class="paragraph">
@@ -23124,11 +23120,11 @@ Change the <code>spec.kafka.version</code> in the <code>Kafka</code> resource to
 <div class="listingblock">
 <div class="title">Checking the Kafka status for errors</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka <em>&lt;kafka_cluster_name&gt;</em> -n <em>&lt;namespace&gt;</em> -o jsonpath='{.status.conditions}'</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka &lt;kafka_cluster_name&gt; -n &lt;namespace&gt; -o jsonpath='{.status.conditions}'</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Replace <code><em>&lt;kafka_cluster_name&gt;</em></code> with the name of your Kafka cluster and <code><em>&lt;namespace&gt;</em></code> with the Kubernetes namespace where the pod is running.</p>
+<p>Replace &lt;kafka_cluster_name&gt; with the name of your Kafka cluster and &lt;namespace&gt; with the Kubernetes namespace where the pod is running.</p>
 </div>
 </div>
 <div class="sect3">
@@ -29107,7 +29103,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-05-06 11:42:46 UTC
+Last updated 2023-05-08 11:40:53 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
