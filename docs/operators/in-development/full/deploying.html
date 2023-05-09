@@ -16455,89 +16455,121 @@ Very large reassignments should be broken down into a number of smaller reassign
 <div class="sect3">
 <h4 id="specifying_topics_in_a_partition_reassignment_json_file"><a class="link" href="#specifying_topics_in_a_partition_reassignment_json_file">14.1.2. Specifying topics in a partition reassignment JSON file</a></h4>
 <div class="paragraph">
-<p>The tool uses a reassignment JSON file that specifies the topics to reassign.
+<p>The <code>kafka-reassign-partitions.sh</code> tool uses a reassignment JSON file that specifies the topics to reassign.
 You can generate a reassignment JSON file or create a file manually if you want to move specific partitions.</p>
 </div>
 <div class="paragraph">
-<p>The reassignment JSON file has the following structure:</p>
+<p>A basic reassignment JSON file has the structure presented in the following example, which describes three partitions belonging to two Kafka topics.
+Each partition is reassigned to a new set of replicas, which are identified by their broker IDs.
+The <code>version</code>, <code>topic</code>, <code>partition</code>, and <code>replicas</code> properties are all required.</p>
 </div>
 <div class="listingblock">
+<div class="title">Example partition reassignment JSON file structure</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">{
-  "version": 1,
-  "partitions": [
-    <em>&lt;PartitionObjects&gt;</em>
-  ]
-}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Where <em>&lt;PartitionObjects&gt;</em> is a comma-separated list of objects like:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">{
-  "topic": <em>&lt;TopicName&gt;</em>,
-  "partition": <em>&lt;Partition&gt;</em>,
-  "replicas": [ <em>&lt;AssignedBrokerIds&gt;</em> ]
-}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The following is an example reassignment JSON file that assigns partition <code>4</code> of topic <code>topic-a</code> to brokers <code>2</code>, <code>4</code> and <code>7</code>, and partition <code>2</code> of topic <code>topic-b</code> to brokers <code>1</code>, <code>5</code> and <code>7</code>:</p>
-</div>
-<div class="listingblock">
-<div class="title">Example partition reassignment file</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">{
-  "version": 1,
-  "partitions": [
+  "version": 1, # <b class="conum">(1)</b>
+  "partitions": [ # <b class="conum">(2)</b>
     {
-      "topic": "topic-a",
-      "partition": 4,
-      "replicas": [2,4,7]
+      "topic": "example-topic-1", # <b class="conum">(3)</b>
+      "partition": 0, # <b class="conum">(4)</b>
+      "replicas": [1, 2, 3] # <b class="conum">(5)</b>
     },
     {
-      "topic": "topic-b",
-      "partition": 2,
-      "replicas": [1,5,7]
+      "topic": "example-topic-1",
+      "partition": 1,
+      "replicas": [2, 3, 4]
+    },
+    {
+      "topic": "example-topic-2",
+      "partition": 0,
+      "replicas": [3, 4, 5]
     }
   ]
 }</code></pre>
 </div>
 </div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The version of the reassignment JSON file format. Currently, only version 1 is supported, so this should always be 1.</p>
+</li>
+<li>
+<p>An array that specifies the partitions to be reassigned.</p>
+</li>
+<li>
+<p>The name of the Kafka topic that the partition belongs to.</p>
+</li>
+<li>
+<p>The ID of the partition being reassigned.</p>
+</li>
+<li>
+<p>An ordered array of the IDs of the brokers that should be assigned as replicas for this partition. The first broker in the list is the leader replica.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Partitions not included in the JSON are not changed.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
-<p>Partitions not included in the JSON are not changed.</p>
+<p>If you specify only topics using a <code>topics</code> array, the partition reassignment tool reassigns all the partitions belonging to the specified topics.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example reassignment JSON file structure for reassigning all partitions for a topic</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">{
+  "version": 1,
+  "topics": [
+    { "topic": "my-topic"}
+  ]
+}</code></pre>
+</div>
 </div>
 </div>
 <div class="sect3">
 <h4 id="reassigning_partitions_between_jbod_volumes"><a class="link" href="#reassigning_partitions_between_jbod_volumes">14.1.3. Reassigning partitions between JBOD volumes</a></h4>
 <div class="paragraph">
-<p>When using JBOD storage in your Kafka cluster, you can choose to reassign the partitions between specific volumes and their log directories (each volume has a single log directory).
-To reassign a partition to a specific volume, add the <code>log_dirs</code> option to <em>&lt;PartitionObjects&gt;</em> in the reassignment JSON file.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">{
-  "topic": <em>&lt;TopicName&gt;</em>,
-  "partition": <em>&lt;Partition&gt;</em>,
-  "replicas": [ <em>&lt;AssignedBrokerIds&gt;</em> ],
-  "log_dirs": [ <em>&lt;AssignedLogDirs&gt;</em> ]
-}</code></pre>
-</div>
+<p>When using JBOD storage in your Kafka cluster, you can reassign the partitions between specific volumes and their log directories (each volume has a single log directory).</p>
 </div>
 <div class="paragraph">
-<p>The <code>log_dirs</code> object should contain the same number of log directories as the number of replicas specified in the <code>replicas</code> object.
-The value should be either an absolute path to the log directory, or the <code>any</code> keyword.</p>
+<p>To reassign a partition to a specific volume, add <code>log_dirs</code> values for each partition in the reassignment JSON file.
+Each <code>log_dirs</code> array contains the same number of entries as the <code>replicas</code> array, since each replica should be assigned to a specific log directory.
+The <code>log_dirs</code> array contains either an absolute path to a log directory or the special value <code>any</code>.
+The <code>any</code> value indicates that Kafka can choose any available log directory for that replica, which can be useful when reassigning partitions between JBOD volumes.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example partition reassignment file specifying log directories</div>
+<div class="title">Example reassignment JSON file structure with log directories</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">{
-      "topic": "topic-a",
-      "partition": 4,
-      "replicas": [2,4,7].
-      "log_dirs": [ "/var/lib/kafka/data-0/kafka-log2", "/var/lib/kafka/data-0/kafka-log4", "/var/lib/kafka/data-0/kafka-log7" ]
+  "version": 1,
+  "partitions": [
+    {
+      "topic": "example-topic-1",
+      "partition": 0,
+      "replicas": [1, 2, 3]
+      "log_dirs": ["/var/lib/kafka/data-0/kafka-log1", "any", "/var/lib/kafka/data-1/kafka-log2"]
+    },
+    {
+      "topic": "example-topic-1",
+      "partition": 1,
+      "replicas": [2, 3, 4]
+      "log_dirs": ["any",  "/var/lib/kafka/data-2/kafka-log3", "/var/lib/kafka/data-3/kafka-log4"]
+    },
+    {
+      "topic": "example-topic-2",
+      "partition": 0,
+      "replicas": [3, 4, 5]
+      "log_dirs": ["/var/lib/kafka/data-4/kafka-log5", "any",  "/var/lib/kafka/data-5/kafka-log6"]
+    }
+  ]
 }</code></pre>
 </div>
 </div>
@@ -29103,7 +29135,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-05-08 11:40:53 UTC
+Last updated 2023-05-09 07:58:16 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
