@@ -1,32 +1,32 @@
 <!DOCTYPE html>
 <html>
 
-{% include site-header.html %} 
- <div class="doc-nav">
+{% include site-header.html %}
+<div class="doc-nav">
   <nav class="site-content">
-    {% include header-navigation.html %} 
-  </nav> 
- </div> 
+    {% include header-navigation.html %}
+  </nav>
+</div>
 
- <body class="{% if page.url == '/' %}homepage{% else %}{{page.layout}}{% endif %}">
+<body class="{% if page.url == '/' %}homepage{% else %}{{page.layout}}{% endif %}">
   <div class="doc-main">
-      <nav class="toc-left">
-          {% include toc.html html=content %}
-      </nav>
-      
-      <div class="doc-content"> 
-        <h1>
-          {{ page.title | replace: '!LATEST_OPERATOR_VERSION!', site.data.releases.operator[0].version | replace:
-          '!LATEST_BRIDGE_VERSION!', site.data.releases.bridge[0].version }}
-        </h1>
-        {{ content }}
-      </div> 
+    <nav class="toc-left">
+      {% include toc.html html=content %}
+    </nav>
+
+    <div class="doc-content">
+      <h1>
+        {{ page.title | replace: '!LATEST_OPERATOR_VERSION!', site.data.releases.operator[0].version | replace:
+        '!LATEST_BRIDGE_VERSION!', site.data.releases.bridge[0].version }}
+      </h1>
+      {{ content }}
+    </div>
   </div>
 </body>
 
-  <nav class="site-content footer" id="footer">
+<nav class="site-content footer" id="footer">
   {% include project-footer.html %}
- </nav>
+</nav>
 
 {% include site-scripts.html %}
 </html>
@@ -40,16 +40,52 @@
 </style>
 
 <script>
-const footer = document.querySelector('#footer');
-const toc = document.querySelector('.toc-left');
+  const footer = document.querySelector('#footer');
+  const toc = document.querySelector('.toc-left');
+  const content = document.querySelector('.doc-content');
 
-window.addEventListener('scroll', () => {
-  const rect = footer.getBoundingClientRect();
-  if (rect.top < window.innerHeight && rect.bottom > 0) {
-    toc.classList.add('footer-visible');
-  } else {
-    toc.classList.remove('footer-visible');
+  let isResizing = false;
+
+  function setWidth() {
+    if (isResizing) return;
+
+    isResizing = true;
+
+    setTimeout(() => {
+      const tocWidth = toc.offsetWidth;
+      const adjustedWidth = `calc(100% - ${tocWidth}px)`;
+      content.style.width = adjustedWidth;
+      isResizing = false;
+    }, 500);
   }
-});
+
+  function throttleTocResize(func, delay) {
+    let isResizing = false;
+
+    return function () {
+      if (isResizing) return;
+
+      isResizing = true;
+
+      setTimeout(() => {
+        func();
+        isResizing = false;
+      }, delay);
+    };
+  }
+
+  setWidth();
+
+  window.addEventListener('resize', throttleTocResize(setWidth, 800));
+  toc.addEventListener('mousemove', throttleTocResize(setWidth, 800));
+
+  window.addEventListener('scroll', () => {
+    const rect = footer.getBoundingClientRect();
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      toc.classList.add('footer-visible');
+    } else {
+      toc.classList.remove('footer-visible');
+    }
+  });
 
 </script>
