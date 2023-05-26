@@ -3856,7 +3856,9 @@ If you decide not to use the heartbeat connector, simply omit it from your Mirro
 <dl>
 <dt class="hdlist1">replication.policy.separator</dt>
 <dd>
-<p>The separator used for topic naming in the target cluster. Default is <code>.</code> (dot).</p>
+<p>The separator used for topic naming in the target cluster. By default, the separator is set to a dot (.).
+Separator configuration is only applicable to the <code>DefaultReplicationPolicy</code> replication policy class, which defines remote topic names.
+The <code>IdentityReplicationPolicy</code> class does not use the property as topics retain their original names.</p>
 </dd>
 </dl>
 </div></div></td>
@@ -4191,6 +4193,33 @@ If you decide not to use the heartbeat connector, simply omit it from your Mirro
 </tr>
 </tbody>
 </table>
+<div class="sect4">
+<h5 id="aligning_the_configuration_of_mirrormaker_2_connectors"><a class="link" href="#aligning_the_configuration_of_mirrormaker_2_connectors">Aligning the configuration of MirrorMaker 2 connectors</a></h5>
+<div class="paragraph">
+<p>To ensure that MirrorMaker 2 connectors work properly, make sure to align certain configuration settings across connectors.
+Specifically, ensure that the following properties have the same value across all applicable connectors:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>replication.policy.class</code></p>
+</li>
+<li>
+<p><code>replication.policy.separator</code></p>
+</li>
+<li>
+<p><code>offset-syncs.topic.location</code></p>
+</li>
+<li>
+<p><code>topic.filter.class</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For example, the value for <code>replication.policy.class</code> must be the same for the source, checkpoint, and heartbeat connectors.
+Mismatched or missing settings cause issues with data replication or offset syncing, so it&#8217;s essential to keep all relevant connectors configured with the same settings.</p>
+</div>
+</div>
 </div>
 <div class="sect3">
 <h4 id="con-mirrormaker-producers-consumers-str"><a class="link" href="#con-mirrormaker-producers-consumers-str">2.3.3. Connector producer and consumer configuration</a></h4>
@@ -4649,53 +4678,54 @@ spec:
       autoRestart: # <b class="conum">(19)</b>
         enabled: true
       config:
+        docs_mm2-connector-config
         replication.factor: 1 # <b class="conum">(20)</b>
         offset-syncs.topic.replication.factor: 1 # <b class="conum">(21)</b>
         sync.topic.acls.enabled: "false" # <b class="conum">(22)</b>
         refresh.topics.interval.seconds: 60 # <b class="conum">(23)</b>
-        replication.policy.separator: "." # <b class="conum">(24)</b>
-        replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy" # <b class="conum">(25)</b>
-    heartbeatConnector: # <b class="conum">(26)</b>
+        replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy" # <b class="conum">(24)</b>
+    heartbeatConnector: # <b class="conum">(25)</b>
       autoRestart:
         enabled: true
       config:
-        heartbeats.topic.replication.factor: 1 # <b class="conum">(27)</b>
-    checkpointConnector: # <b class="conum">(28)</b>
-      autoRestart:
-        enabled: true
-      config:
-        checkpoints.topic.replication.factor: 1 # <b class="conum">(29)</b>
-        refresh.groups.interval.seconds: 600 # <b class="conum">(30)</b>
-        sync.group.offsets.enabled: true # <b class="conum">(31)</b>
-        sync.group.offsets.interval.seconds: 60 # <b class="conum">(32)</b>
-        emit.checkpoints.interval.seconds: 60 # <b class="conum">(33)</b>
+        heartbeats.topic.replication.factor: 1 # <b class="conum">(26)</b>
         replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy"
-    topicsPattern: "topic1|topic2|topic3" # <b class="conum">(34)</b>
-    groupsPattern: "group1|group2|group3" # <b class="conum">(35)</b>
-  resources: # <b class="conum">(36)</b>
+    checkpointConnector: # <b class="conum">(27)</b>
+      autoRestart:
+        enabled: true
+      config:
+        checkpoints.topic.replication.factor: 1 # <b class="conum">(28)</b>
+        refresh.groups.interval.seconds: 600 # <b class="conum">(29)</b>
+        sync.group.offsets.enabled: true # <b class="conum">(30)</b>
+        sync.group.offsets.interval.seconds: 60 # <b class="conum">(31)</b>
+        emit.checkpoints.interval.seconds: 60 # <b class="conum">(32)</b>
+        replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy"
+    topicsPattern: "topic1|topic2|topic3" # <b class="conum">(33)</b>
+    groupsPattern: "group1|group2|group3" # <b class="conum">(34)</b>
+  resources: # <b class="conum">(35)</b>
     requests:
       cpu: "1"
       memory: 2Gi
     limits:
       cpu: "2"
       memory: 2Gi
-  logging: # <b class="conum">(37)</b>
+  logging: # <b class="conum">(36)</b>
     type: inline
     loggers:
       connect.root.logger.level: INFO
-  readinessProbe: # <b class="conum">(38)</b>
+  readinessProbe: # <b class="conum">(37)</b>
     initialDelaySeconds: 15
     timeoutSeconds: 5
   livenessProbe:
     initialDelaySeconds: 15
     timeoutSeconds: 5
-  jvmOptions: # <b class="conum">(39)</b>
+  jvmOptions: # <b class="conum">(38)</b>
     "-Xmx": "1g"
     "-Xms": "1g"
-  image: my-org/my-image:latest # <b class="conum">(40)</b>
+  image: my-org/my-image:latest # <b class="conum">(39)</b>
   rack:
-    topologyKey: topology.kubernetes.io/zone # <b class="conum">(41)</b>
-  template: # <b class="conum">(42)</b>
+    topologyKey: topology.kubernetes.io/zone # <b class="conum">(40)</b>
+  template: # <b class="conum">(41)</b>
     pod:
       affinity:
         podAntiAffinity:
@@ -4708,15 +4738,15 @@ spec:
                       - postgresql
                       - mongodb
               topologyKey: "kubernetes.io/hostname"
-    connectContainer: # <b class="conum">(43)</b>
+    connectContainer: # <b class="conum">(42)</b>
       env:
         - name: OTEL_SERVICE_NAME
           value: my-otel-service
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: "http://otlp-host:4317"
   tracing:
-    type: opentelemetry # <b class="conum">(44)</b>
-  externalConfiguration: # <b class="conum">(45)</b>
+    type: opentelemetry # <b class="conum">(43)</b>
+  externalConfiguration: # <b class="conum">(44)</b>
     env:
       - name: AWS_ACCESS_KEY_ID
         valueFrom:
@@ -4803,11 +4833,7 @@ Standard Apache Kafka configuration may be provided, restricted to those propert
 <p>Optional setting to change the frequency of checks for new topics. The default is for a check every 10 minutes.</p>
 </li>
 <li>
-<p>Defines the separator used for the renaming of remote topics.</p>
-</li>
-<li>
-<p>Adds a policy that overrides the automatic renaming of remote topics. Instead of prepending the name with the name of the source cluster, the topic retains its original name. This optional setting is useful for active/passive backups and data migration.
-To configure topic offset synchronization, this property must also be set for the <code>checkpointConnector.config</code>.</p>
+<p>Adds a policy that overrides the automatic renaming of remote topics. Instead of prepending the name with the name of the source cluster, the topic retains its original name. This optional setting is useful for active/passive backups and data migration. The property must be specified for all connectors. For bidirectional (active/active) replication, use the <code>DefaultReplicationPolicy</code> class to automatically rename remote topics and specify the <code>replication.policy.separator</code> property for all connectors to add a custom separator.</p>
 </li>
 <li>
 <p><a href="#type-KafkaMirrorMaker2ConnectorSpec-reference">Configuration for the <code>MirrorHeartbeatConnector</code></a> that performs connectivity checks. The <code>config</code> overrides the default configuration options.</p>
@@ -22864,7 +22890,7 @@ If not specified, the <code>full</code> mode is used by default.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-05-26 11:26:03 UTC
+Last updated 2023-05-26 15:54:30 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
