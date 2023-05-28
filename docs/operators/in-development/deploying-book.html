@@ -13696,10 +13696,10 @@ By using a different key to generate a new CA certificate, you retain the curren
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
 kind: Secret
 data:
-  ca.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0F... <b class="conum">(1)</b>
+  ca.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0F... # <b class="conum">(1)</b>
 metadata:
   annotations:
-    strimzi.io/ca-cert-generation: "0" <b class="conum">(2)</b>
+    strimzi.io/ca-cert-generation: "0" # <b class="conum">(2)</b>
   labels:
     strimzi.io/cluster: my-cluster
     strimzi.io/kind: Kafka
@@ -13723,7 +13723,7 @@ type: Opaque</code></pre>
 <p>Rename the current CA certificate to retain it.</p>
 <div class="paragraph">
 <p>Rename the current <code>ca.crt</code> property under <code>data</code> as <code>ca-<em>&lt;date&gt;</em>.crt</code>, where <em>&lt;date&gt;</em> is the certificate expiry date in the format <em>YEAR-MONTH-DAYTHOUR-MINUTE-SECONDZ</em>.
-For example <code>ca-2022-01-26T17-32-00Z.crt:</code>.
+For example <code>ca-2023-01-26T17-32-00Z.crt:</code>.
 Leave the value for the property as it is to retain the current CA certificate.</p>
 </div>
 </li>
@@ -13763,11 +13763,11 @@ The <code>strimzi.io/ca-cert-generation</code> has to be incremented on each CA 
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
 kind: Secret
 data:
-  ca.crt: GCa6LS3RTHeKFiFDGBOUDYFAZ0F... <b class="conum">(1)</b>
-  ca-2022-01-26T17-32-00Z.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0F... <b class="conum">(2)</b>
+  ca.crt: GCa6LS3RTHeKFiFDGBOUDYFAZ0F... # <b class="conum">(1)</b>
+  ca-2023-01-26T17-32-00Z.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0F... # <b class="conum">(2)</b>
 metadata:
   annotations:
-    strimzi.io/ca-cert-generation: "1" <b class="conum">(3)</b>
+    strimzi.io/ca-cert-generation: "1" # <b class="conum">(3)</b>
   labels:
     strimzi.io/cluster: my-cluster
     strimzi.io/kind: Kafka
@@ -13816,10 +13816,10 @@ type: Opaque</code></pre>
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
 kind: Secret
 data:
-  ca.key: SA1cKF1GFDzOIiPOIUQBHDNFGDFS... <b class="conum">(1)</b>
+  ca.key: SA1cKF1GFDzOIiPOIUQBHDNFGDFS... # <b class="conum">(1)</b>
 metadata:
   annotations:
-    strimzi.io/ca-key-generation: "0" <b class="conum">(2)</b>
+    strimzi.io/ca-key-generation: "0" # <b class="conum">(2)</b>
   labels:
     strimzi.io/cluster: my-cluster
     strimzi.io/kind: Kafka
@@ -13878,10 +13878,10 @@ The <code>strimzi.io/ca-key-generation</code> has to be incremented on each CA c
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
 kind: Secret
 data:
-  ca.key: AB0cKF1GFDzOIiPOIUQWERZJQ0F... <b class="conum">(1)</b>
+  ca.key: AB0cKF1GFDzOIiPOIUQWERZJQ0F... # <b class="conum">(1)</b>
 metadata:
   annotations:
-    strimzi.io/ca-key-generation: "1" <b class="conum">(2)</b>
+    strimzi.io/ca-key-generation: "1" # <b class="conum">(2)</b>
   labels:
     strimzi.io/cluster: my-cluster
     strimzi.io/kind: Kafka
@@ -13919,15 +13919,50 @@ type: Opaque</code></pre>
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate Kafka <em>&lt;name_of_custom_resource&gt;</em> strimzi.io/pause-reconciliation-</code></pre>
 </div>
 </div>
-</li>
-</ol>
-</div>
 <div class="paragraph">
 <p>On the next reconciliation, the Cluster Operator performs a rolling update of ZooKeeper, Kafka, and other components to trust the new CA certificate.
 When the rolling update is complete, the Cluster Operator will start a new one to generate new server certificates signed by the new CA key.</p>
 </div>
 <div class="paragraph">
 <p>If maintenance time windows are configured, the Cluster Operator will roll the pods at the first reconciliation within the next maintenance time window.</p>
+</div>
+</li>
+<li>
+<p>Wait until the rolling updates to move to the new CA certificate are complete.</p>
+</li>
+<li>
+<p>Remove any outdated certificates from the secret configuration to ensure that the cluster no longer trusts them.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit secret <em>&lt;ca_certificate_secret_name&gt;</em></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example secret configuration with the old certificate removed</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: Secret
+data:
+  ca.crt: GCa6LS3RTHeKFiFDGBOUDYFAZ0F...
+metadata:
+  annotations:
+    strimzi.io/ca-cert-generation: "1"
+  labels:
+    strimzi.io/cluster: my-cluster
+    strimzi.io/kind: Kafka
+  name: my-cluster-cluster-ca-cert
+  #...
+type: Opaque</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Start a manual rolling update of your cluster to pick up the changes made to the secret configuration.</p>
+<div class="paragraph">
+<p>See <a href="#assembly-rolling-updates-str">Manually starting rolling updates of Kafka and ZooKeeper clusters</a>.</p>
+</div>
+</li>
+</ol>
 </div>
 </div>
 </div>
