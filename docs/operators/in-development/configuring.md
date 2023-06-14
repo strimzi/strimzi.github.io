@@ -1,5 +1,5 @@
 ---
-title: Strimzi Custom Resource API Reference (In Development)
+title: Strimzi API Reference (In Development)
 layout: default
 ---
 
