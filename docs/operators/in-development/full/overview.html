@@ -490,14 +490,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#configuration-points-resources_str">7.1. Custom resources</a></li>
 <li><a href="#configuration-points-common_str">7.2. Common configuration</a></li>
 <li><a href="#configuration-points-broker_str">7.3. Kafka cluster configuration</a></li>
-<li><a href="#con-configuration-points-mm2-str">7.4. Kafka MirrorMaker configuration</a>
-<ul class="sectlevel3">
-<li><a href="#con-overview-mm2-str">7.4.1. MirrorMaker 2 configuration</a></li>
-<li><a href="#mirrormaker_configuration">7.4.2. MirrorMaker configuration</a></li>
-</ul>
-</li>
-<li><a href="#configuration-points-connect_str">7.5. Kafka Connect configuration</a></li>
-<li><a href="#configuration-points-bridge_str">7.6. Kafka Bridge configuration</a></li>
+<li><a href="#con-configuration-points-mm2-str">7.4. Kafka MirrorMaker 2 configuration</a></li>
+<li><a href="#con-configuration-points-mm-str">7.5. Kafka MirrorMaker configuration</a></li>
+<li><a href="#configuration-points-connect_str">7.6. Kafka Connect configuration</a></li>
+<li><a href="#configuration-points-bridge_str">7.7. Kafka Bridge configuration</a></li>
 </ul>
 </li>
 <li><a href="#security-overview_str">8. Securing Kafka</a>
@@ -1804,65 +1800,10 @@ spec:
 </div>
 </div>
 <div class="sect2">
-<h3 id="con-configuration-points-mm2-str"><a class="link" href="#con-configuration-points-mm2-str">7.4. Kafka MirrorMaker configuration</a></h3>
+<h3 id="con-configuration-points-mm2-str"><a class="link" href="#con-configuration-points-mm2-str">7.4. Kafka MirrorMaker 2 configuration</a></h3>
 <div class="paragraph _abstract">
-<p>Kafka MirrorMaker replicates data between two or more active Kafka clusters, within or across data centers.
-To set up MirrorMaker, a source and target (destination) Kafka cluster must be running.</p>
-</div>
-<div class="sect3">
-<h4 id="con-overview-mm2-str"><a class="link" href="#con-overview-mm2-str">7.4.1. MirrorMaker 2 configuration</a></h4>
-<div class="paragraph _abstract">
-<p>MirrorMaker 2 consumes messages from a source Kafka cluster and writes them to a target Kafka cluster.</p>
-</div>
-<div class="paragraph">
-<p>MirrorMaker 2 uses:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Source cluster configuration to consume data from the source cluster</p>
-</li>
-<li>
-<p>Target cluster configuration to output data to the target cluster</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>MirrorMaker 2 is based on the Kafka Connect framework, <em>connectors</em> managing the transfer of data between clusters.</p>
-</div>
-<div class="paragraph">
-<p>You configure MirrorMaker 2 to define the Kafka Connect deployment, including the connection details of the source and target clusters, and then run a set of MirrorMaker 2 connectors to make the connection.</p>
-</div>
-<div class="paragraph">
-<p>MirrorMaker 2 consists of the following connectors:</p>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1"><code>MirrorSourceConnector</code></dt>
-<dd>
-<p>The source connector replicates topics from a source cluster to a target cluster. It also replicates ACLs and is necessary for the <code>MirrorCheckpointConnector</code> to run.</p>
-</dd>
-<dt class="hdlist1"><code>MirrorCheckpointConnector</code></dt>
-<dd>
-<p>The checkpoint connector periodically tracks offsets. If enabled, it also synchronizes consumer group offsets between the source and target cluster.</p>
-</dd>
-<dt class="hdlist1"><code>MirrorHeartbeatConnector</code></dt>
-<dd>
-<p>The heartbeat connector periodically checks connectivity between the source and target cluster.</p>
-</dd>
-</dl>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-If you are using the User Operator to manage ACLs, ACL replication through the connector is not possible.
-</td>
-</tr>
-</table>
+<p>Kafka MirrorMaker 2 replicates data between two or more active Kafka clusters, within or across data centers.
+To set up MirrorMaker 2, a source and target (destination) Kafka cluster must be running.</p>
 </div>
 <div class="paragraph">
 <p>The process of <em>mirroring</em> data from a source cluster to a target cluster is asynchronous.
@@ -1876,67 +1817,20 @@ You can use more than one MirrorMaker 2 instance to mirror data between any numb
 <div class="title">Figure 1. Replication across two clusters</div>
 </div>
 <div class="paragraph">
-<p>By default, a check for new topics in the source cluster is made every 10 minutes.
-You can change the frequency by adding <code>refresh.topics.interval.seconds</code> to the source connector configuration.</p>
+<p>MirrorMaker 2 uses source and target cluster configuration as follows:</p>
 </div>
-<div class="sect4">
-<h5 id="cluster_configuration"><a class="link" href="#cluster_configuration">Cluster configuration</a></h5>
-<div class="paragraph">
-<p>You can use MirrorMaker 2 in <em>active/passive</em> or <em>active/active</em> cluster configurations.</p>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">active/active cluster configuration</dt>
-<dd>
-<p>An active/active configuration has two active clusters replicating data bidirectionally. Applications can use either cluster. Each cluster can provide the same data. In this way,  you can make the same data available in different geographical locations. As consumer groups are active in both clusters, consumer offsets for replicated topics are not synchronized back to the source cluster.</p>
-</dd>
-<dt class="hdlist1">active/passive cluster configuration</dt>
-<dd>
-<p>An active/passive configuration has an active cluster replicating data to a passive cluster. The passive cluster remains on standby. You might use the passive cluster for data recovery in the event of system failure.</p>
-</dd>
-</dl>
+<div class="ulist">
+<ul>
+<li>
+<p>Source cluster configuration for consuming data from the source cluster</p>
+</li>
+<li>
+<p>Target cluster configuration for outputting data to the target cluster</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
-<p>The expectation is that producers and consumers connect to active clusters only.
-A MirrorMaker 2 cluster is required at each target destination.</p>
-</div>
-</div>
-<div class="sect4">
-<h5 id="bidirectional_replication_activeactive"><a class="link" href="#bidirectional_replication_activeactive">Bidirectional replication (active/active)</a></h5>
-<div class="paragraph">
-<p>The MirrorMaker 2 architecture supports bidirectional replication in an <em>active/active</em> cluster configuration.</p>
-</div>
-<div class="paragraph">
-<p>Each cluster replicates the data of the other cluster using the concept of <em>source</em> and <em>remote</em> topics.
-As the same topics are stored in each cluster, remote topics are automatically renamed by MirrorMaker 2 to represent the source cluster.
-The name of the originating cluster is prepended to the name of the topic.</p>
-</div>
-<div class="imageblock">
-<div class="content">
-<img src="images/mirrormaker-renaming.png" alt="MirrorMaker 2 bidirectional architecture">
-</div>
-<div class="title">Figure 2. Topic renaming</div>
-</div>
-<div class="paragraph">
-<p>By flagging the originating cluster, topics are not replicated back to that cluster.</p>
-</div>
-<div class="paragraph">
-<p>The concept of replication through <em>remote</em> topics is useful when configuring an architecture that requires data aggregation.
-Consumers can subscribe to source and remote topics within the same cluster, without the need for a separate aggregation cluster.</p>
-</div>
-</div>
-<div class="sect4">
-<h5 id="unidirectional_replication_activepassive"><a class="link" href="#unidirectional_replication_activepassive">Unidirectional replication (active/passive)</a></h5>
-<div class="paragraph">
-<p>The MirrorMaker 2 architecture supports unidirectional replication in an <em>active/passive</em> cluster configuration.</p>
-</div>
-<div class="paragraph">
-<p>You can use an <em>active/passive</em> cluster configuration to make backups or migrate data to another cluster.
-In this situation, you might not want automatic renaming of remote topics.</p>
-</div>
-<div class="paragraph">
-<p>You can override automatic renaming by adding <code>IdentityReplicationPolicy</code> to the source connector configuration.
-With this configuration applied, topics retain their original names.</p>
+<p>Topic and consumer group replication is specified as comma-separated lists or regular expression patterns.</p>
 </div>
 <h5 id="example_yaml_showing_mirrormaker_2_configuration" class="discrete">Example YAML showing MirrorMaker 2 configuration</h5>
 <div class="listingblock">
@@ -1962,9 +1856,8 @@ With this configuration applied, topics retain their original names.</p>
 </div>
 </div>
 </div>
-</div>
-<div class="sect3">
-<h4 id="mirrormaker_configuration"><a class="link" href="#mirrormaker_configuration">7.4.2. MirrorMaker configuration</a></h4>
+<div class="sect2">
+<h3 id="con-configuration-points-mm-str"><a class="link" href="#con-configuration-points-mm-str">7.5. Kafka MirrorMaker configuration</a></h3>
 <div class="paragraph">
 <p>Kafka MirrorMaker (also referred to as MirrorMaker 1) uses producers and consumers to replicate data across clusters as follows:</p>
 </div>
@@ -2046,9 +1939,8 @@ spec:
 </div>
 </div>
 </div>
-</div>
 <div class="sect2">
-<h3 id="configuration-points-connect_str"><a class="link" href="#configuration-points-connect_str">7.5. Kafka Connect configuration</a></h3>
+<h3 id="configuration-points-connect_str"><a class="link" href="#configuration-points-connect_str">7.6. Kafka Connect configuration</a></h3>
 <div class="paragraph _abstract">
 <p>Use Strimzi’s <code>KafkaConnect</code> resource to quickly and easily create new Kafka Connect clusters.</p>
 </div>
@@ -2420,7 +2312,7 @@ Use advisedly as the connection is insecure.
 <div class="title">Additional resources</div>
 <ul>
 <li>
-<p><a href="./deploying.html#assembly-kafka-connect-str" target="_blank" rel="noopener">Kafka Connect configuration options</a></p>
+<p><a href="./deploying.html#con-kafka-connect-config-str" target="_blank" rel="noopener">Kafka Connect configuration options</a></p>
 </li>
 <li>
 <p><a href="./deploying.html#con-kafka-connect-multiple-instances-str" target="_blank" rel="noopener">Kafka Connect configuration for multiple instances</a></p>
@@ -2447,7 +2339,7 @@ Use advisedly as the connection is insecure.
 </div>
 </div>
 <div class="sect2">
-<h3 id="configuration-points-bridge_str"><a class="link" href="#configuration-points-bridge_str">7.6. Kafka Bridge configuration</a></h3>
+<h3 id="configuration-points-bridge_str"><a class="link" href="#configuration-points-bridge_str">7.7. Kafka Bridge configuration</a></h3>
 <div class="paragraph">
 <p>A Kafka Bridge configuration requires a bootstrap server specification for the Kafka cluster it connects to, as well as any encryption and authentication options required.</p>
 </div>
@@ -2906,7 +2798,7 @@ A sample configuration file and Grafana dashboard for Cruise Control are provide
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-06-14 08:18:21 UTC
+Last updated 2023-06-14 12:23:50 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
