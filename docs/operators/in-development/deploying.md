@@ -1,5 +1,5 @@
 ---
-title: Deploying and Upgrading (In Development)
+title: Deploying and Managing Strimzi (In Development)
 layout: default
 ---
 
