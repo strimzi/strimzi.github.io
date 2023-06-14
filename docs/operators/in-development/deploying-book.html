@@ -315,7 +315,8 @@
 <li><a href="#ref-operator-use-strimzi-pod-sets-feature-gate-str">16.5.3. UseStrimziPodSets feature gate</a></li>
 <li><a href="#ref-operator-use-kraft-feature-gate-str">16.5.4. (Preview) UseKRaft feature gate</a></li>
 <li><a href="#ref-operator-stable-connect-identities-feature-gate-str">16.5.5. StableConnectIdentities feature gate</a></li>
-<li><a href="#ref-operator-cluster-feature-gate-releases-str">16.5.6. Feature gate releases</a></li>
+<li><a href="#ref-operator-kafka-node-pools-feature-gate-str">16.5.6. (Preview) KafkaNodePools feature gate</a></li>
+<li><a href="#ref-operator-cluster-feature-gate-releases-str">16.5.7. Feature gate releases</a></li>
 </ul>
 </li>
 <li><a href="#con-operators-prometheus-metrics-str">16.6. Monitoring operators using Prometheus metrics</a></li>
@@ -26256,10 +26257,6 @@ The <code>spec.entityOperator.topicOperator</code> property <strong>must be remo
 <p>JBOD storage is not supported.
 The <code>type: jbod</code> storage can be used, but the JBOD array can contain only one disk.</p>
 </li>
-<li>
-<p>All Kafka nodes have both the <code>controller</code> and <code>broker</code> KRaft roles.
-Kafka clusters with separate <code>controller</code> and <code>broker</code> nodes are not supported.</p>
-</li>
 </ul>
 </div>
 <div class="paragraph">
@@ -26295,7 +26292,72 @@ The <code>StableConnectIdentities</code> feature gate must be disabled when down
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-operator-cluster-feature-gate-releases-str"><a class="link" href="#ref-operator-cluster-feature-gate-releases-str">16.5.6. Feature gate releases</a></h4>
+<h4 id="ref-operator-kafka-node-pools-feature-gate-str"><a class="link" href="#ref-operator-kafka-node-pools-feature-gate-str">16.5.6. (Preview) KafkaNodePools feature gate</a></h4>
+<div class="paragraph">
+<p>The <code>KafkaNodePools</code> feature gate has a default state of <em>disabled</em>.</p>
+</div>
+<div class="paragraph">
+<p>The <code>KafkaNodePools</code> feature gate introduces a new <code>KafkaNodePool</code> custom resource that enables the configuration of different <em>pools</em> of Apache Kafka nodes.
+A node pool refers to a distinct group of Kafka nodes within a Kafka cluster.
+Each pool has its own unique configuration, which includes mandatory settings such as the number of replicas, storage configuration, and a list of assigned roles.
+You can assign the <em>controller</em> role, <em>broker</em> role, or both roles to all nodes in the pool in the <code>.spec.roles</code> field.
+When used with ZooKeeper-based Apache Kafka cluster, it must be always set to the <code>broker</code> role only.
+When used with the <code>UseKRaft</code> feature gate, it can be set to <code>broker</code>, <code>controller</code>, or both.
+In addition, a node pool can have its own configuration of resource requests and limits, Java JVM options, and resource templates.
+Configuration options not set in the <code>KafkaNodePool</code> resource are inherited from the <code>Kafka</code> custom resource.</p>
+</div>
+<div class="paragraph">
+<p>The <code>KafkaNodePool</code> resources use a <code>strimzi.io/cluster</code> label to indicate to which Kafka cluster they belong.
+The label must be set to the name of the <code>Kafka</code> custom resource.</p>
+</div>
+<div class="paragraph">
+<p>Examples of the <code>KafkaNodePool</code> resources can be found in the <a href="#config-examples-str">example configuration files</a> provided by Strimzi.</p>
+</div>
+<div class="paragraph">
+<div class="title">Enabling the KafkaNodePools feature gate</div>
+<p>To enable the <code>KafkaNodePools</code> feature gate, specify <code>+KafkaNodePools</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.
+The <code>Kafka</code> custom resource using the node pools must also have the annotation <code>strimzi.io/node-pools: enabled</code>.</p>
+</div>
+<div class="paragraph">
+<div class="title">Migrating existing Kafka clusters</div>
+<p>To migrate existing Kafka clusters to use <code>KafkaNodePools</code>, follow these steps:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Create a new <code>KafkaNodePool</code> resource:</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>Name the resource <code>kafka</code> and label it with <code>strimzi.io/cluster</code>, pointing to your existing <code>Kafka</code> resource.</p>
+</li>
+<li>
+<p>Set the replica count and storage configuration in the <code>KafkaNodePool</code> resource to match your current Kafka cluster.</p>
+</li>
+<li>
+<p>Set the roles to <code>broker</code> in the <code>KafkaNodePool</code> resource.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Enable the <code>KafkaNodePools</code> feature gate:</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>Update the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration to include <code>+KafkaNodePools</code>.</p>
+</li>
+<li>
+<p>Add the <code>strimzi.io/node-pools: enabled</code> annotation to your existing <code>Kafka</code> custom resource.</p>
+</li>
+</ol>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="ref-operator-cluster-feature-gate-releases-str"><a class="link" href="#ref-operator-cluster-feature-gate-releases-str">16.5.7. Feature gate releases</a></h4>
 <div class="paragraph _abstract">
 <p>Feature gates have three stages of maturity:</p>
 </div>
@@ -26335,6 +26397,10 @@ Alpha and beta stage features are removed if they do not prove to be useful.</p>
 <li>
 <p>The <code>StableConnectIdentities</code> feature gate is in alpha stage and is disabled by default.
 It is expected to move to beta phase and be enabled by default from Strimzi 0.37.</p>
+</li>
+<li>
+<p>The <code>KafkaNodePools</code> feature gate is in alpha stage and is disabled by default.
+It is expected to move to beta phase and be enabled by default from Strimzi 0.39.</p>
 </li>
 </ul>
 </div>
@@ -26395,6 +26461,12 @@ Feature gates might be removed when they reach GA. This means that the feature w
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>StableConnectIdentities</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0.34</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0.37 (planned)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaNodePools</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.36</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.39 (planned)</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
 </tr>
 </tbody>
