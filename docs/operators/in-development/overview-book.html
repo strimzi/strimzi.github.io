@@ -51,10 +51,11 @@
 <li><a href="#configuration-points-resources_str">7.1. Custom resources</a></li>
 <li><a href="#configuration-points-common_str">7.2. Common configuration</a></li>
 <li><a href="#configuration-points-broker_str">7.3. Kafka cluster configuration</a></li>
-<li><a href="#con-configuration-points-mm2-str">7.4. Kafka MirrorMaker 2 configuration</a></li>
-<li><a href="#con-configuration-points-mm-str">7.5. Kafka MirrorMaker configuration</a></li>
-<li><a href="#configuration-points-connect_str">7.6. Kafka Connect configuration</a></li>
-<li><a href="#configuration-points-bridge_str">7.7. Kafka Bridge configuration</a></li>
+<li><a href="#configuration-points-node_pools_str">7.4. (Preview) Kafka node pools configuration</a></li>
+<li><a href="#con-configuration-points-mm2-str">7.5. Kafka MirrorMaker 2 configuration</a></li>
+<li><a href="#con-configuration-points-mm-str">7.6. Kafka MirrorMaker configuration</a></li>
+<li><a href="#configuration-points-connect_str">7.7. Kafka Connect configuration</a></li>
+<li><a href="#configuration-points-bridge_str">7.8. Kafka Bridge configuration</a></li>
 </ul>
 </li>
 <li><a href="#security-overview_str">8. Securing Kafka</a>
@@ -1017,7 +1018,7 @@ Your application needs to use the user and its credentials for authentication an
 <p>Feature gates are set in the operator configuration and have three stages of maturity: alpha, beta, or General Availability (GA).</p>
 </div>
 <div class="paragraph">
-<p>For more information, see <a href="./deploying.html#ref-operator-cluster-feature-gates-str">Feature gates</a>.</p>
+<p>For more information, see <a href="./deploying.html#ref-operator-cluster-feature-gates-str" target="_blank" rel="noopener">Feature gates</a>.</p>
 </div>
 </div>
 </div>
@@ -1359,7 +1360,60 @@ spec:
 </div>
 </div>
 <div class="sect2">
-<h3 id="con-configuration-points-mm2-str"><a class="link" href="#con-configuration-points-mm2-str">7.4. Kafka MirrorMaker 2 configuration</a></h3>
+<h3 id="configuration-points-node_pools_str"><a class="link" href="#configuration-points-node_pools_str">7.4. (Preview) Kafka node pools configuration</a></h3>
+<div class="paragraph _abstract">
+<p>A node pool refers to a distinct group of Kafka nodes within a Kafka cluster.
+By using node pools, nodes can have different configuration within the same Kafka cluster.
+Configuration options not specified in the node pool are inherited from the Kafka configuration.</p>
+</div>
+<div class="paragraph">
+<p>The node pools feature is available as a preview that can be enabled using the <code>KafkaNodePool</code> feature gate.
+You can deploy a Kafka cluster with one or more node pools.
+The node pool configuration includes mandatory and optional settings.
+Configuration for replicas, roles, and storage is mandatory.</p>
+</div>
+<div class="paragraph">
+<p>If you are using KRaft mode (which is also available as a preview), you can specify roles for all nodes in the node pool to operate as brokers, controllers, or both.
+Controller and dual roles are specific to KRaft.
+If you are using Kafka clusters that use ZooKeeper for cluster management, you can use node pools that are configured with broker roles only.</p>
+</div>
+<h4 id="example_yaml_showing_node_pool_configuration" class="discrete">Example YAML showing node pool configuration</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: pool-a
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 3
+  roles:
+    - broker
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 100Gi
+        deleteClaim: false</code></pre>
+</div>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+<strong>KRaft mode is not ready for production in Apache Kafka or in Strimzi.</strong>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="con-configuration-points-mm2-str"><a class="link" href="#con-configuration-points-mm2-str">7.5. Kafka MirrorMaker 2 configuration</a></h3>
 <div class="paragraph _abstract">
 <p>Kafka MirrorMaker 2 replicates data between two or more active Kafka clusters, within or across data centers.
 To set up MirrorMaker 2, a source and target (destination) Kafka cluster must be running.</p>
@@ -1416,7 +1470,7 @@ You can use more than one MirrorMaker 2 instance to mirror data between any numb
 </div>
 </div>
 <div class="sect2">
-<h3 id="con-configuration-points-mm-str"><a class="link" href="#con-configuration-points-mm-str">7.5. Kafka MirrorMaker configuration</a></h3>
+<h3 id="con-configuration-points-mm-str"><a class="link" href="#con-configuration-points-mm-str">7.6. Kafka MirrorMaker configuration</a></h3>
 <div class="paragraph">
 <p>Kafka MirrorMaker (also referred to as MirrorMaker 1) uses producers and consumers to replicate data across clusters as follows:</p>
 </div>
@@ -1499,7 +1553,7 @@ spec:
 </div>
 </div>
 <div class="sect2">
-<h3 id="configuration-points-connect_str"><a class="link" href="#configuration-points-connect_str">7.6. Kafka Connect configuration</a></h3>
+<h3 id="configuration-points-connect_str"><a class="link" href="#configuration-points-connect_str">7.7. Kafka Connect configuration</a></h3>
 <div class="paragraph _abstract">
 <p>Use Strimzi’s <code>KafkaConnect</code> resource to quickly and easily create new Kafka Connect clusters.</p>
 </div>
@@ -1898,7 +1952,7 @@ Use advisedly as the connection is insecure.
 </div>
 </div>
 <div class="sect2">
-<h3 id="configuration-points-bridge_str"><a class="link" href="#configuration-points-bridge_str">7.7. Kafka Bridge configuration</a></h3>
+<h3 id="configuration-points-bridge_str"><a class="link" href="#configuration-points-bridge_str">7.8. Kafka Bridge configuration</a></h3>
 <div class="paragraph">
 <p>A Kafka Bridge configuration requires a bootstrap server specification for the Kafka cluster it connects to, as well as any encryption and authentication options required.</p>
 </div>
