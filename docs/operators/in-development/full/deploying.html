@@ -530,8 +530,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#config-node-pools-str">8.3. (Preview) Configuring node pools</a>
 <ul class="sectlevel3">
-<li><a href="#proc-moving-node-pools-str">8.3.1. (Preview) Moving Kafka nodes between node pools</a></li>
-<li><a href="#proc-migrating-clusters-node-pools-str">8.3.2. (Preview) Migrating existing Kafka clusters to use Kafka node pools</a></li>
+<li><a href="#proc-managing-node-pools-ids-str">8.3.1. (Preview) Assigning IDs to node pools for scaling operations</a></li>
+<li><a href="#proc-scaling-up-node-pools-str">8.3.2. (Preview) Adding nodes to a node pool</a></li>
+<li><a href="#proc-scaling-down-node-pools-str">8.3.3. (Preview) Removing nodes from a node pool</a></li>
+<li><a href="#proc-moving-node-pools-str">8.3.4. (Preview) Moving nodes between node pools</a></li>
+<li><a href="#proc-migrating-clusters-node-pools-str">8.3.5. (Preview) Migrating existing Kafka clusters to use Kafka node pools</a></li>
 </ul>
 </li>
 <li><a href="#ref-kafka-entity-operator-str">8.4. Configuring the Entity Operator</a>
@@ -6143,56 +6146,19 @@ While the <code>KafkaNodePools</code> feature gate that enables node pools is in
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaNodePool
 metadata:
-  name: pool-a
-  labels:
-    strimzi.io/cluster: my-cluster
-spec:
-  replicas: 3
-  roles:
-    - broker # <b class="conum">(1)</b>
-  storage:
-    type: jbod
-    volumes:
-      - id: 0
-        type: persistent-claim
-        size: 100Gi
-        deleteClaim: false
-  resources:
-      requests:
-        memory: 64Gi
-        cpu: "8"
-      limits:
-        memory: 64Gi
-        cpu: "12"</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Roles for the nodes in the node pool, which can only be <code>broker</code> when using Kafka with ZooKeeper.</p>
-</li>
-</ol>
-</div>
-<div class="listingblock">
-<div class="title">Example configuration for a node pool in a cluster using KRaft mode</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaNodePool
-metadata:
-  name: kraft-dual-role # <b class="conum">(1)</b>
+  name: pool-a # <b class="conum">(1)</b>
   labels:
     strimzi.io/cluster: my-cluster # <b class="conum">(2)</b>
 spec:
   replicas: 3 # <b class="conum">(3)</b>
-  roles: # <b class="conum">(4)</b>
-    - controller
-    - broker
+  roles:
+    - broker # <b class="conum">(4)</b>
   storage: # <b class="conum">(5)</b>
     type: jbod
     volumes:
       - id: 0
         type: persistent-claim
-        size: 20Gi
+        size: 100Gi
         deleteClaim: false
   resources: # <b class="conum">(6)</b>
       requests:
@@ -6215,13 +6181,50 @@ spec:
 <p>Number of replicas for the nodes.</p>
 </li>
 <li>
-<p>Roles for the nodes in the node pool. In this example, the nodes have dual roles as controllers and brokers.</p>
+<p>Roles for the nodes in the node pool, which can only be <code>broker</code> when using Kafka with ZooKeeper.</p>
 </li>
 <li>
 <p>Storage specification for the nodes.</p>
 </li>
 <li>
 <p>Requests for reservation of supported resources, currently <code>cpu</code> and <code>memory</code>, and limits to specify the maximum resources that can be consumed.</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="title">Example configuration for a node pool in a cluster using KRaft mode</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: kraft-dual-role
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 3
+  roles: # <b class="conum">(1)</b>
+    - controller
+    - broker
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 20Gi
+        deleteClaim: false
+  resources:
+      requests:
+        memory: 64Gi
+        cpu: "8"
+      limits:
+        memory: 64Gi
+        cpu: "12"</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Roles for the nodes in the node pool. In this example, the nodes have dual roles as controllers and brokers.</p>
 </li>
 </ol>
 </div>
@@ -6238,15 +6241,323 @@ The configuration for the <code>Kafka</code> resource must be suitable for KRaft
 </table>
 </div>
 <div class="sect3">
-<h4 id="proc-moving-node-pools-str"><a class="link" href="#proc-moving-node-pools-str">8.3.1. (Preview) Moving Kafka nodes between node pools</a></h4>
+<h4 id="proc-managing-node-pools-ids-str"><a class="link" href="#proc-managing-node-pools-ids-str">8.3.1. (Preview) Assigning IDs to node pools for scaling operations</a></h4>
+<div class="paragraph _abstract">
+<p>This procedure describes how to use annotations for advanced node ID handling by the Cluster Operator when performing scaling operations on node pools.
+You specify the node IDs to use, rather than the Cluster Operator using the next ID in sequence.
+Management of node IDs in this way gives greater control.</p>
+</div>
+<div class="paragraph">
+<p>To add a range of IDs, you assign the following annotations to the <code>KafkaNodePool</code> resource:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>strimzi.io/next-node-ids</code> to add a range of IDs that are used for new brokers</p>
+</li>
+<li>
+<p><code>strimzi.io/remove-node-ids</code> to add a range of IDs for removing existing brokers</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>You can specify an array of individual node IDs, ID ranges, or a combination of both.
+For example, you can specify the following range of IDs: <code>[0, 1, 2, 10-20, 30]</code> for scaling up the Kafka node pool.
+This format allows you to specify a combination of individual node IDs (<code>0</code>, <code>1</code>, <code>2</code>, <code>30</code>) as well as a range of IDs (<code>10-20</code>).</p>
+</div>
+<div class="paragraph">
+<p>In a typical scenario, you might specify a range of IDs for scaling up and a single node ID to remove a specific node when scaling down.</p>
+</div>
+<div class="paragraph">
+<p>In this procedure, we add the scaling annotations to node pools as follows:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>pool-a</code> is assigned a range of IDs for scaling up</p>
+</li>
+<li>
+<p><code>pool-b</code> is assigned a range of IDs for scaling down</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>During the scaling operation, IDs are used as follows:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Scale up picks up the lowest available ID in the range for the new node.</p>
+</li>
+<li>
+<p>Scale down removes the node with the highest available ID in the range.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>If there are gaps in the sequence of node IDs assigned in the node pool, the next node to be added is assigned an ID that fills the gap.</p>
+</div>
+<div class="paragraph">
+<p>The annotations don&#8217;t need to be updated after every scaling operation.
+Any unused IDs are still valid for the next scaling event.</p>
+</div>
+<div class="paragraph">
+<p>The Cluster Operator allows you to specify a range of IDs in either ascending or descending order, so you can define them in the order the nodes are scaled.
+For example, when scaling up, you can specify a range such as <code>[1000-1999]</code>, and the new nodes are assigned the next lowest IDs: <code>1000</code>, <code>1001</code>, <code>1002</code>, <code>1003</code>, and so on.
+Conversely, when scaling down, you can specify a range like <code>[1999-1000]</code>, ensuring that nodes with the next highest IDs are removed: <code>1003</code>, <code>1002</code>, <code>1001</code>, <code>1000</code>, and so on.</p>
+</div>
+<div class="paragraph">
+<p>If you don&#8217;t specify an ID range using the annotations, the Cluster Operator follows its default behavior for handling IDs during scaling operations.
+Node IDs start at 0 (zero) and run sequentially across the Kafka cluster.
+The next lowest ID is assigned to a new node.
+Gaps to node IDs are filled across the cluster.
+This means that they might not run sequentially within a node pool.
+The default behavior for scaling up is to add the next lowest available node ID across the cluster; and for scaling down, it is to remove the node in the node pool with the highest available node ID.
+The default approach is also applied if the assigned range of IDs is misformatted, the scaling up range runs out of IDs, or the scaling down range does not apply to any in-use nodes.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Annotate the node pool with the IDs to use when scaling up or scaling down, as shown in the following examples.</p>
+<div class="paragraph">
+<p>IDs for scaling up are assigned to node pool <code>pool-a</code>:</p>
+</div>
+<div class="listingblock">
+<div class="title">Assigning IDs for scaling up</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafkanodepool pool-a strimzi.io/next-node-ids="[0,1,2,10-20,30]"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The lowest available ID from this range is used when adding a node to <code>pool-a</code>.</p>
+</div>
+<div class="paragraph">
+<p>IDs for scaling down are assigned to node pool <code>pool-b</code>:</p>
+</div>
+<div class="listingblock">
+<div class="title">Assigning IDs for scaling down</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafkanodepool pool-b strimzi.io/remove-node-ids="[60-50,9,8,7]"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The highest available ID from this range is removed when scaling down <code>pool-b</code>.</p>
+</div>
+</li>
+<li>
+<p>You can now scale the node pool.</p>
+<div class="openblock">
+<div class="content">
+<div class="paragraph">
+<p>For more information, see the following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#proc-scaling-up-node-pools-str">(Preview) Adding nodes to a node pool</a></p>
+</li>
+<li>
+<p><a href="#proc-scaling-down-node-pools-str">(Preview) Removing nodes from a node pool</a></p>
+</li>
+<li>
+<p><a href="#proc-moving-node-pools-str">(Preview) Moving nodes between node pools</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>On reconciliation, a warning is given if the annotations are misformatted.</p>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-scaling-up-node-pools-str"><a class="link" href="#proc-scaling-up-node-pools-str">8.3.2. (Preview) Adding nodes to a node pool</a></h4>
+<div class="paragraph _abstract">
+<p>This procedure describes how to scale up a node pool to add new nodes.</p>
+</div>
+<div class="paragraph">
+<p>In this procedure, we start with three nodes for node pool <code>pool-a</code>:</p>
+</div>
+<div class="listingblock">
+<div class="title">Kafka nodes in the node pool</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                       READY  STATUS   RESTARTS
+my-cluster-pool-a-kafka-0  1/1    Running  0
+my-cluster-pool-a-kafka-1  1/1    Running  0
+my-cluster-pool-a-kafka-2  1/1    Running  0</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Node IDs are appended to the name of the node on creation.
+We add node <code>my-cluster-pool-a-kafka-3</code>, which has a node ID of <code>3</code>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+During this process, the ID of the node that holds the partition replicas changes. Consider any dependencies that reference the node ID.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
+</li>
+<li>
+<p>(Optional) For scale up operations, <a href="#proc-managing-node-pools-ids-str">you can specify the range of node IDs to use</a>.</p>
+<div class="paragraph">
+<p>If you have assigned a range of node IDs for the operation, the ID of the node being added is determined by the sequence of nodes given.
+Otherwise, the lowest available node ID across the cluster is used.</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Create a new node in the node pool.</p>
+<div class="paragraph">
+<p>For example, node pool <code>pool-a</code> has three replicas. We add a node by increasing the number of replicas:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl scale kafkanodepool pool-a --replicas=4</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Check the status of the deployment and wait for the pods in the node pool to be created and have a status of <code>READY</code>.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n &lt;my_cluster_operator_namespace&gt;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Output shows four Kafka nodes in the node pool</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                       READY  STATUS   RESTARTS
+my-cluster-pool-a-kafka-0  1/1    Running  0
+my-cluster-pool-a-kafka-1  1/1    Running  0
+my-cluster-pool-a-kafka-2  1/1    Running  0
+my-cluster-pool-a-kafka-3  1/1    Running  0</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Reassign the partitions after increasing the number of nodes in the node pool.</p>
+<div class="paragraph">
+<p>After scaling up a node pool, you can use the Cruise Control <code>add-brokers</code> mode to move partition replicas from existing brokers to the newly added brokers.</p>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-scaling-down-node-pools-str"><a class="link" href="#proc-scaling-down-node-pools-str">8.3.3. (Preview) Removing nodes from a node pool</a></h4>
+<div class="paragraph _abstract">
+<p>This procedure describes how to scale down a node pool to remove nodes.</p>
+</div>
+<div class="paragraph">
+<p>In this procedure, we start with four nodes for node pool <code>pool-a</code>:</p>
+</div>
+<div class="listingblock">
+<div class="title">Kafka nodes in the node pool</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                       READY  STATUS   RESTARTS
+my-cluster-pool-a-kafka-0  1/1    Running  0
+my-cluster-pool-a-kafka-1  1/1    Running  0
+my-cluster-pool-a-kafka-2  1/1    Running  0
+my-cluster-pool-a-kafka-3  1/1    Running  0</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Node IDs are appended to the name of the node on creation.
+We remove node <code>my-cluster-pool-a-kafka-3</code>, which has a node ID of <code>3</code>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+During this process, the ID of the node that holds the partition replicas changes. Consider any dependencies that reference the node ID.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
+</li>
+<li>
+<p>(Optional) For scale down operations, <a href="#proc-managing-node-pools-ids-str">you can specify the range of node IDs to use in the operation</a>.</p>
+<div class="paragraph">
+<p>If you have assigned a range of node IDs for the operation, the ID of the node being removed is determined by the sequence of nodes given.
+Otherwise, the node with the highest available ID in the node pool is removed.</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Reassign the partitions before decreasing the number of nodes in the node pool.</p>
+<div class="paragraph">
+<p>Before scaling down a node pool, you can use the Cruise Control <code>remove-brokers</code> mode to move partition replicas off the brokers that are going to be removed.</p>
+</div>
+</li>
+<li>
+<p>After the reassignment process is complete, and the node being removed has no live partitions, reduce the number of Kafka nodes in the node pool.</p>
+<div class="paragraph">
+<p>For example, node pool <code>pool-a</code> has four replicas. We remove a node by decreasing the number of replicas:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl scale kafkanodepool pool-a --replicas=3</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Output shows three Kafka nodes in the node pool</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                        READY   STATUS    RESTARTS
+my-cluster-pool-b-kafka-0   1/1     Running   0
+my-cluster-pool-b-kafka-1   1/1     Running   0
+my-cluster-pool-b-kafka-2   1/1     Running   0</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-moving-node-pools-str"><a class="link" href="#proc-moving-node-pools-str">8.3.4. (Preview) Moving nodes between node pools</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to move nodes between source and target Kafka node pools without downtime.
 You create a new node on the target node pool and reassign partitions to move data from the old node on the source node pool.
 When the replicas on the new node are in-sync, you can delete the old node.</p>
-</div>
-<div class="paragraph">
-<p>The steps assume that you are using ZooKeeper for cluster management.
-The operation is not possible for clusters using KRaft mode.</p>
 </div>
 <div class="paragraph">
 <p>In this procedure, we start with two node pools:</p>
@@ -6292,6 +6603,13 @@ During this process, the ID of the node that holds the partition replicas change
 <li>
 <p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
 </li>
+<li>
+<p>(Optional) For scale up and scale down operations, <a href="#proc-managing-node-pools-ids-str">you can specify the range of node IDs to use</a>.</p>
+<div class="paragraph">
+<p>If you have assigned node IDs for the operation, the ID of the node being added or removed is determined by the sequence of nodes given.
+Otherwise, the lowest available node ID across the cluster is used when adding nodes; and the node with the highest available ID in the node pool is removed.</p>
+</div>
+</li>
 </ul>
 </div>
 <div class="olist arabic">
@@ -6312,36 +6630,28 @@ During this process, the ID of the node that holds the partition replicas change
 <p>Check the status of the deployment and wait for the pods in the node pool to be created and have a status of <code>READY</code>.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n <em>&lt;my_cluster_operator_namespace&gt;</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n &lt;my_cluster_operator_namespace&gt;</code></pre>
 </div>
 </div>
 <div class="listingblock">
 <div class="title">Output shows four Kafka nodes in the target node pool</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                        READY   STATUS    RESTARTS
-my-cluster-pool-a-kafka-0   1/1     Running   0
-my-cluster-pool-a-kafka-1   1/1     Running   0
-my-cluster-pool-a-kafka-4   1/1     Running   0
-my-cluster-pool-a-kafka-5   1/1     Running   0</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                       READY  STATUS   RESTARTS
+my-cluster-pool-a-kafka-0  1/1    Running  0
+my-cluster-pool-a-kafka-1  1/1    Running  0
+my-cluster-pool-a-kafka-4  1/1    Running  0
+my-cluster-pool-a-kafka-5  1/1    Running  0</code></pre>
 </div>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The node IDs appended to each name start at 0 (zero) and run sequentially across the Kafka cluster. This means that they might not run sequentially within a node pool.
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p>Node IDs are appended to the name of the node on creation.
+We add node <code>my-cluster-pool-a-kafka-5</code>, which has a node ID of <code>5</code>.</p>
 </div>
 </li>
 <li>
-<p>Reassign the partitions from the old node to the new node using the <code>kafka-reassign-partitions.sh</code> tool.</p>
+<p>Reassign the partitions from the old node to the new node.</p>
 <div class="paragraph">
-<p>For more information, see <a href="#proc-scaling-down-a-kafka-cluster-str">Reassigning partitions before removing brokers</a>.</p>
+<p>Before scaling down the source node pool, you can use the Cruise Control <code>remove-brokers</code> mode to move partition replicas off the brokers that are going to be removed.</p>
 </div>
 </li>
 <li>
@@ -6360,10 +6670,10 @@ The node IDs appended to each name start at 0 (zero) and run sequentially across
 <div class="listingblock">
 <div class="title">Output shows three Kafka nodes in the source node pool</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                        READY   STATUS    RESTARTS
-my-cluster-pool-b-kafka-2   1/1     Running   0
-my-cluster-pool-b-kafka-3   1/1     Running   0
-my-cluster-pool-b-kafka-6   1/1     Running   0</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                       READY  STATUS   RESTARTS
+my-cluster-pool-b-kafka-2  1/1    Running  0
+my-cluster-pool-b-kafka-3  1/1    Running  0
+my-cluster-pool-b-kafka-6  1/1    Running  0</code></pre>
 </div>
 </div>
 </li>
@@ -6371,14 +6681,10 @@ my-cluster-pool-b-kafka-6   1/1     Running   0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-migrating-clusters-node-pools-str"><a class="link" href="#proc-migrating-clusters-node-pools-str">8.3.2. (Preview) Migrating existing Kafka clusters to use Kafka node pools</a></h4>
+<h4 id="proc-migrating-clusters-node-pools-str"><a class="link" href="#proc-migrating-clusters-node-pools-str">8.3.5. (Preview) Migrating existing Kafka clusters to use Kafka node pools</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to migrate existing Kafka clusters to use Kafka node pools.
 After you have updated the Kafka cluster, you can use the node pools to manage the configuration of nodes within each pool.</p>
-</div>
-<div class="paragraph">
-<p>The steps assume that you are using ZooKeeper for cluster management.
-The operation is not possible for clusters using KRaft mode.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -21208,6 +21514,14 @@ spec:
 </div>
 </div>
 <div class="paragraph">
+<p>When adding brokers through the <code>Kafka</code> configuration, node IDs start at 0 (zero) and the Cluster Operator assigns the next lowest ID to a new node.
+The broker removal process starts from the broker pod with the highest ID in the cluster.</p>
+</div>
+<div class="paragraph">
+<p>If you are managing nodes in the cluster using the the preview of the node pools feature, you adjust the <code>KafkaNodePool.spec.replicas</code> configuration to change the number of nodes in the node pool.
+Additionally, when scaling existing clusters with node pools, you can <a href="#proc-managing-node-pools-ids-str">assign node IDs for the scaling operations</a>.</p>
+</div>
+<div class="paragraph">
 <p>When you add add or remove brokers, Kafka does not automatically reassign partitions.
 The best way to do this is using Cruise Control.
 You can use Cruise Control&#8217;s <code>add-brokers</code> and <code>remove-brokers</code> modes when scaling a cluster up or down.</p>
@@ -21221,18 +21535,6 @@ You can use Cruise Control&#8217;s <code>add-brokers</code> and <code>remove-bro
 <p>Use the <code>remove-brokers</code> mode before scaling down a Kafka cluster to move partition replicas off the brokers that are going to be removed.</p>
 </li>
 </ul>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-When scaling down brokers, you cannot specify which specific pod to remove from the cluster. Instead, the broker removal process starts from the highest numbered pod.
-</td>
-</tr>
-</table>
 </div>
 </div>
 </div>
@@ -23886,6 +24188,9 @@ You apply the reassignment specified in the file to the brokers and then verify 
 <p>This procedure describes a secure scaling process that uses TLS.
 You&#8217;ll need a Kafka cluster that uses TLS encryption and mTLS authentication.</p>
 </div>
+<div class="paragraph">
+<p>The <code>kafka-reassign-partitions.sh</code> tool can be used to reassign partitions within a Kafka cluster, regardless of whether you are managing all nodes through the cluster or using the node pools preview to manage groups of nodes within the cluster.</p>
+</div>
 <div class="admonitionblock note">
 <table>
 <tr>
@@ -23906,7 +24211,7 @@ Cruise Control can move topics from one broker to another without any downtime, 
 <p>You have a running Kafka cluster based on a <code>Kafka</code> resource configured with internal TLS encryption and mTLS authentication.</p>
 </li>
 <li>
-<p>You have generated a reassignment JSON file named <code>reassignment.json</code>.</p>
+<p>You have <a href="#proc-generating-reassignment-json-files-str">generated a reassignment JSON file</a> named <code>reassignment.json</code>.</p>
 </li>
 <li>
 <p>You are running an interactive pod container that is connected to the running Kafka broker.</p>
@@ -23915,9 +24220,6 @@ Cruise Control can move topics from one broker to another without any downtime, 
 <p>You are connected as a <code>KafkaUser</code> configured with ACL rules that specify permission to manage the Kafka cluster and its topics.</p>
 </li>
 </ul>
-</div>
-<div class="paragraph">
-<p>See <a href="#proc-generating-reassignment-json-files-str">Generating reassignment JSON files</a>.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -24036,6 +24338,9 @@ Brokers in the highest numbered pods are removed first.</p>
 <p>This procedure describes a secure scaling process that uses TLS.
 You&#8217;ll need a Kafka cluster that uses TLS encryption and mTLS authentication.</p>
 </div>
+<div class="paragraph">
+<p>The <code>kafka-reassign-partitions.sh</code> tool can be used to reassign partitions within a Kafka cluster, regardless of whether you are managing all nodes through the cluster or using the node pools preview to manage groups of nodes within the cluster.</p>
+</div>
 <div class="admonitionblock note">
 <table>
 <tr>
@@ -24056,7 +24361,7 @@ Cruise Control can move topics from one broker to another without any downtime, 
 <p>You have a running Kafka cluster based on a <code>Kafka</code> resource configured with internal TLS encryption and mTLS authentication.</p>
 </li>
 <li>
-<p>You have generated a reassignment JSON file named <code>reassignment.json</code>.</p>
+<p>You have <a href="#proc-generating-reassignment-json-files-str">generated a reassignment JSON file</a> named <code>reassignment.json</code>.</p>
 </li>
 <li>
 <p>You are running an interactive pod container that is connected to the running Kafka broker.</p>
@@ -24065,9 +24370,6 @@ Cruise Control can move topics from one broker to another without any downtime, 
 <p>You are connected as a <code>KafkaUser</code> configured with ACL rules that specify permission to manage the Kafka cluster and its topics.</p>
 </li>
 </ul>
-</div>
-<div class="paragraph">
-<p>See <a href="#proc-generating-reassignment-json-files-str">Generating reassignment JSON files</a>.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -36278,7 +36580,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-07-11 17:41:31 UTC
+Last updated 2023-07-11 19:35:08 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
