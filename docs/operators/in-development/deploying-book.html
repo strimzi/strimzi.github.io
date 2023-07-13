@@ -16115,7 +16115,7 @@ You can also specify authentication properties as environment variables, or as J
 <pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
  &lt;groupId&gt;io.strimzi&lt;/groupId&gt;
  &lt;artifactId&gt;kafka-oauth-client&lt;/artifactId&gt;
- &lt;version&gt;0.12.0&lt;/version&gt;
+ &lt;version&gt;0.13.0&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
 </div>
 </div>
@@ -16566,10 +16566,10 @@ kubectl get pod -w</code></pre>
 <p><a href="https://strimzi.io/2019/10/25/kafka-authentication-using-oauth-2.0.html" target="_blank" rel="noopener">Kafka authentication using OAuth 2.0</a></p>
 </li>
 <li>
-<p><a href="https://github.com/strimzi/strimzi-kafka-oauth/tree/0.12.0/examples" target="_blank" rel="noopener">Using Keycloak as the OAuth 2.0 authorization server</a></p>
+<p><a href="https://github.com/strimzi/strimzi-kafka-oauth/tree/0.13.0/examples" target="_blank" rel="noopener">Using Keycloak as the OAuth 2.0 authorization server</a></p>
 </li>
 <li>
-<p><a href="https://github.com/strimzi/strimzi-kafka-oauth/tree/0.12.0/examples/docker#running-with-hydra-using-ssl-and-opaque-tokens" target="_blank" rel="noopener">Using Hydra as the OAuth 2.0 authorization server</a></p>
+<p><a href="https://github.com/strimzi/strimzi-kafka-oauth/tree/0.13.0/examples/docker#running-with-hydra-using-ssl-and-opaque-tokens" target="_blank" rel="noopener">Using Hydra as the OAuth 2.0 authorization server</a></p>
 </li>
 </ul>
 </div>
@@ -16625,7 +16625,7 @@ OAuth 2.0 authorization enforces permissions locally based on the received list 
 <div class="sect4">
 <h5 id="kafka_broker_custom_authorizer"><a class="link" href="#kafka_broker_custom_authorizer">Kafka broker custom authorizer</a></h5>
 <div class="paragraph">
-<p>A Keycloak <em>authorizer</em> (<code>KeycloakRBACAuthorizer</code>) is provided with Strimzi.
+<p>A Keycloak <em>authorizer</em> (<code>KeycloakAuthorizer</code>) is provided with Strimzi.
 To be able to use the Keycloak REST endpoints for Authorization Services provided by Keycloak,
 you configure a custom authorizer on the Kafka broker.</p>
 </div>
@@ -16726,9 +16726,13 @@ spec:
         certificate: ca.crt
       grantsRefreshPeriodSeconds: 60 <b class="conum">(8)</b>
       grantsRefreshPoolSize: 5 <b class="conum">(9)</b>
-      connectTimeoutSeconds: 60 <b class="conum">(10)</b>
-      readTimeoutSeconds: 60 <b class="conum">(11)</b>
-      httpRetries: 2 <b class="conum">(12)</b>
+      grantsMaxIdleSeconds: 300 <b class="conum">(10)</b>
+      grantsGcPeriodSeconds: 300 <b class="conum">(11)</b>
+      grantsAlwaysLatest: false <b class="conum">(12)</b>
+      connectTimeoutSeconds: 60 <b class="conum">(13)</b>
+      readTimeoutSeconds: 60 <b class="conum">(14)</b>
+      httpRetries: 2 <b class="conum">(15)</b>
+      enableMetrics: false <b class="conum">(16)</b>
     #...</code></pre>
 </div>
 </div>
@@ -16765,6 +16769,15 @@ Default is <code>false</code>.</p>
 <p>(Optional) The number of threads to use to refresh (in parallel) the grants for the active sessions. The default value is 5.</p>
 </li>
 <li>
+<p>(Optional) The time, in seconds, after which an idle grant in the cache can be evicted. The default value is 300.</p>
+</li>
+<li>
+<p>(Optional) The time, in seconds, between consecutive runs of a job that cleans stale grants from the cache. The default value is 300.</p>
+</li>
+<li>
+<p>(Optional) Controls whether the latest grants are fetched for a new session. When enabled, grants are retrieved from Keycloak and cached for the user. The default value is <code>false</code>.</p>
+</li>
+<li>
 <p>(Optional) The connect timeout in seconds when connecting to the Keycloak token endpoint. The default value is 60.</p>
 </li>
 <li>
@@ -16772,6 +16785,9 @@ Default is <code>false</code>.</p>
 </li>
 <li>
 <p>(Optional) The maximum number of times to retry (without pausing) a failed HTTP request to the authorization server. The default value is <code>0</code>, meaning that no retries are performed. To use this option effectively, consider reducing the timeout times for the <code>connectTimeoutSeconds</code> and <code>readTimeoutSeconds</code> options. However, note that retries may prevent the current worker thread from being available to other requests, and if too many requests stall, it could make the Kafka broker unresponsive.</p>
+</li>
+<li>
+<p>(Optional) Enable or disable OAuth metrics. The default value is <code>false</code>.</p>
 </li>
 </ol>
 </div>
@@ -16817,7 +16833,7 @@ Kafka permissions are granted to user accounts or service accounts using Keycloa
 <h6 id="kafka_authorization_model" class="discrete">Kafka authorization model</h6>
 <div class="paragraph">
 <p>Kafka&#8217;s authorization model uses <em>resource types</em>.
-When a Kafka client performs an action on a broker, the broker uses the configured <code>KeycloakRBACAuthorizer</code> to check the client&#8217;s permissions, based on the action and resource type.</p>
+When a Kafka client performs an action on a broker, the broker uses the configured <code>KeycloakAuthorizer</code> to check the client&#8217;s permissions, based on the action and resource type.</p>
 </div>
 <div class="paragraph">
 <p>Kafka uses five resource types to control access: <code>Topic</code>, <code>Group</code>, <code>Cluster</code>, <code>TransactionalId</code>, and <code>DelegationToken</code>.
@@ -17003,7 +17019,7 @@ However, you can also use different OAuth client ids (for example, <code>my-clus
 <p>All permissions exist within the scope of the <code>kafka</code> client. If you have different Kafka clusters configured with different OAuth client IDs, they each need a separate set of permissions even though they&#8217;re part of the same Keycloak realm.</p>
 </div>
 <div class="paragraph">
-<p>When the Kafka client uses OAUTHBEARER authentication, the Keycloak authorizer (<code>KeycloakRBACAuthorizer</code>) uses the access token of the current session to retrieve a list of grants from the Keycloak server.
+<p>When the Kafka client uses OAUTHBEARER authentication, the Keycloak authorizer (<code>KeycloakAuthorizer</code>) uses the access token of the current session to retrieve a list of grants from the Keycloak server.
 To retrieve the grants, the authorizer evaluates the Keycloak Authorization Services policies and permissions.</p>
 </div>
 <div class="paragraph">
@@ -27188,7 +27204,7 @@ By monitoring metrics, you can actively identify issues before they become criti
 </div>
 <div class="paragraph">
 <p>Metrics are available for each Strimzi component, allowing you to gain insights into their individual performance.
-Additionally, you can collect metrics specific to <code>oauth</code> authentication and <code>opa</code> or <code>keycloak</code> authorization by enabling the <code>enableMetrics</code> property in the listener configuration of the <code>Kafka</code> resource.
+Additionally, you can collect metrics specific to <code>oauth</code> authentication and <code>opa</code> or <code>keycloak</code> authorization by enabling the <code>enableMetrics</code> property in the listener or authorization configuration of the <code>Kafka</code> resource.
 Similarly, you can enable metrics for <code>oauth</code> authentication in custom resources such as <code>KafkaBridge</code>, <code>KafkaConnect</code>, <code>KafkaMirrorMaker</code>, and <code>KafkaMirrorMaker2</code>.</p>
 </div>
 <div class="paragraph">
