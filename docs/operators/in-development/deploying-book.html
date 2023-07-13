@@ -2139,6 +2139,10 @@ You can use node pools with Kafka clusters that use KRaft (Kafka Raft metadata) 
 </div>
 <div class="dlist">
 <dl>
+<dt class="hdlist1"><code>kafka.yaml</code></dt>
+<dd>
+<p>Deploys ZooKeeper with 3 nodes, and 2 different pools of Kafka brokers. Each of the pools has 3 brokers. The pools in the example use different storage configuration.</p>
+</dd>
 <dt class="hdlist1"><code>kafka-with-dual-role-kraft-nodes.yaml</code></dt>
 <dd>
 <p>Deploys a Kafka cluster with one pool of KRaft nodes that share the broker and controller roles.</p>
@@ -2146,10 +2150,6 @@ You can use node pools with Kafka clusters that use KRaft (Kafka Raft metadata) 
 <dt class="hdlist1"><code>kafka-with-kraft.yaml</code></dt>
 <dd>
 <p>Deploys a Kafka cluster with one pool of controller nodes and one pool of broker nodes.</p>
-</dd>
-<dt class="hdlist1"><code>kafka.yaml</code></dt>
-<dd>
-<p>Deploys ZooKeeper with 3 nodes, and 2 different pools of Kafka brokers. Each of the pools has 3 brokers. The pools in the example use different storage configuration.</p>
 </dd>
 </dl>
 </div>
@@ -2192,26 +2192,41 @@ If you want to migrate an existing Kafka cluster to use node pools, see the <a h
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Enable the <code>KafkaNodePools</code> feature gate.</p>
+<p>Enable the <code>KafkaNodePools</code> feature gate from the command line:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl set env install/cluster-operator STRIMZI_FEATURE_GATES="+KafkaNodePools"</code></pre>
+</div>
+</div>
 <div class="paragraph">
-<p>If using KRaft mode, enable the <code>UseKRaft</code> feature gate too.</p>
+<p>Or by editing the Cluster Operator Deployment and updating the <code>STRIMZI_FEATURE_GATES</code> environment variable:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">kubectl set env install/cluster-operator STRIMZI_FEATURE_GATES=""
-env:
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">env
   - name: STRIMZI_FEATURE_GATES
-    value: +KafkaNodePools, +UseKRaft</code></pre>
+    value: +KafkaNodePools</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>This updates the Cluster Operator.</p>
+</div>
+<div class="paragraph">
+<p>If using KRaft mode, enable the <code>UseKRaft</code> feature gate as well.</p>
 </div>
 </li>
 <li>
 <p>Create a node pool.</p>
 <div class="ulist">
 <ul>
+<li>
+<p>To deploy a Kafka cluster and ZooKeeper cluster with two node pools of three brokers:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka/nodepools/kafka.yaml</code></pre>
+</div>
+</div>
+</li>
 <li>
 <p>To deploy a Kafka cluster in KRaft mode with a  single node pool that uses dual-role nodes:</p>
 <div class="listingblock">
@@ -2225,14 +2240,6 @@ env:
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka/nodepools/kafka-with-kraft.yaml</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>To deploy a Kafka cluster and ZooKeeper cluster with two node pools of three brokers:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka/nodepools/kafka.yaml</code></pre>
 </div>
 </div>
 </li>
@@ -26916,13 +26923,15 @@ Controllers are responsible for coordinating operations and maintaining the clus
 </table>
 </div>
 <div class="paragraph">
+<p>Enabling the <code>UseKRaft</code> feature gate requires the <code>KafkaNodePools</code> feature gate to be enabled as well.
+To deploy a Kafka cluster in KRaft mode, you must use the <code>KafkaNodePool</code> resources.
+For more details and examples, see <a href="#deploying-kafka-node-pools-str">(Preview) Deploying Kafka node pools</a>.</p>
+</div>
+<div class="paragraph">
 <p>When the <code>UseKRaft</code> feature gate is enabled, the Kafka cluster is deployed without ZooKeeper.
 <strong>The <code>.spec.zookeeper</code> properties in the <code>Kafka</code> custom resource are ignored, but still need to be present.</strong>
 The <code>UseKRaft</code> feature gate provides an API that configures Kafka cluster nodes and their roles.
 The API is still in development and is expected to change before the KRaft mode is production-ready.</p>
-</div>
-<div class="paragraph">
-<p>If you are trying Kafka in KRaft mode, you can also enable the <code>KafkaNodePools</code> feature gate to manage Kafka node configurations in node pools.</p>
 </div>
 <div class="paragraph">
 <p>Currently, the KRaft mode in Strimzi has the following major limitations:</p>
@@ -26952,7 +26961,7 @@ The <code>type: jbod</code> storage can be used, but the JBOD array can contain 
 </div>
 <div class="paragraph">
 <div class="title">Enabling the UseKRaft feature gate</div>
-<p>To enable the <code>UseKRaft</code> feature gate, specify <code>+UseKRaft</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.</p>
+<p>To enable the <code>UseKRaft</code> feature gate, specify <code>+UseKRaft,+KafkaNodePools</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.</p>
 </div>
 </div>
 <div class="sect3">
