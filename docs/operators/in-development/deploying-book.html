@@ -377,8 +377,8 @@
 <li><a href="#con-metrics-kafka-exporter-lag-str">17.1. Monitoring consumer lag with Kafka Exporter</a></li>
 <li><a href="#con-metrics-cruise-control-str">17.2. Monitoring Cruise Control operations</a>
 <ul class="sectlevel3">
-<li><a href="#exposing_cruise_control_metrics">17.2.1. Exposing Cruise Control metrics</a></li>
-<li><a href="#viewing_cruise_control_metrics">17.2.2. Viewing Cruise Control metrics</a></li>
+<li><a href="#monitoring_balancedness_scores">17.2.1. Monitoring balancedness scores</a></li>
+<li><a href="#setting_up_alerts_for_anomaly_detection">17.2.2. Setting up alerts for anomaly detection</a></li>
 </ul>
 </li>
 <li><a href="#assembly-metrics-config-files-str">17.3. Example metrics files</a>
@@ -390,13 +390,13 @@
 </li>
 <li><a href="#assembly-metrics-setup-str">17.4. Using Prometheus with Strimzi</a>
 <ul class="sectlevel3">
-<li><a href="#proc-metrics-kafka-deploy-options-str">17.4.1. Deploying Prometheus metrics configuration</a></li>
+<li><a href="#proc-metrics-kafka-deploy-options-str">17.4.1. Enabling Prometheus metrics through configuration</a></li>
 <li><a href="#assembly-metrics-prometheus-str">17.4.2. Setting up Prometheus</a></li>
 <li><a href="#proc-metrics-deploying-prometheus-alertmanager-str">17.4.3. Deploying Alertmanager</a></li>
-<li><a href="#con-metrics-kafka-mini-kube-str">17.4.4. Using metrics with Minikube</a></li>
 </ul>
 </li>
 <li><a href="#proc-metrics-grafana-dashboard-str">17.5. Enabling the example Grafana dashboards</a></li>
+<li><a href="#con-metrics-kafka-mini-kube-str">17.6. Using metrics with Minikube</a></li>
 </ul>
 </li>
 <li><a href="#assembly-distributed-tracing-str">18. Introducing distributed tracing</a>
@@ -27381,7 +27381,7 @@ The metrics are used to <a href="#proc-generating-optimization-proposals-str">ge
 For example, you can use Cruise Control metrics to monitor the status of rebalancing operations that are running or provide alerts on any anomalies that are detected in an operation&#8217;s performance.</p>
 </div>
 <div class="paragraph">
-<p>You expose Cruise Control metrics by enabling the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX Exporter</a> in the Cruise Control configuration.</p>
+<p>You expose Cruise Control metrics by <a href="#proc-metrics-kafka-deploy-options-str">enabling the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX Exporter</a> in the Cruise Control configuration</a>.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -27390,62 +27390,13 @@ For example, you can use Cruise Control metrics to monitor the status of rebalan
 <div class="title">Note</div>
 </td>
 <td class="content">
-For a full list of available Cruise Control metrics, which are known as <em>sensors</em>, see the <a href="https://github.com/linkedin/cruise-control/wiki/Sensors" target="_blank" rel="noopener">Cruise Control documentation</a>.
+For a full list of available Cruise Control metrics, which are known as <em>sensors</em>, see the <a href="https://github.com/linkedin/cruise-control/wiki/Sensors" target="_blank" rel="noopener">Cruise Control documentation</a>
 </td>
 </tr>
 </table>
 </div>
 <div class="sect3">
-<h4 id="exposing_cruise_control_metrics"><a class="link" href="#exposing_cruise_control_metrics">17.2.1. Exposing Cruise Control metrics</a></h4>
-<div class="paragraph">
-<p>If you want to expose metrics on Cruise Control operations, configure the <code>Kafka</code> resource <a href="#proc-metrics-kafka-deploy-options-str">to deploy Cruise Control and enable Prometheus metrics in the deployment</a>.
-You can use your own configuration or use the example <code>kafka-cruise-control-metrics.yaml</code> file provided by Strimzi.</p>
-</div>
-<div class="paragraph">
-<p>You add the configuration to the <code>metricsConfig</code> of the <code>CruiseControl</code> property in the <code>Kafka</code> resource.
-The configuration enables the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX Exporter</a> to expose Cruise Control metrics through an HTTP endpoint.
-The HTTP endpoint is scraped by the Prometheus server.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example metrics configuration for Cruise Control</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  apiVersion: kafka.strimzi.io/v1beta2
-  kind: Kafka
-  metadata:
-    name: my-cluster
-  Spec:
-    # ...
-    cruiseControl:
-      # ...
-      metricsConfig:
-        type: jmxPrometheusExporter
-        valueFrom:
-          configMapKeyRef:
-            name: cruise-control-metrics
-            key: metrics-config.yml
-  ---
-  kind: ConfigMap
-  apiVersion: v1
-  metadata:
-    name: cruise-control-metrics
-    labels:
-      app: strimzi
-  data:
-    metrics-config.yml: |
-    # <em>metrics configuration...</em></code></pre>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="viewing_cruise_control_metrics"><a class="link" href="#viewing_cruise_control_metrics">17.2.2. Viewing Cruise Control metrics</a></h4>
-<div class="paragraph">
-<p>After you expose the Cruise Control metrics, you can use Prometheus or another suitable monitoring system to view information on the metrics data.
-Strimzi provides an <a href="#assembly-metrics-config-files-str">example Grafana dashboard</a> to display visualizations of Cruise Control metrics.
-The dashboard is a JSON file called <code>strimzi-cruise-control.json</code>.
-The exposed metrics provide the monitoring data when you <a href="#proc-metrics-grafana-dashboard-str">enable the Grafana dashboard</a>.</p>
-</div>
-<div class="sect4">
-<h5 id="monitoring_balancedness_scores"><a class="link" href="#monitoring_balancedness_scores">Monitoring balancedness scores</a></h5>
+<h4 id="monitoring_balancedness_scores"><a class="link" href="#monitoring_balancedness_scores">17.2.1. Monitoring balancedness scores</a></h4>
 <div class="paragraph">
 <p>Cruise Control metrics include a balancedness score.
 Balancedness is the measure of how evenly a workload is distributed in a Kafka cluster.</p>
@@ -27484,8 +27435,8 @@ The latest cached optimization proposal is fetched if one of the following condi
 </table>
 </div>
 </div>
-<div class="sect4">
-<h5 id="alerts_on_anomaly_detection"><a class="link" href="#alerts_on_anomaly_detection">Alerts on anomaly detection</a></h5>
+<div class="sect3">
+<h4 id="setting_up_alerts_for_anomaly_detection"><a class="link" href="#setting_up_alerts_for_anomaly_detection">17.2.2. Setting up alerts for anomaly detection</a></h4>
 <div class="paragraph">
 <p>Cruise control&#8217;s <em>anomaly detector</em> provides metrics data for conditions that block the generation of optimization goals, such as broker failures.
 If you want more visibility, you can use the metrics provided by the anomaly detector to set up alerts and send out notifications.
@@ -27495,7 +27446,6 @@ Prometheus Alertmanager can then route the alerts generated by Prometheus.</p>
 </div>
 <div class="paragraph">
 <p>The <a href="https://github.com/linkedin/cruise-control/wiki/Configurations" target="_blank" rel="noopener">Cruise Control documentation</a> provides information on <code>AnomalyDetector</code> metrics and the anomaly notifier.</p>
-</div>
 </div>
 </div>
 </div>
@@ -27527,7 +27477,7 @@ Prometheus Alertmanager can then route the alerts generated by Prometheus.</p>
 │    ├── alert-manager.yaml <b class="conum">(5)</b>
 │    ├── prometheus-rules.yaml <b class="conum">(6)</b>
 │    ├── prometheus.yaml <b class="conum">(7)</b>
-│    ├── strimzi-pod-monitor.yaml <b class="conum">(8)</b>
+│    └── strimzi-pod-monitor.yaml <b class="conum">(8)</b>
 ├── kafka-bridge-metrics.yaml <b class="conum">(9)</b>
 ├── kafka-connect-metrics.yaml <b class="conum">(10)</b>
 ├── kafka-cruise-control-metrics.yaml <b class="conum">(11)</b>
@@ -27645,39 +27595,6 @@ When deploying Prometheus metrics configuration, you can can deploy the example 
 The rules are specified in the example <code>prometheus-rules.yaml</code> file for use in a <a href="#proc-metrics-deploying-prometheus-str">Prometheus deployment</a>.</p>
 </div>
 <div class="paragraph">
-<p>Alerting rules provide notifications about specific conditions observed in metrics.
-Rules are declared on the Prometheus server, but Prometheus Alertmanager is responsible for alert notifications.</p>
-</div>
-<div class="paragraph">
-<p>Prometheus alerting rules describe conditions using <a href="https://prometheus.io/docs/prometheus/latest/querying/basics/">PromQL</a> expressions that are continuously evaluated.</p>
-</div>
-<div class="paragraph">
-<p>When an alert expression becomes true, the condition is met and the Prometheus server sends alert data to the Alertmanager.
-Alertmanager then sends out a notification using the communication method configured for its deployment.</p>
-</div>
-<div class="paragraph">
-<p>General points about the alerting rule definitions:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>A <code>for</code> property is used with the rules to determine the period of time a condition must persist before an alert is triggered.</p>
-</li>
-<li>
-<p>A tick is a basic ZooKeeper time unit, which is measured in milliseconds and configured using the <code>tickTime</code> parameter of <code>Kafka.spec.zookeeper.config</code>. For example, if ZooKeeper <code>tickTime=3000</code>, 3 ticks (3 x 3000) equals 9000 milliseconds.</p>
-</li>
-<li>
-<p>The availability of the <code>ZookeeperRunningOutOfSpace</code> metric and alert is dependent on the Kubernetes configuration and storage implementation used. Storage implementations for certain platforms may not be able to supply the information on available space required for the metric to provide an alert.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Alertmanager can be configured to use email, chat messages or other notification methods.
-Adapt the default configuration of the example rules according to your specific needs.</p>
-</div>
-<div class="sect4">
-<h5 id="example_alerting_rules"><a class="link" href="#example_alerting_rules">Example alerting rules</a></h5>
-<div class="paragraph">
 <p>The <code>prometheus-rules.yaml</code> file contains example rules for the following components:</p>
 </div>
 <div class="ulist">
@@ -27708,6 +27625,36 @@ Adapt the default configuration of the example rules according to your specific 
 <div class="paragraph">
 <p>A description of each of the example rules is provided in the file.</p>
 </div>
+<div class="paragraph">
+<p>Alerting rules provide notifications about specific conditions observed in metrics.
+Rules are declared on the Prometheus server, but Prometheus Alertmanager is responsible for alert notifications.</p>
+</div>
+<div class="paragraph">
+<p>Prometheus alerting rules describe conditions using <a href="https://prometheus.io/docs/prometheus/latest/querying/basics/">PromQL</a> expressions that are continuously evaluated.</p>
+</div>
+<div class="paragraph">
+<p>When an alert expression becomes true, the condition is met and the Prometheus server sends alert data to the Alertmanager.
+Alertmanager then sends out a notification using the communication method configured for its deployment.</p>
+</div>
+<div class="paragraph">
+<p>General points about the alerting rule definitions:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A <code>for</code> property is used with the rules to determine the period of time a condition must persist before an alert is triggered.</p>
+</li>
+<li>
+<p>A tick is a basic ZooKeeper time unit, which is measured in milliseconds and configured using the <code>tickTime</code> parameter of <code>Kafka.spec.zookeeper.config</code>. For example, if ZooKeeper <code>tickTime=3000</code>, 3 ticks (3 x 3000) equals 9000 milliseconds.</p>
+</li>
+<li>
+<p>The availability of the <code>ZookeeperRunningOutOfSpace</code> metric and alert is dependent on the Kubernetes configuration and storage implementation used. Storage implementations for certain platforms may not be able to supply the information on available space required for the metric to provide an alert.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Alertmanager can be configured to use email, chat messages or other notification methods.
+Adapt the default configuration of the example rules according to your specific needs.</p>
 </div>
 </div>
 <div class="sect3">
@@ -27790,18 +27737,21 @@ When metrics are not available to the Kafka Exporter, because there is no traffi
 </div>
 <div class="sect2">
 <h3 id="assembly-metrics-setup-str"><a class="link" href="#assembly-metrics-setup-str">17.4. Using Prometheus with Strimzi</a></h3>
-<div class="paragraph">
+<div class="paragraph _abstract">
 <p>You can use Prometheus to provide monitoring data for the example Grafana dashboards provided with Strimzi.</p>
 </div>
 <div class="paragraph">
 <p>To expose metrics in Prometheus format, you add configuration to a custom resource.
-You will also need to make sure that the metrics are scraped by your monitoring stack.
+You must also make sure that the metrics are scraped by your monitoring stack.
 Prometheus and Prometheus Alertmanager are used in the examples provided by Strimzi, but you can use also other compatible tools.</p>
+</div>
+<div class="paragraph">
+<p>Using Prometheus with Strimzi, requires the following:</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p><a href="#proc-metrics-kafka-deploy-options-str">Deploying Prometheus metrics configuration</a></p>
+<p><a href="#proc-metrics-kafka-deploy-options-str">Enabling Prometheus metrics through configuration</a></p>
 </li>
 <li>
 <p><a href="#assembly-metrics-prometheus-str">Setting up Prometheus</a></p>
@@ -27811,14 +27761,58 @@ Prometheus and Prometheus Alertmanager are used in the examples provided by Stri
 </li>
 </ol>
 </div>
+<div class="paragraph">
+<p>Strimzi provides an <a href="#assembly-metrics-config-files-str">example Grafana dashboards</a> to display visualizations of metrics.
+The exposed metrics provide the monitoring data when you <a href="#proc-metrics-grafana-dashboard-str">enable the Grafana dashboard</a>.</p>
+</div>
 <div class="sect3">
-<h4 id="proc-metrics-kafka-deploy-options-str"><a class="link" href="#proc-metrics-kafka-deploy-options-str">17.4.1. Deploying Prometheus metrics configuration</a></h4>
+<h4 id="proc-metrics-kafka-deploy-options-str"><a class="link" href="#proc-metrics-kafka-deploy-options-str">17.4.1. Enabling Prometheus metrics through configuration</a></h4>
 <div class="paragraph _abstract">
-<p>Deploy Prometheus metrics configuration to use Prometheus with Strimzi.
-Use the <code>metricsConfig</code> property to enable and configure Prometheus metrics.</p>
+<p>To enable and expose metrics in Strimzi for Prometheus, use metrics configuration properties.</p>
 </div>
 <div class="paragraph">
-<p>You can use your own configuration or the <a href="#ref-metrics-prometheus-metrics-config-str">example custom resource configuration files provided with Strimzi</a>.</p>
+<p>The following components require <code>metricsConfig</code> configuration to expose metrics:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Kafka</p>
+</li>
+<li>
+<p>KafkaConnect</p>
+</li>
+<li>
+<p>MirrorMaker</p>
+</li>
+<li>
+<p>Cruise Control</p>
+</li>
+<li>
+<p>ZooKeeper</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>This configuration enables the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX Exporter</a> to expose metrics through an HTTP endpoint, which is scraped by the Prometheus server.</p>
+</div>
+<div class="paragraph">
+<p>You set the <code>enableMetrics</code> property to <code>true</code> in order to expose metrics for these components:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Kafka Bridge</p>
+</li>
+<li>
+<p>OAuth 2.0 authentication and authorization framework</p>
+</li>
+<li>
+<p>Open Policy Agent (OPA) for authorization</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>To deploy Prometheus metrics configuration in Strimzi, you can use your own configuration or the <a href="#ref-metrics-prometheus-metrics-config-str">example custom resource configuration files</a> provided with Strimzi:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -27837,28 +27831,21 @@ Use the <code>metricsConfig</code> property to enable and configure Prometheus m
 <li>
 <p><code>kafka-cruise-control-metrics.yaml</code></p>
 </li>
-</ul>
-</div>
-<div class="paragraph">
-<p>The example configuration files have relabeling rules and the configuration required to enable Prometheus metrics.
-Prometheus scrapes metrics from target HTTP endpoints.
-The example files are a good way to try Prometheus with Strimzi.</p>
-</div>
-<div class="paragraph">
-<p>To apply the relabeling rules and metrics configuration, do one of the following:</p>
-</div>
-<div class="ulist">
-<ul>
 <li>
-<p>Copy the example configuration to your own custom resources</p>
-</li>
-<li>
-<p>Deploy the custom resource with the metrics configuration</p>
+<p><code>oauth-metrics.yaml</code></p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>If you want to include <a href="#con-metrics-kafka-exporter-lag-str">Kafka Exporter</a> metrics, add <code>kafkaExporter</code> configuration to your <code>Kafka</code> resource.</p>
+<p>These files contain the necessary relabeling rules and configuration to enable Prometheus metrics.
+They are a good starting point for trying Prometheus with Strimzi.</p>
+</div>
+<div class="paragraph">
+<p>This procedure shows how to deploy example Prometheus metrics configuration in the <code>Kafka</code> resource.
+The process is the same when deploying the example files for other resources.</p>
+</div>
+<div class="paragraph">
+<p>If you wish to include <a href="#con-metrics-kafka-exporter-lag-str">Kafka Exporter</a> metrics, add <code>kafkaExporter</code> configuration to your <code>Kafka</code> resource.</p>
 </div>
 <div class="admonitionblock important">
 <table>
@@ -27867,15 +27854,11 @@ The example files are a good way to try Prometheus with Strimzi.</p>
 <div class="title">Important</div>
 </td>
 <td class="content">
-Kafka Exporter provides only additional metrics related to consumer lag and consumer offsets.
-For regular Kafka metrics, you have to configure the Prometheus metrics in <a href="#proc-metrics-kafka-deploy-options-str">Kafka brokers</a>.
+Kafka Exporter only provides additional metrics related to consumer lag and consumer offsets.
+For regular Kafka metrics, you must configure the Prometheus metrics in <a href="#proc-metrics-kafka-deploy-options-str">Kafka brokers</a>.
 </td>
 </tr>
 </table>
-</div>
-<div class="paragraph">
-<p>This procedure shows how to deploy Prometheus metrics configuration in the <code>Kafka</code> resource.
-The process is the same when using the example files for other resources.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -27883,7 +27866,7 @@ The process is the same when using the example files for other resources.</p>
 <li>
 <p>Deploy the example custom resource with the Prometheus configuration.</p>
 <div class="paragraph">
-<p>For example, for each <code>Kafka</code> resource you apply the <code>kafka-metrics.yaml</code> file.</p>
+<p>For example, for each <code>Kafka</code> resource you can apply the <code>kafka-metrics.yaml</code> file.</p>
 </div>
 <div class="listingblock">
 <div class="title">Deploying the example configuration</div>
@@ -27897,7 +27880,7 @@ The process is the same when using the example files for other resources.</p>
 <div class="listingblock">
 <div class="title">Copying the example configuration</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit kafka <em>&lt;kafka-configuration-file&gt;</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit kafka &lt;kafka_configuration_file&gt;</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -27940,35 +27923,6 @@ data:
 <p>Copy the whole <code>ConfigMap</code> that specifies the metrics configuration.</p>
 </li>
 </ol>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-<div class="paragraph">
-<p>For Kafka Bridge, you specify the <code>enableMetrics</code> property and set it to <code>true</code>.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaBridge
-metadata:
-  name: my-bridge
-spec:
-  # ...
-  bootstrapServers: my-cluster-kafka:9092
-  http:
-    # ...
-  enableMetrics: true
-  # ...</code></pre>
-</div>
-</div>
-</td>
-</tr>
-</table>
 </div>
 </li>
 <li>
@@ -28072,9 +28026,78 @@ For Kafka Exporter to be able to work properly, consumer groups need to be in us
 </tr>
 </table>
 </div>
-<div class="paragraph _additional-resources">
-<div class="title">Additional resources</div>
-<p><a href="./configuring.html" target="_blank" rel="noopener">Strimzi Custom Resource API Reference</a>.</p>
+<div class="paragraph">
+<div class="title">Enabling metrics for Kafka Bridge</div>
+<p>To expose metrics for Kafka Bridge, set the <code>enableMetrics</code> property to <code>true</code> in the <code>KafkaBridge</code> resource.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example metrics configuration for Kafka Bridge</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaBridge
+metadata:
+  name: my-bridge
+spec:
+  # ...
+  bootstrapServers: my-cluster-kafka:9092
+  http:
+    # ...
+  enableMetrics: true
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Enabling metrics for OAUth 2.0 and OPA</div>
+<p>To expose metrics for OAuth 2.0 or OPA, set the <code>enableMetrics</code> property to <code>true</code> in the appropriate custom resource.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">OAuth 2.0 metrics</dt>
+<dd>
+<p>Enable metrics for Kafka cluster authorization and Kafka listener authentication in the <code>Kafka</code> resource.</p>
+<div class="paragraph">
+<p>You can also enable metrics for OAuth 2.0 authentication in the custom resource of other <a href="#proc-oauth-kafka-config-str">supported components</a>.</p>
+</div>
+</dd>
+<dt class="hdlist1">OPA metrics</dt>
+<dd>
+<p>Enable metrics for Kafka cluster authorization the <code>Kafka</code> resource in the same way as for OAuth 2.0.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>In the following example, metrics are enabled for OAuth 2.0 listener authentication and OAuth 2.0 (<code>keycloak</code>) cluster authorization.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example cluster configuration with metrics enabled for OAuth 2.0</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: myproject
+spec:
+  kafka:
+    # ...
+    listeners:
+    - name: external
+      port: 9094
+      type: loadbalancer
+      tls: true
+      authentication:
+        type: oauth
+        enableMetrics: true
+      configuration:
+        #...
+    authorization:
+      type: keycloak
+      enableMetrics: true
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To use the OAuth 2.0 metrics with Prometheus, you can use the <code>oauth-metrics.yaml</code> file to deploy example Prometheus metrics configuration.
+Copy the <code>ConfigMap</code> configuration the <code>oauth-metrics.yaml</code> file contains to the same <code>Kafka</code> resource configuration file where you enabled metrics for OAUth 2.0.</p>
 </div>
 </div>
 <div class="sect3">
@@ -28471,23 +28494,6 @@ A configuration file defines the resources for deploying Alertmanager:</p>
 </ol>
 </div>
 </div>
-<div class="sect3">
-<h4 id="con-metrics-kafka-mini-kube-str"><a class="link" href="#con-metrics-kafka-mini-kube-str">17.4.4. Using metrics with Minikube</a></h4>
-<div class="paragraph">
-<p>When adding Prometheus and Grafana servers to an Apache Kafka deployment using Minikube, the memory available to the virtual machine should be increased (to 4 GB of RAM, for example, instead of the default 2 GB).</p>
-</div>
-<div class="paragraph">
-<p>For information on how to increase the default amount of memory, see <a href="#deploy-kubernetes-str">Installing a local Kubernetes cluster with Minikube</a></p>
-</div>
-<div class="ulist _additional-resources">
-<div class="title">Additional resources</div>
-<ul>
-<li>
-<p><a href="https://kubernetes.io/docs/tasks/debug-application-cluster/resource-usage-monitoring/">Prometheus - Monitoring Docker Container Metrics using cAdvisor</a> describes how to use cAdvisor (short for container Advisor) metrics with Prometheus to analyze and expose resource usage (CPU, Memory, and Disk) and performance data from running containers within pods on Kubernetes.</p>
-</li>
-</ul>
-</div>
-</div>
 </div>
 <div class="sect2">
 <h3 id="proc-metrics-grafana-dashboard-str"><a class="link" href="#proc-metrics-grafana-dashboard-str">17.5. Enabling the example Grafana dashboards</a></h3>
@@ -28653,6 +28659,23 @@ The name of the Grafana pod is different for each user.</p>
 </div>
 <div class="paragraph">
 <p>The imported Grafana dashboards are available to view from the <strong>Dashboards</strong> home page.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="con-metrics-kafka-mini-kube-str"><a class="link" href="#con-metrics-kafka-mini-kube-str">17.6. Using metrics with Minikube</a></h3>
+<div class="paragraph">
+<p>When adding Prometheus and Grafana servers to an Apache Kafka deployment using Minikube, the memory available to the virtual machine should be increased (to 4 GB of RAM, for example, instead of the default 2 GB).</p>
+</div>
+<div class="paragraph">
+<p>For information on how to increase the default amount of memory, see <a href="#deploy-kubernetes-str">Installing a local Kubernetes cluster with Minikube</a></p>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="https://kubernetes.io/docs/tasks/debug-application-cluster/resource-usage-monitoring/">Prometheus - Monitoring Docker Container Metrics using cAdvisor</a> describes how to use cAdvisor (short for container Advisor) metrics with Prometheus to analyze and expose resource usage (CPU, Memory, and Disk) and performance data from running containers within pods on Kubernetes.</p>
+</li>
+</ul>
 </div>
 </div>
 </div>
