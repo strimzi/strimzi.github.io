@@ -469,8 +469,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#type-GenericKafkaListener-reference">6. <code>GenericKafkaListener</code> schema reference</a>
 <ul class="sectlevel2">
 <li><a href="#property-generic-listeners-reference">6.1. <code>listeners</code></a></li>
-<li><a href="#type">6.2. <code>type</code></a></li>
-<li><a href="#property-listener-port-reference">6.3. <code>port</code></a></li>
+<li><a href="#property-listener-port-reference">6.2. <code>port</code></a></li>
+<li><a href="#type">6.3. <code>type</code></a></li>
 <li><a href="#property-listener-tls-reference">6.4. <code>tls</code></a></li>
 <li><a href="#authentication">6.5. <code>authentication</code></a></li>
 <li><a href="#configuration-listener-network-policy-reference">6.6. <code>networkPolicyPeers</code></a></li>
@@ -2664,16 +2664,55 @@ Listeners are defined as an array.</p>
 </div>
 <div class="paragraph">
 <p>The name and port must be unique within the Kafka cluster.
-The name can be up to 25 characters long, comprising lower-case letters and numbers.
-Allowed port numbers are 9092 and higher with the exception of ports 9404 and 9999, which are already used for Prometheus and JMX.</p>
-</div>
-<div class="paragraph">
-<p>By specifying a unique name and port for each listener,
-you can configure multiple listeners.</p>
+By specifying a unique name and port for each listener,
+you can configure multiple listeners.
+The name can be up to 25 characters long, comprising lower-case letters and numbers.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="type"><a class="link" href="#type">6.2. <code>type</code></a></h3>
+<h3 id="property-listener-port-reference"><a class="link" href="#property-listener-port-reference">6.2. <code>port</code></a></h3>
+<div class="paragraph">
+<p>The port number is the port used in the Kafka cluster, which might not be the same port used for access by a client.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>loadbalancer</code> listeners use the specified port number, as do <code>internal</code> and <code>cluster-ip</code> listeners</p>
+</li>
+<li>
+<p><code>ingress</code> and <code>route</code> listeners use port 443 for access</p>
+</li>
+<li>
+<p><code>nodeport</code> listeners use the port number assigned by Kubernetes</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For client connection, use the address and port for the bootstrap service of the listener.
+You can retrieve this from the status of the <code>Kafka</code> resource.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example command to retrieve the address and port for client connection</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka <em>&lt;kafka_cluster_name&gt;</em> -o=jsonpath='{.status.listeners[?(@.name=="<em>&lt;listener_name&gt;</em>")].bootstrapServers}{"\n"}'</code></pre>
+</div>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+When configuring listeners for client access to brokers, you can use port 9092 or higher (9093, 9094, and so on), but with a few exceptions.
+The listeners cannot be configured to use the ports reserved for interbroker communication (9090 and 9091), Prometheus metrics (9404), and JMX (Java Management Extensions) monitoring (9999).
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="type"><a class="link" href="#type">6.3. <code>type</code></a></h3>
 <div class="paragraph">
 <p>The type is set as <code>internal</code>,
 or for external listeners, as <code>route</code>, <code>loadbalancer</code>, <code>nodeport</code>, <code>ingress</code> or <code>cluster-ip</code>.
@@ -2893,47 +2932,6 @@ spec:
 </div>
 </dd>
 </dl>
-</div>
-</div>
-<div class="sect2">
-<h3 id="property-listener-port-reference"><a class="link" href="#property-listener-port-reference">6.3. <code>port</code></a></h3>
-<div class="paragraph">
-<p>The port number is the port used in the Kafka cluster, which might not be the same port used for access by a client.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>loadbalancer</code> listeners use the specified port number, as do <code>internal</code> and <code>cluster-ip</code> listeners</p>
-</li>
-<li>
-<p><code>ingress</code> and <code>route</code> listeners use port 443 for access</p>
-</li>
-<li>
-<p><code>nodeport</code> listeners use the port number assigned by Kubernetes</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>For client connection, use the address and port for the bootstrap service of the listener.
-You can retrieve this from the status of the <code>Kafka</code> resource.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example command to retrieve the address and port for client connection</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka <em>&lt;kafka_cluster_name&gt;</em> -o=jsonpath='{.status.listeners[?(@.name=="<em>&lt;listener_name&gt;</em>")].bootstrapServers}{"\n"}'</code></pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Listeners cannot be configured to use the ports set aside for interbroker communication (9090 and 9091) and metrics (9404).
-</td>
-</tr>
-</table>
 </div>
 </div>
 <div class="sect2">
@@ -17537,7 +17535,7 @@ Do not create, modify or delete <code>StrimziPodSet</code> resources as this mig
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-07-20 09:10:17 UTC
+Last updated 2023-07-20 09:32:34 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
