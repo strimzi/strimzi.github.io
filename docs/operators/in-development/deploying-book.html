@@ -463,7 +463,6 @@
 </ul>
 </li>
 <li><a href="#proc-reenabling-FIPS-mode-str">21.6. Switching to FIPS mode when upgrading Strimzi</a></li>
-<li><a href="#proc-upgrading-consumers-streams-cooperative-rebalancing_str">21.7. Upgrading consumers to cooperative rebalancing</a></li>
 </ul>
 </li>
 <li><a href="#assembly-downgrade-str">22. Downgrading Strimzi</a>
@@ -30157,27 +30156,22 @@ public static void main(String[] args) throws Exception {
 <h2 id="assembly-upgrade-str"><a class="link" href="#assembly-upgrade-str">21. Upgrading Strimzi</a></h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
-<p>Strimzi can be upgraded to version latest to take advantage of new features and enhancements, performance improvements, and security options.</p>
+<p>Upgrade your Strimzi installation to version latest and benefit from new features, performance improvements, and enhanced security options.
+During the upgrade, Kafka is also be updated to the latest supported version, introducing additional features and bug fixes to your Strimzi deployment.</p>
 </div>
 <div class="paragraph">
-<p>As part of the upgrade, you upgrade Kafka to the latest supported version.
-Each Kafka release introduces new features, improvements, and bug fixes to your Strimzi deployment.</p>
+<p>If you encounter any issues with the new version, Strimzi can be <a href="#assembly-downgrade-str">downgraded</a> to the previous version.</p>
 </div>
 <div class="paragraph">
-<p>Strimzi can be <a href="#assembly-downgrade-str">downgraded</a> to the previous version if you encounter issues with the newer version.</p>
+<p>Released Strimzi versions can be found at <a href="https://github.com/strimzi/strimzi-kafka-operator/releases" target="_blank" rel="noopener">GitHub releases page</a>.</p>
 </div>
 <div class="paragraph">
-<p>Released versions of Strimzi are available from the <a href="https://github.com/strimzi/strimzi-kafka-operator/releases" target="_blank" rel="noopener">GitHub releases page</a>.</p>
+<div class="title">Upgrade without downtime</div>
+<p>For topics configured with high availability (replication factor of at least 3 and evenly distributed partitions), the upgrade process should not cause any downtime for consumers and producers.</p>
 </div>
 <div class="paragraph">
-<div class="title">Upgrade downtime and availability</div>
-<p>If topics are configured for high availability, upgrading Strimzi should not cause any downtime for consumers and producers that publish and read data from those topics.
-Highly available topics have a replication factor of at least 3 and partitions distributed evenly among the brokers.</p>
-</div>
-<div class="paragraph">
-<p>Upgrading Strimzi triggers rolling updates, where all brokers are restarted in turn, at different stages of the process.
-During rolling updates, not all brokers are online, so overall <em>cluster availability</em> is temporarily reduced.
-A reduction in cluster availability increases the chance that a broker failure will result in lost messages.</p>
+<p>The upgrade triggers rolling updates, where brokers are restarted one by one at different stages of the process.
+During this time, overall cluster availability is temporarily reduced, which may increase the risk of message loss in the event of a broker failure.</p>
 </div>
 <div class="sect2">
 <h3 id="con-upgrade-paths-str"><a class="link" href="#con-upgrade-paths-str">21.1. Strimzi upgrade paths</a></h3>
@@ -30327,9 +30321,6 @@ You must upgrade to a version of Strimzi where it is disabled, then enable it us
 </li>
 <li>
 <p><a href="#assembly-upgrading-kafka-versions-str">Upgrade all Kafka brokers and client applications</a> to the latest supported Kafka version.</p>
-</li>
-<li>
-<p>Optional: Upgrade consumers and Kafka Streams applications <a href="#proc-upgrading-consumers-streams-cooperative-rebalancing_str">to use the <em>incremental cooperative rebalance</em> protocol</a> for partition rebalances.</p>
 </li>
 </ol>
 </div>
@@ -31204,9 +31195,6 @@ From Kafka 3.0.0, when the <code>inter.broker.protocol.version</code> is set to 
 </li>
 </ol>
 </div>
-<div class="paragraph">
-<p>Following the Kafka upgrade, if required, you can <a href="#proc-upgrading-consumers-streams-cooperative-rebalancing_str">upgrade consumers to use the incremental cooperative rebalance protocol</a>.</p>
-</div>
 </div>
 </div>
 <div class="sect2">
@@ -31271,80 +31259,6 @@ You can then enable the FIPS mode.</p>
 <p>Remove the <code>FIPS_MODE</code> environment variable from the Cluster Operator deployment.
 This restarts the Cluster Operator and rolls all the operands to enable the FIPS mode.
 After the restart is complete, all Kafka clusters now run with FIPS mode enabled.</p>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect2">
-<h3 id="proc-upgrading-consumers-streams-cooperative-rebalancing_str"><a class="link" href="#proc-upgrading-consumers-streams-cooperative-rebalancing_str">21.7. Upgrading consumers to cooperative rebalancing</a></h3>
-<div class="paragraph">
-<p>You can upgrade Kafka consumers and Kafka Streams applications to use the <em>incremental cooperative rebalance</em> protocol for partition rebalances instead of the default <em>eager rebalance</em> protocol. The new protocol was added in Kafka 2.4.0.</p>
-</div>
-<div class="paragraph">
-<p>Consumers keep their partition assignments in a cooperative rebalance and only revoke them at the end of the process, if needed to achieve a balanced cluster. This reduces the unavailability of the consumer group or Kafka Streams application.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Upgrading to the incremental cooperative rebalance protocol is optional. The eager rebalance protocol is still supported.
-</td>
-</tr>
-</table>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>You have <a href="#proc-upgrading-brokers-newer-kafka-str">upgraded Kafka brokers and client applications</a> to Kafka 3.5.1.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Procedure</div>
-<p><strong>To upgrade a Kafka consumer to use the incremental cooperative rebalance protocol:</strong></p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Replace the Kafka clients <code>.jar</code> file with the new version.</p>
-</li>
-<li>
-<p>In the consumer configuration, append <code>cooperative-sticky</code> to the <code>partition.assignment.strategy</code>. For example, if the <code>range</code> strategy is set, change the configuration to <code>range, cooperative-sticky</code>.</p>
-</li>
-<li>
-<p>Restart each consumer in the group in turn, waiting for the consumer to rejoin the group after each restart.</p>
-</li>
-<li>
-<p>Reconfigure each consumer in the group by removing the earlier <code>partition.assignment.strategy</code> from the consumer configuration, leaving only the <code>cooperative-sticky</code> strategy.</p>
-</li>
-<li>
-<p>Restart each consumer in the group in turn, waiting for the consumer to rejoin the group after each restart.</p>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p><strong>To upgrade a Kafka Streams application to use the incremental cooperative rebalance protocol:</strong></p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Replace the Kafka Streams <code>.jar</code> file with the new version.</p>
-</li>
-<li>
-<p>In the Kafka Streams configuration, set the <code>upgrade.from</code> configuration parameter to the Kafka version you are upgrading from (for example, 2.3).</p>
-</li>
-<li>
-<p>Restart each of the stream processors (nodes) in turn.</p>
-</li>
-<li>
-<p>Remove the <code>upgrade.from</code> configuration parameter from the Kafka Streams configuration.</p>
-</li>
-<li>
-<p>Restart each consumer in the group in turn.</p>
 </li>
 </ol>
 </div>
