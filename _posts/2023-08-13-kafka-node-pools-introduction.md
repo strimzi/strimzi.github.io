@@ -22,7 +22,7 @@ First of all, it means that the Node Pool support is disabled by default and you
 It also suggests that this is a brand-new feature that:
 * It might be still under development and testing.
   It might contain bugs or some parts of it might still be missing.
-* We might be still evaluating it this is a feature we want to have, whether it fulfills its goals, and provides good user experience.
+* We might be still evaluating if this is a feature we want to have, whether it fulfills its goals, and provides good user experience.
 * It might still change in future releases or even be removed.
   It might not maintain a backwards compatibility with the previous versions of the feature gate.
 
@@ -67,8 +67,6 @@ It currently supports 6 different configuration options:
 * Template for customizing the resources belonging to this pool such for example Pods or containers
 
 These are the options which can be different between various node pools.
-Each node pool can configure them differently.
-
 All the other options are inherited from the `Kafka` custom resource.
 These includes:
 * Apache Kafka version
