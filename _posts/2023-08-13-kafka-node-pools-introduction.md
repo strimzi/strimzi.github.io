@@ -52,17 +52,17 @@ You can find more details about enabling the feature gates in [our documentation
 
 Enabling the `+KafkaNodePools` does not have any impact on your existing Kafka clusters.
 The Kafka Node Pools will be used only for the Kafka clusters with the annotation `strimzi.io/node-pools: enabled` on the `Kafka` custom resource.
-Once the feature gate is enabled and the `Kafka` resource has this annotation, the operator will look for the `KafkaNodePool` custom resources will use Node Pools for this Kafka cluster.
+Once the feature gate is enabled and the `Kafka` resource has this annotation, the operator will look for the `KafkaNodePool` custom resources, and will use Node Pools for this Kafka cluster.
 For such resource, no Kafka Pods will be created based on the `Kafka` resource itself but only based on the `KafkaNodePool` resources.
 
 ### Configuring Node Pools
 
 The Node Pools are configured using a new custom resource named `KafkaNodePool`.
 It currently supports 6 different configuration options:
-* Number of replicas
+* Number of replicas in that pool
 * Role(s) of the nodes in this pool
 * The storage configuration
-* Resource requirements
+* Resource requirements (e.g. memory and CPU)
 * JVM configuration options
 * Template for customizing the resources belonging to this pool such for example Pods or containers
 
@@ -79,8 +79,8 @@ In the future, it is possible that some additional options will be added to the 
 
 Three of the configuration options in the `KafkaNodePool` resource are required and have to be always configured.
 
-1. The number of replicas which defines how many Kafka nodes will this node pool create
-2. Storage used by the nodes in given node pool
+1. The number of replicas, which defines how many Kafka nodes will be created by the operator for this pool.
+2. Storage used by the nodes in given node pool.
 3. The role(s) of the nodes in given node pool.
    In a ZooKeeper-based Apache Kafka cluster, the role always has to be set to `broker`.
    In KRaft mode, the roles can be either `broker` or `controller`.
@@ -99,7 +99,7 @@ These options are not needed anymore since they are configured by the `KafkaNode
 While the Node Pools are an _alpha_ feature gate, these fields are still mandatory in the `Kafka` resource.
 But they will be completely ignored when node pools are used.
 That way we make sure that the schema validation of the `Kafka` custom resources works well for the majority of Strimzi users who will have the feature gate disabled.
-Once the node pools move to beta and will be enabled by default, these fields will be made optional and it will not be required to set them anymore.
+Once the node pools move to beta and will be enabled by default, these fields will be made optional in the CRD schema so they will not be required any more.
 
 #### Examples
 
@@ -259,12 +259,20 @@ Once the cluster is deployed, you can also check the `.status` fields of the cus
 In the `KafkaNodePool` resource status, you can see among other things the node IDs assigned to the nodes from pool:
 
 ```yaml
-  status:
-    # ...
-    nodeIds:
-      - 3
-      - 4
-      - 5
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: pool-b
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  # ...
+status:
+  # ...
+  nodeIds:
+    - 3
+    - 4
+    - 5
 ```
 
 It also contains some other information, such as the Kafka cluster ID.
@@ -272,11 +280,20 @@ It also contains some other information, such as the Kafka cluster ID.
 In the status of the `Kafka` resource, you can also see the list of Node Pools which belong to the Kafka cluster:
 
 ```yaml
-  status:
-    # ...
-    kafkaNodePools:
-      - name: pool-a
-      - name: pool-b
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+  annotations:
+    strimzi.io/node-pools: enabled
+spec:
+  # ...
+status:
+  # ...
+  kafkaNodePools:
+    - name: pool-a
+    - name: pool-b
+  # ...
 ```
 
 #### Scaling Node Pools
@@ -333,9 +350,9 @@ strimzi-cluster-operator-58c8cf6469-f25wj     1/1     Running   0          22m
 
 ### Migrating existing clusters to Node Pools
 
-In Strimzi, it is also important for us to support our existing users and their clusters which already exist.
+In Strimzi, it is also paramount importance for us to support our existing users and their clusters which already exist.
 So you can also migrate existing Kafka clusters to use Node Pools.
-We will not go into a detail of this in this blog post series.
+We will not go into the detail of this in this blog post series.
 But the migration process is described in [our documentation](https://strimzi.io/docs/operators/0.36.1/full/deploying.html#proc-migrating-clusters-node-pools-str).
 
 ### What's next?
