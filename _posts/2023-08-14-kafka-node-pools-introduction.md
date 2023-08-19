@@ -13,6 +13,12 @@ In this blog post series, we will look closer at the node pools, explain how to 
 
 <!--more-->
 
+_This post is part of a bigger series about Kafka Node Pools.
+The other parts published so far are:_
+
+* _Part 1 - Introduction (this post)_
+* _[Part 2 - Node ID Management](https://strimzi.io/blog/2023/08/19/kafka-node-pools-node-id-management/)_
+
 ### `KafkaNodePools` feature gate
 
 Support for Kafka Node Pools in Strimzi 0.36 is behind an _alpha-level_ Feature Gate.
