@@ -1,0 +1,170 @@
+---
+layout: post
+title: "Navigating the Open Source Seas: My LFX Mentorship Experience with the CNCF Strimzi Community"
+date: 2023-08-20
+author: antonio_pedro
+---
+
+In the world of open-source software, collaboration, and mentorship play a pivotal role in driving innovation and fostering growth. 
+As an aspiring developer looking to dive into the intricate world of cloud-native technologies, I embarked on a remarkable journey by participating in the [LFX Mentorship](https://lfx.linuxfoundation.org/tools/mentorship) program with the [Strimzi](https://strimzi.io) community.
+This program is happens thrice a year and is organized by [The Linux Foundation](https://www.linuxfoundation.org/).
+This blog post aims to shed light on my enriching experience, highlighting the valuable insights gained, the impactful work undertaken, and the immeasurable support from the mentors and the Strimzi community.
+
+<!--more-->
+
+# LFX Mentorship and the Cloud Native Computing Foundation Strimzi Community
+
+The Linux Foundation Mentorship is a 12-week online program to empower students to contribute to open-source projects under the [Cloud Native Computing Foundation](https://www.cncf.io/).
+
+On the other hand, Strimzi is a [Cloud Native Computing Foundation](https://www.cncf.io/) sandbox project that focuses on providing operators for running Apache Kafka on Kubernetes.
+With my interest piqued by this innovative endeavor, I decided to join the Strimzi community through the LFX Mentorship program.
+
+The LFX mentorship program bridges budding developers and experienced mentors, providing an avenue to contribute meaningfully to open-source projects.
+
+# From where everything started
+
+Everything started in 2022, I was looking for things I could do during my summer holidays.
+I investigated some mentorship programs such as Google Summer of Code, MLH Fellowship, Outreachy, and LFX Mentorship.
+
+## The Application process
+
+I have selected two projects for which my skill set fits the recommended skills.
+Among them, the Strimzi project was there waiting for me. 
+
+`“CNCF - Strimzi: Proof of Concept of an MQTT to Apache Kafka bridge for producing messages.”`
+
+This project got my attention among all the projects because I had practical experience with MQTT from my undergraduate program.
+I learned the basic concepts of Apache Kafka from the Cloud Computing and Distributed System course at IIIT Delhi.
+
+### The cover letter and the résumé
+
+After understanding what I had to do and what the project was about, I had to prepare my cover letter and resume.
+You need to submit these essential documents while applying to the LFX mentorship.
+I ensured my cover letter and resume were well-aligned with the project by providing details about my skills and experience with the recommended skills.
+
+But just after submitting my application, I noticed that one of the mentors for my project commented on the weak selection process.
+He was asking if they could ask for a proposal just like in Google Summer of Code.
+
+<!--Image here -->
+
+This scared me :) But I was confident I could provide a good proposal because of my previous experience with the underlying technologies.
+
+On the same day, I got my first interaction with my mentors, I would never think it wouldn’t be the last one.
+
+<!--Image here -->
+
+They gave me two days to elaborate on the proposal, and to be honest, it was the first time I saw myself as a real engineer.
+
+The first task was understanding the real problem and why we would need to build such a bridge, so I researched that.
+To design the solution, my first intuition was to relate my college project to the project.
+Just to get a rough idea of how it is very similar to what I was building in college:
+
+<!--Image here -->
+
+After that, I started to think about the architecture of the solution, and I came up with this:
+
+<!--Image here -->
+
+To be even closer to a logical solution, the win-win was to study and understand how Strimzi HTTP-Kafka Bridge works and how it is deployed on Kubernetes. 
+After reading the Strimzi HTTP-Kafka Bridge documentation, I was able to design a Bridge tackling all the issues. 
+Of course, it was not perfect, and this is where discussions and critical thinking helped me.
+
+### The mentors feedback
+
+After submitting my proposal, I got feedback from my mentors, and they were very positive about it.
+They had a lot of comments asking about my approach, and discussing and resolving the conversions was, of course, part of my win-win.
+At some point, I thought I wouldn’t be selected because my initial approach was mentioning unnecessary things like a full MQTT broker.
+
+The feedback from my mentors allowed me to rethink and defend my approach, proving that I had a basic understanding and was keen to work on the project.
+
+## The great day
+
+After so many discussions on the right approach, feedback, etc., I was not sleeping waiting for my results. 
+My first result was for the CNCF- Landing Page Improvement, in which I got rejected :(. 
+
+I started running unfaithfully and waiting for the Strimzi result, but it was too late, so I fell asleep hahaha.
+Waking up too early, I opened the email, and the great news was there
+
+<!--Image here -->
+
+## The Mentorship journey
+
+Upon joining the Strimzi community, I was warmly welcomed by mentors who were experts in their fields and exceptionally supportive and approachable.
+With their sense of humor, they gave me comprehensive guidance on understanding the Strimzi project governance, setting up a repository for the project I worked on, etc.
+This initial interaction set the tone for a productive and collaborative mentorship journey.
+
+### The work undertaken
+
+The project I worked on was the MQTT-Kafka Bridge, which is a bridge that allows you to produce messages to Kafka topics using MQTT.
+As I said before, I had to improve my solution, which could have been more manageable with many unnecessary components.
+Still, with the guidance of mentors, I could break down the task into manageable components.
+The mentors' feedback and code reviews were instrumental in refining my work and aligning it with Strimzi’s high standards.
+
+This MQTT-Kafka Bridge will enable one-way communication and mapping between MQTT and Kafka topics.
+The transformed messages will simultaneously be delivered to the Kafka cluster by the Kafka producer.
+This mapping makes it possible to integrate MQTT-based devices into an Apache Kafka system with interoperability, flexibility, and scalability.
+It would enable us to take advantage of the benefits of both MQTT and Kafka in our data processing and IoT system scenarios.
+
+This is what I worked on during each week.
+
+<!-- Image here -->
+
+The Bridge relies on a Mapper component to map the incoming MQTT messages to a valid Kafka Record, providing:
+- `interoperability`, e.g., MQTT QoS and Kafka Producer Acks level, MQTT wildcards topics, 
+- `flexibility`, the user sets his topic mapping rules
+- and `scalability`, the bridge supports n:m topic mapping.
+
+The user-defined `“topic mapping rules”` is a JSON array containing rules to define how the user wants to map each MQTT topic to a Kafka Topic.
+Working on this project also helped me shape my understanding and gain hands-on experience with integration testing. Apart from integration testing.
+I also enjoyed deploying the Bridge: packaging the Java application, building a container image, pushing it to a registry, and deploying the container on Kubernetes.  
+
+### Mentorship and collaboration
+
+No doubt, my mentors were the best part of my mentorship journey. 
+I have them as my sensei because they played a crucial role in shaping my understanding of the technical aspects and the open source culture.
+Their patience in answering my queries, willingness to guide me through challenges, and encouragement to explore different approaches were invaluable. This collaborative environment extended beyond my immediate mentors, as the Strimzi community was always ready to provide insights and support whenever I reached out.
+And, of course, I am glad I can count on my mentors and the Strimzi community even after the mentorship.
+
+Through the LFX Mentorship program, honed my technical skills, project management capabilities, and collaboration proficiency.
+The experience of working alongside experienced professionals taught me best practices, code organization, and the importance of maintaining clean and well-documented code.
+
+### The weekly meetings
+
+The weekly meetings were the best part of the mentorship program.
+I had the opportunity to interact with the mentors, which was a great learning experience.
+The meetings were very productive, and I got to learn a lot from the mentors.
+During the meetings, we discussed the progress made, the challenges faced, and the next steps to be taken.
+The mentors were very supportive and provided valuable feedback and guidance.
+
+### The result
+
+The result was a bridge that allows you to produce messages to Kafka topics using MQTT.
+You can find the code [here]().
+
+The below image illustrates the working of the MQTT-Kafka Bridge.
+It shows an Arduino device with three different sensors publishing data through the bridge and the Kafka Consumer consuming these data. 
+
+<!-- Image here -->
+
+# Conclusion
+
+Participating in the LFX Mentorship program with the Strimzi community was a transformative experience that expanded my horizons and solidified my passion for open-source development.
+The guidance, mentorship, and camaraderie from the mentors and the Strimzi community were invaluable assets that propelled my growth.
+Reflecting on this journey, I am grateful for the opportunity to contribute to a remarkable project while surrounded by a community that embodies the true spirit of open-source collaboration.
+This experience has enriched my technical knowledge and inspired me to continue my journey as a proactive contributor to the open-source ecosystem. 
+
+# What is next?
+
+During and after this fantastic journey, many good things happened:
+- I founded the first [Angolan open-source community](https://github.com/angolaosc) to educate, promote and help students and professionals get involved in Open-source:
+I started the community in July, and by the end of my internship (late August), we were able to:
+ - introduce open-source to 200+ individuals;
+ - helped more than 20 individuals make their first contribution; 
+ - grow our audience on social media by 700+ followers on LinkedIn;
+ - and a discord community with 200+ members. 
+- Not only that, but I was invited to present what I did in the mentorship during the Strimzi Community meeting. 
+
+I have embarked on a new journey as Open-source Program Manager at [Angola Open-source Community](), where I am working on building a community of open-source enthusiasts in Angola.
+
+I am very grateful for the opportunity to be part of the Strimzi community and the LFX Mentorship program.
+I am looking forward to continuing my journey as a proactive contributor to the open-source ecosystem and contributing to the Strimzi community.
