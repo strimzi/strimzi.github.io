@@ -43,7 +43,9 @@ You need to submit these essential documents while applying to the LFX mentorshi
 I ensured my cover letter and resume were well-aligned with the project by providing details about my skills and experience with the recommended skills.
 
 But just after submitting my application, I noticed that one of the mentors for my project commented on the weak selection process.
-He was asking if they could ask for a proposal just like in Google Summer of Code.
+He was asking if the program should have a project design proposal as a prerequisite just like in Google Summer of Code.
+A design proposal containing an overall description about the project, the challenges and related solutions.
+A good place to start a discussion with mentors in order to understand how the mentee was approaching.
 
 <!--Image here -->
 
