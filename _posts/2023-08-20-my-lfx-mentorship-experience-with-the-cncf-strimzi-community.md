@@ -134,7 +134,7 @@ The experience of working alongside experienced professionals taught me best pra
 
 The weekly meetings were the best part of the mentorship program.
 I had the opportunity to interact with the mentors, which was a great learning experience.
-The meetings were very productive, and I got to learn a lot from the mentors.
+The meetings were very productive, and I got to learn a lot from them.
 During the meetings, we discussed the progress made, the challenges faced, and the next steps to be taken.
 The mentors were very supportive and provided valuable feedback and guidance.
 
