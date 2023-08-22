@@ -20,7 +20,7 @@ The other parts published so far are:_
 
 ### Assigning node IDs
 
-By default, Strimzi will automatically assign new node ID to each Kafka node.
+By default, Strimzi will automatically assign a new node ID to each Kafka node.
 It will start from 0 and continue with 1, 2 and so on, always incrementing by one.
 When you scale your Kafka cluster up, it will find the next free node ID and use it.
 When you scale down your Kafka cluster, it will remove the highest used node ID first.
