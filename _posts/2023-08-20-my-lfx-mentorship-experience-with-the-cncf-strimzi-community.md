@@ -112,7 +112,7 @@ The Bridge relies on a Mapper component to map the incoming MQTT messages to a v
 - And `scalability`, the bridge supports n:m topic mapping.
 
 The user-defined `“topic mapping rules”` is a JSON array containing rules to define how the user wants to map each MQTT topic to a Kafka Topic.
-Working on this project also helped me shape my understanding and gain hands-on experience with integration testing. Apart from integration testing.
+Working on this project also helped me shape my understanding and gain hands-on experience with integration testing. 
 I also enjoyed deploying the Bridge: packaging the Java application, building a container image, pushing it to a registry, and deploying the container on Kubernetes.  
 
 ## Mentorship and collaboration
@@ -123,7 +123,7 @@ Their patience in answering my queries, willingness to guide me through challeng
 This collaborative environment extended beyond my immediate mentors, as the Strimzi community was always ready to provide insights and support whenever I reached out.
 And, of course, I am glad I can count on my mentors and the Strimzi community even after the mentorship.
 
-Through the LFX Mentorship program, honed my technical skills, project management capabilities, and collaboration proficiency.
+Through the LFX Mentorship program, I honed my technical skills, project management capabilities, and collaboration proficiency.
 The experience of working alongside experienced professionals taught me best practices, code organization, and the importance of maintaining clean and well-documented code.
 
 ## The weekly meetings
@@ -139,8 +139,8 @@ The mentors were very supportive and provided valuable feedback and guidance.
 The result was a bridge that allows you to produce messages to Kafka topics using MQTT.
 You can find the code [here](https://github.com/strimzi/strimzi-mqtt-bridge).
 
-The below video shows the working of the MQTT-Kafka Bridge.
-It shows an Arduino device with three different sensors publishing data through the bridge and the Kafka Consumer consuming these data. 
+The below image illustrates the working of the MQTT-Kafka Bridge.
+It shows an Arduino device with three different sensors publishing data through the bridge and a Kafka consumer consuming these data. 
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/VdNLLCVxbC8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
@@ -154,14 +154,14 @@ This experience has enriched my technical knowledge and inspired me to continue 
 # What is next?
 
 During and after this fantastic journey, many good things happened:
-- I founded the first [Angolan open-source community](https://github.com/angolaosc) to educate, promote and help students and professionals get involved in Open-source:
+- I founded the first [Angolan open-source community](https://github.com/angolaosc) to educate, promote and help students and professionals get involved in open-source development:
 I started the community in July, and by the end of my internship (late August), we were able to:
-    - introduce open-source to 200+ individuals;
+    - introduce the concept of open-source to 200+ individuals;
     - helped more than 20 individuals make their first contribution; 
     - grow our audience on social media by 700+ followers on LinkedIn;
     - and a discord community with 200+ members. 
 - Also, I was invited to present what I did in the mentorship during the Strimzi Community meeting.
-- Not enough, I applied to be a core organizer for the [Cloud Native - Community Group Luanda](https://community.cncf.io/cloud-native-luanda) and got accepted.
+- Even further, I applied to be a core organizer for the [Cloud Native - Community Group Luanda](https://community.cncf.io/cloud-native-luanda) and got accepted.
 
 I have embarked on a new journey as Open-source Program Manager at [Angola Open-source Community](https://github.com/angolaosc), where I am working on building a community of open-source enthusiasts in Angola.
 
