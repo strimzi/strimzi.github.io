@@ -13,7 +13,7 @@ In this blog post series, we will look closer at the node pools, explain how to 
 
 <!--more-->
 
-_This post is part of a bigger series about Kafka Node Pools.
+_This post is part of a bigger series about Kafka node pools.
 The other parts published so far are:_
 
 * _Part 1 - Introduction (this post)_
