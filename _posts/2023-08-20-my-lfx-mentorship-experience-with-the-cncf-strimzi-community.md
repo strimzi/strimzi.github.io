@@ -168,5 +168,5 @@ I have embarked on a new journey as Open-source Program Manager at [Angola Open-
 I am very grateful for the opportunity to be part of the Strimzi community and the LFX Mentorship program.
 I am looking forward to continuing my journey as a proactive contributor to the open-source ecosystem and contributing to the Strimzi community.
 
-If you are looking for mentorship opportunities with CNCF, I wrote a compreensive blog on how to apply and be successful.
+If you are looking for mentorship opportunities with CNCF, I wrote a comprehensive guide on how to apply and be successful.
 You can find the blog [here](https://antonio-pedro2019z.medium.com/exploring-mentorship-opportunities-with-cncf-your-path-to-growth-1df69ebe3124)
