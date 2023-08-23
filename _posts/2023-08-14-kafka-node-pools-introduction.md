@@ -17,7 +17,7 @@ _This post is part of a bigger series about Kafka node pools.
 The other parts published so far are:_
 
 * _Part 1 - Introduction (this post)_
-* _[Part 2 - Node ID Management](https://strimzi.io/blog/2023/08/19/kafka-node-pools-node-id-management/)_
+* _[Part 2 - Node ID Management](https://strimzi.io/blog/2023/08/23/kafka-node-pools-node-id-management/)_
 
 ### `KafkaNodePools` feature gate
 

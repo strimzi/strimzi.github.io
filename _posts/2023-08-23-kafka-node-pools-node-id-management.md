@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Kafka Node Pools: Node ID Management"
-date: 2023-08-19
+date: 2023-08-23
 author: jakub_scholz
 ---
 
