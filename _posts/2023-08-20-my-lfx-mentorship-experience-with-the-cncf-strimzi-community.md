@@ -83,7 +83,7 @@ My first result was for the CNCF- Landing Page Improvement, in which I got rejec
 I started running unfaithfully and waiting for the Strimzi result, but it was too late, so I fell asleep.
 Waking up too early, I opened the email, and the great news was there:
 
-![Acceptance email(/assets/images/posts/2023-08-20-acceptance-email.png)
+![Acceptance email](/assets/images/posts/2023-08-20-acceptance-email.png)
 
 # The Mentorship journey
 
