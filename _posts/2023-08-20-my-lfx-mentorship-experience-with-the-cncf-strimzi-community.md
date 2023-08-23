@@ -70,7 +70,7 @@ Of course, it was not perfect, and this is where discussing my solution with the
 #### Mentor feedback
 
 After submitting my proposal, I got feedback from my mentors, which was overwhelmingly positive.
-They had lots of comments about my approach,. Discussing and resolving their concerns was, of course, part of my win-win.
+They had lots of comments about my approach. Discussing and resolving their concerns was, of course, part of my win-win.
 At some point, I thought I wouldn’t be selected because my initial approach was mentioning unnecessary things like a full MQTT broker.
 
 The feedback from my mentors allowed me to rethink and defend my approach, proving that I had a basic understanding and was keen to work on the project.
