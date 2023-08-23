@@ -139,7 +139,7 @@ The mentors were very supportive and provided valuable feedback and guidance.
 The result was a bridge that allows you to produce messages to Kafka topics using MQTT.
 You can find the code [here](https://github.com/strimzi/strimzi-mqtt-bridge).
 
-The below image illustrates the working of the MQTT-Kafka Bridge.
+The below video illustrates the working of the MQTT-Kafka Bridge.
 It shows an Arduino device with three different sensors publishing data through the bridge and a Kafka consumer consuming these data. 
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/VdNLLCVxbC8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
