@@ -89,12 +89,12 @@ Waking up too early, I opened the email, and the great news was there:
 
 Upon joining the Strimzi community, I was warmly welcomed by mentors who were experts in their fields and exceptionally supportive and approachable.
 With their sense of humor, they gave me comprehensive guidance on understanding the Strimzi project governance, setting up a repository for the project I worked on, etc.
-A big shout-out to [kyguy](https://github.com/kyguy) and [pppatierno](https://github.com/ppatierno) for being my mentors and guiding me throughout the mentorship journey.
+A big shout-out to [kyguy](https://github.com/kyguy) and [ppatierno](https://github.com/ppatierno) for being my mentors and guiding me throughout the mentorship journey.
 This initial interaction set the tone for a productive and collaborative mentorship journey.
 
 #### The work undertaken
 
-The project I worked on was the MQTT-Kafka Bridge, which is a bridge that allows you to produce messages to Kafka topics using MQTT.
+The project I worked on was the MQTT-Kafka Bridge, which is a bridge that allows you to produce messages to Kafka topics using MQTT protocol.
 As I said before, I had to improve my solution, which could have been more manageable with many unnecessary components.
 Still, with the guidance of mentors, I could break down the task into manageable components.
 The mentors' feedback and code reviews were instrumental in refining my work and aligning it with Strimzi’s high standards.
@@ -110,8 +110,7 @@ This is what I worked on during each week.
 
 The Bridge relies on a Mapper component to map the incoming MQTT messages to a valid Kafka Record, providing:
 - `Interoperability`, e.g., MQTT QoS and Kafka Producer Acks level, MQTT wildcards topics;
-- `Flexibility`, the user sets his topic mapping rules;
-- And `scalability`, the bridge supports n:m topic mapping.
+- and `Flexibility`, the user sets his own topic mapping rules;
 
 The user-defined `“topic mapping rules”` is a JSON array containing rules to define how the user wants to map each MQTT topic to a Kafka Topic.
 Working on this project also helped me shape my understanding and gain hands-on experience with integration testing. 
@@ -138,7 +137,7 @@ The mentors were very supportive and provided valuable feedback and guidance.
 
 #### The result
 
-The result was a bridge that allows you to produce messages to Kafka topics using MQTT.
+The result was a bridge that allows you to produce messages to Kafka topics using MQTT protocol.
 You can find the code [here](https://github.com/strimzi/strimzi-mqtt-bridge).
 
 The below video illustrates the working of the MQTT-Kafka Bridge.
