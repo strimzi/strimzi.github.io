@@ -12,7 +12,7 @@ This blog post aims to shed light on my enriching experience, highlighting the v
 
 <!--more-->
 
-# LFX Mentorship and the Cloud Native Computing Foundation Strimzi Community
+### LFX Mentorship and the Cloud Native Computing Foundation Strimzi Community
 
 The Linux Foundation Mentorship is a 12-week online program to empower students to contribute to open-source projects under the [Cloud Native Computing Foundation](https://www.cncf.io/).
 
@@ -21,7 +21,7 @@ With my interest piqued by this innovative endeavor, I decided to join the Strim
 
 The LFX mentorship program bridges budding developers and experienced mentors, providing an avenue to contribute meaningfully to open-source projects.
 
-# The application process
+### The application process
 
 Everything started in 2022, I was looking for things I could do during my summer holidays.
 I investigated some mentorship programs such as Google Summer of Code, MLH Fellowship, Outreachy, and LFX Mentorship.
@@ -67,7 +67,7 @@ To be even closer to a logical solution, the win-win was to study and understand
 After reading the Strimzi HTTP-Kafka Bridge documentation, I was able to design a Bridge tackling all the issues. 
 Of course, it was not perfect, and this is where discussing about my solution with the mentors helped me.
 
-## The mentors feedback
+#### The mentors feedback
 
 After submitting my proposal, I got feedback from my mentors, and they were very positive about it.
 They had a lot of comments asking about my approach, and discussing and resolving the conversions was, of course, part of my win-win.
@@ -75,7 +75,7 @@ At some point, I thought I wouldn’t be selected because my initial approach wa
 
 The feedback from my mentors allowed me to rethink and defend my approach, proving that I had a basic understanding and was keen to work on the project.
 
-## The great day
+#### The great day
 
 After so many discussions on the right approach, feedback, etc., I was not sleeping waiting for my results. 
 My first result was for the CNCF- Landing Page Improvement, in which I got rejected :(. 
@@ -85,14 +85,14 @@ Waking up too early, I opened the email, and the great news was there:
 
 ![Acceptance email](/assets/images/posts/2023-08-20-acceptance-email.png)
 
-# The Mentorship journey
+### The Mentorship journey
 
 Upon joining the Strimzi community, I was warmly welcomed by mentors who were experts in their fields and exceptionally supportive and approachable.
 With their sense of humor, they gave me comprehensive guidance on understanding the Strimzi project governance, setting up a repository for the project I worked on, etc.
 A big shout-out to [kyguy](https://github.com/kyguy) and [pppatierno](https://github.com/ppatierno) for being my mentors and guiding me throughout the mentorship journey.
 This initial interaction set the tone for a productive and collaborative mentorship journey.
 
-## The work undertaken
+#### The work undertaken
 
 The project I worked on was the MQTT-Kafka Bridge, which is a bridge that allows you to produce messages to Kafka topics using MQTT.
 As I said before, I had to improve my solution, which could have been more manageable with many unnecessary components.
@@ -117,7 +117,7 @@ The user-defined `“topic mapping rules”` is a JSON array containing rules to
 Working on this project also helped me shape my understanding and gain hands-on experience with integration testing. 
 I also enjoyed deploying the Bridge: packaging the Java application, building a container image, pushing it to a registry, and deploying the container on Kubernetes.  
 
-## Mentorship and collaboration
+#### Mentorship and collaboration
 
 No doubt, my mentors were the best part of my mentorship journey. 
 I have them as my sensei because they played a crucial role in shaping my understanding of the technical aspects and the open source culture.
@@ -128,7 +128,7 @@ And, of course, I am glad I can count on my mentors and the Strimzi community ev
 Through the LFX Mentorship program, I honed my technical skills, project management capabilities, and collaboration proficiency.
 The experience of working alongside experienced professionals taught me best practices, code organization, and the importance of maintaining clean and well-documented code.
 
-## The weekly meetings
+#### The weekly meetings
 
 The weekly meetings were the best part of the mentorship program.
 I had the opportunity to interact with the mentors, which was a great learning experience.
@@ -136,7 +136,7 @@ The meetings were very productive, and I got to learn a lot from them.
 During the meetings, we discussed the progress made, the challenges faced, and the next steps to be taken.
 The mentors were very supportive and provided valuable feedback and guidance.
 
-## The result
+#### The result
 
 The result was a bridge that allows you to produce messages to Kafka topics using MQTT.
 You can find the code [here](https://github.com/strimzi/strimzi-mqtt-bridge).
@@ -146,14 +146,14 @@ It shows an Arduino device with three different sensors publishing data through 
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/VdNLLCVxbC8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
-# Conclusion
+### Conclusion
 
 Participating in the LFX Mentorship program with the Strimzi community was a transformative experience that expanded my horizons and solidified my passion for open-source development.
 The guidance, mentorship, and camaraderie from the mentors and the Strimzi community were invaluable assets that propelled my growth.
 Reflecting on this journey, I am grateful for the opportunity to contribute to a remarkable project while surrounded by a community that embodies the true spirit of open-source collaboration.
 This experience has enriched my technical knowledge and inspired me to continue my journey as a proactive contributor to the open-source ecosystem. 
 
-# What is next?
+### What is next?
 
 During and after this fantastic journey, many good things happened:
 - I founded the first [Angolan open-source community](https://github.com/angolaosc) to educate, promote and help students and professionals get involved in open-source development:
