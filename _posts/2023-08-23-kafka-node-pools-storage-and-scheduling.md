@@ -5,51 +5,52 @@ date: 2023-08-23
 author: jakub_scholz
 ---
 
-Another two areas where Kafka Node Pools might be helpful is around storage and its management, and scheduling of pods.
-And in this third blog post in our series about node pools, we will look into these areas in more detail.
+In our last post, we discussed how [node pools can help manage node IDs](https://strimzi.io/blog/2023/08/23/kafka-node-pools-node-id-management/) in Strimzi. 
+Now let's look at two other areas where Kafka Node Pools can be useful: handling storage and managing pod scheduling.
 
 <!--more-->
 
-_This post is part of a bigger series about Kafka Node Pools.
-The other parts published so far are:_
+_This post is part of a series about Kafka node pools.
+Other posts include:_
 
 * _[Part 1 - Introduction](https://strimzi.io/blog/2023/08/14/kafka-node-pools-introduction/)_
 * _[Part 2 - Node ID Management](https://strimzi.io/blog/2023/08/23/kafka-node-pools-node-id-management/)_
 * _Part 3 - Storage & Scheduling (this post)_
 
-### Storage Management
+### Managing storage
 
-Most of the time, storage is a completely boring area.
-You deploy your Apache Kafka cluster, it provisions the persistent volumes ... and that is it for a long time.
+Most of the time, storage management in Strimzi is reassuringly boring.
+You deploy your Apache Kafka cluster, it provisions its persistent volumes...and that's it.
 The cluster will be running, storing new messages to the disks, reading them when requested by consumers, and finally deleting them when they are beyond their retention.
-And through all of this, you do not need to do anything about the storage
-It just works.
+And through all of this, you do not need to do anything about the storage.
+It's the epitome of "it just works".
 
 But from time to time, there will be some special requirements.
 Perhaps you need to expand the size of the disks because your brokers need to handle more data.
 Maybe you decommissioned some projects and your disks are now too big, so you want to shrink them.
 Or maybe you want to change the storage class used by the volumes and move to a new more performant or cheaper storage type.
 
-Some of these are easy to handle.
+Some of these changes are easy to handle.
 For example, increasing storage capacity is supported by Kubernetes on many different infrastructures.
 All you need to do is edit the `Kafka` custom resource and increase the volume size.
 
-But others are a bit harder.
-If you want to change the storage class or shrink the disk size and use `type: jbod` storage (even if it is only with one volume), you have to go through this procedure:
+But other changes are a bit harder.
+If you want to change the storage class or reduce the disk size while using `type: jbod` storage, even if it involves just a single volume, you have to go through this procedure:
 1. Add the new volume to the JBOD list with the new size or storage class
 2. Move all partitions from the old disk to the new disk
 3. Remove the old disk from the list of the JBOD disks
 
-This sounds easy.
-Unfortunately, Cruise Control currently does not support moving everything from one disk to another (there is an open PR [#1908](https://github.com/linkedin/cruise-control/pull/1908), so this feature might be added in the future).
-So you have to use Kafka's `kafka-reassign-partitions.sh` tool in the second step and manually reassign all the partition replicas.
+It's doesn't sound like a complicated process, and it wouldn't be if Cruise Control supported moving partitions from one disk to another.
+Unfortunately, that feature is currently unavailable.
+(There is an open PR [#1908](https://github.com/linkedin/cruise-control/pull/1908), so this feature might be added in the future).
+Instead, you have to use Kafka's `kafka-reassign-partitions.sh` tool in the second step and manually reassign all the partition replicas.
 And using the tool and monitoring the progress is not exactly user-friendly.
-And if you don't use `type: jbod` storage, you will be able to do this only completely manually by stopping the Strimzi Cluster Operator and manually changing the storage broker by broker.
-That is even worse than using the `kafka-reassign-partitions.sh` utility.
+The situation becomes even more challenging if you don't use `type: jbod` storage, since you can't use the `kafka-reassign-partitions.sh` utility. 
+In this situation, you have to stop the Strimzi Cluster Operator and manually change the storage broker by broker!
 
 So, can node pools help with this?
 
-#### Storage in Kafka node pools
+#### Handling storage in Kafka node pools
 
 Each node pool has its own storage configuration.
 That alone is a major improvement.
@@ -175,24 +176,24 @@ kubectl delete knp brokers
 
 You can use the same steps to shrink storage as well.
 
-### Pod scheduling
+### Pod scheduling in node pools
 
 Scheduling Kafka pods to worker nodes in a Kubernetes cluster seems to be completely unrelated to storage.
 But in some situations, they are closely related.
-The persistent volumes have sometimes their own affinity.
+The persistent volumes sometimes have their own affinity.
 For example, local persistent volumes can be used only within the worker node where they exist.
 In some cases, the volumes might be available only in a particular availability zone or region.
 This applies for example to Amazon AWS Elastic Block Storage.
-In these situations, the storage you use affects to which Kubernetes worker can the Kafka pods be scheduled.
+In these situations, the choice of storage directly impacts the Kubernetes worker to which the Kafka pods can be scheduled.
 
-Strimzi of course allowed to configure pod scheduling already before node pools.
+Strimzi already allowed configuration of pod scheduling before node pools were introduced.
 You can configure affinity, topology spread constraints, or tolerations in the `Kafka` custom resource.
 But these rules always apply to all Kafka nodes.
-So you could not easily configure that you want to have a Kafka cluster with 6 brokers out of which the nodes 0 and 1 should run in one availability zone and nodes 2, 3, 4, and 5 should run in a second zone.
-Configurations like this can be especially useful if you don't have 3 availability zones/DCs and have to run your Apache Kafka cluster only in 2 or 2,5 zones/DCs.
+So you could not easily configure a 6-node Kafka cluster where nodes 0 and 1 run in one availability zone and nodes 2, 3, 4, and 5 run in a second zone.
+Configurations like this can be especially useful if you don't have 3 availability zones or data centers and have to run your Apache Kafka cluster in only 2 or 2,5 availability zones or data centers.
 
 One of the ways to work around this limitation is using storage affinity.
-You can create two storage classes - each for one of your availability zones:
+You can create two storage classes - one for each of your availability zones:
 
 ```yaml
 apiVersion: storage.k8s.io/v1
@@ -265,9 +266,9 @@ The volumes for nodes 2, 3, 4, and 5 will be provisioned using storage class `sc
 
 Sure, it might be a bit _hacky_.
 But it works.
-However, with the node pools, this is not needed anymore.
+However, with node pools this approach is not needed anymore.
 Node pools allow you to configure affinity independently for each node pool.
-So you can have only one storage class without any limitations in which zone it can be used:
+So you can configure a storage class without any limitations in which zone it can be used:
 
 ```yaml
 apiVersion: storage.k8s.io/v1
@@ -280,7 +281,7 @@ parameters:
 volumeBindingMode: WaitForFirstConsumer
 ```
 
-And we can configure the affinity in the node pools, in the `.spec.template.pod` section:
+And you can use `.spec.template.pod` to configure the affinity in the node pools:
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -341,12 +342,12 @@ spec:
   # ...
 ```
 
-And as a result, Strimzi will deploy 2 brokers in the `zone1` availability zone and 4 in the `zone2`.
+And as a result of this configuration, Strimzi will deploy 2 brokers in the `zone1` availability zone and 4 in `zone2`.
 No special storage configuration is needed anymore.
 
 ### Conclusion
 
-In this blog post, we covered a few other situations where node pools make your life easier.
-If you think that some of them were niche issues that do not affect all users, you are probably right.
-But don't worry, next week we will have a look at something important for everyone.
+In this blog post, we covered a couple of situations where node pools make your life easier.
+If you think that they were niche issues that do not affect all users, you are probably right.
+But don't worry -- in the next post in this series on node pools we delve into something important for all Strimzi users.
 We will look at what role node pools play in Strimzi's support for KRaft / ZooKeeper-less Kafka.
