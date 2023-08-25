@@ -1,13 +1,13 @@
 ---
 layout: post
 title: "Navigating the Open Source Seas: My LFX Mentorship Experience with the CNCF Strimzi Community"
-date: 2023-08-20
+date: 2023-08-25
 author: antonio_pedro
 ---
 
 In the world of open-source software, collaboration and mentorship play a pivotal role in driving innovation and fostering growth. 
 As an aspiring developer looking to dive into the intricate world of cloud-native technologies, I embarked on a remarkable journey by participating in the [LFX Mentorship](https://lfx.linuxfoundation.org/tools/mentorship) program with the [Strimzi](https://strimzi.io) community.
-This program is happens thrice a year and is organized by [The Linux Foundation](https://www.linuxfoundation.org/).
+This program happens thrice a year and is organized by [The Linux Foundation](https://www.linuxfoundation.org/).
 This blog post aims to shed light on my enriching experience, highlighting the valuable insights gained, the impactful work undertaken, and the immeasurable support from my mentors and the Strimzi community.
 
 <!--more-->
@@ -45,23 +45,23 @@ He was asking if the program should have a project design proposal as a prerequi
 A design proposal contains an overall description about the project, the challenges and related solutions.
 It's a good place to start a discussion with mentors in order to understand how the mentee would approach the project.
 
-![Mentor's GitHub comment](/assets/images/posts/2023-08-20-github-comment.png)
+![Mentor's GitHub comment](/assets/images/posts/2023-08-25-github-comment.png)
 
 This scared me :) But I was confident I could provide a good proposal because of my previous experience with the underlying technologies.
 
 On the same day, I got my first interaction with my mentors. Little did I know that it would not be the last.
 
-![Mentor's email asking for a proposal](/assets/images/posts/2023-08-20-mentor-email.png)
+![Mentor's email asking for a proposal](/assets/images/posts/2023-08-25-mentor-email.png)
 
 The first task was understanding the real problem and why we would need to build such a bridge, so I researched that.
 To design the solution, my first intuition was to relate my college project to the project.
 Just to get a rough idea of how similar it was to what I was building in college:
 
-![Architecture of a system using MQTT](/assets/images/posts/2023-08-20-design-of-a-system-using-mqtt.png)
+![Architecture of a system using MQTT](/assets/images/posts/2023-08-25-design-of-a-system-using-mqtt.png)
 
 After that, I started to think about the architecture of the solution, and I came up with this:
 
-![Strimzi MQTT Bridge](/assets/images/posts/2023-08-20-mqtt-bridge-high-architecture.png)
+![Strimzi MQTT Bridge](/assets/images/posts/2023-08-25-mqtt-bridge-high-architecture.png)
 
 To be even closer to a logical solution, the win-win was to study and understand how Strimzi HTTP-Kafka Bridge works and how it is deployed on Kubernetes. 
 After reading the Strimzi HTTP-Kafka Bridge documentation, I was able to design a Bridge tackling all the issues. 
@@ -83,7 +83,7 @@ My first result related to a submission for a CNCF Landing Page Improvement, for
 I waited with nervous anticipation for the Strimzi result.
 Waking up super early, I opened the email, and the great news was there:
 
-![Acceptance email](/assets/images/posts/2023-08-20-acceptance-email.png)
+![Acceptance email](/assets/images/posts/2023-08-25-acceptance-email.png)
 
 ### The mentorship journey
 
@@ -106,7 +106,7 @@ It would enable users to take advantage of the benefits of both MQTT and Kafka i
 
 This is what I worked on during each week.
 
-![Mentorship tasks](/assets/images/posts/2023-08-20-mentorship-tasks-timeline.png)
+![Mentorship tasks](/assets/images/posts/2023-08-25-mentorship-tasks-timeline.png)
 
 The Bridge relies on a `Mapper` component to map the incoming MQTT messages to a valid Kafka Record, providing the following capabilities:
 - **Interoperability**, such as MQTT QoS, Kafka Producer Acks level, and MQTT wildcards topics
