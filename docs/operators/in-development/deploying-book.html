@@ -7273,7 +7273,32 @@ The default approach is also applied if the assigned range of IDs is misformatte
 <li>
 <p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
 </li>
+<li>
+<p>(Optional) Use the <code>reserved.broker-max.id</code> configuration property to extend the allowable range for node IDs within your node pools.</p>
+</li>
 </ul>
+</div>
+<div class="paragraph">
+<p>By default, Apache Kafka restricts node IDs to numbers ranging from 0 to 999.
+To use node ID values greater than 999, add the <code>reserved.broker-max.id</code> configuration property to the <code>Kafka</code> custom resource and specify the required maximum node ID value.</p>
+</div>
+<div class="paragraph">
+<p>In this example, the maximum node ID is set at 10000.
+Node IDs can then be assigned up to that value.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example configuration for the maximum node ID number</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    config:
+      reserved.broker.max.id: 10000
+  # ...</code></pre>
+</div>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -7304,6 +7329,18 @@ The default approach is also applied if the assigned range of IDs is misformatte
 <div class="paragraph">
 <p>The highest available ID from this range is removed when scaling down <code>pool-b</code>.</p>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If you want to remove a specific node, you can assign a single node ID to the scaling down annotation: <code>kubectl annotate kafkanodepool pool-b strimzi.io/remove-node-ids="[3]"</code>.
+</td>
+</tr>
+</table>
+</div>
 </li>
 <li>
 <p>You can now scale the node pool.</p>
@@ -7329,6 +7366,21 @@ The default approach is also applied if the assigned range of IDs is misformatte
 </div>
 <div class="paragraph">
 <p>On reconciliation, a warning is given if the annotations are misformatted.</p>
+</div>
+</li>
+<li>
+<p>After you have performed the scaling operation, you can remove the annotation if it&#8217;s no longer needed.</p>
+<div class="listingblock">
+<div class="title">Removing the annotation for scaling up</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafkanodepool pool-a strimzi.io/next-node-ids-</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Removing the annotation for  scaling down</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafkanodepool pool-b strimzi.io/remove-node-ids-</code></pre>
+</div>
 </div>
 </li>
 </ol>
@@ -7374,9 +7426,10 @@ During this process, the ID of the node that holds the partition replicas change
 <p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
 </li>
 <li>
-<p>(Optional) For scale up operations, <a href="#proc-managing-node-pools-ids-str">you can specify the range of node IDs to use</a>.</p>
+<p>(Optional) For scale up operations, <a href="#proc-managing-node-pools-ids-str">you can specify the node IDs to use in the operation</a>.</p>
 <div class="paragraph">
 <p>If you have assigned a range of node IDs for the operation, the ID of the node being added is determined by the sequence of nodes given.
+If you have assigned a single node ID, a node is added with the specified ID.
 Otherwise, the lowest available node ID across the cluster is used.</p>
 </div>
 </li>
@@ -7464,9 +7517,10 @@ During this process, the ID of the node that holds the partition replicas change
 <p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
 </li>
 <li>
-<p>(Optional) For scale down operations, <a href="#proc-managing-node-pools-ids-str">you can specify the range of node IDs to use in the operation</a>.</p>
+<p>(Optional) For scale down operations, <a href="#proc-managing-node-pools-ids-str">you can specify the node IDs to use in the operation</a>.</p>
 <div class="paragraph">
 <p>If you have assigned a range of node IDs for the operation, the ID of the node being removed is determined by the sequence of nodes given.
+If you have assigned a single node ID, the node with the specified ID is removed.
 Otherwise, the node with the highest available ID in the node pool is removed.</p>
 </div>
 </li>
@@ -24186,7 +24240,7 @@ Security context is specified at the pod and container level.</p>
 <div class="listingblock">
 <div class="title">Example <code>template</code> configuration for security context</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: {KafkaApiVersion}
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
   name: my-cluster
