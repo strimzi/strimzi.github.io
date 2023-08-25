@@ -157,9 +157,9 @@ This experience has enriched my technical knowledge and inspired me to continue 
 During and after this fantastic journey, many good things happened:
 - I founded the first [Angolan open-source community](https://github.com/angolaosc) to educate, promote and help students and professionals get involved in open-source development:
 I started the community in July, and by the end of my internship (late August), we had achieved the following:
-    - Introduced the concept of open-source to 200+ individuals
+    - Introduced the concept of open-source to 240+ individuals
     - Helped more than 20 individuals make their first contribution 
-    - Grown our audience on social media by 700+ followers on LinkedIn and a discord community with 200+ members
+    - Grown our audience on social media by 800+ followers on LinkedIn and a discord community with 200+ members
 - Also, I was invited to present what I did in the mentorship during the Strimzi Community meeting.
 - Even further, I applied to be a core organizer for the [Cloud Native - Community Group Luanda](https://community.cncf.io/cloud-native-luanda) and got accepted.
 
