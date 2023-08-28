@@ -17,7 +17,7 @@ Other posts include:_
 
 * _[Part 1 - Introduction](https://strimzi.io/blog/2023/08/14/kafka-node-pools-introduction/)_
 * _Part 2 - Node ID Management (this post)_
-* _[Part 3 - Storage & Scheduling](https://strimzi.io/blog/2023/08/23/kafka-node-pools-storage-and-scheduling/)_
+* _[Part 3 - Storage & Scheduling](https://strimzi.io/blog/2023/08/28/kafka-node-pools-storage-and-scheduling/)_
 
 ### Assigning node IDs
 
