@@ -12,11 +12,12 @@ And in this blog post we will have a look at how to do it and show some other tr
 
 <!--more-->
 
-_This post is part of a bigger series about Kafka node pools.
-The other parts published so far are:_
+_This post is part of a series about Kafka node pools.
+Other posts include:_
 
 * _[Part 1 - Introduction](https://strimzi.io/blog/2023/08/14/kafka-node-pools-introduction/)_
 * _Part 2 - Node ID Management (this post)_
+* _[Part 3 - Storage & Scheduling](https://strimzi.io/blog/2023/08/28/kafka-node-pools-storage-and-scheduling/)_
 
 ### Assigning node IDs
 

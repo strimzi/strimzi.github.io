@@ -13,11 +13,12 @@ In this blog post series, we will look closer at the node pools, explain how to 
 
 <!--more-->
 
-_This post is part of a bigger series about Kafka node pools.
-The other parts published so far are:_
+_This post is part of a series about Kafka node pools.
+Other posts include:_
 
 * _Part 1 - Introduction (this post)_
 * _[Part 2 - Node ID Management](https://strimzi.io/blog/2023/08/23/kafka-node-pools-node-id-management/)_
+* _[Part 3 - Storage & Scheduling](https://strimzi.io/blog/2023/08/28/kafka-node-pools-storage-and-scheduling/)_
 
 ### `KafkaNodePools` feature gate
 
