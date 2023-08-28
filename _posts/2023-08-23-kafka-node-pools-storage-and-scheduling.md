@@ -20,7 +20,7 @@ Other posts include:_
 ### Managing storage
 
 Most of the time, storage management in Strimzi is reassuringly boring.
-You deploy your Apache Kafka cluster, it provisions its persistent volumes...and that's it.
+You deploy your Apache Kafka cluster, the Cluster Operator provisions its persistent volumes...and that's it.
 The cluster will be running, storing new messages to the disks, reading them when requested by consumers, and finally deleting them when they are beyond their retention.
 And through all of this, you do not need to do anything about the storage.
 It's the epitome of "it just works".
@@ -37,14 +37,14 @@ All you need to do is edit the `Kafka` custom resource and increase the volume s
 But other changes are a bit harder.
 If you want to change the storage class or reduce the disk size while using `type: jbod` storage, even if it involves just a single volume, you have to go through this procedure:
 1. Add the new volume to the JBOD list with the new size or storage class
-2. Move all partitions from the old disk to the new disk
+2. Move all partition replicas from the old disk to the new disk
 3. Remove the old disk from the list of the JBOD disks
 
-It's doesn't sound like a complicated process, and it wouldn't be if Cruise Control supported moving partitions from one disk to another.
+It doesn't sound like a complicated process, and it wouldn't be if Cruise Control supported moving partitions from one disk to another.
 Unfortunately, that feature is currently unavailable.
 (There is an open PR [#1908](https://github.com/linkedin/cruise-control/pull/1908), so this feature might be added in the future).
 Instead, you have to use Kafka's `kafka-reassign-partitions.sh` tool in the second step and manually reassign all the partition replicas.
-And using the tool and monitoring the progress is not exactly user-friendly.
+And using the tool and monitoring progress is not exactly user-friendly.
 The situation becomes even more challenging if you don't use `type: jbod` storage, since you can't use the `kafka-reassign-partitions.sh` utility. 
 In this situation, you have to stop the Strimzi Cluster Operator and manually change the storage broker by broker!
 
@@ -349,5 +349,5 @@ No special storage configuration is needed anymore.
 
 In this blog post, we covered a couple of situations where node pools make your life easier.
 If you think that they were niche issues that do not affect all users, you are probably right.
-But don't worry -- in the next post in this series on node pools we delve into something important for all Strimzi users.
+But don't worry -- in the next post in this series on node pools we will delve into something important for all Strimzi users.
 We will look at what role node pools play in Strimzi's support for KRaft / ZooKeeper-less Kafka.
