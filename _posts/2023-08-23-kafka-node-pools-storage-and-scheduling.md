@@ -166,6 +166,27 @@ spec:
 ```
 
 Now we have to wait until Cruise Control executes the rebalance for us.
+The `KafkaRebalance` resource will be in the state `Ready` once the rebalance is complete:
+
+```yaml
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaRebalance
+metadata:
+  name: my-rebalance
+  labels:
+    strimzi.io/cluster: my-cluster
+  annotations:
+    strimzi.io/rebalance-auto-approval: "true"
+spec:
+  # ...
+status:
+  conditions:
+    - lastTransitionTime: '2028-08-07T11:23:15.285Z'
+      status: Ready
+      type: State
+  # ...
+```
+
 The nice thing about this is that Cruise Control will do everything for us.
 It will get all the topics on these brokers, figure out how they should be distributed on the new nodes, and finally move all the partition replicas.
 Once the rebalance is complete, the old brokers will be empty and we can just delete the old node pool:
@@ -190,7 +211,7 @@ Strimzi already allowed configuration of pod scheduling before node pools were i
 You can configure affinity, topology spread constraints, or tolerations in the `Kafka` custom resource.
 But these rules always apply to all Kafka nodes.
 So you could not easily configure a 6-node Kafka cluster where nodes 0 and 1 run in one availability zone and nodes 2, 3, 4, and 5 run in a second zone.
-Configurations like this can be especially useful if you don't have 3 availability zones or data centers and have to run your Apache Kafka cluster in only 2 or 2,5 availability zones or data centers.
+Configurations like this can be especially useful if you don't have 3 availability zones or data centers and have to run your Apache Kafka cluster in only 2 or 2½ availability zones or data centers.
 
 One of the ways to work around this limitation is using storage affinity.
 You can create two storage classes - one for each of your availability zones:
