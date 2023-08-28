@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Kafka Node Pools: Storage & Scheduling"
-date: 2023-08-23
+date: 2023-08-28
 author: jakub_scholz
 ---
 
