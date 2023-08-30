@@ -19,7 +19,7 @@ Other posts include:_
 * _Part 1 - Introduction (this post)_
 * _[Part 2 - Node ID Management](https://strimzi.io/blog/2023/08/23/kafka-node-pools-node-id-management/)_
 * _[Part 3 - Storage & Scheduling](https://strimzi.io/blog/2023/08/28/kafka-node-pools-storage-and-scheduling/)_
-* _[Part 4 - KRaft (ZooKeeper-less Apache Kafka)](https://strimzi.io/blog/2023/08/29/kafka-node-pools-kraft/)_
+* _[Part 4 - Supporting KRaft (ZooKeeper-less Apache Kafka)](https://strimzi.io/blog/2023/08/29/kafka-node-pools-supporting-kraft/)_
 
 ### `KafkaNodePools` feature gate
 
