@@ -16085,16 +16085,13 @@ In this case, fix the configuration so that the Cluster Operator can roll out th
 <p>Configures automatic restarts for connectors and tasks that are in a <code>FAILED</code> state.</p>
 </div>
 <div class="paragraph">
-<p>When enabled, a back-off algorithm applies the automatic restart to each failed connector and its tasks.</p>
-</div>
-<div class="paragraph">
-<p>The operator attempts an automatic restart on reconciliation.
-If the first attempt fails, the operator makes up to six more attempts.
-The duration between each restart attempt increases from 2 to 30 minutes.
-After each restart, failed connectors and tasks transit from <code>FAILED</code> to <code>RESTARTING</code>.
-If the restart fails after the final attempt, there is likely to be a problem with the connector configuration.
-The connector and tasks remain in a <code>FAILED</code> state and you have to restart them manually.
-You can do this by annotating the <code>KafKaConnector</code> custom resource with <code>strimzi.io/restart: "true"</code>.</p>
+<p>When enabled, a back-off algorithm applies the automatic restart to each failed connector and its tasks.
+An incremental back-off interval is calculated using the formula <code>n * n + n</code> where <code>n</code> represents the number of previous restarts.
+This interval is capped at a maximum of 60 minutes.
+Consequently, a restart occurs immediately, followed by restarts after 2, 6, 12, 20, 30, 42, 56 minutes, and then at 60-minute intervals.
+By default, Strimzi initiates restarts of the connector and its tasks indefinitely.
+However, you can use the <code>maxRestarts</code> property to set a maximum on the number of restarts.
+If <code>maxRestarts</code> is configured and the connector still fails even after the final restart attempt, you must then restart the connector manually.</p>
 </div>
 <div class="paragraph">
 <p>For Kafka Connect connectors, use the <code>autoRestart</code> property of the <code>KafkaConnector</code> resource to enable automatic restarts of failed connectors and tasks.</p>
@@ -16109,6 +16106,22 @@ metadata:
 spec:
   autoRestart:
     enabled: true</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you prefer, you can also set a maximum limit on the number of restarts.</p>
+</div>
+<div class="listingblock">
+<div class="title">Enabling automatic restarts of failed connectors for Kafka Connect with limited number of restarts</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: my-source-connector
+spec:
+  autoRestart:
+    enabled: true
+    maxRestarts: 10</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -16159,6 +16172,15 @@ spec:
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">maxRestarts</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>The maximum number of connector restarts that the operator will try. If the connector remains in a failed state after reaching this limit, it must be restarted manually by the user. Defaults to an unlimited number of restarts.</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer</p></td>
 </tr>
 </tbody>
 </table>
@@ -17553,7 +17575,7 @@ Do not create, modify or delete <code>StrimziPodSet</code> resources as this mig
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-08-30 08:43:54 UTC
+Last updated 2023-08-30 14:39:45 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
