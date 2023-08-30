@@ -56,7 +56,7 @@ It is also an intermediate step when migrating between the previous two architec
 Our users employ Strimzi for various scenarios, spanning from small development and test clusters to large-scale multi-node production clusters.
 So we want to support all of these architectures.
 We also want to make it possible to transition between them.
-But how do we model the different architectures?
+But how do we model the different architectures as Kubernetes resources?
 The answer is - using the `KafkaNodePool` resources.
 
 ### Configuring node pools to support KRaft architectures
