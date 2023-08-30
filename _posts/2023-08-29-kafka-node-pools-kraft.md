@@ -26,7 +26,7 @@ Other posts include:_
 
 In the KRaft mode, the Kafka cluster runs without an Apache ZooKeeper cluster as a dependency.
 The Kafka nodes in the KRaft mode have _controller_ and/or _broker_ roles.
-The nodes with the _controller_ role are responsible for maintaining the Kafka metadata and helping to bootstrap the Kafka cluster.
+The nodes with the _controller_ role are responsible for maintaining the Kafka metadata, handling leader elections, and helping to bootstrap the Kafka cluster.
 They take over the responsibilities originally handled by the ZooKeeper nodes.
 The nodes with the _broker_ role have the same responsibilities as the Kafka brokers in the ZooKeeper-based Kafka cluster.
 They receive the messages from the producers, store them, and pass them to the consumers.
@@ -66,7 +66,7 @@ Each `KafkaNodePool` resource has a mandatory field called `roles` in its `spec`
 We already talked about it already in the [introduction](https://strimzi.io/blog/2023/08/14/kafka-node-pools-introduction/) blog post.
 The `roles` field contains a list of roles that the nodes from the node pool should take.
 In ZooKeeper-based clusters, the only available role is the `broker` role.
-In KRaft clusters, you can choose between `controller` and/or `broker`.
+In KRaft-based clusters, you can configure `controller` and/or `broker` roles.
 And Strimzi will configure the Kafka nodes belonging to the given pool accordingly.
 There always has to be at least one node pool that has the `controller` role and at least one node pool with the `broker` role.
 It can be the same node pool for both roles or it can be in a different node pool.
