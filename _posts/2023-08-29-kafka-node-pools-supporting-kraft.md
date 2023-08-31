@@ -50,7 +50,7 @@ This is also the architecture to which you would migrate from a ZooKeeper-based 
 ![Three-node Kafka cluster with dedicated controller and broker nodes](/assets/images/posts/2023-08-29-kafka-node-pools-supporting-kraft-separate-nodes.png)
 
 And somewhere in between is an architecture where some nodes have both controller and broker roles and some have only the broker role.
-It is also an intermediate step when migrating between the previous two architectures. 
+It is also an intermediate step when migrating from the combined nodes to the dedicated controller nodes or the other way around. 
 
 ![Three-node Kafka cluster with combined nodes](/assets/images/posts/2023-08-29-kafka-node-pools-supporting-kraft-semi-combined-nodes.png)
 
