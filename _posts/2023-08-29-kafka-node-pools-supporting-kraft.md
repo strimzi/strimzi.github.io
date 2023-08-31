@@ -94,7 +94,7 @@ spec:
 
 If you want to have a Kafka cluster with dedicated `controller` and `broker` nodes, you can create two `KafkaNodePool` resources.
 One with the `controller` role.
-And another with the `broker` node.
+And another with the `broker` role.
 Of course, if you want, you can use more node pools.
 
 ```yaml
