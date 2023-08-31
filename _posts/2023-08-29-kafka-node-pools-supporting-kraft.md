@@ -38,17 +38,18 @@ You might start with a small Kafka cluster consisting only of combined nodes tha
 Typically, it would have three nodes.
 But if needed you can also run _a whole Kafka cluster_ in a single node.
 Such a cluster is suitable for example for development and testing.
-Or - in some cases - it might be even considered for a small production cluster.
+It might be also useful in other resource-constraint environments.
+For example when running Kafka at the edge.
 
 ![Three-node Kafka cluster with combined nodes](/assets/images/posts/2023-08-29-kafka-node-pools-supporting-kraft-combined-nodes.png)
 
-For a big production cluster, you would normally use dedicated controller nodes and dedicated broker nodes.
+For a production cluster, you would normally use dedicated controller nodes and dedicated broker nodes.
 You would typically maintain three controller nodes for availability, and add as many broker nodes as you need.
+This is also the architecture to which you would migrate from a ZooKeeper-based cluster.
 
 ![Three-node Kafka cluster with dedicated controller and broker nodes](/assets/images/posts/2023-08-29-kafka-node-pools-supporting-kraft-separate-nodes.png)
 
 And somewhere in between is an architecture where some nodes have both controller and broker roles and some have only the broker role.
-It is a good fit for example when you run on bare metal and have only powerful worker nodes that you want to be fully utilized and that would be too big to run only as controllers.
 It is also an intermediate step when migrating between the previous two architectures. 
 
 ![Three-node Kafka cluster with combined nodes](/assets/images/posts/2023-08-29-kafka-node-pools-supporting-kraft-semi-combined-nodes.png)
