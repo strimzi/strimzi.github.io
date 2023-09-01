@@ -672,11 +672,12 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel2">
 <li><a href="#deploying-example-clients-str">12.1. Deploying example clients</a></li>
 <li><a href="#configuration-points-listeners-str">12.2. Configuring listeners to connect to Kafka brokers</a></li>
-<li><a href="#setup-external-clients-str">12.3. Setting up client access to a Kafka cluster using listeners</a></li>
-<li><a href="#proc-accessing-kafka-using-nodeports-str">12.4. Accessing Kafka using node ports</a></li>
-<li><a href="#proc-accessing-kafka-using-loadbalancers-str">12.5. Accessing Kafka using loadbalancers</a></li>
-<li><a href="#proc-accessing-kafka-using-ingress-str">12.6. Accessing Kafka using an Ingress NGINX Controller for Kubernetes</a></li>
-<li><a href="#proc-accessing-kafka-using-routes-str">12.7. Accessing Kafka using OpenShift routes</a></li>
+<li><a href="#con-configuration-points-listener-names-str">12.3. Listener naming conventions</a></li>
+<li><a href="#setup-external-clients-str">12.4. Setting up client access to a Kafka cluster using listeners</a></li>
+<li><a href="#proc-accessing-kafka-using-nodeports-str">12.5. Accessing Kafka using node ports</a></li>
+<li><a href="#proc-accessing-kafka-using-loadbalancers-str">12.6. Accessing Kafka using loadbalancers</a></li>
+<li><a href="#proc-accessing-kafka-using-ingress-str">12.7. Accessing Kafka using an Ingress NGINX Controller for Kubernetes</a></li>
+<li><a href="#proc-accessing-kafka-using-routes-str">12.8. Accessing Kafka using OpenShift routes</a></li>
 </ul>
 </li>
 <li><a href="#assembly-securing-access-str">13. Managing secure access to Kafka</a>
@@ -7068,7 +7069,7 @@ spec:
         tls: true
         authentication: # <b class="conum">(14)</b>
           type: tls
-      - name: external # <b class="conum">(15)</b>
+      - name: external1 # <b class="conum">(15)</b>
         port: 9094
         type: route
         tls: true
@@ -15914,7 +15915,7 @@ spec:
         tls: true
         authentication:
           type: tls
-      - name: external
+      - name: external1
         port: 9094
         type: route
         tls: true
@@ -15955,7 +15956,106 @@ If you scale your Kafka cluster while using external listeners, it might trigger
 </div>
 </div>
 <div class="sect2">
-<h3 id="setup-external-clients-str"><a class="link" href="#setup-external-clients-str">12.3. Setting up client access to a Kafka cluster using listeners</a></h3>
+<h3 id="con-configuration-points-listener-names-str"><a class="link" href="#con-configuration-points-listener-names-str">12.3. Listener naming conventions</a></h3>
+<div class="paragraph _abstract">
+<p>From the listener configuration, the resulting listener bootstrap and per-broker service names are structured according to the following naming conventions:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 14. Listener naming conventions</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 40%;">
+<col style="width: 40%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Listener type</th>
+<th class="tableblock halign-left valign-top">Bootstrap service name</th>
+<th class="tableblock halign-left valign-top">Per-Broker service name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>internal</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">&lt;cluster_name&gt;-kafka-bootstrap</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Not applicable</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>loadbalancer</code><br>
+  <code>nodeport</code><br>
+  <code>ingress</code><br>
+  <code>route</code><br>
+  <code>cluster-ip</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">&lt;cluster_name&gt;-kafka-&lt;listener-name&gt;-bootstrap</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">&lt;cluster_name&gt;-kafka-&lt;listener-name&gt;-&lt;idx&gt;</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>For example, <code>my-cluster-kafka-bootstrap</code>, <code>my-cluster-kafka-external1-bootstrap</code>, and <code>my-cluster-kafka-external1-0</code>.
+The names are assigned to the services, routes, load balancers, and ingresses created through the listener configuration.</p>
+</div>
+<div class="paragraph">
+<p>You can use certain backwards compatible names and port numbers to transition listeners initially configured under the retired <code>KafkaListeners</code> schema.
+The resulting external listener naming convention varies slightly.
+These specific combinations of listener name and port configuration values are backwards compatible:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 15. Backwards compatible listener name and port combinations</caption>
+<colgroup>
+<col style="width: 16.6666%;">
+<col style="width: 16.6666%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3335%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Listener name</th>
+<th class="tableblock halign-left valign-top">Port</th>
+<th class="tableblock halign-left valign-top">Bootstrap service name</th>
+<th class="tableblock halign-left valign-top">Per-Broker service name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>plain</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>9092</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">&lt;cluster_name&gt;-kafka-bootstrap</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Not applicable</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>tls</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>9093</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">&lt;cluster-name&gt;-kafka-bootstrap</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>Not applicable</em></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>external</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>9094</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">&lt;cluster_name&gt;-kafka-bootstrap</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">&lt;cluster_name&gt;-kafka-bootstrap-&lt;idx&gt;</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="setup-external-clients-str"><a class="link" href="#setup-external-clients-str">12.4. Setting up client access to a Kafka cluster using listeners</a></h3>
 <div class="paragraph _abstract">
 <p>Using the address of the Kafka cluster, you can provide access to a client in the same Kubernetes cluster; or provide external access to a client on a different Kubernetes namespace or outside Kubernetes entirely.
 This procedure shows how to configure client access to a Kafka cluster from outside Kubernetes or from another Kubernetes cluster.</p>
@@ -16084,8 +16184,8 @@ spec:
   kafka:
     # ...
     listeners: # <b class="conum">(1)</b>
-    - name: external # <b class="conum">(2)</b>
-      port: 9094 <b class="conum">(3)</b>
+    - name: external1 # <b class="conum">(2)</b>
+      port: 9094 # <b class="conum">(3)</b>
       type: <em>&lt;listener_type&gt;</em> # <b class="conum">(4)</b>
       tls: true # <b class="conum">(5)</b>
       authentication:
@@ -16137,9 +16237,9 @@ spec:
 <div class="title">Warning</div>
 </td>
 <td class="content">
-An OpenShift Route address comprises the name of the Kafka cluster, the name of the listener, and the name of the namespace it is created in.
-For example, <code>my-cluster-kafka-listener1-bootstrap-myproject</code> (<em>CLUSTER-NAME</em>-kafka-<em>LISTENER-NAME</em>-bootstrap-<em>NAMESPACE</em>).
-If you are using a <code>route</code> listener type, be careful that the whole length of the address does not exceed a maximum limit of 63 characters.
+An OpenShift route address comprises the Kafka cluster name, the listener name, the project name, and the domain of the router.
+For example, <code>my-cluster-kafka-external1-bootstrap-my-project.domain.com</code> (&lt;cluster_name&gt;-kafka-&lt;listener_name&gt;-bootstrap-&lt;namespace&gt;.&lt;domain&gt;).
+Each DNS label (between periods &#8220;.&#8221;) must not exceed 63 characters, and the total length of the address must not exceed 255 characters.
 </td>
 </tr>
 </table>
@@ -16397,7 +16497,7 @@ props.put(SslConfigs.SSL_KEYSTORE_KEY_CONFIG, "----BEGIN PRIVATE KEY-----\n<em>&
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-accessing-kafka-using-nodeports-str"><a class="link" href="#proc-accessing-kafka-using-nodeports-str">12.4. Accessing Kafka using node ports</a></h3>
+<h3 id="proc-accessing-kafka-using-nodeports-str"><a class="link" href="#proc-accessing-kafka-using-nodeports-str">12.5. Accessing Kafka using node ports</a></h3>
 <div class="paragraph _abstract">
 <p>Use node ports to access a Strimzi Kafka cluster from an external client outside the Kubernetes cluster.</p>
 </div>
@@ -16439,7 +16539,7 @@ For example, you can use the following configuration properties with <code>nodep
 </div>
 <div class="paragraph">
 <p>In this procedure, the Kafka cluster name is <code>my-cluster</code>.
-The name of the listener is <code>external</code>.</p>
+The name of the listener is <code>external4</code>.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -16462,7 +16562,7 @@ spec:
   kafka:
     # ...
     listeners:
-      - name: external
+      - name: external4
         port: 9094
         type: nodeport
         tls: true
@@ -16491,11 +16591,11 @@ spec:
 <div class="listingblock">
 <div class="title">Node port services created for the bootstrap and brokers</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                                 TYPE      CLUSTER-IP      PORT(S)
-my-cluster-kafka-external-0          NodePort  172.30.55.13    9094:31789/TCP
-my-cluster-kafka-external-1          NodePort  172.30.250.248  9094:30028/TCP
-my-cluster-kafka-external-2          NodePort  172.30.115.81   9094:32650/TCP
-my-cluster-kafka-external-bootstrap  NodePort  172.30.30.23    9094:32650/TCP</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                                  TYPE      CLUSTER-IP      PORT(S)
+my-cluster-kafka-external4-0          NodePort  172.30.55.13    9094:31789/TCP
+my-cluster-kafka-external4-1          NodePort  172.30.250.248  9094:30028/TCP
+my-cluster-kafka-external4-2          NodePort  172.30.115.81   9094:32650/TCP
+my-cluster-kafka-external4-bootstrap  NodePort  172.30.30.23    9094:32650/TCP</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -16521,8 +16621,8 @@ my-cluster-kafka-external-bootstrap  NodePort  172.30.30.23    9094:32650/TCP</c
           -----BEGIN CERTIFICATE-----
 
           -----END CERTIFICATE-----
-      name: external
-      type: external
+      name: external4
+      type: external4
   observedGeneration: 2
  # ...</code></pre>
 </div>
@@ -16532,7 +16632,7 @@ my-cluster-kafka-external-bootstrap  NodePort  172.30.30.23    9094:32650/TCP</c
 <p>Retrieve the bootstrap address you can use to access the Kafka cluster from the status of the <code>Kafka</code> resource.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.name=="external")].bootstrapServers}{"\n"}'
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.name=="external4")].bootstrapServers}{"\n"}'
 
 ip-10-0-224-199.us-west-2.compute.internal:32650</code></pre>
 </div>
@@ -16579,7 +16679,7 @@ If it is a public (external) CA, you usually won&#8217;t need to add it.
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-accessing-kafka-using-loadbalancers-str"><a class="link" href="#proc-accessing-kafka-using-loadbalancers-str">12.5. Accessing Kafka using loadbalancers</a></h3>
+<h3 id="proc-accessing-kafka-using-loadbalancers-str"><a class="link" href="#proc-accessing-kafka-using-loadbalancers-str">12.6. Accessing Kafka using loadbalancers</a></h3>
 <div class="paragraph _abstract">
 <p>Use loadbalancers to access a Strimzi Kafka cluster from an external client outside the Kubernetes cluster.</p>
 </div>
@@ -16621,7 +16721,7 @@ For example, you can use the following configuration properties with <code>loadb
 </div>
 <div class="paragraph">
 <p>In this procedure, the Kafka cluster name is <code>my-cluster</code>.
-The name of the listener is <code>external</code>.</p>
+The name of the listener is <code>external3</code>.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -16644,8 +16744,8 @@ spec:
   kafka:
     # ...
     listeners:
-      - name: external
-        port: 9095
+      - name: external3
+        port: 9094
         type: loadbalancer
         tls: true
         authentication:
@@ -16674,16 +16774,16 @@ spec:
 <div class="title">Loadbalancer services and loadbalancers created for the bootstraps and brokers</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                                  TYPE            CLUSTER-IP      PORT(S)
-my-cluster-kafka-external-0          LoadBalancer     172.30.204.234  9095:30011/TCP
-my-cluster-kafka-external-1          LoadBalancer     172.30.164.89   9095:32544/TCP
-my-cluster-kafka-external-2          LoadBalancer     172.30.73.151   9095:32504/TCP
-my-cluster-kafka-external-bootstrap  LoadBalancer     172.30.30.228   9095:30371/TCP
+my-cluster-kafka-external3-0          LoadBalancer    172.30.204.234  9094:30011/TCP
+my-cluster-kafka-external3-1          LoadBalancer    172.30.164.89   9094:32544/TCP
+my-cluster-kafka-external3-2          LoadBalancer    172.30.73.151   9094:32504/TCP
+my-cluster-kafka-external3-bootstrap  LoadBalancer    172.30.30.228   9094:30371/TCP
 
-NAME                                 EXTERNAL-IP (loadbalancer)
-my-cluster-kafka-external-0          a8a519e464b924000b6c0f0a05e19f0d-1132975133.us-west-2.elb.amazonaws.com
-my-cluster-kafka-external-1          ab6adc22b556343afb0db5ea05d07347-611832211.us-west-2.elb.amazonaws.com
-my-cluster-kafka-external-2          a9173e8ccb1914778aeb17eca98713c0-777597560.us-west-2.elb.amazonaws.com
-my-cluster-kafka-external-bootstrap  a8d4a6fb363bf447fb6e475fc3040176-36312313.us-west-2.elb.amazonaws.com</code></pre>
+NAME                                  EXTERNAL-IP (loadbalancer)
+my-cluster-kafka-external3-0          a8a519e464b924000b6c0f0a05e19f0d-1132975133.us-west-2.elb.amazonaws.com
+my-cluster-kafka-external3-1          ab6adc22b556343afb0db5ea05d07347-611832211.us-west-2.elb.amazonaws.com
+my-cluster-kafka-external3-2          a9173e8ccb1914778aeb17eca98713c0-777597560.us-west-2.elb.amazonaws.com
+my-cluster-kafka-external3-bootstrap  a8d4a6fb363bf447fb6e475fc3040176-36312313.us-west-2.elb.amazonaws.com</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -16703,16 +16803,16 @@ my-cluster-kafka-external-bootstrap  a8d4a6fb363bf447fb6e475fc3040176-36312313.u
     - addresses:
         - host: &gt;-
             a8d4a6fb363bf447fb6e475fc3040176-36312313.us-west-2.elb.amazonaws.com
-          port: 9095
+          port: 9094
       bootstrapServers: &gt;-
-        a8d4a6fb363bf447fb6e475fc3040176-36312313.us-west-2.elb.amazonaws.com:9095
+        a8d4a6fb363bf447fb6e475fc3040176-36312313.us-west-2.elb.amazonaws.com:9094
       certificates:
         - |
           -----BEGIN CERTIFICATE-----
 
           -----END CERTIFICATE-----
-      name: external
-      type: external
+      name: external3
+      type: external3
   observedGeneration: 2
  # ...</code></pre>
 </div>
@@ -16736,9 +16836,9 @@ my-cluster-kafka-external-bootstrap  a8d4a6fb363bf447fb6e475fc3040176-36312313.u
 <p>Retrieve the bootstrap address you can use to access the Kafka cluster from the status of the <code>Kafka</code> resource.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.name=="external")].bootstrapServers}{"\n"}'
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.name=="external3")].bootstrapServers}{"\n"}'
 
-a8d4a6fb363bf447fb6e475fc3040176-36312313.us-west-2.elb.amazonaws.com:9095</code></pre>
+a8d4a6fb363bf447fb6e475fc3040176-36312313.us-west-2.elb.amazonaws.com:9094</code></pre>
 </div>
 </div>
 </li>
@@ -16755,7 +16855,7 @@ a8d4a6fb363bf447fb6e475fc3040176-36312313.us-west-2.elb.amazonaws.com:9095</code
 <div class="olist loweralpha">
 <ol class="loweralpha" type="a">
 <li>
-<p>Specify the bootstrap host and port in your Kafka client as the bootstrap address to connect to the Kafka cluster. For example, <code>a8d4a6fb363bf447fb6e475fc3040176-36312313.us-west-2.elb.amazonaws.com:9095</code>.</p>
+<p>Specify the bootstrap host and port in your Kafka client as the bootstrap address to connect to the Kafka cluster. For example, <code>a8d4a6fb363bf447fb6e475fc3040176-36312313.us-west-2.elb.amazonaws.com:9094</code>.</p>
 </li>
 <li>
 <p>Add the extracted certificate to the truststore of your Kafka client to configure a TLS connection.</p>
@@ -16783,7 +16883,7 @@ If it is a public (external) CA, you usually won&#8217;t need to add it.
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-accessing-kafka-using-ingress-str"><a class="link" href="#proc-accessing-kafka-using-ingress-str">12.6. Accessing Kafka using an Ingress NGINX Controller for Kubernetes</a></h3>
+<h3 id="proc-accessing-kafka-using-ingress-str"><a class="link" href="#proc-accessing-kafka-using-ingress-str">12.7. Accessing Kafka using an Ingress NGINX Controller for Kubernetes</a></h3>
 <div class="paragraph _abstract">
 <p>Use an <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">Ingress NGINX Controller for Kubernetes</a> to access a Strimzi Kafka cluster from clients outside the Kubernetes cluster.</p>
 </div>
@@ -16835,7 +16935,7 @@ To configure listeners to use your own listener certificates, <a href="#proc-ins
 </div>
 <div class="paragraph">
 <p>In this procedure, the Kafka cluster name is <code>my-cluster</code>.
-The name of the listener is <code>external</code>.</p>
+The name of the listener is <code>external2</code>.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -16862,7 +16962,7 @@ spec:
   kafka:
     # ...
     listeners:
-      - name: external
+      - name: external2
         port: 9094
         type: ingress
         tls: true # <b class="conum">(1)</b>
@@ -16914,11 +17014,11 @@ spec:
 <div class="listingblock">
 <div class="title">Ingresses created for the bootstrap and brokers</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                        CLASS  HOSTS                    ADDRESS               PORTS
-my-cluster-kafka-0          nginx  broker-0.myingress.com   external.ingress.com  80,443
-my-cluster-kafka-1          nginx  broker-1.myingress.com   external.ingress.com  80,443
-my-cluster-kafka-2          nginx  broker-2.myingress.com   external.ingress.com  80,443
-my-cluster-kafka-bootstrap  nginx  bootstrap.myingress.com  external.ingress.com  80,443</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                                  CLASS  HOSTS                    ADDRESS       PORTS
+my-cluster-kafka-external2-0          nginx  broker-0.myingress.com   192.168.49.2  80,443
+my-cluster-kafka-external2-1          nginx  broker-1.myingress.com   192.168.49.2  80,443
+my-cluster-kafka-external2-2          nginx  broker-2.myingress.com   192.168.49.2  80,443
+my-cluster-kafka-external2-bootstrap  nginx  bootstrap.myingress.com  192.168.49.2  80,443</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -16930,7 +17030,7 @@ my-cluster-kafka-bootstrap  nginx  bootstrap.myingress.com  external.ingress.com
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">status:
   loadBalancer:
     ingress:
-      - hostname: external.ingress.com
+    - ip: 192.168.49.2
  # ...</code></pre>
 </div>
 </div>
@@ -16998,7 +17098,7 @@ If it is a public (external) CA, you usually won&#8217;t need to add it.
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-accessing-kafka-using-routes-str"><a class="link" href="#proc-accessing-kafka-using-routes-str">12.7. Accessing Kafka using OpenShift routes</a></h3>
+<h3 id="proc-accessing-kafka-using-routes-str"><a class="link" href="#proc-accessing-kafka-using-routes-str">12.8. Accessing Kafka using OpenShift routes</a></h3>
 <div class="paragraph _abstract">
 <p>Use OpenShift routes to access a Strimzi Kafka cluster from clients outside the OpenShift cluster.</p>
 </div>
@@ -17019,8 +17119,9 @@ For access using routes, the port is always 443.</p>
 <div class="title">Warning</div>
 </td>
 <td class="content">
-An OpenShift route address comprises the name of the Kafka cluster, the name of the listener, and the name of the project it is created in.
-For example, <code>my-cluster-kafka-external-bootstrap-myproject</code> (&lt;cluster_name&gt;-kafka-&lt;listener_name&gt;-bootstrap-&lt;namespace&gt;). Be careful that the whole length of the address does not exceed a maximum limit of 63 characters.
+An OpenShift route address comprises the Kafka cluster name, the listener name, the project name, and the domain of the router.
+For example, <code>my-cluster-kafka-external1-bootstrap-my-project.domain.com</code> (&lt;cluster_name&gt;-kafka-&lt;listener_name&gt;-bootstrap-&lt;namespace&gt;.&lt;domain&gt;).
+Each DNS label (between periods &#8220;.&#8221;) must not exceed 63 characters, and the total length of the address must not exceed 255 characters.
 </td>
 </tr>
 </table>
@@ -17057,7 +17158,7 @@ To configure listeners to use your own listener certificates, <a href="#proc-ins
 </div>
 <div class="paragraph">
 <p>In this procedure, the Kafka cluster name is <code>my-cluster</code>.
-The name of the listener is <code>external</code>.</p>
+The name of the listener is <code>external1</code>.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -17080,7 +17181,7 @@ spec:
   kafka:
     # ...
     listeners:
-      - name: external
+      - name: external1
         port: 9094
         type: route
         tls: true # <b class="conum">(1)</b>
@@ -17122,11 +17223,11 @@ spec:
 <div class="listingblock">
 <div class="title">Routes created for the bootstraps and brokers</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                                  HOST/PORT                                                   SERVICES                              PORT  TERMINATION
-my-cluster-kafka-external-0          my-cluster-kafka-external-0-my-project.router.com          my-cluster-kafka-external-0          9094  passthrough
-my-cluster-kafka-external-1          my-cluster-kafka-external-1-my-project.router.com          my-cluster-kafka-external-1          9094  passthrough
-my-cluster-kafka-external-2          my-cluster-kafka-external-2-my-project.router.com          my-cluster-kafka-external-2          9094  passthrough
-my-cluster-kafka-external-bootstrap  my-cluster-kafka-external-bootstrap-my-project.router.com  my-cluster-kafka-external-bootstrap  9094  passthrough</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                                  HOST/PORT                                                  SERVICES                              PORT  TERMINATION
+my-cluster-kafka-external1-0          my-cluster-kafka-external1-0-my-project.router.com         my-cluster-kafka-external1-0          9094  passthrough
+my-cluster-kafka-external1-1          my-cluster-kafka-external1-1-my-project.router.com         my-cluster-kafka-external1-1          9094  passthrough
+my-cluster-kafka-external1-2          my-cluster-kafka-external1-2-my-project.router.com         my-cluster-kafka-external1-2          9094  passthrough
+my-cluster-kafka-external1-bootstrap  my-cluster-kafka-external1-bootstrap-my-project.router.com my-cluster-kafka-external1-bootstrap  9094  passthrough</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -17138,7 +17239,7 @@ my-cluster-kafka-external-bootstrap  my-cluster-kafka-external-bootstrap-my-proj
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">status:
   ingress:
     - host: &gt;-
-        my-cluster-kafka-external-bootstrap-my-project.router.com
+        my-cluster-kafka-external1-bootstrap-my-project.router.com
  # ...</code></pre>
 </div>
 </div>
@@ -17147,11 +17248,11 @@ my-cluster-kafka-external-bootstrap  my-cluster-kafka-external-bootstrap-my-proj
 <p>Use a target broker to check the client-server TLS connection on port 443 using the OpenSSL <code>s_client</code>.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">openssl s_client -connect my-cluster-kafka-external-0-my-project.router.com:443 -servername my-cluster-kafka-external-0-my-project.router.com -showcerts</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">openssl s_client -connect my-cluster-kafka-external1-0-my-project.router.com:443 -servername my-cluster-kafka-external1-0-my-project.router.com -showcerts</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The server name is the SNI for passing the connection to the broker.</p>
+<p>The server name is the Server Name Indication (SNI) for passing the connection to the broker.</p>
 </div>
 <div class="paragraph">
 <p>If the connection is successful, the certificates for the broker are returned.</p>
@@ -17169,13 +17270,13 @@ my-cluster-kafka-external-bootstrap  my-cluster-kafka-external-bootstrap-my-proj
 <p>Retrieve the address of the bootstrap service from the status of the <code>Kafka</code> resource.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.name=="external")].bootstrapServers}{"\n"}'
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.name=="external1")].bootstrapServers}{"\n"}'
 
-my-cluster-kafka-external-bootstrap-my-project.router.com:443</code></pre>
+my-cluster-kafka-external1-bootstrap-my-project.router.com:443</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The address comprises the cluster name, the listener name, the project name and the domain of the router (<code>router.com</code> in this example).</p>
+<p>The address comprises the Kafka cluster name, the listener name, the project name and the domain of the router (<code>router.com</code> in this example).</p>
 </div>
 </li>
 <li>
@@ -17375,7 +17476,7 @@ spec:
         tls: true
         authentication:
           type: tls
-      - name: external
+      - name: external3
         port: 9094
         type: loadbalancer
         tls: true
@@ -18509,7 +18610,7 @@ listeners:
     port: 9092
     type: internal
     tls: false
-  - name: external
+  - name: external3
     port: 9094
     type: loadbalancer
     tls: true
@@ -18644,7 +18745,7 @@ A rolling update is also started if you update a Kafka listener certificate in a
 <p>For external listeners which have TLS encryption enabled, the hostnames you need to specify in certificates depends on the external listener <code>type</code>.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 14. SANs for each type of external listener</caption>
+<caption class="title">Table 16. SANs for each type of external listener</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -19003,7 +19104,7 @@ Without encryption, the connection is vulnerable to network eavesdropping and un
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
 listeners:
-  - name: external
+  - name: external3
     port: 9094
     type: loadbalancer
     tls: true
@@ -19684,7 +19785,7 @@ Otherwise, you may need to configure the truststore with proper certificates or 
 <div class="title">Example 1: Configuring fast local JWT token validation</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">#...
-- name: external
+- name: external3
   port: 9094
   type: loadbalancer
   tls: true
@@ -19740,7 +19841,7 @@ Otherwise, you may need to configure the truststore with proper certificates or 
 <div id="example-2" class="listingblock">
 <div class="title">Example 2: Configuring token validation using an introspection endpoint</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">- name: external
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">- name: external3
   port: 9094
   type: loadbalancer
   tls: true
@@ -22604,7 +22705,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </table>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 15. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
+<caption class="title">Table 17. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -22623,7 +22724,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 16. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
+<caption class="title">Table 18. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -22650,7 +22751,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 17. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-brokers</code> secret</caption>
+<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-brokers</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -22681,7 +22782,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 18. Fields in the <code><em>&lt;cluster_name&gt;</em>-zookeeper-nodes</code> secret</caption>
+<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-zookeeper-nodes</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -22712,7 +22813,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
+<caption class="title">Table 21. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -22744,7 +22845,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
+<caption class="title">Table 22. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -22776,7 +22877,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 21. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
+<caption class="title">Table 23. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -22808,7 +22909,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 22. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
+<caption class="title">Table 24. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -22840,7 +22941,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 23. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
+<caption class="title">Table 25. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -22886,7 +22987,7 @@ This secret must be accessible to the Strimzi components and for administrative 
 You can enforce this using Kubernetes role-based access controls, if necessary.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 24. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
+<caption class="title">Table 26. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -22905,7 +23006,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 25. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
+<caption class="title">Table 27. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -22941,7 +23042,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 <p>When a user is created using the User Operator, a secret is generated using the name of the user.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 26. Fields in the <code><em>user_name</em></code> secret</caption>
+<caption class="title">Table 28. Fields in the <code><em>user_name</em></code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 30%;">
@@ -23523,7 +23624,7 @@ Instead, follow the procedure for <a href="#renewing-your-own-ca-certificates-st
 <li>
 <p>Apply the <code>strimzi.io/force-replace</code> annotation to the <code>Secret</code> that contains the private key that you want to renew.</p>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 27. Commands for replacing private keys</caption>
+<caption class="title">Table 29. Commands for replacing private keys</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -25815,7 +25916,7 @@ The status of the <code>KafkaRebalance</code> resource moves to <code>Ready</cod
 <p>The following table explains the properties contained in the optimization proposal&#8217;s summary section.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 28. Properties contained in an optimization proposal summary</caption>
+<caption class="title">Table 30. Properties contained in an optimization proposal summary</caption>
 <colgroup>
 <col style="width: 35%;">
 <col style="width: 65%;">
@@ -26117,7 +26218,7 @@ You can set these tuning options when <a href="#proc-configuring-deploying-cruis
 <p>The relevant configurations are summarized in the following table.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 29. Rebalance performance tuning configuration</caption>
+<caption class="title">Table 31. Rebalance performance tuning configuration</caption>
 <colgroup>
 <col style="width: 36.3636%;">
 <col style="width: 36.3636%;">
@@ -26371,7 +26472,7 @@ The deployment is successful when the <code>AVAILABLE</code> output shows <code>
 <p>The following table shows the three topics that are automatically created when Cruise Control is deployed. These topics are required for Cruise Control to work properly and must not be deleted or changed. You can change the name of the topic using the specified configuration option.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 30. Auto-created topics</caption>
+<caption class="title">Table 32. Auto-created topics</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 16.6666%;">
@@ -28546,7 +28647,7 @@ For example, the value of a label may be derived from the name of a Kafka server
 When deploying Prometheus metrics configuration, you can can deploy the example custom resource or copy the metrics configuration to your own custom resource definition.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 31. Example custom resources with metrics configuration</caption>
+<caption class="title">Table 33. Example custom resources with metrics configuration</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -28675,7 +28776,7 @@ For example, the Grafana dashboard for Strimzi operators provides information on
 The dashboards are populated with a representative set of metrics for monitoring.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 32. Example Grafana dashboard files</caption>
+<caption class="title">Table 34. Example Grafana dashboard files</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -29082,7 +29183,7 @@ spec:
   kafka:
     # ...
     listeners:
-    - name: external
+    - name: external3
       port: 9094
       type: loadbalancer
       tls: true
@@ -29804,7 +29905,7 @@ For the latest information, see the <a href="https://opentelemetry.io/docs/" tar
 <p>The following tables describe the key environment variables for setting up a tracer.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 33. OpenTelemetry environment variables</caption>
+<caption class="title">Table 35. OpenTelemetry environment variables</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 20%;">
@@ -31077,7 +31178,7 @@ To ensure the correct versions are used, the upgrade process involves making con
 <p>The following table shows the differences between Kafka versions:</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 34. Kafka version differences</caption>
+<caption class="title">Table 36. Kafka version differences</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 25%;">
@@ -31943,7 +32044,7 @@ You can export and monitor restart events using metrics collection tools like Pr
 You can check the reason by fetching information on the restart event.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 35. Restart reasons</caption>
+<caption class="title">Table 37. Restart reasons</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 66.6667%;">
@@ -33169,7 +33270,7 @@ You can also override <code>min.insync.replicas</code> at the topic level in the
 <p>The following table describes how this configuration operates depending on the availability of followers that replicate the leader replica.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 36. Follower availability</caption>
+<caption class="title">Table 38. Follower availability</caption>
 <colgroup>
 <col style="width: 28.5714%;">
 <col style="width: 42.8571%;">
@@ -34273,7 +34374,7 @@ my-cluster   3                        3</code></pre>
 </div>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 37. Long and short names for each Strimzi resource</caption>
+<caption class="title">Table 39. Long and short names for each Strimzi resource</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -34438,7 +34539,7 @@ my-cluster-kafka-bootstrap.myproject.svc:9093</code></pre>
 <p>For more information on the schemas, see the <a href="./configuring.html" target="_blank" rel="noopener">Strimzi Custom Resource API Reference</a>.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 38. Custom resources that provide status information</caption>
+<caption class="title">Table 40. Custom resources that provide status information</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -34569,8 +34670,8 @@ status:
           -----BEGIN CERTIFICATE-----
 
           -----END CERTIFICATE-----
-      name: external2
-      type: external2
+      name: external3
+      type: external3
     - addresses:
         - host: ip-10-0-172-202.us-east-2.compute.internal
           port: 31644
@@ -34580,8 +34681,8 @@ status:
           -----BEGIN CERTIFICATE-----
 
           -----END CERTIFICATE-----
-      name: external1
-      type: external1
+      name: external4
+      type: external4
   observedGeneration: 3 # <b class="conum">(5)</b></code></pre>
 </div>
 </div>
@@ -35313,7 +35414,7 @@ You can use the configuration to control how certificates are watched for update
 For more information on how the environment variables work, see <a href="#proc-drain-cleaner-certs-renewing-str">Watching the TLS certificates used by the Strimzi Drain Cleaner</a>.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 39. Chart configuration options</caption>
+<caption class="title">Table 41. Chart configuration options</caption>
 <colgroup>
 <col style="width: 45.4545%;">
 <col style="width: 36.3636%;">
@@ -35713,7 +35814,7 @@ But you can disable the watching of certificates by setting the <code>STRIMZI_CE
 <p>With <code>STRIMZI_CERTIFICATE_WATCH_ENABLED</code> enabled, you can also use the following environment variables for watching TLS certificates.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 40. Drain Cleaner environment variables for watching TLS certificates</caption>
+<caption class="title">Table 42. Drain Cleaner environment variables for watching TLS certificates</caption>
 <colgroup>
 <col style="width: 45.4545%;">
 <col style="width: 36.3636%;">
@@ -36918,7 +37019,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-08-31 15:12:02 UTC
+Last updated 2023-09-01 13:58:41 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
