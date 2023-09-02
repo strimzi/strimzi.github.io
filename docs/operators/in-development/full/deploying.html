@@ -497,9 +497,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#kafka-connect-str">5.4. Deploying Kafka Connect</a>
 <ul class="sectlevel3">
 <li><a href="#deploying-kafka-connect-str">5.4.1. Deploying Kafka Connect to your Kubernetes cluster</a></li>
-<li><a href="#con-kafka-connect-multiple-instances-str">5.4.2. Configuring Kafka Connect for multiple instances</a></li>
-<li><a href="#using-kafka-connect-with-plug-ins-str">5.4.3. Adding connectors</a></li>
-<li><a href="#ref-list-of-kafka-connect-resources-str">5.4.4. List of Kafka Connect cluster resources</a></li>
+<li><a href="#using-kafka-connect-with-plug-ins-str">5.4.2. Adding connectors</a></li>
+<li><a href="#ref-list-of-kafka-connect-resources-str">5.4.3. List of Kafka Connect cluster resources</a></li>
 </ul>
 </li>
 <li><a href="#kafka-mirror-maker-str">5.5. Deploying Kafka MirrorMaker</a>
@@ -573,17 +572,19 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#con-kafka-connect-config-str">9.6. Configuring Kafka Connect</a>
 <ul class="sectlevel3">
-<li><a href="#proc-configuring-kafka-connect-user-authorization-str">9.6.1. Configuring Kafka Connect user authorization</a></li>
+<li><a href="#con-config-kafka-connect-multiple-instances-str">9.6.1. Configuring Kafka Connect for multiple instances</a></li>
+<li><a href="#proc-configuring-kafka-connect-user-authorization-str">9.6.2. Configuring Kafka Connect user authorization</a></li>
 </ul>
 </li>
 <li><a href="#con-config-mirrormaker2-str">9.7. Configuring Kafka MirrorMaker 2</a>
 <ul class="sectlevel3">
 <li><a href="#con-overview-mm2-str">9.7.1. Configuring active/active or active/passive modes</a></li>
-<li><a href="#con-config-mirrormaker2-connectors-str">9.7.2. Configuring MirrorMaker 2 connectors</a></li>
-<li><a href="#con-mirrormaker-producers-consumers-str">9.7.3. Configuring MirrorMaker 2 connector producers and consumers</a></li>
-<li><a href="#con-mirrormaker-tasks-max-str">9.7.4. Specifying a maximum number of data replication tasks</a></li>
-<li><a href="#con-mirrormaker-acls-str">9.7.5. Synchronizing ACL rules for remote topics</a></li>
-<li><a href="#proc-config-mirrormaker2-securing-connection-str">9.7.6. Securing a Kafka MirrorMaker 2 deployment</a></li>
+<li><a href="#con-config-mm2-multiple-instances-str">9.7.2. Configuring MirrorMaker 2 for multiple instances</a></li>
+<li><a href="#con-config-mirrormaker2-connectors-str">9.7.3. Configuring MirrorMaker 2 connectors</a></li>
+<li><a href="#con-mirrormaker-producers-consumers-str">9.7.4. Configuring MirrorMaker 2 connector producers and consumers</a></li>
+<li><a href="#con-mirrormaker-tasks-max-str">9.7.5. Specifying a maximum number of data replication tasks</a></li>
+<li><a href="#con-mirrormaker-acls-str">9.7.6. Synchronizing ACL rules for remote topics</a></li>
+<li><a href="#proc-config-mirrormaker2-securing-connection-str">9.7.7. Securing a Kafka MirrorMaker 2 deployment</a></li>
 </ul>
 </li>
 <li><a href="#con-config-mirrormaker-str">9.8. Configuring Kafka MirrorMaker (deprecated)</a></li>
@@ -4164,6 +4165,19 @@ In this procedure, we use the following example file:</p>
 </li>
 </ul>
 </div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+If deploying Kafka Connect clusters to run in parallel, each instance must use unique names for internal Kafka Connect topics.
+To do this, <a href="#con-config-kafka-connect-multiple-instances-str">configure each Kafka Connect instance to replace the defaults</a>.
+</td>
+</tr>
+</table>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -4223,68 +4237,7 @@ The deployment is successful when the <code>STATUS</code> displays as <code>Runn
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-kafka-connect-multiple-instances-str"><a class="link" href="#con-kafka-connect-multiple-instances-str">5.4.2. Configuring Kafka Connect for multiple instances</a></h4>
-<div class="paragraph">
-<p>If you are running multiple instances of Kafka Connect, you have to change the default configuration of the following <code>config</code> properties:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaConnect
-metadata:
-  name: my-connect
-spec:
-  # ...
-  config:
-    group.id: connect-cluster <b class="conum">(1)</b>
-    offset.storage.topic: connect-cluster-offsets <b class="conum">(2)</b>
-    config.storage.topic: connect-cluster-configs <b class="conum">(3)</b>
-    status.storage.topic: connect-cluster-status  <b class="conum">(4)</b>
-    # ...
-# ...</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>The Kafka Connect cluster ID within Kafka.</p>
-</li>
-<li>
-<p>Kafka topic that stores connector offsets.</p>
-</li>
-<li>
-<p>Kafka topic that stores connector and task status configurations.</p>
-</li>
-<li>
-<p>Kafka topic that stores connector and task status updates.</p>
-</li>
-</ol>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Values for the three topics must be the same for all Kafka Connect instances with the same <code>group.id</code>.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Unless you change the default settings, each Kafka Connect instance connecting to the same Kafka cluster is deployed with the same values.
-What happens, in effect, is all instances are coupled to run in a cluster and use the same topics.</p>
-</div>
-<div class="paragraph">
-<p>If multiple Kafka Connect clusters try to use the same topics, Kafka Connect will not work as expected and generate errors.</p>
-</div>
-<div class="paragraph">
-<p>If you wish to run multiple Kafka Connect instances, change the values of these properties for each instance.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="using-kafka-connect-with-plug-ins-str"><a class="link" href="#using-kafka-connect-with-plug-ins-str">5.4.3. Adding connectors</a></h4>
+<h4 id="using-kafka-connect-with-plug-ins-str"><a class="link" href="#using-kafka-connect-with-plug-ins-str">5.4.2. Adding connectors</a></h4>
 <div class="paragraph _abstract">
 <p>Kafka Connect uses connectors to integrate with other systems to stream data.
 A connector is an instance of a Kafka <code>Connector</code> class, which can be one of the following type:</p>
@@ -5245,7 +5198,7 @@ When the Kafka Connect cluster is <code>Ready</code>, you can delete the <code>K
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-list-of-kafka-connect-resources-str"><a class="link" href="#ref-list-of-kafka-connect-resources-str">5.4.4. List of Kafka Connect cluster resources</a></h4>
+<h4 id="ref-list-of-kafka-connect-resources-str"><a class="link" href="#ref-list-of-kafka-connect-resources-str">5.4.3. List of Kafka Connect cluster resources</a></h4>
 <div class="paragraph">
 <p>The following resources are created by the Cluster Operator in the Kubernetes cluster:</p>
 </div>
@@ -5319,7 +5272,8 @@ MirrorMaker consumes messages from a source cluster and republishes those messag
 <p>This procedure shows how to deploy a Kafka MirrorMaker cluster to your Kubernetes cluster using the Cluster Operator.</p>
 </div>
 <div class="paragraph">
-<p>The deployment uses a YAML file to provide the specification to create a <code>KafkaMirrorMaker</code> or <code>KafkaMirrorMaker2</code> resource depending on the version of MirrorMaker deployed.</p>
+<p>The deployment uses a YAML file to provide the specification to create a <code>KafkaMirrorMaker</code> or <code>KafkaMirrorMaker2</code> resource depending on the version of MirrorMaker deployed.
+MirrorMaker 2 is based on Kafka Connect and uses its configuration properties.</p>
 </div>
 <div class="admonitionblock important">
 <table>
@@ -5349,6 +5303,19 @@ In this procedure, we use the following example files:</p>
 <p><code>examples/mirror-maker/kafka-mirror-maker-2.yaml</code></p>
 </li>
 </ul>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+If deploying MirrorMaker 2 clusters to run in parallel, using the same target Kafka cluster, each instance must use unique names for internal Kafka Connect topics.
+To do this, <a href="#con-config-mm2-multiple-instances-str">configure each MirrorMaker 2 instance to replace the defaults</a>.
+</td>
+</tr>
+</table>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -9555,32 +9522,23 @@ You can also use configuration provider plugins to load configuration values fro
 </ol>
 </div>
 <div class="sect3">
-<h4 id="proc-configuring-kafka-connect-user-authorization-str"><a class="link" href="#proc-configuring-kafka-connect-user-authorization-str">9.6.1. Configuring Kafka Connect user authorization</a></h4>
-<div class="paragraph">
-<p>This procedure describes how to authorize user access to Kafka Connect.</p>
-</div>
-<div class="paragraph">
-<p>When any type of authorization is being used in Kafka, a Kafka Connect user requires read/write access rights to the consumer group
-and the internal topics of Kafka Connect.</p>
-</div>
-<div class="paragraph">
-<p>The properties for the consumer group and internal topics are automatically configured by Strimzi,
-or they can be specified explicitly in the <code>spec</code> of the <code>KafkaConnect</code> resource.</p>
+<h4 id="con-config-kafka-connect-multiple-instances-str"><a class="link" href="#con-config-kafka-connect-multiple-instances-str">9.6.1. Configuring Kafka Connect for multiple instances</a></h4>
+<div class="paragraph _abstract">
+<p>By default, Strimzi configures the group ID and names of the internal topics used by Kafka Connect.
+When running multiple instances of Kafka Connect, you must change these default settings using the following <code>config</code> properties:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example configuration properties in the <code>KafkaConnect</code> resource</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnect
 metadata:
   name: my-connect
 spec:
-  # ...
   config:
-    group.id: my-connect-cluster <b class="conum">(1)</b>
-    offset.storage.topic: my-connect-cluster-offsets <b class="conum">(2)</b>
-    config.storage.topic: my-connect-cluster-configs <b class="conum">(3)</b>
-    status.storage.topic: my-connect-cluster-status <b class="conum">(4)</b>
+    group.id: my-connect-cluster # <b class="conum">(1)</b>
+    offset.storage.topic: my-connect-cluster-offsets # <b class="conum">(2)</b>
+    config.storage.topic: my-connect-cluster-configs # <b class="conum">(3)</b>
+    status.storage.topic: my-connect-cluster-status # <b class="conum">(4)</b>
     # ...
   # ...</code></pre>
 </div>
@@ -9588,7 +9546,7 @@ spec:
 <div class="colist arabic">
 <ol>
 <li>
-<p>The Kafka Connect cluster ID within Kafka.</p>
+<p>The Kafka Connect cluster group ID within Kafka.</p>
 </li>
 <li>
 <p>Kafka topic that stores connector offsets.</p>
@@ -9601,13 +9559,6 @@ spec:
 </li>
 </ol>
 </div>
-<div class="paragraph">
-<p>This procedure shows how access is provided when <code>simple</code> authorization is being used.</p>
-</div>
-<div class="paragraph">
-<p>Simple authorization uses ACL rules, handled by the Kafka <code>AclAuthorizer</code> plugin, to provide the right level of access.
-For more information on configuring a <code>KafkaUser</code> resource to use simple authorization, see the <a href="./configuring.html#type-AclRule-reference" target="_blank" rel="noopener"><code>AclRule</code> schema reference</a>.</p>
-</div>
 <div class="admonitionblock note">
 <table>
 <tr>
@@ -9615,10 +9566,33 @@ For more information on configuring a <code>KafkaUser</code> resource to use sim
 <div class="title">Note</div>
 </td>
 <td class="content">
-The default values for the consumer group and topics will differ when <a href="#con-kafka-connect-multiple-instances-str">running multiple instances</a>.
+Values for the three topics must be the same for all instances with the same <code>group.id</code>.
 </td>
 </tr>
 </table>
+</div>
+<div class="paragraph">
+<p>Unless you modify these default settings, each instance connecting to the same Kafka cluster is deployed with the same values.
+In practice, this means all instances form a cluster and use the same internal topics.</p>
+</div>
+<div class="paragraph">
+<p>Multiple instances attempting to use the same internal topics will cause unexpected errors, so you must change the values of these properties for each instance.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-configuring-kafka-connect-user-authorization-str"><a class="link" href="#proc-configuring-kafka-connect-user-authorization-str">9.6.2. Configuring Kafka Connect user authorization</a></h4>
+<div class="paragraph _abstract">
+<p>When using authorization in Kafka, a Kafka Connect user requires read/write access to the cluster group and internal topics of Kafka Connect.
+This procedure outlines how access is granted using <code>simple</code> authorization.</p>
+</div>
+<div class="paragraph">
+<p>Properties for the Kafka Connect cluster group ID and internal topics are configured by Strimzi by default.
+Alternatively, you can define them explicitly in the <code>spec</code> of the <code>KafkaConnect</code> resource.
+This is useful when <a href="#con-config-kafka-connect-multiple-instances-str">configuring Kafka Connect for multiple instances</a>, as the values for the group ID and topics must differ when running multiple Kafka Connect instances.</p>
+</div>
+<div class="paragraph">
+<p>Simple authorization uses ACL rules managed by the Kafka <code>AclAuthorizer</code> plugin to ensure appropriate access levels.
+For more information on configuring a <code>KafkaUser</code> resource to use simple authorization, see the <a href="./configuring.html#type-AclRule-reference" target="_blank" rel="noopener"><code>AclRule</code> schema reference</a>.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -9637,9 +9611,11 @@ The default values for the consumer group and topics will differ when <a href="#
 <li>
 <p>Edit the <code>authorization</code> property in the <code>KafkaUser</code> resource to provide access rights to the user.</p>
 <div class="paragraph">
-<p>In the following example, access rights are configured for the Kafka Connect topics and consumer group using <code>literal</code> name values:</p>
+<p>Access rights are configured for the Kafka Connect topics and cluster group using <code>literal</code> name values:
+The following table shows the default names configured for the topics and cluster group ID.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
+<caption class="title">Table 10. Names for the access rights configuration</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -9669,7 +9645,12 @@ The default values for the consumer group and topics will differ when <a href="#
 </tr>
 </tbody>
 </table>
+<div class="paragraph">
+<p>In this example configuration, the default names are used to specify access rights.
+If you are using different names for a Kafka Connect instance, use those.</p>
+</div>
 <div class="listingblock">
+<div class="title">Example configuration for simple authorization</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaUser
@@ -9715,7 +9696,7 @@ spec:
           - Read
           - Write
         host: "*"
-      # consumer group
+      # cluster group
       - resource:
           type: group
           name: connect-cluster
@@ -9901,8 +9882,7 @@ spec:
       tasksMax: 10 # <b class="conum">(18)</b>
       autoRestart: # <b class="conum">(19)</b>
         enabled: true
-      config:
-        docs_mm2-connector-config
+      config
         replication.factor: 1 # <b class="conum">(20)</b>
         offset-syncs.topic.replication.factor: 1 # <b class="conum">(21)</b>
         sync.topic.acls.enabled: "false" # <b class="conum">(22)</b>
@@ -9987,7 +9967,7 @@ spec:
 <div class="colist arabic">
 <ol>
 <li>
-<p>The Kafka Connect and Mirror Maker 2.0 version, which will always be the same.</p>
+<p>The Kafka Connect and MirrorMaker 2 version, which will always be the same.</p>
 </li>
 <li>
 <p>The number of replica nodes for the workers that run tasks.</p>
@@ -10183,7 +10163,73 @@ With this configuration applied, topics retain their original names.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-config-mirrormaker2-connectors-str"><a class="link" href="#con-config-mirrormaker2-connectors-str">9.7.2. Configuring MirrorMaker 2 connectors</a></h4>
+<h4 id="con-config-mm2-multiple-instances-str"><a class="link" href="#con-config-mm2-multiple-instances-str">9.7.2. Configuring MirrorMaker 2 for multiple instances</a></h4>
+<div class="paragraph _abstract">
+<p>By default, Strimzi configures the group ID and names of the internal topics used by the Kafka Connect framework that MirrorMaker 2 runs on.
+When running multiple instances of MirrorMaker 2, and they share the same <code>connectCluster</code> value, you must change these default settings using the following <code>config</code> properties:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker2
+metadata:
+  name: my-mirror-maker2
+spec:
+  connectCluster: "my-cluster-target"
+  clusters:
+  - alias: "my-cluster-target"
+    config::
+      group.id: my-connect-cluster # <b class="conum">(1)</b>
+      offset.storage.topic: my-connect-cluster-offsets # <b class="conum">(2)</b>
+      config.storage.topic: my-connect-cluster-configs # <b class="conum">(3)</b>
+      status.storage.topic: my-connect-cluster-status # <b class="conum">(4)</b>
+      # ...
+    # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The Kafka Connect cluster group ID within Kafka.</p>
+</li>
+<li>
+<p>Kafka topic that stores connector offsets.</p>
+</li>
+<li>
+<p>Kafka topic that stores connector and task status configurations.</p>
+</li>
+<li>
+<p>Kafka topic that stores connector and task status updates.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Values for the three topics must be the same for all instances with the same <code>group.id</code>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The <code>connectCluster</code> setting specifies the alias of the target Kafka cluster used by Kafka Connect for its internal topics.
+As a result, modifications to the <code>connectCluster</code>, group ID, and internal topic naming configuration are specific to the target Kafka cluster.
+You don&#8217;t need to make changes if two MirrorMaker 2 instances are using the same source Kafka cluster or in an active-active mode where each MirrorMaker 2 instance has a different <code>connectCluster</code> setting and target cluster.</p>
+</div>
+<div class="paragraph">
+<p>However, if multiple MirrorMaker 2 instances share the same <code>connectCluster</code>, each instance connecting to the same target Kafka cluster is deployed with the same values.
+In practice, this means all instances form a cluster and use the same internal topics.</p>
+</div>
+<div class="paragraph">
+<p>Multiple instances attempting to use the same internal topics will cause unexpected errors, so you must change the values of these properties for each instance.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-config-mirrormaker2-connectors-str"><a class="link" href="#con-config-mirrormaker2-connectors-str">9.7.3. Configuring MirrorMaker 2 connectors</a></h4>
 <div class="paragraph _abstract">
 <p>Use MirrorMaker 2 connector configuration for the internal connectors that orchestrate the synchronization of data between Kafka clusters.</p>
 </div>
@@ -10210,7 +10256,7 @@ With this configuration applied, topics retain their original names.</p>
 <p>The following table describes connector properties and the connectors you configure to use them.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 10. MirrorMaker 2 connector configuration properties</caption>
+<caption class="title">Table 11. MirrorMaker 2 connector configuration properties</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 20%;">
@@ -10725,7 +10771,7 @@ Mismatched or missing settings cause issues with data replication or offset sync
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-mirrormaker-producers-consumers-str"><a class="link" href="#con-mirrormaker-producers-consumers-str">9.7.3. Configuring MirrorMaker 2 connector producers and consumers</a></h4>
+<h4 id="con-mirrormaker-producers-consumers-str"><a class="link" href="#con-mirrormaker-producers-consumers-str">9.7.4. Configuring MirrorMaker 2 connector producers and consumers</a></h4>
 <div class="paragraph _abstract">
 <p>MirrorMaker 2 connectors use internal producers and consumers.
 If needed, you can configure these producers and consumers to override the default settings.</p>
@@ -10749,7 +10795,7 @@ Producer and consumer configuration options depend on the MirrorMaker 2 implemen
 <p>The following tables describe the producers and consumers for each of the connectors and where you can add configuration.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 11. Source connector producers and consumers</caption>
+<caption class="title">Table 12. Source connector producers and consumers</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 20%;">
@@ -10787,7 +10833,7 @@ Producer and consumer configuration options depend on the MirrorMaker 2 implemen
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 12. Checkpoint connector producers and consumers</caption>
+<caption class="title">Table 13. Checkpoint connector producers and consumers</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 20%;">
@@ -10830,7 +10876,7 @@ You can set <code>offset-syncs.topic.location</code> to <code>target</code> to u
 </table>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 13. Heartbeat connector producer</caption>
+<caption class="title">Table 14. Heartbeat connector producer</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 20%;">
@@ -10890,7 +10936,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-mirrormaker-tasks-max-str"><a class="link" href="#con-mirrormaker-tasks-max-str">9.7.4. Specifying a maximum number of data replication tasks</a></h4>
+<h4 id="con-mirrormaker-tasks-max-str"><a class="link" href="#con-mirrormaker-tasks-max-str">9.7.5. Specifying a maximum number of data replication tasks</a></h4>
 <div class="paragraph _abstract">
 <p>Connectors create the tasks that are responsible for moving data in and out of Kafka.
 Each connector comprises one or more tasks that are distributed across a group of worker pods that run the tasks.
@@ -10995,7 +11041,7 @@ The example MirrorMaker 2 Grafana dashboard provided with Strimzi shows the foll
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-mirrormaker-acls-str"><a class="link" href="#con-mirrormaker-acls-str">9.7.5. Synchronizing ACL rules for remote topics</a></h4>
+<h4 id="con-mirrormaker-acls-str"><a class="link" href="#con-mirrormaker-acls-str">9.7.6. Synchronizing ACL rules for remote topics</a></h4>
 <div class="paragraph _abstract">
 <p>When using MirrorMaker 2 with Strimzi, it is possible to synchronize ACL rules for remote topics.
 However, this feature is only available if you are not using the User Operator.</p>
@@ -11018,7 +11064,7 @@ OAuth 2.0 authorization does not support access to remote topics in this way.
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-config-mirrormaker2-securing-connection-str"><a class="link" href="#proc-config-mirrormaker2-securing-connection-str">9.7.6. Securing a Kafka MirrorMaker 2 deployment</a></h4>
+<h4 id="proc-config-mirrormaker2-securing-connection-str"><a class="link" href="#proc-config-mirrormaker2-securing-connection-str">9.7.7. Securing a Kafka MirrorMaker 2 deployment</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes in outline the configuration required to secure a MirrorMaker 2 deployment.</p>
 </div>
@@ -13210,7 +13256,7 @@ Default logging is used if the <code>name</code> or <code>key</code> is not set.
 <p><a href="./configuring.html#property-zookeeper-logging-reference" target="_blank" rel="noopener">ZooKeeper logging</a></p>
 </li>
 <li>
-<p><a href="./configuring.html#property-kafka-connect-logging-reference" target="_blank" rel="noopener">Kafka Connect and Mirror Maker 2.0 logging</a></p>
+<p><a href="./configuring.html#property-kafka-connect-logging-reference" target="_blank" rel="noopener">Kafka Connect and MirrorMaker 2 logging</a></p>
 </li>
 <li>
 <p><a href="./configuring.html#property-mm-loggers-reference" target="_blank" rel="noopener">MirrorMaker logging</a></p>
@@ -15961,7 +16007,7 @@ If you scale your Kafka cluster while using external listeners, it might trigger
 <p>From the listener configuration, the resulting listener bootstrap and per-broker service names are structured according to the following naming conventions:</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 14. Listener naming conventions</caption>
+<caption class="title">Table 15. Listener naming conventions</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 40%;">
@@ -16005,7 +16051,7 @@ The resulting external listener naming convention varies slightly.
 These specific combinations of listener name and port configuration values are backwards compatible:</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 15. Backwards compatible listener name and port combinations</caption>
+<caption class="title">Table 16. Backwards compatible listener name and port combinations</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 16.6666%;">
@@ -18745,7 +18791,7 @@ A rolling update is also started if you update a Kafka listener certificate in a
 <p>For external listeners which have TLS encryption enabled, the hostnames you need to specify in certificates depends on the external listener <code>type</code>.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 16. SANs for each type of external listener</caption>
+<caption class="title">Table 17. SANs for each type of external listener</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -22705,7 +22751,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </table>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 17. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
+<caption class="title">Table 18. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -22724,7 +22770,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 18. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
+<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -22751,7 +22797,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-brokers</code> secret</caption>
+<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-brokers</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -22782,7 +22828,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-zookeeper-nodes</code> secret</caption>
+<caption class="title">Table 21. Fields in the <code><em>&lt;cluster_name&gt;</em>-zookeeper-nodes</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -22813,7 +22859,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 21. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
+<caption class="title">Table 22. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -22845,7 +22891,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 22. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
+<caption class="title">Table 23. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -22877,7 +22923,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 23. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
+<caption class="title">Table 24. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -22909,7 +22955,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 24. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
+<caption class="title">Table 25. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -22941,7 +22987,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 25. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
+<caption class="title">Table 26. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -22987,7 +23033,7 @@ This secret must be accessible to the Strimzi components and for administrative 
 You can enforce this using Kubernetes role-based access controls, if necessary.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 26. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
+<caption class="title">Table 27. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -23006,7 +23052,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 27. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
+<caption class="title">Table 28. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -23042,7 +23088,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 <p>When a user is created using the User Operator, a secret is generated using the name of the user.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 28. Fields in the <code><em>user_name</em></code> secret</caption>
+<caption class="title">Table 29. Fields in the <code><em>user_name</em></code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 30%;">
@@ -23624,7 +23670,7 @@ Instead, follow the procedure for <a href="#renewing-your-own-ca-certificates-st
 <li>
 <p>Apply the <code>strimzi.io/force-replace</code> annotation to the <code>Secret</code> that contains the private key that you want to renew.</p>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 29. Commands for replacing private keys</caption>
+<caption class="title">Table 30. Commands for replacing private keys</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -25916,7 +25962,7 @@ The status of the <code>KafkaRebalance</code> resource moves to <code>Ready</cod
 <p>The following table explains the properties contained in the optimization proposal&#8217;s summary section.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 30. Properties contained in an optimization proposal summary</caption>
+<caption class="title">Table 31. Properties contained in an optimization proposal summary</caption>
 <colgroup>
 <col style="width: 35%;">
 <col style="width: 65%;">
@@ -26218,7 +26264,7 @@ You can set these tuning options when <a href="#proc-configuring-deploying-cruis
 <p>The relevant configurations are summarized in the following table.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 31. Rebalance performance tuning configuration</caption>
+<caption class="title">Table 32. Rebalance performance tuning configuration</caption>
 <colgroup>
 <col style="width: 36.3636%;">
 <col style="width: 36.3636%;">
@@ -26472,7 +26518,7 @@ The deployment is successful when the <code>AVAILABLE</code> output shows <code>
 <p>The following table shows the three topics that are automatically created when Cruise Control is deployed. These topics are required for Cruise Control to work properly and must not be deleted or changed. You can change the name of the topic using the specified configuration option.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 32. Auto-created topics</caption>
+<caption class="title">Table 33. Auto-created topics</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 16.6666%;">
@@ -28625,7 +28671,7 @@ Prometheus Alertmanager can then route the alerts generated by Prometheus.</p>
 <p>Metrics configuration that defines Prometheus JMX Exporter relabeling rules for Kafka and ZooKeeper.</p>
 </li>
 <li>
-<p>Metrics configuration that defines Prometheus JMX Exporter relabeling rules for Kafka Mirror Maker 2.0.</p>
+<p>Metrics configuration that defines Prometheus JMX Exporter relabeling rules for Kafka MirrorMaker 2.</p>
 </li>
 </ol>
 </div>
@@ -28647,7 +28693,7 @@ For example, the value of a label may be derived from the name of a Kafka server
 When deploying Prometheus metrics configuration, you can can deploy the example custom resource or copy the metrics configuration to your own custom resource definition.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 33. Example custom resources with metrics configuration</caption>
+<caption class="title">Table 34. Example custom resources with metrics configuration</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -28776,7 +28822,7 @@ For example, the Grafana dashboard for Strimzi operators provides information on
 The dashboards are populated with a representative set of metrics for monitoring.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 34. Example Grafana dashboard files</caption>
+<caption class="title">Table 35. Example Grafana dashboard files</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -29905,7 +29951,7 @@ For the latest information, see the <a href="https://opentelemetry.io/docs/" tar
 <p>The following tables describe the key environment variables for setting up a tracer.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 35. OpenTelemetry environment variables</caption>
+<caption class="title">Table 36. OpenTelemetry environment variables</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 20%;">
@@ -31178,7 +31224,7 @@ To ensure the correct versions are used, the upgrade process involves making con
 <p>The following table shows the differences between Kafka versions:</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 36. Kafka version differences</caption>
+<caption class="title">Table 37. Kafka version differences</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 25%;">
@@ -32044,7 +32090,7 @@ You can export and monitor restart events using metrics collection tools like Pr
 You can check the reason by fetching information on the restart event.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 37. Restart reasons</caption>
+<caption class="title">Table 38. Restart reasons</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 66.6667%;">
@@ -33270,7 +33316,7 @@ You can also override <code>min.insync.replicas</code> at the topic level in the
 <p>The following table describes how this configuration operates depending on the availability of followers that replicate the leader replica.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 38. Follower availability</caption>
+<caption class="title">Table 39. Follower availability</caption>
 <colgroup>
 <col style="width: 28.5714%;">
 <col style="width: 42.8571%;">
@@ -34374,7 +34420,7 @@ my-cluster   3                        3</code></pre>
 </div>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 39. Long and short names for each Strimzi resource</caption>
+<caption class="title">Table 40. Long and short names for each Strimzi resource</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -34539,7 +34585,7 @@ my-cluster-kafka-bootstrap.myproject.svc:9093</code></pre>
 <p>For more information on the schemas, see the <a href="./configuring.html" target="_blank" rel="noopener">Strimzi Custom Resource API Reference</a>.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 40. Custom resources that provide status information</caption>
+<caption class="title">Table 41. Custom resources that provide status information</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -35414,7 +35460,7 @@ You can use the configuration to control how certificates are watched for update
 For more information on how the environment variables work, see <a href="#proc-drain-cleaner-certs-renewing-str">Watching the TLS certificates used by the Strimzi Drain Cleaner</a>.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 41. Chart configuration options</caption>
+<caption class="title">Table 42. Chart configuration options</caption>
 <colgroup>
 <col style="width: 45.4545%;">
 <col style="width: 36.3636%;">
@@ -35814,7 +35860,7 @@ But you can disable the watching of certificates by setting the <code>STRIMZI_CE
 <p>With <code>STRIMZI_CERTIFICATE_WATCH_ENABLED</code> enabled, you can also use the following environment variables for watching TLS certificates.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 42. Drain Cleaner environment variables for watching TLS certificates</caption>
+<caption class="title">Table 43. Drain Cleaner environment variables for watching TLS certificates</caption>
 <colgroup>
 <col style="width: 45.4545%;">
 <col style="width: 36.3636%;">
@@ -37019,7 +37065,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-09-02 14:52:58 UTC
+Last updated 2023-09-02 15:51:07 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
