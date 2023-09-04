@@ -96,7 +96,7 @@ And while the data are being re-synced, your topics will be without the replicas
 So, in most situations, we would recommend our users to use the first approach anyway.
 But moving the nodes might be useful in some niche situations, so we might get back to it and eventually implement it.
 
-### Stretch clusters
+### Running stretch Kafka cluster over multiple Kubernetes clusters
 
 Today, the whole Strimzi-based Apache Kafka cluster always runs on a single Kubernetes cluster.
 One of the _stretch_ goals of Kafka node pools is to add support for _stretch_ clusters - clusters that are stretched over multiple Kubernetes clusters.
