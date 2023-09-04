@@ -5,9 +5,8 @@ date: 2023-08-31
 author: jakub_scholz
 ---
 
-In the previous blog posts, we focused on the improvements that node pools deliver already today.
-In this blog post - the last one in this series - we will look towards the future.
-We will talk about the next steps and possible future improvements.
+In the previous blog posts, we focused on the improvements that node pools deliver in Strimzi now.
+In this post - the last one in this series - we look towards the future, discussing next steps and possible future improvements.
 
 <!--more-->
 
@@ -30,15 +29,15 @@ We will also continue fixing the bugs that might be still in the code.
 The current plan is that in the Strimzi 0.39 release, the `KafkaNodePools` feature gate will be promoted to the beta phase and enabled by default.
 Finally, in Strimzi 0.41, it will graduate to GA and it will not be possible to disable it anymore.
 The schedule is of course _subject to change_.
-It might be adjusted depending on the feedback we receive from you or based on the number of bugs we will discover.
-Keep in mind, that just because the feature gate is enabled, you do not have to use the `KafkaNodePool` resources.
+It might be adjusted depending on the feedback we receive from you or based on the number of bugs we discover.
+Keep in mind that just because the feature gate is enabled, you do not have to use the `KafkaNodePool` resources.
 You can continue using the `Kafka` resource only and the operator will internally convert it to what we call a _virtual node pool_ that exists only in the memory of the Strimzi Cluster Operator.
 This ensures that we provide good backward compatibility and can guarantee smooth migration.
 
-In parallel to the work on improving the node pools, we will also continue the work on the KRaft support to address the remaining limitations.
+In parallel to the work on improving the node pools, we are also continuing to address the remaining limitations on KRaft.
 The migration from ZooKeeper-based Kafka clusters to KRaft will be the main turning point where everyone will have to start using the `KafkaNodePool` resources.
 Already today, if you want to try the KRaft mode, you have to do it using the `KafkaNodePool` resources.
-As Apache Kafka completes the work on the KRaft mode and completely drops support for ZooKeeper, everyone will migrate from ZooKeeper-based to KRaft-based Kafka clusters.
+As Apache Kafka completes the work on the KRaft mode and completely drops support for ZooKeeper, everyone will need to migrate from ZooKeeper-based to KRaft-based Kafka clusters.
 And as part of this migration, all Strimzi users will also move to use the `KafkaNodePool` resources.
 
 #### Strimzi `v1` APIs
@@ -46,32 +45,31 @@ And as part of this migration, all Strimzi users will also move to use the `Kafk
 Once the migration to KRaft and node pools moves forward, we will also start working on the Strimzi `v1` API.
 Evolving the APIs of the Custom Resources can be complicated.
 However, once the ZooKeeper support is removed from Apache Kafka and Strimzi, we will be able to remove the ZooKeeper-related options from the `Kafka` custom resource definition.
-We will be also able to remove the options that moved into the `KafkaNodePool` resources such as the number of replicas or storage configuration.
+We will be also able to remove the Kafka options that moved into the `KafkaNodePool` resources such as the number of replicas or storage configuration.
 
 ### More configurable options
 
-The `KafkaNodePool` resource currently supports only a limited number of configuration options:
-* Number of replicas in that pool
-* Role(s) of the nodes in this pool
-* The storage configuration
+The `KafkaNodePool` resource currently supports a limited number of configuration options:
+* Number of replicas in the pool
+* Roles assigned to the nodes in this pool
+* Storage configuration
 * Resource requirements (e.g. memory and CPU)
 * JVM configuration options
-* Template for customizing the resources belonging to this pool, such as pods or containers
+* Templates for customizing the resources belonging to this pool, such as pods or containers
 
-This is something that might be expanded in the future.
-For some options, it would probably never make sense to configure them at the node pool level.
-This would for example include the cluster-wide configurations such as authorization or listeners.
-On the other hand, many other options can be easily made configurable at the node pool level if they provide some value.
+This may be expanded in the future. 
+Certain options, like cluster-wide configurations for authorization or listeners, wouldn't typically be configured at the node pool level. 
+However, other options can easily be added to the configuration at the node pool level if they offer value.
 
 Would there be some use case to configure a different container image for each node pool?
 Different metrics or logging configurations?
 Tuning some of the Kafka configuration options that can be applied on a per-node level?
-If you have a use case for any of these, feel free to let us know for example in GitHub Discussions or Issues and we can have a look.
+If you have a use case in mind for any of these options, feel free to let us know through GitHub Discussions or Issues and we can take a closer look.
 
-### Moving nodes
+### Moving nodes between node pools
 
-One of the last features mentioned in the original [node pool proposal](https://github.com/strimzi/proposals/blob/main/050-Kafka-Node-Pools.md) but not implemented yet is support for moving nodes from one node pool to another.
-If you want to move a node from one node pool to another today, you have to:
+Support for moving nodes from one node pool to another, mentioned in the original [node pool proposal](https://github.com/strimzi/proposals/blob/main/050-Kafka-Node-Pools.md), is not implemented yet.
+At the moment, you must perform these steps if you want to move a node from one node pool to another:
 1. Create a new node in the target node pool
 2. Move data from the old node to the new node (for example using Cruise Control)
 3. Remove the node from the original node pool
@@ -82,19 +80,19 @@ But this procedure works well with maintaining the availability of the Apache Ka
 While the data are being moved in the second step, the original partition-replicas are still available and can be used by clients if needed.
 You can also easily configure the speed at which the data should be moved to make sure it does not harm the performance of your Kafka cluster.
 
-But in some situations, this approach might be complicated.
+But in some situations, this approach might be complicated by potential limitations on resources.
 Because you are running the new node and the old node in parallel, you need to have sufficient resources available in your Kubernetes cluster.
 And when your Kubernetes cluster has only limited resources available - for example when running at the edge - this might be a problem.
 Being able to move the Kafka node directly would solve this problem.
 
 Just to be clear, the node pools might have completely different configurations.
 So Strimzi cannot just take the pod and _rename it_.
-It would need to drop the old Kafka node including its storage.
-And then create a new node with a new empty storage.
-And the new node will then need to re-sync all the partition-replicas from the other node.
+Instead, it would need to drop the old Kafka node including its storage.
+And then create a new node with new empty storage.
+The new node will then need to re-sync all the partition-replicas from the old node.
 
 This might take a lot of time.
-And while the data are being re-synced, your topics will be without the replicas hosted by this node and the availability guarantees of your Kafka cluster might be weakened.
+And while the data are being re-synced, your topics will be without the replicas hosted by the old node, potentially impacting the availability guarantees of your Kafka cluster.
 So, in most situations, we would recommend our users to use the first approach anyway.
 But moving the nodes might be useful in some niche situations, so we might get back to it and eventually implement it.
 
@@ -113,7 +111,7 @@ But even with that in mind, it would add some value.
 Some users prefer to stretch the Kafka cluster over multiple Kubernetes clusters like this to improve the overall availability.
 
 It would also make it possible to migrate the Kafka cluster from one Kubernetes cluster to another.
-You can move the nodes one by one until they are all moved then then you can just decommission the old Kubernetes cluster.
+You can move the nodes one by one until they are all moved, then you can just decommission the old Kubernetes cluster.
 This all can be done while maintaining the availability of the Kafka cluster and without the need to have two clusters and use mirroring to migrate between them.
 
 The stretch cluster feature is not something you should expect anytime soon.
@@ -121,6 +119,8 @@ We might look into it at some point next year.
 
 ### Conclusion
 
-This is the last part of this blog post series.
-Hopefully, over the five parts we managed to show you how to use the node pools and explain some of the motivations behind them.
-Give it a try and we will be looking forward to your feedback, raised bugs, feature requests, or PRs.
+This is the final part of this blog post series on node pools.
+Hopefully, over the series we managed to show you how to use them and explain some of the motivations behind their implementation.
+Do give them a try.
+And don't hesitate to get in touch. 
+We look forward to hearing your feedback and addressing any issues you encounter.
