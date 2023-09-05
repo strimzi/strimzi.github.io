@@ -45,7 +45,7 @@ And as part of this migration, all Strimzi users will also move to use the `Kafk
 Once the migration to KRaft and node pools moves forward, we will also start working on the Strimzi `v1` API.
 Evolving the APIs of the Custom Resources can be complicated.
 However, once the ZooKeeper support is removed from Apache Kafka and Strimzi, we will be able to remove the ZooKeeper-related options from the `Kafka` custom resource definition.
-We will be also able to remove the Kafka options that moved into the `KafkaNodePool` resources such as the number of replicas or storage configuration.
+We will be also able to remove from the `Kafka` resource those options that have moved into the `KafkaNodePool` resources, such as the number of replicas or storage configuration.
 
 ### More configurable options
 
@@ -64,7 +64,7 @@ However, other options can easily be added to the configuration at the node pool
 Would there be some use case to configure a different container image for each node pool?
 Different metrics or logging configurations?
 Tuning some of the Kafka configuration options that can be applied on a per-node level?
-If you have a use case in mind for any of these options, feel free to let us know through GitHub Discussions or Issues and we can take a closer look.
+If you have a use case in mind for any of these options, feel free to let us know through [GitHub Discussions](https://github.com/orgs/strimzi/discussions) or [Issues](https://github.com/strimzi/strimzi-kafka-operator/issues) and we can take a closer look.
 
 ### Moving nodes between node pools
 
