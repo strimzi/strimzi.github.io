@@ -27,28 +27,30 @@ Let's break down the essential steps to get started:
 
 3. Import the classes and dependencies that your Kafka client will need into your code.
 
-4. Tell your client how to find and connect with your Kafka cluster, specifying configuration properties for broker address and port, and, if required, security credentials.
+4. Tell your client how to find and connect with your Kafka cluster, specifying an address and port, and, if required, security credentials.
 
 5. Create a producer object to subscribe to topics and produce messages to Kafka.
 
-    > A client can be a Kafka producer and consumer. 
+    > A client can be a Kafka producer, and consumer, and admin. 
 
-6. Introduce error handling for connections and communication with your Strimzi-managed Kafka cluster.
+6. Pay attention to error handling. It's tricky, but vitally important when connecting and communicating with Kafka.
 
 ## Creating the Kafka producer client
 
 Let's get down to creating the producer client.
 Our brief is to create a client that operates asynchronously, and is equipped with basic error-handling capabilities. 
-To handle messages, it makes use of Kafka's `Callback` interface. 
+The application implements the `Callback` interface, which provides a method for asynchronous handling of request completion in a background thread.
 
 ### Prerequisites
 
 To be able to operate, the producer client needs the following in place:
 
-* Running kafka brokers 
-* A Kafka topic where it sends messages
+* A running kafka cluster 
+* A Kafka topic where it sends messages 
 
 We can specify the connection details and the name of the topic in our client configuration.
+
+> By default, cluster configuration has `auto.create.topics.enable=true`, which means a topic is automatically created on the first request.
 
 ### Client constants
 
@@ -56,21 +58,21 @@ Now, let's define some customizable constants that we'll also use with the produ
 
 **BOOTSTRAP_SERVERS**
 
-An address and port where the producer client connects to the Kafka cluster is always needed. 
-For example, localhost:9092 might be your starting point.
-We can define it with this constant.
+With this constant, we can define a list of host/port pairs for establishing an initial connection to the Kafka cluster.
+For example, `localhost:9092` might be your starting point.
+In production, you can use a single load balancer, or a list of brokers.
 
 **TOPIC_NAME**
 
 The name of the topic where the producer client sends its messages.
 
-**NUM_MESSAGES**:
+**NUM_MESSAGES**
       
-This constant sets the number of messages the client produces before it hits the pause button.
+This constant sets the number of messages the client produces before it shuts down.
 
 **MESSAGE_SIZE_BYTES**
 
-We'll use this constant to adjust the size of each message in bytes.
+We'll use this constant to set the size of each message in bytes.
 
 **PROCESSING_DELAY_MS**
 
@@ -87,13 +89,13 @@ We want our example client to operate as follows:
 
 * Create a Kafka producer instance, which is responsible for sending messages to a Kafka topic.
 * Generate random message payloads, represented as byte arrays, that serve as the content of the messages being sent to Kafka cluster.
-* Use serializer classes that handle the transformation of message keys (IDs) and values (byte arrays) into a format suitable for the Kafka brokers. 
+* Use serializer classes that handle the transformation of message keys and values into a format suitable for the Kafka brokers. 
 * Control the rate at which messages are produced by introducing delays between each message using our `PROCESSING_DELAY_MS` value.
 * Handle errors that may occur during message transmission to the Kafka broker, determining when a message should be retried and when an error is considered non-recoverable. 
 
 **Producer configuration**
 
-We'll specify the following configuration properties for our producer instance:
+We'll specify the minimal configuration properties required for a producer instance:
 
 * `BOOTSTRAP_SERVERS_CONFIG` for connection to the Kafka brokers. This picks up the value of the `BOOTSTRAP_SERVERS` constant.
 * `CLIENT_ID_CONFIG` that uses a randomly generated UUID as a client ID for tracking the source of requests.
@@ -106,7 +108,7 @@ We'll also include methods that help with these operations:
 
 - Introduces a delay in the message-sending process for a specified number of milliseconds.
 - Useful for controlling the message production rate or simulating message processing times.
-- Handles potential `InterruptedException` if the thread is interrupted while paused.
+- Handles potential `InterruptedException` if the thread responsible for sending messages is interrupted while paused.
 
 **`randomBytes` method**
 
@@ -123,7 +125,7 @@ We'll also include methods that help with these operations:
 **`onCompletion` method**
 
 - Confirms successful message transmission and displays information about the message sent, including the topic, partition, and offset.
-- Prints an error message on exception. Appropriate action is taken based on whether it's a fatal or non-fatal error. If the error is non-fatal, the message sending process continues. If the error is fatal, a stack trace is printed and the producer is terminated.
+- Prints an error message on exception. Appropriate action is taken based on whether it's a retriable or non-retriable error. If the error is retriable, the message sending process continues. If the error is non-retriable, a stack trace is printed and the producer is terminated.
 
 With the imported libraries, our constants, and these configuration properties and methods, the producer client can do all we set out to do.
 
@@ -161,19 +163,16 @@ public class Producer implements Callback {
 
     public void run() {
         System.out.println("Running producer");
-        try (var producer = createKafkaProducer()) {
-            // Create a Kafka producer instance
-            // This producer sends messages to the Kafka topic asynchronously
 
+        // Create a Kafka producer instance
+        // This producer sends messages to the Kafka topic asynchronously
+        try (var producer = createKafkaProducer()) {
+            // Generate a random byte array as the message payload
             byte[] value = randomBytes(MESSAGE_SIZE_BYTES);
             while (messageCount.get() < NUM_MESSAGES) {
-                // Generate a random byte array as the message payload
-
-                sleep(PROCESSING_DELAY_MS);
-
-                producer.send(new ProducerRecord<>(TOPIC_NAME, messageCount.get(), value), this);
+                sleep(PROCESSING_DELAY_MS);                
                 // Send a message to the Kafka topic, specifying topic name, message count, and message value
-
+                producer.send(new ProducerRecord<>(TOPIC_NAME, messageCount.get(), value), this);
                 messageCount.incrementAndGet();
             }
         }
@@ -182,22 +181,21 @@ public class Producer implements Callback {
     private KafkaProducer<Long, byte[]> createKafkaProducer() {
         // Create properties for the Kafka producer
         Properties props = new Properties();
-
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
+        
         // Configure the connection to Kafka brokers
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
 
-        props.put(ProducerConfig.CLIENT_ID_CONFIG, "client-" + UUID.randomUUID());
         // Set a unique client ID for tracking
-
+        props.put(ProducerConfig.CLIENT_ID_CONFIG, "client-" + UUID.randomUUID());
+        
+        // Configure serializers for keys and values
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, LongSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
-        // Configure serializers for keys and values
 
         return new KafkaProducer<>(props);
     }
 
     private void sleep(long ms) {
-        // sleep method
         try {
             TimeUnit.MILLISECONDS.sleep(ms);
         } catch (InterruptedException e) {
@@ -206,7 +204,6 @@ public class Producer implements Callback {
     }
 
     private byte[] randomBytes(int size) {
-        // randomBytes method
         if (size <= 0) {
             throw new IllegalArgumentException("Record size must be greater than zero");
         }
@@ -218,8 +215,6 @@ public class Producer implements Callback {
     }
 
     private boolean retriable(Exception e) {
-        // retriable method
-
         if (e == null) {
             return false;
         } else if (e instanceof IllegalArgumentException
@@ -263,11 +258,11 @@ The client produces messages until it reaches the predefined message count, whic
 
 When developing a Kafka producer client, it's important to consider how you want it to handle different types of exceptions. 
 
-The error handling capabilities we introduced ensures that the producer client can recover from certain non-fatal errors while addressing others as fatal, terminating operation of the client when necessary. 
+The error handling capabilities we introduced ensures that the producer client can recover from certain retriable errors while addressing others as non-retriable, terminating operation of the client when necessary. 
 
-Here's a breakdown of fatal and non-fatal errors that the client handles:
+Here's a breakdown of retriable and non-retriable errors that the client handles:
 
-**Fatal errors caught by the producer client**
+**Non-retriable errors caught by the producer client**
 
 * `InterruptedException`: This error occurs when the current thread is interrupted while paused. 
 Interruption typically happens during producer shutdown or when stopping its operation. 
@@ -279,7 +274,7 @@ For instance, it can be triggered if essential details like the topic are missin
 * `UnsupportedOperationException`: This error is raised when an operation is not supported or when a method is not implemented as expected. 
 For instance, it can be triggered if you attempt to use an unsupported producer configuration or invoke a method that the `KafkaProducer` class does not support.
 
-**Non-fatal errors caught by the producer client**
+**Retriable errors caught by the producer client**
 
 `RetriableException`: This type of error is thrown for any exception that implements the `RetriableException` interface, as provided by the Kafka client library.
 
@@ -296,11 +291,14 @@ You might also want to explore how to expand and improve on other aspects of you
 Implement security to establish a secure connection using authentication and authorization mechanisms when connecting to the Kafka cluster. 
 For example, you can set up TLS authentication for external clients in your Strimzi environment and add the TLS certificates to your client configuration. 
 
+You can use configuration providers to load configuration, including secrets, from external sources.
+For more information see the [Strimzi documentation](https://strimzi.io/docs/operators/latest/deploying#assembly-loading-config-with-providers-str). 
+
 > Configure the security protocol used by your client application to match the protocol configured on a Kafka broker listener. 
 
 **Improving data durability** 
   
-Specify `acks=all` in your producer configuration so that all in-sync topic replicas acknowledge successful message delivery. 
+Specify `acks=all` (default) in your producer configuration so that all in-sync topic replicas acknowledge successful message delivery. 
 Or configure `transaction` properties in your brokers and producer client application to ensure that messages are processed in a single transaction.
 
 **Boosting performance** 
