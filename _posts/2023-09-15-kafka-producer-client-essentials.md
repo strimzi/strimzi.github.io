@@ -292,7 +292,8 @@ Implement security to establish a secure connection using authentication and aut
 For example, you can set up TLS authentication for external clients in your Strimzi environment and add the TLS certificates to your client configuration. 
 
 You can use configuration providers to load configuration, including secrets, from external sources.
-For more information see the [Strimzi documentation](https://strimzi.io/docs/operators/latest/deploying#assembly-loading-config-with-providers-str). 
+For example, you can use the `KubernetesSecretConfigProvider` to extract TLS certificates and keys directly from the Kubernetes API. 
+For more information, see the [Strimzi documentation on configuration providers](https://strimzi.io/docs/operators/latest/deploying#assembly-loading-config-with-providers-str). 
 
 > Configure the security protocol used by your client application to match the protocol configured on a Kafka broker listener. 
 
