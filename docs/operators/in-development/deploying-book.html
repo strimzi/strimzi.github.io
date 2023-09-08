@@ -222,7 +222,11 @@
 <li><a href="#ref-topic-replication-str">10.5. Configuring topics for replication and number of partitions</a></li>
 <li><a href="#proc-converting-managed-topics-str">10.6. (Preview) Managing KafkaTopic resources without impacting Kafka topics</a></li>
 <li><a href="#proc-converting-non-managed-topics-str">10.7. (Preview) Enabling topic management for existing Kafka topics</a></li>
-<li><a href="#con-deleting-managed-topics-str">10.8. (Preview) Deleting managed topics</a></li>
+<li><a href="#con-deleting-managed-topics-str">10.8. (Preview) Deleting managed topics</a>
+<ul class="sectlevel3">
+<li><a href="#removing_finalizers">10.8.1. Removing finalizers</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#assembly-using-the-user-operator-str">11. Using the User Operator to manage Kafka users</a>
@@ -15098,7 +15102,7 @@ status:
 <h3 id="con-deleting-managed-topics-str"><a class="link" href="#con-deleting-managed-topics-str">10.8. (Preview) Deleting managed topics</a></h3>
 <div class="paragraph _abstract">
 <p>Unidirectional topic management supports the deletion of topics managed through the <code>KafkaTopic</code> resource with or without Kubernetes finalizers.
-This is controlled by the <code>STRIMZI_USE_FINALIZERS</code> Topic Operator environment variable.
+This is determined by the <code>STRIMZI_USE_FINALIZERS</code> Topic Operator environment variable.
 By default, this is set to <code>true</code>, though it can be set to <code>false</code> in the Topic Operator <code>env</code> configuration if you do not want the Topic Operator to add finalizers.</p>
 </div>
 <div class="admonitionblock note">
@@ -15126,8 +15130,8 @@ kind: KafkaTopic
 metadata:
   generation: 1
   name: my-topic-1
-  finalizer:
-    strimzi.io/topic-operator
+  finalizers:
+    - strimzi.io/topic-operator
   labels:
     strimzi.io/cluster: my-cluster</code></pre>
 </div>
@@ -15145,8 +15149,8 @@ kind: KafkaTopic
 metadata:
   generation: 1
   name: my-topic-1
-  finalizer:
-    strimzi.io/topic-operator
+  finalizers:
+    - strimzi.io/topic-operator
   labels:
     strimzi.io/cluster: my-cluster
   deletionTimestamp: 20230301T000000.000</code></pre>
@@ -15160,9 +15164,52 @@ If the deletion fails, it is shown in the status of the resource.</p>
 <p>When the finalization tasks are successfully executed, the finalizer is removed from the metadata, and the resource is fully deleted.</p>
 </div>
 <div class="paragraph">
-<p>Finalizers also prevent related resources from being deleted.
-If the unidirectional Topic Operator is not running, it won&#8217;t be able to remove the <code>metadata.finalizer</code>.
-Consequently, an attempt to delete the namespace that contains the <code>KafkaTopic</code> resource won&#8217;t complete until either the operator is restarted, or the finalizer is otherwise removed (for example using <code>kubectl edit</code>).</p>
+<p>Finalizers also serve to prevent related resources from being deleted.
+If the unidirectional Topic Operator is not running, it won&#8217;t be able to remove its finalizer from the <code>metadata.finalizers</code>.
+And any attempt to directly delete the <code>KafkaTopic</code> resources or the namespace will fail or timeout, leaving the namespace in a stuck terminating state.</p>
+</div>
+<div class="sect3">
+<h4 id="removing_finalizers"><a class="link" href="#removing_finalizers">10.8.1. Removing finalizers</a></h4>
+<div class="paragraph">
+<p>If the Topic Operator is not running, and you want to bypass the finalization process when deleting topics, you have to remove the finalizers.
+You can do this manually by editing the resources directly or by using a command.</p>
+</div>
+<div class="paragraph">
+<p>To remove finalizers on all topics, use the following command:</p>
+</div>
+<div class="listingblock">
+<div class="title">Removing finalizers on topics</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kt -o=json | jq '.items[].metadata.finalizers = null' | kubectl apply -f -</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The command uses the <code>jq</code> tool to modify the <code>KafkaTopic</code> (<code>kt</code>) resources by setting the finalizers to <code>null</code>.
+You can also use the command for a specific topic:</p>
+</div>
+<div class="listingblock">
+<div class="title">Removing a finalizer on a specific topic</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kt &lt;topic_name&gt; -o=json | jq '.metadata.finalizers = null' | kubectl apply -f -</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>After running the command, you can go ahead and delete the topics.
+Alternatively, if the topics were already being deleted but were blocked due to outstanding finalizers then their deletion should complete.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Be careful when removing finalizers, as any cleanup operations associated with the finalization process are not performed.
+For example, if you remove the finalizer from a <code>KafkaTopic</code> resource and subsequently delete the resource, the related Kafka topic won&#8217;t be deleted.
+</td>
+</tr>
+</table>
+</div>
 </div>
 </div>
 </div>
