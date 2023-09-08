@@ -1,30 +1,30 @@
 ---
 layout: post
-title: "Developing Kafka clients: A simple producer client"
+title: "Developing Kafka clients: A simple producer application"
 date: 2023-09-15
 author: paul_mellor
 ---
 
-Strimzi simplifies the deployment and management of Kafka clusters in a Kubernetes environment, ensuring a smooth and hassle-free experience.
+Strimzi simplifies the deployment and management of Apache Kafka clusters in a Kubernetes environment, ensuring a smooth and hassle-free experience.
 But the real fun begins once your cluster is up and running.
 That's when you can start thinking about how to interact with Kafka to stream data.
 In other words, Kafka doing the job it excels at.
 
-In this post, we'll dive into the essentials of developing a Kafka producer client that can send messages to a Strimzi-managed Kafka cluster.
+In this post, we'll dive into the essentials of developing a Kafka producer application that can send messages to a Strimzi-managed Kafka cluster.
 To illustrate these concepts, we'll walk through a basic example of a self-contained application that generates and produces messages to a specific Kafka topic.
 
 > This blog post assumes some basic Java knowledge or experience. 
 > If you're new to Java, familiarizing yourself with the fundamentals of the Java programming language will help you better understand the code and concepts presented here.
 
-## Getting started with your producer client
+## Getting started with your producer application
 
-The first thing to consider when developing a producer client application is your preferred programming language. 
+The first thing to consider when developing a producer application is your preferred programming language. 
 
 After you've decided on that, as a bare minimum, your application must be able to connect to the Kafka cluster and use producers to send messages.
 
 Let's break down the essential steps to get started:
 
-1. Start by choosing the Kafka client library that speaks your choice of programming language. We use Java in this post, but you can use Python, .NET, and so on.
+1. Start by choosing the Kafka client library that speaks your choice of programming language. We use Java in this post, but you can use Python, .NET, and so on. The Java client is part of the Apache Kafka project. 
 
 2. Get the library through a package manager or by downloading it from the source.
 
@@ -32,27 +32,28 @@ Let's break down the essential steps to get started:
 
 4. Tell your client how to find and connect with your Kafka cluster, specifying an address and port, and, if required, security credentials.
 
-5. Create a producer object to subscribe to topics and produce messages to Kafka.
+5. Create a producer instance to publish messages to Kafka topics.
 
     > A client can be a Kafka producer, consumer, Streams processor, and admin. 
 
-6. Pay attention to error handling. It's tricky, but vitally important when connecting and communicating with Kafka.
+6. Pay attention to error handling; it's vitally important when connecting and communicating with Kafka, especially in production systems where high availability and ease of operations are valued. 
+Effective error handling is a key differentiator between a prototype and a production-grade application, and it applies not only to Kafka but also to any robust software system.
 
-## Creating the Kafka producer client
+## Creating the Kafka producer application
 
-Let's get down to creating the producer client.
+Let's get down to creating the producer application.
 Our brief is to create a client that operates asynchronously, and is equipped with basic error-handling capabilities. 
-The application implements the `Callback` interface, which provides a method for asynchronous handling of request completion in a background thread.
+The application implements the [producer `Callback` interface](https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/clients/producer/Callback.java), which provides a method for asynchronous handling of request completion in a background thread.
 
 ### Adding dependencies
 
-Before implementing the Kafka producer client, our project must include the necessary dependencies.
+Before implementing the Kafka producer application, our project must include the necessary dependencies.
 For a Java-based Kafka client, we need to include the Kafka client JAR. 
 This JAR file contains the Kafka libraries required for building and running the client.
 
 ### Prerequisites
 
-To be able to operate, the producer client needs the following in place:
+To be able to operate, the producer application needs the following in place:
 
 * A running kafka cluster 
 * A Kafka topic where it sends messages 
@@ -67,7 +68,7 @@ Now, let's define some customizable constants that we'll also use with the produ
 
 **BOOTSTRAP_SERVERS**
 
-With this constant, we define the initial connection point to the Kafka cluster. 
+The initial connection point to the Kafka cluster. 
 You can specify a list of host/port pairs to establish this connection.
 For a generic Kafka deployment, you might start with a value like `localhost:9092`. 
 However, when working with a Strimzi-managed Kafka cluster, you can obtain the bootstrap address from the `Kafka` custom resource status using a `kubectl` command:
@@ -82,25 +83,26 @@ In production environments, you can use a single load balancer, or a list of bro
 
 **TOPIC_NAME**
 
-The name of the topic where the producer client sends its messages.
+The name of the topic where the producer application sends its messages.
 
 **NUM_MESSAGES**
       
-This constant sets the number of messages the client produces before it shuts down.
+The number of messages the client produces before it shuts down.
 
 **MESSAGE_SIZE_BYTES**
 
-We'll use this constant to set the size of each message in bytes.
+The size of each message in bytes.
 
 **PROCESSING_DELAY_MS**
 
 Sometimes, it's good to slow things down a bit. 
 We can use this constant to add a delay in milliseconds between sending messages. 
-Adding a  delay can be useful when testing in order to simulate typical message processing time.
+Adding a  delay can be useful when testing in order to simulate typical message creation patterns.
+In Kafka, messages typically capture streams of events, so introducing delays can help simulate peak or average event rates.
 
-These constants give us some control over the producer client's behavior. 
+These constants give us some control over the producer application's behavior. 
 
-### Example producer client
+### Example producer application
 
 Time to create our client.
 We want our example client to operate as follows:
@@ -145,14 +147,20 @@ We'll also include methods that help with these operations:
 - Returns `false` for null and specified exceptions, or those that do not implement the `RetriableException` interface.
 - Customizable to include other errors.
 
+    > Retries can lead to the possibility of duplicate messages being sent. 
+    > You can configure the producer to avoid duplicates using idempotency, as messages are delivered exactly once. 
+    > You can also use the `retries` configuration property to control how many times the producer will retry sending a message before giving up. 
+    > This setting affects how many times the `retriable` method may return `true` during a message send error. 
+    > For more information, see the [Strimzi documentation on ordered delivery](https://strimzi.io/docs/operators/latest/deploying#ordered_delivery).
+
 **`onCompletion` method**
 
 - Confirms successful message transmission and displays information about the message sent, including the topic, partition, and offset.
 - Prints an error message on exception. Appropriate action is taken based on whether it's a retriable or non-retriable error. If the error is retriable, the message sending process continues. If the error is non-retriable, a stack trace is printed and the producer is terminated.
 
-With the imported libraries, our constants, and these configuration properties and methods, the producer client can do all we set out to do.
+With the imported libraries, our constants, and these configuration properties and methods, the producer application can do all we set out to do.
 
-**Example producer client**
+**Example producer application**
 ```java
 import java.util.Properties;
 import java.util.Random;
@@ -227,6 +235,7 @@ public class Producer implements Callback {
     }
 
     private byte[] randomBytes(int size) {
+        // Checks the MESSAGE_SIZE_BYTES value is valid
         if (size <= 0) {
             throw new IllegalArgumentException("Record size must be greater than zero");
         }
@@ -269,23 +278,23 @@ public class Producer implements Callback {
 }
 ```
 
-### Running the producer client
+### Running the producer application
 
 To put this client into action, simply run the main method in the `Producer` class. 
 When running, it creates the message payloads using randomly generated byte arrays. 
 The client produces messages until it reaches the predefined message count, which is 100 messages with the `NUM_MESSAGES` constant value we specified. 
 
-> With its thread-safe design, multiple threads can share a single producer instance.
+> Kafka producer instances are designed to be thread-safe, allowing multiple threads to share a single producer instance.
 
 ### Error handling
 
-When developing a Kafka producer client, it's important to consider how you want it to handle different types of exceptions. 
+When developing a Kafka producer application, it's important to consider how you want it to handle different types of exceptions. 
 
-The error handling capabilities we introduced ensures that the producer client can recover from certain retriable errors while addressing others as non-retriable, terminating operation of the client when necessary. 
+The error handling capabilities we introduced ensures that the producer application can recover from certain retriable errors while addressing others as non-retriable, terminating operation of the client when necessary. 
 
 Here's a breakdown of retriable and non-retriable errors that the client handles:
 
-**Non-retriable errors caught by the producer client**
+**Non-retriable errors caught by the producer application**
 
 * `InterruptedException`: This error occurs when the current thread is interrupted while paused. 
 Interruption typically happens during producer shutdown or when stopping its operation. 
@@ -295,19 +304,23 @@ The exception is rethrown as a `RuntimeException`, which ultimately terminates t
 For instance, it can be triggered if essential details like the topic are missing.
 
 * `UnsupportedOperationException`: This error is raised when an operation is not supported or when a method is not implemented as expected. 
-For instance, it can be triggered if you attempt to use an unsupported producer configuration or invoke a method that the `KafkaProducer` class does not support.
+For instance, it can be triggered if you attempt to use an unsupported producer configuration, leading to a runtime exception.
 
-**Retriable errors caught by the producer client**
+**Retriable errors caught by the producer application**
 
 `RetriableException`: This type of error is thrown for any exception that implements the `RetriableException` interface, as provided by the Kafka client library.
 
 ## Tuning your producer
 
-The example Kafka producer client in this post serves as a foundation. 
-Feel free to build on it.
-For instance, you might want to add custom functionality for integration with your preferred logging framework.
+The example Kafka producer application in this post serves as a foundation. 
+Feel free to build on it and customize it to suit your specific needs.
+Consider the following aspects carefully, as they really impact the performance and behavior of a producer application:
 
-You might also want to explore how to expand and improve on other aspects of your client through configuration:
+1. Compression: Implementing message compression can reduce network bandwidth usage, conserving resources and improving throughput.
+2. Batching: Adjusting the batch size and time intervals when the producer sends messages can affect throughput and latency. 
+3. Partitioning: Partitioning strategies in the Kafka cluster can support producers through parallelism and load balancing, whereby producers can write to multiple partitions concurrently and each partition receives an equal share of messages. Other strategies might include topic replication for fault tolerance.
+
+You might also want to explore how to expand and improve on other aspects of your client through configuration.
 
 **Implementing security**
 
@@ -334,13 +347,15 @@ For more information, see the [Strimzi documentation on configuration providers]
 **Improving data durability** 
   
 Specify `acks=all` (default) in your producer configuration so that all in-sync topic replicas acknowledge successful message delivery. 
-Or configure `transaction` properties in your brokers and producer client application to ensure that messages are processed in a single transaction.
+Or configure `transaction` properties in your producer application to ensure that messages are processed in a single transaction.
 
 **Boosting performance** 
   
 Optimize your producer for high message throughput and low latency. 
+We mentioned that compression and batching are important considerations.
+Use the `compression.type` property to specify a producer-side message compression type. 
 Use the `linger.ms` and `batch.size` configuration properties to batch more messages into a single produce request for higher throughput. 
-Improve throughput of your message requests by using the `delivery.timeout.ms` property to adjust the maximum time to wait before a message is delivered and completes a send request. 
+You can also improve throughput of your message requests by using the `delivery.timeout.ms` property to adjust the maximum time to wait before a message is delivered and completes a send request. 
 
 For more information, see the [Strimzi documentation on tuning producers](https://strimzi.io/docs/operators/latest/deploying#con-producer-config-properties-str).
 
@@ -350,10 +365,8 @@ Introduce more fine-grained error handling capabilities that also improve the re
 
 ## Send a message
 
-In this blog post, we've explored how to develop a Kafka producer client.
+In this blog post, we've explored how to develop a Kafka producer application.
 We've covered the essential steps, illustrated with an example that highlights asynchronous message production and effective error handling.
-Remember, the key to a successful producer client lies in its ability to connect and communicate with a Kafka cluster. 
-Once you have that foundation, you define how you want your client to produce and send messages.
-For example, Kafka producer clients typically pull data from external sources. 
-The possibilities for developing a producer client are vast and entirely dependent on your specific needs.
+Remember, while connectivity is fundamental for client applications, the key to a successful producer client lies in its ability to effectively send messages using mechanisms like batching and by making use of efficient partitioning strategies within the Kafka cluster.
+The possibilities for developing a producer application are vast and entirely dependent on your specific needs.
 Go on, try the example and see where it takes you.
