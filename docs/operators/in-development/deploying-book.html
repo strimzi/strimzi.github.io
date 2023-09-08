@@ -464,7 +464,8 @@
 <li><a href="#proc-upgrading-brokers-newer-kafka-str">21.5.4. Upgrading Kafka brokers and client applications</a></li>
 </ul>
 </li>
-<li><a href="#proc-reenabling-FIPS-mode-str">21.6. Switching to FIPS mode when upgrading Strimzi</a></li>
+<li><a href="#con-upgrade-status-str">21.6. Checking the status of an upgrade</a></li>
+<li><a href="#proc-reenabling-FIPS-mode-str">21.7. Switching to FIPS mode when upgrading Strimzi</a></li>
 </ul>
 </li>
 <li><a href="#assembly-downgrade-str">22. Downgrading Strimzi</a>
@@ -16223,6 +16224,7 @@ my-cluster-kafka-external4-bootstrap  NodePort  172.30.30.23    9094:32650/TCP</
     - lastTransitionTime: '2023-01-31T14:59:37.113630Z'
       status: 'True'
       type: Ready
+  kafkaVersion: 3.5.1
   listeners:
     # ...
     - addresses:
@@ -16236,6 +16238,7 @@ my-cluster-kafka-external4-bootstrap  NodePort  172.30.30.23    9094:32650/TCP</
           -----END CERTIFICATE-----
       name: external4
   observedGeneration: 2
+  operatorLastSuccessfulVersion: latest
  # ...</code></pre>
 </div>
 </div>
@@ -16410,6 +16413,7 @@ my-cluster-kafka-external3-bootstrap  a8d4a6fb363bf447fb6e475fc3040176-36312313.
     - lastTransitionTime: '2023-01-31T14:59:37.113630Z'
       status: 'True'
       type: Ready
+  kafkaVersion: 3.5.1
   listeners:
     # ...
     - addresses:
@@ -16425,6 +16429,7 @@ my-cluster-kafka-external3-bootstrap  a8d4a6fb363bf447fb6e475fc3040176-36312313.
           -----END CERTIFICATE-----
       name: external3
   observedGeneration: 2
+  operatorLastSuccessfulVersion: latest
  # ...</code></pre>
 </div>
 </div>
@@ -30697,21 +30702,22 @@ You will upgrade the Kafka version later.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>The image tag shows the new Operator version. For example:</p>
+<p>The image tag shows the new Strimzi version followed by the Kafka version:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">quay.io/strimzi/kafka:latest-kafka-3.5.1</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>You can also <a href="#con-upgrade-status-str">check the upgrade has completed successfully from the status of the <code>Kafka</code> resource</a>.</p>
+</div>
 </li>
 </ol>
 </div>
 <div class="paragraph">
-<p>Your Cluster Operator was upgraded to version latest but the version of Kafka running in the cluster it manages is unchanged.</p>
-</div>
-<div class="paragraph">
-<p>Following the Cluster Operator upgrade, you must perform a <a href="#assembly-upgrading-kafka-versions-str">Kafka upgrade</a>.</p>
+<p>The Cluster Operator is upgraded to version latest, but the version of Kafka running in the cluster it manages is unchanged.
+Following a Cluster Operator upgrade, you must perform a <a href="#assembly-upgrading-kafka-versions-str">Kafka upgrade</a>.</p>
 </div>
 </div>
 </div>
@@ -31217,15 +31223,8 @@ From Kafka 3.0.0, when the <code>inter.broker.protocol.version</code> is set to 
 </li>
 <li>
 <p>Wait for the Cluster Operator to update the cluster.</p>
-<div class="ulist">
-<ul>
-<li>
-<p>The Kafka cluster and clients are now using the new Kafka version.</p>
-</li>
-<li>
-<p>The brokers are configured to send messages using the inter-broker protocol version and message format version of the new version of Kafka.</p>
-</li>
-</ul>
+<div class="paragraph">
+<p>You can <a href="#con-upgrade-status-str">check the upgrade has completed successfully from the status of the <code>Kafka</code> resource</a>.</p>
 </div>
 </li>
 </ol>
@@ -31233,7 +31232,44 @@ From Kafka 3.0.0, when the <code>inter.broker.protocol.version</code> is set to 
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-reenabling-FIPS-mode-str"><a class="link" href="#proc-reenabling-FIPS-mode-str">21.6. Switching to FIPS mode when upgrading Strimzi</a></h3>
+<h3 id="con-upgrade-status-str"><a class="link" href="#con-upgrade-status-str">21.6. Checking the status of an upgrade</a></h3>
+<div class="paragraph _abstract">
+<p>When performing an upgrade, you can check it completed successfully in the status of the <code>Kafka</code> custom resource.
+The status provides information on the Strimzi and Kafka versions being used.</p>
+</div>
+<div class="paragraph">
+<p>To ensure that you have the correct versions after completing an upgrade, verify the <code>kafkaVersion</code> and <code>operatorLastSuccessfulVersion</code> values in the Kafka status.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>operatorLastSuccessfulVersion</code> is the version of the Strimzi operator that last performed a successful reconciliation.</p>
+</li>
+<li>
+<p><code>kafkaVersion</code> is the the version of Kafka being used by the Kafka cluster.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>You can use these values to check an upgrade of Strimzi or Kafka has completed.</p>
+</div>
+<div class="listingblock">
+<div class="title">Checking an upgrade from the Kafka status</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+spec:
+  # ...
+status:
+  # ...
+  kafkaVersion: 3.5.1
+  operatorLastSuccessfulVersion: latest</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-reenabling-FIPS-mode-str"><a class="link" href="#proc-reenabling-FIPS-mode-str">21.7. Switching to FIPS mode when upgrading Strimzi</a></h3>
 <div class="paragraph _abstract">
 <p>Upgrade Strimzi to run in FIPS mode on FIPS-enabled Kubernetes clusters.
 Until Strimzi 0.33, running on FIPS-enabled Kubernetes clusters was possible only by disabling FIPS mode using the <code>FIPS_MODE</code> environment variable.
@@ -31422,13 +31458,14 @@ Any changes will be <strong>overwritten</strong> by the previous version of the 
 </div>
 </div>
 <div class="paragraph">
-<p>The image tag shows the new Strimzi version followed by the Kafka version. For example, <code><em>NEW-STRIMZI-VERSION</em>-kafka-<em>CURRENT-KAFKA-VERSION</em></code>.</p>
+<p>The image tag shows the new Strimzi version followed by the Kafka version.
+For example, <code>&lt;strimzi_version&gt;-kafka-&lt;kafka_version&gt;</code>.</p>
+</div>
+<div class="paragraph">
+<p>You can also <a href="#con-upgrade-status-str">check the downgrade has completed successfully from the status of the <code>Kafka</code> resource</a>.</p>
 </div>
 </li>
 </ol>
-</div>
-<div class="paragraph">
-<p>Your Cluster Operator was downgraded to the previous version.</p>
 </div>
 </div>
 <div class="sect2">
@@ -34239,13 +34276,17 @@ The <code>status.conditions</code> and <code>status.observedGeneration</code> pr
 </dd>
 <dt class="hdlist1"><code>status.observedGeneration</code></dt>
 <dd>
-<p>Last observed generation denotes the latest reconciliation of the resource by the Cluster Operator. If the value of <code>observedGeneration</code> is different from the value of <code>metadata.generation</code> ((the current version of the deployment), the operator has not yet processed the latest update to the resource. If these values are the same, the status information reflects the most recent changes to the resource.</p>
+<p>Last observed generation denotes the latest reconciliation of the resource by the Cluster Operator. If the value of <code>observedGeneration</code> is different from the value of <code>metadata.generation</code> (the current version of the deployment), the operator has not yet processed the latest update to the resource. If these values are the same, the status information reflects the most recent changes to the resource.</p>
 </dd>
 </dl>
 </div>
 <div class="paragraph">
 <p>The <code>status</code> properties also provide resource-specific information.
 For example, <code>KafkaStatus</code> provides information on listener addresses, and the ID of the Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p><code>KafkaStatus</code> also provides information on the Kafka and Strimzi versions being used.
+You can check the values of <code>operatorLastSuccessfulVersion</code> and <code>kafkaVersion</code> to determine whether an upgrade of Strimzi or Kafka has completed</p>
 </div>
 <div class="paragraph">
 <p>Strimzi creates and maintains the status of custom resources, periodically evaluating the current state of the custom resource and updating its status accordingly.
@@ -34268,7 +34309,8 @@ status:
     - lastTransitionTime: '2023-01-20T17:56:29.396588Z'
       status: 'True'
       type: Ready # <b class="conum">(3)</b>
-  listeners: # <b class="conum">(4)</b>
+  kafkaVersion: 3.5.1 # <b class="conum">(4)</b>
+  listeners: # <b class="conum">(5)</b>
     - addresses:
         - host: my-cluster-kafka-bootstrap.prm-project.svc
           port: 9092
@@ -34306,7 +34348,8 @@ status:
 
           -----END CERTIFICATE-----
       name: external4
-  observedGeneration: 3 # <b class="conum">(5)</b></code></pre>
+  observedGeneration: 3 # <b class="conum">(6)</b>
+  operatorLastSuccessfulVersion: latest # <b class="conum">(7)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -34321,10 +34364,16 @@ status:
 <p>The <code>Ready</code> condition indicates that the Cluster Operator considers the Kafka cluster able to handle traffic.</p>
 </li>
 <li>
+<p>The version of Kafka being used by the Kafka cluster.</p>
+</li>
+<li>
 <p>The <code>listeners</code> describe Kafka bootstrap addresses by type.</p>
 </li>
 <li>
 <p>The <code>observedGeneration</code> value indicates the last reconciliation of the <code>Kafka</code> custom resource by the Cluster Operator.</p>
+</li>
+<li>
+<p>The version of the operator that successfully completed the last reconciliation.</p>
 </li>
 </ol>
 </div>
