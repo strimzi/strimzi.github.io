@@ -13,6 +13,9 @@ In other words, Kafka doing the job it excels at.
 In this post, we'll dive into the essentials of developing a Kafka producer client that can send messages to a Strimzi-managed Kafka cluster.
 To illustrate these concepts, we'll walk through a basic example of a self-contained application that generates and produces messages to a specific Kafka topic.
 
+> This blog post assumes some basic Java knowledge or experience. 
+> If you're new to Java, familiarizing yourself with the fundamentals of the Java programming language will help you better understand the code and concepts presented here.
+
 ## Getting started with your producer client
 
 The first thing to consider when developing a producer client application is your preferred programming language. 
@@ -41,6 +44,12 @@ Let's get down to creating the producer client.
 Our brief is to create a client that operates asynchronously, and is equipped with basic error-handling capabilities. 
 The application implements the `Callback` interface, which provides a method for asynchronous handling of request completion in a background thread.
 
+### Adding dependencies
+
+Before implementing the Kafka producer client, our project must include the necessary dependencies.
+For a Java-based Kafka client, we need to include the Kafka client JAR. 
+This JAR file contains the Kafka libraries required for building and running the client.
+
 ### Prerequisites
 
 To be able to operate, the producer client needs the following in place:
@@ -61,10 +70,14 @@ Now, let's define some customizable constants that we'll also use with the produ
 With this constant, we define the initial connection point to the Kafka cluster. 
 You can specify a list of host/port pairs to establish this connection.
 For a generic Kafka deployment, you might start with a value like `localhost:9092`. 
-However, when working with a Strimzi-managed Kafka cluster, it's important to use the bootstrap server address configured in your Strimzi deployment.
+However, when working with a Strimzi-managed Kafka cluster, you can obtain the bootstrap address from the `Kafka` custom resource status using a `kubectl` command:
 
-In Strimzi, the bootstrap server address is in the format `<cluster_name>-kafka-<listener-name>-bootstrap:<port>`. 
-This address allows an external Kafka producer to connect to the cluster through an advertised listener port (9092 or higher).
+```shell
+kubectl get kafka <kafka_cluster_name> -o=jsonpath='{.status.listeners[*].bootstrapServers}{"\n"}'
+```
+
+This command retrieves the bootstrap addresses exposed by listeners for client connections on a Kafka cluster. 
+Listeners define how clients communicate with the Kafka brokers, ensuring that you connect to the correct advertised listener port.
 In production environments, you can use a single load balancer, or a list of brokers in place of a single bootstrap server.
 
 **TOPIC_NAME**
