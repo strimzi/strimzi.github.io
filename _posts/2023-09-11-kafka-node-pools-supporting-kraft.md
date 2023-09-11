@@ -22,6 +22,7 @@ Other posts include:_
 * _[Part 2 - Node ID Management](https://strimzi.io/blog/2023/08/23/kafka-node-pools-node-id-management/)_
 * _[Part 3 - Storage & Scheduling](https://strimzi.io/blog/2023/08/28/kafka-node-pools-storage-and-scheduling/)_
 * _Part 4 - Supporting KRaft (this post)_
+* _[Part 5 - What's next? (this post)](https://strimzi.io/blog/2023/09/11/kafka-node-pools-whats-next/)_
 
 ### KRaft architectures
 

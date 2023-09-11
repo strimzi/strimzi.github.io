@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Kafka Node Pools: What's next?"
-date: 2023-08-31
+date: 2023-09-11
 author: jakub_scholz
 ---
 
@@ -16,7 +16,7 @@ Other posts include:_
 * _[Part 1 - Introduction](https://strimzi.io/blog/2023/08/14/kafka-node-pools-introduction/)_
 * _[Part 2 - Node ID Management](https://strimzi.io/blog/2023/08/23/kafka-node-pools-node-id-management/)_
 * _[Part 3 - Storage & Scheduling](https://strimzi.io/blog/2023/08/28/kafka-node-pools-storage-and-scheduling/)_
-* _[Part 4 - Supporting KRaft (ZooKeeper-less Apache Kafka)](https://strimzi.io/blog/2023/08/28/kafka-node-pools-supporting-kraft/)_
+* _[Part 4 - Supporting KRaft (ZooKeeper-less Apache Kafka)](https://strimzi.io/blog/2023/09/11/kafka-node-pools-supporting-kraft/)_
 * _Part 5 - What's next? (this post)_
 
 ### Feature gate graduation
