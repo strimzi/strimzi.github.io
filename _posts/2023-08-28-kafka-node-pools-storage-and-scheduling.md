@@ -16,6 +16,7 @@ Other posts include:_
 * _[Part 1 - Introduction](https://strimzi.io/blog/2023/08/14/kafka-node-pools-introduction/)_
 * _[Part 2 - Node ID Management](https://strimzi.io/blog/2023/08/23/kafka-node-pools-node-id-management/)_
 * _Part 3 - Storage & Scheduling (this post)_
+* _[Part 4 - Supporting KRaft (ZooKeeper-less Apache Kafka)](https://strimzi.io/blog/2023/09/11/kafka-node-pools-supporting-kraft/)_
 
 ### Managing storage
 
