@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Kafka Node Pools: Supporting KRaft (ZooKeeper-less Apache Kafka)"
-date: 2023-08-29
+date: 2023-09-11
 author: jakub_scholz
 ---
 
@@ -41,18 +41,18 @@ Such a cluster is suitable for example for development and testing.
 It might be also useful in other resource-constraint environments.
 For example when running Kafka at the edge.
 
-![Three-node Kafka cluster with combined nodes](/assets/images/posts/2023-08-29-kafka-node-pools-supporting-kraft-combined-nodes.png)
+![Three-node Kafka cluster with combined nodes](/assets/images/posts/2023-09-11-kafka-node-pools-supporting-kraft-combined-nodes.png)
 
 For a production cluster, you would normally use dedicated controller nodes and dedicated broker nodes.
 You would typically maintain three controller nodes for availability, and add as many broker nodes as you need.
 This is also the architecture to which you would migrate from a ZooKeeper-based cluster.
 
-![Three-node Kafka cluster with dedicated controller and broker nodes](/assets/images/posts/2023-08-29-kafka-node-pools-supporting-kraft-separate-nodes.png)
+![Three-node Kafka cluster with dedicated controller and broker nodes](/assets/images/posts/2023-09-11-kafka-node-pools-supporting-kraft-separate-nodes.png)
 
 And somewhere in between is an architecture where some nodes have both controller and broker roles and some have only the broker role.
 It is also an intermediate step when migrating from the combined nodes to the dedicated controller nodes or the other way around. 
 
-![Three-node Kafka cluster with combined nodes](/assets/images/posts/2023-08-29-kafka-node-pools-supporting-kraft-semi-combined-nodes.png)
+![Three-node Kafka cluster with combined nodes](/assets/images/posts/2023-09-11-kafka-node-pools-supporting-kraft-semi-combined-nodes.png)
 
 Our users employ Strimzi for various scenarios, spanning from small development and test clusters to large-scale multi-node production clusters.
 So we want to support all of these architectures.
