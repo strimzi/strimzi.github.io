@@ -143,15 +143,16 @@ We'll also include methods that help with these operations:
 **`retriable` method**
 
 - Determines whether to retry sending a message following a message sending error.
-- Returns `true` if the message sending process can be retried.
+- Returns `true` if the message sending process can be retried. The Kafka producer automatically handles retries for certain errors, such as connection errors.
 - Returns `false` for null and specified exceptions, or those that do not implement the `RetriableException` interface.
-- Customizable to include other errors.
+- Customizable to include other errors and  implementing retry logic for business level exceptions.
 
-    > Retries can lead to the possibility of duplicate messages being sent. 
-    > You can configure the producer to avoid duplicates using idempotency, as messages are delivered exactly once. 
-    > You can also use the `retries` configuration property to control how many times the producer will retry sending a message before giving up. 
-    > This setting affects how many times the `retriable` method may return `true` during a message send error. 
-    > For more information, see the [Strimzi documentation on ordered delivery](https://strimzi.io/docs/operators/latest/deploying#ordered_delivery).
+> By default, Kafka operates with at-least-once delivery semantics, which means that messages can be delivered more than once in certain scenarios, potentially leading to duplicates. 
+> To mitigate this risk, consider enabling transactions in your Kafka producer. 
+> Transactions provide stronger guarantees of exactly-once delivery. 
+> Additionally, you can use the `retries` configuration property to control how many times the producer will retry sending a message before giving up. 
+> This setting affects how many times the `retriable` method may return `true` during a message send error. 
+> For more information, see the [Strimzi post on transactions](https://strimzi.io/blog/2023/05/03/kafka-transactions/) and the [Strimzi documentation on ordered delivery](https://strimzi.io/docs/operators/latest/deploying#ordered_delivery).
 
 **`onCompletion` method**
 
@@ -247,11 +248,9 @@ public class Producer implements Callback {
     }
 
     private boolean retriable(Exception e) {
-        if (e == null) {
-            return false;
-        } else if (e instanceof IllegalArgumentException
-                || e instanceof UnsupportedOperationException
-                || !(e instanceof RetriableException)) {
+        if (e instanceof IllegalArgumentException
+            || e instanceof UnsupportedOperationException
+            || !(e instanceof RetriableException)) {
             return false;
         } else {
             return true;
