@@ -203,7 +203,7 @@ public class Producer implements Callback {
             byte[] value = randomBytes(MESSAGE_SIZE_BYTES);
             while (messageCount.get() < NUM_MESSAGES) {
                 sleep(PROCESSING_DELAY_MS);                
-                // Send a message to the Kafka topic, specifying topic name, message count, and message value
+                // Send a message to the Kafka topic, specifying topic name, message key, and message value
                 producer.send(new ProducerRecord<>(TOPIC_NAME, messageCount.get(), value), this);
                 messageCount.incrementAndGet();
             }
