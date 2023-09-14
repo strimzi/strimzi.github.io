@@ -113,7 +113,7 @@ In Kafka, messages typically capture streams of events, so introducing delays ca
 
 These constants give us some control over the producer application's behavior.
 We can use the `NUM_MESSAGES` and `PROCESSING_DELAY_MS` values to adjust the message sending rate.
-With the current settings, a delay of 1000 ms will result in sending 50 messages every 1000 ms.
+With the current settings, at total of 50 messages are sent with a delay of 1 second between them.
 
 ### Example producer application
 
@@ -366,8 +366,16 @@ Or configure `transaction` properties in your producer application to ensure tha
 Optimize your producer for high message throughput and low latency. 
 We mentioned that compression and batching are important considerations.
 Use the `compression.type` property to specify a producer-side message compression type. 
+
+The `producer.send` method is asynchronous and buffers messages for batching.
 Use the `linger.ms` and `batch.size` configuration properties to batch more messages into a single produce request for higher throughput. 
-Modifying these properties can impact the expected `PROCESSING_DELAY_MS`.
+Modifying `linger.ms` and `batch.size` influences message sending behavior in relation to the `PROCESSING_DELAY_MS` setting.
+For example, if you set `PROCESSING_DELAY_MS` to 1000 ms and `LINGER_MS` to 5000 ms, messages are not sent out with a 1 second delay between them (as specified by `PROCESSING_DELAY_MS`), rather they are batched and sent every 5 seconds (as specified by `linger.ms`).
+
+The `producer.send` method is asynchronous and buffers messages for batching.
+Use the `linger.ms` and `batch.size` configuration properties to batch more messages into a single produce request for higher throughput. 
+Modifying these properties impacts the message sending rate in relation to the `PROCESSING_DELAY_MS` setting.
+For example, if you set `PROCESSING_DELAY_MS` to 1000 ms and `linger.ms` to 5000 ms, messages are batched and sent every 5000 ms (as specified by `linger.ms`).
 
 You can also improve throughput of your message requests by using the `delivery.timeout.ms` property to adjust the maximum time to wait before a message is delivered and completes a send request. 
 
