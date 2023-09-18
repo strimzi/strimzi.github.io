@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Kafka Node Pools: What's next?"
-date: 2023-09-11
+date: 2023-09-18
 author: jakub_scholz
 ---
 
