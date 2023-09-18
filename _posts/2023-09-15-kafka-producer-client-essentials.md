@@ -113,7 +113,7 @@ In Kafka, messages typically capture streams of events, so introducing delays ca
 
 These constants give us some control over the producer application's behavior.
 We can use the `NUM_MESSAGES` and `PROCESSING_DELAY_MS` values to adjust the message sending rate.
-With the current settings, at total of 50 messages are sent with a delay of 1 second between them.
+With the current settings, a total of 50 messages are sent with a delay of 1 second between them.
 
 ### Example producer application
 
@@ -123,6 +123,7 @@ We want our example client to operate as follows:
 * Create a Kafka producer instance, which is responsible for sending messages to a Kafka topic.
 * Generate a random message payload, represented as a byte array, that serves as the content of the messages being sent to Kafka cluster.
 * Use serializer classes that handle the transformation of message keys and values into a format suitable for the Kafka brokers. 
+* Produce messages until a specified number of messages (`NUM_MESSAGES`) is reached.
 * Control the rate at which messages are produced by introducing delays between each message using our `PROCESSING_DELAY_MS` value.
 * Handle errors that may occur during message transmission to the Kafka broker, determining when a message should be retried and when an error is considered non-recoverable. 
 
@@ -370,7 +371,7 @@ Use the `compression.type` property to specify a producer-side message compressi
 The `producer.send` method is asynchronous and buffers messages for batching.
 Use the `linger.ms` and `batch.size` configuration properties to batch more messages into a single produce request for higher throughput. 
 Modifying `linger.ms` and `batch.size` influences message sending behavior in relation to the `PROCESSING_DELAY_MS` setting.
-For example, if you set `PROCESSING_DELAY_MS` to 1000 ms and `LINGER_MS` to 5000 ms, messages are not sent out with a 1 second delay between them (as specified by `PROCESSING_DELAY_MS`), rather they are batched and sent every 5 seconds (as specified by `linger.ms`).
+For example, if you set `PROCESSING_DELAY_MS` to 1000 ms and `LINGER_MS` to 5000 ms, messages are not sent out with a 1-second delay between them (as specified by `PROCESSING_DELAY_MS`), rather they are batched and sent every 5 seconds (as specified by `linger.ms`).
 
 The `producer.send` method is asynchronous and buffers messages for batching.
 Use the `linger.ms` and `batch.size` configuration properties to batch more messages into a single produce request for higher throughput. 
