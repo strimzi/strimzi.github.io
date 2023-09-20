@@ -161,7 +161,7 @@ We'll also include methods that help with these operations:
 - Returns `false` for null and specified exceptions, or those that do not implement the `RetriableException` interface.
 - Customizable to include other errors and  implementing retry logic for business level exceptions.
 
-> By default, Kafka consumers operate with at-least-once message delivery semantics, which means that in some situations, messages may be consumed more than once, potentially leading to duplicates.
+> By default, Kafka operates with at-least-once message delivery semantics, which means that messages can be delivered more than once in certain scenarios, potentially leading to duplicates.
 > Consider using transactional ids and enabling idempotence (`enable.idempotence=true`) on the producer side to guarantee exactly-once delivery. 
 > On the consumer side, you can then use the `isolation.level` property to control how transactional messages are read by the consumer.
 > For more information, see the [Strimzi post on transactions](https://strimzi.io/blog/2023/05/03/kafka-transactions/)
