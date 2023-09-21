@@ -372,5 +372,4 @@ No special storage configuration is needed anymore.
 
 In this blog post, we covered a couple of situations where node pools make your life easier.
 If you think that they were niche issues that do not affect all users, you are probably right.
-But don't worry -- in the next post in this series on node pools we will delve into something important for all Strimzi users.
-We will look at what role node pools play in Strimzi's support for KRaft / ZooKeeper-less Kafka.
+But don't worry, in [Part 4](https://strimzi.io/blog/2023/09/11/kafka-node-pools-supporting-kraft/) we will look at something important for all Strimzi users - the role that node pools play in Strimzi's support for KRaft / ZooKeeper-less Kafka.

@@ -370,5 +370,4 @@ But the migration process is described in [our documentation](https://strimzi.io
 Hopefully, this blog post gave you a quick introduction to what node pools are and how they work.
 
 In upcoming posts, we will look at some practical uses of node pools and show how they can resolve certain problems.
-Stay tuned for the next installment. 
-In the meantime, we invite you to try out node pools for yourself and share your experience with us. 
+You can read [Part 2](https://strimzi.io/blog/2023/08/23/kafka-node-pools-node-id-management/) which covers Node ID Management or try out node pools yourself and share your experience with us.

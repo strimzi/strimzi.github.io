@@ -176,4 +176,4 @@ So, feel free to give the KRaft-based node pool setups a try, but do keep in min
 KRaft might not be production-ready yet, but it is the future of cluster management in Apache Kafka.
 As such, Strimzi is dedicated to supporting the various KRaft architectures, with Kafka node pools playing a very important role in this commitment.
 
-In the next blog post, we will look closer at some of the future plans we have with node pools.
+In [Part 5](https://strimzi.io/blog/2023/09/18/kafka-node-pools-whats-next/) we will look to the future and outline the plans we have for node pools.

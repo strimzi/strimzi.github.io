@@ -263,4 +263,4 @@ status:
 ### Conclusion
 
 If you are looking to have more control over managing Kafka node IDs, this post has shown how node pools can really help.
-In the next post in this series, we'll continue exploring the benefits of using node pools in other situations. 
+In [Part 3](https://strimzi.io/blog/2023/08/28/kafka-node-pools-storage-and-scheduling/) of this series, we'll look at how node pools can help with managing storage and pod scheduling
