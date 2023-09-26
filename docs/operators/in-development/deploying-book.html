@@ -113,7 +113,9 @@
 <li><a href="#proc-scaling-up-node-pools-str">9.3.2. (Preview) Adding nodes to a node pool</a></li>
 <li><a href="#proc-scaling-down-node-pools-str">9.3.3. (Preview) Removing nodes from a node pool</a></li>
 <li><a href="#proc-moving-node-pools-str">9.3.4. (Preview) Moving nodes between node pools</a></li>
-<li><a href="#proc-migrating-clusters-node-pools-str">9.3.5. (Preview) Migrating existing Kafka clusters to use Kafka node pools</a></li>
+<li><a href="#proc-managing-storage-node-pools-str">9.3.5. (Preview) Managing storage using node pools</a></li>
+<li><a href="#proc-managing-storage-affinity-node-pools-str">9.3.6. (Preview) Managing storage affinity using node pools</a></li>
+<li><a href="#proc-migrating-clusters-node-pools-str">9.3.7. (Preview) Migrating existing Kafka clusters to use Kafka node pools</a></li>
 </ul>
 </li>
 <li><a href="#ref-kafka-entity-operator-str">9.4. Configuring the Entity Operator</a>
@@ -7402,6 +7404,9 @@ During this process, the ID of the node that holds the partition replicas change
 <p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
 </li>
 <li>
+<p><a href="#proc-configuring-deploying-cruise-control-str">Cruise Control is deployed with Kafka.</a></p>
+</li>
+<li>
 <p>(Optional) For scale up operations, <a href="#proc-managing-node-pools-ids-str">you can specify the node IDs to use in the operation</a>.</p>
 <div class="paragraph">
 <p>If you have assigned a range of node IDs for the operation, the ID of the node being added is determined by the sequence of nodes given.
@@ -7491,6 +7496,9 @@ During this process, the ID of the node that holds the partition replicas change
 <ul>
 <li>
 <p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
+</li>
+<li>
+<p><a href="#proc-configuring-deploying-cruise-control-str">Cruise Control is deployed with Kafka.</a></p>
 </li>
 <li>
 <p>(Optional) For scale down operations, <a href="#proc-managing-node-pools-ids-str">you can specify the node IDs to use in the operation</a>.</p>
@@ -7586,6 +7594,9 @@ During this process, the ID of the node that holds the partition replicas change
 <p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
 </li>
 <li>
+<p><a href="#proc-configuring-deploying-cruise-control-str">Cruise Control is deployed with Kafka.</a></p>
+</li>
+<li>
 <p>(Optional) For scale up and scale down operations, <a href="#proc-managing-node-pools-ids-str">you can specify the range of node IDs to use</a>.</p>
 <div class="paragraph">
 <p>If you have assigned node IDs for the operation, the ID of the node being added or removed is determined by the sequence of nodes given.
@@ -7663,7 +7674,299 @@ my-cluster-pool-b-kafka-6  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-migrating-clusters-node-pools-str"><a class="link" href="#proc-migrating-clusters-node-pools-str">9.3.5. (Preview) Migrating existing Kafka clusters to use Kafka node pools</a></h4>
+<h4 id="proc-managing-storage-node-pools-str"><a class="link" href="#proc-managing-storage-node-pools-str">9.3.5. (Preview) Managing storage using node pools</a></h4>
+<div class="paragraph _abstract">
+<p>Storage management in Strimzi is usually straightforward, and requires little change when set up, but there might be situations where you need to modify your storage configurations.
+Node pools simplify this process, because you can set up separate node pools that specify your new storage requirements.</p>
+</div>
+<div class="paragraph">
+<p>In this procedure we create and manage storage for a node pool called <code>pool-a</code> containing three nodes.
+We show how to change the storage class (<code>volumes.class</code>) that defines the type of persistent storage it uses.
+You can use the same steps to change the storage size (<code>volumes.size</code>).</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+We strongly recommend using block storage. Strimzi is only tested for use with block storage.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
+</li>
+<li>
+<p><a href="#proc-configuring-deploying-cruise-control-str">Cruise Control is deployed with Kafka.</a></p>
+</li>
+<li>
+<p>For storage that uses persistent volume claims for dynamic volume allocation, storage classes are defined and available in the Kubernetes cluster that correspond to the storage solutions you need.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Create the node pool with its own storage settings.</p>
+<div class="paragraph">
+<p>For example, node pool <code>pool-a</code> uses JBOD storage with persistent volumes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: pool-a
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 3
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 500Gi
+        class: gp2-ebs
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Nodes in <code>pool-a</code> are configured to use Amazon EBS (Elastic Block Store) GP2 volumes.</p>
+</div>
+</li>
+<li>
+<p>Apply the node pool configuration for <code>pool-a</code>.</p>
+</li>
+<li>
+<p>Check the status of the deployment and wait for the pods in <code>pool-a</code> to be created and have a status of <code>READY</code>.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n &lt;my_cluster_operator_namespace&gt;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Output shows three Kafka nodes in the node pool</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                       READY  STATUS   RESTARTS
+my-cluster-pool-a-kafka-0  1/1    Running  0
+my-cluster-pool-a-kafka-1  1/1    Running  0
+my-cluster-pool-a-kafka-2  1/1    Running  0</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>To migrate to a new storage class, create a new node pool with the required storage configuration:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: pool-b
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  roles:
+    - broker
+  replicas: 3
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 1Ti
+        class: gp3-ebs
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Nodes in <code>pool-b</code> are configured to use Amazon EBS (Elastic Block Store) GP3 volumes.</p>
+</div>
+</li>
+<li>
+<p>Apply the node pool configuration for <code>pool-b</code>.</p>
+</li>
+<li>
+<p>Check the status of the deployment and wait for the pods in <code>pool-b</code> to be created and have a status of <code>READY</code>.</p>
+</li>
+<li>
+<p>Reassign the partitions from <code>pool-a</code> to <code>pool-b</code>.</p>
+<div class="paragraph">
+<p>When migrating to a new storage configuration, you can use the Cruise Control <code>remove-brokers</code> mode to move partition replicas off the brokers that are going to be removed.</p>
+</div>
+</li>
+<li>
+<p>After the reassignment process is complete, delete the old node pool:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete kafkanodepool pool-a</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-managing-storage-affinity-node-pools-str"><a class="link" href="#proc-managing-storage-affinity-node-pools-str">9.3.6. (Preview) Managing storage affinity using node pools</a></h4>
+<div class="paragraph _abstract">
+<p>In situations where storage resources, such as local persistent volumes, are constrained to specific worker nodes, or availability zones, configuring storage affinity helps to schedule pods to use the right nodes.</p>
+</div>
+<div class="paragraph">
+<p>Node pools allow you to configure affinity independently.
+In this procedure, we create and manage storage affinity for two availability zones: <code>zone-1</code> and <code>zone-2</code>.</p>
+</div>
+<div class="paragraph">
+<p>You can configure node pools for separate availability zones, but use the same storage class.
+We define an <code>all-zones</code> persistent storage class representing the storage resources available in each zone.</p>
+</div>
+<div class="paragraph">
+<p>We also use the <code>.spec.template.pod</code> properties to configure the node affinity and schedule Kafka pods on <code>zone-1</code> and <code>zone-2</code> worker nodes.</p>
+</div>
+<div class="paragraph">
+<p>The storage class and affinity is specified in node pools representing the nodes in each availability zone:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>pool-zone-1</code></p>
+</li>
+<li>
+<p><code>pool-zone-2</code>.</p>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
+</li>
+<li>
+<p>If you are not familiar with the concepts of affinity, see the <a href="https://kubernetes.io/docs/concepts/configuration/assign-pod-node/" target="_blank" rel="noopener">Kubernetes node and pod affinity documentation</a>.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Define the storage class for use with each availability zone:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: all-zones
+provisioner: kubernetes.io/my-storage
+parameters:
+  type: ssd
+volumeBindingMode: WaitForFirstConsumer</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create node pools representing the two availability zones, specifying the <code>all-zones</code> storage class and the affinity for each zone:</p>
+<div class="listingblock">
+<div class="title">Node pool configuration for zone-1</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: pool-zone-1
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 3
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 500Gi
+        class: all-zones
+  template:
+    pod:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: topology.kubernetes.io/zone
+                  operator: In
+                  values:
+                  - zone-1
+  # ...</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Node pool configuration for zone-2</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: pool-zone-2
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 4
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 500Gi
+        class: all-zones
+  template:
+    pod:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: topology.kubernetes.io/zone
+                  operator: In
+                  values:
+                  - zone-2
+  # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Apply the node pool configuration.</p>
+</li>
+<li>
+<p>Check the status of the deployment and wait for the pods in the node pools to be created and have a status of <code>READY</code>.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n &lt;my_cluster_operator_namespace&gt;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Output shows 3 Kafka nodes in <code>pool-zone-1</code> and 4 Kafka nodes in <code>pool-zone-2</code>:</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                       READY  STATUS   RESTARTS
+my-cluster-pool-zone-1-kafka-0  1/1    Running  0
+my-cluster-pool-zone-1-kafka-1  1/1    Running  0
+my-cluster-pool-zone-1-kafka-2  1/1    Running  0
+my-cluster-pool-zone-2-kafka-3  1/1    Running  0
+my-cluster-pool-zone-2-kafka-4  1/1    Running  0
+my-cluster-pool-zone-2-kafka-5  1/1    Running  0
+my-cluster-pool-zone-2-kafka-6  1/1    Running  0</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-migrating-clusters-node-pools-str"><a class="link" href="#proc-migrating-clusters-node-pools-str">9.3.7. (Preview) Migrating existing Kafka clusters to use Kafka node pools</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to migrate existing Kafka clusters to use Kafka node pools.
 After you have updated the Kafka cluster, you can use the node pools to manage the configuration of nodes within each pool.</p>
@@ -11444,8 +11747,10 @@ By default, the Kafka Bridge connects to Kafka brokers without authentication.</
 <div class="sect2">
 <h3 id="assembly-storage-str"><a class="link" href="#assembly-storage-str">9.10. Configuring Kafka and ZooKeeper storage</a></h3>
 <div class="paragraph _abstract">
-<p>As stateful applications, Kafka and ZooKeeper store data on disk.
-Strimzi supports three storage types for this data:</p>
+<p>Strimzi provides flexibility in configuring the data storage options of Kafka and ZooKeeper.</p>
+</div>
+<div class="paragraph">
+<p>The supported storage types are:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -11456,28 +11761,21 @@ Strimzi supports three storage types for this data:</p>
 <p>Persistent</p>
 </li>
 <li>
-<p>JBOD (<strong>Kafka only</strong> not ZooKeeper)</p>
+<p>JBOD (Kafka only; not available for ZooKeeper)</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>When configuring a <code>Kafka</code> resource, you can specify the type of storage used by the Kafka broker and its corresponding ZooKeeper node. You configure the storage type using the <code>storage</code> property in the following resources:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>Kafka.spec.kafka</code></p>
-</li>
-<li>
-<p><code>Kafka.spec.zookeeper</code></p>
-</li>
-</ul>
+<p>To configure storage, you specify <code>storage</code> properties in the custom resource of the component.
+The storage type is set using the <code>storage.type</code> property.</p>
 </div>
 <div class="paragraph">
-<p>The storage type is configured in the <code>type</code> field.</p>
+<p>You can also use the preview of the node pools feature for advanced storage management of the Kafka cluster.
+You can specify storage configuration unique to each node pool used in the cluster.
+The same storage properties available to the <code>Kafka</code> resource are also available to the <code>KafkaNodePool</code> pool resource.</p>
 </div>
 <div class="paragraph">
-<p>Refer to the schema reference for more information on storage configuration properties:</p>
+<p>The storage-related schema references provide more information on the storage configuration properties:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -11604,7 +11902,8 @@ Ephemeral storage is not suitable for single-node ZooKeeper clusters or Kafka to
 </table>
 </div>
 <div class="paragraph">
-<p>To use ephemeral storage, you set the storage type configuration in the <code>Kafka</code> or <code>ZooKeeper</code> resource to <code>ephemeral</code>.</p>
+<p>To use ephemeral storage, you set the storage type configuration in the <code>Kafka</code> or <code>ZooKeeper</code> resource to <code>ephemeral</code>.
+If you are using the preview of the node pools feature, you can also specify <code>ephemeral</code> in the storage configuration of individual node pools.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example ephemeral storage configuration</div>
@@ -11615,12 +11914,10 @@ metadata:
   name: my-cluster
 spec:
   kafka:
-    # ...
     storage:
       type: ephemeral
     # ...
   zookeeper:
-    # ...
     storage:
       type: ephemeral
     # ...</code></pre>
@@ -11645,39 +11942,45 @@ spec:
 <h4 id="ref-persistent-storage-str"><a class="link" href="#ref-persistent-storage-str">9.10.3. Persistent storage</a></h4>
 <div class="paragraph _abstract">
 <p>Persistent data storage retains data in the event of system disruption.
-For pods that use persistent data storage, data is persisted across pod failures and restarts.</p>
+For pods that use persistent data storage, data is persisted across pod failures and restarts.
+Because of its permanent nature, persistent storage is recommended for production environments.</p>
 </div>
 <div class="paragraph">
-<p>A dynamic provisioning framework enables clusters to be created with persistent storage.
-Pod configuration uses <a href="https://kubernetes.io/docs/concepts/storage/dynamic-provisioning/" target="_blank" rel="noopener">Persistent Volume Claims</a> (PVCs) to make storage requests on persistent volumes (PVs).
-PVs are storage resources that represent a storage volume.
-PVs are independent of the pods that use them.
+<p>To use persistent storage in Strimzi, you specify <code>persistent-claim</code> in the storage configuration of the <code>Kafka</code> or <code>ZooKeeper</code> resources.
+If you are using the preview of the node pools feature, you can also specify <code>persistent-claim</code> in the storage configuration of individual node pools.</p>
+</div>
+<div class="paragraph">
+<p>You configure the resource so that pods use <a href="https://kubernetes.io/docs/concepts/storage/dynamic-provisioning/" target="_blank" rel="noopener">Persistent Volume Claims</a> (PVCs) to make storage requests on persistent volumes (PVs).
+PVs represent storage volumes that are created on demand and are independent of the pods that use them.
 The PVC requests the amount of storage required when a pod is being created.
 The underlying storage infrastructure of the PV does not need to be understood.
 If a PV matches the storage criteria, the PVC is bound to the PV.</p>
 </div>
 <div class="paragraph">
-<p>Because of its permanent nature, persistent storage is recommended for production.</p>
+<p>You have two options for specifying the storage type:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>storage.type: persistent-claim</code></dt>
+<dd>
+<p>If you choose <code>persistent-claim</code> as the storage type, a single persistent storage volume is defined.</p>
+</dd>
+<dt class="hdlist1"><code>storage.type: jbod</code></dt>
+<dd>
+<p>When you select <code>jbod</code> as the storage type, you have the flexibility to define an array of persistent storage volumes using unique IDs.</p>
+</dd>
+</dl>
 </div>
 <div class="paragraph">
-<p>PVCs can request different types of persistent storage by specifying a <a href="https://kubernetes.io/docs/concepts/storage/storage-classes/" target="_blank" rel="noopener">StorageClass</a>.
-Storage classes define storage profiles and dynamically provision PVs.
-If a storage class is not specified, the default storage class is used.
-Persistent storage options might include SAN storage types or <a href="https://kubernetes.io/docs/concepts/storage/volumes/#local" target="_blank" rel="noopener">local persistent volumes</a>.</p>
-</div>
-<div class="paragraph">
-<p>To use persistent storage, you set the storage type configuration in the <code>Kafka</code> or <code>ZooKeeper</code> resource to <code>persistent-claim</code>.</p>
-</div>
-<div class="paragraph">
-<p>In the production environment, the following configuration is recommended:</p>
+<p>In a production environment, it is recommended to configure the following:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>For Kafka, configure <code>type: jbod</code>  with one or more <code>type: persistent-claim</code> volumes</p>
+<p>For Kafka or node pools, set <code>storage.type</code> to <code>jbod</code> with one or more persistent volumes.</p>
 </li>
 <li>
-<p>For ZooKeeper, configure <code>type: persistent-claim</code></p>
+<p>For ZooKeeper, set <code>storage.type</code> as <code>persistent-claim</code> for a single persistent volume.</p>
 </li>
 </ul>
 </div>
@@ -11697,8 +12000,10 @@ Default is <code>0</code>.</p>
 </dd>
 <dt class="hdlist1"><code>class</code> (optional)</dt>
 <dd>
-<p>The Kubernetes <a href="https://kubernetes.io/docs/concepts/storage/storage-classes/" target="_blank" rel="noopener">StorageClass</a> to use for dynamic volume provisioning.
-Storage <code>class</code> configuration includes parameters that describe the profile of a volume in detail.</p>
+<p>PVCs can request different types of persistent storage by specifying a <a href="https://kubernetes.io/docs/concepts/storage/storage-classes/" target="_blank" rel="noopener">StorageClass</a>.
+Storage classes define storage profiles and dynamically provision PVs based on that profile.
+If a storage class is not specified, the storage class marked as default in the Kubernetes cluster is used.
+Persistent storage options might include SAN storage types or <a href="https://kubernetes.io/docs/concepts/storage/volumes/#local" target="_blank" rel="noopener">local persistent volumes</a>.</p>
 </dd>
 <dt class="hdlist1"><code>selector</code> (optional)</dt>
 <dd>
@@ -11729,10 +12034,12 @@ Decreasing the size of existing persistent volumes is not possible.
 <div class="listingblock">
 <div class="title">Example persistent storage configuration for Kafka and ZooKeeper</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
 spec:
   kafka:
-    # ...
     storage:
       type: jbod
       volumes:
@@ -11753,12 +12060,8 @@ spec:
     storage:
       type: persistent-claim
       size: 1000Gi
-# ...</code></pre>
+    # ...</code></pre>
 </div>
-</div>
-<div class="paragraph">
-<p>If you do not specify a storage class, the default is used.
-The following example specifies a storage class.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example persistent storage configuration with specific storage class</div>
@@ -11766,7 +12069,7 @@ The following example specifies a storage class.</p>
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
 storage:
   type: persistent-claim
-  size: 1Gi
+  size: 500Gi
   class: my-storage-class
 # ...</code></pre>
 </div>
@@ -11790,7 +12093,7 @@ storage:
 <div class="sect4">
 <h5 id="storage_class_overrides"><a class="link" href="#storage_class_overrides">Storage class overrides</a></h5>
 <div class="paragraph">
-<p>Instead of using the default storage class, you can specify a different storage class for one or more Kafka brokers or ZooKeeper nodes.
+<p>Instead of using the default storage class, you can specify a different storage class for one or more Kafka or ZooKeeper nodes.
 This is useful, for example, when storage classes are restricted to different availability zones or data centers.
 You can use the <code>overrides</code> field for this purpose.</p>
 </div>
@@ -11798,7 +12101,7 @@ You can use the <code>overrides</code> field for this purpose.</p>
 <p>In this example, the default storage class is named <code>my-storage-class</code>:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example Strimzi cluster using storage class overrides</div>
+<div class="title">Example storage configuration with class overrides</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
@@ -11857,7 +12160,7 @@ spec:
 <p>The persistent volumes of ZooKeeper node 1 use <code>my-storage-class-zone-1b</code>.</p>
 </li>
 <li>
-<p>The persistent volumes of ZooKeeepr node 2 use <code>my-storage-class-zone-1c</code>.</p>
+<p>The persistent volumes of ZooKeeper node 2 use <code>my-storage-class-zone-1c</code>.</p>
 </li>
 <li>
 <p>The persistent volumes of Kafka broker 0 use <code>my-storage-class-zone-1a</code>.</p>
@@ -11871,9 +12174,8 @@ spec:
 </ul>
 </div>
 <div class="paragraph">
-<p>The <code>overrides</code> property is currently used only to override storage class configurations.
-Overrides for other storage configuration properties is not currently supported.
-Other storage configuration properties are currently not supported.</p>
+<p>The <code>overrides</code> property is currently used only to override the storage <code>class</code>.
+Overrides for other storage configuration properties is not currently supported.</p>
 </div>
 </div>
 <div class="sect4">
@@ -12035,9 +12337,11 @@ pvc-82dc78c9-...   2000Gi     my-project/data-my-cluster-kafka-1</code></pre>
 <div class="sect3">
 <h4 id="ref-jbod-storage-str"><a class="link" href="#ref-jbod-storage-str">9.10.5. JBOD storage</a></h4>
 <div class="paragraph _abstract">
-<p>You can configure Strimzi to use JBOD, a data storage configuration of multiple disks or volumes.
-JBOD is one approach to providing increased data storage for Kafka brokers.
-It can also improve performance.</p>
+<p>JBOD storage allows you to configure your Kafka cluster to use multiple disks or volumes.
+This approach provides increased data storage capacity for Kafka brokers, and can lead to performance improvements.
+A JBOD configuration is defined by one or more volumes, each of which can be either <a href="#ref-ephemeral-storage-str">ephemeral</a> or <a href="#ref-persistent-storage-str">persistent</a>.
+The rules and constraints for JBOD volume declarations are the same as those for ephemeral and persistent storage.
+For example, you cannot decrease the size of a persistent storage volume after it has been provisioned, nor can you change the value of <code>sizeLimit</code> when the type is <code>ephemeral</code>.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -12046,34 +12350,39 @@ It can also improve performance.</p>
 <div class="title">Note</div>
 </td>
 <td class="content">
-JBOD storage is supported for <strong>Kafka only</strong> not ZooKeeper.
+JBOD storage is supported for <strong>Kafka only</strong>, not for ZooKeeper.
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>A JBOD configuration is described by one or more volumes, each of which can be either <a href="#ref-ephemeral-storage-str">ephemeral</a> or <a href="#ref-persistent-storage-str">persistent</a>. The rules and constraints for JBOD volume declarations are the same as those for ephemeral and persistent storage. For example, you cannot decrease the size of a persistent storage volume after it has been provisioned, or you cannot change the value of <code>sizeLimit</code> when the type is <code>ephemeral</code>.</p>
+<p>To use JBOD storage, you set the storage type configuration in the <code>Kafka</code> resource to <code>jbod</code>.
+If you are using the preview of the node pools feature, you can also specify <code>jbod</code> in the storage configuration of individual node pools.</p>
 </div>
 <div class="paragraph">
-<p>To use JBOD storage, you set the storage type configuration in the <code>Kafka</code> resource to <code>jbod</code>.
-The <code>volumes</code> property allows you to describe the disks that make up your JBOD storage array or configuration.</p>
+<p>The <code>volumes</code> property allows you to describe the disks that make up your JBOD storage array or configuration.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example JBOD storage configuration</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
-storage:
-  type: jbod
-  volumes:
-  - id: 0
-    type: persistent-claim
-    size: 100Gi
-    deleteClaim: false
-  - id: 1
-    type: persistent-claim
-    size: 100Gi
-    deleteClaim: false
-# ...</code></pre>
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    storage:
+      type: jbod
+      volumes:
+      - id: 0
+        type: persistent-claim
+        size: 100Gi
+        deleteClaim: false
+      - id: 1
+        type: persistent-claim
+        size: 100Gi
+        deleteClaim: false
+  # ...</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -26524,10 +26833,7 @@ Although optimization proposals will not reassign replicas of excluded topics, t
 <div class="title">Example CPU utilization error</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">com.linkedin.kafka.cruisecontrol.exception.OptimizationFailureException:
-        [CpuCapacityGoal] Insufficient capacity for cpu (Utilization 615.21,
-        Allowed Capacity 420.00, Threshold: 0.70). Add at least 3 brokers with
-        the same cpu capacity (100.00) as broker-0. Add at least 3 brokers with
-        the same cpu capacity (100.00) as broker-0.</code></pre>
+[CpuCapacityGoal] Insufficient capacity for cpu (Utilization 615.21, Allowed Capacity 420.00, Threshold: 0.70). Add at least 3 brokers with the same cpu capacity (100.00) as broker-0. Add at least 3 brokers with the same cpu capacity (100.00) as broker-0.</code></pre>
 </div>
 </div>
 <div class="admonitionblock note">
@@ -34105,6 +34411,11 @@ my-cluster   3                        3</code></pre>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Kafka</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">kafka</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">k</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka Node Pool</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kafkanodepool</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">knp</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Kafka Topic</p></td>
