@@ -577,7 +577,7 @@
 </li>
 <li><a href="#proc-manual-delete-pod-pvc-kafka-str">25.7. Deleting Kafka nodes using annotations</a></li>
 <li><a href="#proc-manual-delete-pod-pvc-zookeeper-str">25.8. Deleting ZooKeeper nodes using annotations</a></li>
-<li><a href="#assembly-rolling-updates-str">25.9. Starting rolling updates of Kafka and ZooKeeper clusters using annotations</a>
+<li><a href="#assembly-rolling-updates-str">25.9. Starting rolling updates of Kafka and other operands using annotations</a>
 <ul class="sectlevel3">
 <li><a href="#proc-manual-rolling-update-strimzipodset-str">25.9.1. Performing a rolling update using a pod management annotation</a></li>
 <li><a href="#proc-manual-rolling-update-pods-str">25.9.2. Performing a rolling update using a pod annotation</a></li>
@@ -24663,7 +24663,7 @@ type: Opaque</code></pre>
 <li>
 <p>Start a manual rolling update of your cluster to pick up the changes made to the secret configuration.</p>
 <div class="paragraph">
-<p>See <a href="#assembly-rolling-updates-str">Starting rolling updates of Kafka and ZooKeeper clusters using annotations</a>.</p>
+<p>See <a href="#assembly-rolling-updates-str">Starting rolling updates of Kafka and other operands using annotations</a>.</p>
 </div>
 </li>
 </ol>
@@ -36048,10 +36048,10 @@ For example, <code>my-cluster-zookeeper-0</code>.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-rolling-updates-str"><a class="link" href="#assembly-rolling-updates-str">25.9. Starting rolling updates of Kafka and ZooKeeper clusters using annotations</a></h3>
+<h3 id="assembly-rolling-updates-str"><a class="link" href="#assembly-rolling-updates-str">25.9. Starting rolling updates of Kafka and other operands using annotations</a></h3>
 <div class="paragraph">
-<p>Strimzi supports the use of annotations on resources to manually trigger a rolling update of Kafka and ZooKeeper clusters through the Cluster Operator.
-Rolling updates restart the pods of the resource with new ones.</p>
+<p>Strimzi supports the use of annotations to manually trigger a rolling update of Kafka and other operands through the Cluster Operator.
+Use annotations to initiate rolling updates of Kafka, Kafka Connect, MirrorMaker 2, and ZooKeeper clusters.</p>
 </div>
 <div class="paragraph">
 <p>Manually performing a rolling update on a specific pod or set of pods is usually only required in exceptional circumstances.
@@ -36070,20 +36070,23 @@ However, rather than deleting the pods directly, if you perform the rolling upda
 <div class="sect3">
 <h4 id="proc-manual-rolling-update-strimzipodset-str"><a class="link" href="#proc-manual-rolling-update-strimzipodset-str">25.9.1. Performing a rolling update using a pod management annotation</a></h4>
 <div class="paragraph _abstract">
-<p>This procedure describes how to trigger a rolling update of a Kafka cluster or ZooKeeper cluster.
+<p>This procedure describes how to trigger a rolling update of Kafka, Kafka Connect, MirrorMaker 2, or ZooKeeper clusters.
 To trigger the update, you add an annotation to the <code>StrimziPodSet</code> that manages the pods running on the cluster.</p>
 </div>
 <div class="paragraph">
 <div class="title">Prerequisites</div>
-<p>To perform a manual rolling update, you need a running Cluster Operator and Kafka cluster.</p>
+<p>To perform a manual rolling update, you need a running Cluster Operator.
+The cluster for the component you are updating, whether it&#8217;s Kafka, Kafka Connect, MirrorMaker 2, or ZooKeeper, must also be running.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Find the name of the resource that controls the Kafka or ZooKeeper pods you want to manually update.</p>
+<p>Find the name of the resource that controls the pods you want to manually update.</p>
 <div class="paragraph">
-<p>For example, if your Kafka cluster is named <em>my-cluster</em>, the corresponding names are <em>my-cluster-kafka</em> and <em>my-cluster-zookeeper</em>.</p>
+<p>For example, if your Kafka cluster is named <em>my-cluster</em>, the corresponding names are <em>my-cluster-kafka</em> and <em>my-cluster-zookeeper</em>.
+For a Kafka Connect cluster named <em>my-connect-cluster</em>, the corresponding name is <em>my-connect-cluster-connect</em>.
+And for a MirrorMaker 2 cluster named <em>my-mm2-cluster</em>, the corresponding name is <em>my-mm2-cluster-mirrormaker2</em>.</p>
 </div>
 </li>
 <li>
@@ -36091,16 +36094,20 @@ To trigger the update, you add an annotation to the <code>StrimziPodSet</code> t
 <div class="listingblock">
 <div class="title">Annotating a StrimziPodSet</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate strimzipodset <em>&lt;cluster_name&gt;</em>-kafka strimzi.io/manual-rolling-update=true
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate strimzipodset &lt;cluster_name&gt;-kafka strimzi.io/manual-rolling-update=true
 
-kubectl annotate strimzipodset <em>&lt;cluster_name&gt;</em>-zookeeper strimzi.io/manual-rolling-update=true</code></pre>
+kubectl annotate strimzipodset &lt;cluster_name&gt;-zookeeper strimzi.io/manual-rolling-update=true
+
+kubectl annotate strimzipodset &lt;cluster_name&gt;-connect strimzi.io/manual-rolling-update=true
+
+kubectl annotate strimzipodset &lt;cluster_name&gt;-mirrormaker2 strimzi.io/manual-rolling-update=true</code></pre>
 </div>
 </div>
 </li>
 <li>
 <p>Wait for the next reconciliation to occur (every two minutes by default).
 A rolling update of all pods within the annotated resource is triggered, as long as the annotation was detected by the reconciliation process.
-When the rolling update of all the pods is complete, the annotation is removed from the resource.</p>
+When the rolling update of all the pods is complete, the annotation is automatically removed from the resource.</p>
 </li>
 </ol>
 </div>
@@ -36108,12 +36115,13 @@ When the rolling update of all the pods is complete, the annotation is removed f
 <div class="sect3">
 <h4 id="proc-manual-rolling-update-pods-str"><a class="link" href="#proc-manual-rolling-update-pods-str">25.9.2. Performing a rolling update using a pod annotation</a></h4>
 <div class="paragraph">
-<p>This procedure describes how to manually trigger a rolling update of an existing Kafka cluster or ZooKeeper cluster using a Kubernetes <code>Pod</code> annotation.
+<p>This procedure describes how to manually trigger a rolling update of existing Kafka, Kafka Connect, MirrorMaker 2, or ZooKeeper clusters using a Kubernetes <code>Pod</code> annotation.
 When multiple pods are annotated, consecutive rolling updates are performed within the same reconciliation run.</p>
 </div>
 <div class="paragraph">
 <div class="title">Prerequisites</div>
-<p>To perform a manual rolling update, you need a running Cluster Operator and Kafka cluster.</p>
+<p>To perform a manual rolling update, you need a running Cluster Operator.
+The cluster for the component you are updating, whether it&#8217;s Kafka, Kafka Connect, MirrorMaker 2, or ZooKeeper, must also be running.</p>
 </div>
 <div class="paragraph">
 <p>You can perform a rolling update on a Kafka cluster regardless of the topic replication factor used.
@@ -36154,10 +36162,12 @@ spec:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Find the name of the Kafka or ZooKeeper <code>Pod</code> you want to manually update.</p>
+<p>Find the name of the <code>Pod</code> you want to manually update.</p>
 <div class="paragraph">
 <p>For example, if your Kafka cluster is named <em>my-cluster</em>, the corresponding <code>Pod</code> names are <em>my-cluster-kafka-index</em> and <em>my-cluster-zookeeper-index</em>.
-The <em>index</em> starts at zero and ends at the total number of replicas minus one.</p>
+For a Kafka Connect cluster named <em>my-connect-cluster</em>, the corresponding <code>Pod</code> name is <em>my-connect-cluster-connect-index</em>.
+And for a MirrorMaker 2 cluster named <em>my-mm2-cluster</em>, the corresponding <code>Pod</code> name is <em>my-mm2-cluster-mirrormaker2-index</em>.
+The <em>index</em> is a number assigned to the <code>Pod</code>.</p>
 </div>
 </li>
 <li>
@@ -36167,16 +36177,20 @@ The <em>index</em> starts at zero and ends at the total number of replicas minus
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate pod <em>cluster-name</em>-kafka-<em>index</em> strimzi.io/manual-rolling-update=true
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate pod &lt;cluster_name&gt;-kafka-&lt;index_number&gt; strimzi.io/manual-rolling-update=true
 
-kubectl annotate pod <em>cluster-name</em>-zookeeper-<em>index</em> strimzi.io/manual-rolling-update=true</code></pre>
+kubectl annotate pod &lt;cluster_name&gt;-zookeeper-&lt;index_number&gt; strimzi.io/manual-rolling-update=true
+
+kubectl annotate pod &lt;cluster_name&gt;-connect-&lt;index_number&gt; strimzi.io/manual-rolling-update=true
+
+kubectl annotate pod &lt;cluster_name&gt;-mirrormaker2-&lt;index_number&gt; strimzi.io/manual-rolling-update=true</code></pre>
 </div>
 </div>
 </li>
 <li>
 <p>Wait for the next reconciliation to occur (every two minutes by default).
 A rolling update of the annotated <code>Pod</code> is triggered, as long as the annotation was detected by the reconciliation process.
-When the rolling update of a pod is complete, the annotation is removed from the <code>Pod</code>.</p>
+When the rolling update of a pod is complete, the annotation is automatically removed from the <code>Pod</code>.</p>
 </li>
 </ol>
 </div>
