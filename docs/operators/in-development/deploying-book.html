@@ -9454,7 +9454,7 @@ In practice, this means all instances form a cluster and use the same internal t
 <h4 id="proc-configuring-kafka-connect-user-authorization-str"><a class="link" href="#proc-configuring-kafka-connect-user-authorization-str">9.6.2. Configuring Kafka Connect user authorization</a></h4>
 <div class="paragraph _abstract">
 <p>When using authorization in Kafka, a Kafka Connect user requires read/write access to the cluster group and internal topics of Kafka Connect.
-This procedure outlines how access is granted using <code>simple</code> authorization.</p>
+This procedure outlines how access is granted using <code>simple</code> authorization and ACLs.</p>
 </div>
 <div class="paragraph">
 <p>Properties for the Kafka Connect cluster group ID and internal topics are configured by Strimzi by default.
@@ -9482,7 +9482,7 @@ For more information on configuring a <code>KafkaUser</code> resource to use sim
 <li>
 <p>Edit the <code>authorization</code> property in the <code>KafkaUser</code> resource to provide access rights to the user.</p>
 <div class="paragraph">
-<p>Access rights are configured for the Kafka Connect topics and cluster group using <code>literal</code> name values:
+<p>Access rights are configured for the Kafka Connect topics and cluster group using <code>literal</code> name values.
 The following table shows the default names configured for the topics and cluster group ID.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
@@ -9518,7 +9518,7 @@ The following table shows the default names configured for the topics and cluste
 </table>
 <div class="paragraph">
 <p>In this example configuration, the default names are used to specify access rights.
-If you are using different names for a Kafka Connect instance, use those.</p>
+If you are using different names for a Kafka Connect instance, use those names in the ACLs configuration.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example configuration for simple authorization</div>
@@ -10049,7 +10049,7 @@ spec:
   connectCluster: "my-cluster-target"
   clusters:
   - alias: "my-cluster-target"
-    config::
+    config:
       group.id: my-connect-cluster # <b class="conum">(1)</b>
       offset.storage.topic: my-connect-cluster-offsets # <b class="conum">(2)</b>
       config.storage.topic: my-connect-cluster-configs # <b class="conum">(3)</b>
@@ -10973,7 +10973,15 @@ They include examples for securing a deployment of MirrorMaker 2 using mTLS or S
 The examples specify internal listeners for connecting within a Kubernetes cluster.</p>
 </div>
 <div class="paragraph">
-<p>The examples provide the configuration for full authorization, including all the ACLs needed by MirrorMaker 2 to allow operations on the source and target Kafka clusters.</p>
+<p>The examples also provide the configuration for full authorization, including the ACLs that allow user operations on the source and target Kafka clusters.</p>
+</div>
+<div class="paragraph">
+<p>When configuring user access to source and target Kafka clusters, ACLs must grant access rights to internal MirrorMaker 2 connectors and read/write access to the cluster group and internal topics used by the underlying Kafka Connect framework in the target cluster.
+If you&#8217;ve renamed the cluster group or internal topics, such as when <a href="#con-config-kafka-connect-multiple-instances-str">configuring MirrorMaker 2 for multiple instances</a>, use those names in the ACLs configuration.</p>
+</div>
+<div class="paragraph">
+<p>Simple authorization uses ACL rules managed by the Kafka <code>AclAuthorizer</code> and <code>StandardAuthorizer</code> plugins to ensure appropriate access levels.
+For more information on configuring a <code>KafkaUser</code> resource to use simple authorization, see the <a href="./configuring.html#type-AclRule-reference" target="_blank" rel="noopener"><code>AclRule</code> schema reference</a>.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -10987,7 +10995,7 @@ The examples specify internal listeners for connecting within a Kubernetes clust
 </ul>
 </div>
 <div class="paragraph">
-<p>The procedure assumes that the source and target Kafka clusters are installed to separate namespaces
+<p>The procedure assumes that the source and target Kafka clusters are installed to separate namespaces.
 If you want to use the Topic Operator, you&#8217;ll need to do this.
 The Topic Operator only watches a single cluster in a specified namespace.</p>
 </div>
@@ -11124,9 +11132,6 @@ For example, if you used <code>tls</code> authentication and the <code>simple</c
 </li>
 <li>
 <p>Configure the ACLs needed by MirrorMaker 2 to allow operations on the source and target Kafka clusters.</p>
-<div class="paragraph">
-<p>The ACLs are used by the internal MirrorMaker connectors, and by the underlying Kafka Connect framework.</p>
-</div>
 </li>
 </ol>
 </div>
@@ -11194,12 +11199,13 @@ spec:
   authorization:
     type: simple
     acls:
-      # Underlying Kafka Connect internal topics to store configuration, offsets, or status
+      # cluster group
       - resource:
           type: group
           name: mirrormaker2-cluster
         operations:
           - Read
+      # access to config.storage.topic
       - resource:
           type: topic
           name: mirrormaker2-cluster-configs
@@ -11209,6 +11215,7 @@ spec:
           - DescribeConfigs
           - Read
           - Write
+      # access to status.storage.topic
       - resource:
           type: topic
           name: mirrormaker2-cluster-status
@@ -11218,6 +11225,7 @@ spec:
           - DescribeConfigs
           - Read
           - Write
+      # access to offset.storage.topic
       - resource:
           type: topic
           name: mirrormaker2-cluster-offsets
