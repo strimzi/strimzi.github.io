@@ -137,7 +137,7 @@ We'll specify the minimal configuration properties required for a consumer insta
 * `BOOTSTRAP_SERVERS_CONFIG` for connection to the Kafka brokers. This picks up the value of the `BOOTSTRAP_SERVERS` constant.
 * `CLIENT_ID_CONFIG` that uses a randomly generated UUID as a client ID for tracking the source of requests.
 * `ENABLE_AUTO_COMMIT_CONFIG` to disable automatic offset committing by Kafka. We will control offset commits in our application.
-* `AUTO_OFFSET_RESET_CONFIG` to define the starting point for consuming messages when no committed offset is found for a partition.  
+* `AUTO_OFFSET_RESET_CONFIG` to define the starting point for consuming messages when no committed offset is found for the configured group ID and assigned partition.  
 * `KEY_DESERIALIZER_CLASS_CONFIG` and `VALUE_DESERIALIZER_CLASS_CONFIG` to specify deserializers that transform message keys and values into a suitable format. 
 In this case, we'll specify the `ByteArrayDeserializer` because it simply represents the keys and values as bytes without further transformation.
 
@@ -169,11 +169,12 @@ We'll also include methods that help with these operations:
 **`onPartitionsAssigned` method**
 
 - Provides information about the partitions assigned to the consumer.
+- Messages are not consumed during partition assignment. However, constantly slow or failed assignments could indicate cluster or network issues. 
 
 **`onPartitionsRevoked` method**
 
 - Provides information about the partitions the consumer is about to lose during a rebalance.
-- Commits any pending offsets.
+- Gives you the opportunity to commit pending offsets before the rebalance occurs.
 
 **`onPartitionsLost` method**
 
@@ -183,7 +184,7 @@ We'll also include methods that help with these operations:
 **`onComplete` method**
 
 - Provides feedback on the outcome of offset commits.
-- Prints an error message on offset commit failures. Appropriate action is taken based on whether it's a retriable or non-retriable error. If the error is retriable, the offset committing process continues. If the error is non-retriable, a stack trace is printed and the consumer is terminated.
+- Prints an error message on offset commit failures. If a non-retriable error occurs, a stack trace is printed, and the application exits. Non-retriable errors indicate issues like insufficient processing resources or network partitions, which might lead to the application being pushed out of the consumer group.
 
 With the imported libraries, our constants, and these configuration properties and methods, the consumer application can do all we set out to do.
 
@@ -222,7 +223,7 @@ public class Consumer implements ConsumerRebalanceListener, OffsetCommitCallback
     private static final long POLL_TIMEOUT_MS = 1_000L;
     private static final String TOPIC_NAME = "my-topic";
     private static final long NUM_MESSAGES = 50;
-    private static final long PROCESSING_DELAY_MS = 1000L;
+    private static final long PROCESSING_DELAY_MS = 1_000L;
 
     private KafkaConsumer<Long, byte[]> kafkaConsumer;
     protected AtomicLong messageCount = new AtomicLong(0);
@@ -404,7 +405,7 @@ While a single-partition topic allows only one consumer instance, you can levera
 When processing messages for specific entities (like users), you can use the ID (like user ID) as the message key and direct all messages to a single partition.
 This way, you can maintain message ordering for events specific to individual entities. 
 If a new entity is created, you can create a new topic and migrate its data.
-3. Offset policy: Setting the appropriate offset policy ensures that the consumer consumes messages from the desired starting point and handles message processing accordingly. The default Kafka reset value is `latest`, which starts at the end of the partition, and consequently means some messages might be missed, depending on the consumer's behavior and the state of the partition. In our consumer configuration, to avoid data loss, we set `AUTO_OFFSET_RESET_CONFIG` to `earliest` to start at the beginning of the partition when no committed offset is found for a partition, such as when the consumer is consuming from the partition for the first time.
+1. Offset reset policy: Setting the appropriate offset policy ensures that the consumer consumes messages from the desired starting point and handles message processing accordingly. The default Kafka reset value is `latest`, which starts at the end of the partition, and consequently means some messages might be missed, depending on the consumer's behavior and the state of the partition. In our consumer configuration, we set `AUTO_OFFSET_RESET_CONFIG` to earliest. This ensures that when connecting with a new `group.id`, we can retrieve all messages from the beginning of the log.
 
 You might also want to explore how to expand and improve on other aspects of your client through configuration.
 
@@ -416,10 +417,10 @@ If you're not familiar with the process of implementing security, we summarized 
 
 **Avoiding data loss or duplication** 
 
-As mentioned, we use `earliest` as our offset reset policy to avoid the potential for data loss by sticking with the `latest` default.
+As mentioned, we use `earliest` as our offset reset policy instead of the `latest` default so that a new consumer retrieves all available messages from the beginning of the log.
 
 We also disable the default Kafka capability to commit offsets automatically.
-The Kafka auto-commit mechanism is convenient but introduces a risk of data loss and duplication. 
+The Kafka auto-commit mechanism is convenient but introduces a risk of skipping data and duplication. 
 To disable the auto-commit mechanism, we set `ENABLE_AUTO_COMMIT_CONFIG` to `false`. 
 Instead, we use a combination of the `commitAsync` and `commitSync` APIs to manage offset commits within the application.
 
@@ -450,7 +451,7 @@ The consumer application uses the `onPartitionsRevoked` method so that pending o
 To further reduce potential disruptions caused by rebalances, you can use the `group.instance.id` to assign a unique identifier to each consumer instance within the consumer group (as specified by `GROUP_ID` in our consumer).
 This approach minimizes unnecessary partition rebalancing when a consumer rejoins a group after a failure or restart. The consumer continues with the same instance ID and maintains its assignment of topic partitions.
 
-Additionally, the `max.poll.interval.ms` property helps to prevent rebalances caused by long-running processing tasks by specifying the maximum interval between polls for new messages. 
+Additionally, adjusting the `max.poll.interval.ms` configuration can prevent rebalances caused by prolonged processing tasks, allowing you to specify the maximum interval between polls for new messages. If lengthy message processing is unavoidable due to factors such as slow external services, consider offloading this processing to a pool of worker threads. 
 Similarly `max.poll.records` limits the number of records returned from the consumer buffer, allowing the consumer application to process fewer messages more efficiently.
 
 ## Get the message
