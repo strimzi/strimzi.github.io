@@ -781,7 +781,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#con-config-openshift-security-providers-str">15.4. Handling of security context by Kubernetes platform</a></li>
 </ul>
 </li>
-<li><a href="#con-scaling-kafka-clusters-str">16. Scaling clusters by adding or removing brokers</a></li>
+<li><a href="#con-scaling-kafka-clusters-str">16. Scaling clusters by adding or removing brokers</a>
+<ul class="sectlevel2">
+<li><a href="#con-skipping-scale-down-checks-str">16.1. Skipping checks on scale-down operations</a></li>
+</ul>
+</li>
 <li><a href="#cruise-control-concepts-str">17. Rebalancing clusters using Cruise Control</a>
 <ul class="sectlevel2">
 <li><a href="#con-cruise-control-overview-str">17.1. Cruise Control components and features</a></li>
@@ -25649,6 +25653,44 @@ You can use Cruise Control&#8217;s <code>add-brokers</code> and <code>remove-bro
 </li>
 </ul>
 </div>
+<div class="sect2">
+<h3 id="con-skipping-scale-down-checks-str"><a class="link" href="#con-skipping-scale-down-checks-str">16.1. Skipping checks on scale-down operations</a></h3>
+<div class="paragraph _abstract">
+<p>By default, Strimzi performs a check to ensure that there are no partition replicas on a broker before initiating a scale-down operation on a Kafka cluster.
+If replicas are found, cluster operations are blocked to prevent potential data loss.
+To resume cluster operations, no replicas must be left on the broker before trying to scale it down again.</p>
+</div>
+<div class="paragraph">
+<p>However, there may be scenarios where you want to bypass this blocking mechanism.
+Disabling the check might be necessary on busy clusters, for example, because new topics keep generating replicas for the broker.
+This situation can indefinitely block cluster operations, even when brokers are nearly empty.
+Overriding the blocking mechanism in this way has an impact:
+the presence of topics on the broker being scaled down will likely cause a reconciliation failure for the Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>You can bypass the blocking mechanism by annotating the <code>Kafka</code> resource for the Kafka cluster.
+Annotate the resource by setting the <code>strimzi.io/skip-broker-scaledown-check</code> annotation to <code>true</code>:</p>
+</div>
+<div class="listingblock">
+<div class="title">Adding the annotation to skip checks on scale-down operations</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate Kafka my-kafka-cluster strimzi.io/skip-broker-scaledown-check="true"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This annotation instructs Strimzi to skip the scale-down check.
+Replace <code>my-kafka-cluster</code> with the name of your specific <code>Kafka</code> resource.</p>
+</div>
+<div class="paragraph">
+<p>To restore the check for scale-down operations, remove the annotation:</p>
+</div>
+<div class="listingblock">
+<div class="title">Removing the annotation to skip checks on scale-down operations</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate Kafka my-kafka-cluster strimzi.io/skip-broker-scaledown-check-</code></pre>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -37587,7 +37629,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-09-30 11:42:01 UTC
+Last updated 2023-09-30 13:03:47 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
