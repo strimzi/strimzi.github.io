@@ -393,3 +393,8 @@ We've covered the essential steps, illustrated with an example that highlights a
 Remember, while connectivity is fundamental for client applications, the key to a successful producer client lies in its ability to effectively send messages using mechanisms like batching and by making use of efficient partitioning strategies within the Kafka cluster.
 The possibilities for developing a producer application are vast and entirely dependent on your specific needs.
 Go on, try the example and see where it takes you.
+
+**RELATED POSTS**
+
+* [Developing Kafka client applications: A simple consumer](https://strimzi.io/blog/2023/10/11/kafka-consumer-client-essentials/)
+* [Optimizing Kafka producers](https://strimzi.io/blog/2020/10/15/producer-tuning/)

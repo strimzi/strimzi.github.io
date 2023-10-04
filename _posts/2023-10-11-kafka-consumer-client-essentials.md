@@ -1,11 +1,11 @@
 ---
 layout: post
 title: "Developing Kafka client applications: A simple consumer"
-date: 2023-10-02
+date: 2023-10-11
 author: paul_mellor
 ---
 
-In our previous blog post, we looked at creating a simple [Kafka producer application](https://strimzi.io/blog/2023/09/25/kafka-producer-client-essentials/), allowing you to send messages to a Strimzi-managed Kafka cluster. 
+In our previous blog post, we looked at creating a simple [Kafka producer application](https://strimzi.io/blog/2023/10/03/kafka-producer-client-essentials/), allowing you to send messages to a Strimzi-managed Kafka cluster. 
 Now, let's pivot to the receiving end.
 Kafka consumers subscribe to topics and read messages according to topic, partition and offset.
 As such, they play a vital role in extracting valuable information from the data streamed by producers, supporting event-driven applications and real-time analytics.
@@ -144,7 +144,7 @@ In this case, we'll specify the `ByteArrayDeserializer` because it simply repres
 > Using the earliest offset behavior avoids messages being lost when the offsets retention period (`offsets.retention.minutes`) configured for a broker has ended.
 
 Producers and consumers can use different serializers and deserializers as long as the consumer's deserializer is capable of correctly interpreting the serialized data produced by the producer's serializer.
-In our [producer example](https://strimzi.io/blog/2023/09/25/kafka-producer-client-essentials/), messages are generated as random byte arrays, which serve as the content of the messages sent to the Kafka cluster. Given this format, it makes sense to choose the `ByteArrayDeserializer` for deserialization.  
+In our [producer example](https://strimzi.io/blog/2023/10/03/kafka-producer-client-essentials/), messages are generated as random byte arrays, which serve as the content of the messages sent to the Kafka cluster. Given this format, it makes sense to choose the `ByteArrayDeserializer` for deserialization.  
 
 We'll also include methods that help with these operations:
 
@@ -405,15 +405,30 @@ While a single-partition topic allows only one consumer instance, you can levera
 When processing messages for specific entities (like users), you can use the ID (like user ID) as the message key and direct all messages to a single partition.
 This way, you can maintain message ordering for events specific to individual entities. 
 If a new entity is created, you can create a new topic and migrate its data.
-1. Offset reset policy: Setting the appropriate offset policy ensures that the consumer consumes messages from the desired starting point and handles message processing accordingly. The default Kafka reset value is `latest`, which starts at the end of the partition, and consequently means some messages might be missed, depending on the consumer's behavior and the state of the partition. In our consumer configuration, we set `AUTO_OFFSET_RESET_CONFIG` to earliest. This ensures that when connecting with a new `group.id`, we can retrieve all messages from the beginning of the log.
+3. Offset reset policy: Setting the appropriate offset policy ensures that the consumer consumes messages from the desired starting point and handles message processing accordingly. The default Kafka reset value is `latest`, which starts at the end of the partition, and consequently means some messages might be missed, depending on the consumer's behavior and the state of the partition. In our consumer configuration, we set `AUTO_OFFSET_RESET_CONFIG` to earliest. This ensures that when connecting with a new `group.id`, we can retrieve all messages from the beginning of the log.
 
 You might also want to explore how to expand and improve on other aspects of your client through configuration.
+
+**Choosing the right partition assignment strategy**
+
+Select an appropriate partition assignment strategy, which determines how Kafka topic partitions are distributed among consumer instances in a group.
+
+Specify the strategy using the `partition.assignment.strategy` consumer configuration property. 
+The **range** assignment strategy assigns a range of partitions to each consumer, and is useful when you want to process related data together. 
+
+Alternatively, opt for a **round robin** assignment strategy for equal partition distribution among consumers, which is ideal for high-throughput scenarios requiring parallel processing.
+
+For more stable partition assignments, consider the **sticky** and **cooperative sticky** strategies. 
+Sticky strategies maintain assigned partitions during rebalances, when possible.
+The cooperative sticky strategy also supports cooperative rebalances, enabling uninterrupted consumption from partitions that are not reassigned.
+
+If none of the available strategies suit your data, you can create a custom strategy tailored to your specific requirements.
 
 **Implementing security**
 
 Ensure a secure connection when connecting to your Kafka cluster by implementing security measures for authentication, encryption, and authorization. In Strimzi, this process involves configuring listeners and user accounts.
 
-If you're not familiar with the process of implementing security, we summarized it in the post for the [example producer client](https://strimzi.io/blog/2023/09/25/kafka-producer-client-essentials/).
+If you're not familiar with the process of implementing security, we summarized it in the post for the [example producer client](https://strimzi.io/blog/2023/10/03/kafka-producer-client-essentials/).
 
 **Avoiding data loss or duplication** 
 
@@ -461,5 +476,10 @@ In this blog post, we've explored the essentials of creating Kafka consumer appl
 A successful consumer client is all about effectively receiving and processing data from Kafka topics. Just like with producers, the effectiveness of your consumer application depends on your specific use case and requirements, as well as the quality of the data provided by producers.
 
 Kafka's architecture and features make it a powerful platform for end-to-end data streaming. 
-We hope the example [producer application](https://strimzi.io/blog/2023/09/25/kafka-producer-client-essentials/) and consumer application we've discussed in these posts have provided you with valuable insights into building a robust data pipeline for your real-time applications. 
+We hope the example [producer application](https://strimzi.io/blog/2023/10/03/kafka-producer-client-essentials/) and consumer application we've discussed in these posts have provided you with valuable insights into building a robust data pipeline for your real-time applications. 
 Give them a try and see how they can unlock the full potential of Kafka for your data streaming needs.
+
+**RELATED POSTS**
+
+* [Developing Kafka client applications: A simple producer](https://strimzi.io/blog/2023/10/03/kafka-producer-client-essentials/)
+* [Optimizing Kafka consumers](https://strimzi.io/blog/2021/01/07/consumer-tuning/)
