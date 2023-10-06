@@ -305,3 +305,8 @@ You should consider fine-tuning as part of a continual optimization process. Mon
 Next time we'll look at how you can optimize your consumers.
 
 Be sure to check back for the next installment.
+
+**RELATED POSTS**
+
+* [Developing Kafka client applications: A simple producer](https://strimzi.io/blog/2023/10/03/kafka-producer-client-essentials/)
+* [Optimizing Kafka consumers](https://strimzi.io/blog/2021/01/07/consumer-tuning/)

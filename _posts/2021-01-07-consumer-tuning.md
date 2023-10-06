@@ -299,3 +299,8 @@ max.poll.records=500
 ### Changing your consumer habits
 
 So that was a brief run through some of the most frequently used configuration options. Any strategy you choose to adopt will always have to take into account the other _moving parts_ -- the intended functionality of your consumer client application, the broker architecture, and the producer configuration. For example, if you are not using transactional producers, then there's no point in setting the `isolation.level` property. But it is unlikely that there's nothing you can do to make your consumers run better. And the consumer configuration options are available exactly for that reason.
+
+**RELATED POSTS**
+
+* [Developing Kafka client applications: A simple consumer](https://strimzi.io/blog/2023/10/11/kafka-consumer-client-essentials/)
+* [Optimizing Kafka producers](https://strimzi.io/blog/2020/10/15/producer-tuning/)
