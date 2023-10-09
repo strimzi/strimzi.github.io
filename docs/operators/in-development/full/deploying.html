@@ -32781,9 +32781,9 @@ which multiplies the maximum bandwidth of the link (in bytes/s) with the round-t
 <h4 id="managing_kafka_logs_with_delete_and_compact_policies"><a class="link" href="#managing_kafka_logs_with_delete_and_compact_policies">24.3.6. Managing Kafka logs with delete and compact policies</a></h4>
 <div class="paragraph">
 <p>Kafka relies on logs to store message data.
-Logs consist of a series of segments, each associated with offset-based and timestamp-based indexes.
+A log consists of a series of segments, where each segment is associated with offset-based and timestamp-based indexes.
 New messages are written to an <em>active</em> segment and are never subsequently modified.
-When serving fetch requests from consumers, segments are read.
+When serving fetch requests from consumers, the segments are read.
 Periodically, the active segment is <em>rolled</em> to become read-only, and a new active segment is created to replace it.
 There is only one active segment per topic-partition per broker.
 Older segments are retained until they become eligible for deletion.</p>
@@ -32821,13 +32821,13 @@ log.cleaner.enable=true
 <dl>
 <dt class="hdlist1">Delete cleanup policy</dt>
 <dd>
-<p>Delete policy is the default cluster-wide policy for all topics.
+<p>Delete cleanup policy is the default cluster-wide policy for all topics.
 The policy is applied to topics that do not have a specific topic-level policy configured.
 Kafka removes older segments based on time-based or size-based log retention limits.</p>
 </dd>
 <dt class="hdlist1">Compact cleanup policy</dt>
 <dd>
-<p>Compact policy is generally configured as a topic-level policy (<code>cleanup.policy=compact</code>).
+<p>Compact cleanup policy is generally configured as a topic-level policy (<code>cleanup.policy=compact</code>).
 Kafka&#8217;s log cleaner applies compaction on specific topics, retaining only the most recent value for a key in the topic.
 You can also configure topics to use both policies (<code>cleanup.policy=compact,delete</code>).</p>
 </dd>
@@ -32835,13 +32835,13 @@ You can also configure topics to use both policies (<code>cleanup.policy=compact
 </div>
 <div class="paragraph">
 <div class="title">Setting up retention limits for the delete policy</div>
-<p>The delete policy corresponds to managing logs with data retention policies.
+<p>Delete cleanup policy corresponds to managing logs with data retention.
 The policy is suitable when data does not need to be retained forever.
 You can establish time-based or size-based log retention and cleanup policies to keep logs bounded.</p>
 </div>
 <div class="paragraph">
 <p>When log retention policies are employed, non-active log segments are removed when retention limits are reached.
-This deletion of old segments helps prevent exceeding disk capacity.</p>
+Deletion of old segments helps to prevent exceeding disk capacity.</p>
 </div>
 <div class="paragraph">
 <p>For time-based log retention, you set a retention period based on hours, minutes, or milliseconds:</p>
@@ -32917,7 +32917,8 @@ The frequency of cleanup should be often enough to manage the disk space but not
 </div>
 <div class="paragraph">
 <div class="title">Retaining the most recent messages using compact policy</div>
-<p>The compact policy guarantees that the most recent message for each message key is retained.
+<p>When you enable log compaction for a topic by setting <code>cleanup.policy=compact</code>, Kafka uses the log cleaner as a background thread to perform the compaction.
+The compact policy guarantees that the most recent message for each message key is retained, effectively cleaning up older versions of records.
 The policy is suitable when message values are changeable, and you want to retain the latest update.</p>
 </div>
 <div class="paragraph">
@@ -32930,10 +32931,10 @@ To use compaction, you must have keys to identify related messages because Kafka
 <div class="content">
 <img src="images/tuning/broker-tuning-compaction-before.png" alt="Image of compaction showing key value writes">
 </div>
-<div class="title">Figure 5. Log Showing Key Value Writes with Offset Positions Before Compaction</div>
+<div class="title">Figure 5. Log showing key value writes with offset positions before compaction</div>
 </div>
 <div class="paragraph">
-<p>Using keys to identify messages, Kafka compaction keeps the latest message (with the highest offset) for a specific message key, eventually discarding earlier messages that have the same key.
+<p>Using keys to identify messages, Kafka compaction keeps the latest message (with the highest offset) that is present in the log tail for a specific message key, eventually discarding earlier messages that have the same key.
 The message in its latest state is always available, and any out-of-date records of that particular message are eventually removed when the log cleaner runs.
 You can restore a message back to a previous state.
 Records retain their original offsets even when surrounding records get deleted.
@@ -32944,22 +32945,10 @@ When consuming an offset that&#8217;s no longer available in the tail, the recor
 <div class="content">
 <img src="images/tuning/broker-tuning-compaction-after.png" alt="Image of compaction after log cleanup">
 </div>
-<div class="title">Figure 6. Log After Compaction</div>
+<div class="title">Figure 6. Log after compaction</div>
 </div>
 <div class="paragraph">
-<p>If you choose only a compact policy, your log can still become arbitrarily large.
-In such cases, you can set the policy to compact and delete logs.
-With this approach, log data is first compacted, removing records with a key in the head of the log.
-Afterward, data that falls before the log retention threshold is deleted.</p>
-</div>
-<div class="imageblock">
-<div class="content">
-<img src="images/tuning/broker-tuning-compaction-retention.png" alt="Image of compaction with retention point">
-</div>
-<div class="title">Figure 7. Log Retention Point and Compaction Point</div>
-</div>
-<div class="paragraph">
-<p>You can set a period in milliseconds to retain deleted data before it is purged:</p>
+<p>If appropriate, you can add a delay to the compaction process:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -32973,9 +32962,9 @@ log.cleaner.delete.retention.ms=86400000
 </div>
 <div class="paragraph">
 <p>To delete all messages related to a specific key, a producer can send a <em>tombstone</em> message.
-A <em>tombstone</em> has a null value and acts as a marker to tell a consumer the value is deleted.
-After compaction, only the tombstone is retained, which must be for a long enough period for the consumer to know that the message is deleted.
-When older messages are deleted, having no value, the tombstone key is also deleted from the partition.</p>
+A tombstone has a null value and acts as a marker to inform consumers that the corresponding message for that key has been deleted.
+After some time, only the tombstone marker is retained.
+Assuming new messages continue to come in, the marker is retained for a duration specified by <code>log.cleaner.delete.retention.ms</code> to allow consumers enough time to recognize the deletion.</p>
 </div>
 <div class="paragraph">
 <p>You can also set a time in milliseconds to put the cleaner on standby if there are no logs to clean:</p>
@@ -32986,6 +32975,24 @@ When older messages are deleted, having no value, the tombstone key is also dele
 log.cleaner.backoff.ms=15000
 # ...</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<div class="title">Using combined compact and delete policies</div>
+<p>If you choose only a compact policy, your log can still become arbitrarily large.
+In such cases, you can set the cleanup policy for a topic to compact and delete logs.
+Kafka applies log compaction, removing older versions of records and retaining only the latest version of each key.
+Kafka also deletes records based on the specified time-based or size-based log retention settings.</p>
+</div>
+<div class="paragraph">
+<p>For example, in the following diagram only the latest message (with the highest offset) for a specific message key is retained up to the compaction point.
+If there are any records remaining up to the retention point they are deleted.
+In this case, the compaction process would remove all duplicates.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/tuning/broker-tuning-compaction-retention.png" alt="Image of compaction with retention point">
+</div>
+<div class="title">Figure 7. Log retention point and compaction point</div>
 </div>
 </div>
 <div class="sect3">
@@ -37198,7 +37205,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-10-09 12:16:29 UTC
+Last updated 2023-10-09 14:23:29 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
