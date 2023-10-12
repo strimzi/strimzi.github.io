@@ -225,11 +225,9 @@
 <li><a href="#ref-topic-replication-str">10.5. Configuring topics for replication and number of partitions</a></li>
 <li><a href="#proc-converting-managed-topics-str">10.6. (Preview) Managing KafkaTopic resources without impacting Kafka topics</a></li>
 <li><a href="#proc-converting-non-managed-topics-str">10.7. (Preview) Enabling topic management for existing Kafka topics</a></li>
-<li><a href="#con-deleting-managed-topics-str">10.8. (Preview) Deleting managed topics</a>
-<ul class="sectlevel3">
-<li><a href="#removing_finalizers">10.8.1. Removing finalizers</a></li>
-</ul>
-</li>
+<li><a href="#con-deleting-managed-topics-str">10.8. (Preview) Deleting managed topics</a></li>
+<li><a href="#con-changing-topic-operator-mode-str">10.9. (Preview) Switching between Topic Operator modes</a></li>
+<li><a href="#con-removing-topic-finalizers-str">10.10. (Preview) Removing finalizers on topics</a></li>
 </ul>
 </li>
 <li><a href="#assembly-using-the-user-operator-str">11. Using the User Operator to manage Kafka users</a>
@@ -15111,12 +15109,56 @@ If the deletion fails, it is shown in the status of the resource.</p>
 <div class="paragraph">
 <p>Finalizers also serve to prevent related resources from being deleted.
 If the unidirectional Topic Operator is not running, it won&#8217;t be able to remove its finalizer from the <code>metadata.finalizers</code>.
-And any attempt to directly delete the <code>KafkaTopic</code> resources or the namespace will fail or timeout, leaving the namespace in a stuck terminating state.</p>
+And any attempt to directly delete the <code>KafkaTopic</code> resources or the namespace will fail or timeout, leaving the namespace in a stuck terminating state.
+If this happens, you can bypass the finalization process by <a href="#con-removing-topic-finalizers-str">removing the finalizers on topics</a>.</p>
 </div>
-<div class="sect3">
-<h4 id="removing_finalizers"><a class="link" href="#removing_finalizers">10.8.1. Removing finalizers</a></h4>
+</div>
+<div class="sect2">
+<h3 id="con-changing-topic-operator-mode-str"><a class="link" href="#con-changing-topic-operator-mode-str">10.9. (Preview) Switching between Topic Operator modes</a></h3>
+<div class="paragraph _abstract">
+<p>You can switch between topic management modes when upgrading or downgrading Strimzi, or when using the same version of Strimzi, as long as the mode is supported for that version.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>To switch from the default bidirectional mode to unidirectional mode, <a href="#ref-operator-unidirectional-topic-operator-feature-gate-str">enable the <code>UnidirectionalTopicOperator</code> feature gate</a>.</p>
+</li>
+<li>
+<p>To switch from unidirectional mode to bidirectional mode, check whether finalizers are being used to control topic deletion. If <code>KafkaTopic</code> resources are using finalizers, ensure that you do one of the following  before making the switch:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#con-removing-topic-finalizers-str">Remove all finalizers from topics</a>.</p>
+</li>
+<li>
+<p>Disable the finalizers by setting the <code>STRIMZI_USE_FINALIZERS</code> environment variable to <code>false</code> in the Topic Operator <code>env</code> configuration.</p>
+<div class="listingblock">
+<div class="title">Disabling the topic finalizers</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># ...
+env:
+  - name: STRIMZI_USE_FINALIZERS
+    value: "false"</code></pre>
+</div>
+</div>
 <div class="paragraph">
-<p>If the Topic Operator is not running, and you want to bypass the finalization process when deleting topics, you have to remove the finalizers.
+<p>Use the same configuration for a Topic Operator running in a Strimzi-managed cluster or as a standalone deployment.</p>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The Topic Operator does not use finalizers in bidirectional mode.
+If they are retained after making the switch from unidirectional mode, you won&#8217;t be able to delete <code>KafkaTopic</code> and related resources.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="con-removing-topic-finalizers-str"><a class="link" href="#con-removing-topic-finalizers-str">10.10. (Preview) Removing finalizers on topics</a></h3>
+<div class="paragraph _abstract">
+<p>If the unidirectional Topic Operator is not running, and you want to bypass the finalization process when deleting managed topics, you have to remove the finalizers.
 You can do this manually by editing the resources directly or by using a command.</p>
 </div>
 <div class="paragraph">
@@ -15149,12 +15191,11 @@ Alternatively, if the topics were already being deleted but were blocked due to 
 <div class="title">Warning</div>
 </td>
 <td class="content">
-Be careful when removing finalizers, as any cleanup operations associated with the finalization process are not performed.
+Be careful when removing finalizers, as any cleanup operations associated with the finalization process are not performed if the Topic Operator is not running.
 For example, if you remove the finalizer from a <code>KafkaTopic</code> resource and subsequently delete the resource, the related Kafka topic won&#8217;t be deleted.
 </td>
 </tr>
 </table>
-</div>
 </div>
 </div>
 </div>
