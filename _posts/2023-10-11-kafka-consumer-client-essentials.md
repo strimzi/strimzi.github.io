@@ -288,7 +288,7 @@ public class Consumer implements ConsumerRebalanceListener, OffsetCommitCallback
         // Set a unique client ID for tracking
         props.put(ConsumerConfig.CLIENT_ID_CONFIG, "client-" + UUID.randomUUID());
 
-        //Set a consumer group ID for the consumer
+        // Set a consumer group ID for the consumer
         props.put(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID);
 
          // Configure deserializers for keys and values
@@ -298,7 +298,7 @@ public class Consumer implements ConsumerRebalanceListener, OffsetCommitCallback
         // Disable automatic offset committing
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
 
-        //Set the offset reset behavior to start consuming from the earliest available offset
+        // Set the offset reset behavior to start consuming from the earliest available offset
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         return new KafkaConsumer<>(props);
     }
@@ -448,7 +448,7 @@ By using the `commitSync` API, the consumer application will not poll for new me
 
 Kafka provides mechanisms to detect and recover from failures within consumer groups. Two useful properties that aid in this recovery process are `session.timeout.ms` and `heartbeat.interval.ms`.
 
-The `session.timeout.ms` property specifies the maximum amount of time a consumer in a group can go without sending a _heartbeat_ to the Kafka broker. 
+The `session.timeout.ms` property specifies the maximum amount of time that can elapse before a consumer in a group must send a heartbeat to the Kafka broker.
 This heartbeat is an indicator that the consumer is active in the group. 
 If a consumer fails to send a heartbeat within the specified session timeout, Kafka considers it as a failure, and the consumer is marked as inactive.
 A consumer marked as inactive triggers a rebalancing of the partitions for the topic.
