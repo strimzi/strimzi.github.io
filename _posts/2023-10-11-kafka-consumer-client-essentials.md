@@ -7,8 +7,8 @@ author: paul_mellor
 
 In our previous blog post, we looked at creating a simple [Kafka producer application](https://strimzi.io/blog/2023/10/03/kafka-producer-client-essentials/), allowing you to send messages to a Strimzi-managed Kafka cluster. 
 Now, let's pivot to the receiving end.
-Kafka consumers subscribe to topics and read messages according to topic, partition and offset.
-As such, they play a vital role in extracting valuable information from the data streamed by producers, supporting event-driven applications and real-time analytics.
+Kafka consumers subscribe to topics and read messages from producers based on topics, partitions, and offsets. 
+The data read by consumers can then be leveraged to support event-driven applications and real-time analytics.
 
 In this follow-up post, we'll look at developing a Kafka consumer application that can be used with our producer application. 
 As with the post on creating a producer application, our focus is on Java. 
@@ -31,11 +31,9 @@ Let's break down the essential steps to get started:
 
 3. Import the classes and dependencies that your Kafka client will need into your code.
 
-4. Tell your client how to find and connect with your Kafka cluster by specifying a list of bootstrap servers, each represented as an address and port combination, and, if required, security credentials.
+4. Configure your client to find and connect with your Kafka cluster by specifying a list of bootstrap servers, each represented as an address and port combination, and, if required, security credentials.
 
-5. Create a Kafka Consumer instance subscribe to and fetch messages from Kafka topics. Configure the consumer with the necessary properties, such as the topics it should subscribe to.
-
-  > A client can be a Kafka consumer, producer, Streams processor, and admin.
+5. Create a Kafka Consumer instance to subscribe to and fetch messages from Kafka topics. 
 
 6. Pay attention to error handling; it's vitally important when connecting and communicating with Kafka, especially in production systems where high availability and ease of operations are valued. 
 Effective error handling is a key differentiator between a prototype and a production-grade application, and it applies not only to Kafka but also to any robust software system.
@@ -78,7 +76,7 @@ Now, let's define some customizable constants that we'll also use with the consu
 
 **BOOTSTRAP_SERVERS**
 
-The initial connection point to the Kafka cluster. 
+The initial connection points to the Kafka cluster. 
 You can specify a list of host/port pairs to establish this connection.
 For a local Kafka deployment, you might start with a value like `localhost:9092`. 
 However, when working with a Strimzi-managed Kafka cluster, you can obtain the bootstrap address from the `Kafka` custom resource status using a `kubectl` command:
@@ -94,10 +92,12 @@ In production environments, you can use a single load balancer, or a list of bro
 **GROUP_ID**
 
 The consumer group identifier.
+Consumer instances sharing the same group ID form a consumer group and share a subscription so that each partition is consumed by a single consumer instance.
 
 **POLL_TIMEOUT_MS** 
 
 The maximum time to wait for new messages during each poll.
+Polling is the process of periodically checking Kafka brokers for new messages.
 
 **TOPIC_NAME**
 
@@ -110,7 +110,7 @@ The number of messages the client consumes before it shuts down.
 **PROCESSING_DELAY_MS**
 
 This constant can simulate typical message consumption patterns, which is especially useful for testing.
-In Kafka, messages typically capture streams of events, so introducing delays can help simulate peak or average event rates.
+Introducing delays to the consumer simulates the time needed by the application to process and digest the data it has received.
 
 These constants give us some control over the consumer application's behavior.
 We can use the `NUM_MESSAGES` and `PROCESSING_DELAY_MS` values to adjust the message receiving rate.
@@ -124,7 +124,7 @@ We want our example client to operate as follows:
 * Create a Kafka consumer instance, which is responsible for receiving messages from a Kafka topic.
 * Subscribe to a specific Kafka topic (in this case, `my-topic`) to start receiving messages from it.
 * Handle partition assignment, revocation, and loss.
-* Use deserializer classes that handle the transformation of message keys and values into a format suitable for processing. 
+* Use deserializer classes that convert records from raw bytes back into the format used by the producer. The deserializer configuration has to match what was used by the producer side. 
 * Consume messages until a specified number of messages (`NUM_MESSAGES`) is reached.
 * Control the rate at which messages are consumed by introducing delays between each message using our `PROCESSING_DELAY_MS` value.
 * Commit the message offsets asynchronously to Kafka to record the progress of message consumption.
@@ -136,15 +136,13 @@ We'll specify the minimal configuration properties required for a consumer insta
 
 * `BOOTSTRAP_SERVERS_CONFIG` for connection to the Kafka brokers. This picks up the value of the `BOOTSTRAP_SERVERS` constant.
 * `CLIENT_ID_CONFIG` that uses a randomly generated UUID as a client ID for tracking the source of requests.
-* `ENABLE_AUTO_COMMIT_CONFIG` to disable automatic offset committing by Kafka. We will control offset commits in our application.
-* `AUTO_OFFSET_RESET_CONFIG` to define the starting point for consuming messages when no committed offset is found for the configured group ID and assigned partition.  
+* `ENABLE_AUTO_COMMIT_CONFIG` to toggle automatic offset committing by Kafka. We will control offset commits in our application.
+* `AUTO_OFFSET_RESET_CONFIG` to define the starting point for consuming messages when no committed offset is found for the configured group ID and assigned partition. This is hardcoded to `earliest` in our example. 
 * `KEY_DESERIALIZER_CLASS_CONFIG` and `VALUE_DESERIALIZER_CLASS_CONFIG` to specify deserializers that transform message keys and values into a suitable format. 
-In this case, we'll specify the `ByteArrayDeserializer` because it simply represents the keys and values as bytes without further transformation.
-
-> Using the earliest offset behavior avoids messages being lost when the offsets retention period (`offsets.retention.minutes`) configured for a broker has ended.
+In this case, we'll specify the `ByteArrayDeserializer` because this is what we used on the producer.
 
 Producers and consumers can use different serializers and deserializers as long as the consumer's deserializer is capable of correctly interpreting the serialized data produced by the producer's serializer.
-In our [producer example](https://strimzi.io/blog/2023/10/03/kafka-producer-client-essentials/), messages are generated as random byte arrays, which serve as the content of the messages sent to the Kafka cluster. Given this format, it makes sense to choose the `ByteArrayDeserializer` for deserialization.  
+In our [producer example](https://strimzi.io/blog/2023/10/03/kafka-producer-client-essentials/), messages are generated as random byte arrays, which serve as the content of the messages sent to the Kafka cluster. Given this format, the `ByteArrayDeserializer` is chosen for deserialization.  
 
 We'll also include methods that help with these operations:
 
@@ -161,15 +159,15 @@ We'll also include methods that help with these operations:
 - Returns `false` for null and specified exceptions, or those that do not implement the `RetriableException` interface.
 - Customizable to include other errors and implementing retry logic for business level exceptions.
 
-> By default, Kafka operates with at-least-once message delivery semantics, which means that messages can be delivered more than once in certain scenarios, potentially leading to duplicates.
-> Consider using transactional ids and enabling idempotence (`enable.idempotence=true`) on the producer side to guarantee exactly-once delivery. 
+> By default, Kafka operates with at-least-once message semantics, which means that messages can be delivered more than once in certain scenarios, potentially leading to duplicates.
+> Consider using transactional ids and enabling idempotence (`enable.idempotence=true`) on the producer side to guarantee exactly-once semantics. 
 > On the consumer side, you can then use the `isolation.level` property to control how transactional messages are read by the consumer.
 > For more information, see the [Strimzi post on transactions](https://strimzi.io/blog/2023/05/03/kafka-transactions/)
 
 **`onPartitionsAssigned` method**
 
 - Provides information about the partitions assigned to the consumer.
-- Messages are not consumed during partition assignment. However, constantly slow or failed assignments could indicate cluster or network issues. 
+- Messages are not consumed during partition assignment. If there is a delay or failure in the consumer being assigned to partitions, this can disrupt the consumption process. 
 
 **`onPartitionsRevoked` method**
 
@@ -361,7 +359,7 @@ public class Consumer implements ConsumerRebalanceListener, OffsetCommitCallback
 To put this client into action, simply run the main method in the `consumer` class. 
 The client consumes messages from the specified topic (`TOPIC_NAME`) until it reaches the predefined message count, which is 50 messages with the `NUM_MESSAGES` constant value we specified. 
 
-> The consumer is not designed to be safely accessed concurrently by multiple threads. Ensure that only one instance of the consumer application is running to maintain the expected behavior.
+> The consumer is not designed to be safely accessed concurrently by multiple threads. Ensure that only one instance of the consumer application is running on a single thread to maintain the expected behavior.
 
 ### Error handling
 
@@ -402,6 +400,7 @@ When tuning a consumer application, consider the following aspects, as they sign
 2. Message ordering: A consumer observes messages in a single partition in the same order that they were committed to the broker, which means that Kafka only provides ordering guarantees for messages in a single partition. 
 If absolute ordering within a topic is important, use a single-partition topic. 
 While a single-partition topic allows only one consumer instance, you can leverage a pool of worker threads to create a multi-threaded consumer for more efficient processing.
+Messages processed by different threads might not be in the exact order in which they were produced, so there is a trade-off between parallelism and strict ordering.
 When processing messages for specific entities (like users), you can use the ID (like user ID) as the message key and direct all messages to a single partition.
 This way, you can maintain message ordering for events specific to individual entities. 
 If a new entity is created, you can create a new topic and migrate its data.
@@ -414,7 +413,8 @@ You might also want to explore how to expand and improve on other aspects of you
 Select an appropriate partition assignment strategy, which determines how Kafka topic partitions are distributed among consumer instances in a group.
 
 Specify the strategy using the `partition.assignment.strategy` consumer configuration property. 
-The **range** assignment strategy assigns a range of partitions to each consumer, and is useful when you want to process related data together. 
+The **range** assignment strategy assigns a range of partitions to a consumer. 
+Using this strategy, you can assign partitions that store related data to the same consumer.  
 
 Alternatively, opt for a **round robin** assignment strategy for equal partition distribution among consumers, which is ideal for high-throughput scenarios requiring parallel processing.
 
@@ -467,6 +467,8 @@ To further reduce potential disruptions caused by rebalances, you can use the `g
 This approach minimizes unnecessary partition rebalancing when a consumer rejoins a group after a failure or restart. The consumer continues with the same instance ID and maintains its assignment of topic partitions.
 
 Additionally, adjusting the `max.poll.interval.ms` configuration can prevent rebalances caused by prolonged processing tasks, allowing you to specify the maximum interval between polls for new messages. If lengthy message processing is unavoidable due to factors such as slow external services, consider offloading this processing to a pool of worker threads. 
+This setting is more critical than `heartbeat.interval.ms` and `session.timeout.ms` as it relates directly to how the application is driving the consumer client.
+
 Similarly `max.poll.records` limits the number of records returned from the consumer buffer, allowing the consumer application to process fewer messages more efficiently.
 
 ## Get the message
@@ -475,7 +477,7 @@ In this blog post, we've explored the essentials of creating Kafka consumer appl
 
 A successful consumer client is all about effectively receiving and processing data from Kafka topics. Just like with producers, the effectiveness of your consumer application depends on your specific use case and requirements, as well as the quality of the data provided by producers.
 
-Kafka's architecture and features make it a powerful platform for end-to-end data streaming. 
+Kafka's architecture and features make it a powerful platform for real-time and scalable end-to-end data streaming. 
 We hope the example [producer application](https://strimzi.io/blog/2023/10/03/kafka-producer-client-essentials/) and consumer application we've discussed in these posts have provided you with valuable insights into building a robust data pipeline for your real-time applications. 
 Give them a try and see how they can unlock the full potential of Kafka for your data streaming needs.
 

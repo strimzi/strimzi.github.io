@@ -30,11 +30,9 @@ Let's break down the essential steps to get started:
 
 3. Import the classes and dependencies that your Kafka client will need into your code.
 
-4. Tell your client how to find and connect with your Kafka cluster by specifying a list of bootstrap servers, each represented as an address and port combination, and, if required, security credentials.
+4. Configure your client to find and connect with your Kafka cluster by specifying a list of bootstrap servers, each represented as an address and port combination, and, if required, security credentials.
 
 5. Create a producer instance to publish messages to Kafka topics.
-
-    > A client can be a Kafka producer, consumer, Streams processor, and admin. 
 
 6. Pay attention to error handling; it's vitally important when connecting and communicating with Kafka, especially in production systems where high availability and ease of operations are valued. 
 Effective error handling is a key differentiator between a prototype and a production-grade application, and it applies not only to Kafka but also to any robust software system.
@@ -79,7 +77,7 @@ Now, let's define some customizable constants that we'll also use with the produ
 
 **BOOTSTRAP_SERVERS**
 
-The initial connection point to the Kafka cluster. 
+The initial connection points to the Kafka cluster. 
 You can specify a list of host/port pairs to establish this connection.
 For a local Kafka deployment, you might start with a value like `localhost:9092`. 
 However, when working with a Strimzi-managed Kafka cluster, you can obtain the bootstrap address from the `Kafka` custom resource status using a `kubectl` command:
@@ -109,7 +107,8 @@ The size of each message in bytes.
 Sometimes, it's good to slow things down a bit. 
 We can use this constant to add a delay in milliseconds between sending messages. 
 Adding a delay can be useful when testing in order to simulate typical message creation patterns.
-In Kafka, messages typically capture streams of events, so introducing delays can help simulate peak or average event rates.
+In Kafka, messages typically capture streams of events.
+Introducing delays to the producer simulates peak or average event rates.
 
 These constants give us some control over the producer application's behavior.
 We can use the `NUM_MESSAGES` and `PROCESSING_DELAY_MS` values to adjust the message sending rate.
@@ -161,9 +160,9 @@ We'll also include methods that help with these operations:
 - Returns `false` for null and specified exceptions, or those that do not implement the `RetriableException` interface.
 - Customizable to include other errors and  implementing retry logic for business level exceptions.
 
-> By default, Kafka operates with at-least-once message delivery semantics, which means that messages can be delivered more than once in certain scenarios, potentially leading to duplicates. 
+> By default, Kafka operates with at-least-once message semantics, which means that messages can be delivered more than once in certain scenarios, potentially leading to duplicates. 
 > To avoid this risk, consider enabling transactions in your Kafka producer. 
-> Transactions provide stronger guarantees of exactly-once delivery. 
+> Transactions provide stronger guarantees of exactly-once semantics. 
 > Additionally, you can use the `retries` configuration property to control how many times the producer will retry sending a message before giving up. 
 > This setting affects how many times the `retriable` method may return `true` during a message send error. 
 > For more information, see the [Strimzi post on transactions](https://strimzi.io/blog/2023/05/03/kafka-transactions/) and the [Strimzi documentation on ordered delivery](https://strimzi.io/docs/operators/latest/deploying#ordered_delivery).
