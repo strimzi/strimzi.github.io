@@ -2588,27 +2588,24 @@ If you want to migrate an existing Kafka cluster to use node pools, see the <a h
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Enable the <code>KafkaNodePools</code> feature gate from the command line:</p>
+<p>If you want to use KRaft, enable the <code>UseKRaft</code> feature gate from the command line:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl set env deployment/strimzi-cluster-operator STRIMZI_FEATURE_GATES="+KafkaNodePools"</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl set env deployment/strimzi-cluster-operator STRIMZI_FEATURE_GATES="+UseKRaft"</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Or by editing the Cluster Operator Deployment and updating the <code>STRIMZI_FEATURE_GATES</code> environment variable:</p>
+<p>Or by editing the Cluster Operator <code>Deployment</code> and updating the <code>STRIMZI_FEATURE_GATES</code> environment variable:</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">env
   - name: STRIMZI_FEATURE_GATES
-    value: +KafkaNodePools</code></pre>
+    value: +UseKRaft</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>This updates the Cluster Operator.</p>
-</div>
-<div class="paragraph">
-<p>If using KRaft mode, enable the <code>UseKRaft</code> feature gate as well.</p>
 </div>
 </li>
 <li>
@@ -5692,9 +5689,9 @@ The <code>type: jbod</code> storage can be used, but the JBOD array can contain 
 </div>
 <div class="paragraph">
 <div class="title">Enabling the UseKRaft feature gate</div>
-<p>To enable the <code>UseKRaft</code> feature gate, specify <code>+UseKRaft,+KafkaNodePools</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.
+<p>To enable the <code>UseKRaft</code> feature gate, specify <code>+UseKRaft</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.
 The <code>Kafka</code> custom resource using KRaft mode must also have the annotation <code>strimzi.io/kraft: enabled</code>.
-If such annotation is set to <code>disabled</code>, missing or any other value, the operator will handle the <code>Kafka</code> custom resource as using ZooKeeper mode.</p>
+If this annotation is set to <code>disabled</code> or any other value, or if it is missing, the operator handles the <code>Kafka</code> custom resource as if it is using ZooKeeper for cluster management.</p>
 </div>
 </div>
 <div class="sect2">
@@ -5727,7 +5724,7 @@ The <code>StableConnectIdentities</code> feature gate must be disabled when down
 <div class="sect2">
 <h3 id="ref-operator-kafka-node-pools-feature-gate-str"><a class="link" href="#ref-operator-kafka-node-pools-feature-gate-str">8.6. (Preview) KafkaNodePools feature gate</a></h3>
 <div class="paragraph">
-<p>The <code>KafkaNodePools</code> feature gate has a default state of <em>disabled</em>.</p>
+<p>The <code>KafkaNodePools</code> feature gate has a default state of <em>enabled</em>.</p>
 </div>
 <div class="paragraph">
 <p>The <code>KafkaNodePools</code> feature gate introduces a new <code>KafkaNodePool</code> custom resource that enables the configuration of different <em>pools</em> of Apache Kafka nodes.</p>
@@ -5751,9 +5748,13 @@ The label must be set to the name of the <code>Kafka</code> custom resource.</p>
 <p>Examples of the <code>KafkaNodePool</code> resources can be found in the <a href="#config-examples-str">example configuration files</a> provided by Strimzi.</p>
 </div>
 <div class="paragraph">
-<div class="title">Enabling the KafkaNodePools feature gate</div>
-<p>To enable the <code>KafkaNodePools</code> feature gate, specify <code>+KafkaNodePools</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.
+<div class="title">Disabling the KafkaNodePools feature gate</div>
+<p>To disable the <code>KafkaNodePools</code> feature gate, specify <code>-KafkaNodePools</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.
 The <code>Kafka</code> custom resource using the node pools must also have the annotation <code>strimzi.io/node-pools: enabled</code>.</p>
+</div>
+<div class="paragraph">
+<div class="title">Downgrading from KafkaNodePools</div>
+<p>If your cluster already uses <code>KafkaNodePool</code> custom resources, and you wish to downgrade to an older version of Strimzi that does not support them or with the <code>KafkaNodePools</code> feature gate disabled, you must first migrate from <code>KafkaNodePool</code> custom resources to managing Kafka nodes using only <code>Kafka</code> custom resources.</p>
 </div>
 </div>
 <div class="sect2">
@@ -5817,8 +5818,8 @@ Alpha and beta stage features are removed if they do not prove to be useful.</p>
 It is expected to move to GA phase and be always enabled from Strimzi 0.39.</p>
 </li>
 <li>
-<p>The <code>KafkaNodePools</code> feature gate is in alpha stage and is disabled by default.
-It is expected to move to beta phase and be enabled by default from Strimzi 0.39.</p>
+<p>The <code>KafkaNodePools</code> feature gate is in beta stage and is enabled by default.
+It is expected to move to GA phase and be always enabled from Strimzi 0.41.</p>
 </li>
 <li>
 <p>The <code>UnidirectionalTopicOperator</code> feature gate is in alpha stage and is disabled by default.
@@ -5888,8 +5889,8 @@ Feature gates might be removed when they reach GA. This means that the feature w
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaNodePools</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0.36</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">0.39 (planned)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.39</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.41 (planned)</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>UnidirectionalTopicOperator</code></p></td>
@@ -7683,21 +7684,7 @@ Consequently, your previous data may not be available.
 </div>
 </li>
 <li>
-<p>Update the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration to include <code>+KafkaNodePools</code>.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">env:
-  - name: STRIMZI_FEATURE_GATES
-    value: +KafkaNodePools</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>After restarting, the Cluster Operator logs a warning indicating that the Kafka node pool has been added but is not yet integrated with the Cluster Operator.
-This is an expected part of the process.</p>
-</div>
-</li>
-<li>
-<p>Enable the <code>KafkaNodePools</code> feature gate in the <code>Kafka</code> resource using the <code>strimzi.io/node-pools: enabled</code> annotation.</p>
+<p>Enable the <code>KafkaNodePools</code> in the <code>Kafka</code> resource using the <code>strimzi.io/node-pools: enabled</code> annotation.</p>
 <div class="listingblock">
 <div class="title">Example configuration for a node pool in a cluster using ZooKeeper</div>
 <div class="content">
