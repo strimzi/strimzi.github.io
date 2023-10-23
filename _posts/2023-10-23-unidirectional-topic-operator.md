@@ -32,7 +32,7 @@ It will only manage Kafka topics associated with `KafkaTopic` resources, and won
 It can be deployed standalone, or along with your Kafka cluster using the `Kafka` custom resource.
 
 <figure>
-    <img src="../assets/images/posts/2023-10-23-uto-interactions.png" height=440>
+    <img src="/assets/images/posts/2023-10-23-uto-interactions.png" height=440>
     <figcaption><small>Fig 1. Unidirectional Topic Operator interactions.</small></figcaption>
 </figure>
 
@@ -65,7 +65,7 @@ The following line graph confirms the BTO scalability issue, while the UTO can s
 Using the UTO with batch size 500 and linger 1000, we were able to achieve a max reconciliation time of 5.3 seconds with 10k concurrent topic events.
 
 <figure>
-    <img src="../assets/images/posts/2023-10-23-uto-max-recon-time.png" height=350>
+    <img src="/assets/images/posts/2023-10-23-uto-max-recon-time.png" height=350>
     <figcaption><small>
         Fig 2. Line graph comparing BTO and UTO max reconciliation times.<br/>
         We used a 3-nodes cluster with default configurations, running on a local Minikube instance with 10 cores and 28 GB of memory.<br/>
