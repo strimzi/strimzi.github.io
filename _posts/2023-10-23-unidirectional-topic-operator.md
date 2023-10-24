@@ -9,7 +9,7 @@ The Topic Operator enhances Strimzi's capabilities by allowing Kafka administrat
 You can declare the desired topic state and the Topic Operator will take care of the reconciliation with the actual Kafka cluster state.
 
 The first generation of the Topic Operator is based on the Kafka Streams library, and uses ZooKeeper to gather topic metadata.
-We call it `Bidirectional Topic Operator`, as it allows to reconcile changes coming from both Kubernetes and Kafka using a three-way merge logic.
+We call it Bidirectional Topic Operator, as it allows to reconcile changes coming from both Kubernetes and Kafka using a three-way merge logic.
 In order to do this, it has to keep an internal topic store, which is the source-of-truth used to determine the necessary changes for synchronization.
 
 With time, this implementation showed a number of problems and limitations:
@@ -19,7 +19,7 @@ With time, this implementation showed a number of problems and limitations:
 3. Due to its internal complexity, there are corner cases which are still not well understood (invalid state store, topic recreation after delete)
 4. There is a race condition between the operator and concurrent external admin operations that is not properly handled.
 
-For these reasons, we decided to create a new implementation called `Unidirectional Topic Operator`.
+For these reasons, we decided to create a new implementation called Unidirectional Topic Operator.
 The new operator is fully backwards compatible, but it will only reconcile topic changes in one direction, from Kubernetes to Kafka.
 Your custom resources will be the source-of-truth, like with the other operators.
 
@@ -69,11 +69,11 @@ The operator communicates with the Kafka cluster and ensures that the specified 
 It can be deployed standalone, or along with your Kafka cluster using the `Kafka` custom resource.
 
 The first generation of the Topic Operator is based on the Kafka Streams library, and uses ZooKeeper to gather topic metadata.
-We call it `Bidirectional Topic Operator (BTO)`, as it allows to reconcile changes coming from both Kubernetes and Kafka using a three-way merge logic.
+We call it **Bidirectional Topic Operator (BTO)**, as it allows to reconcile changes coming from both Kubernetes and Kafka using a three-way merge logic.
 In order to do this, it has to keep an internal topic store, which is the source-of-truth used to determine the necessary changes for synchronization.
 If the Kafka-side configuration is changed out-of-band (e.g. by using the Admin client, or Kafka shell scripts), those changes will eventually be reverted.
 
-The new generation of the Topic Operator is called `Unidirectional Topic Opeator (UTO)`.
+The new generation of the Topic Operator is called **Unidirectional Topic Operator (UTO)**.
 The UTO improves on scalability and maintenance, but also provides support for Kafka clusters running in KRaft mode.
 It is fully backwards compatible with the BTO, but it will only reconcile topic events in one direction, from Kubernetes to Kafka.
 Your `KafkaTopic` custom resources will be the source-of-truth, like with all the other operators.
@@ -98,7 +98,7 @@ In terms of requirements, the UTO assumes the following grants:
 - list partition reassignments
 - describe broker configs
 
-### Scalability
+#### Scalability
 
 The BTO is limited in terms of scalability, as it only operates on one topic at a time, and it has to update a persistent store containing topic metadata.
 Instead, the UTO does not store topic metadata and it aims to be scalable in terms of the number of topics that it can operate on.
@@ -125,7 +125,7 @@ In another UTO test, we set max queue size to `MAX_INT`, max batch size to 200, 
 With these settings, we were able to achieve a max reconciliation time of 2.5 seconds with 10k concurrent topic events.
 This translates to 3325 new `KafkaTopic` custom resources to become ready in about 2 minutes and 40 seconds.
 
-### Race condition
+#### Race condition
 
 There is a known race condition happening when the operator and an external application try to change a topic configuration concurrently in Kafka.
 For example, it could be a GitOps pipeline creating the `KafkaTopic` resource while the application is doing the same during startup.
@@ -137,7 +137,7 @@ The recommendation here is to configure the Kafka cluster with `auto.create.topi
 Unfortunately, disabling auto topic creation doesn't help with applications that use Kafka Admin client to directly create required topics (i.e. Kafka Streams apps).
 In this case, the application should be written to wait for topic existence, or use an init container to do the same.
 
-### Finalizers
+#### Finalizers
 
 [Finalizers](https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers) are used by default to avoid missing topic deletion events when the UTO is not running.
 If this happens, you end up with the `KafkaTopic` resource deleted in Kubernetes by garbage collection, and a Kafka topic still present in Kafka.
