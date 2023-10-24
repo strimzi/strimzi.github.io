@@ -42,19 +42,19 @@ Actions are taken to align the actual topic configurations with the custom resou
 If the Kafka-side configuration is changed out-of-band (e.g. by using the Admin client, or Kafka shell scripts), those changes will eventually be reverted.
 
 The operator requires that a single `KafkaTopic` resource is used to manage a single topic in a single Kafka cluster.
-It detects cases where multiple resources are attempting to manage a Kafka topic using the same `spec.topicName`.
+It detects cases where multiple resources are attempting to manage a Kafka topic using the same `.spec.topicName`.
 Only the oldest `KafkaTopic` resource will be reconciled, while the other will fail with a `ResourceConflict` error.
 
 In addition to be able to pause reconciliations, the operator also provides a way to unmanage a Kafka topic using annotations.
 If the `KafkaTopic` is paused and we delete it, then it will be also deleted in Kafka.
 If the `KafkaTopic` is unmanaged and we delete it, then only the resource will be garbage collected by Kubernetes, but the topic will still exists in Kafka.
 
-As with previous implementation, we still do not support decreasing `spec.partitions` and changing `spec.replicas`.
+As with previous implementation, we still do not support decreasing `.spec.partitions` and changing `.spec.replicas`.
 While the former is not supported by Kafka itself, support for the latter could be added in the future.
 
 ### Scalability
 
-The BTO is limited in term of scalability as it t only operates on one topic at a time, and it has to update a persistent store containing topic metadata.
+The BTO is limited in terms of scalability as it only operates on one topic at a time, and it has to update a persistent store containing topic metadata.
 Instead, the UTO does not store topic metadata and it aims to be scalable in terms of the number of topics that it can operate on.
 
 When running Kafka operations, the UTO makes use of the request batching supported by the Kafka Admin client to get higher throughput for metadata operations.
@@ -79,7 +79,7 @@ In that case, you can simply raise the max queues size to avoid the periodic ope
 
 ### Race condition
 
-There is a known race condition happening when the operator and external applications try to change a topic configuration concurrently.
+There is a known race condition happening when the operator and external applications try to change a topic configuration concurrently in Kafka.
 Given the way Kafka is implemented, there is no solution to that problem, but the UTO significantly reduces the likelihood of reconciliation failures.
 
 When the external application wins, the topics will be created using the default Kafka cluster configuration.
@@ -105,6 +105,10 @@ It is also possible to disable finalizers using the following configuration.
 
 ```sh
 # from Kafka custom resource
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
 spec:
   entityOperator:
     userOperator: {}
@@ -116,6 +120,10 @@ spec:
             value: "false"
 
 # from standalone Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: strimzi-topic-operator
 spec:
   template:
     spec:
@@ -173,13 +181,8 @@ spec:
     min.insync.replicas: 1" | kubectl create -f -
 kafkatopic.kafka.strimzi.io/uto-test created
 
-$ kubectl get kt uto-test -o yaml | yq '.status'
-conditions:
-  - lastTransitionTime: "2023-10-23T08:41:53.501883404Z"
-    status: "True"
-    type: Ready
-observedGeneration: 1
-topicName: uto-test
+$ kubectl get kt uto-test -o jsonpath='{.status}'
+{"conditions":[{"lastTransitionTime":"2023-10-23T08:41:53.501883404Z","status":"True","type":"Ready"}],"observedGeneration":1,"topicName":"uto-test"}
 
 $ kubectl exec my-cluster-kafka-0 -- bin/kafka-topics.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --describe --topic uto-test
 Topic: uto-test	TopicId: gWrR6uDrSNSSfu_ubGndCg	PartitionCount: 1	ReplicationFactor: 1	Configs: min.insync.replicas=1,message.format.version=3.0-IV1
@@ -225,7 +228,7 @@ Downgrading to BTO is as easy as disabling the feature gate.
 **Make sure to have adequate CPU and memory resources for that.**
 
 ```sh
-$ kubectl set env deploy strimzi-cluster-operator STRIMZI_FEATURE_GATES=""
+$ kubectl set env deploy strimzi-cluster-operator STRIMZI_FEATURE_GATES="-UnidirectionTopicOperator"
 deployment.apps/strimzi-cluster-operator env updated
 ```
 
