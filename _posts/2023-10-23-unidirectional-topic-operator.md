@@ -5,8 +5,8 @@ date: 2023-10-23
 author: federico_valeri
 ---
 
-The Topic Operator enhances Strimzi's capabilities by allowing Kafka administrators to manage Apache Kafka topics with Kubernetes custom resources (CRs).
-You can declare the desired topic state and the Topic Operator will take care of the reconciliation with the actual Kafka cluster state.
+The Topic Operator enhances Strimzi's capabilities by allowing Kafka administrators to manage Apache Kafka topics using Kubernetes custom resources (CRs).
+You can declare the desired topic state, and the Topic Operator will reconcile it with the actual Kafka cluster state.
 
 The first generation of the Topic Operator is based on the Kafka Streams library, and uses ZooKeeper to gather topic metadata.
 We call it Bidirectional Topic Operator, as it allows to reconcile changes coming from both Kubernetes and Kafka using a three-way merge logic.
@@ -128,10 +128,10 @@ This means 3300 new `KafkaTopic` custom resources that are ready in about 2 minu
 
 #### Race condition
 
-There is a known race condition happening when the operator and an external application try to change a topic configuration concurrently in Kafka.
-For example, it could be a GitOps pipeline creating the `KafkaTopic` resource while the application is doing the same during startup.
+There exists a race condition when the operator and an external application attempt to change a topic configuration concurrently in Kafka.
+For instance, a GitOps pipeline might create a topic using a `KafkaTopic` resource, while the application tries to create the same topic during its startup.
 
-When the external application wins, the topic will be created using the default Kafka cluster configuration.
+If the external application prevails, the topic is created using the default Kafka cluster configuration.
 In this case, the UTO tries to reconcile to the desired state, and only fails when an incompatible change is detected (i.e. partition decrease).
 
 The recommendation here is to configure the Kafka cluster with `auto.create.topics.enable: false` in order to reduce the likelihood of hitting this problem.
@@ -140,13 +140,13 @@ In this case, the application should be written to wait for topic existence, or 
 
 #### Finalizers
 
-[Finalizers](https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers) are used by default to avoid missing topic deletion events when the UTO is not running.
+[Finalizers](https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers) are used by default to ensure that topic deletion events are not missed when the UTO is not running.
 If this happens, you end up with the `KafkaTopic` resource deleted in Kubernetes by garbage collection, and a Kafka topic still present in Kafka.
 
 It is recommended to delete `KafkaTopic` resources when the operator is running in order to trigger the required cleanups.
 A common pitfall is that an attempt to delete a namespace or Custom Resource Definition becomes stuck in a "terminating" state.
 This happens when you try to delete everything at once and the operator does not have time to delete all the `KafkaTopic` resources.
-In that case, you can simply remove finalizers from all `KafkaTopic` resources at once with the following command.
+In such a scenario, you can remove the finalizers from all `KafkaTopic` resources simultaneously using the following command.
 
 ```sh
 $ kubectl get kt -o yaml | yq 'del(.items[].metadata.finalizers[])' | kubectl apply -f -
@@ -211,7 +211,7 @@ $ kubectl -n <namespace> patch sub <subscription-name> --type merge -p '
 subscription.operators.coreos.com/<subscription-name> patched
 ```
 
-At this point the Cluster Operator will restart, and then it will deploy the new Entity Operator containing the UTO.
+At this point the Cluster Operator will restart, and then it will deploy the Entity Operator with the UTO included.
 You can check the logs to confirm that the UTO is running fine.
 
 ```sh
