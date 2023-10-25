@@ -88,7 +88,7 @@ In addition to be able to pause reconciliations, the operator now also provides 
 If the `KafkaTopic` is paused and we delete it, then it will be also deleted in Kafka.
 If the `KafkaTopic` is unmanaged and we delete it, then only the resource will be garbage collected by Kubernetes, but the topic will still exists in Kafka.
 
-In terms of requirements, the UTO assumes the following grants:
+In terms of requirements, the UTO assumes the following access rights:
 
 - describe all topics
 - describe all topics configs
@@ -122,8 +122,9 @@ If you exceed the configured max queue size, the UTO will print an error and the
 In that case, you can simply raise the max queues size to avoid the periodic operator restarts.
 
 In another UTO test, we set max queue size to `MAX_INT`, max batch size to 200, batch linger ms to 500 and reconciliation interval to 10 seconds.
+This test driver creates 5k topics and then you have 2.5k random update attempts and 2.5k random delete attempts.
 With these settings, we were able to achieve a max reconciliation time of 2.5 seconds with 10k concurrent topic events.
-This translates to 3325 new `KafkaTopic` custom resources to become ready in about 2 minutes and 40 seconds.
+This means 3300 new `KafkaTopic` custom resources that are ready in about 2 minutes and 40 seconds.
 
 #### Race condition
 
@@ -143,8 +144,9 @@ In this case, the application should be written to wait for topic existence, or 
 If this happens, you end up with the `KafkaTopic` resource deleted in Kubernetes by garbage collection, and a Kafka topic still present in Kafka.
 
 It is recommended to delete `KafkaTopic` resources when the operator is running in order to trigger the required cleanups.
-A common pitfall is that the namespace becomes stuck in a "terminating" state when you try to delete it without first deleting all topics.
-If this happens, you can simply remove finalizers from all `KafkaTopic` resources at once with the following command.
+A common pitfall is that an attempt to delete a namespace or Custom Resource Definition becomes stuck in a "terminating" state.
+This happens when you try to delete everything at once and the operator does not have time to delete all the `KafkaTopic` resources.
+In that case, you can simply remove finalizers from all `KafkaTopic` resources at once with the following command.
 
 ```sh
 $ kubectl get kt -o yaml | yq 'del(.items[].metadata.finalizers[])' | kubectl apply -f -
