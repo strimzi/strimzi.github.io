@@ -9,7 +9,7 @@ The Topic Operator enhances Strimzi's capabilities by allowing Kafka administrat
 You can declare the desired topic state, and the Topic Operator will reconcile it with the actual Kafka cluster state.
 
 The first generation of the Topic Operator is based on the Kafka Streams library, and uses ZooKeeper to gather topic metadata.
-We call it Bidirectional Topic Operator, as it allows to reconcile changes coming from both Kubernetes and Kafka using a three-way merge logic.
+We call it the Bidirectional Topic Operator, as it allows to reconcile changes coming from both Kubernetes and Kafka using a three-way merge logic.
 In order to do this, it has to keep an internal topic store, which is the source-of-truth used to determine the necessary changes for synchronization.
 
 With time, this implementation showed a number of problems and limitations:
@@ -19,8 +19,8 @@ With time, this implementation showed a number of problems and limitations:
 3. Due to its internal complexity, there are corner cases which are still not well understood (invalid state store, topic recreation after delete)
 4. There is a race condition between the operator and concurrent external admin operations that is not properly handled.
 
-For these reasons, we decided to create a new implementation called Unidirectional Topic Operator.
-The new operator is fully backwards compatible, but it will only reconcile topic changes in one direction, from Kubernetes to Kafka.
+For these reasons, we decided to create a new implementation called the Unidirectional Topic Operator.
+The new operator is fully backwards compatible, except it will only reconcile topic changes in one direction, from Kubernetes to Kafka.
 Your custom resources will be the source-of-truth, like with the other operators.
 
 <!--more-->
@@ -86,7 +86,7 @@ While the former is not supported by Kafka itself, support for the latter could 
 
 In addition to be able to pause reconciliations, the operator now also provides a way to unmanage a Kafka topic using annotations.
 If the `KafkaTopic` is paused and we delete it, then it will be also deleted in Kafka.
-If the `KafkaTopic` is unmanaged and we delete it, then only the resource will be garbage collected by Kubernetes, but the topic will still exists in Kafka.
+If the `KafkaTopic` is unmanaged and we delete it, then only the resource will be garbage collected by Kubernetes, but the topic will still exist in Kafka.
 
 In terms of requirements, the UTO assumes the following access rights:
 
@@ -191,7 +191,7 @@ spec:
 The UTO is available as alpha feature since Strimzi 0.36.0, so we need to enable a feature gate in order to use it.
 [Strimzi 0.38.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.38.0) adds Prometheus metrics and pause reconciliation feature.
 
-**This is not production ready yet, but the plan is to move it to beta in Strimzi 0.39.0, where it will be enabled by default.**
+**The plan is to move it to beta in Strimzi 0.39.0, where it will be enabled by default.**
 **Tests show that UTO consumes approximately 40% less CPU and 30% less memory than the BTO.**
 
 ```sh
