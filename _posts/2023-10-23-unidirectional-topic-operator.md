@@ -102,16 +102,6 @@ In terms of requirements, the UTO assumes the following access rights:
 
 The BTO is limited in terms of scalability, as it only operates on one topic at a time, and it has to update a persistent store containing topic metadata.
 Instead, the UTO does not store topic metadata and it aims to be scalable in terms of the number of topics that it can operate on.
-The following line graph confirms the BTO scalability issue, while the UTO scales almost linearly.
-
-<figure>
-    <img src="/assets/images/posts/2023-10-23-uto-max-recon-time.png" height=350>
-    <figcaption><small>
-        Fig 2. Line graph comparing BTO and UTO max reconciliation times.<br/>
-        We used a 3-nodes cluster with default configurations, running on a local Minikube instance with 10 cores and 28 GB of memory.<br/>
-        The test driver application was running on the same machine, and the time spent on the event queue was not included.
-    </small></figcaption>
-</figure>
 
 When running Kafka operations, the UTO makes use of the request batching supported by the Kafka Admin client to get higher throughput for metadata operations.
 All `KafkaTopic` events are queued when received, and then processed in batches by a number of controller threads (currently, only a single thread is supported).
@@ -121,10 +111,17 @@ You can tune the batching mechanism by setting `STRIMZI_MAX_QUEUE_SIZE` (default
 If you exceed the configured max queue size, the UTO will print an error and then shutdown (Kubernetes will take care of restarting the pod).
 In that case, you can simply raise the max queues size to avoid the periodic operator restarts.
 
-In another UTO test, we set max queue size to `MAX_INT`, max batch size to 200, batch linger ms to 500 and reconciliation interval to 10 seconds.
-This test driver creates 5k topics and then you have 2.5k random update attempts and 2.5k random delete attempts.
-With these settings, we were able to achieve a max reconciliation time of 2.5 seconds with 10k concurrent topic events.
-This means 3300 new `KafkaTopic` custom resources that are ready in about 2 minutes and 40 seconds.
+<figure>
+    <img src="/assets/images/posts/2023-10-23-uto-recon-graph.png" height=350>
+    <figcaption><small>
+        Fig 2. Line graph comparing BTO and UTO end-to-end reconciliation time.<br/>
+        Environment: Strimzi 0.38.0, 3-nodes cluster running on Minikube.
+    </small></figcaption>
+</figure>
+
+The above line graph shows that the UTO is faster and scale much better with a mixed workload of topic operations, which is similar to what happens in busy clusters.
+The only configuration changes we did were: `.spec.entityOperator.topicOperator.reconciliationIntervalSeconds: 10` (both), and `MAX_BATCH_LINGER_MS=10` (UTO only).
+In a separate test on the same environment, the UTO was able to process 10k topic events in less than 10 minutes.
 
 #### Race condition
 
