@@ -103,7 +103,7 @@ The BTO is limited in terms of scalability, as it only operates on one topic at 
 Instead, the UTO does not store topic metadata and it aims to be scalable in terms of the number of topics that it can operate on.
 
 When running Kafka operations, the UTO makes use of the request batching supported by the Kafka Admin client to get higher throughput for metadata operations.
-All `KafkaTopic` events (creations, updates, deletes) are queued when received, and then processed in batches by a number of controller threads (currently, only a single thread is supported).
+All `KafkaTopic` related events (custom resource creations, updates, deletes) are queued when received, and then processed in batches by a number of controller threads (currently, only a single thread is supported).
 If more than one event related to a single topic resource are found in the batch building, they are put back in the queue to be processed with the next batch.
 
 You can tune the batching mechanism by setting `STRIMZI_MAX_QUEUE_SIZE` (default: 1024), `STRIMZI_MAX_BATCH_SIZE` (default: 100), and `MAX_BATCH_LINGER_MS` (default: 100).
