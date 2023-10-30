@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Developing Kafka client applications: A simple consumer"
-date: 2023-10-11
+date: 2023-10-31
 author: paul_mellor
 ---
 
@@ -262,8 +262,8 @@ public class Consumer implements ConsumerRebalanceListener, OffsetCommitCallback
                         pendingOffsets.clear();
                     }
                 } catch (OffsetOutOfRangeException | NoOffsetForPartitionException e) {
-                    // Handle offset errors
-                    System.out.println("Invalid or no offset found, using latest");
+                    // Handle invalid offset or no offset found errors when auto.reset.policy is not set
+                    System.out.println("Invalid or no offset found, and auto.reset.policy unset, using latest");
                     consumer.seekToEnd(e.partitions());
                     consumer.commitSync();
                 } catch (Exception e) {
@@ -385,9 +385,9 @@ For instance, it can be triggered if you attempt to use an unsupported consumer 
 
 `RetriableException`: This type of error is thrown for any exception that implements the `RetriableException` interface, as provided by the Kafka client library.
 
-`OffsetOutOfRangeException`: This error is thrown when the consumer attempts to seek to an invalid offset for a partition, typically when the offset is outside the valid range of offsets for that partition. To recover, the consumer seeks to the end of the partition to commit the offset synchronously (`commitSync`).
+`OffsetOutOfRangeException`: This error is thrown when the consumer attempts to seek to an invalid offset for a partition, typically when the offset is outside the valid range of offsets for that partition, and auto-reset policy is not enabled. To recover, the consumer seeks to the end of the partition to commit the offset synchronously (`commitSync`). If auto-reset policy is enabled, the consumer seeks to the start or end of the partition depending on the setting. 
 
-`NoOffsetForPartitionException`: This error is thrown when there is no committed offset for a partition, and auto-reset policy is not enabled, or the requested offset is invalid. To recover, the consumer seeks to the end of the partition to commit the offset synchronously (`commitSync`).
+`NoOffsetForPartitionException`: This error is thrown when there is no committed offset for a partition or the requested offset is invalid, and auto-reset policy is not enabled. To recover, the consumer seeks to the end of the partition to commit the offset synchronously (`commitSync`). If auto-reset policy is enabled, the consumer seeks to the start or end of the partition depending on the setting.
 
 `RebalanceInProgressException`: This error is thrown during a consumer group rebalance when partitions are being assigned. Offset commits cannot be completed when the consumer is undergoing a rebalance. The consumer can wait for the rebalance to complete and then continue processing.
 
