@@ -1,16 +1,15 @@
 ---
 layout: post
-title: "Unidirectional Topic Operator"
-date: 2023-10-23
+title: "Introducing the Unidirectional Topic Operator"
+date: 2023-10-30
 author: federico_valeri
 ---
 
 The Topic Operator enhances Strimzi's capabilities by allowing Kafka administrators to manage Apache Kafka topics using Kubernetes custom resources (CRs).
-You can declare the desired topic state, and the Topic Operator will reconcile it with the actual Kafka cluster state.
+You can declare the desired topic configuration, and the Topic Operator will reconcile it with the actual Kafka cluster state.
 
 The first generation of the Topic Operator is based on the Kafka Streams library, and uses ZooKeeper to gather topic metadata.
-We call it the Bidirectional Topic Operator, as it allows to reconcile changes coming from both Kubernetes and Kafka using a three-way merge logic.
-In order to do this, it has to keep an internal topic store, which is the source-of-truth used to determine the necessary changes for synchronization.
+We call it the Bidirectional Topic Operator, as it allows to reconcile changes coming from both Kubernetes and Kafka.
 
 With time, this implementation showed a number of problems and limitations:
 
@@ -40,7 +39,7 @@ In a declarative model, administrators define the desired state of topics, speci
 This shift in perspective not only simplifies the management process but also ensures that the desired configuration is maintained consistently across the Kafka cluster.
 
 <figure>
-    <img src="/assets/images/posts/2023-10-23-uto-interactions.png" height=440>
+    <img src="/assets/images/posts/2023-10-30-uto-interactions.png" height=440>
     <figcaption><small>Fig 1. Topic Operator interactions.</small></figcaption>
 </figure>
 
@@ -104,7 +103,7 @@ The BTO is limited in terms of scalability, as it only operates on one topic at 
 Instead, the UTO does not store topic metadata and it aims to be scalable in terms of the number of topics that it can operate on.
 
 When running Kafka operations, the UTO makes use of the request batching supported by the Kafka Admin client to get higher throughput for metadata operations.
-All `KafkaTopic` events are queued when received, and then processed in batches by a number of controller threads (currently, only a single thread is supported).
+All `KafkaTopic` events (creations, updates, deletes) are queued when received, and then processed in batches by a number of controller threads (currently, only a single thread is supported).
 If more than one event related to a single topic resource are found in the batch building, they are put back in the queue to be processed with the next batch.
 
 You can tune the batching mechanism by setting `STRIMZI_MAX_QUEUE_SIZE` (default: 1024), `STRIMZI_MAX_BATCH_SIZE` (default: 100), and `MAX_BATCH_LINGER_MS` (default: 100).
@@ -112,7 +111,7 @@ If you exceed the configured max queue size, the UTO will print an error and the
 In that case, you can simply raise the max queues size to avoid the periodic operator restarts.
 
 <figure>
-    <img src="/assets/images/posts/2023-10-23-uto-recon-graph.png" height=350>
+    <img src="/assets/images/posts/2023-10-30-uto-recon-graph.png" height=350>
     <figcaption><small>
         Fig 2. Line graph comparing BTO and UTO end-to-end reconciliation time.<br/>
         Environment: Strimzi 0.38.0, 3-nodes cluster running on Minikube.
