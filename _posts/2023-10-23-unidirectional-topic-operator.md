@@ -9,18 +9,19 @@ The Topic Operator enhances Strimzi's capabilities by allowing Kafka administrat
 You can declare the desired topic configuration, and the Topic Operator will reconcile it with the actual Kafka cluster state.
 
 The first generation of the Topic Operator is based on the Kafka Streams library, and uses ZooKeeper to gather topic metadata.
-We call it the Bidirectional Topic Operator, as it allows to reconcile changes coming from both Kubernetes and Kafka.
+We call it the Bidirectional Topic Operator, as it allows the reconciliation of changes originating from both Kubernetes and Kafka.
 
-With time, this implementation showed a number of problems and limitations:
+With time, this implementation presented a number of issues:
 
 1. It requires ZooKeeper for cluster management, so it is not compatible with using Strimzi in KRaft mode.
 2. It doesn't scale well as it operates on one topic at a time, and it has to update a persistent store containing topic metadata.
 3. Due to its internal complexity, there are corner cases which are still not well understood (invalid state store, topic recreation after delete)
 4. There is a race condition between the operator and concurrent external admin operations that is not properly handled.
 
-For these reasons, we decided to create a new implementation called the Unidirectional Topic Operator.
-The new operator is fully backwards compatible, except it will only reconcile topic changes in one direction, from Kubernetes to Kafka.
-Your custom resources will be the source-of-truth, like with the other operators.
+To address these issues, we introduced the Unidirectional Topic Operator.
+This new implementation maintains full backward compatibility while streamlining the reconciliation process.
+The Unidirectional Topic Operator reconciles topic changes in only one direction: from Kubernetes to Kafka.
+`KafkaTopic` custom resources become the single source of truth, similar to other operators.
 
 <!--more-->
 
@@ -30,12 +31,12 @@ Apache Kafka has emerged as a powerful and versatile platform for handling real-
 It's used by organizations worldwide to ingest, process, and analyze data in a scalable and fault-tolerant manner.
 
 However, managing Kafka topics efficiently has often been a challenging task for administrators.
-These challenges often include creating topics, adjusting configurations, and ensuring consistency across the cluster, all while handling evolving requirements.
+These challenges might arise when creating topics, adjusting configurations, and ensuring consistency across the cluster, all while handling evolving requirements.
 Traditionally, these tasks have been performed manually, often leading to errors, inconsistencies, and operational overhead.
 
 This is where the Strimzi Topic Operator comes into play.
-It introduces a declarative approach to Kafka topic management, focusing on the "what" rather than the "how". 
-In a declarative model, administrators define the desired state of topics, specifying high-level characteristics and requirements, while leaving the intricate details to the operator itself.
+It introduces a declarative approach to Kafka topic management, focusing on the "what" rather than the "how".
+In a declarative model, administrators define the desired state of topics, specifying high-level characteristics and requirements using the `KafkaTopic` custom resource, while leaving the intricate details to the operator itself.
 This shift in perspective not only simplifies the management process but also ensures that the desired configuration is maintained consistently across the Kafka cluster.
 
 <figure>
@@ -43,8 +44,7 @@ This shift in perspective not only simplifies the management process but also en
     <figcaption><small>Fig 1. Topic Operator interactions.</small></figcaption>
 </figure>
 
-Declarative topic management involves defining the desired state of a Kafka topic using custom resources.
-In particular, you use Kubernetes custom resources to declare how you want your Kafka topics to be configured and managed.
+You use `KafkaTopic` custom resources to declare how you want your Kafka topics to be configured and managed.
 
 Here's how a Kafka topic is declared using this approach:
 
@@ -65,25 +65,24 @@ spec:
 The requirement here is that a single `KafkaTopic` custom resource is used to manage a single topic in a single Kafka cluster.
 From the example above, you can see that the resource has a label `strimzi.io/cluster` with the name of the target cluster.
 The operator communicates with the Kafka cluster and ensures that the specified Kafka topic is created or updated according to the desired state.
-It can be deployed standalone, or along with your Kafka cluster using the `Kafka` custom resource.
+The Topic Operator can be deployed either as a standalone component or with your Kafka cluster by enabling the operator in the `Kafka` custom resource.
 
-The first generation of the Topic Operator is based on the Kafka Streams library, and uses ZooKeeper to gather topic metadata.
-We call it **Bidirectional Topic Operator (BTO)**, as it allows to reconcile changes coming from both Kubernetes and Kafka using a three-way merge logic.
+The **Bidirectional Topic Operator (BTO)** reconciles changes coming from both Kubernetes and Kafka using a three-way merge logic.
 In order to do this, it has to keep an internal topic store, which is the source-of-truth used to determine the necessary changes for synchronization.
+
+The **Unidirectional Topic Operator (UTO)** is fully backwards compatible and improves scalability, but also provides support for Kafka clusters running in KRaft mode.
+As the UTO only reconciles topic events from Kubernetes to Kafka, `KafkaTopic` custom resources become the single source-of-truth.
 If the Kafka-side configuration is changed out-of-band (e.g. by using the Admin client, or Kafka shell scripts), those changes will eventually be reverted.
 
-The new generation of the Topic Operator is called **Unidirectional Topic Operator (UTO)**.
-The UTO improves on scalability and maintenance, but also provides support for Kafka clusters running in KRaft mode.
-It is fully backwards compatible with the BTO, but it will only reconcile topic events in one direction, from Kubernetes to Kafka.
-Your `KafkaTopic` custom resources will be the source-of-truth, like with all the other operators.
+#### Topic maintenance
 
-The operator detects cases where multiple `KafkaTopic` resources are attempting to manage a Kafka topic using the same `.spec.topicName`.
-Only the oldest resource will be reconciled, while the other resource will fail with a `ResourceConflict` error.
+The UTO can detect cases where multiple `KafkaTopic` resources are attempting to manage a Kafka topic using the same `.spec.topicName`.
+Only the oldest resource is reconciled, while the other resource will fail with a `ResourceConflict` error.
 
-We still do not support decreasing `.spec.partitions` and changing `.spec.replicas`.
+The UTO still does not support decreasing `.spec.partitions` and changing `.spec.replicas`.
 While the former is not supported by Kafka itself, support for the latter could be added in the future.
 
-In addition to be able to pause reconciliations, the operator now also provides a way to unmanage a Kafka topic using annotations.
+In addition to being able to pause reconciliations, the UTO also provides a way to unmanage a Kafka topic using annotations.
 If the `KafkaTopic` is paused and we delete it, then it will be also deleted in Kafka.
 If the `KafkaTopic` is unmanaged and we delete it, then only the resource will be garbage collected by Kubernetes, but the topic will still exist in Kafka.
 
@@ -100,11 +99,11 @@ In terms of requirements, the UTO assumes the following access rights:
 #### Scalability
 
 The BTO is limited in terms of scalability, as it only operates on one topic at a time, and it has to update a persistent store containing topic metadata.
-Instead, the UTO does not store topic metadata and it aims to be scalable in terms of the number of topics that it can operate on.
+By contrast, the UTO does not store topic metadata and it aims to be scalable in terms of the number of topics that it can operate on.
 
 When running Kafka operations, the UTO makes use of the request batching supported by the Kafka Admin client to get higher throughput for metadata operations.
 All `KafkaTopic` related events (custom resource creations, updates, deletes) are queued when received, and then processed in batches by a number of controller threads (currently, only a single thread is supported).
-If more than one event related to a single topic resource are found in the batch building, they are put back in the queue to be processed with the next batch.
+If more than one event related to a single topic resource is found in the batch building, only the first is reconciled, while the others are put back in the queue to be processed with the next batch.
 
 You can tune the batching mechanism by setting `STRIMZI_MAX_QUEUE_SIZE` (default: 1024), `STRIMZI_MAX_BATCH_SIZE` (default: 100), and `MAX_BATCH_LINGER_MS` (default: 100).
 If you exceed the configured max queue size, the UTO will print an error and then shutdown (Kubernetes will take care of restarting the pod).
@@ -118,8 +117,8 @@ In that case, you can simply raise the max queues size to avoid the periodic ope
     </small></figcaption>
 </figure>
 
-The above line graph shows that the UTO is faster and scale much better with a mixed workload of topic operations, which is similar to what happens in busy clusters.
-The only configuration changes we did were: `.spec.entityOperator.topicOperator.reconciliationIntervalSeconds: 10` (both), and `MAX_BATCH_LINGER_MS=10` (UTO only).
+The above line graph shows that the UTO is faster and scales much better than the BTO with a mixed workload of topic operations, which is similar to what happens in busy clusters.
+The only configuration changes we made were: `.spec.entityOperator.topicOperator.reconciliationIntervalSeconds: 10` (both), and `MAX_BATCH_LINGER_MS=10` (UTO only).
 In a separate test on the same environment, the UTO was able to process 10k topic events in less than 10 minutes.
 
 #### Race condition
@@ -130,9 +129,9 @@ For instance, a GitOps pipeline might create a topic using a `KafkaTopic` resour
 If the external application prevails, the topic is created using the default Kafka cluster configuration.
 In this case, the UTO tries to reconcile to the desired state, and only fails when an incompatible change is detected (i.e. partition decrease).
 
-The recommendation here is to configure the Kafka cluster with `auto.create.topics.enable: false` in order to reduce the likelihood of hitting this problem.
-Unfortunately, disabling auto topic creation doesn't help with applications that use Kafka Admin client to directly create required topics (i.e. Kafka Streams apps).
-In this case, the application should be written to wait for topic existence, or use an init container to do the same.
+The recommendation when using the UTO is to configure the Kafka cluster with `auto.create.topics.enable: false` in order to reduce the likelihood of hitting this problem.
+Unfortunately, disabling auto topic creation doesn't help with applications that use the Kafka Admin client to create topics directly, such as with Kafka Streams apps.
+In this case, the application should be written to wait for a topic to exist, or use an init container to do the same.
 
 #### Finalizers
 
@@ -142,7 +141,7 @@ If this happens, you end up with the `KafkaTopic` resource deleted in Kubernetes
 It is recommended to delete `KafkaTopic` resources when the operator is running in order to trigger the required cleanups.
 A common pitfall is that an attempt to delete a namespace or Custom Resource Definition becomes stuck in a "terminating" state.
 This happens when you try to delete everything at once and the operator does not have time to delete all the `KafkaTopic` resources.
-In such a scenario, you can remove the finalizers from all `KafkaTopic` resources simultaneously using the following command.
+In such a scenario, you can remove the finalizers from all `KafkaTopic` resources simultaneously using the following command:
 
 ```sh
 $ kubectl get kt -o yaml | yq 'del(.items[].metadata.finalizers[])' | kubectl apply -f -
@@ -151,7 +150,7 @@ kafkatopic.kafka.strimzi.io/topic-1 configured
 kafkatopic.kafka.strimzi.io/topic-2 configured
 ```
 
-In development and test environment you can disable the use of finalizers with the following configuration.
+In development and test environments, you can disable the use of finalizers with the following configuration:
 
 ```sh
 # from Kafka custom resource
@@ -184,18 +183,18 @@ spec:
 
 ### Upgrading from BTO to UTO
 
-The UTO is available as alpha feature since Strimzi 0.36.0, so we need to enable a feature gate in order to use it.
-[Strimzi 0.38.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.38.0) adds Prometheus metrics and pause reconciliation feature.
+The UTO has been available as alpha feature since Strimzi 0.36.0, so you need to enable a feature gate in order to use it.
+[Strimzi 0.38.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.38.0) enhances the UTO with by adding Prometheus metrics and a pause reconciliation feature.
 
 **The plan is to move it to beta in Strimzi 0.39.0, where it will be enabled by default.**
-**Tests show that UTO consumes approximately 40% less CPU and 30% less memory than the BTO.**
+**Preliminary tests show that UTO consumes approximately 40% less CPU and 30% less memory than the BTO.**
 
 ```sh
 $ kubectl set env deploy strimzi-cluster-operator STRIMZI_FEATURE_GATES="+UnidirectionalTopicOperator"
 deployment.apps/strimzi-cluster-operator updated
 ```
 
-If you are using the Operator Lifecycle Manager (OLM), then you simply need to patch the `Subscription`.
+If you are using the Operator Lifecycle Manager (OLM), then you simply need to patch the `Subscription`:
 
 ```sh
 $ kubectl -n <namespace> patch sub <subscription-name> --type merge -p '
@@ -208,14 +207,14 @@ subscription.operators.coreos.com/<subscription-name> patched
 ```
 
 At this point the Cluster Operator will restart, and then it will deploy the Entity Operator with the UTO included.
-You can check the logs to confirm that the UTO is running fine.
+You can check the logs to confirm that the UTO is running fine:
 
 ```sh
 $ kubectl logs $(kubectl get po -l strimzi.io/name=my-cluster-entity-operator -o name) -c topic-operator | "Returning from main"
 2023-10-23 08:32:25,60913 INFO  [main] TopicOperatorMain:148 - Returning from main()
 ```
 
-We can also try to create a new test topic and see if it is reconciled.
+Verify the UTO installation by creating a new test topic and seeing if it is reconciled:
 
 ```sh
 echo -e "apiVersion: kafka.strimzi.io/v1beta2
@@ -242,7 +241,7 @@ $ kubectl delete kt uto-test
 kafkatopic.kafka.strimzi.io "uto-test" deleted
 ```
 
-Optionally, you can delete the internal topics created by the BTO, which are not used anymore.
+Optionally, you can delete the internal topics created by the BTO, which are not used anymore:
 
 ```sh
 $ kubectl delete $(kubectl get kt -o name | grep strimzi-store-topic)
@@ -252,8 +251,8 @@ $ kubectl delete $(kubectl get kt -o name | grep strimzi-topic-operator)
 kafkatopic.kafka.strimzi.io "strimzi-topic-operator-kstreams-topic-store-changelog---b75e702040b99be8a9263134de3507fc0cc4017b" deleted
 ```
 
-Finally, we can also choose to unmanage the Kafka internal topics, without deleting them inside the Kafka cluster.
-Here I'm just showing the `__consumer_offsets`, but the procedure is the same for the other internal topics.
+Finally, you can also choose to unmanage the Kafka internal topics, without deleting them inside the Kafka cluster.
+Here I'm just showing the `__consumer_offsets` topic, but the procedure is the same for the other internal topics:
 
 ```sh
 $ kubectl annotate $(kubectl get kt -o name | grep consumer-offsets) strimzi.io/managed="false"
@@ -282,15 +281,15 @@ $ kubectl set env deploy strimzi-cluster-operator STRIMZI_FEATURE_GATES="-Unidir
 deployment.apps/strimzi-cluster-operator env updated
 ```
 
-At this point the Cluster Operator will restart, and then will deploy the new Entity Operator containing the BTO.
-You can check the logs to confirm that the BTO is running fine.
+At this point the Cluster Operator restarts, and then will deploy the new Entity Operator containing the BTO.
+You can check the logs to confirm that the BTO is running fine:
 
 ```sh
 $ kubectl logs $(kubectl get po -l strimzi.io/name=my-cluster-entity-operator -o name) -c topic-operator | grep "Session deployed"
 2023-10-23 08:59:51,95138 INFO  [vert.x-eventloop-thread-1] Main:70 - Session deployed
 ```
 
-After that, you should see all your topics, including the auto-created internal topics.
+After that, you should see all your topics, including the auto-created internal topics:
 
 ```sh
 $ kubectl get kt
