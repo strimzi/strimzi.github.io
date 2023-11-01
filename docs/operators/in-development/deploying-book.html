@@ -92,8 +92,8 @@
 <li><a href="#controlplanelistener_feature_gate">8.1. ControlPlaneListener feature gate</a></li>
 <li><a href="#serviceaccountpatching_feature_gate">8.2. ServiceAccountPatching feature gate</a></li>
 <li><a href="#ref-operator-use-strimzi-pod-sets-feature-gate-str">8.3. UseStrimziPodSets feature gate</a></li>
-<li><a href="#ref-operator-use-kraft-feature-gate-str">8.4. (Preview) UseKRaft feature gate</a></li>
-<li><a href="#ref-operator-stable-connect-identities-feature-gate-str">8.5. StableConnectIdentities feature gate</a></li>
+<li><a href="#ref-operator-stable-connect-identities-feature-gate-str">8.4. StableConnectIdentities feature gate</a></li>
+<li><a href="#ref-operator-use-kraft-feature-gate-str">8.5. (Preview) UseKRaft feature gate</a></li>
 <li><a href="#ref-operator-kafka-node-pools-feature-gate-str">8.6. (Preview) KafkaNodePools feature gate</a></li>
 <li><a href="#ref-operator-unidirectional-topic-operator-feature-gate-str">8.7. (Preview) UnidirectionalTopicOperator feature gate</a></li>
 <li><a href="#ref-operator-cluster-feature-gate-releases-str">8.8. Feature gate releases</a></li>
@@ -4349,31 +4349,46 @@ When the Kafka Connect cluster is <code>Ready</code>, you can delete the <code>K
 <div class="ulist">
 <ul>
 <li>
-<p>Deployment that creates the Kafka Connect worker node pods (when <code>StableConnectIdentities</code> feature gate is disabled).</p>
+<p>StrimziPodSet that creates the Kafka Connect worker node pods.</p>
 </li>
 <li>
-<p>StrimziPodSet that creates the Kafka Connect worker node pods (when <code>StableConnectIdentities</code> feature gate is enabled).</p>
+<p>Headless service that provides stable DNS names to the Kafka Connect pods.</p>
 </li>
 <li>
-<p>Headless service that provides stable DNS names to the Connect pods (when <code>StableConnectIdentities</code> feature gate is enabled).</p>
+<p>Service account used by the Kafka Connect pods.</p>
 </li>
 <li>
-<p>Pod Disruption Budget configured for the Kafka Connect worker nodes.</p>
+<p>Pod disruption budget configured for the Kafka Connect worker nodes.</p>
+</li>
+<li>
+<p>Network policy managing access to the Kafka Connect REST API.</p>
 </li>
 </ul>
 </div>
 </dd>
 <dt class="hdlist1">&lt;connect_cluster_name&gt;-connect-&lt;pod_id&gt;</dt>
 <dd>
-<p>Pods created by the Kafka Connect StrimziPodSet (when <code>StableConnectIdentities</code> feature gate is enabled).</p>
+<p>Pods created by the Kafka Connect StrimziPodSet.</p>
 </dd>
 <dt class="hdlist1">&lt;connect_cluster_name&gt;-connect-api</dt>
 <dd>
 <p>Service which exposes the REST interface for managing the Kafka Connect cluster.</p>
 </dd>
-<dt class="hdlist1">&lt;connect_cluster_name&gt;-config</dt>
+<dt class="hdlist1">&lt;connect_cluster_name&gt;-connect-config</dt>
 <dd>
-<p>ConfigMap which contains the Kafka Connect ancillary configuration and is mounted as a volume by the Kafka broker pods.</p>
+<p>ConfigMap which contains the Kafka Connect ancillary configuration and is mounted as a volume by the Kafka Connect pods.</p>
+</dd>
+<dt class="hdlist1">strimzi-&lt;namespace-name&gt;-&lt;connect_cluster_name&gt;-connect-init</dt>
+<dd>
+<p>Cluster role binding used by the Kafka Connect cluster.</p>
+</dd>
+<dt class="hdlist1">&lt;connect_cluster_name&gt;-connect-build</dt>
+<dd>
+<p>Pod used to build a new container image with additional connector plugins (only when Kafka Connect Build feature is used).</p>
+</dd>
+<dt class="hdlist1">&lt;connect_cluster_name&gt;-connect-dockerfile</dt>
+<dd>
+<p>ConfigMap with the Dockerfile generated to build the new container image with additional connector plugins (only when the Kafka Connect build feature is used).</p>
 </dd>
 </dl>
 </div>
@@ -4540,20 +4555,38 @@ The deployment is successful when the <code>STATUS</code> displays as <code>Runn
 <div class="ulist">
 <ul>
 <li>
-<p>Deployment which is responsible for creating the MirrorMaker 2 pods.</p>
+<p>StrimziPodSet that creates the MirrorMaker 2 worker node pods.</p>
 </li>
 <li>
-<p>Service account used by the MirrorMaker 2 nodes.</p>
+<p>Headless service that provides stable DNS names to the MirrorMaker 2 pods.</p>
 </li>
 <li>
-<p>Pod Disruption Budget configured for the MirrorMaker2 worker nodes.</p>
+<p>Service account used by the MirrorMaker 2 pods.</p>
+</li>
+<li>
+<p>Pod disruption budget configured for the MirrorMaker 2 worker nodes.</p>
+</li>
+<li>
+<p>Network Policy managing access to the MirrorMaker 2 REST API.</p>
 </li>
 </ul>
 </div>
 </dd>
+<dt class="hdlist1">&lt;mirrormaker2_cluster_name&gt;-mirrormaker2-&lt;pod_id&gt;</dt>
+<dd>
+<p>Pods created by the MirrorMaker 2 StrimziPodSet.</p>
+</dd>
+<dt class="hdlist1">&lt;mirrormaker2_cluster_name&gt;-mirrormaker2-api</dt>
+<dd>
+<p>Service which exposes the REST interface for managing the MirrorMaker 2 cluster.</p>
+</dd>
 <dt class="hdlist1">&lt;mirrormaker2_cluster_name&gt;-mirrormaker2-config</dt>
 <dd>
-<p>ConfigMap which contains ancillary configuration for the MirrorMaker2, and is mounted as a volume by the MirrorMaker 2 pods.</p>
+<p>ConfigMap which contains the MirrorMaker 2 ancillary configuration and is mounted as a volume by the MirrorMaker 2 pods.</p>
+</dd>
+<dt class="hdlist1">strimzi-&lt;namespace-name&gt;-&lt;mirrormaker2_cluster_name&gt;-mirrormaker2-init</dt>
+<dd>
+<p>Cluster role binding used by the MirrorMaker 2 cluster.</p>
 </dd>
 </dl>
 </div>
@@ -5622,7 +5655,29 @@ You have to first downgrade through one of the Strimzi versions in-between, disa
 </div>
 </div>
 <div class="sect2">
-<h3 id="ref-operator-use-kraft-feature-gate-str"><a class="link" href="#ref-operator-use-kraft-feature-gate-str">8.4. (Preview) UseKRaft feature gate</a></h3>
+<h3 id="ref-operator-stable-connect-identities-feature-gate-str"><a class="link" href="#ref-operator-stable-connect-identities-feature-gate-str">8.4. StableConnectIdentities feature gate</a></h3>
+<div class="paragraph">
+<p>The <code>StableConnectIdentities</code> feature gate has moved to GA, which means it is now permanently enabled and cannot be disabled.
+The <code>StrimziPodSet</code> resources are now always used to manage Kafka Connect and Kafka MirrorMaker 2 pods instead of using Kubernetes <code>Deployment</code> resources.
+<code>StrimziPodSet</code> resources give the pods stable names and stable addresses, which do not change during rolling upgrades.
+This helps to minimize the number of rebalances of connector tasks.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+With the <code>StableConnectIdentities</code> feature gate permanently enabled, it is no longer possible to downgrade directly from Strimzi 0.39 and newer to Strimzi 0.33 or earlier.
+You have to first downgrade through one of the Strimzi versions in-between, disable the <code>StableConnectIdentities</code> feature gate, and then downgrade to Strimzi 0.33 or earlier.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="ref-operator-use-kraft-feature-gate-str"><a class="link" href="#ref-operator-use-kraft-feature-gate-str">8.5. (Preview) UseKRaft feature gate</a></h3>
 <div class="paragraph">
 <p>The <code>UseKRaft</code> feature gate has a default state of <em>disabled</em>.</p>
 </div>
@@ -5692,33 +5747,6 @@ The <code>type: jbod</code> storage can be used, but the JBOD array can contain 
 <p>To enable the <code>UseKRaft</code> feature gate, specify <code>+UseKRaft</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.
 The <code>Kafka</code> custom resource using KRaft mode must also have the annotation <code>strimzi.io/kraft: enabled</code>.
 If this annotation is set to <code>disabled</code> or any other value, or if it is missing, the operator handles the <code>Kafka</code> custom resource as if it is using ZooKeeper for cluster management.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="ref-operator-stable-connect-identities-feature-gate-str"><a class="link" href="#ref-operator-stable-connect-identities-feature-gate-str">8.5. StableConnectIdentities feature gate</a></h3>
-<div class="paragraph">
-<p>The <code>StableConnectIdentities</code> feature gate has a default state of <em>enabled</em>.</p>
-</div>
-<div class="paragraph">
-<p>The <code>StableConnectIdentities</code> feature gate uses <code>StrimziPodSet</code> resources to manage Kafka Connect and Kafka MirrorMaker 2 pods instead of using Kubernetes <code>Deployment</code> resources.
-<code>StrimziPodSets</code> give the pods stable names and stable addresses, which do not change during rolling upgrades.
-This helps to minimize the number of rebalances of connector tasks.</p>
-</div>
-<div class="paragraph">
-<div class="title">Disabling the <code>StableConnectIdentities</code> feature gate</div>
-<p>To disable the <code>StableConnectIdentities</code> feature gate, specify <code>-StableConnectIdentities</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.</p>
-</div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-The <code>StableConnectIdentities</code> feature gate must be disabled when downgrading to Strimzi 0.33 and earlier versions.
-</td>
-</tr>
-</table>
 </div>
 </div>
 <div class="sect2">
@@ -5811,11 +5839,11 @@ Alpha and beta stage features are removed if they do not prove to be useful.</p>
 <p>The <code>UseStrimziPodSets</code> feature gate moved to GA stage in Strimzi 0.35 and the support for StatefulSets is completely removed. It is now permanently enabled and cannot be disabled.</p>
 </li>
 <li>
-<p>The <code>UseKRaft</code> feature gate is available for development only and does not currently have a planned release for moving to the beta phase.</p>
+<p>The <code>StableConnectIdentities</code> feature gate moved to GA stage in Strimzi 0.39.
+It is now permanently enabled and cannot be disabled.</p>
 </li>
 <li>
-<p>The <code>StableConnectIdentities</code> feature gate is in beta stage and is enabled by default.
-It is expected to move to GA phase and be always enabled from Strimzi 0.39.</p>
+<p>The <code>UseKRaft</code> feature gate is available for development only and does not currently have a planned release for moving to the beta phase.</p>
 </li>
 <li>
 <p>The <code>KafkaNodePools</code> feature gate is in beta stage and is enabled by default.
@@ -5884,7 +5912,7 @@ Feature gates might be removed when they reach GA. This means that the feature w
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>StableConnectIdentities</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0.34</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0.37</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">0.39 (planned)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.39</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaNodePools</code></p></td>
@@ -5901,7 +5929,7 @@ Feature gates might be removed when they reach GA. This means that the feature w
 </tbody>
 </table>
 <div class="paragraph">
-<p>If a feature gate is enabled, you may need to disable it before upgrading or downgrading from a specific Strimzi version.
+<p>If a feature gate is enabled, you may need to disable it before upgrading or downgrading from a specific Strimzi version (or first upgrade / downgrade to a version of Strimzi where it can be disabled).
 The following table shows which feature gates you need to disable when upgrading or downgrading Strimzi versions.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
