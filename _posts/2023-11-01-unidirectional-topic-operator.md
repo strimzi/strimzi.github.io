@@ -275,7 +275,7 @@ Downgrading to BTO is as easy as disabling the feature gate.
 **Make sure to have adequate CPU and memory resources for that.**
 
 ```sh
-$ kubectl set env deploy strimzi-cluster-operator STRIMZI_FEATURE_GATES="-UnidirectionTopicOperator"
+$ kubectl set env deploy strimzi-cluster-operator STRIMZI_FEATURE_GATES="-UnidirectionalTopicOperator"
 deployment.apps/strimzi-cluster-operator env updated
 ```
 
@@ -298,7 +298,7 @@ strimzi-store-topic---effb8e3e057afce1ecf67c3f5d8e4e3ff177fc55                  
 strimzi-topic-operator-kstreams-topic-store-changelog---b75e702040b99be8a9263134de3507fc0cc4017b   my-cluster   1            3                    True
 ```
 
-Finally, you can also try to create a test topic as shown before.
+Finally, can get rid of all the finalizers and create a test topic as shown before.
 
 ### Conclusion
 
