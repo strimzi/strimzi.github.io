@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Introducing the Unidirectional Topic Operator"
-date: 2023-11-01
+date: 2023-11-02
 author: federico_valeri
 ---
 
