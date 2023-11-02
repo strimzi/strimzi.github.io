@@ -38,7 +38,7 @@ In a declarative model, administrators define the desired state of topics, speci
 This shift in perspective not only simplifies the management process but also ensures that the desired configuration is maintained consistently across the Kafka cluster.
 
 <figure>
-    <img src="/assets/images/posts/2023-11-01-uto-interactions.png" height=440>
+    <img src="/assets/images/posts/2023-11-02-uto-interactions.png" height=440>
     <figcaption><small>Fig 1. Topic Operator interactions.</small></figcaption>
 </figure>
 
@@ -108,7 +108,7 @@ If you exceed the configured max queue size, the UTO will print an error and the
 In that case, you can simply raise the max queues size to avoid periodic operator restarts.
 
 <figure>
-    <img src="/assets/images/posts/2023-11-01-uto-bto-comparison.png" height=350>
+    <img src="/assets/images/posts/2023-11-02-uto-bto-comparison.png" height=350>
     <figcaption><small>
         Fig 2. Line graph comparing BTO and UTO end-to-end reconciliation time.<br/>
         Environment: Strimzi 0.38.0, 3-nodes cluster running on Minikube.
