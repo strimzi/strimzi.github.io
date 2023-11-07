@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Developing Kafka client applications: A simple consumer"
-date: 2023-10-31
+date: 2023-11-09
 author: paul_mellor
 ---
 
