@@ -15071,38 +15071,131 @@ If this happens, you can bypass the finalization process by <a href="#con-removi
 <div class="paragraph _abstract">
 <p>You can switch between topic management modes when upgrading or downgrading Strimzi, or when using the same version of Strimzi, as long as the mode is supported for that version.</p>
 </div>
-<div class="ulist">
-<ul>
+<div class="olist arabic">
+<div class="title">Switching from bidirectional to unidirectional topic management mode</div>
+<ol class="arabic">
 <li>
-<p>To switch from the default unidirectional mode to bidirectional mode you have to:</p>
-<div class="ulist">
-<ul>
+<p><a href="#ref-operator-unidirectional-topic-operator-feature-gate-str">Enable the <code>UnidirectionalTopicOperator</code> feature gate</a>.</p>
+<div class="paragraph">
+<p>The Cluster Operator deploys the Entity Operator with the Topic Operator in unidirectional topic management mode.</p>
+</div>
+</li>
 <li>
-<p>Disable the use of finalizers.</p>
+<p>The internal topics that support the Topic Operator running in bidirectional topic management mode are no longer required, so you can delete the <code>KafkaTopic</code> resources to manage them:</p>
 <div class="listingblock">
-<div class="title">Disabling the topic finalizers</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># ...
-env:
-  - name: STRIMZI_USE_FINALIZERS
-    value: "false"</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete $(kubectl get kt -n &lt;namespace_name&gt; -o name | grep strimzi-store-topic) &amp;&amp; kubectl delete $(kubectl get kt -n &lt;namespace_name&gt; -o name | grep strimzi-topic-operator)</code></pre>
 </div>
-</div>
-</li>
-<li>
-<p><a href="#ref-operator-unidirectional-topic-operator-feature-gate-str">Disable the <code>UnidirectionalTopicOperator</code> feature gate</a>.</p>
-</li>
-</ul>
-</div>
-</li>
-</ul>
 </div>
 <div class="paragraph">
+<p>This command deletes the internal topics, which have names starting <code>strimzi-store-topic</code> and <code>strimzi-topic-operator</code>.</p>
+</div>
+</li>
+<li>
+<p>The internal topics for storing consumer offsets and transaction states must be retained in Kafka. So, you must first discontinue their management by the Topic Operator before deleting the <code>KafkaTopic</code> resources.</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>Discontinue management of the topics:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate $(kubectl get kt -n &lt;namespace_name&gt; -o name | grep consumer-offsets) strimzi.io/managed="false" \
+&amp;&amp; kubectl annotate $(kubectl get kt -n &lt;namespace_name&gt; -o name | grep transaction-state) strimzi.io/managed="false"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>By annotating the <code>KafkaTopic</code> resources with <code>strimzi.io/managed="false"</code>, you indicate that the Topic Operator should no longer manage those topics.
+In this case, we are adding the annotation to resources for managing the internal topics with names starting <code>consumer-offsets</code> and <code>transaction-state</code>.</p>
+</div>
+</li>
+<li>
+<p>When their management is discontinued, delete the <code>KafkaTopic</code> resources (without deleting the topics inside Kafka):</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete $(kubectl get kt -n &lt;namespace_name&gt; -o name | grep consumer-offsets) \
+&amp;&amp; kubectl delete $(kubectl get kt -n &lt;namespace_name&gt; -o name | grep transaction-state)</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</li>
+</ol>
+</div>
+<div class="olist arabic">
+<div class="title">Switching from unidirectional to bidirectional topic management mode</div>
+<ol class="arabic">
+<li>
+<p><a href="#ref-operator-unidirectional-topic-operator-feature-gate-str">Disable the <code>UnidirectionalTopicOperator</code> feature gate</a>.</p>
+<div class="paragraph">
+<p>The Cluster Operator deploys the Entity Operator with the Topic Operator in bidirectional topic management mode.</p>
+</div>
+<div class="paragraph">
+<p>The internal topics required by the Topic Operator running in bidirectional topic management mode are created.</p>
+</div>
+</li>
+<li>
+<p>Check whether finalizers are being used to control topic deletion.
+If <code>KafkaTopic</code> resources are using finalizers, ensure that you do one of the following after making the switch:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#con-removing-topic-finalizers-str">Remove all finalizers from topics</a>.</p>
+</li>
+<li>
+<p>Disable the finalizers by setting the <code>STRIMZI_USE_FINALIZERS</code> environment variable to <code>false</code> in the Topic Operator <code>env</code> configuration.</p>
+<div class="paragraph">
 <p>Use the same configuration for a Topic Operator running in a Strimzi-managed cluster or as a standalone deployment.</p>
+</div>
+<div class="listingblock">
+<div class="title">Disabling topic finalizers in a Strimzi-managed cluster</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: {KafkaApiVersion}
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  # ...
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+    template:
+      topicOperatorContainer:
+        env:
+          - name: STRIMZI_USE_FINALIZERS
+            value: "false"
+# ...</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Disabling topic finalizers in a standalone deployment</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: strimzi-topic-operator
+spec:
+  template:
+    spec:
+      containers:
+        - name: STRIMZI_USE_FINALIZERS
+          value: "false"
+# ...</code></pre>
+</div>
 </div>
 <div class="paragraph">
 <p>The Topic Operator does not use finalizers in bidirectional mode.
 If they are retained after making the switch from unidirectional mode, you won&#8217;t be able to delete <code>KafkaTopic</code> and related resources.</p>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>After switching between between Topic Operator modes, try creating a topic to make sure the operator is running correctly.
+For more information, see <a href="#proc-configuring-kafka-topic-str">Configuring Kafka topics</a>.</p>
 </div>
 </div>
 <div class="sect2">
