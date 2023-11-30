@@ -54,8 +54,21 @@ With the cluster running, run a simple producer to send messages to a Kafka topi
 kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:{{site.data.releases.operator[0].version}}-kafka-{{site.data.releases.operator[0].defaultKafkaVersion}} --rm=true --restart=Never -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic
 ```
 
+Once everything is set up correctly, you'll see a prompt where you can type in your messages:
+```shell
+If you don't see a command prompt, try pressing enter.
+
+>Hello strimzi!
+```
+
 And to receive them in a different terminal, run:
 
 ```shell
 kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:{{site.data.releases.operator[0].version}}-kafka-{{site.data.releases.operator[0].defaultKafkaVersion}} --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic --from-beginning
+```
+If everything works as expected, you'll be able to see the message you produced in the previous step:
+```shell
+If you don't see a command prompt, try pressing enter.
+
+>Hello strimzi!
 ```
