@@ -13,8 +13,8 @@ But don't worry, with Strimzi 0.38, we have introduced the broker scale down che
 ## Broker scale down check
 
 This check makes sure that when you are scaling down your cluster, there are no partition replicas present on the broker that is going to be removed.
-If partiton replicas are found on the broker then the cluster operations are blocked and reconciliation fails until you revert the Kafka resource.
-The check is enabled by default with strimzi 0.38.
+If partition replicas are found on the broker then the cluster operations are blocked and reconciliation fails until you revert the Kafka resource.
+The check is enabled by default with Strimzi 0.38.
 
 However, there may be scenarios where you want to bypass this blocking mechanism.
 Disabling the check might be necessary on busy clusters, for example, because new topics keep generating replicas for the broker. .
@@ -126,7 +126,7 @@ You check the logs using this command:
 kubect logs kubectl logs strimzi-cluster-operator-56fb857f7c-9hq6l -n myproject 
 ```
 
-Since we didn't move the replicas from the broker to be removed, the scale down will fail and you will be able see these errors in the logs
+Since we didn't move the replicas from the broker to be removed, the scale down will fail and, you will be able to see these errors in the logs
 ```shell
 2023-11-30 11:08:12 WARN  AbstractOperator:557 - Reconciliation #150(watch) Kafka(myproject/my-cluster): Failed to reconcile
 io.strimzi.operator.common.model.InvalidResourceException: Cannot scale down brokers [3] because brokers [3] are not empty
@@ -156,5 +156,5 @@ Now you can scale down the broker and, it will happen flawlessly since the broke
 
 ## What's next
 
-Hope this blog post gave you gist on how broker scale down check works.
-With the next releases of Strimzi, we are wokring to make this process more flawless by reverting the kafka replicas back to what they were if the broker scale dowm check fails so that the reconciliation doesn't fail and there is no blocking of cluster operations
+Hope this blog post gave you a gist on how broker scale down check works.
+With the next releases of Strimzi, we are working to make this process more flawless by reverting the kafka replicas back to what they were if the broker scale dowm check fails so that the reconciliation doesn't fail and there is no blocking of cluster operations
