@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Prevent broker scale down if containing partition replicas""
+title: "Prevent broker scale down if containing partition replicas"
 date: 2023-11-30
 author: Shubham Rawat
 ---
