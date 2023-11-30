@@ -1,19 +1,21 @@
 ---
 layout: post
-title: "Developing Kafka client applications: A simple consumer"
-date: 2023-11-09
-author: paul_mellor
+title: "Prevent broker scale down if containing partition replicas""
+date: 2023-11-30
+author: Shubham Rawat
 ---
-Apache Kafka is a platform which is designed to be scalable
+Apache Kafka is a platform which is designed to be scalable.
 You can always scale in or scale out your Kafka Clusters based on your use case.
-There can be a possibility that while scaling down your Kafka cluster, you forgot to remove the partition replicas from the broker that is going to be removed and due to that you will have to suffer data loss.
-But with Strimzi 0.38, we have introduced the broker scale down check which is going to take care of this problem.
+When dealing with scaling down of cluster, you have to make sure that data across the brokers are moved/copied across the cluster.
+There can be a possibility that while scaling down, you forgot to remove the partition replicas from the broker that is going to be removed and due to that you will have to suffer data loss.
+But don't worry, with Strimzi 0.38, we have introduced the broker scale down check which is going to take care of this problem.
 
 ## Broker scale down check
 
-This check makes sure that when you are scaling down your cluster, there are no partition replicas present on the broker that is going to be removed
-If parititon replicas are found on the broker then the cluster operations are blocked and reconciliation fails until you revert the Kafka resource.
-The check is enabled by default with strimzi 0.38
+This check makes sure that when you are scaling down your cluster, there are no partition replicas present on the broker that is going to be removed.
+If partiton replicas are found on the broker then the cluster operations are blocked and reconciliation fails until you revert the Kafka resource.
+The check is enabled by default with strimzi 0.38.
+
 However, there may be scenarios where you want to bypass this blocking mechanism.
 Disabling the check might be necessary on busy clusters, for example, because new topics keep generating replicas for the broker. .
 This situation can indefinitely block cluster operations, even when brokers are nearly empty.
@@ -21,6 +23,9 @@ Overriding the blocking mechanism in this way has an impact:
 the presence of topics on the broker being scaled down will likely cause a reconciliation failure for the Kafka cluster.
 
 You can bypass the blocking mechanism by annotating the `Kafka` resource for the Kafka cluster by setting the `strimzi.io/skip-broker-scaledown-check` annotation to `true`:
+```shell
+kubectl annotate Kafka my-kafka-cluster strimzi.io/skip-broker-scaledown-check="true"
+```
 
 ## Setting up the environment
 
@@ -31,9 +36,9 @@ You can refer to the [Stimzi Quickstart Guide](https://strimzi.io/docs/operators
 
 You can install the Cluster Operator with any installation method you prefer.
 
-Then we will deploy the Kafka cluster with Cruise Control enabled 
+Then we will deploy the Kafka cluster with Cruise Control enabled.
 
-Example Kafka resource with Cruise Control enabled
+Example Kafka resource with Cruise Control enabled:
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
@@ -102,7 +107,6 @@ Topic: my-topic	TopicId: VcdsMY9gR1STjURMGEHrlA	PartitionCount: 3	ReplicationFac
 Let's try to scale down the no. of brokers from 4 to 3 while all brokers are currently having partition replicas assigned to them
 
 ```yaml
-
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
@@ -118,12 +122,11 @@ spec:
 Now you can apply the updated Kafka custom resource and check if the broker are scaled down or not.
 
 You check the logs using this command:
-
 ```sh
 kubect logs kubectl logs strimzi-cluster-operator-56fb857f7c-9hq6l -n myproject 
 ```
 
-Since we didn't move the replicas from the broker to be removed, you can see these errors in the logs
+Since we didn't move the replicas from the broker to be removed, the scale down will fail and you will be able see these errors in the logs
 ```shell
 2023-11-30 11:08:12 WARN  AbstractOperator:557 - Reconciliation #150(watch) Kafka(myproject/my-cluster): Failed to reconcile
 io.strimzi.operator.common.model.InvalidResourceException: Cannot scale down brokers [3] because brokers [3] are not empty
@@ -134,7 +137,7 @@ io.strimzi.operator.common.model.InvalidResourceException: Cannot scale down bro
 	at io.vertx.core.impl.future.PromiseImpl.tryComplete(PromiseImpl.java:23) ~[io.vertx.vertx-core-4.4.6.jar:4.4.6]
 	at io.vertx.core.Promise.complete(Promise.java:66) ~[io.vertx.vertx-core-4.4.6.jar:4.4.6]
 ```
-So these logs are basically telling you that the broker are not empty and therefore the reconciliation is failing and cluster operations are blocked. TO get rid of this error you can revert the replica change in the Kafka resource.
+So these logs are basically telling you that the broker are not empty and therefore the reconciliation is failing and cluster operations are blocked. To get rid of this error you can revert the replica change in the Kafka resource.
 
 ### Scaling down the replicas (after emptying partition replicas from broker to be removed)
 
