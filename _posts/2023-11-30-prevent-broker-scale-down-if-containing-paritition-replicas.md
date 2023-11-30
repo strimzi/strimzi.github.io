@@ -5,9 +5,9 @@ date: 2023-11-30
 author: Shubham Rawat
 ---
 
-Apache Kafka is a platform which is designed to be scalable.
+Apache Kafka is a platform designed for scalability.
 You can always scale in or scale out your Kafka Clusters based on your use case.
-When dealing with scaling down of cluster, you have to make sure that data across the brokers are moved/copied across the cluster.
+When scaling down a cluster, it's crucial to ensure that data across brokers is moved or copied throughout the cluster.
 There can be a possibility that while scaling down, you forgot to remove the partition replicas from the broker that is going to be removed and due to that you will have to suffer data loss.
 But don't worry, with Strimzi 0.38, we have introduced the broker scale down check which is going to take care of this problem.
 
@@ -30,7 +30,7 @@ kubectl annotate Kafka my-kafka-cluster strimzi.io/skip-broker-scaledown-check="
 
 ## Setting up the environment
 
-Let's spin up an cluster where we can work through some reassignment examples.
+Let's set up a cluster to work through some example demonstrating this feature.
 
 To get the Kafka cluster up and running, we will first have to install the Strimzi Cluster Operator and then deploy the `Kafka` resource.
 You can refer to the [Stimzi Quickstart Guide](https://strimzi.io/docs/operators/latest/quickstart.html) for installing Strimzi.
@@ -144,8 +144,8 @@ So these logs are basically telling you that the broker are not empty and theref
 
 Let's try to scale down the broker now after emptying partition replicas from the broker to be removed.
 
-We can make use of the `KafkaRebalance` resource in Strimzi with `remove-broker` node configuration for this job. 
-Doing this will make Cruise Control do all the job of rebalancing and moving the partition replicas from the broker that is going to be removed.
+We can make use of the `KafkaRebalance` resource in Strimzi with `remove-broker` node configuration for this job.
+Doing this will allow Cruise Control to handle the task of rebalancing and moving the partition replicas from the broker that is going to be removed.
 
 Once the rebalacing is done, you can validate/check if the topics are move from broker or not.
 ```shell
