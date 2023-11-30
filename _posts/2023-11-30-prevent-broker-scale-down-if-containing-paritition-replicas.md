@@ -4,6 +4,7 @@ title: "Prevent broker scale down if containing partition replicas""
 date: 2023-11-30
 author: Shubham Rawat
 ---
+
 Apache Kafka is a platform which is designed to be scalable.
 You can always scale in or scale out your Kafka Clusters based on your use case.
 When dealing with scaling down of cluster, you have to make sure that data across the brokers are moved/copied across the cluster.
