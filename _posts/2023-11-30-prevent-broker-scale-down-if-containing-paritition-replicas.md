@@ -145,7 +145,7 @@ So these logs are basically telling you that the broker are not empty and theref
 Let's try to scale down the broker now after emptying partition replicas from the broker to be removed.
 
 We can make use of the `KafkaRebalance` resource in Strimzi with `remove-broker` node configuration for this job. 
-Doing this will make Cruise Control do all the job of rebalancing and moving the partition replicas form the broker that is going to be removed.
+Doing this will make Cruise Control do all the job of rebalancing and moving the partition replicas from the broker that is going to be removed.
 
 Once the rebalacing is done, you can validate/check if the topics are move from broker or not.
 ```shell
