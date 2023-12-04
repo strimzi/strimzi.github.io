@@ -126,9 +126,9 @@ spec:
 
 Now you can apply the updated Kafka custom resource and check if the broker are scaled down or not.
 
-You check the logs using this command:
+You check the status of the Kafka CR using this command:
 ```sh
-kubect logs kubectl logs strimzi-cluster-operator-56fb857f7c-9hq6l -n myproject 
+kubectl get kafka my-cluster -n myproject -o yaml
 ```
 
 Since we didn't move the replicas from the broker to be removed, the scale down will fail and, you will be able to see these errors in the status of the Kafka custom resource
