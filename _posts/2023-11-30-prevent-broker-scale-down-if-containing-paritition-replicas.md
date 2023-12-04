@@ -18,7 +18,7 @@ If partition replicas are found on the broker then the cluster operations are bl
 The check is enabled by default with Strimzi 0.38.
 
 However, there may be scenarios where you want to bypass this blocking mechanism.
-Disabling the check might be necessary on busy clusters, for example, because new topics keep are being created all the time on such clusters
+Disabling the check might be necessary on busy clusters, for example, because new topics keep are being created all the time on such clusters.
 This situation can indefinitely block cluster operations, even when brokers are nearly empty.
 Overriding the blocking mechanism in this way has an impact:
 the presence of topics on the broker being scaled down will likely cause a reconciliation failure for the Kafka cluster.
