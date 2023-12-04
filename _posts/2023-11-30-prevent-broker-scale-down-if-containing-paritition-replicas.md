@@ -18,7 +18,7 @@ If partition replicas are found on the broker then the cluster operations are bl
 The check is enabled by default with Strimzi 0.38.
 
 However, there may be scenarios where you want to bypass this blocking mechanism.
-Disabling the check might be necessary on busy clusters, for example, because new topics keep generating replicas for the broker. .
+Disabling the check might be necessary on busy clusters, for example, because new topics keep are being created all the time on such clusters
 This situation can indefinitely block cluster operations, even when brokers are nearly empty.
 Overriding the blocking mechanism in this way has an impact:
 the presence of topics on the broker being scaled down will likely cause a reconciliation failure for the Kafka cluster.
@@ -68,7 +68,7 @@ spec:
     storage:
       type: ephemeral
   zookeeper:
-    replicas: 4
+    replicas: 3
     storage:
       type: ephemeral
   entityOperator:
@@ -77,8 +77,8 @@ spec:
   cruiseControl: {}
 ```
 
-Once the cluster is up, we can create some topics such that we have some partition replicas asssigned to the brokers
-Here is an exmaple topic configuration:
+Once the cluster is up, we can create some topics such that we have some partition replicas assigned to the brokers
+This is a topic configuration example:
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
@@ -92,20 +92,24 @@ spec:
   config:
     retention.ms: 7200000
     segment.bytes: 1073741824
-
 ```
 
 You can now check how topic partition replicas are allocated across the brokers:
 ```shell
-Topic: my-topic	TopicId: VcdsMY9gR1STjURMGEHrlA	PartitionCount: 3	ReplicationFactor: 3	Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
-	Topic: my-topic	Partition: 0	Leader: 1	Replicas: 1,0,2	Isr: 1,0,2
-	Topic: my-topic	Partition: 1	Leader: 0	Replicas: 0,2,3	Isr: 0,2,3
-	Topic: my-topic	Partition: 2	Leader: 2	Replicas: 2,3,1	Isr: 2,3,1
+Topic: my-topic	TopicId: bbX7RyTSSXmheaxSPyRIVw	PartitionCount: 3	ReplicationFactor: 3	Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
+	Topic: my-topic	Partition: 0	Leader: 2	Replicas: 2,3,1	Isr: 2,3,1
+	Topic: my-topic	Partition: 1	Leader: 3	Replicas: 3,1,0	Isr: 3,1,0
+	Topic: my-topic	Partition: 2	Leader: 1	Replicas: 1,0,2	Isr: 1,0,2
+```
+using the command:
+```shell
+kubectl run -n myproject client -itq --rm --restart="Never" --image="quay.io/strimzi/kafka:latest-kafka-3.6.0" -- \
+sh -c "/opt/kafka/bin/kafka-topics.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --describe --topic my-topic; exit 0";
 ```
 
-### Scaling down the replicas (without moving replicas from broker to be removed)
+### Scaling down without moving out all replicas from the broker to be removed
 
-Let's try to scale down the no. of brokers from 4 to 3 while all brokers are currently having partition replicas assigned to them
+Let's try to scale down `.spec.kafka.replicas` (no. of brokers) from 4 to 3, while all brokers have partition replicas assigned.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -115,7 +119,7 @@ metadata:
 spec:
   kafka:
     version: 3.6.0
-    replicas: 3            // Changes the replicas to 3
+    replicas: 3            # Changes the replicas to 3
     listeners:
 # ....    
 ```
@@ -127,31 +131,46 @@ You check the logs using this command:
 kubect logs kubectl logs strimzi-cluster-operator-56fb857f7c-9hq6l -n myproject 
 ```
 
-Since we didn't move the replicas from the broker to be removed, the scale down will fail and, you will be able to see these errors in the logs
-```shell
-2023-11-30 11:08:12 WARN  AbstractOperator:557 - Reconciliation #150(watch) Kafka(myproject/my-cluster): Failed to reconcile
-io.strimzi.operator.common.model.InvalidResourceException: Cannot scale down brokers [3] because brokers [3] are not empty
-	at io.strimzi.operator.cluster.operator.assembly.KafkaReconciler.lambda$brokerScaleDownCheck$26(KafkaReconciler.java:300) ~[io.strimzi.cluster-operator-0.38.0.jar:0.38.0]
-	at io.vertx.core.impl.future.Composition.onSuccess(Composition.java:38) ~[io.vertx.vertx-core-4.4.6.jar:4.4.6]
-	at io.vertx.core.impl.future.FutureBase.emitSuccess(FutureBase.java:60) ~[io.vertx.vertx-core-4.4.6.jar:4.4.6]
-	at io.vertx.core.impl.future.FutureImpl.tryComplete(FutureImpl.java:211) ~[io.vertx.vertx-core-4.4.6.jar:4.4.6]
-	at io.vertx.core.impl.future.PromiseImpl.tryComplete(PromiseImpl.java:23) ~[io.vertx.vertx-core-4.4.6.jar:4.4.6]
-	at io.vertx.core.Promise.complete(Promise.java:66) ~[io.vertx.vertx-core-4.4.6.jar:4.4.6]
+Since we didn't move the replicas from the broker to be removed, the scale down will fail and, you will be able to see these errors in the status of the Kafka custom resource
+```yaml
+status:
+  clusterId: S4kUmhqvTQegHCGXPrHe_A
+  conditions:
+  - lastTransitionTime: "2023-12-04T07:03:49.161878138Z"
+    message: Cannot scale down brokers [3] because brokers [3] are not empty
+    reason: InvalidResourceException
+    status: "True"
+    type: NotReady
 ```
-So these logs are basically telling you that the broker are not empty and therefore the reconciliation is failing and cluster operations are blocked. To get rid of this error you can revert the replica change in the Kafka resource.
+So these logs are basically telling you that broker 3 is not empty, which makes the whole reconciliation fail. You can get rid of this error by reverting `.spec.kafka.replicas` in the Kafka resource.
 
-### Scaling down the replicas (after emptying partition replicas from broker to be removed)
+### Scaling down after moving out all replicas from the broker to be removed
 
 Let's try to scale down the broker now after emptying partition replicas from the broker to be removed.
 
 We can make use of the `KafkaRebalance` resource in Strimzi with `remove-broker` node configuration for this job.
-Doing this will allow Cruise Control to handle the task of rebalancing and moving the partition replicas from the broker that is going to be removed.
+Here is an example `KafkaRebalance` resource.
+```yaml
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaRebalance
+metadata:
+  name: my-rebalance
+  labels:
+    strimzi.io/cluster: my-cluster
+# no goals specified, using the default goals from the Cruise Control configuration
+spec:
+  mode: remove-brokers
+  brokers: [3]
+```
+You can create this `KafkaRebalance` custom resource and this will allow Cruise Control to handle the task of rebalancing and moving the partition replicas from the broker that is going to be removed.
+For more in-depth information you can refer to our [Rebalancing cluster using Cruise Control](https://strimzi.io/docs/operators/latest/deploying#proc-generating-optimization-proposals-str) documentation.
 
 Once the rebalacing is done, you can validate/check if the topics are move from broker or not.
 ```shell
-	Topic: my-topic	Partition: 0	Leader: 1	Replicas: 1,0,2	Isr: 1,0,2
-	Topic: my-topic	Partition: 1	Leader: 0	Replicas: 0,2,1	Isr: 0,2,1
-	Topic: my-topic	Partition: 2	Leader: 2	Replicas: 2,0,1	Isr: 2,1,0
+Topic: my-topic	TopicId: bbX7RyTSSXmheaxSPyRIVw	PartitionCount: 3	ReplicationFactor: 3	Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
+	Topic: my-topic	Partition: 0	Leader: 2	Replicas: 2,0,1	Isr: 2,1,0
+	Topic: my-topic	Partition: 1	Leader: 2	Replicas: 2,1,0	Isr: 1,0,2
+	Topic: my-topic	Partition: 2	Leader: 1	Replicas: 1,0,2	Isr: 1,0,2
 ```
 
 Now you can scale down the broker and, it will happen flawlessly since the broker is empty.
@@ -159,4 +178,4 @@ Now you can scale down the broker and, it will happen flawlessly since the broke
 ## What's next
 
 Hope this blog post gave you a gist on how broker scale down check works.
-With the next releases of Strimzi, we are working to make this process more flawless by reverting the kafka replicas back to what they were if the broker scale dowm check fails so that the reconciliation doesn't fail and there is no blocking of cluster operations
+With the next releases of Strimzi, we will improve this process by automatically reverting `.spec.kafka.replicas` back to the original value when the broker scale down check fails. This means that the reconciliation doesn't fail and cluster operations are not blocked.
