@@ -8,7 +8,7 @@ author: jakub_scholz
 If you have been using Strimzi for some time, you might be wondering about its versioning.
 Why does Strimzi still have only some _zero-dot-something_ versions?
 Where is Strimzi 1.0.0?
-So in this blog post, we will look at the history behind it and our latest plans for the 1.0.0 release.
+In this blog post, we will look at the history behind this and outline our latest plans for the 1.0.0 release.
 
 _This blog post is a personal opinion of the author and might not represent the view of the whole Strimzi community._
 
@@ -26,7 +26,7 @@ That came only with the 0.2.0 release.
 
 Neither 0.1.0 nor 0.2.0 were of course production-ready.
 They were just the first steps on a long road.
-But with every release, we added more and more features, fixed bugs, and improved things ... and suddenly, we had our first production users and the first companies started to offer commercial products based on Strimzi.
+But with every release, we added more and more features, fixed bugs, and made improvements ... and suddenly, we had our first production users and the first companies started to offer commercial products based on Strimzi.
 With more and more users, we started thinking about releasing Strimzi 1.0.0.
 
 But there was a thing on the horizon ... the _ZooKeeper-less Apache Kafka_ (also called _KRaft mode_).
@@ -50,9 +50,9 @@ If I had the chance to go back and change it, I would surely propose to do the 1
 ### Does it mean Strimzi is not production-ready?
 
 Absolutely not!
-We realize the 0.x version might seem scary and might put people off.
+We realize the 0.x version might seem concerning and might deter some people.
 However, the version number itself does not say much about the project maturity or about how good the project is.
-All of us in Strimzi believe that Strimzi production-ready.
+Strimzi is production-ready!
 And you can check the logos of some of our production users on our website as proof.
 
 And despite being only at 0.x version, we do our best to maintain backward compatibility on the API level as well in how the Strimzi operators work.
