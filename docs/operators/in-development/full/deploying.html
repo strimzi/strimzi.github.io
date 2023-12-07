@@ -4142,7 +4142,7 @@ spec: <b class="conum">(1)</b>
 <p><a href="./configuring.html#type-KafkaConnectSpec-reference" target="_blank" rel="noopener">The specification for the Kafka Connect cluster</a>.</p>
 </li>
 <li>
-<p>The docker image for the pods.</p>
+<p>The docker image for Kafka Connect pods.</p>
 </li>
 <li>
 <p>Configuration of the Kafka Connect <em>workers</em> (not connectors).</p>
@@ -8340,7 +8340,18 @@ spec:
 <h3 id="ref-operator-cluster-str"><a class="link" href="#ref-operator-cluster-str">9.5. Configuring the Cluster Operator</a></h3>
 <div class="paragraph _abstract">
 <p>Use environment variables to configure the Cluster Operator.
-Specify the environment variables for the container image of the Cluster Operator in its <code>Deployment</code> configuration file.</p>
+Specify the environment variables for the container image of the Cluster Operator in its <code>Deployment</code> configuration file.
+You can use the following environment variables to configure the Cluster Operator.
+If you are running Cluster Operator replicas in standby mode, there are additional <a href="#con-configuring-cluster-operator-leader-election-str">environment variables for enabling leader election</a>.</p>
+</div>
+<div class="paragraph">
+<p>Kafka, Kafka Connect, and Kafka MirrorMaker support multiple versions.
+Use their <code>STRIMZI_&lt;COMPONENT_NAME&gt;_IMAGES</code> environment variables to configure the default container images used for each version.
+The configuration provides a mapping between a version and an image.
+The required syntax is whitespace or comma-separated <code>&lt;version&gt; = &lt;image&gt;</code> pairs, which determine the image to use for a given version.
+For example, 3.6.1=quay.io/strimzi/kafka:latest-kafka-3.6.1.
+Theses default images are overridden if <code>image</code> property values are specified in the configuration of a component.
+For more information on <code>image</code> configuration of components, see the <a href="./configuring.html#con-common-configuration-images-reference" target="_blank" rel="noopener">Strimzi Custom Resource API Reference</a>.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -8353,10 +8364,6 @@ The <code>Deployment</code> configuration file provided with the Strimzi release
 </td>
 </tr>
 </table>
-</div>
-<div class="paragraph">
-<p>You can use the following environment variables to configure the Cluster Operator.
-If you are running Cluster Operator replicas in standby mode, there are additional <a href="#con-configuring-cluster-operator-leader-election-str">environment variables for enabling leader election</a>.</p>
 </div>
 <div class="dlist">
 <dl>
@@ -8386,7 +8393,7 @@ The interval between <a href="#ref-operator-cluster-periodic-reconciliation-str"
 <dt class="hdlist1"><code>STRIMZI_OPERATION_TIMEOUT_MS</code></dt>
 <dd>
 <p>Optional, default 300000 ms.
-The timeout for internal operations, in milliseconds. Increase this value when using Strimzi on clusters where regular Kubernetes operations take longer than usual (because of slow downloading of Docker images, for example).</p>
+The timeout for internal operations, in milliseconds. Increase this value when using Strimzi on clusters where regular Kubernetes operations take longer than usual (due to factors such as prolonged download times for container images, for example).</p>
 </dd>
 <dt class="hdlist1"><code>STRIMZI_ZOOKEEPER_ADMIN_SESSION_TIMEOUT_MS</code></dt>
 <dd>
@@ -8449,7 +8456,7 @@ The labels exclusion filter is not applied to labels in template sections such a
 </div>
 </div>
 </dd>
-<dt class="hdlist1"><code>STRIMZI_CUSTOM_{COMPONENT_NAME}_LABELS</code></dt>
+<dt class="hdlist1"><code>STRIMZI_CUSTOM_&lt;COMPONENT_NAME&gt;_LABELS</code></dt>
 <dd>
 <p>Optional.
 One or more custom labels to apply to all the pods created by the <code>{COMPONENT_NAME}</code> custom resource.
@@ -8511,51 +8518,72 @@ The label selector applies to <code>Kafka</code>, <code>KafkaConnect</code>, <co
 <dt class="hdlist1"><code>STRIMZI_KAFKA_IMAGES</code></dt>
 <dd>
 <p>Required.
-The mapping from the Kafka version to the corresponding Docker image containing a Kafka broker for that version.
-The required syntax is whitespace or comma-separated <code><em>&lt;version&gt;</em>=<em>&lt;image&gt;</em></code> pairs.
-For example <code>3.5.1=quay.io/strimzi/kafka:latest-kafka-3.5.1, 3.6.1=quay.io/strimzi/kafka:latest-kafka-3.6.1</code>.
-This is used when a <code>Kafka.spec.kafka.version</code> property is specified but not the <code>Kafka.spec.kafka.image</code> in the <code>Kafka</code> resource.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_DEFAULT_KAFKA_INIT_IMAGE</code></dt>
-<dd>
-<p>Optional, default <code>quay.io/strimzi/operator:latest</code>.
-The image name to use as default for the init container if no image is specified as the <code>kafka-init-image</code> in the <code>Kafka</code> resource.
-The init container is started before the broker for initial configuration work, such as rack support.</p>
+The mapping from the Kafka version to the corresponding image containing a Kafka broker for that version.
+For example <code>3.5.1=quay.io/strimzi/kafka:latest-kafka-3.5.1, 3.6.1=quay.io/strimzi/kafka:latest-kafka-3.6.1</code>.</p>
 </dd>
 <dt class="hdlist1"><code>STRIMZI_KAFKA_CONNECT_IMAGES</code></dt>
 <dd>
 <p>Required.
-The mapping from the Kafka version to the corresponding Docker image of Kafka Connect for that version.
-The required syntax is whitespace or comma-separated <code><em>&lt;version&gt;</em>=<em>&lt;image&gt;</em></code> pairs.
-For example <code>3.5.1=quay.io/strimzi/kafka:latest-kafka-3.5.1, 3.6.1=quay.io/strimzi/kafka:latest-kafka-3.6.1</code>.
-This is used when a <code>KafkaConnect.spec.version</code> property is specified but not the <code>KafkaConnect.spec.image</code>.</p>
+The mapping from the Kafka version to the corresponding image of Kafka Connect for that version.
+For example <code>3.5.1=quay.io/strimzi/kafka:latest-kafka-3.5.1, 3.6.1=quay.io/strimzi/kafka:latest-kafka-3.6.1</code>.</p>
 </dd>
-<dt class="hdlist1"><code>STRIMZI_KAFKA_MIRROR_MAKER_IMAGES</code></dt>
+<dt class="hdlist1"><code>STRIMZI_KAFKA_MIRROR_MAKER2_IMAGES</code></dt>
 <dd>
 <p>Required.
-The mapping from the Kafka version to the corresponding Docker image of MirrorMaker for that version.
-The required syntax is whitespace or comma-separated <code><em>&lt;version&gt;</em>=<em>&lt;image&gt;</em></code> pairs.
-For example <code>3.5.1=quay.io/strimzi/kafka:latest-kafka-3.5.1, 3.6.1=quay.io/strimzi/kafka:latest-kafka-3.6.1</code>.
-This is used when a <code>KafkaMirrorMaker.spec.version</code> property is specified but not the <code>KafkaMirrorMaker.spec.image</code>.</p>
+The mapping from the Kafka version to the corresponding image of MirrorMaker 2 for that version.
+For example <code>3.5.1=quay.io/strimzi/kafka:latest-kafka-3.5.1, 3.6.1=quay.io/strimzi/kafka:latest-kafka-3.6.1</code>.</p>
+</dd>
+<dt class="hdlist1">(Deprecated) <code>STRIMZI_KAFKA_MIRROR_MAKER_IMAGES</code></dt>
+<dd>
+<p>Required.
+The mapping from the Kafka version to the corresponding image of MirrorMaker for that version.
+For example <code>3.5.1=quay.io/strimzi/kafka:latest-kafka-3.5.1, 3.6.1=quay.io/strimzi/kafka:latest-kafka-3.6.1</code>.</p>
 </dd>
 <dt class="hdlist1"><code>STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE</code></dt>
 <dd>
-<p>Optional, default <code>quay.io/strimzi/operator:latest</code>.
+<p>Optional.
+The default is <code>quay.io/strimzi/operator:latest</code>.
 The image name to use as the default when deploying the Topic Operator
 if no image is specified as the <code>Kafka.spec.entityOperator.topicOperator.image</code> in the <code>Kafka</code> resource.</p>
 </dd>
 <dt class="hdlist1"><code>STRIMZI_DEFAULT_USER_OPERATOR_IMAGE</code></dt>
 <dd>
-<p>Optional, default <code>quay.io/strimzi/operator:latest</code>.
+<p>Optional.
+The default is <code>quay.io/strimzi/operator:latest</code>.
 The image name to use as the default when deploying the User Operator
 if no image is specified as the <code>Kafka.spec.entityOperator.userOperator.image</code> in the <code>Kafka</code> resource.</p>
 </dd>
 <dt class="hdlist1"><code>STRIMZI_DEFAULT_TLS_SIDECAR_ENTITY_OPERATOR_IMAGE</code></dt>
 <dd>
-<p>Optional, default <code>quay.io/strimzi/kafka:latest-kafka-3.6.1</code>.
-The image name to use as the default when deploying the sidecar container for the Entity Operator if
-no image is specified as the <code>Kafka.spec.entityOperator.tlsSidecar.image</code> in the <code>Kafka</code> resource.
+<p>Optional.
+The default is <code>quay.io/strimzi/kafka:latest-kafka-3.6.1</code>.
+The image name to use as the default when deploying the sidecar container for the Entity Operator if no image is specified as the <code>Kafka.spec.entityOperator.tlsSidecar.image</code> in the <code>Kafka</code> resource.
 The sidecar provides TLS support.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_DEFAULT_KAFKA_EXPORTER_IMAGE</code></dt>
+<dd>
+<p>Optional.
+The default is <code>quay.io/strimzi/kafka:latest-kafka-3.6.1</code>.
+The image name to use as the default when deploying the Kafka Exporter if no image is specified as the <code>Kafka.spec.kafkaExporter.image</code> in the <code>Kafka</code> resource.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_DEFAULT_CRUISE_CONTROL_IMAGE</code></dt>
+<dd>
+<p>Optional.
+The default is <code>quay.io/strimzi/kafka:latest-kafka-3.6.1</code>.
+The image name to use as the default when deploying Cruise Control if no image is specified as the <code>Kafka.spec.cruiseControl.image</code> in the <code>Kafka</code> resource.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_DEFAULT_KAFKA_BRIDGE_IMAGE</code></dt>
+<dd>
+<p>Optional.
+The default is <code>quay.io/strimzi/kafka-bridge:0.27.0</code>.
+The image name to use as the default when deploying the Kafka Bridge if no image is specified as the <code>Kafka.spec.kafkaBridge.image</code> in the <code>Kafka</code> resource.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_DEFAULT_KAFKA_INIT_IMAGE</code></dt>
+<dd>
+<p>Optional.
+The default is <code>quay.io/strimzi/operator:latest</code>.
+The image name to use as the default for the Kafka initializer container if no image is specified in the <code>brokerRackInitImage</code> of the <code>Kafka</code> resource or the <code>clientRackInitImage</code> of the Kafka Connect resource.
+The init container is started before the Kafka cluster for initial configuration work, such as rack support.</p>
 </dd>
 <dt class="hdlist1"><code>STRIMZI_IMAGE_PULL_POLICY</code></dt>
 <dd>
@@ -31947,10 +31975,10 @@ This will ensure that all of your clients can support the latest message format 
 <div class="ulist">
 <ul>
 <li>
-<p>Each <code>Kafka</code> resource can be configured with a <code>Kafka.spec.kafka.version</code>.</p>
+<p>Each <code>Kafka</code> resource can be configured with a <code>Kafka.spec.kafka.version</code>, which defaults to the latest supported Kafka version (3.6.1) if not specified.</p>
 </li>
 <li>
-<p>The Cluster Operator&#8217;s <code>STRIMZI_KAFKA_IMAGES</code> environment variable provides a mapping between the Kafka version and the image to be used when that version is requested in a given <code>Kafka</code> resource.</p>
+<p>The Cluster Operator&#8217;s <code>STRIMZI_KAFKA_IMAGES</code> environment variable provides a mapping (&lt;kafka_version&gt;=&lt;image&gt;) between a Kafka version and the image to be used when a specific Kafka version is requested in a given <code>Kafka</code> resource. For example, 3.6.1=quay.io/strimzi/kafka:latest-kafka-3.6.1.</p>
 <div class="ulist">
 <ul>
 <li>
@@ -37605,7 +37633,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-12-07 15:36:33 UTC
+Last updated 2023-12-07 22:29:39 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
