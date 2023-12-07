@@ -42,7 +42,7 @@ So we decided to not release Strimzi 1.0.0 and wait for the ZooKeeper removal to
 It turned out that the ZooKeeper removal from Apache Kafka took longer than we initially expected.
 In fact - it is still in progress - although it seems like it is slowly coming to an end and hopefully, next year will see the release of Apache Kafka 4.0 without ZooKeeper support.
 At the time of writing this blog post, Strimzi has 0.38.0 as its last release.
-That means 38 minor releases without releasing 1.0.0.
+That means 38 versions without releasing 1.0.0.
 
 So, looking back, the decision we took a long time ago was probably a mistake.
 If I had the chance to go back and change it, I would surely propose to do the 1.0.0 release already back then and now we would be talking only about _when to do the 2.0.0 release_.
@@ -53,7 +53,7 @@ Absolutely not!
 We realize the 0.x version might seem concerning and might deter some people.
 However, the version number itself does not say much about the project maturity or about how good the project is.
 Strimzi is production-ready!
-And you can check the logos of some of our production users on our website as proof.
+And you can check some of our production users on our [website](https://strimzi.io/) or in our [`ADOPTERS.md` file](https://github.com/strimzi/strimzi-kafka-operator/blob/main/ADOPTERS.md) as proof.
 
 And despite being only at 0.x version, we do our best to maintain backward compatibility on the API level as well in how the Strimzi operators work.
 So you should not have anything to worry about!
