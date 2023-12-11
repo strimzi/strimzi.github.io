@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Where is Strimzi 1.0.0?"
-date: 2023-12-06
+date: 2023-12-11
 author: jakub_scholz
 ---
 
