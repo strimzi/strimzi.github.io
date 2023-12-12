@@ -175,5 +175,5 @@ Now you can scale down the broker, and it will happen seamlessly since the broke
 ## What's next
 
 We hope this blog post has provided you with a clear understanding of how the broker scale-down check operates.
-In upcoming Strimzi releases, we aim to enhance this process by continuing the reconciliation without doing the scaledown
+In upcoming Strimzi releases, we aim to enhance this process by continuing the reconciliation without doing the scaledown in case partition replicas are found on the broker that is going to be removed.
 This improvement will ensure that reconciliation doesn't fail, and cluster operations remain unblocked.
