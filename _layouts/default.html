@@ -6,10 +6,24 @@
   <nav class="site-content">
     {% include header-navigation.html %}
   </nav>
+  <div class="toc-nav">
+    <!--toggle ToC-->
+    <div class="toggle">
+      <label class="switch" for="TocToggle">
+        <input type="checkbox" id="TocToggle" checked>
+        <span class="slider round"></span>
+      </label>
+      <span class="toggle-label">Hide ToC</span>
+    </div>
+    <!-- edit link -->
+    <div class="edit-link">
+      <div style="font-size: 1rem; margin: 0 10px;"><i class="fa fa-edit"></i> <a href="https://github.com/strimzi/strimzi-kafka-operator/tree/main/documentation" target="_blank">Edit this page</a></div>
+    </div>   
+  </div>
 </div>
 
 <body class="{% if page.url == '/' %}homepage{% else %}{{page.layout}}{% endif %}">
-  <div class="doc-main">
+  <div class="doc-main">   
     <nav class="toc-left">
       {% include toc.html html=content sanitize=true item_class="toc_heading_%level%" h_min=2 h_max=4 %}
     </nav>
@@ -19,10 +33,11 @@
         {{ page.title | replace: '!LATEST_OPERATOR_VERSION!', site.data.releases.operator[0].version | replace:
         '!LATEST_BRIDGE_VERSION!', site.data.releases.bridge[0].version }}
       </h1>
-      <p style="text-align: right; font-size: 1rem;"><i class="fa fa-edit"></i> <a href="https://github.com/strimzi/strimzi-kafka-operator/tree/main/documentation" target="_blank">Edit this page</a></p>
       {{ content }}
     </div>
   </div>
+  <button onclick="topFunction()" id="topBtn" title="Go to top">Top</button> 
+
 </body>
 
 <nav class="site-content footer" id="footer">
@@ -32,61 +47,63 @@
 {% include site-scripts.html %}
 </html>
 
-<style>
-  /* adds a horizontal scroll bar to any doc tables that expand beyond the container */
-  table {
-    display: block;
-    overflow-x: auto !important;
-  }
-</style>
-
 <script>
+
   const footer = document.querySelector('#footer');
   const toc = document.querySelector('.toc-left');
-  const content = document.querySelector('.doc-content');
 
-  let isResizing = false;
+  document.addEventListener('DOMContentLoaded', function() {
+  var tocLeft = document.querySelector('.toc-left');
+  var docContent = document.querySelector('.doc-content');
+  var toggleSwitch = document.getElementById('TocToggle');
+  var toggleLabel = document.querySelector('.toggle-label');
 
-  function setWidth() {
-    if (isResizing) return;
+  // Function to update the ToC visibility and label text
+  function updateToC() {
+    var isChecked = toggleSwitch.checked;
 
-    isResizing = true;
+    tocLeft.style.display = isChecked ? 'block' : 'none';
+    docContent.style.width = isChecked ? '75%' : '100%';
 
-    setTimeout(() => {
-      const tocWidth = toc.offsetWidth;
-      const adjustedWidth = `calc(100% - ${tocWidth}px)`;
-      content.style.width = adjustedWidth;
-      isResizing = false;
-    }, 500);
+    // Update the label text
+    toggleLabel.textContent = isChecked ? 'Hide ToC' : 'Show ToC';
   }
 
-  function throttleTocResize(func, delay) {
-    let isResizing = false;
+  // Event listener for toggle switch change
+  toggleSwitch.addEventListener('change', updateToC);
 
-    return function () {
-      if (isResizing) return;
+  // Initial update of ToC visibility and label text
+  updateToC();
+});
 
-      isResizing = true;
-
-      setTimeout(() => {
-        func();
-        isResizing = false;
-      }, delay);
-    };
+//shrink the scroll bar when the footer is in view
+window.addEventListener('scroll', () => {
+  const rect = footer.getBoundingClientRect();
+  if (rect.top < window.innerHeight && rect.bottom > 0) {
+    toc.classList.add('footer-visible');
+  } else {
+    toc.classList.remove('footer-visible');
   }
+});
 
-  setWidth();
+//send the page back to the top
+let topButton = document.getElementById("topBtn");
 
-  window.addEventListener('resize', throttleTocResize(setWidth, 800));
-  toc.addEventListener('mousemove', throttleTocResize(setWidth, 800));
+// show the button 100px from top
+window.onscroll = function() {scrollFunction()};
 
-  window.addEventListener('scroll', () => {
-    const rect = footer.getBoundingClientRect();
-    if (rect.top < window.innerHeight && rect.bottom > 0) {
-      toc.classList.add('footer-visible');
-    } else {
-      toc.classList.remove('footer-visible');
-    }
-  });
+function scrollFunction() {
+  if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
+    topButton.style.display = "block";
+  } else {
+    topButton.style.display = "none";
+  }
+}
+
+// scroll to the top
+function topFunction() {
+  document.body.scrollTop = 0; // For Safari
+  document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+} 
 
 </script>
