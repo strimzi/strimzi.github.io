@@ -9,7 +9,7 @@ Apache Kafka is a platform designed for scalability.
 You can always scale in or scale out your Kafka Clusters based on your use case.
 When scaling down a cluster, it's crucial to ensure that data across brokers is moved or copied throughout the cluster.
 If you forget to move out the partition replicas from the broker being removed, then Strimzi might not be able to roll the cluster properly due to availability issues i.e. replicas assigned to that broker will be always offline. 
-Another issue would be that you would suffer data loss.
+Another issue would be that you might suffer data loss.
 But don't worry, with Strimzi 0.38, we have introduced the broker scale down check which is going to take care of this problem.
 
 ## Broker scale down check
@@ -22,8 +22,8 @@ This is enabled by default with Strimzi 0.38.
 
 Let's set up a cluster to work through an example demonstrating this feature.
 To get the Kafka cluster up and running, we will first have to install the Strimzi Cluster Operator and then deploy the `Kafka` resource.
-You can refer to the [Stimzi Quickstart Guide](https://strimzi.io/quickstarts/) to install the operator.
 You can install the Cluster Operator with any installation method you prefer.
+For example by following the [Stimzi Quickstart Guide](https://strimzi.io/quickstarts/).
 Then we will deploy the Kafka cluster with Cruise Control enabled.
 
 Example Kafka resource with Cruise Control enabled:
@@ -100,7 +100,6 @@ metadata:
   name: my-cluster
 spec:
   kafka:
-    version: 3.6.0
     replicas: 3 # Changes the replicas to 3
     listeners:
 # ....    
