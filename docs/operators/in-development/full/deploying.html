@@ -487,8 +487,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#kafka-cluster-str">5.3. Deploying Kafka</a>
 <ul class="sectlevel3">
-<li><a href="#deploying-kafka-cluster-str">5.3.1. Deploying the Kafka cluster</a></li>
-<li><a href="#deploying-kafka-node-pools-str">5.3.2. (Preview) Deploying Kafka node pools</a></li>
+<li><a href="#deploying-kafka-node-pools-str">5.3.1. Deploying a Kafka cluster with node pools</a></li>
+<li><a href="#deploying-kafka-cluster-str">5.3.2. Deploying a ZooKeeper-based Kafka cluster without node pools</a></li>
 <li><a href="#deploying-the-topic-operator-using-the-cluster-operator-str">5.3.3. Deploying the Topic Operator using the Cluster Operator</a></li>
 <li><a href="#deploying-the-user-operator-using-the-cluster-operator-str">5.3.4. Deploying the User Operator using the Cluster Operator</a></li>
 <li><a href="#ref-list-of-kafka-cluster-resources-str">5.3.5. List of Kafka cluster resources</a></li>
@@ -542,7 +542,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#ref-operator-use-strimzi-pod-sets-feature-gate-str">8.3. UseStrimziPodSets feature gate</a></li>
 <li><a href="#ref-operator-stable-connect-identities-feature-gate-str">8.4. StableConnectIdentities feature gate</a></li>
 <li><a href="#ref-operator-use-kraft-feature-gate-str">8.5. (Preview) UseKRaft feature gate</a></li>
-<li><a href="#ref-operator-kafka-node-pools-feature-gate-str">8.6. (Preview) KafkaNodePools feature gate</a></li>
+<li><a href="#ref-operator-kafka-node-pools-feature-gate-str">8.6. KafkaNodePools feature gate</a></li>
 <li><a href="#ref-operator-unidirectional-topic-operator-feature-gate-str">8.7. UnidirectionalTopicOperator feature gate</a></li>
 <li><a href="#ref-operator-cluster-feature-gate-releases-str">8.8. Feature gate releases</a></li>
 </ul>
@@ -556,15 +556,15 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#con-zookeeper-default-config-str">9.2.2. Default ZooKeeper configuration values</a></li>
 </ul>
 </li>
-<li><a href="#config-node-pools-str">9.3. (Preview) Configuring node pools</a>
+<li><a href="#config-node-pools-str">9.3. Configuring node pools</a>
 <ul class="sectlevel3">
-<li><a href="#proc-managing-node-pools-ids-str">9.3.1. (Preview) Assigning IDs to node pools for scaling operations</a></li>
-<li><a href="#proc-scaling-up-node-pools-str">9.3.2. (Preview) Adding nodes to a node pool</a></li>
-<li><a href="#proc-scaling-down-node-pools-str">9.3.3. (Preview) Removing nodes from a node pool</a></li>
-<li><a href="#proc-moving-node-pools-str">9.3.4. (Preview) Moving nodes between node pools</a></li>
-<li><a href="#proc-managing-storage-node-pools-str">9.3.5. (Preview) Managing storage using node pools</a></li>
-<li><a href="#proc-managing-storage-affinity-node-pools-str">9.3.6. (Preview) Managing storage affinity using node pools</a></li>
-<li><a href="#proc-migrating-clusters-node-pools-str">9.3.7. (Preview) Migrating existing Kafka clusters to use Kafka node pools</a></li>
+<li><a href="#proc-managing-node-pools-ids-str">9.3.1. Assigning IDs to node pools for scaling operations</a></li>
+<li><a href="#proc-scaling-up-node-pools-str">9.3.2. Adding nodes to a node pool</a></li>
+<li><a href="#proc-scaling-down-node-pools-str">9.3.3. Removing nodes from a node pool</a></li>
+<li><a href="#proc-moving-node-pools-str">9.3.4. Moving nodes between node pools</a></li>
+<li><a href="#proc-managing-storage-node-pools-str">9.3.5. Managing storage using node pools</a></li>
+<li><a href="#proc-managing-storage-affinity-node-pools-str">9.3.6. Managing storage affinity using node pools</a></li>
+<li><a href="#proc-migrating-clusters-node-pools-str">9.3.7. Migrating existing Kafka clusters to use Kafka node pools</a></li>
 </ul>
 </li>
 <li><a href="#ref-kafka-entity-operator-str">9.4. Configuring the Entity Operator</a>
@@ -2752,7 +2752,17 @@ You can use these files to deploy the Topic Operator and User Operator at the sa
 <div class="ulist">
 <ul>
 <li>
-<p><a href="#deploying-kafka-cluster-str">Kafka cluster</a> or (preview) <a href="#deploying-kafka-node-pools-str">Kafka cluster with node pools</a></p>
+<p>A Kafka cluster that uses KRaft or ZooKeeper:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#deploying-kafka-node-pools-str">KRaft-based or ZooKeeper-based Kafka cluster with node pools</a></p>
+</li>
+<li>
+<p><a href="#deploying-kafka-cluster-str">ZooKeeper-based Kafka cluster without node pools</a></p>
+</li>
+</ul>
+</div>
 </li>
 <li>
 <p><a href="#deploying-the-topic-operator-using-the-cluster-operator-str">Topic Operator</a></p>
@@ -2763,15 +2773,8 @@ You can use these files to deploy the Topic Operator and User Operator at the sa
 </ul>
 </div>
 <div class="paragraph">
-<p>When installing Kafka, Strimzi also installs a ZooKeeper cluster and adds the necessary configuration to connect Kafka with ZooKeeper.</p>
-</div>
-<div class="paragraph">
-<p>If you are trying the preview of the node pools feature, you can deploy a Kafka cluster with one or more node pools.
-Node pools provide configuration for a set of Kafka nodes.
+<p>Node pools provide configuration for a set of Kafka nodes.
 By using node pools, nodes can have different configuration within the same Kafka cluster.</p>
-</div>
-<div class="paragraph">
-<p>Node pools are not enabled by default, so you must <a href="#ref-operator-kafka-node-pools-feature-gate-str">enable the <code>KafkaNodePools</code> feature gate</a> before using them.</p>
 </div>
 <div class="paragraph">
 <p>If you haven&#8217;t deployed a Kafka cluster as a <code>Kafka</code> resource, you can&#8217;t use the Cluster Operator to manage it.
@@ -2780,9 +2783,197 @@ However, you can use the Topic Operator and User Operator with a Kafka cluster t
 You can also deploy and use other Kafka components with a Kafka cluster not managed by Strimzi.</p>
 </div>
 <div class="sect3">
-<h4 id="deploying-kafka-cluster-str"><a class="link" href="#deploying-kafka-cluster-str">5.3.1. Deploying the Kafka cluster</a></h4>
+<h4 id="deploying-kafka-node-pools-str"><a class="link" href="#deploying-kafka-node-pools-str">5.3.1. Deploying a Kafka cluster with node pools</a></h4>
 <div class="paragraph _abstract">
-<p>This procedure shows how to deploy a Kafka cluster to your Kubernetes cluster using the Cluster Operator.</p>
+<p>This procedure shows how to deploy Kafka with node pools to your Kubernetes cluster using the Cluster Operator.
+Node pools represent a distinct group of Kafka nodes within a Kafka cluster that share the same configuration.
+For each Kafka node in the node pool, any configuration not defined in node pool is inherited from the cluster configuration in the <code>kafka</code> resource.</p>
+</div>
+<div class="paragraph">
+<p>The deployment uses a YAML file to provide the specification to create a <code>KafkaNodePool</code> resource.
+You can use node pools with Kafka clusters that use KRaft (Kafka Raft metadata) mode or ZooKeeper for cluster management.
+To deploy a Kafka cluster in KRaft mode, you must use the <code>KafkaNodePool</code> resources.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+<strong>KRaft mode is not ready for production in Apache Kafka or in Strimzi.</strong>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Strimzi provides the following <a href="#config-examples-str">example files</a> that you can use to create a Kafka cluster that uses node pools:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>kafka-with-dual-role-kraft-nodes.yaml</code></dt>
+<dd>
+<p>Deploys a Kafka cluster with one pool of KRaft nodes that share the broker and controller roles.</p>
+</dd>
+<dt class="hdlist1"><code>kafka-with-kraft.yaml</code></dt>
+<dd>
+<p>Deploys a persistent Kafka cluster with one pool of controller nodes and one pool of broker nodes.</p>
+</dd>
+<dt class="hdlist1"><code>kafka-with-kraft-ephemeral.yaml</code></dt>
+<dd>
+<p>Deploys an ephemeral Kafka cluster with one pool of controller nodes and one pool of broker nodes.</p>
+</dd>
+<dt class="hdlist1"><code>kafka.yaml</code></dt>
+<dd>
+<p>Deploys ZooKeeper with 3 nodes, and 2 different pools of Kafka brokers. Each of the pools has 3 brokers. The pools in the example use different storage configuration.</p>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+You can perform the steps outlined here to deploy a new Kafka cluster with <code>KafkaNodePool</code> resources or <a href="#proc-migrating-clusters-node-pools-str">migrate your existing Kafka cluster</a>.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>If you want to use KRaft, enable the <code>UseKRaft</code> feature gate from the command line:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl set env deployment/strimzi-cluster-operator STRIMZI_FEATURE_GATES="+UseKRaft"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or by editing the Cluster Operator <code>Deployment</code> and updating the <code>STRIMZI_FEATURE_GATES</code> environment variable:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">env
+  - name: STRIMZI_FEATURE_GATES
+    value: +UseKRaft</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This updates the Cluster Operator.</p>
+</div>
+</li>
+<li>
+<p>Deploy a Kafka cluster with node pools</p>
+<div class="ulist">
+<ul>
+<li>
+<p>To deploy a Kafka cluster in KRaft mode with a  single node pool that uses dual-role nodes:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka/nodepools/kafka-with-dual-role-kraft-nodes.yaml</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>To deploy a persistent Kafka cluster in KRaft mode with separate node pools for broker and controller nodes:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka/nodepools/kafka-with-kraft.yaml</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>To deploy an ephemeral Kafka cluster in KRaft mode with separate node pools for broker and controller nodes:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka/nodepools/kafka-with-kraft-ephemeral.yaml</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>To deploy a Kafka cluster and ZooKeeper cluster with two node pools of three brokers:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka/nodepools/kafka.yaml</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Check the status of the deployment:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n <em>&lt;my_cluster_operator_namespace&gt;</em></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Output shows the node pool names and readiness</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                        READY  STATUS   RESTARTS
+my-cluster-entity-operator  3/3    Running  0
+my-cluster-pool-a-0         1/1    Running  0
+my-cluster-pool-a-1         1/1    Running  0
+my-cluster-pool-a-4         1/1    Running  0</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>my-cluster</code> is the name of the Kafka cluster.</p>
+</li>
+<li>
+<p><code>pool-a</code> is the name of the node pool.</p>
+<div class="paragraph">
+<p>A sequential index number starting with <code>0</code> identifies each Kafka pod created.
+If you are using ZooKeeper, you&#8217;ll also see the ZooKeeper pods.</p>
+</div>
+<div class="paragraph">
+<p><code>READY</code> shows the number of replicas that are ready/expected.
+The deployment is successful when the <code>STATUS</code> displays as <code>Running</code>.</p>
+</div>
+<div class="paragraph">
+<p>Information on the deployment is also shown in the status of the <code>KafkaNodePool</code> resource, including a list of IDs for nodes in the pool.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Node IDs are assigned sequentially starting at 0 (zero) across all node pools within a cluster. This means that node IDs might not run sequentially within a specific node pool. If there are gaps in the sequence of node IDs across the cluster, the next node to be added is assigned an ID that fills the gap. When scaling down, the node with the highest node ID within a pool is removed.
+</td>
+</tr>
+</table>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph _additional-resources">
+<div class="title">Additional resources</div>
+<p><a href="#config-node-pools-str">Node pool configuration</a></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="deploying-kafka-cluster-str"><a class="link" href="#deploying-kafka-cluster-str">5.3.2. Deploying a ZooKeeper-based Kafka cluster without node pools</a></h4>
+<div class="paragraph _abstract">
+<p>This procedure shows how to deploy a ZooKeeper-based Kafka cluster to your Kubernetes cluster using the Cluster Operator.</p>
 </div>
 <div class="paragraph">
 <p>The deployment uses a YAML file to provide the specification to create a <code>Kafka</code> resource.</p>
@@ -2892,13 +3083,13 @@ spec:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Create and deploy an ephemeral or persistent cluster.</p>
+<p>Deploy a ZooKeeper-based Kafka cluster.</p>
 <div class="openblock">
 <div class="content">
 <div class="ulist">
 <ul>
 <li>
-<p>To create and deploy an ephemeral cluster:</p>
+<p>To deploy an ephemeral cluster:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka/kafka-ephemeral.yaml</code></pre>
@@ -2906,7 +3097,7 @@ spec:
 </div>
 </li>
 <li>
-<p>To create and deploy a persistent cluster:</p>
+<p>To deploy a persistent cluster:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka/kafka-persistent.yaml</code></pre>
@@ -2957,208 +3148,6 @@ The deployment is successful when the <code>STATUS</code> displays as <code>Runn
 <div class="paragraph _additional-resources">
 <div class="title">Additional resources</div>
 <p><a href="#con-config-kafka-str">Kafka cluster configuration</a></p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="deploying-kafka-node-pools-str"><a class="link" href="#deploying-kafka-node-pools-str">5.3.2. (Preview) Deploying Kafka node pools</a></h4>
-<div class="paragraph _abstract">
-<p>This procedure shows how to deploy Kafka node pools to your Kubernetes cluster using the Cluster Operator.
-Node pools represent a distinct group of Kafka nodes within a Kafka cluster that share the same configuration.
-For each Kafka node in the node pool, any configuration not defined in node pool is inherited from the cluster configuration in the <code>kafka</code> resource.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The node pools feature is available as a preview. Node pools are not enabled by default, so you must <a href="#ref-operator-kafka-node-pools-feature-gate-str">enable the <code>KafkaNodePools</code> feature gate</a> before using them.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>The deployment uses a YAML file to provide the specification to create a <code>KafkaNodePool</code> resource.
-You can use node pools with Kafka clusters that use KRaft (Kafka Raft metadata) mode or ZooKeeper for cluster management.</p>
-</div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-<strong>KRaft mode is not ready for production in Apache Kafka or in Strimzi.</strong>
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Strimzi provides the following <a href="#config-examples-str">example files</a> that you can use to create a Kafka node pool:</p>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1"><code>kafka.yaml</code></dt>
-<dd>
-<p>Deploys ZooKeeper with 3 nodes, and 2 different pools of Kafka brokers. Each of the pools has 3 brokers. The pools in the example use different storage configuration.</p>
-</dd>
-<dt class="hdlist1"><code>kafka-with-dual-role-kraft-nodes.yaml</code></dt>
-<dd>
-<p>Deploys a Kafka cluster with one pool of KRaft nodes that share the broker and controller roles.</p>
-</dd>
-<dt class="hdlist1"><code>kafka-with-kraft.yaml</code></dt>
-<dd>
-<p>Deploys a Kafka cluster with one pool of controller nodes and one pool of broker nodes.</p>
-</dd>
-</dl>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-You don&#8217;t need to start using node pools right away. If you decide to use them, you can perform the steps outlined here to deploy a new Kafka cluster with <code>KafkaNodePool</code> resources or <a href="#proc-migrating-clusters-node-pools-str">migrate your existing Kafka cluster</a>.
-</td>
-</tr>
-</table>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
-</li>
-<li>
-<p>You have <a href="#deploying-kafka-cluster-str">created and deployed a Kafka cluster</a>.</p>
-</li>
-</ul>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-If you want to migrate an existing Kafka cluster to use node pools, see the <a href="#proc-migrating-clusters-node-pools-str">steps to  migrate existing Kafka clusters</a>.
-</td>
-</tr>
-</table>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>If you want to use KRaft, enable the <code>UseKRaft</code> feature gate from the command line:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl set env deployment/strimzi-cluster-operator STRIMZI_FEATURE_GATES="+UseKRaft"</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Or by editing the Cluster Operator <code>Deployment</code> and updating the <code>STRIMZI_FEATURE_GATES</code> environment variable:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">env
-  - name: STRIMZI_FEATURE_GATES
-    value: +UseKRaft</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This updates the Cluster Operator.</p>
-</div>
-</li>
-<li>
-<p>Create a node pool.</p>
-<div class="ulist">
-<ul>
-<li>
-<p>To deploy a Kafka cluster and ZooKeeper cluster with two node pools of three brokers:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka/nodepools/kafka.yaml</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>To deploy a Kafka cluster in KRaft mode with a  single node pool that uses dual-role nodes:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka/nodepools/kafka-with-dual-role-kraft-nodes.yaml</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>To deploy a Kafka cluster in KRaft mode with separate node pools for broker and controller nodes:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka/nodepools/kafka-with-kraft.yaml</code></pre>
-</div>
-</div>
-</li>
-</ul>
-</div>
-</li>
-<li>
-<p>Check the status of the deployment:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n <em>&lt;my_cluster_operator_namespace&gt;</em></code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="title">Output shows the node pool names and readiness</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                        READY  STATUS   RESTARTS
-my-cluster-entity-operator  3/3    Running  0
-my-cluster-pool-a-0         1/1    Running  0
-my-cluster-pool-a-1         1/1    Running  0
-my-cluster-pool-a-4         1/1    Running  0</code></pre>
-</div>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>my-cluster</code> is the name of the Kafka cluster.</p>
-</li>
-<li>
-<p><code>pool-a</code> is the name of the node pool.</p>
-<div class="paragraph">
-<p>A sequential index number starting with <code>0</code> identifies each Kafka pod created.
-If you are using ZooKeeper, you&#8217;ll also see the ZooKeeper pods.</p>
-</div>
-<div class="paragraph">
-<p><code>READY</code> shows the number of replicas that are ready/expected.
-The deployment is successful when the <code>STATUS</code> displays as <code>Running</code>.</p>
-</div>
-<div class="paragraph">
-<p>Information on the deployment is also shown in the status of the <code>KafkaNodePool</code> resource, including a list of IDs for nodes in the pool.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Node IDs are assigned sequentially starting at 0 (zero) across all node pools within a cluster. This means that node IDs might not run sequentially within a specific node pool. If there are gaps in the sequence of node IDs across the cluster, the next node to be added is assigned an ID that fills the gap. When scaling down, the node with the highest node ID within a pool is removed.
-</td>
-</tr>
-</table>
-</div>
-</li>
-</ul>
-</div>
-</li>
-</ol>
-</div>
-<div class="paragraph _additional-resources">
-<div class="title">Additional resources</div>
-<p><a href="#config-node-pools-str">Node pool configuration</a></p>
 </div>
 </div>
 <div class="sect3">
@@ -3524,7 +3513,7 @@ The deployment is successful when the <code>STATUS</code> displays as <code>Runn
 </dl>
 </div>
 <div class="paragraph">
-<div class="title">(Preview) Kafka node pools</div>
+<div class="title">Kafka node pools</div>
 <p>If you are using Kafka node pools, the resources created apply to the nodes managed in the node pools whether they are operating as brokers, controllers, or both.
 The naming convention includes the name of the Kafka cluster and the node pool: <code>&lt;kafka_cluster_name&gt;-&lt;pool_name&gt;</code>.</p>
 </div>
@@ -6054,7 +6043,7 @@ Controllers are responsible for coordinating operations and maintaining the clus
 <div class="paragraph">
 <p>Enabling the <code>UseKRaft</code> feature gate requires the <code>KafkaNodePools</code> feature gate to be enabled as well.
 To deploy a Kafka cluster in KRaft mode, you must use the <code>KafkaNodePool</code> resources.
-For more details and examples, see <a href="#deploying-kafka-node-pools-str">(Preview) Deploying Kafka node pools</a>.
+For more details and examples, see <a href="#deploying-kafka-node-pools-str">Deploying a Kafka cluster with node pools</a>.
 The <code>Kafka</code> custom resource using KRaft mode must also have the annotation <code>strimzi.io/kraft: enabled</code>.</p>
 </div>
 <div class="paragraph">
@@ -6096,7 +6085,7 @@ If this annotation is set to <code>disabled</code> or any other value, or if it 
 </div>
 </div>
 <div class="sect2">
-<h3 id="ref-operator-kafka-node-pools-feature-gate-str"><a class="link" href="#ref-operator-kafka-node-pools-feature-gate-str">8.6. (Preview) KafkaNodePools feature gate</a></h3>
+<h3 id="ref-operator-kafka-node-pools-feature-gate-str"><a class="link" href="#ref-operator-kafka-node-pools-feature-gate-str">8.6. KafkaNodePools feature gate</a></h3>
 <div class="paragraph">
 <p>The <code>KafkaNodePools</code> feature gate has a default state of <em>enabled</em>.</p>
 </div>
@@ -6352,7 +6341,7 @@ This might include configuration that supports the following:</p>
 <div class="ulist">
 <ul>
 <li>
-<p>(Preview) Specifying node pools</p>
+<p>Specifying node pools</p>
 </li>
 <li>
 <p>Securing client access to Kafka brokers</p>
@@ -6474,7 +6463,7 @@ If you installed Strimzi using the Operator, you can still download the example 
 <p><code>Kafka</code> custom resource configuration for a deployment of Kafka. Includes example configuration for an ephemeral or persistent single or multi-node deployment.</p>
 </li>
 <li>
-<p>(Preview) <code>KafkaNodePool</code> configuration for Kafka nodes in a Kafka cluster. Includes example configuration for nodes in clusters that use KRaft (Kafka Raft metadata) mode or ZooKeeper.</p>
+<p><code>KafkaNodePool</code> configuration for Kafka nodes in a Kafka cluster. Includes example configuration for nodes in clusters that use KRaft (Kafka Raft metadata) mode or ZooKeeper.</p>
 </li>
 <li>
 <p><code>Kafka</code> custom resource with a deployment configuration for Cruise Control. Includes <code>KafkaRebalance</code> custom resources to generate optimization proposals from Cruise Control, with example configurations to use the default or user optimization goals.</p>
@@ -6991,21 +6980,9 @@ Modifying these default values as <code>zookeeper.config</code> in the <code>Kaf
 </div>
 </div>
 <div class="sect2">
-<h3 id="config-node-pools-str"><a class="link" href="#config-node-pools-str">9.3. (Preview) Configuring node pools</a></h3>
+<h3 id="config-node-pools-str"><a class="link" href="#config-node-pools-str">9.3. Configuring node pools</a></h3>
 <div class="paragraph _abstract">
 <p>Update the <code>spec</code> properties of the <code>KafkaNodePool</code> custom resource to configure a node pool deployment.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The node pools feature is available as a preview. Node pools are not enabled by default, so you must <a href="#ref-operator-kafka-node-pools-feature-gate-str">enable the <code>KafkaNodePools</code> feature gate</a> before using them.
-</td>
-</tr>
-</table>
 </div>
 <div class="paragraph">
 <p>A node pool refers to a distinct group of Kafka nodes within a Kafka cluster.
@@ -7066,24 +7043,25 @@ If you are using ZooKeeper, nodes must be set as brokers only.</p>
 <div class="title">Note</div>
 </td>
 <td class="content">
-While the <code>KafkaNodePools</code> feature gate that enables node pools is in alpha phase, replica and storage configuration properties in the <code>KafkaNodePool</code> resource must also be present in the <code>Kafka</code> resource. The configuration in the <code>Kafka</code> resource is ignored when node pools are used. Similarly, ZooKeeper configuration properties must also be present in the <code>Kafka</code> resource when using KRaft mode. These properties are also ignored.
+Currently, replica and storage configuration properties in the <code>KafkaNodePool</code> resource must also be present in the <code>Kafka</code> resource. The configuration in the <code>Kafka</code> resource is ignored when node pools are used. Similarly, ZooKeeper configuration properties must also be present in the <code>Kafka</code> resource when using KRaft mode. These properties are also ignored.
 </td>
 </tr>
 </table>
 </div>
 <div class="listingblock">
-<div class="title">Example configuration for a node pool in a cluster using ZooKeeper</div>
+<div class="title">Example configuration for a node pool in a cluster using KRaft mode</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaNodePool
 metadata:
-  name: pool-a # <b class="conum">(1)</b>
+  name: kraft-dual-role # <b class="conum">(1)</b>
   labels:
     strimzi.io/cluster: my-cluster # <b class="conum">(2)</b>
 spec:
   replicas: 3 # <b class="conum">(3)</b>
-  roles:
-    - broker # <b class="conum">(4)</b>
+  roles: # <b class="conum">(4)</b>
+    - controller
+    - broker
   storage: # <b class="conum">(5)</b>
     type: jbod
     volumes:
@@ -7112,50 +7090,13 @@ spec:
 <p>Number of replicas for the nodes.</p>
 </li>
 <li>
-<p>Roles for the nodes in the node pool, which can only be <code>broker</code> when using Kafka with ZooKeeper.</p>
+<p>Roles for the nodes in the node pool. In this example, the nodes have dual roles as controllers and brokers.</p>
 </li>
 <li>
 <p>Storage specification for the nodes.</p>
 </li>
 <li>
 <p>Requests for reservation of supported resources, currently <code>cpu</code> and <code>memory</code>, and limits to specify the maximum resources that can be consumed.</p>
-</li>
-</ol>
-</div>
-<div class="listingblock">
-<div class="title">Example configuration for a node pool in a cluster using KRaft mode</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaNodePool
-metadata:
-  name: kraft-dual-role
-  labels:
-    strimzi.io/cluster: my-cluster
-spec:
-  replicas: 3
-  roles: # <b class="conum">(1)</b>
-    - controller
-    - broker
-  storage:
-    type: jbod
-    volumes:
-      - id: 0
-        type: persistent-claim
-        size: 20Gi
-        deleteClaim: false
-  resources:
-      requests:
-        memory: 64Gi
-        cpu: "8"
-      limits:
-        memory: 64Gi
-        cpu: "12"</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Roles for the nodes in the node pool. In this example, the nodes have dual roles as controllers and brokers.</p>
 </li>
 </ol>
 </div>
@@ -7171,8 +7112,44 @@ The configuration for the <code>Kafka</code> resource must be suitable for KRaft
 </tr>
 </table>
 </div>
+<div class="listingblock">
+<div class="title">Example configuration for a node pool in a cluster using ZooKeeper</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: pool-a
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 3
+  roles:
+    - broker # <b class="conum">(1)</b>
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 100Gi
+        deleteClaim: false
+  resources:
+      requests:
+        memory: 64Gi
+        cpu: "8"
+      limits:
+        memory: 64Gi
+        cpu: "12"</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Roles for the nodes in the node pool, which can only be <code>broker</code> when using Kafka with ZooKeeper.</p>
+</li>
+</ol>
+</div>
 <div class="sect3">
-<h4 id="proc-managing-node-pools-ids-str"><a class="link" href="#proc-managing-node-pools-ids-str">9.3.1. (Preview) Assigning IDs to node pools for scaling operations</a></h4>
+<h4 id="proc-managing-node-pools-ids-str"><a class="link" href="#proc-managing-node-pools-ids-str">9.3.1. Assigning IDs to node pools for scaling operations</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to use annotations for advanced node ID handling by the Cluster Operator when performing scaling operations on node pools.
 You specify the node IDs to use, rather than the Cluster Operator using the next ID in sequence.
@@ -7331,13 +7308,13 @@ If you want to remove a specific node, you can assign a single node ID to the sc
 <div class="ulist">
 <ul>
 <li>
-<p><a href="#proc-scaling-up-node-pools-str">(Preview) Adding nodes to a node pool</a></p>
+<p><a href="#proc-scaling-up-node-pools-str">Adding nodes to a node pool</a></p>
 </li>
 <li>
-<p><a href="#proc-scaling-down-node-pools-str">(Preview) Removing nodes from a node pool</a></p>
+<p><a href="#proc-scaling-down-node-pools-str">Removing nodes from a node pool</a></p>
 </li>
 <li>
-<p><a href="#proc-moving-node-pools-str">(Preview) Moving nodes between node pools</a></p>
+<p><a href="#proc-moving-node-pools-str">Moving nodes between node pools</a></p>
 </li>
 </ul>
 </div>
@@ -7366,7 +7343,7 @@ If you want to remove a specific node, you can assign a single node ID to the sc
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-scaling-up-node-pools-str"><a class="link" href="#proc-scaling-up-node-pools-str">9.3.2. (Preview) Adding nodes to a node pool</a></h4>
+<h4 id="proc-scaling-up-node-pools-str"><a class="link" href="#proc-scaling-up-node-pools-str">9.3.2. Adding nodes to a node pool</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to scale up a node pool to add new nodes.</p>
 </div>
@@ -7459,7 +7436,7 @@ my-cluster-pool-a-3  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-scaling-down-node-pools-str"><a class="link" href="#proc-scaling-down-node-pools-str">9.3.3. (Preview) Removing nodes from a node pool</a></h4>
+<h4 id="proc-scaling-down-node-pools-str"><a class="link" href="#proc-scaling-down-node-pools-str">9.3.3. Removing nodes from a node pool</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to scale down a node pool to remove nodes.</p>
 </div>
@@ -7544,7 +7521,7 @@ my-cluster-pool-b-kafka-2  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-moving-node-pools-str"><a class="link" href="#proc-moving-node-pools-str">9.3.4. (Preview) Moving nodes between node pools</a></h4>
+<h4 id="proc-moving-node-pools-str"><a class="link" href="#proc-moving-node-pools-str">9.3.4. Moving nodes between node pools</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to move nodes between source and target Kafka node pools without downtime.
 You create a new node on the target node pool and reassign partitions to move data from the old node on the source node pool.
@@ -7675,7 +7652,7 @@ my-cluster-pool-b-kafka-6  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-managing-storage-node-pools-str"><a class="link" href="#proc-managing-storage-node-pools-str">9.3.5. (Preview) Managing storage using node pools</a></h4>
+<h4 id="proc-managing-storage-node-pools-str"><a class="link" href="#proc-managing-storage-node-pools-str">9.3.5. Managing storage using node pools</a></h4>
 <div class="paragraph _abstract">
 <p>Storage management in Strimzi is usually straightforward, and requires little change when set up, but there might be situations where you need to modify your storage configurations.
 Node pools simplify this process, because you can set up separate node pools that specify your new storage requirements.</p>
@@ -7815,7 +7792,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-managing-storage-affinity-node-pools-str"><a class="link" href="#proc-managing-storage-affinity-node-pools-str">9.3.6. (Preview) Managing storage affinity using node pools</a></h4>
+<h4 id="proc-managing-storage-affinity-node-pools-str"><a class="link" href="#proc-managing-storage-affinity-node-pools-str">9.3.6. Managing storage affinity using node pools</a></h4>
 <div class="paragraph _abstract">
 <p>In situations where storage resources, such as local persistent volumes, are constrained to specific worker nodes, or availability zones, configuring storage affinity helps to schedule pods to use the right nodes.</p>
 </div>
@@ -7967,7 +7944,7 @@ my-cluster-pool-zone-2-kafka-6  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-migrating-clusters-node-pools-str"><a class="link" href="#proc-migrating-clusters-node-pools-str">9.3.7. (Preview) Migrating existing Kafka clusters to use Kafka node pools</a></h4>
+<h4 id="proc-migrating-clusters-node-pools-str"><a class="link" href="#proc-migrating-clusters-node-pools-str">9.3.7. Migrating existing Kafka clusters to use Kafka node pools</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to migrate existing Kafka clusters to use Kafka node pools.
 After you have updated the Kafka cluster, you can use the node pools to manage the configuration of nodes within each pool.</p>
@@ -7979,7 +7956,7 @@ After you have updated the Kafka cluster, you can use the node pools to manage t
 <div class="title">Note</div>
 </td>
 <td class="content">
-While the <code>KafkaNodePools</code> feature gate that enables node pools is in alpha phase, replica and storage configuration in the <code>KafkaNodePool</code> resource must also be present in the <code>Kafka</code> resource. The configuration is ignored when node pools are being used.
+Currently, replica and storage configuration in the <code>KafkaNodePool</code> resource must also be present in the <code>Kafka</code> resource. The configuration is ignored when node pools are being used.
 </td>
 </tr>
 </table>
@@ -8069,7 +8046,7 @@ Consequently, your previous data may not be available.
 </div>
 </li>
 <li>
-<p>Enable the <code>KafkaNodePools</code> in the <code>Kafka</code> resource using the <code>strimzi.io/node-pools: enabled</code> annotation.</p>
+<p>Enable support for node pools in the <code>Kafka</code> resource using the <code>strimzi.io/node-pools: enabled</code> annotation.</p>
 <div class="listingblock">
 <div class="title">Example configuration for a node pool in a cluster using ZooKeeper</div>
 <div class="content">
@@ -38079,7 +38056,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2023-12-14 08:34:45 UTC
+Last updated 2023-12-14 17:06:11 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
