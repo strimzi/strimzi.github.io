@@ -8,7 +8,8 @@ author: Shubham Rawat
 Apache Kafka is a platform designed for scalability.
 You can always scale in or scale out your Kafka Clusters based on your use case.
 When scaling down a cluster, it's crucial to ensure that data across brokers is moved or copied throughout the cluster.
-You may experience data loss if you forget to move out partition replicas from the broker being removed.
+If you forget to move out the partition replicas from the broker being removed, then Strimzi might not be able to roll the cluster properly due to availability issues i.e. replicas assigned to that broker will be always offline. 
+Another issue would be that you would suffer data loss.
 But don't worry, with Strimzi 0.38, we have introduced the broker scale down check which is going to take care of this problem.
 
 ## Broker scale down check
@@ -17,24 +18,12 @@ This check makes sure that, when you are scaling down your Kafka cluster, there 
 If partition replicas are found on the broker then the cluster operations are blocked and reconciliation fails until you revert the Kafka resource.
 This is enabled by default with Strimzi 0.38.
 
-However, there may be scenarios where you want to bypass this blocking mechanism.
-For example, disabling the check might be necessary when new topics are being constantly created.
-This situation can indefinitely block cluster operations, even when brokers are nearly empty.
-
-You can bypass the blocking mechanism by annotating the `Kafka` resource for the Kafka cluster by setting the `strimzi.io/skip-broker-scaledown-check` annotation to `true`:
-```shell
-kubectl annotate Kafka my-cluster strimzi.io/skip-broker-scaledown-check="true"
-```
-
 ## Setting up the environment
 
 Let's set up a cluster to work through an example demonstrating this feature.
-
 To get the Kafka cluster up and running, we will first have to install the Strimzi Cluster Operator and then deploy the `Kafka` resource.
-You can refer to the [Stimzi Quickstart Guide](https://strimzi.io/docs/operators/latest/quickstart.html) to install the operator.
-
+You can refer to the [Stimzi Quickstart Guide](https://strimzi.io/quickstarts/) to install the operator.
 You can install the Cluster Operator with any installation method you prefer.
-
 Then we will deploy the Kafka cluster with Cruise Control enabled.
 
 Example Kafka resource with Cruise Control enabled:
@@ -45,7 +34,6 @@ metadata:
   name: my-cluster
 spec:
   kafka:
-    version: 3.6.0
     replicas: 4
     listeners:
       - name: plain
@@ -62,7 +50,6 @@ spec:
       transaction.state.log.min.isr: 2
       default.replication.factor: 3
       min.insync.replicas: 2
-      inter.broker.protocol.version: "3.6"
     storage:
       type: ephemeral
   zookeeper:
@@ -94,8 +81,7 @@ spec:
 
 You can now check how topic partition replicas are allocated across the brokers using the command:
 ```shell
-$ kubectl run -n myproject client -itq --rm --restart="Never" --image="quay.io/strimzi/kafka:latest-kafka-3.6.0" -- \
-sh -c "/opt/kafka/bin/kafka-topics.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --describe --topic my-topic; exit 0";
+$ kubectl run -n myproject client -itq --rm --restart="Never" --image="quay.io/strimzi/kafka:0.38.0-kafka-3.6.0" -- /opt/kafka/bin/kafka-topics.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --describe --topic my-topic
 
 Topic: my-topic	TopicId: bbX7RyTSSXmheaxSPyRIVw	PartitionCount: 3	ReplicationFactor: 3	Configs: min.insync.replicas=2,segment.bytes=1073741824,retention.ms=7200000,message.format.version=3.0-IV1
 	Topic: my-topic	Partition: 0	Leader: 2	Replicas: 2,3,1	Isr: 2,3,1
@@ -138,6 +124,19 @@ status:
     status: "True"
     type: NotReady
 ```
+
+You can also see the errors in the logs of the operator:
+```shell
+2023-11-30 11:08:12 WARN  AbstractOperator:557 - Reconciliation #150(watch) Kafka(myproject/my-cluster): Failed to reconcile
+io.strimzi.operator.common.model.InvalidResourceException: Cannot scale down brokers [3] because brokers [3] are not empty
+	at io.strimzi.operator.cluster.operator.assembly.KafkaReconciler.lambda$brokerScaleDownCheck$26(KafkaReconciler.java:300) ~[io.strimzi.cluster-operator-0.38.0.jar:0.38.0]
+	at io.vertx.core.impl.future.Composition.onSuccess(Composition.java:38) ~[io.vertx.vertx-core-4.4.6.jar:4.4.6]
+	at io.vertx.core.impl.future.FutureBase.emitSuccess(FutureBase.java:60) ~[io.vertx.vertx-core-4.4.6.jar:4.4.6]
+	at io.vertx.core.impl.future.FutureImpl.tryComplete(FutureImpl.java:211) ~[io.vertx.vertx-core-4.4.6.jar:4.4.6]
+	at io.vertx.core.impl.future.PromiseImpl.tryComplete(PromiseImpl.java:23) ~[io.vertx.vertx-core-4.4.6.jar:4.4.6]
+	at io.vertx.core.Promise.complete(Promise.java:66) ~[io.vertx.vertx-core-4.4.6.jar:4.4.6]
+```
+
 So these logs are basically telling you that broker 3 is not empty, which makes the whole reconciliation fail. You can get rid of this error by reverting `.spec.kafka.replicas` in the Kafka resource.
 
 ### Scaling down after moving out all replicas from the broker to be removed
@@ -153,6 +152,8 @@ metadata:
   name: my-rebalance
   labels:
     strimzi.io/cluster: my-cluster
+  annotations:
+    strimzi.io/rebalance-auto-approval: true
 # no goals specified, using the default goals from the Cruise Control configuration
 spec:
   mode: remove-brokers
@@ -171,6 +172,15 @@ Topic: my-topic	TopicId: bbX7RyTSSXmheaxSPyRIVw	PartitionCount: 3	ReplicationFac
 ```
 
 Now you can scale down the broker, and it will happen seamlessly since the broker is empty.
+
+However, there may be scenarios where you want to bypass this blocking mechanism.
+For example, disabling the check might be necessary when new topics are being constantly created.
+This situation can indefinitely block cluster operations, even when brokers are nearly empty.
+
+You can bypass the blocking mechanism by annotating the `Kafka` resource for the Kafka cluster by setting the `strimzi.io/skip-broker-scaledown-check` annotation to `true`:
+```shell
+kubectl annotate Kafka my-cluster strimzi.io/skip-broker-scaledown-check="true"
+```
 
 ## What's next
 
