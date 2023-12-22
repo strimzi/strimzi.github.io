@@ -22426,32 +22426,32 @@ Message 5</code></pre>
 <p>Strimzi supports TLS for encrypted communication between Kafka and Strimzi components.</p>
 </div>
 <div class="paragraph">
-<p>Strimzi establishes encrypted TLS connections for communication between the following components:</p>
+<p>Strimzi establishes encrypted TLS connections for communication between the following components when using Kafka in KRaft mode:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Kafka brokers and ZooKeeper nodes</p>
+<p>Kafka brokers</p>
 </li>
 <li>
-<p>Kafka brokers (interbroker communication)</p>
+<p>Kafka controllers</p>
 </li>
 <li>
-<p>ZooKeeper nodes (internodal communication)</p>
+<p>Kafka brokers and controllers</p>
 </li>
 <li>
-<p>Strimzi operators and Kafka and ZooKeeper</p>
+<p>Strimzi operators and Kafka</p>
 </li>
 <li>
-<p>Cruise Control and Kafka</p>
+<p>Cruise Control and Kafka brokers</p>
 </li>
 <li>
-<p>Kafka Exporter and Kafka</p>
+<p>Kafka Exporter and Kafka brokers</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>Connections between clients and brokers use listeners that you must configure to use TLS-encrypted communication.
+<p>Connections between clients and Kafka brokers use listeners that you must configure to use TLS-encrypted communication.
 You configure these listeners in the <code>Kafka</code> custom resource and each listener name and port number must be unique within the cluster.
 Communication between Kafka brokers and Kafka clients is encrypted according to how the <code>tls</code> property is configured for the listener.
 For more information, see <a href="#deploy-client-access-str">Setting up client access to a Kafka cluster</a>.</p>
@@ -22461,9 +22461,9 @@ For more information, see <a href="#deploy-client-access-str">Setting up client 
 </div>
 <div class="imageblock">
 <div class="content">
-<img src="images/secure_communication.png" alt="Secure Communication">
+<img src="images/secure_communication_kraft.png" alt="Secure Communication">
 </div>
-<div class="title">Figure 4. Kafka and ZooKeeper communication secured by TLS encryption</div>
+<div class="title">Figure 4. KRaft-based Kafka communication secured by TLS encryption</div>
 </div>
 <div class="paragraph">
 <p>The ports shown in the diagram are used as follows:</p>
@@ -22472,30 +22472,19 @@ For more information, see <a href="#deploy-client-access-str">Setting up client 
 <dl>
 <dt class="hdlist1">Control plane listener (9090)</dt>
 <dd>
-<p>Connections between the Kafka controller and brokers use an internal control plane listener on port 9090, facilitating interbroker communication.
+<p>The internal control plane listener on port 9090 facilitates interbroker communication between Kafka controllers and broker-to-controller communication.
+Additionally, the Cluster Operator communicates with the controllers through the listener.
 This listener is not accessible to Kafka clients.</p>
 </dd>
 <dt class="hdlist1">Replication listener (9091)</dt>
 <dd>
-<p>Data replication between brokers, as well as internal connections from Strimzi operators, Cruise Control, and the Kafka Exporter, use the replication listener on port 9091.
+<p>Data replication between brokers, as well as internal connections to the brokers from Strimzi operators, Cruise Control, and the Kafka Exporter, use the replication listener on port 9091.
 This listener is not accessible to Kafka clients.</p>
 </dd>
 <dt class="hdlist1">Listeners for client connections (9092 or higher)</dt>
 <dd>
 <p>For TLS-encrypted communication (through configuration of the listener), internal and external clients connect to Kafka brokers.
 External clients (producers and consumers) connect to the Kafka brokers through the advertised listener port.</p>
-</dd>
-<dt class="hdlist1">ZooKeeper Port (2181)</dt>
-<dd>
-<p>ZooKeeper port for connection to Kafka.</p>
-</dd>
-<dt class="hdlist1">ZooKeeper internodal communication port (2888)</dt>
-<dd>
-<p>ZooKeeper port for internodal communication between ZooKeeper nodes.</p>
-</dd>
-<dt class="hdlist1">ZooKeeper leader election port (3888)</dt>
-<dd>
-<p>ZooKeeper port for leader election among ZooKeeper nodes in a ZooKeeper cluster.</p>
 </dd>
 </dl>
 </div>
@@ -22511,6 +22500,39 @@ The listeners cannot be configured to use the ports reserved for interbroker com
 </td>
 </tr>
 </table>
+</div>
+<div class="paragraph">
+<p>If you are using ZooKeeper for cluster management, there are TLS connections between ZooKeeper and Kafka brokers and Strimzi operators.</p>
+</div>
+<div class="paragraph">
+<p>The following diagram shows the connections for secure communication when using ZooKeeper.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/secure_communication_zookeeper.png" alt="Secure Communication">
+</div>
+<div class="title">Figure 5. Kafka and ZooKeeper communication secured by TLS encryption</div>
+</div>
+<div class="paragraph">
+<p>The ZooKeeper ports are used as follows:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">ZooKeeper Port (2181)</dt>
+<dd>
+<p>ZooKeeper port for connection to Kafka brokers.
+Additionally, the Cluster Operator communicates with ZooKeeper through this port.
+If you are using the Topic Operator in bidirectional mode, it also communicates with ZooKeeper through this port.</p>
+</dd>
+<dt class="hdlist1">ZooKeeper internodal communication port (2888)</dt>
+<dd>
+<p>ZooKeeper port for internodal communication between ZooKeeper nodes.</p>
+</dd>
+<dt class="hdlist1">ZooKeeper leader election port (3888)</dt>
+<dd>
+<p>ZooKeeper port for leader election among ZooKeeper nodes in a ZooKeeper cluster.</p>
+</dd>
+</dl>
 </div>
 <div class="sect2">
 <h3 id="certificate-authorities-str"><a class="link" href="#certificate-authorities-str">14.1. Internal cluster CA and clients CA</a></h3>
@@ -33458,7 +33480,7 @@ To use compaction, you must have keys to identify related messages because Kafka
 <div class="content">
 <img src="images/tuning/broker-tuning-compaction-before.png" alt="Image of compaction showing key value writes">
 </div>
-<div class="title">Figure 5. Log showing key value writes with offset positions before compaction</div>
+<div class="title">Figure 6. Log showing key value writes with offset positions before compaction</div>
 </div>
 <div class="paragraph">
 <p>Using keys to identify messages, Kafka compaction keeps the latest message (with the highest offset) that is present in the log tail for a specific message key, eventually discarding earlier messages that have the same key.
@@ -33472,7 +33494,7 @@ When consuming an offset that&#8217;s no longer available in the tail, the recor
 <div class="content">
 <img src="images/tuning/broker-tuning-compaction-after.png" alt="Image of compaction after log cleanup">
 </div>
-<div class="title">Figure 6. Log after compaction</div>
+<div class="title">Figure 7. Log after compaction</div>
 </div>
 <div class="paragraph">
 <p>If appropriate, you can add a delay to the compaction process:</p>
@@ -33519,7 +33541,7 @@ In this case, the compaction process would remove all duplicates.</p>
 <div class="content">
 <img src="images/tuning/broker-tuning-compaction-retention.png" alt="Image of compaction with retention point">
 </div>
-<div class="title">Figure 7. Log retention point and compaction point</div>
+<div class="title">Figure 8. Log retention point and compaction point</div>
 </div>
 </div>
 <div class="sect3">
@@ -33618,7 +33640,7 @@ The consumer gets the reference from the message and uses it to fetch the data f
 <div class="content">
 <img src="images/tuning/broker-tuning-messaging-reference.png" alt="Image of reference-based messaging flow">
 </div>
-<div class="title">Figure 8. Reference-based messaging flow</div>
+<div class="title">Figure 9. Reference-based messaging flow</div>
 </div>
 <div class="paragraph">
 <p>As the message passing requires more trips, end-to-end latency will increase.
@@ -33641,7 +33663,7 @@ Successful delivery of the complete message is checked against offset metadata t
 <div class="content">
 <img src="images/tuning/broker-tuning-messaging-inline.png" alt="Image of inline messaging flow">
 </div>
-<div class="title">Figure 9. Inline messaging flow</div>
+<div class="title">Figure 10. Inline messaging flow</div>
 </div>
 <div class="paragraph">
 <p>Inline messaging has a performance overhead on the consumer side because of the buffering required, particularly when handling a series of large messages in parallel.
