@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Preventing Kafka broker scale down if partition replicas are present"
-date: 2023-12-11
+date: 2024-01-03
 author: Shubham Rawat
 ---
 
