@@ -2,7 +2,7 @@
 layout: post
 title: "Preventing Kafka broker scale down if partition replicas are present"
 date: 2024-01-03
-author: Shubham Rawat
+author: shubham_rawat
 ---
 
 Apache Kafka is a platform designed for scalability.
