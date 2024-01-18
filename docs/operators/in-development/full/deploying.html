@@ -451,6 +451,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel3">
 <li><a href="#con-operators-namespaces-str">1.2.1. Watching Strimzi resources in Kubernetes namespaces</a></li>
 <li><a href="#ref-operator-cluster-rbac-resources-str">1.2.2. Managing RBAC resources</a></li>
+<li><a href="#con-pod-management-str">1.2.3. Managing pod resources</a></li>
 </ul>
 </li>
 <li><a href="#con-kafka-bridge-concepts-str">1.3. Using the Kafka Bridge to connect with a Kafka cluster</a></li>
@@ -535,16 +536,26 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#deploying-strimzi-from-operator-hub-str">6. Deploying Strimzi from OperatorHub.io</a></li>
 <li><a href="#deploying-cluster-operator-helm-chart-str">7. Deploying Strimzi using Helm</a></li>
-<li><a href="#ref-operator-cluster-feature-gates-str">8. Enabling Strimzi feature gates</a>
+<li><a href="#ref-operator-cluster-feature-gates-str">8. Feature gates</a>
 <ul class="sectlevel2">
-<li><a href="#controlplanelistener_feature_gate">8.1. ControlPlaneListener feature gate</a></li>
-<li><a href="#serviceaccountpatching_feature_gate">8.2. ServiceAccountPatching feature gate</a></li>
-<li><a href="#ref-operator-use-strimzi-pod-sets-feature-gate-str">8.3. UseStrimziPodSets feature gate</a></li>
-<li><a href="#ref-operator-stable-connect-identities-feature-gate-str">8.4. StableConnectIdentities feature gate</a></li>
-<li><a href="#ref-operator-use-kraft-feature-gate-str">8.5. UseKRaft feature gate</a></li>
-<li><a href="#ref-operator-kafka-node-pools-feature-gate-str">8.6. KafkaNodePools feature gate</a></li>
-<li><a href="#ref-operator-unidirectional-topic-operator-feature-gate-str">8.7. UnidirectionalTopicOperator feature gate</a></li>
-<li><a href="#ref-operator-cluster-feature-gate-releases-str">8.8. Feature gate releases</a></li>
+<li><a href="#graduated_feature_gates_ga">8.1. Graduated feature gates (GA)</a>
+<ul class="sectlevel3">
+<li><a href="#controlplanelistener_feature_gate">8.1.1. ControlPlaneListener feature gate</a></li>
+<li><a href="#serviceaccountpatching_feature_gate">8.1.2. ServiceAccountPatching feature gate</a></li>
+<li><a href="#ref-operator-use-strimzi-pod-sets-feature-gate-str">8.1.3. UseStrimziPodSets feature gate</a></li>
+<li><a href="#ref-operator-stable-connect-identities-feature-gate-str">8.1.4. StableConnectIdentities feature gate</a></li>
+</ul>
+</li>
+<li><a href="#stable_feature_gates_beta">8.2. Stable feature gates (Beta)</a></li>
+<li><a href="#ref-operator-use-kraft-feature-gate-str">8.3. UseKRaft feature gate</a>
+<ul class="sectlevel3">
+<li><a href="#ref-operator-kafka-node-pools-feature-gate-str">8.3.1. KafkaNodePools feature gate</a></li>
+<li><a href="#ref-operator-unidirectional-topic-operator-feature-gate-str">8.3.2. UnidirectionalTopicOperator feature gate</a></li>
+</ul>
+</li>
+<li><a href="#early_access_feature_gates_alpha">8.4. Early access feature gates (Alpha)</a></li>
+<li><a href="#enabling_feature_gates">8.5. Enabling feature gates</a></li>
+<li><a href="#ref-operator-cluster-feature-gate-releases-str">8.6. Feature gate releases</a></li>
 </ul>
 </li>
 <li><a href="#overview-str">9. Configuring a deployment</a>
@@ -1606,6 +1617,30 @@ This allows the Cluster Operator to follow the principle of least privilege and 
 <td class="tableblock halign-left valign-top"><p class="tableblock">Kafka Bridge pods</p></td>
 </tr>
 </tbody>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-pod-management-str"><a class="link" href="#con-pod-management-str">1.2.3. Managing pod resources</a></h4>
+<div class="paragraph _abstract">
+<p>The <code>StrimziPodSet</code> custom resource is used by Strimzi to create and manage Kafka, Kafka Connect, and MirrorMaker 2 pods.
+If you are using ZooKeeper, ZooKeeper pods are also created and managed using <code>StrimziPodSet</code> resources.</p>
+</div>
+<div class="paragraph">
+<p>You must not create, update, or delete <code>StrimziPodSet</code> resources.
+The <code>StrimziPodSet</code> custom resource is used internally and resources are managed solely by the Cluster Operator.
+As a consequence, the Cluster Operator must be running properly to avoid the possibility of pods not starting and Kafka clusters not being available.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Kubernetes <code>Deployment</code> resources are used for creating and managing the pods of other components: Kafka Bridge, Kafka Exporter, Cruise Control, (deprecated) MirrorMaker 1, User Operator and Topic Operator.
+</td>
+</tr>
 </table>
 </div>
 </div>
@@ -5892,35 +5927,39 @@ For example, you can deploy the <code>Kafka</code> custom resource, and the inst
 </div>
 </div>
 <div class="sect1">
-<h2 id="ref-operator-cluster-feature-gates-str"><a class="link" href="#ref-operator-cluster-feature-gates-str">8. Enabling Strimzi feature gates</a></h2>
+<h2 id="ref-operator-cluster-feature-gates-str"><a class="link" href="#ref-operator-cluster-feature-gates-str">8. Feature gates</a></h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
 <p>Strimzi operators use feature gates to enable or disable specific features and functions.
-By enabling a feature gate, you alter the behavior of the corresponding operator, thereby introducing the feature to your Strimzi deployment.</p>
+Enabling a feature gate alters the behavior of the associated operator, introducing the corresponding feature to your Strimzi deployment.</p>
 </div>
 <div class="paragraph">
-<p>A feature gate might be enabled or disabled by default, depending on its level of maturity.</p>
+<p>The purpose of feature gates is to facilitate the trial and testing of a feature before it is fully adopted.
+The state (enabled or disabled) of a feature gate may vary by default, depending on its maturity level.</p>
 </div>
 <div class="paragraph">
-<p>To modify a feature gate&#8217;s default state, use the <code>STRIMZI_FEATURE_GATES</code> environment variable in the operator&#8217;s configuration.
-You can modify multiple feature gates using this single environment variable.
-Specify a comma-separated list of feature gate names and prefixes.
-A <code>+</code> prefix enables the feature gate and a <code>-</code> prefix  disables it.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example feature gate configuration that enables <code>FeatureGate1</code> and disables <code>FeatureGate2</code></div>
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
-  - name: STRIMZI_FEATURE_GATES
-    value: +FeatureGate1,-FeatureGate2</code></pre>
-</div>
+<p>As a feature gate graduates and reaches General Availability (GA), it transitions to an enabled state by default and becomes a permanent part of the Strimzi deployment.
+A feature gate at the GA stage cannot be disabled.</p>
 </div>
 <div class="sect2">
-<h3 id="controlplanelistener_feature_gate"><a class="link" href="#controlplanelistener_feature_gate">8.1. ControlPlaneListener feature gate</a></h3>
+<h3 id="graduated_feature_gates_ga"><a class="link" href="#graduated_feature_gates_ga">8.1. Graduated feature gates (GA)</a></h3>
 <div class="paragraph">
-<p>The <code>ControlPlaneListener</code> feature gate has moved to GA, which means it is now permanently enabled and cannot be disabled.
-With <code>ControlPlaneListener</code> enabled, the connections between the Kafka controller and brokers use an internal <em>control plane listener</em> on port 9090.
-Replication of data between brokers, as well as internal connections from Strimzi operators, Cruise Control, or the Kafka Exporter use the <em>replication listener</em> on port 9091.</p>
+<p>Graduated feature gates have reached General Availability (GA) and are permanently enabled features.</p>
+</div>
+<div class="sect3">
+<h4 id="controlplanelistener_feature_gate"><a class="link" href="#controlplanelistener_feature_gate">8.1.1. ControlPlaneListener feature gate</a></h4>
+<div class="paragraph">
+<p>The <code>ControlPlaneListener</code> feature gate separates listeners for data replication and coordination:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Connections between the Kafka controller and brokers use an internal <em>control plane listener</em> on port 9090.</p>
+</li>
+<li>
+<p>Replication of data between brokers, as well as internal connections from Strimzi operators, Cruise Control, or the Kafka Exporter use a <em>replication listener</em> on port 9091.</p>
+</li>
+</ul>
 </div>
 <div class="admonitionblock important">
 <table>
@@ -5929,26 +5968,24 @@ Replication of data between brokers, as well as internal connections from Strimz
 <div class="title">Important</div>
 </td>
 <td class="content">
-With the <code>ControlPlaneListener</code> feature gate permanently enabled, it is no longer possible to upgrade or downgrade directly between Strimzi 0.22 and earlier and Strimzi 0.32 and newer.
-You have to first upgrade or downgrade through one of the Strimzi versions in-between, disable the <code>ControlPlaneListener</code> feature gate, and then downgrade or upgrade (with the feature gate enabled) to the target version.
+With the <code>ControlPlaneListener</code> feature gate permanently enabled, direct upgrades or downgrades between Strimzi 0.22 and earlier and Strimzi 0.32 and newer are not possible.
+You must first upgrade or downgrade through one of the Strimzi versions in-between, disable the <code>ControlPlaneListener</code> feature gate, and then downgrade or upgrade (with the feature gate enabled) to the target version.
 </td>
 </tr>
 </table>
 </div>
 </div>
-<div class="sect2">
-<h3 id="serviceaccountpatching_feature_gate"><a class="link" href="#serviceaccountpatching_feature_gate">8.2. ServiceAccountPatching feature gate</a></h3>
+<div class="sect3">
+<h4 id="serviceaccountpatching_feature_gate"><a class="link" href="#serviceaccountpatching_feature_gate">8.1.2. ServiceAccountPatching feature gate</a></h4>
 <div class="paragraph">
-<p>The <code>ServiceAccountPatching</code> feature gate has moved to GA, which means it is now permanently enabled and cannot be disabled.
-With <code>ServiceAccountPatching</code> enabled, the Cluster Operator always reconciles service accounts and updates them when needed.
+<p>The <code>ServiceAccountPatching</code> feature gate ensures that the Cluster Operator always reconciles service accounts and updates them when needed.
 For example, when you change service account labels or annotations using the <code>template</code> property of a custom resource, the operator automatically updates them on the existing service account resources.</p>
 </div>
 </div>
-<div class="sect2">
-<h3 id="ref-operator-use-strimzi-pod-sets-feature-gate-str"><a class="link" href="#ref-operator-use-strimzi-pod-sets-feature-gate-str">8.3. UseStrimziPodSets feature gate</a></h3>
+<div class="sect3">
+<h4 id="ref-operator-use-strimzi-pod-sets-feature-gate-str"><a class="link" href="#ref-operator-use-strimzi-pod-sets-feature-gate-str">8.1.3. UseStrimziPodSets feature gate</a></h4>
 <div class="paragraph">
-<p>The <code>UseStrimziPodSets</code> feature gate has moved to GA, which means it is now permanently enabled and cannot be disabled.
-Support for <code>StatefulSets</code> has been removed and Strimzi is now always using <code>StrimziPodSets</code> to manage Kafka and ZooKeeper pods.</p>
+<p>The <code>UseStrimziPodSets</code> feature gate introduced the <code>StrimziPodSet</code> custom resource for managing Kafka and ZooKeeper pods, replacing the use of Kubernetes <code>StatefulSet</code> resources.</p>
 </div>
 <div class="admonitionblock important">
 <table>
@@ -5957,20 +5994,19 @@ Support for <code>StatefulSets</code> has been removed and Strimzi is now always
 <div class="title">Important</div>
 </td>
 <td class="content">
-With the <code>UseStrimziPodSets</code> feature gate permanently enabled, it is no longer possible to downgrade directly from Strimzi 0.35 and newer to Strimzi 0.27 or earlier.
-You have to first downgrade through one of the Strimzi versions in-between, disable the <code>UseStrimziPodSets</code> feature gate, and then downgrade to Strimzi 0.27 or earlier.
+With the <code>UseStrimziPodSets</code> feature gate permanently enabled, direct downgrades from Strimzi 0.35 and newer to Strimzi 0.27 or earlier are not possible. You must first downgrade through one of the Strimzi versions in-between, disable the <code>UseStrimziPodSets</code> feature gate, and then downgrade to Strimzi 0.27 or earlier.
 </td>
 </tr>
 </table>
 </div>
 </div>
-<div class="sect2">
-<h3 id="ref-operator-stable-connect-identities-feature-gate-str"><a class="link" href="#ref-operator-stable-connect-identities-feature-gate-str">8.4. StableConnectIdentities feature gate</a></h3>
+<div class="sect3">
+<h4 id="ref-operator-stable-connect-identities-feature-gate-str"><a class="link" href="#ref-operator-stable-connect-identities-feature-gate-str">8.1.4. StableConnectIdentities feature gate</a></h4>
 <div class="paragraph">
-<p>The <code>StableConnectIdentities</code> feature gate has moved to GA, which means it is now permanently enabled and cannot be disabled.
-The <code>StrimziPodSet</code> resources are now always used to manage Kafka Connect and Kafka MirrorMaker 2 pods instead of using Kubernetes <code>Deployment</code> resources.
-<code>StrimziPodSet</code> resources give the pods stable names and stable addresses, which do not change during rolling upgrades.
-This helps to minimize the number of rebalances of connector tasks.</p>
+<p>The <code>StableConnectIdentities</code> feature gate introduced the <code>StrimziPodSet</code> custom resource for managing Kafka Connect and Kafka MirrorMaker 2 pods, replacing the use of Kubernetes <code>Deployment</code> resources.</p>
+</div>
+<div class="paragraph">
+<p><code>StrimziPodSet</code> resources give the pods stable names and stable addresses, which do not change during rolling upgrades, replacing the use of Kubernetes <code>Deployment</code> resources.</p>
 </div>
 <div class="admonitionblock important">
 <table>
@@ -5979,20 +6015,28 @@ This helps to minimize the number of rebalances of connector tasks.</p>
 <div class="title">Important</div>
 </td>
 <td class="content">
-With the <code>StableConnectIdentities</code> feature gate permanently enabled, it is no longer possible to downgrade directly from Strimzi 0.39 and newer to Strimzi 0.33 or earlier.
-You have to first downgrade through one of the Strimzi versions in-between, disable the <code>StableConnectIdentities</code> feature gate, and then downgrade to Strimzi 0.33 or earlier.
+With the <code>StableConnectIdentities</code> feature gate permanently enabled, direct downgrades from Strimzi 0.39 and newer to Strimzi 0.33 or earlier are not possible.
+You must first downgrade through one of the Strimzi versions in-between, disable the <code>StableConnectIdentities</code> feature gate, and then downgrade to Strimzi 0.33 or earlier.
 </td>
 </tr>
 </table>
 </div>
 </div>
+</div>
 <div class="sect2">
-<h3 id="ref-operator-use-kraft-feature-gate-str"><a class="link" href="#ref-operator-use-kraft-feature-gate-str">8.5. UseKRaft feature gate</a></h3>
+<h3 id="stable_feature_gates_beta"><a class="link" href="#stable_feature_gates_beta">8.2. Stable feature gates (Beta)</a></h3>
+<div class="paragraph">
+<p>Stable feature gates have reached a beta level of maturity, and are generally enabled by default for all users.
+Stable feature gates are production-ready, but they can still be disabled.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="ref-operator-use-kraft-feature-gate-str"><a class="link" href="#ref-operator-use-kraft-feature-gate-str">8.3. UseKRaft feature gate</a></h3>
 <div class="paragraph">
 <p>The <code>UseKRaft</code> feature gate has a default state of <em>enabled</em>.</p>
 </div>
 <div class="paragraph">
-<p>The <code>UseKRaft</code> feature gate deploys the Kafka cluster in the KRaft (Kafka Raft metadata) mode without ZooKeeper.
+<p>The <code>UseKRaft</code> feature gate deploys a Kafka cluster in KRaft (Kafka Raft metadata) mode without ZooKeeper.
 ZooKeeper and KRaft are mechanisms used to manage metadata and coordinate operations in Kafka clusters.
 KRaft mode eliminates the need for an external coordination service like ZooKeeper.
 In KRaft mode, Kafka nodes take on the roles of brokers, controllers, or both.
@@ -6030,9 +6074,8 @@ The <code>type: jbod</code> storage can be used, but the JBOD array can contain 
 <div class="title">Disabling the UseKRaft feature gate</div>
 <p>To disable the <code>UseKRaft</code> feature gate, specify <code>-UseKRaft</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.</p>
 </div>
-</div>
-<div class="sect2">
-<h3 id="ref-operator-kafka-node-pools-feature-gate-str"><a class="link" href="#ref-operator-kafka-node-pools-feature-gate-str">8.6. KafkaNodePools feature gate</a></h3>
+<div class="sect3">
+<h4 id="ref-operator-kafka-node-pools-feature-gate-str"><a class="link" href="#ref-operator-kafka-node-pools-feature-gate-str">8.3.1. KafkaNodePools feature gate</a></h4>
 <div class="paragraph">
 <p>The <code>KafkaNodePools</code> feature gate has a default state of <em>enabled</em>.</p>
 </div>
@@ -6067,8 +6110,8 @@ The <code>Kafka</code> custom resource using the node pools must also have the a
 <p>If your cluster already uses <code>KafkaNodePool</code> custom resources, and you wish to downgrade to an older version of Strimzi that does not support them or with the <code>KafkaNodePools</code> feature gate disabled, you must first migrate from <code>KafkaNodePool</code> custom resources to managing Kafka nodes using only <code>Kafka</code> custom resources.</p>
 </div>
 </div>
-<div class="sect2">
-<h3 id="ref-operator-unidirectional-topic-operator-feature-gate-str"><a class="link" href="#ref-operator-unidirectional-topic-operator-feature-gate-str">8.7. UnidirectionalTopicOperator feature gate</a></h3>
+<div class="sect3">
+<h4 id="ref-operator-unidirectional-topic-operator-feature-gate-str"><a class="link" href="#ref-operator-unidirectional-topic-operator-feature-gate-str">8.3.2. UnidirectionalTopicOperator feature gate</a></h4>
 <div class="paragraph">
 <p>The <code>UnidirectionalTopicOperator</code> feature gate has a default state of <em>enabled</em>.</p>
 </div>
@@ -6084,8 +6127,36 @@ For more information on topic management, see <a href="#ref-operator-topic-str">
 <p>To disable the <code>UnidirectionalTopicOperator</code> feature gate, specify <code>-UnidirectionalTopicOperator</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.</p>
 </div>
 </div>
+</div>
 <div class="sect2">
-<h3 id="ref-operator-cluster-feature-gate-releases-str"><a class="link" href="#ref-operator-cluster-feature-gate-releases-str">8.8. Feature gate releases</a></h3>
+<h3 id="early_access_feature_gates_alpha"><a class="link" href="#early_access_feature_gates_alpha">8.4. Early access feature gates (Alpha)</a></h3>
+<div class="paragraph">
+<p>Early access feature gates have not yet reached the beta stage, and are disabled by default.
+An early access feature gate provides an opportunity for assessment before its functionality is permanently incorporated into Strimzi.</p>
+</div>
+<div class="paragraph">
+<p>Currently, there are no feature gates in alpha stage.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="enabling_feature_gates"><a class="link" href="#enabling_feature_gates">8.5. Enabling feature gates</a></h3>
+<div class="paragraph">
+<p>To modify a feature gate&#8217;s default state, use the <code>STRIMZI_FEATURE_GATES</code> environment variable in the operator&#8217;s configuration.
+You can modify multiple feature gates using this single environment variable.
+Specify a comma-separated list of feature gate names and prefixes.
+A <code>+</code> prefix enables the feature gate and a <code>-</code> prefix  disables it.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example feature gate configuration that enables <code>FeatureGate1</code> and disables <code>FeatureGate2</code></div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
+  - name: STRIMZI_FEATURE_GATES
+    value: +FeatureGate1,-FeatureGate2</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="ref-operator-cluster-feature-gate-releases-str"><a class="link" href="#ref-operator-cluster-feature-gate-releases-str">8.6. Feature gate releases</a></h3>
 <div class="paragraph _abstract">
 <p>Feature gates have three stages of maturity:</p>
 </div>
@@ -6124,7 +6195,7 @@ Alpha and beta stage features are removed if they do not prove to be useful.</p>
 It is now permanently enabled and cannot be disabled.</p>
 </li>
 <li>
-<p>The <code>UseKRaft</code> feature gate is available for development only and does not currently have a planned release for moving to the beta phase.</p>
+<p>The <code>UseKRaft</code> feature gate is in beta stage and is enabled by default.</p>
 </li>
 <li>
 <p>The <code>KafkaNodePools</code> feature gate is in beta stage and is enabled by default.
@@ -15951,7 +16022,7 @@ You can do this manually by editing the resources directly or by using a command
 </div>
 </div>
 <div class="paragraph">
-<p>The command uses the <code>jq</code> tool to modify the <code>KafkaTopic</code> (<code>kt</code>) resources by setting the finalizers to <code>null</code>.
+<p>The command uses the <code>jq</code> <a href="https://github.com/jqlang/jq" target="_blank" rel="noopener">command line JSON parser tool</a> to modify the <code>KafkaTopic</code> (<code>kt</code>) resources by setting the finalizers to <code>null</code>.
 You can also use the command for a specific topic:</p>
 </div>
 <div class="listingblock">
@@ -26401,7 +26472,7 @@ The information provided is a summary of the full optimization proposal.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>You can also use the <code>jq</code> command line JSON parser tool.</p>
+<p>You can also use the <code>jq</code> <a href="https://github.com/jqlang/jq" target="_blank" rel="noopener">command line JSON parser tool</a>.</p>
 </div>
 <div class="listingblock">
 <div class="title">Returning an optimization proposal summary using jq</div>
@@ -26626,7 +26697,7 @@ The ConfigMap appears when the KafkaRebalance resource is in the <code>ProposalR
 </div>
 </div>
 <div class="paragraph">
-<p>You can also use the <code>jq</code> command line JSON parser tool to extract the JSON string from the ConfigMap.</p>
+<p>You can also use the <code>jq</code> <a href="https://github.com/jqlang/jq" target="_blank" rel="noopener">command line JSON parser tool</a> to extract the JSON string from the ConfigMap.</p>
 </div>
 <div class="listingblock">
 <div class="title">Extracting the JSON string from the ConfigMap using jq</div>
@@ -28792,7 +28863,7 @@ Proposed partition reassignment configuration
 <li>
 <p>Edit the <code>reassignment.json</code> to remove a replica from each partition.</p>
 <div class="paragraph">
-<p>For example use <code>jq</code> to remove the last replica in the list for each partition of the topic:</p>
+<p>For example use the <code>jq</code> <a href="https://github.com/jqlang/jq" target="_blank" rel="noopener">command line JSON parser tool</a> to remove the last replica in the list for each partition of the topic:</p>
 </div>
 <div class="listingblock">
 <div class="title">Removing the last topic replica for each partition</div>
@@ -35643,7 +35714,12 @@ my-cluster-kafka-bootstrap.myproject.svc:9093</code></pre>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>Kafka</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaStatus</code> schema reference</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The Kafka cluster</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The Kafka cluster, its listeners, and node pools</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaNodePool</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaNodePoolStatus</code> schema reference</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The nodes in the node pool, their roles, and the associated Kafka cluster</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaTopic</code></p></td>
@@ -35658,7 +35734,7 @@ my-cluster-kafka-bootstrap.myproject.svc:9093</code></pre>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaConnect</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaConnectStatus</code> schema reference</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The Kafka Connect cluster</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The Kafka Connect cluster and connector plugins</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaConnector</code></p></td>
@@ -35668,7 +35744,7 @@ my-cluster-kafka-bootstrap.myproject.svc:9093</code></pre>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaMirrorMaker2</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaMirrorMaker2Status</code> schema reference</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The Kafka MirrorMaker 2 cluster</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The Kafka MirrorMaker 2 cluster and internal connectors</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaMirrorMaker</code></p></td>
@@ -35684,6 +35760,11 @@ my-cluster-kafka-bootstrap.myproject.svc:9093</code></pre>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaRebalance</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaRebalance</code> schema reference</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The status and results of a rebalance</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>StrimziPodSet</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>StrimziPodSetStatus</code> schema reference</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The number of pods: being managed, using the current version, and in a ready state</p></td>
 </tr>
 </tbody>
 </table>
@@ -35812,10 +35893,6 @@ The Kafka bootstrap addresses listed in the status do not signify that those end
 </tr>
 </table>
 </div>
-<div class="paragraph">
-<div class="title">Accessing status information</div>
-<p>You can access status information for a resource from the command line. For more information, see <a href="#proc-accessing-resource-status-str">Finding the status of a custom resource</a>.</p>
-</div>
 </div>
 <div class="sect3">
 <h4 id="proc-accessing-resource-status-str"><a class="link" href="#proc-accessing-resource-status-str">25.1.3. Finding the status of a custom resource</a></h4>
@@ -35840,11 +35917,14 @@ The Kafka bootstrap addresses listed in the status do not signify that those end
 <p>Specify the custom resource and use the <code>-o jsonpath</code> option to apply a standard JSONPath expression to select the <code>status</code> property:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka <em>&lt;kafka_resource_name&gt;</em> -o jsonpath='{.status}'</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka &lt;kafka_resource_name&gt; -o jsonpath='{.status}' | jq</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>This expression returns all the status information for the specified custom resource. You can use dot notation, such as <code>status.listeners</code> or <code>status.observedGeneration</code>, to fine-tune the status information you wish to see.</p>
+</div>
+<div class="paragraph">
+<p>Using the <code>jq</code> <a href="https://github.com/jqlang/jq" target="_blank" rel="noopener">command line JSON parser tool</a> makes it easier to read the output.</p>
 </div>
 </li>
 </ul>
@@ -38026,7 +38106,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-01-18 14:27:04 UTC
+Last updated 2024-01-18 14:50:30 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
