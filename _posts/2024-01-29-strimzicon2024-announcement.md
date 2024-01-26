@@ -19,17 +19,17 @@ StrimziCon is an event for developers, DevOps engineers, and solution architects
 This event will bring together the Strimzi community, and you will learn from experts and users about use cases, best practices, and their experience using Strimzi in their organizations.
 If you are working with cloud-native technologies, and you are looking for how to deal with data in motion in a cloud-based environment, don’t miss the opportunity.
 
-The conference will take place on **Wednesday, May 22nd** (afternoon CEST), with two parallel tracks covering the following themes:
+The conference will take place on <b>Wednesday, May 22nd</b> (afternoon CEST), with two parallel tracks covering the following themes:
 
 * Features, How Strimzi Works (features)
 * Operations, Using Strimzi with other projects (operations)
 
-The call for **speakers** is now open, and we're eagerly awaiting your proposals to discuss:
+The call for <b>speakers</b> is now open, and we're eagerly awaiting your proposals to discuss:
 
-* **Core Strimzi**: Deep dive into a specific component or feature.
-* **Case Studies**: Provide an overview of a use case or review of a real life Strimzi deployment, highlighting difficulties, lessons learned, and key takeaways.
-* **Integrations**: Explore how Strimzi integrates with other CNCF projects, such as OpenTelemetry, KEDA and more.
-* **Operations**: Share insights into what it takes to run Strimzi and maintain cluster in production.
+* <b>Core Strimzi</b>: Deep dive into a specific component or feature.
+* <b>Case Studies</b>: Provide an overview of a use case or review of a real life Strimzi deployment, highlighting difficulties, lessons learned, and key takeaways.
+* <b>Integrations</b>: Explore how Strimzi integrates with other CNCF projects, such as OpenTelemetry, KEDA and more.
+* <b>Operations</b>: Share insights into what it takes to run Strimzi and maintain cluster in production.
 
 The submission deadline is March 10th.
 
