@@ -35,6 +35,30 @@ All the submitted sessions will be evaluated by the StrimziCon committee made up
 We'll have representative from (in alphabetical order) Apple, Atruvia, Axual, Decathlon, IBM, Red Hat, and SBB.
 The committee members will leverage their experience and knowledge on the project as users and contributors in order to select the best proposals and make an awesome agenda.
 
+<style>
+table th:first-of-type {
+    width: 25%;
+}
+table th:nth-of-type(2) {
+    width: 25%;
+}
+table th:nth-of-type(3) {
+    width: 25%;
+}
+table th:nth-of-type(4) {
+    width: 25%;
+}
+</style>
+
+|                |                       |                 |                |
+|----------------|-----------------------|-----------------|----------------|
+| ![Paolo Patierno](/assets/images/posts/strimzicon2024/paolo_patierno.png) | ![Kate Stanley](/assets/images/posts/strimzicon2024/kate_stanley.jpg) | | |
+| Paolo Patierno, Red Hat | Kate Stanley, Red Hat | | |
+| ![Yaodong Yang](/assets/images/posts/strimzicon2024/yaodong_yang.jpg) | ![Philipp Bocker](/assets/images/posts/strimzicon2024/philipp_bocker.jpg) | ![Richiard Bosch](/assets/images/posts/strimzicon2024/richard_bosch.jpg) | ![Thomas Dangleterre](/assets/images/posts/strimzicon2024/thomas_dangleterre.jpg) |
+| Yaodong Yang, Apple | Philipp Bocker, Atruvia | Richard Bosch, Axual | Thomas Dangleterre, Decathlon |
+| ![Sam Hawker](/assets/images/posts/strimzicon2024/sam_hawker.jpg) | ![Lukas Kral](/assets/images/posts/strimzicon2024/lukas_kral.jpg) | ![Paul Mellor](/assets/images/posts/strimzicon2024/paul_mellor.jpg) | |
+| Sam Hawker, IBM | Lukas Kral, Red Hat | Paul Mellor, Red Hat | |
+
 You can find more details on the official [page](https://community.cncf.io/events/details/cncf-virtual-project-events-2024-hosted-by-cncf-presents-strimzicon-2024-virtual/) as part of the CNCF events and don't forget to submit your proposal [here](https://sessionize.com/strimzicon-2024/).
 
 If you don't want to present, we hope you will join us anyway as an attendee.
