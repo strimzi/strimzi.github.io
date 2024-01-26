@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Welcome to the StrimziCon 2024!"
-date: 2024-01-29
+date: 2024-01-26
 author: paolo_patierno
 ---
 
@@ -52,6 +52,7 @@ table th:nth-of-type(4) {
 
 |                |                       |                 |                |
 |----------------|-----------------------|-----------------|----------------|
+| <td colspan=4>**Chairs**</td>
 | ![Paolo Patierno](/assets/images/posts/strimzicon2024/paolo_patierno.png) | ![Kate Stanley](/assets/images/posts/strimzicon2024/kate_stanley.jpg) | | |
 | Paolo Patierno, Red Hat | Kate Stanley, Red Hat | | |
 | ![Yaodong Yang](/assets/images/posts/strimzicon2024/yaodong_yang.jpg) | ![Philipp Bocker](/assets/images/posts/strimzicon2024/philipp_bocker.jpg) | ![Richiard Bosch](/assets/images/posts/strimzicon2024/richard_bosch.jpg) | ![Thomas Dangleterre](/assets/images/posts/strimzicon2024/thomas_dangleterre.jpg) |
