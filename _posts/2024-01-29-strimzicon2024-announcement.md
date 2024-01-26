@@ -13,7 +13,7 @@ It is organized and driven by the project maintainers in collaboration with the 
 
 ![StrimziCon 2024 Banner](/assets/images/posts/2024-01-29-strimzicon2024-banner.png)
 
-## Why attend StrimziCon?
+### Why attend StrimziCon?
 
 StrimziCon is an event for developers, DevOps engineers, and solution architects who want to learn about Strimzi and event streaming.
 This event will bring together the Strimzi community, and you will learn from experts and users about use cases, best practices, and their experience using Strimzi in their organizations.
@@ -33,7 +33,7 @@ The call for <b>speakers</b> is now open, and we're eagerly awaiting your propos
 
 The submission deadline is March 10th.
 
-## From the community to the community
+### From the community to the community
 
 We encourage any community members to submit a talk: from a Strimzi deep dive to how you operate and use it in production, through integrations with other projects.
 From the community to the community, this is the best way to share.
@@ -43,7 +43,7 @@ We'll have representatives from Apple, Atruvia, Axual, Decathlon, IBM, Red Hat, 
 
 The committee members will leverage their experience and knowledge on the project as users and contributors in order to select the best proposals and make an awesome agenda.
 
-## Join us, propose your session or register to attend!
+### Join us, propose your session or register to attend!
 
 You can find more details on the official [page](https://community.cncf.io/events/details/cncf-virtual-project-events-2024-hosted-by-cncf-presents-strimzicon-2024-virtual/) as part of the CNCF events.
 
