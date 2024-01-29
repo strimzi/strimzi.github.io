@@ -38,8 +38,19 @@ The submission deadline is March 10th.
 We encourage any community members to submit a talk: from a Strimzi deep dive, to how you operate and use it in production, through integrations with other projects.
 From the community to the community, this is the best way to share.
 
-All the submitted sessions will be evaluated by the StrimziCon committee made up of people from different companies which already use Strimzi in production as adopters.
-We'll have representatives from Apple, Atruvia, Axual, Decathlon, IBM, Red Hat, and SBB.
+[Paolo Patierno](https://www.linkedin.com/in/paolopatierno/) (Senior Principal Software Engineer @Red Hat) and [Kate Stanley](https://www.linkedin.com/in/katherine-kate-stanley-3796b579/) (Principal Software Engineer @Red Hat), as maintainer and contributor in the Strimzi community, have been organizing the conference together with the CNCF team, and will be your host during the event.
+
+All the submitted sessions will be evaluated by the StrimziCon program committee made up of people from different companies which already use Strimzi in production as adopters.
+We'll have representatives from Apple, Atruvia, Axual, Decathlon, IBM, Red Hat, and SBB:
+
+* [Yaodong Yang](https://www.linkedin.com/in/yaodongyang/) (Staff Software Engineer @Apple)
+* [Philipp Bocker](https://www.linkedin.com/in/philipp-b%C3%B6cker/) (Solution Manager @Atruvia)
+* [Richard Bosch](https://www.linkedin.com/in/richard-bosch-nl/) (Developer Advocate @Axual)
+* [Thomas Dangleterre](https://www.linkedin.com/in/thomas-dangleterre/) (Software Engineer @Decathlon)
+* [Sam Hawker](https://www.linkedin.com/in/samuel-hawker/) (Software Engineer @IBM)
+* [Lukas Kral](https://www.linkedin.com/in/lukaskral16/) (Senior Software Quality Engineer @Red Hat)
+* [Paul Mellor](https://www.linkedin.com/in/paul-r-mellor/) (Technical Writer @Red Hat)
+* [Maciej Raciborski](https://www.linkedin.com/in/maciej-raciborski-ab92b5219/) (Technical Product Owner @SBB)
 
 The committee members will leverage their experience and knowledge on the project as users and contributors in order to select the best proposals and make an awesome agenda.
 
