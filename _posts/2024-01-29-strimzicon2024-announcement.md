@@ -38,11 +38,13 @@ The submission deadline is March 10th.
 We encourage any community members to submit a talk: from a Strimzi deep dive, to how you operate and use it in production, through integrations with other projects.
 From the community to the community, this is the best way to share.
 
-[Paolo Patierno](https://www.linkedin.com/in/paolopatierno/) (Senior Principal Software Engineer @Red Hat) and [Kate Stanley](https://www.linkedin.com/in/katherine-kate-stanley-3796b579/) (Principal Software Engineer @Red Hat), as maintainer and contributor in the Strimzi community, have been organizing the conference together with the CNCF team, and will be your host during the event.
+Paolo Patierno and Kate Stanley, as maintainer and contributor in the Strimzi community, have been organizing the conference together with the CNCF team, and will be your host during the event.
 
 All the submitted sessions will be evaluated by the StrimziCon program committee made up of people from different companies which already use Strimzi in production as adopters.
 We'll have representatives from Apple, Atruvia, Axual, Decathlon, IBM, Red Hat, and SBB:
 
+* [Paolo Patierno](https://www.linkedin.com/in/paolopatierno/) (Senior Principal Software Engineer @Red Hat)
+* [Kate Stanley](https://www.linkedin.com/in/katherine-kate-stanley-3796b579/) (Principal Software Engineer @Red Hat)
 * [Yaodong Yang](https://www.linkedin.com/in/yaodongyang/) (Staff Software Engineer @Apple)
 * [Philipp Bocker](https://www.linkedin.com/in/philipp-b%C3%B6cker/) (Solution Manager @Atruvia)
 * [Richard Bosch](https://www.linkedin.com/in/richard-bosch-nl/) (Developer Advocate @Axual)
