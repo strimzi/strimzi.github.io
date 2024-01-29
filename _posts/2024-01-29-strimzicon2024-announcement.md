@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Welcome StrimziCon 2024!"
-date: 2024-01-26
+date: 2024-01-29
 author: paolo_patierno
 ---
 
@@ -29,13 +29,13 @@ The call for <b>speakers</b> is now open, and we're eagerly awaiting your propos
 * <b>Core Strimzi</b>: Deep dive into a specific component or feature.
 * <b>Case Studies</b>: Provide an overview of a use case or review of a real life Strimzi deployment, highlighting difficulties, lessons learned, and key takeaways.
 * <b>Integrations</b>: Explore how Strimzi integrates with other CNCF projects, such as OpenTelemetry, KEDA and more.
-* <b>Operations</b>: Share insights into what it takes to run Strimzi and maintain cluster in production.
+* <b>Operations</b>: Share insights into what it takes to run Strimzi and maintain clusters in production.
 
 The submission deadline is March 10th.
 
 ### From the community to the community
 
-We encourage any community members to submit a talk: from a Strimzi deep dive to how you operate and use it in production, through integrations with other projects.
+We encourage any community members to submit a talk: from a Strimzi deep dive, to how you operate and use it in production, through integrations with other projects.
 From the community to the community, this is the best way to share.
 
 All the submitted sessions will be evaluated by the StrimziCon committee made up of people from different companies which already use Strimzi in production as adopters.
