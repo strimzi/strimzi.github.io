@@ -133,13 +133,14 @@
 </li>
 <li><a href="#config-node-pools-str">9.3. Configuring node pools</a>
 <ul class="sectlevel3">
-<li><a href="#proc-managing-node-pools-ids-str">9.3.1. Assigning IDs to node pools for scaling operations</a></li>
-<li><a href="#proc-scaling-up-node-pools-str">9.3.2. Adding nodes to a node pool</a></li>
-<li><a href="#proc-scaling-down-node-pools-str">9.3.3. Removing nodes from a node pool</a></li>
-<li><a href="#proc-moving-node-pools-str">9.3.4. Moving nodes between node pools</a></li>
-<li><a href="#proc-managing-storage-node-pools-str">9.3.5. Managing storage using node pools</a></li>
-<li><a href="#proc-managing-storage-affinity-node-pools-str">9.3.6. Managing storage affinity using node pools</a></li>
-<li><a href="#proc-migrating-clusters-node-pools-str">9.3.7. Migrating existing Kafka clusters to use Kafka node pools</a></li>
+<li><a href="#config-node-pools-roles-str">9.3.1. Changing node pool roles</a></li>
+<li><a href="#proc-managing-node-pools-ids-str">9.3.2. Assigning IDs to node pools for scaling operations</a></li>
+<li><a href="#proc-scaling-up-node-pools-str">9.3.3. Adding nodes to a node pool</a></li>
+<li><a href="#proc-scaling-down-node-pools-str">9.3.4. Removing nodes from a node pool</a></li>
+<li><a href="#proc-moving-node-pools-str">9.3.5. Moving nodes between node pools</a></li>
+<li><a href="#proc-managing-storage-node-pools-str">9.3.6. Managing storage using node pools</a></li>
+<li><a href="#proc-managing-storage-affinity-node-pools-str">9.3.7. Managing storage affinity using node pools</a></li>
+<li><a href="#proc-migrating-clusters-node-pools-str">9.3.8. Migrating existing Kafka clusters to use Kafka node pools</a></li>
 </ul>
 </li>
 <li><a href="#ref-kafka-entity-operator-str">9.4. Configuring the Entity Operator</a>
@@ -1166,7 +1167,10 @@ status:
       status: 'True'
       type: Ready # <b class="conum">(3)</b>
   kafkaVersion: 3.6.1 # <b class="conum">(4)</b>
-  listeners: # <b class="conum">(5)</b>
+  kafkaNodePools: # <b class="conum">(5)</b>
+    - name: broker
+    - name: controller
+  listeners: # <b class="conum">(6)</b>
     - addresses:
         - host: my-cluster-kafka-bootstrap.prm-project.svc
           port: 9092
@@ -1204,8 +1208,8 @@ status:
 
           -----END CERTIFICATE-----
       name: external4
-  observedGeneration: 3 # <b class="conum">(6)</b>
-  operatorLastSuccessfulVersion: latest # <b class="conum">(7)</b></code></pre>
+  observedGeneration: 3 # <b class="conum">(7)</b>
+  operatorLastSuccessfulVersion: latest # <b class="conum">(8)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -1221,6 +1225,9 @@ status:
 </li>
 <li>
 <p>The version of Kafka being used by the Kafka cluster.</p>
+</li>
+<li>
+<p>The node pools belonging to the Kafka cluster.</p>
 </li>
 <li>
 <p>The <code>listeners</code> describe Kafka bootstrap addresses by type.</p>
@@ -2819,18 +2826,6 @@ For each Kafka node in the node pool, any configuration not defined in node pool
 <p>The deployment uses a YAML file to provide the specification to create a <code>KafkaNodePool</code> resource.
 You can use node pools with Kafka clusters that use KRaft (Kafka Raft metadata) mode or ZooKeeper for cluster management.
 To deploy a Kafka cluster in KRaft mode, you must use the <code>KafkaNodePool</code> resources.</p>
-</div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-<strong>KRaft mode is not ready for production in Apache Kafka or in Strimzi.</strong>
-</td>
-</tr>
-</table>
 </div>
 <div class="paragraph">
 <p>Strimzi provides the following <a href="#config-examples-str">example files</a> that you can use to create a Kafka cluster that uses node pools:</p>
@@ -7031,36 +7026,7 @@ When <code>-Xmx: 1024m</code> is set in <code>KafkaNodePool.spec.jvmOptions</cod
 To clarify, if <code>KafkaNodePool.spec.template</code> includes only <code>podSet.metadata.labels</code>, and <code>Kafka.spec.kafka.template</code> includes <code>podSet.metadata.annotations</code> and <code>pod.metadata.labels</code>, the template values from the Kafka configuration are ignored since there is a template value in the node pool configuration.</p>
 </div>
 <div class="paragraph">
-<p>Node pools can be used with Kafka clusters that operate in KRaft mode (using Kafka Raft metadata) or use ZooKeeper for cluster management.
-If you are using KRaft mode, you can specify roles for all nodes in the node pool to operate as brokers, controllers, or both.
-If you are using ZooKeeper, nodes must be set as brokers only.</p>
-</div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-<strong>KRaft mode is not ready for production in Apache Kafka or in Strimzi.</strong>
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
 <p>For a deeper understanding of the node pool configuration options, refer to the <a href="./configuring.html" target="_blank" rel="noopener">Strimzi Custom Resource API Reference</a>.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Currently, replica and storage configuration properties in the <code>KafkaNodePool</code> resource must also be present in the <code>Kafka</code> resource. The configuration in the <code>Kafka</code> resource is ignored when node pools are used. Similarly, ZooKeeper configuration properties must also be present in the <code>Kafka</code> resource when using KRaft mode. These properties are also ignored.
-</td>
-</tr>
-</table>
 </div>
 <div class="listingblock">
 <div class="title">Example configuration for a node pool in a cluster using KRaft mode</div>
@@ -7163,7 +7129,29 @@ spec:
 </ol>
 </div>
 <div class="sect3">
-<h4 id="proc-managing-node-pools-ids-str"><a class="link" href="#proc-managing-node-pools-ids-str">9.3.1. Assigning IDs to node pools for scaling operations</a></h4>
+<h4 id="config-node-pools-roles-str"><a class="link" href="#config-node-pools-roles-str">9.3.1. Changing node pool roles</a></h4>
+<div class="paragraph _abstract">
+<p>Node pools can be used with Kafka clusters that operate in KRaft mode (using Kafka Raft metadata) or use ZooKeeper for metadata management.
+If you are using KRaft mode, you can specify roles for all nodes in the node pool to operate as brokers, controllers, or both.
+If you are using ZooKeeper, nodes must be set as brokers only.</p>
+</div>
+<div class="paragraph">
+<p>In certain circumstances you might want to change the roles assigned to a node pool.
+For example, you may have a node pool that contains nodes that perform dual broker and controller roles, and then decide to split the roles between two node pools.
+In this case, you create a new node pool with nodes that act only as brokers, and then reassign partitions from the dual-role nodes to the new brokers.
+You can then switch the old node pool to a controller-only role.</p>
+</div>
+<div class="paragraph">
+<p>When removing <code>broker</code> roles in the node pool configuration, keep in mind that Kafka does not automatically reassign partitions.
+Before removing the broker role, ensure that nodes changing to controller-only roles do not have any assigned partitions.
+If partitions are assigned, the change is prevented.
+No replicas must be left on the node before removing the broker role.
+The best way to reassign partitions before changing roles is to apply a Cruise Control optimization proposal in <code>remove-brokers</code> mode.
+For more information, see <a href="#proc-generating-optimization-proposals-str">Generating optimization proposals</a>.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-managing-node-pools-ids-str"><a class="link" href="#proc-managing-node-pools-ids-str">9.3.2. Assigning IDs to node pools for scaling operations</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to use annotations for advanced node ID handling by the Cluster Operator when performing scaling operations on node pools.
 You specify the node IDs to use, rather than the Cluster Operator using the next ID in sequence.
@@ -7357,7 +7345,7 @@ If you want to remove a specific node, you can assign a single node ID to the sc
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-scaling-up-node-pools-str"><a class="link" href="#proc-scaling-up-node-pools-str">9.3.2. Adding nodes to a node pool</a></h4>
+<h4 id="proc-scaling-up-node-pools-str"><a class="link" href="#proc-scaling-up-node-pools-str">9.3.3. Adding nodes to a node pool</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to scale up a node pool to add new nodes.</p>
 </div>
@@ -7450,7 +7438,7 @@ my-cluster-pool-a-3  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-scaling-down-node-pools-str"><a class="link" href="#proc-scaling-down-node-pools-str">9.3.3. Removing nodes from a node pool</a></h4>
+<h4 id="proc-scaling-down-node-pools-str"><a class="link" href="#proc-scaling-down-node-pools-str">9.3.4. Removing nodes from a node pool</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to scale down a node pool to remove nodes.</p>
 </div>
@@ -7535,7 +7523,7 @@ my-cluster-pool-b-kafka-2  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-moving-node-pools-str"><a class="link" href="#proc-moving-node-pools-str">9.3.4. Moving nodes between node pools</a></h4>
+<h4 id="proc-moving-node-pools-str"><a class="link" href="#proc-moving-node-pools-str">9.3.5. Moving nodes between node pools</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to move nodes between source and target Kafka node pools without downtime.
 You create a new node on the target node pool and reassign partitions to move data from the old node on the source node pool.
@@ -7666,7 +7654,7 @@ my-cluster-pool-b-kafka-6  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-managing-storage-node-pools-str"><a class="link" href="#proc-managing-storage-node-pools-str">9.3.5. Managing storage using node pools</a></h4>
+<h4 id="proc-managing-storage-node-pools-str"><a class="link" href="#proc-managing-storage-node-pools-str">9.3.6. Managing storage using node pools</a></h4>
 <div class="paragraph _abstract">
 <p>Storage management in Strimzi is usually straightforward, and requires little change when set up, but there might be situations where you need to modify your storage configurations.
 Node pools simplify this process, because you can set up separate node pools that specify your new storage requirements.</p>
@@ -7806,7 +7794,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-managing-storage-affinity-node-pools-str"><a class="link" href="#proc-managing-storage-affinity-node-pools-str">9.3.6. Managing storage affinity using node pools</a></h4>
+<h4 id="proc-managing-storage-affinity-node-pools-str"><a class="link" href="#proc-managing-storage-affinity-node-pools-str">9.3.7. Managing storage affinity using node pools</a></h4>
 <div class="paragraph _abstract">
 <p>In situations where storage resources, such as local persistent volumes, are constrained to specific worker nodes, or availability zones, configuring storage affinity helps to schedule pods to use the right nodes.</p>
 </div>
@@ -7958,7 +7946,7 @@ my-cluster-pool-zone-2-kafka-6  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-migrating-clusters-node-pools-str"><a class="link" href="#proc-migrating-clusters-node-pools-str">9.3.7. Migrating existing Kafka clusters to use Kafka node pools</a></h4>
+<h4 id="proc-migrating-clusters-node-pools-str"><a class="link" href="#proc-migrating-clusters-node-pools-str">9.3.8. Migrating existing Kafka clusters to use Kafka node pools</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to migrate existing Kafka clusters to use Kafka node pools.
 After you have updated the Kafka cluster, you can use the node pools to manage the configuration of nodes within each pool.</p>
@@ -25775,7 +25763,7 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p>When adding brokers through the <code>Kafka</code> configuration, node IDs start at 0 (zero) and the Cluster Operator assigns the next lowest ID to a new node.
+<p>When adding brokers through the <code>Kafka</code> resource configuration, node IDs start at 0 (zero) and the Cluster Operator assigns the next lowest ID to a new node.
 The broker removal process starts from the broker pod with the highest ID in the cluster.</p>
 </div>
 <div class="paragraph">
@@ -25800,8 +25788,11 @@ You can use Cruise Control&#8217;s <code>add-brokers</code> and <code>remove-bro
 <div class="sect2">
 <h3 id="con-skipping-scale-down-checks-str"><a class="link" href="#con-skipping-scale-down-checks-str">16.1. Skipping checks on scale-down operations</a></h3>
 <div class="paragraph _abstract">
-<p>By default, Strimzi performs a check to ensure that there are no partition replicas on a broker before initiating a scale-down operation on a Kafka cluster.
-If replicas are found, the scale-down is not done in order to prevent potential data loss.
+<p>By default, Strimzi performs a check to ensure that there are no partition replicas on brokers before initiating a scale-down operation on a Kafka cluster.
+The check applies to nodes in node pools that perform the role of broker only or a dual role of broker and controller.</p>
+</div>
+<div class="paragraph">
+<p>If replicas are found, the scale-down is not done in order to prevent potential data loss.
 To scale-down the cluster, no replicas must be left on the broker before trying to scale it down again.</p>
 </div>
 <div class="paragraph">
