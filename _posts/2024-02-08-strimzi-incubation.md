@@ -41,5 +41,4 @@ Every single issue, pull request, bug raised, and discussion opened helped to im
 The community was at the core.
 This project is yours,this win is yours!
 
-For more details and reading about the successful Strimzi growth, please refer to the official CNCF announcement [here]
-(https://www.cncf.io/blog/2024/02/08/strimzi-joins-the-cncf-incubator/)
+For more details and reading about the successful Strimzi growth, please refer to the official CNCF announcement [here](https://www.cncf.io/blog/2024/02/08/strimzi-joins-the-cncf-incubator/)
