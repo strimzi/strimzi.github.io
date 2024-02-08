@@ -115,9 +115,9 @@ In Kafka, we have two main subsystems, the data plane, which is made of componen
 
 The Kafka producer has a configurable Partitioner that assigns the message to a specific topic partition based on the key hash, when provided, the default partitioner is using Strictly Uniform Sticky Partitioner ([KIP-794](https://cwiki.apache.org/confluence/display/KAFKA/KIP-794%3A+Strictly+Uniform+Sticky+Partitioner)).
 This message is not sent immediately, but accumulated and sent in a batch based on time or size configuration properties.
-The ProduceRequest is received by the broker’s SocketReceiveBuffer and picked up by a NetworkThread, which is assigned to that particular client connection.
+The ProduceRequest is received by the broker's SocketReceiveBuffer and picked up by a NetworkThread, which is assigned to that particular client connection.
 The NetworkThread reads data from the SocketReceiveBuffer, converts that request into a ProduceRequest object and sends it over to the RequestQueue.
-An IOThread picks up the ProduceRequest from the queue and performs validations, before appending the data to the partition’s segment (log and index files).
+An IOThread picks up the ProduceRequest from the queue and performs validations, before appending the data to the partition's segment (log and index files).
 
 <figure>
     <img src="/assets/images/posts/2024-02-08-kafka-tiered-storage-deep-dive-fig3.png" height=400>
@@ -130,7 +130,7 @@ Once the replication step is completed, the broker will take out the request obj
 Finally, the NetworkThread handling that request picks up the response object from the ResponseQueue and puts its data into the SocketSendBuffer.
 
 Similarly, the Kafka consumer sends a FetchRequest specifying the desired topic, partition and offset to consume from.
-This request is sent to the broker’s SocketReceiveBuffer and a NetworkThread forwards it to the RequestQueue.
+This request is sent to the broker's SocketReceiveBuffer and a NetworkThread forwards it to the RequestQueue.
 An IOThread extracts the provided offset and compares it with the corresponding entry in the index file, which is part of the partition segment.
 This step determines the exact number of bytes to be read from the log file and added to the response object.
 As an optimization, the broker waits for a minimum number of bytes, or for a specified maximum time before returning the response.
@@ -174,7 +174,7 @@ There are 4 record types, that are defined in storage/src/main/resources/message
 - RemotePartitionDeleteMetadataRecord
 
 <figure>
-    <img src="/assets/images/posts/2024-02-08-kafka-tiered-storage-deep-dive-fig5.png" height=500>
+    <img src="/assets/images/posts/2024-02-08-kafka-tiered-storage-deep-dive-fig5.png" height=600>
     <figcaption><small>Fig5: Sequence diagram for segment copy.</small></figcaption>
 </figure>
 
@@ -206,9 +206,7 @@ After the auxiliary state is built, the follower resumes fetching from the leade
 
 We've delved into the necessity for remote storage in Kafka, particularly for retaining historical data critical for various use cases like disaster recovery, application initialization, and machine learning.
 The introduction of Kafka Tiered Storage presents a standardized, built-in solution.
-
 By leveraging different storage tiers based on data access patterns, performance needs, and cost considerations, tiered storage optimizes resource utilization while ensuring efficient data management.
 
 We've also provided insight into the technical architecture underpinning the remote log subsystem, elucidating the roles of components like the RemoteLogManager, RemoteStorageManager, and RemoteLogMetadataManager.
-
 Tiered storage represents a significant advancement in data management within Kafka ecosystems, offering a robust solution for efficient data storage and retrieval in modern distributed architectures.
