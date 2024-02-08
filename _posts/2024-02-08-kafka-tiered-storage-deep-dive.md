@@ -2,7 +2,7 @@
 layout: post
 title: "Kafka Tiered Storage Deep Dive"
 date: 2024-02-08
-author: federico_valeri, luke_chen
+author: federico_valeri_luke_chen
 ---
 
 ### Introduction
