@@ -572,14 +572,15 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#config-node-pools-str">9.3. Configuring node pools</a>
 <ul class="sectlevel3">
-<li><a href="#config-node-pools-roles-str">9.3.1. Changing node pool roles</a></li>
-<li><a href="#proc-managing-node-pools-ids-str">9.3.2. Assigning IDs to node pools for scaling operations</a></li>
-<li><a href="#proc-scaling-up-node-pools-str">9.3.3. Adding nodes to a node pool</a></li>
-<li><a href="#proc-scaling-down-node-pools-str">9.3.4. Removing nodes from a node pool</a></li>
-<li><a href="#proc-moving-node-pools-str">9.3.5. Moving nodes between node pools</a></li>
-<li><a href="#proc-managing-storage-node-pools-str">9.3.6. Managing storage using node pools</a></li>
-<li><a href="#proc-managing-storage-affinity-node-pools-str">9.3.7. Managing storage affinity using node pools</a></li>
-<li><a href="#proc-migrating-clusters-node-pools-str">9.3.8. Migrating existing Kafka clusters to use Kafka node pools</a></li>
+<li><a href="#proc-managing-node-pools-ids-str">9.3.1. Assigning IDs to node pools for scaling operations</a></li>
+<li><a href="#proc-scaling-up-node-pools-str">9.3.2. Adding nodes to a node pool</a></li>
+<li><a href="#proc-scaling-down-node-pools-str">9.3.3. Removing nodes from a node pool</a></li>
+<li><a href="#proc-moving-node-pools-str">9.3.4. Moving nodes between node pools</a></li>
+<li><a href="#config-node-pools-roles-str">9.3.5. Changing node pool roles</a></li>
+<li><a href="#proc-splitting-node-pools-roles-str">9.3.6. Transitioning to separate broker and controller roles</a></li>
+<li><a href="#proc-managing-storage-node-pools-str">9.3.7. Managing storage using node pools</a></li>
+<li><a href="#proc-managing-storage-affinity-node-pools-str">9.3.8. Managing storage affinity using node pools</a></li>
+<li><a href="#proc-migrating-clusters-node-pools-str">9.3.9. Migrating existing Kafka clusters to use Kafka node pools</a></li>
 </ul>
 </li>
 <li><a href="#ref-kafka-entity-operator-str">9.4. Configuring the Entity Operator</a>
@@ -7570,29 +7571,7 @@ spec:
 </ol>
 </div>
 <div class="sect3">
-<h4 id="config-node-pools-roles-str"><a class="link" href="#config-node-pools-roles-str">9.3.1. Changing node pool roles</a></h4>
-<div class="paragraph _abstract">
-<p>Node pools can be used with Kafka clusters that operate in KRaft mode (using Kafka Raft metadata) or use ZooKeeper for metadata management.
-If you are using KRaft mode, you can specify roles for all nodes in the node pool to operate as brokers, controllers, or both.
-If you are using ZooKeeper, nodes must be set as brokers only.</p>
-</div>
-<div class="paragraph">
-<p>In certain circumstances you might want to change the roles assigned to a node pool.
-For example, you may have a node pool that contains nodes that perform dual broker and controller roles, and then decide to split the roles between two node pools.
-In this case, you create a new node pool with nodes that act only as brokers, and then reassign partitions from the dual-role nodes to the new brokers.
-You can then switch the old node pool to a controller-only role.</p>
-</div>
-<div class="paragraph">
-<p>When removing <code>broker</code> roles in the node pool configuration, keep in mind that Kafka does not automatically reassign partitions.
-Before removing the broker role, ensure that nodes changing to controller-only roles do not have any assigned partitions.
-If partitions are assigned, the change is prevented.
-No replicas must be left on the node before removing the broker role.
-The best way to reassign partitions before changing roles is to apply a Cruise Control optimization proposal in <code>remove-brokers</code> mode.
-For more information, see <a href="#proc-generating-optimization-proposals-str">Generating optimization proposals</a>.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="proc-managing-node-pools-ids-str"><a class="link" href="#proc-managing-node-pools-ids-str">9.3.2. Assigning IDs to node pools for scaling operations</a></h4>
+<h4 id="proc-managing-node-pools-ids-str"><a class="link" href="#proc-managing-node-pools-ids-str">9.3.1. Assigning IDs to node pools for scaling operations</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to use annotations for advanced node ID handling by the Cluster Operator when performing scaling operations on node pools.
 You specify the node IDs to use, rather than the Cluster Operator using the next ID in sequence.
@@ -7786,9 +7765,10 @@ If you want to remove a specific node, you can assign a single node ID to the sc
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-scaling-up-node-pools-str"><a class="link" href="#proc-scaling-up-node-pools-str">9.3.3. Adding nodes to a node pool</a></h4>
+<h4 id="proc-scaling-up-node-pools-str"><a class="link" href="#proc-scaling-up-node-pools-str">9.3.2. Adding nodes to a node pool</a></h4>
 <div class="paragraph _abstract">
-<p>This procedure describes how to scale up a node pool to add new nodes.</p>
+<p>This procedure describes how to scale up a node pool to add new nodes.
+Currently, scale up is only possible for broker-only node pools containing nodes that run as dedicated brokers.</p>
 </div>
 <div class="paragraph">
 <p>In this procedure, we start with three nodes for node pool <code>pool-a</code>:</p>
@@ -7852,7 +7832,7 @@ Otherwise, the lowest available node ID across the cluster is used.</p>
 </div>
 </li>
 <li>
-<p>Check the status of the deployment and wait for the pods in the node pool to be created and have a status of <code>READY</code>.</p>
+<p>Check the status of the deployment and wait for the pods in the node pool to be created and ready (<code>1/1</code>).</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n &lt;my_cluster_operator_namespace&gt;</code></pre>
@@ -7872,16 +7852,33 @@ my-cluster-pool-a-3  1/1    Running  0</code></pre>
 <li>
 <p>Reassign the partitions after increasing the number of nodes in the node pool.</p>
 <div class="paragraph">
-<p>After scaling up a node pool, you can use the Cruise Control <code>add-brokers</code> mode to move partition replicas from existing brokers to the newly added brokers.</p>
+<p>After scaling up a node pool, use the Cruise Control <code>add-brokers</code> mode to move partition replicas from existing brokers to the newly added brokers.</p>
+</div>
+<div class="listingblock">
+<div class="title">Using Cruise Control to reassign partition replicas</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaRebalance
+metadata:
+  # ...
+spec:
+  mode: add-brokers
+  brokers: [3]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We are reassigning partitions to node <code>my-cluster-pool-a-3</code>.
+The reassignment can take some time depending on the number of topics and partitions in the cluster.</p>
 </div>
 </li>
 </ol>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-scaling-down-node-pools-str"><a class="link" href="#proc-scaling-down-node-pools-str">9.3.4. Removing nodes from a node pool</a></h4>
+<h4 id="proc-scaling-down-node-pools-str"><a class="link" href="#proc-scaling-down-node-pools-str">9.3.3. Removing nodes from a node pool</a></h4>
 <div class="paragraph _abstract">
-<p>This procedure describes how to scale down a node pool to remove nodes.</p>
+<p>This procedure describes how to scale down a node pool to remove nodes.
+Currently, scale down is only possible for broker-only node pools containing nodes that run as dedicated brokers.</p>
 </div>
 <div class="paragraph">
 <p>In this procedure, we start with four nodes for node pool <code>pool-a</code>:</p>
@@ -7937,7 +7934,23 @@ Otherwise, the node with the highest available ID in the node pool is removed.</
 <li>
 <p>Reassign the partitions before decreasing the number of nodes in the node pool.</p>
 <div class="paragraph">
-<p>Before scaling down a node pool, you can use the Cruise Control <code>remove-brokers</code> mode to move partition replicas off the brokers that are going to be removed.</p>
+<p>Before scaling down a node pool, use the Cruise Control <code>remove-brokers</code> mode to move partition replicas off the brokers that are going to be removed.</p>
+</div>
+<div class="listingblock">
+<div class="title">Using Cruise Control to reassign partition replicas</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaRebalance
+metadata:
+  # ...
+spec:
+  mode: remove-brokers
+  brokers: [3]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We are reassigning partitions from node <code>my-cluster-pool-a-3</code>.
+The reassignment can take some time depending on the number of topics and partitions in the cluster.</p>
 </div>
 </li>
 <li>
@@ -7964,7 +7977,7 @@ my-cluster-pool-b-kafka-2  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-moving-node-pools-str"><a class="link" href="#proc-moving-node-pools-str">9.3.5. Moving nodes between node pools</a></h4>
+<h4 id="proc-moving-node-pools-str"><a class="link" href="#proc-moving-node-pools-str">9.3.4. Moving nodes between node pools</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to move nodes between source and target Kafka node pools without downtime.
 You create a new node on the target node pool and reassign partitions to move data from the old node on the source node pool.
@@ -8041,31 +8054,51 @@ Otherwise, the lowest available node ID across the cluster is used when adding n
 </div>
 </li>
 <li>
-<p>Check the status of the deployment and wait for the pods in the node pool to be created and have a status of <code>READY</code>.</p>
+<p>Check the status of the deployment and wait for the pods in the node pool to be created and ready (<code>1/1</code>).</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n &lt;my_cluster_operator_namespace&gt;</code></pre>
 </div>
 </div>
 <div class="listingblock">
-<div class="title">Output shows four Kafka nodes in the target node pool</div>
+<div class="title">Output shows four Kafka nodes in the source and target node pools</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                 READY  STATUS   RESTARTS
 my-cluster-pool-a-0  1/1    Running  0
 my-cluster-pool-a-1  1/1    Running  0
 my-cluster-pool-a-4  1/1    Running  0
-my-cluster-pool-a-5  1/1    Running  0</code></pre>
+my-cluster-pool-a-7  1/1    Running  0
+my-cluster-pool-b-2  1/1    Running  0
+my-cluster-pool-b-3  1/1    Running  0
+my-cluster-pool-b-5  1/1    Running  0
+my-cluster-pool-b-6  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Node IDs are appended to the name of the node on creation.
-We add node <code>my-cluster-pool-a-5</code>, which has a node ID of <code>5</code>.</p>
+We add node <code>my-cluster-pool-a-7</code>, which has a node ID of <code>7</code>.</p>
 </div>
 </li>
 <li>
 <p>Reassign the partitions from the old node to the new node.</p>
 <div class="paragraph">
-<p>Before scaling down the source node pool, you can use the Cruise Control <code>remove-brokers</code> mode to move partition replicas off the brokers that are going to be removed.</p>
+<p>Before scaling down the source node pool, use the Cruise Control <code>remove-brokers</code> mode to move partition replicas off the brokers that are going to be removed.</p>
+</div>
+<div class="listingblock">
+<div class="title">Using Cruise Control to reassign partition replicas</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaRebalance
+metadata:
+  # ...
+spec:
+  mode: remove-brokers
+  brokers: [6]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We are reassigning partitions from node <code>my-cluster-pool-b-6</code>.
+The reassignment can take some time depending on the number of topics and partitions in the cluster.</p>
 </div>
 </li>
 <li>
@@ -8079,7 +8112,7 @@ We add node <code>my-cluster-pool-a-5</code>, which has a node ID of <code>5</co
 </div>
 </div>
 <div class="paragraph">
-<p>The node with the highest ID within a pool is removed.</p>
+<p>The node with the highest ID (<code>6</code>) within the pool is removed.</p>
 </div>
 <div class="listingblock">
 <div class="title">Output shows three Kafka nodes in the source node pool</div>
@@ -8087,7 +8120,7 @@ We add node <code>my-cluster-pool-a-5</code>, which has a node ID of <code>5</co
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                       READY  STATUS   RESTARTS
 my-cluster-pool-b-kafka-2  1/1    Running  0
 my-cluster-pool-b-kafka-3  1/1    Running  0
-my-cluster-pool-b-kafka-6  1/1    Running  0</code></pre>
+my-cluster-pool-b-kafka-5  1/1    Running  0</code></pre>
 </div>
 </div>
 </li>
@@ -8095,7 +8128,236 @@ my-cluster-pool-b-kafka-6  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-managing-storage-node-pools-str"><a class="link" href="#proc-managing-storage-node-pools-str">9.3.6. Managing storage using node pools</a></h4>
+<h4 id="config-node-pools-roles-str"><a class="link" href="#config-node-pools-roles-str">9.3.5. Changing node pool roles</a></h4>
+<div class="paragraph _abstract">
+<p>Node pools can be used with Kafka clusters that operate in KRaft mode (using Kafka Raft metadata) or use ZooKeeper for metadata management.
+If you are using KRaft mode, you can specify roles for all nodes in the node pool to operate as brokers, controllers, or both.
+If you are using ZooKeeper, nodes must be set as brokers only.</p>
+</div>
+<div class="paragraph">
+<p>In certain circumstances you might want to change the roles assigned to a node pool.
+For example, you may have a node pool that contains nodes that perform dual broker and controller roles, and then decide to split the roles between two node pools.
+In this case, you create a new node pool with nodes that act only as brokers, and then reassign partitions from the dual-role nodes to the new brokers.
+You can then switch the old node pool to a controller-only role.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Although it is possible to split node pool roles in this way, it is not currently possible to transition a dedicated node pool containing only controller or broker nodes to a combined node pool where nodes operate as brokers and controllers.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>When removing <code>broker</code> roles in the node pool configuration, keep in mind that Kafka does not automatically reassign partitions.
+Before removing the broker role, ensure that nodes changing to controller-only roles do not have any assigned partitions.
+If partitions are assigned, the change is prevented.
+No replicas must be left on the node before removing the broker role.
+The best way to reassign partitions before changing roles is to apply a Cruise Control optimization proposal in <code>remove-brokers</code> mode.
+For more information, see <a href="#proc-generating-optimization-proposals-str">Generating optimization proposals</a>.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-splitting-node-pools-roles-str"><a class="link" href="#proc-splitting-node-pools-roles-str">9.3.6. Transitioning to separate broker and controller roles</a></h4>
+<div class="paragraph _abstract">
+<p>This procedure describes how to transition to using node pools with separate roles.
+If your Kafka cluster is using a node pool with combined controller and broker roles, you can transition to using two node pools with separate roles.
+To do this, rebalance the cluster to move partition replicas to a node pool with a broker-only role, and then switch the old node pool to a controller-only role.</p>
+</div>
+<div class="paragraph">
+<p>In this procedure, we start with node pool <code>pool-a</code>, which has <code>controller</code> and <code>broker</code> roles:</p>
+</div>
+<div class="listingblock">
+<div class="title">Dual-role node pool</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: pool-a
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 3
+  roles:
+    - controller
+    - broker
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 20Gi
+        deleteClaim: false
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The node pool has three nodes:</p>
+</div>
+<div class="listingblock">
+<div class="title">Kafka nodes in the node pool</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                 READY  STATUS   RESTARTS
+my-cluster-pool-a-0  1/1    Running  0
+my-cluster-pool-a-1  1/1    Running  0
+my-cluster-pool-a-2  1/1    Running  0</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Each node performs a combined role of broker and controller.
+We create a second node pool called <code>pool-b</code>, with three nodes that act as brokers only.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+During this process, the ID of the node that holds the partition replicas changes. Consider any dependencies that reference the node ID.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
+</li>
+<li>
+<p><a href="#proc-configuring-deploying-cruise-control-str">Cruise Control is deployed with Kafka.</a></p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Create a node pool with a <code>broker</code> role.</p>
+<div class="listingblock">
+<div class="title">Example node pool configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: pool-b
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 3
+  roles:
+    - broker
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 100Gi
+        deleteClaim: false
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The new node pool also has three nodes.
+If you already have a broker-only node pool, you can skip this step.</p>
+</div>
+</li>
+<li>
+<p>Apply the new <code>KafkaNodePool</code> resource to create the brokers.</p>
+</li>
+<li>
+<p>Check the status of the deployment and wait for the pods in the node pool to be created and ready (<code>1/1</code>).</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n &lt;my_cluster_operator_namespace&gt;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Output shows pods running in two node pools</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                 READY  STATUS   RESTARTS
+my-cluster-pool-a-0  1/1    Running  0
+my-cluster-pool-a-1  1/1    Running  0
+my-cluster-pool-a-2  1/1    Running  0
+my-cluster-pool-b-3  1/1    Running  0
+my-cluster-pool-b-4  1/1    Running  0
+my-cluster-pool-b-5  1/1    Running  0</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Node IDs are appended to the name of the node on creation.</p>
+</div>
+</li>
+<li>
+<p>Use the Cruise Control <code>remove-brokers</code> mode to reassign partition replicas from the dual-role nodes to the newly added brokers.</p>
+<div class="listingblock">
+<div class="title">Using Cruise Control to reassignin partition replicas</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaRebalance
+metadata:
+  # ...
+spec:
+  mode: remove-brokers
+  brokers: [0, 1, 2]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The reassignment can take some time depending on the number of topics and partitions in the cluster.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If nodes changing to controller-only roles have any assigned partitions, the change is prevented.
+The <code>status.conditions</code> of the <code>Kafka</code> resource provide details of events preventing the change.
+</td>
+</tr>
+</table>
+</div>
+</li>
+<li>
+<p>Remove the <code>broker</code> role from the node pool that originally had a combined role.</p>
+<div class="listingblock">
+<div class="title">Dual-role nodes switched to controllers</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: pool-a
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 3
+  roles:
+    - controller
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 20Gi
+        deleteClaim: false
+  # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Apply the configuration change so that the node pool switches to a controller-only role.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-managing-storage-node-pools-str"><a class="link" href="#proc-managing-storage-node-pools-str">9.3.7. Managing storage using node pools</a></h4>
 <div class="paragraph _abstract">
 <p>Storage management in Strimzi is usually straightforward, and requires little change when set up, but there might be situations where you need to modify your storage configurations.
 Node pools simplify this process, because you can set up separate node pools that specify your new storage requirements.</p>
@@ -8167,7 +8429,7 @@ spec:
 <p>Apply the node pool configuration for <code>pool-a</code>.</p>
 </li>
 <li>
-<p>Check the status of the deployment and wait for the pods in <code>pool-a</code> to be created and have a status of <code>READY</code>.</p>
+<p>Check the status of the deployment and wait for the pods in <code>pool-a</code> to be created and ready (<code>1/1</code>).</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n &lt;my_cluster_operator_namespace&gt;</code></pre>
@@ -8215,12 +8477,28 @@ spec:
 <p>Apply the node pool configuration for <code>pool-b</code>.</p>
 </li>
 <li>
-<p>Check the status of the deployment and wait for the pods in <code>pool-b</code> to be created and have a status of <code>READY</code>.</p>
+<p>Check the status of the deployment and wait for the pods in <code>pool-b</code> to be created and ready.</p>
 </li>
 <li>
 <p>Reassign the partitions from <code>pool-a</code> to <code>pool-b</code>.</p>
 <div class="paragraph">
-<p>When migrating to a new storage configuration, you can use the Cruise Control <code>remove-brokers</code> mode to move partition replicas off the brokers that are going to be removed.</p>
+<p>When migrating to a new storage configuration, use the Cruise Control <code>remove-brokers</code> mode to move partition replicas off the brokers that are going to be removed.</p>
+</div>
+<div class="listingblock">
+<div class="title">Using Cruise Control to reassign partition replicas</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaRebalance
+metadata:
+  # ...
+spec:
+  mode: remove-brokers
+  brokers: [0, 1, 2]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We are reassigning partitions from <code>pool-a</code>.
+The reassignment can take some time depending on the number of topics and partitions in the cluster.</p>
 </div>
 </li>
 <li>
@@ -8235,7 +8513,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-managing-storage-affinity-node-pools-str"><a class="link" href="#proc-managing-storage-affinity-node-pools-str">9.3.7. Managing storage affinity using node pools</a></h4>
+<h4 id="proc-managing-storage-affinity-node-pools-str"><a class="link" href="#proc-managing-storage-affinity-node-pools-str">9.3.8. Managing storage affinity using node pools</a></h4>
 <div class="paragraph _abstract">
 <p>In situations where storage resources, such as local persistent volumes, are constrained to specific worker nodes, or availability zones, configuring storage affinity helps to schedule pods to use the right nodes.</p>
 </div>
@@ -8363,16 +8641,16 @@ spec:
 <p>Apply the node pool configuration.</p>
 </li>
 <li>
-<p>Check the status of the deployment and wait for the pods in the node pools to be created and have a status of <code>READY</code>.</p>
+<p>Check the status of the deployment and wait for the pods in the node pools to be created and ready (<code>1/1</code>).</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n &lt;my_cluster_operator_namespace&gt;</code></pre>
 </div>
 </div>
 <div class="listingblock">
-<div class="title">Output shows 3 Kafka nodes in <code>pool-zone-1</code> and 4 Kafka nodes in <code>pool-zone-2</code>:</div>
+<div class="title">Output shows 3 Kafka nodes in <code>pool-zone-1</code> and 4 Kafka nodes in <code>pool-zone-2</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                       READY  STATUS   RESTARTS
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                            READY  STATUS   RESTARTS
 my-cluster-pool-zone-1-kafka-0  1/1    Running  0
 my-cluster-pool-zone-1-kafka-1  1/1    Running  0
 my-cluster-pool-zone-1-kafka-2  1/1    Running  0
@@ -8387,7 +8665,7 @@ my-cluster-pool-zone-2-kafka-6  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-migrating-clusters-node-pools-str"><a class="link" href="#proc-migrating-clusters-node-pools-str">9.3.8. Migrating existing Kafka clusters to use Kafka node pools</a></h4>
+<h4 id="proc-migrating-clusters-node-pools-str"><a class="link" href="#proc-migrating-clusters-node-pools-str">9.3.9. Migrating existing Kafka clusters to use Kafka node pools</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to migrate existing Kafka clusters to use Kafka node pools.
 After you have updated the Kafka cluster, you can use the node pools to manage the configuration of nodes within each pool.</p>
@@ -26566,7 +26844,7 @@ Cruise Control has configurations for hard optimization goals that must be satis
 <h4 id="hard-soft-goals"><a class="link" href="#hard-soft-goals">17.2.3. Hard and soft optimization goals</a></h4>
 <div class="paragraph">
 <p>Hard goals are goals that <em>must</em> be satisfied in optimization proposals.
-Goals that are not configured as hard goals are known as <em>soft goals</em>.
+Goals that are not defined as <em>hard goals</em> in the Cruise Control code are known as <em>soft goals</em>.
 You can think of soft goals as <em>best effort</em> goals: they do <em>not</em> need to be satisfied in optimization proposals, but are included in optimization calculations.
 An optimization proposal that violates one or more soft goals, but satisfies all hard goals, is valid.</p>
 </div>
@@ -26588,7 +26866,7 @@ Cruise Control will ignore this goal if doing so enables all the configured hard
 </table>
 </div>
 <div class="paragraph">
-<p>In Cruise Control, the following <a href="#main-goals">main optimization goals</a> are preset as hard goals:</p>
+<p>In Cruise Control, the following <a href="#main-goals">main optimization goals</a> are hard goals:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -26596,17 +26874,33 @@ Cruise Control will ignore this goal if doing so enables all the configured hard
 </div>
 </div>
 <div class="paragraph">
-<p>You configure hard goals in the Cruise Control deployment configuration, by editing the <code>hard.goals</code> property in <code>Kafka.spec.cruiseControl.config</code>.</p>
+<p>In your Cruise Control deployment configuration, you can specify which hard goals to enforce using the <code>hard.goals</code> property in <code>Kafka.spec.cruiseControl.config</code>.</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>To inherit the preset hard goals from Cruise Control, do not specify the <code>hard.goals</code> property in <code>Kafka.spec.cruiseControl.config</code></p>
+<p>To enforce execution of all hard goals, simply omit the <code>hard.goals</code> property.</p>
 </li>
 <li>
-<p>To change the preset hard goals, specify the desired goals in the <code>hard.goals</code> property, using their fully-qualified domain names.</p>
+<p>To change which hard goals Cruise Control enforces, specify the required goals in the <code>hard.goals</code> property using their fully-qualified domain names.</p>
+</li>
+<li>
+<p>To prevent execution of a specific hard goal, ensure that the goal is not included in both the <code>default.goals</code> and <code>hard.goals</code> list configurations.</p>
 </li>
 </ul>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+It is not possible to configure which goals are considered soft or hard goals.
+This distinction is determined by the Cruise Control code.
+</td>
+</tr>
+</table>
 </div>
 <div class="listingblock">
 <div class="title">Example <code>Kafka</code> configuration for hard optimization goals</div>
@@ -38084,7 +38378,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-02-14 13:44:27 UTC
+Last updated 2024-02-14 16:38:02 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
