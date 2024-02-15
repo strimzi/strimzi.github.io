@@ -139,9 +139,10 @@
 <li><a href="#proc-moving-node-pools-str">9.3.4. Moving nodes between node pools</a></li>
 <li><a href="#config-node-pools-roles-str">9.3.5. Changing node pool roles</a></li>
 <li><a href="#proc-splitting-node-pools-roles-str">9.3.6. Transitioning to separate broker and controller roles</a></li>
-<li><a href="#proc-managing-storage-node-pools-str">9.3.7. Managing storage using node pools</a></li>
-<li><a href="#proc-managing-storage-affinity-node-pools-str">9.3.8. Managing storage affinity using node pools</a></li>
-<li><a href="#proc-migrating-clusters-node-pools-str">9.3.9. Migrating existing Kafka clusters to use Kafka node pools</a></li>
+<li><a href="#proc-joining-node-pools-roles-str">9.3.7. Transitioning to dual-role nodes</a></li>
+<li><a href="#proc-managing-storage-node-pools-str">9.3.8. Managing storage using node pools</a></li>
+<li><a href="#proc-managing-storage-affinity-node-pools-str">9.3.9. Managing storage affinity using node pools</a></li>
+<li><a href="#proc-migrating-clusters-node-pools-str">9.3.10. Migrating existing Kafka clusters to use Kafka node pools</a></li>
 </ul>
 </li>
 <li><a href="#ref-kafka-entity-operator-str">9.4. Configuring the Entity Operator</a>
@@ -7699,17 +7700,9 @@ For example, you may have a node pool that contains nodes that perform dual brok
 In this case, you create a new node pool with nodes that act only as brokers, and then reassign partitions from the dual-role nodes to the new brokers.
 You can then switch the old node pool to a controller-only role.</p>
 </div>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Warning</div>
-</td>
-<td class="content">
-Although it is possible to split node pool roles in this way, it is not currently possible to transition a dedicated node pool containing only controller or broker nodes to a combined node pool where nodes operate as brokers and controllers.
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p>You can also perform the reverse operation by moving from node pools with controller-only and broker-only roles to a node pool that contains nodes that perform dual broker and controller roles.
+In this case, you add the <code>broker</code> role to the existing controller-only node pool, reassign partitions from the broker-only nodes to the dual-role nodes, and then delete the broker-only node pool.</p>
 </div>
 <div class="paragraph">
 <p>When removing <code>broker</code> roles in the node pool configuration, keep in mind that Kafka does not automatically reassign partitions.
@@ -7855,7 +7848,7 @@ my-cluster-pool-b-5  1/1    Running  0</code></pre>
 <li>
 <p>Use the Cruise Control <code>remove-brokers</code> mode to reassign partition replicas from the dual-role nodes to the newly added brokers.</p>
 <div class="listingblock">
-<div class="title">Using Cruise Control to reassignin partition replicas</div>
+<div class="title">Using Cruise Control to reassign partition replicas</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaRebalance
@@ -7916,7 +7909,183 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-managing-storage-node-pools-str"><a class="link" href="#proc-managing-storage-node-pools-str">9.3.7. Managing storage using node pools</a></h4>
+<h4 id="proc-joining-node-pools-roles-str"><a class="link" href="#proc-joining-node-pools-roles-str">9.3.7. Transitioning to dual-role nodes</a></h4>
+<div class="paragraph _abstract">
+<p>This procedure describes how to transition from separate node pools with broker-only and controller-only roles to using a dual-role node pool.
+If your Kafka cluster is using node pools with dedicated controller and broker nodes, you can transition to using a single node pool with both roles.
+To do this, add the <code>broker</code> role to the controller-only node pool, rebalance the cluster to move partition replicas to the dual-role node pool, and then delete the old broker-only node pool.</p>
+</div>
+<div class="paragraph">
+<p>In this procedure, we start with two node pools <code>pool-a</code>, which has only the <code>controller</code> role and <code>pool-b</code> which has only the <code>broker</code> role:</p>
+</div>
+<div class="listingblock">
+<div class="title">Single role node pools</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: pool-a
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 3
+  roles:
+    - controller
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 100Gi
+        deleteClaim: false
+  # ...
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: pool-b
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 3
+  roles:
+    - broker
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 100Gi
+        deleteClaim: false
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The Kafka cluster has six nodes:</p>
+</div>
+<div class="listingblock">
+<div class="title">Kafka nodes in the node pools</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                 READY  STATUS   RESTARTS
+my-cluster-pool-a-0  1/1    Running  0
+my-cluster-pool-a-1  1/1    Running  0
+my-cluster-pool-a-2  1/1    Running  0
+my-cluster-pool-b-3  1/1    Running  0
+my-cluster-pool-b-4  1/1    Running  0
+my-cluster-pool-b-5  1/1    Running  0</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>pool-a</code> nodes perform the role of controller.
+The <code>pool-b</code> nodes perform the role of broker.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+During this process, the ID of the node that holds the partition replicas changes. Consider any dependencies that reference the node ID.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
+</li>
+<li>
+<p><a href="#proc-configuring-deploying-cruise-control-str">Cruise Control is deployed with Kafka.</a></p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the node pool <code>pool-a</code> and add the <code>broker</code> role to it.</p>
+<div class="listingblock">
+<div class="title">Example node pool configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: pool-a
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 3
+  roles:
+    - controller
+    - broker
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 100Gi
+        deleteClaim: false
+  # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Check the status and wait for the pods in the node pool to be restarted and ready (<code>1/1</code>).</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n &lt;my_cluster_operator_namespace&gt;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Output shows pods running in two node pools</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                 READY  STATUS   RESTARTS
+my-cluster-pool-a-0  1/1    Running  0
+my-cluster-pool-a-1  1/1    Running  0
+my-cluster-pool-a-2  1/1    Running  0
+my-cluster-pool-b-3  1/1    Running  0
+my-cluster-pool-b-4  1/1    Running  0
+my-cluster-pool-b-5  1/1    Running  0</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Node IDs are appended to the name of the node on creation.</p>
+</div>
+</li>
+<li>
+<p>Use the Cruise Control <code>remove-brokers</code> mode to reassign partition replicas from the broker-only nodes to the dual-role nodes.</p>
+<div class="listingblock">
+<div class="title">Using Cruise Control to reassign partition replicas</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaRebalance
+metadata:
+  # ...
+spec:
+  mode: remove-brokers
+  brokers: [3, 4, 5]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The reassignment can take some time depending on the number of topics and partitions in the cluster.</p>
+</div>
+</li>
+<li>
+<p>Remove the <code>pool-b</code> node pool that has the old broker-only nodes.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete kafkanodepool pool-b -n &lt;my_cluster_operator_namespace&gt;</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-managing-storage-node-pools-str"><a class="link" href="#proc-managing-storage-node-pools-str">9.3.8. Managing storage using node pools</a></h4>
 <div class="paragraph _abstract">
 <p>Storage management in Strimzi is usually straightforward, and requires little change when set up, but there might be situations where you need to modify your storage configurations.
 Node pools simplify this process, because you can set up separate node pools that specify your new storage requirements.</p>
@@ -8072,7 +8241,7 @@ The reassignment can take some time depending on the number of topics and partit
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-managing-storage-affinity-node-pools-str"><a class="link" href="#proc-managing-storage-affinity-node-pools-str">9.3.8. Managing storage affinity using node pools</a></h4>
+<h4 id="proc-managing-storage-affinity-node-pools-str"><a class="link" href="#proc-managing-storage-affinity-node-pools-str">9.3.9. Managing storage affinity using node pools</a></h4>
 <div class="paragraph _abstract">
 <p>In situations where storage resources, such as local persistent volumes, are constrained to specific worker nodes, or availability zones, configuring storage affinity helps to schedule pods to use the right nodes.</p>
 </div>
@@ -8224,7 +8393,7 @@ my-cluster-pool-zone-2-kafka-6  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-migrating-clusters-node-pools-str"><a class="link" href="#proc-migrating-clusters-node-pools-str">9.3.9. Migrating existing Kafka clusters to use Kafka node pools</a></h4>
+<h4 id="proc-migrating-clusters-node-pools-str"><a class="link" href="#proc-migrating-clusters-node-pools-str">9.3.10. Migrating existing Kafka clusters to use Kafka node pools</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to migrate existing Kafka clusters to use Kafka node pools.
 After you have updated the Kafka cluster, you can use the node pools to manage the configuration of nodes within each pool.</p>
