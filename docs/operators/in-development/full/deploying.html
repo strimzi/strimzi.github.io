@@ -495,7 +495,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#deploying-kafka-cluster-str">5.3.2. Deploying a ZooKeeper-based Kafka cluster without node pools</a></li>
 <li><a href="#deploying-the-topic-operator-using-the-cluster-operator-str">5.3.3. Deploying the Topic Operator using the Cluster Operator</a></li>
 <li><a href="#deploying-the-user-operator-using-the-cluster-operator-str">5.3.4. Deploying the User Operator using the Cluster Operator</a></li>
-<li><a href="#ref-list-of-kafka-cluster-resources-str">5.3.5. List of Kafka cluster resources</a></li>
+<li><a href="#proc-connnecting-to-zookeeper-str">5.3.5. Connecting to ZooKeeper from a terminal</a></li>
+<li><a href="#ref-list-of-kafka-cluster-resources-str">5.3.6. List of Kafka cluster resources</a></li>
 </ul>
 </li>
 <li><a href="#kafka-connect-str">5.4. Deploying Kafka Connect</a>
@@ -568,6 +569,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel3">
 <li><a href="#proc-setting-broker-limits-str">9.2.1. Setting limits on brokers using the Kafka Static Quota plugin</a></li>
 <li><a href="#con-zookeeper-default-config-str">9.2.2. Default ZooKeeper configuration values</a></li>
+<li><a href="#proc-manual-delete-pod-pvc-kafka-str">9.2.3. Deleting Kafka nodes using annotations</a></li>
+<li><a href="#proc-manual-delete-pod-pvc-zookeeper-str">9.2.4. Deleting ZooKeeper nodes using annotations</a></li>
 </ul>
 </li>
 <li><a href="#config-node-pools-str">9.3. Configuring node pools</a>
@@ -593,10 +596,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#ref-operator-cluster-str">9.5. Configuring the Cluster Operator</a>
 <ul class="sectlevel3">
 <li><a href="#ref-operator-cluster-network-policy-str">9.5.1. Restricting access to the Cluster Operator using network policy</a></li>
-<li><a href="#ref-operator-cluster-periodic-reconciliation-str">9.5.2. Configuring periodic reconciliation by the Cluster Operator</a></li>
-<li><a href="#assembly-using-multiple-cluster-operator-replicas-str">9.5.3. Running multiple Cluster Operator replicas with leader election</a></li>
-<li><a href="#proc-configuring-proxy-config-cluster-operator-str">9.5.4. Configuring Cluster Operator HTTP proxy settings</a></li>
-<li><a href="#proc-disabling-fips-mode-cluster-operator-str">9.5.5. Disabling FIPS mode using Cluster Operator configuration</a></li>
+<li><a href="#ref-operator-cluster-periodic-reconciliation-str">9.5.2. Setting periodic reconciliation of custom resources</a></li>
+<li><a href="#proc-pausing-reconciliation-str">9.5.3. Pausing reconciliation of custom resources using annotations</a></li>
+<li><a href="#assembly-using-multiple-cluster-operator-replicas-str">9.5.4. Running multiple Cluster Operator replicas with leader election</a></li>
+<li><a href="#proc-configuring-proxy-config-cluster-operator-str">9.5.5. Configuring Cluster Operator HTTP proxy settings</a></li>
+<li><a href="#proc-disabling-fips-mode-cluster-operator-str">9.5.6. Disabling FIPS mode using Cluster Operator configuration</a></li>
 </ul>
 </li>
 <li><a href="#con-kafka-connect-config-str">9.6. Configuring Kafka Connect</a>
@@ -718,6 +722,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#proc-accessing-kafka-using-loadbalancers-str">12.6. Accessing Kafka using loadbalancers</a></li>
 <li><a href="#proc-accessing-kafka-using-ingress-str">12.7. Accessing Kafka using an Ingress NGINX Controller for Kubernetes</a></li>
 <li><a href="#proc-accessing-kafka-using-routes-str">12.8. Accessing Kafka using OpenShift routes</a></li>
+<li><a href="#proc-add-service-discovery-str">12.9. Returning connection details for services</a></li>
 </ul>
 </li>
 <li><a href="#assembly-securing-access-str">13. Securing access to Kafka</a>
@@ -976,103 +981,94 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 </ul>
 </li>
-<li><a href="#assembly-deploy-restart-events-str">24. Finding information on Kafka restarts</a>
+<li><a href="#assembly-uninstalling-str">24. Uninstalling Strimzi</a>
 <ul class="sectlevel2">
-<li><a href="#ref-operator-restart-events-reasons-str">24.1. Reasons for a restart event</a></li>
-<li><a href="#ref-operator-restart-events-fields-str">24.2. Restart event filters</a></li>
-<li><a href="#proc-operator-restart-events-str">24.3. Checking Kafka restarts</a></li>
+<li><a href="#uninstalling-str">24.1. Uninstalling Strimzi using the CLI</a></li>
+<li><a href="#uninstalling-operator-hub-str">24.2. Uninstalling Strimzi from OperatorHub.io</a></li>
 </ul>
 </li>
-<li><a href="#assembly-tuning-config-str">25. Tuning Kafka configuration</a>
+<li><a href="#assembly-deploy-restart-events-str">25. Finding information on Kafka restarts</a>
 <ul class="sectlevel2">
-<li><a href="#tools_that_help_with_tuning">25.1. Tools that help with tuning</a></li>
-<li><a href="#con-managed-broker-config-properties-str">25.2. Managed broker configurations</a></li>
-<li><a href="#con-broker-config-properties-str">25.3. Kafka broker configuration tuning</a>
-<ul class="sectlevel3">
-<li><a href="#basic_broker_configuration">25.3.1. Basic broker configuration</a></li>
-<li><a href="#replicating_topics_for_high_availability">25.3.2. Replicating topics for high availability</a></li>
-<li><a href="#internal_topic_settings_for_transactions_and_commits">25.3.3. Internal topic settings for transactions and commits</a></li>
-<li><a href="#improving_request_handling_throughput_by_increasing_io_threads">25.3.4. Improving request handling throughput by increasing I/O threads</a></li>
-<li><a href="#increasing_bandwidth_for_high_latency_connections">25.3.5. Increasing bandwidth for high latency connections</a></li>
-<li><a href="#managing_kafka_logs_with_delete_and_compact_policies">25.3.6. Managing Kafka logs with delete and compact policies</a></li>
-<li><a href="#managing_efficient_disk_utilization_for_compaction">25.3.7. Managing efficient disk utilization for compaction</a></li>
-<li><a href="#handling_large_message_sizes">25.3.8. Handling large message sizes</a></li>
-<li><a href="#controlling_the_log_flush_of_message_data">25.3.9. Controlling the log flush of message data</a></li>
-<li><a href="#partition_rebalancing_for_availability">25.3.10. Partition rebalancing for availability</a></li>
-<li><a href="#con-broker-config-properties-unclean-str">25.3.11. Unclean leader election</a></li>
-<li><a href="#avoiding_unnecessary_consumer_group_rebalances">25.3.12. Avoiding unnecessary consumer group rebalances</a></li>
+<li><a href="#ref-operator-restart-events-reasons-str">25.1. Reasons for a restart event</a></li>
+<li><a href="#ref-operator-restart-events-fields-str">25.2. Restart event filters</a></li>
+<li><a href="#proc-operator-restart-events-str">25.3. Checking Kafka restarts</a></li>
 </ul>
 </li>
-<li><a href="#con-producer-config-properties-str">25.4. Kafka producer configuration tuning</a>
-<ul class="sectlevel3">
-<li><a href="#basic_producer_configuration">25.4.1. Basic producer configuration</a></li>
-<li><a href="#data_durability">25.4.2. Data durability</a></li>
-<li><a href="#ordered_delivery">25.4.3. Ordered delivery</a></li>
-<li><a href="#reliability_guarantees">25.4.4. Reliability guarantees</a></li>
-<li><a href="#con-producer-config-properties-throughput-str">25.4.5. Optimizing producers for throughput and latency</a></li>
-</ul>
-</li>
-<li><a href="#con-consumer-config-properties-str">25.5. Kafka consumer configuration tuning</a>
-<ul class="sectlevel3">
-<li><a href="#basic_consumer_configuration">25.5.1. Basic consumer configuration</a></li>
-<li><a href="#scaling_data_consumption_using_consumer_groups">25.5.2. Scaling data consumption using consumer groups</a></li>
-<li><a href="#message_ordering_guarantees">25.5.3. Message ordering guarantees</a></li>
-<li><a href="#con-consumer-config-properties-throughput-str">25.5.4. Optimizing consumers for throughput and latency</a></li>
-<li><a href="#avoiding_data_loss_or_duplication_when_committing_offsets">25.5.5. Avoiding data loss or duplication when committing offsets</a></li>
-<li><a href="#recovering_from_failure_to_avoid_data_loss">25.5.6. Recovering from failure to avoid data loss</a></li>
-<li><a href="#managing_offset_policy">25.5.7. Managing offset policy</a></li>
-<li><a href="#minimizing_the_impact_of_rebalances">25.5.8. Minimizing the impact of rebalances</a></li>
-</ul>
-</li>
-<li><a href="#con-high-volume-config-properties-str">25.6. Handling high volumes of messages</a>
-<ul class="sectlevel3">
-<li><a href="#configuring_kafka_connect_for_high_volume_messages">25.6.1. Configuring Kafka Connect for high-volume messages</a></li>
-<li><a href="#configuring_mirrormaker_2_for_high_volume_messages">25.6.2. Configuring MirrorMaker 2 for high-volume messages</a></li>
-<li><a href="#checking_the_mirrormaker_2_message_flow">25.6.3. Checking the MirrorMaker 2 message flow</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a href="#management-tasks-str">26. Managing Strimzi</a>
+<li><a href="#assembly-tuning-config-str">26. Tuning Kafka configuration</a>
 <ul class="sectlevel2">
-<li><a href="#proc-add-service-discovery-str">26.1. Discovering services using labels and annotations</a>
+<li><a href="#tools_that_help_with_tuning">26.1. Tools that help with tuning</a></li>
+<li><a href="#con-managed-broker-config-properties-str">26.2. Managed broker configurations</a></li>
+<li><a href="#con-broker-config-properties-str">26.3. Kafka broker configuration tuning</a>
 <ul class="sectlevel3">
-<li><a href="#returning_connection_details_on_services">26.1.1. Returning connection details on services</a></li>
+<li><a href="#basic_broker_configuration">26.3.1. Basic broker configuration</a></li>
+<li><a href="#replicating_topics_for_high_availability">26.3.2. Replicating topics for high availability</a></li>
+<li><a href="#internal_topic_settings_for_transactions_and_commits">26.3.3. Internal topic settings for transactions and commits</a></li>
+<li><a href="#improving_request_handling_throughput_by_increasing_io_threads">26.3.4. Improving request handling throughput by increasing I/O threads</a></li>
+<li><a href="#increasing_bandwidth_for_high_latency_connections">26.3.5. Increasing bandwidth for high latency connections</a></li>
+<li><a href="#managing_kafka_logs_with_delete_and_compact_policies">26.3.6. Managing Kafka logs with delete and compact policies</a></li>
+<li><a href="#managing_efficient_disk_utilization_for_compaction">26.3.7. Managing efficient disk utilization for compaction</a></li>
+<li><a href="#handling_large_message_sizes">26.3.8. Handling large message sizes</a></li>
+<li><a href="#controlling_the_log_flush_of_message_data">26.3.9. Controlling the log flush of message data</a></li>
+<li><a href="#partition_rebalancing_for_availability">26.3.10. Partition rebalancing for availability</a></li>
+<li><a href="#con-broker-config-properties-unclean-str">26.3.11. Unclean leader election</a></li>
+<li><a href="#avoiding_unnecessary_consumer_group_rebalances">26.3.12. Avoiding unnecessary consumer group rebalances</a></li>
 </ul>
 </li>
-<li><a href="#proc-connnecting-to-zookeeper-str">26.2. Connecting to ZooKeeper from a terminal</a></li>
-<li><a href="#proc-pausing-reconciliation-str">26.3. Pausing reconciliation of custom resources</a></li>
-<li><a href="#assembly-maintenance-time-windows-str">26.4. Maintenance time windows for rolling updates</a>
+<li><a href="#con-producer-config-properties-str">26.4. Kafka producer configuration tuning</a>
 <ul class="sectlevel3">
-<li><a href="#con-maintenance-time-windows-overview-str">26.4.1. Maintenance time windows overview</a></li>
-<li><a href="#con-maintenance-time-window-definition-str">26.4.2. Maintenance time window definition</a></li>
-<li><a href="#proc-configuring-maintenance-time-windows-str">26.4.3. Configuring a maintenance time window</a></li>
+<li><a href="#basic_producer_configuration">26.4.1. Basic producer configuration</a></li>
+<li><a href="#data_durability">26.4.2. Data durability</a></li>
+<li><a href="#ordered_delivery">26.4.3. Ordered delivery</a></li>
+<li><a href="#reliability_guarantees">26.4.4. Reliability guarantees</a></li>
+<li><a href="#con-producer-config-properties-throughput-str">26.4.5. Optimizing producers for throughput and latency</a></li>
 </ul>
 </li>
-<li><a href="#proc-manual-delete-pod-pvc-kafka-str">26.5. Deleting Kafka nodes using annotations</a></li>
-<li><a href="#proc-manual-delete-pod-pvc-zookeeper-str">26.6. Deleting ZooKeeper nodes using annotations</a></li>
-<li><a href="#assembly-rolling-updates-str">26.7. Starting rolling updates of Kafka and other operands using annotations</a>
+<li><a href="#con-consumer-config-properties-str">26.5. Kafka consumer configuration tuning</a>
 <ul class="sectlevel3">
-<li><a href="#proc-manual-rolling-update-strimzipodset-str">26.7.1. Performing a rolling update using a pod management annotation</a></li>
-<li><a href="#proc-manual-rolling-update-pods-str">26.7.2. Performing a rolling update using a pod annotation</a></li>
+<li><a href="#basic_consumer_configuration">26.5.1. Basic consumer configuration</a></li>
+<li><a href="#scaling_data_consumption_using_consumer_groups">26.5.2. Scaling data consumption using consumer groups</a></li>
+<li><a href="#message_ordering_guarantees">26.5.3. Message ordering guarantees</a></li>
+<li><a href="#con-consumer-config-properties-throughput-str">26.5.4. Optimizing consumers for throughput and latency</a></li>
+<li><a href="#avoiding_data_loss_or_duplication_when_committing_offsets">26.5.5. Avoiding data loss or duplication when committing offsets</a></li>
+<li><a href="#recovering_from_failure_to_avoid_data_loss">26.5.6. Recovering from failure to avoid data loss</a></li>
+<li><a href="#managing_offset_policy">26.5.7. Managing offset policy</a></li>
+<li><a href="#minimizing_the_impact_of_rebalances">26.5.8. Minimizing the impact of rebalances</a></li>
 </ul>
 </li>
-<li><a href="#cluster-recovery-str">26.8. Recovering a cluster from persistent volumes</a>
+<li><a href="#con-high-volume-config-properties-str">26.6. Handling high volumes of messages</a>
 <ul class="sectlevel3">
-<li><a href="#namespace-deletion_str">26.8.1. Recovery from namespace deletion</a></li>
-<li><a href="#cluster-loss_str">26.8.2. Recovery from loss of a Kubernetes cluster</a></li>
-<li><a href="#cluster-recovery-volume_str">26.8.3. Recovering a deleted cluster from persistent volumes</a></li>
+<li><a href="#configuring_kafka_connect_for_high_volume_messages">26.6.1. Configuring Kafka Connect for high-volume messages</a></li>
+<li><a href="#configuring_mirrormaker_2_for_high_volume_messages">26.6.2. Configuring MirrorMaker 2 for high-volume messages</a></li>
+<li><a href="#checking_the_mirrormaker_2_message_flow">26.6.3. Checking the MirrorMaker 2 message flow</a></li>
 </ul>
 </li>
-<li><a href="#assembly-uninstalling-str">26.9. Uninstalling Strimzi</a>
-<ul class="sectlevel3">
-<li><a href="#uninstalling-str">26.9.1. Uninstalling Strimzi using the CLI</a></li>
-<li><a href="#uninstalling-operator-hub-str">26.9.2. Uninstalling Strimzi from OperatorHub.io</a></li>
 </ul>
 </li>
-<li><a href="#con-cluster-operator-faqs-str">26.10. Frequently asked questions</a>
+<li><a href="#management-tasks-str">27. Managing Strimzi</a>
+<ul class="sectlevel2">
+<li><a href="#assembly-maintenance-time-windows-str">27.1. Maintenance time windows for rolling updates</a>
 <ul class="sectlevel3">
-<li><a href="#questions_related_to_the_cluster_operator">26.10.1. Questions related to the Cluster Operator</a></li>
+<li><a href="#con-maintenance-time-windows-overview-str">27.1.1. Maintenance time windows overview</a></li>
+<li><a href="#con-maintenance-time-window-definition-str">27.1.2. Maintenance time window definition</a></li>
+<li><a href="#proc-configuring-maintenance-time-windows-str">27.1.3. Configuring a maintenance time window</a></li>
+</ul>
+</li>
+<li><a href="#assembly-rolling-updates-str">27.2. Starting rolling updates of Kafka and other operands using annotations</a>
+<ul class="sectlevel3">
+<li><a href="#proc-manual-rolling-update-strimzipodset-str">27.2.1. Performing a rolling update using a pod management annotation</a></li>
+<li><a href="#proc-manual-rolling-update-pods-str">27.2.2. Performing a rolling update using a pod annotation</a></li>
+</ul>
+</li>
+<li><a href="#cluster-recovery-str">27.3. Recovering a cluster from persistent volumes</a>
+<ul class="sectlevel3">
+<li><a href="#namespace-deletion_str">27.3.1. Recovery from namespace deletion</a></li>
+<li><a href="#cluster-loss_str">27.3.2. Recovery from loss of a Kubernetes cluster</a></li>
+<li><a href="#cluster-recovery-volume_str">27.3.3. Recovering a deleted cluster from persistent volumes</a></li>
+</ul>
+</li>
+<li><a href="#con-cluster-operator-faqs-str">27.4. Frequently asked questions</a>
+<ul class="sectlevel3">
+<li><a href="#questions_related_to_the_cluster_operator">27.4.1. Questions related to the Cluster Operator</a></li>
 </ul>
 </li>
 </ul>
@@ -3772,7 +3768,49 @@ The deployment is successful when the <code>STATUS</code> displays as <code>Runn
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-list-of-kafka-cluster-resources-str"><a class="link" href="#ref-list-of-kafka-cluster-resources-str">5.3.5. List of Kafka cluster resources</a></h4>
+<h4 id="proc-connnecting-to-zookeeper-str"><a class="link" href="#proc-connnecting-to-zookeeper-str">5.3.5. Connecting to ZooKeeper from a terminal</a></h4>
+<div class="paragraph">
+<p>ZooKeeper services are secured with encryption and authentication and are not intended to be used by external applications that are not part of Strimzi.</p>
+</div>
+<div class="paragraph">
+<p>However, if you want to use CLI tools that require a connection to ZooKeeper, you can use a terminal inside a ZooKeeper pod and connect to <code>localhost:12181</code> as the ZooKeeper address.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Kubernetes cluster is available.</p>
+</li>
+<li>
+<p>A Kafka cluster is running.</p>
+</li>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Open the terminal using the Kubernetes console or run the <code>exec</code> command from your CLI.</p>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec -ti <em>my-cluster</em>-zookeeper-0 -- bin/zookeeper-shell.sh localhost:12181 ls /</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Be sure to use <code>localhost:12181</code>.</p>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="ref-list-of-kafka-cluster-resources-str"><a class="link" href="#ref-list-of-kafka-cluster-resources-str">5.3.6. List of Kafka cluster resources</a></h4>
 <div class="paragraph">
 <p>The following resources are created by the Cluster Operator in the Kubernetes cluster.</p>
 </div>
@@ -7430,6 +7468,110 @@ Modifying these default values as <code>zookeeper.config</code> in the <code>Kaf
 </table>
 </div>
 </div>
+<div class="sect3">
+<h4 id="proc-manual-delete-pod-pvc-kafka-str"><a class="link" href="#proc-manual-delete-pod-pvc-kafka-str">9.2.3. Deleting Kafka nodes using annotations</a></h4>
+<div class="paragraph">
+<p>This procedure describes how to delete an existing Kafka node by using a Kubernetes annotation.
+Deleting a Kafka node consists of deleting both the <code>Pod</code> on which the Kafka broker is running and the related <code>PersistentVolumeClaim</code> (if the cluster was deployed with persistent storage).
+After deletion, the <code>Pod</code> and its related <code>PersistentVolumeClaim</code> are recreated automatically.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Deleting a <code>PersistentVolumeClaim</code> can cause permanent data loss and the availability of your cluster cannot be guaranteed.
+The following procedure should only be performed if you have encountered storage issues.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Find the name of the <code>Pod</code> that you want to delete.</p>
+<div class="paragraph">
+<p>Kafka broker pods are named <code>&lt;cluster_name&gt;-kafka-&lt;index_number&gt;</code>, where <code>&lt;index_number&gt;</code> starts at zero and ends at the total number of replicas minus one.
+For example, <code>my-cluster-kafka-0</code>.</p>
+</div>
+</li>
+<li>
+<p>Use <code>kubectl annotate</code> to annotate the <code>Pod</code> resource in Kubernetes:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate pod &lt;cluster_name&gt;-kafka-&lt;index_number&gt; strimzi.io/delete-pod-and-pvc="true"</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Wait for the next reconciliation, when the annotated pod with the underlying persistent volume claim will be deleted and then recreated.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-manual-delete-pod-pvc-zookeeper-str"><a class="link" href="#proc-manual-delete-pod-pvc-zookeeper-str">9.2.4. Deleting ZooKeeper nodes using annotations</a></h4>
+<div class="paragraph">
+<p>This procedure describes how to delete an existing ZooKeeper node by using a Kubernetes annotation.
+Deleting a ZooKeeper node consists of deleting both the <code>Pod</code> on which ZooKeeper is running and the related <code>PersistentVolumeClaim</code> (if the cluster was deployed with persistent storage).
+After deletion, the <code>Pod</code> and its related <code>PersistentVolumeClaim</code> are recreated automatically.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Deleting a <code>PersistentVolumeClaim</code> can cause permanent data loss and the availability of your cluster cannot be guaranteed.
+The following procedure should only be performed if you have encountered storage issues.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Find the name of the <code>Pod</code> that you want to delete.</p>
+<div class="paragraph">
+<p>ZooKeeper pods are named <code>&lt;cluster_name&gt;-zookeeper-&lt;index_number&gt;</code>, where <code>&lt;index_number&gt;</code> starts at zero and ends at the total number of replicas minus one.
+For example, <code>my-cluster-zookeeper-0</code>.</p>
+</div>
+</li>
+<li>
+<p>Use <code>kubectl annotate</code> to annotate the <code>Pod</code> resource in Kubernetes:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate pod &lt;cluster_name&gt;-zookeeper-&lt;index_number&gt; strimzi.io/delete-pod-and-pvc="true"</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Wait for the next reconciliation, when the annotated pod with the underlying persistent volume claim will be deleted and then recreated.</p>
+</li>
+</ol>
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="config-node-pools-str"><a class="link" href="#config-node-pools-str">9.3. Configuring node pools</a></h3>
@@ -9588,7 +9730,7 @@ env:
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-operator-cluster-periodic-reconciliation-str"><a class="link" href="#ref-operator-cluster-periodic-reconciliation-str">9.5.2. Configuring periodic reconciliation by the Cluster Operator</a></h4>
+<h4 id="ref-operator-cluster-periodic-reconciliation-str"><a class="link" href="#ref-operator-cluster-periodic-reconciliation-str">9.5.2. Setting periodic reconciliation of custom resources</a></h4>
 <div class="paragraph">
 <p>Use the <code>STRIMZI_FULL_RECONCILIATION_INTERVAL_MS</code> variable to set the time interval for periodic reconciliations by the Cluster Operator.
 Replace its value with the required interval in milliseconds.</p>
@@ -9619,7 +9761,100 @@ In order to handle failovers properly, a periodic reconciliation process is exec
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-using-multiple-cluster-operator-replicas-str"><a class="link" href="#assembly-using-multiple-cluster-operator-replicas-str">9.5.3. Running multiple Cluster Operator replicas with leader election</a></h4>
+<h4 id="proc-pausing-reconciliation-str"><a class="link" href="#proc-pausing-reconciliation-str">9.5.3. Pausing reconciliation of custom resources using annotations</a></h4>
+<div class="paragraph">
+<p>Sometimes it is useful to pause the reconciliation of custom resources managed by Strimzi operators,
+so that you can perform fixes or make updates.
+If reconciliations are paused, any changes made to custom resources are ignored by the operators until the pause ends.</p>
+</div>
+<div class="paragraph">
+<p>If you want to pause reconciliation of a custom resource, set the <code>strimzi.io/pause-reconciliation</code> annotation to <code>true</code> in its configuration.
+This instructs the appropriate operator to pause reconciliation of the custom resource.
+For example, you can apply the annotation to the <code>KafkaConnect</code> resource so that reconciliation by the Cluster Operator is paused.</p>
+</div>
+<div class="paragraph">
+<p>You can also create a custom resource with the pause annotation enabled.
+The custom resource is created, but it is ignored.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Strimzi Operator that manages the custom resource is running.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Annotate the custom resource in Kubernetes, setting <code>pause-reconciliation</code> to <code>true</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate &lt;kind_of_custom_resource&gt; &lt;name_of_custom_resource&gt; strimzi.io/pause-reconciliation="true"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, for the <code>KafkaConnect</code> custom resource:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate KafkaConnect my-connect strimzi.io/pause-reconciliation="true"</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Check that the status conditions of the custom resource show a change to <code>ReconciliationPaused</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl describe &lt;kind_of_custom_resource&gt; &lt;name_of_custom_resource&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>type</code> condition changes to <code>ReconciliationPaused</code> at the <code>lastTransitionTime</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example custom resource with a paused reconciliation condition type</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  annotations:
+    strimzi.io/pause-reconciliation: "true"
+    strimzi.io/use-connector-resources: "true"
+  creationTimestamp: 2021-03-12T10:47:11Z
+  #...
+spec:
+  # ...
+status:
+  conditions:
+  - lastTransitionTime: 2021-03-12T10:47:41.689249Z
+    status: "True"
+    type: ReconciliationPaused</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Resuming from pause</div>
+<ul>
+<li>
+<p>To resume reconciliation, you can set the annotation to <code>false</code>, or remove the annotation.</p>
+</li>
+</ul>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#con-custom-resources-status-str">Finding the status of a custom resource</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="assembly-using-multiple-cluster-operator-replicas-str"><a class="link" href="#assembly-using-multiple-cluster-operator-replicas-str">9.5.4. Running multiple Cluster Operator replicas with leader election</a></h4>
 <div class="paragraph _abstract">
 <p>The default Cluster Operator configuration enables leader election to run multiple parallel replicas of the Cluster Operator.
 One replica is elected as the active leader and operates the deployed resources.
@@ -9900,7 +10135,7 @@ The deployment is successful when the <code>AVAILABLE</code> output shows the co
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-configuring-proxy-config-cluster-operator-str"><a class="link" href="#proc-configuring-proxy-config-cluster-operator-str">9.5.4. Configuring Cluster Operator HTTP proxy settings</a></h4>
+<h4 id="proc-configuring-proxy-config-cluster-operator-str"><a class="link" href="#proc-configuring-proxy-config-cluster-operator-str">9.5.5. Configuring Cluster Operator HTTP proxy settings</a></h4>
 <div class="paragraph _abstract">
 <p>If you are running a Kafka cluster behind a HTTP proxy, you can still pass data in and out of the cluster.
 For example, you can run Kafka Connect with connectors that push and pull data from outside the proxy.
@@ -10000,7 +10235,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-disabling-fips-mode-cluster-operator-str"><a class="link" href="#proc-disabling-fips-mode-cluster-operator-str">9.5.5. Disabling FIPS mode using Cluster Operator configuration</a></h4>
+<h4 id="proc-disabling-fips-mode-cluster-operator-str"><a class="link" href="#proc-disabling-fips-mode-cluster-operator-str">9.5.6. Disabling FIPS mode using Cluster Operator configuration</a></h4>
 <div class="paragraph _abstract">
 <p>Strimzi automatically switches to FIPS mode when running on a FIPS-enabled Kubernetes cluster.
 Disable FIPS mode by setting the <code>FIPS_MODE</code> environment variable to <code>disabled</code> in the deployment configuration for the Cluster Operator.
@@ -18742,6 +18977,94 @@ If it is a public (external) CA, you usually won&#8217;t need to add it.
 </td>
 </tr>
 </table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-add-service-discovery-str"><a class="link" href="#proc-add-service-discovery-str">12.9. Returning connection details for services</a></h3>
+<div class="paragraph _abstract">
+<p>Service discovery makes it easier for client applications running in the same Kubernetes cluster as Strimzi to interact with a Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>A <em>service discovery</em> label and annotation are generated for services used to access the Kafka cluster:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Internal Kafka bootstrap service</p>
+</li>
+<li>
+<p>Kafka Bridge service</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The label helps to make the service discoverable, while the annotation provides connection details for client applications to establish connections.</p>
+</div>
+<div class="paragraph">
+<p>The service discovery label, <code>strimzi.io/discovery</code>, is set as <code>true</code> for the <code>Service</code> resources.
+The service discovery annotation has the same key, providing connection details in JSON format for each service.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example internal Kafka bootstrap service</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    strimzi.io/discovery: |-
+      [ {
+        "port" : 9092,
+        "tls" : false,
+        "protocol" : "kafka",
+        "auth" : "scram-sha-512"
+      }, {
+        "port" : 9093,
+        "tls" : true,
+        "protocol" : "kafka",
+        "auth" : "tls"
+      } ]
+  labels:
+    strimzi.io/cluster: my-cluster
+    strimzi.io/discovery: "true"
+    strimzi.io/kind: Kafka
+    strimzi.io/name: my-cluster-kafka-bootstrap
+  name: my-cluster-kafka-bootstrap
+spec:
+  #...</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example Kafka Bridge service</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    strimzi.io/discovery: |-
+      [ {
+        "port" : 8080,
+        "tls" : false,
+        "auth" : "none",
+        "protocol" : "http"
+      } ]
+  labels:
+    strimzi.io/cluster: my-bridge
+    strimzi.io/discovery: "true"
+    strimzi.io/kind: KafkaBridge
+    strimzi.io/name: my-bridge-bridge-service</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Find services by specifying the discovery label when fetching services from the command line or a corresponding API call.</p>
+</div>
+<div class="listingblock">
+<div class="title">Returning services using the discovery label</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">kubectl get service -l strimzi.io/discovery=true</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Connection details are returned when retrieving the service discovery label.</p>
 </div>
 </div>
 </div>
@@ -34848,7 +35171,180 @@ spec:
 </div>
 </div>
 <div class="sect1">
-<h2 id="assembly-deploy-restart-events-str"><a class="link" href="#assembly-deploy-restart-events-str">24. Finding information on Kafka restarts</a></h2>
+<h2 id="assembly-uninstalling-str"><a class="link" href="#assembly-uninstalling-str">24. Uninstalling Strimzi</a></h2>
+<div class="sectionbody">
+<div class="paragraph _abstract">
+<p>You can uninstall Strimzi using the CLI or by unsubscribing from OperatorHub.io.</p>
+</div>
+<div class="paragraph">
+<p>Use the same approach you used to install Strimzi.</p>
+</div>
+<div class="paragraph">
+<p>When you uninstall Strimzi, you will need to identify resources created specifically for a deployment and referenced from the Strimzi resource.</p>
+</div>
+<div class="paragraph">
+<p>Such resources include:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Secrets (Custom CAs and certificates, Kafka Connect secrets, and other Kafka secrets)</p>
+</li>
+<li>
+<p>Logging <code>ConfigMaps</code> (of type <code>external</code>)</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These are resources referenced by <code>Kafka</code>, <code>KafkaConnect</code>, <code>KafkaMirrorMaker</code>, or <code>KafkaBridge</code> configuration.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p><strong>Deleting CRDs and related custom resources</strong></p>
+</div>
+<div class="paragraph">
+<p>When a <code>CustomResourceDefinition</code> is deleted, custom resources of that type are also deleted.
+This includes the <code>Kafka</code>, <code>KafkaConnect</code>, <code>KafkaMirrorMaker</code>, and <code>KafkaBridge</code> resources managed by Strimzi, as well as the <code>StrimziPodSet</code> resource Strimzi uses to manage the pods of the Kafka components.
+In addition, any Kubernetes resources created by these custom resources, such as <code>Deployment</code>, <code>Pod</code>, <code>Service</code>, and <code>ConfigMap</code> resources, are also removed.
+Always exercise caution when deleting these resources to avoid unintended data loss.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="sect2">
+<h3 id="uninstalling-str"><a class="link" href="#uninstalling-str">24.1. Uninstalling Strimzi using the CLI</a></h3>
+<div class="paragraph _abstract">
+<p>This procedure describes how to use the <code>kubectl</code> command-line tool to uninstall Strimzi and remove resources related to the deployment.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>Access to a Kubernetes cluster using an account with <code>cluster-admin</code> or <code>strimzi-admin</code> permissions.</p>
+</li>
+<li>
+<p>You have identified the resources to be deleted.</p>
+<div class="paragraph">
+<p>You can use the following <code>kubectl</code> CLI command to find resources and also verify that they have been removed when you have uninstalled Strimzi.</p>
+</div>
+<div class="listingblock">
+<div class="title">Command to find resources related to a Strimzi deployment</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get <em>&lt;resource_type&gt;</em> --all-namespaces | grep <em>&lt;kafka_cluster_name&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace <em>&lt;resource_type&gt;</em> with the type of the resource you are checking, such as <code>secret</code> or <code>configmap</code>.</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Delete the Cluster Operator <code>Deployment</code>, related <code>CustomResourceDefinitions</code>, and <code>RBAC</code> resources.</p>
+<div class="paragraph">
+<p>Specify the installation files used to deploy the Cluster Operator.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete -f install/cluster-operator</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Delete the resources you identified in the prerequisites.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete <em>&lt;resource_type&gt;</em> <em>&lt;resource_name&gt;</em> -n <em>&lt;namespace&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace <em>&lt;resource_type&gt;</em> with the type of resource you are deleting and <em>&lt;resource_name&gt;</em> with the name of the resource.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example to delete a secret</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete secret my-cluster-clients-ca-cert -n my-project</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="uninstalling-operator-hub-str"><a class="link" href="#uninstalling-operator-hub-str">24.2. Uninstalling Strimzi from OperatorHub.io</a></h3>
+<div class="paragraph _abstract">
+<p>This procedure describes how to uninstall Strimzi from OperatorHub.io and remove resources related to the deployment.</p>
+</div>
+<div class="paragraph">
+<p>You perform the steps using the <code>kubectl</code> command-line tool.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>Access to a Kubernetes cluster using an account with <code>cluster-admin</code> or <code>strimzi-admin</code> permissions.</p>
+</li>
+<li>
+<p>You have identified the resources to be deleted.</p>
+<div class="paragraph">
+<p>You can use the following <code>kubectl</code> CLI command to find resources and also verify that they have been removed when you have uninstalled Strimzi.</p>
+</div>
+<div class="listingblock">
+<div class="title">Command to find resources related to a Strimzi deployment</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get <em>&lt;resource_type&gt;</em> --all-namespaces | grep <em>&lt;kafka_cluster_name&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace <em>&lt;resource_type&gt;</em> with the type of the resource you are checking, such as <code>secret</code> or <code>configmap</code>.</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Delete the Strimzi subscription.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete subscription strimzi-cluster-operator -n <em>&lt;namespace&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Delete the cluster service version (CSV).</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete csv strimzi-cluster-operator.<em>&lt;version&gt;</em>  -n <em>&lt;namespace&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Remove related CRDs.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get crd -l app=strimzi -o name | xargs kubectl delete</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="assembly-deploy-restart-events-str"><a class="link" href="#assembly-deploy-restart-events-str">25. Finding information on Kafka restarts</a></h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
 <p>After the Cluster Operator restarts a Kafka pod in a Kubernetes cluster, it emits a Kubernetes event into the pod&#8217;s namespace explaining why the pod restarted.
@@ -34867,7 +35363,7 @@ You can export and monitor restart events using metrics collection tools like Pr
 </table>
 </div>
 <div class="sect2">
-<h3 id="ref-operator-restart-events-reasons-str"><a class="link" href="#ref-operator-restart-events-reasons-str">24.1. Reasons for a restart event</a></h3>
+<h3 id="ref-operator-restart-events-reasons-str"><a class="link" href="#ref-operator-restart-events-reasons-str">25.1. Reasons for a restart event</a></h3>
 <div class="paragraph _abstract">
 <p>The Cluster Operator initiates a restart event for a specific reason.
 You can check the reason by fetching information on the restart event.</p>
@@ -34973,7 +35469,7 @@ You can check the reason by fetching information on the restart event.</p>
 </table>
 </div>
 <div class="sect2">
-<h3 id="ref-operator-restart-events-fields-str"><a class="link" href="#ref-operator-restart-events-fields-str">24.2. Restart event filters</a></h3>
+<h3 id="ref-operator-restart-events-fields-str"><a class="link" href="#ref-operator-restart-events-fields-str">25.2. Restart event filters</a></h3>
 <div class="paragraph _abstract">
 <p>When checking restart events from the command line, you can specify a <code>field-selector</code> to filter on Kubernetes event fields.</p>
 </div>
@@ -35030,7 +35526,7 @@ In older versions of Kubernetes, the fields using the <code>regarding</code> pre
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-operator-restart-events-str"><a class="link" href="#proc-operator-restart-events-str">24.3. Checking Kafka restarts</a></h3>
+<h3 id="proc-operator-restart-events-str"><a class="link" href="#proc-operator-restart-events-str">25.3. Checking Kafka restarts</a></h3>
 <div class="paragraph _abstract">
 <p>Use a <code>kubectl</code> command to list restart events initiated by the Cluster Operator.
 Filter restart events emitted by the Cluster Operator by setting the Cluster Operator as the reporting component using the <code>reportingController</code> or <code>source</code> event fields.</p>
@@ -35138,7 +35634,7 @@ metadata:
 </div>
 </div>
 <div class="sect1">
-<h2 id="assembly-tuning-config-str"><a class="link" href="#assembly-tuning-config-str">25. Tuning Kafka configuration</a></h2>
+<h2 id="assembly-tuning-config-str"><a class="link" href="#assembly-tuning-config-str">26. Tuning Kafka configuration</a></h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
 <p>Use configuration properties to optimize the performance of Kafka brokers, producers and consumers.</p>
@@ -35156,7 +35652,7 @@ then make incremental changes and further comparisons of metrics until you have 
 <p>For more information about Apache Kafka configuration properties, see the <a href="https://kafka.apache.org/documentation/" target="_blank" rel="noopener">Apache Kafka documentation</a>.</p>
 </div>
 <div class="sect2">
-<h3 id="tools_that_help_with_tuning"><a class="link" href="#tools_that_help_with_tuning">25.1. Tools that help with tuning</a></h3>
+<h3 id="tools_that_help_with_tuning"><a class="link" href="#tools_that_help_with_tuning">26.1. Tools that help with tuning</a></h3>
 <div class="paragraph">
 <p>The following tools help with Kafka tuning:</p>
 </div>
@@ -35175,7 +35671,7 @@ then make incremental changes and further comparisons of metrics until you have 
 </div>
 </div>
 <div class="sect2">
-<h3 id="con-managed-broker-config-properties-str"><a class="link" href="#con-managed-broker-config-properties-str">25.2. Managed broker configurations</a></h3>
+<h3 id="con-managed-broker-config-properties-str"><a class="link" href="#con-managed-broker-config-properties-str">26.2. Managed broker configurations</a></h3>
 <div class="paragraph _abstract">
 <p>When you deploy Strimzi on Kubernetes, you can specify broker configuration through the <code>config</code> property of the <code>Kafka</code> custom resource.
 However, certain broker configuration options are managed directly by Strimzi.</p>
@@ -35215,13 +35711,13 @@ Log directories are mounted to <code>/var/lib/kafka/data/kafka-log<em>IDX</em></
 </div>
 </div>
 <div class="sect2">
-<h3 id="con-broker-config-properties-str"><a class="link" href="#con-broker-config-properties-str">25.3. Kafka broker configuration tuning</a></h3>
+<h3 id="con-broker-config-properties-str"><a class="link" href="#con-broker-config-properties-str">26.3. Kafka broker configuration tuning</a></h3>
 <div class="paragraph _abstract">
 <p>Use configuration properties to optimize the performance of Kafka brokers.
 You can use standard Kafka broker configuration options, except for properties managed directly by Strimzi.</p>
 </div>
 <div class="sect3">
-<h4 id="basic_broker_configuration"><a class="link" href="#basic_broker_configuration">25.3.1. Basic broker configuration</a></h4>
+<h4 id="basic_broker_configuration"><a class="link" href="#basic_broker_configuration">26.3.1. Basic broker configuration</a></h4>
 <div class="paragraph">
 <p>A typical broker configuration will include settings for properties related to topics, threads and logs.</p>
 </div>
@@ -35250,7 +35746,7 @@ zookeeper.connection.timeout.ms=6000
 </div>
 </div>
 <div class="sect3">
-<h4 id="replicating_topics_for_high_availability"><a class="link" href="#replicating_topics_for_high_availability">25.3.2. Replicating topics for high availability</a></h4>
+<h4 id="replicating_topics_for_high_availability"><a class="link" href="#replicating_topics_for_high_availability">26.3.2. Replicating topics for high availability</a></h4>
 <div class="paragraph">
 <p>Basic topic properties set the default number of partitions and replication factor for topics, which will apply to topics that are created without these properties being explicitly set, including when topics are created automatically.</p>
 </div>
@@ -35309,7 +35805,7 @@ delete.topic.enable=true
 </div>
 </div>
 <div class="sect3">
-<h4 id="internal_topic_settings_for_transactions_and_commits"><a class="link" href="#internal_topic_settings_for_transactions_and_commits">25.3.3. Internal topic settings for transactions and commits</a></h4>
+<h4 id="internal_topic_settings_for_transactions_and_commits"><a class="link" href="#internal_topic_settings_for_transactions_and_commits">26.3.3. Internal topic settings for transactions and commits</a></h4>
 <div class="paragraph">
 <p>If you are <a href="#reliability_guarantees">using transactions</a> to enable atomic writes to partitions from producers, the state of the transactions is stored in the internal <code>__transaction_state</code> topic.
 By default, the brokers are configured with a replication factor of 3 and a minimum of 2 in-sync replicas for this topic, which means that a minimum of three brokers are required in your Kafka cluster.</p>
@@ -35340,7 +35836,7 @@ As an exception, you might want to reduce the settings in a single-broker <em>te
 </div>
 </div>
 <div class="sect3">
-<h4 id="improving_request_handling_throughput_by_increasing_io_threads"><a class="link" href="#improving_request_handling_throughput_by_increasing_io_threads">25.3.4. Improving request handling throughput by increasing I/O threads</a></h4>
+<h4 id="improving_request_handling_throughput_by_increasing_io_threads"><a class="link" href="#improving_request_handling_throughput_by_increasing_io_threads">26.3.4. Improving request handling throughput by increasing I/O threads</a></h4>
 <div class="paragraph">
 <p>Network threads handle requests to the Kafka cluster, such as produce and fetch requests from client applications.
 Produce requests are placed in a request queue. Responses are placed in a response queue.</p>
@@ -35438,7 +35934,7 @@ socket.request.max.bytes=104857600
 </div>
 </div>
 <div class="sect3">
-<h4 id="increasing_bandwidth_for_high_latency_connections"><a class="link" href="#increasing_bandwidth_for_high_latency_connections">25.3.5. Increasing bandwidth for high latency connections</a></h4>
+<h4 id="increasing_bandwidth_for_high_latency_connections"><a class="link" href="#increasing_bandwidth_for_high_latency_connections">26.3.5. Increasing bandwidth for high latency connections</a></h4>
 <div class="paragraph">
 <p>Kafka batches data to achieve reasonable throughput over high-latency connections from Kafka to clients, such as connections between datacenters.
 However, if high latency is a problem, you can increase the size of the buffers for sending and receiving messages.</p>
@@ -35457,7 +35953,7 @@ which multiplies the maximum bandwidth of the link (in bytes/s) with the round-t
 </div>
 </div>
 <div class="sect3">
-<h4 id="managing_kafka_logs_with_delete_and_compact_policies"><a class="link" href="#managing_kafka_logs_with_delete_and_compact_policies">25.3.6. Managing Kafka logs with delete and compact policies</a></h4>
+<h4 id="managing_kafka_logs_with_delete_and_compact_policies"><a class="link" href="#managing_kafka_logs_with_delete_and_compact_policies">26.3.6. Managing Kafka logs with delete and compact policies</a></h4>
 <div class="paragraph">
 <p>Kafka relies on logs to store message data.
 A log consists of a series of segments, where each segment is associated with offset-based and timestamp-based indexes.
@@ -35675,7 +36171,7 @@ In this case, the compaction process would remove all duplicates.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="managing_efficient_disk_utilization_for_compaction"><a class="link" href="#managing_efficient_disk_utilization_for_compaction">25.3.7. Managing efficient disk utilization for compaction</a></h4>
+<h4 id="managing_efficient_disk_utilization_for_compaction"><a class="link" href="#managing_efficient_disk_utilization_for_compaction">26.3.7. Managing efficient disk utilization for compaction</a></h4>
 <div class="paragraph">
 <p>When employing the compact policy and log cleaner to handle topic logs in Kafka, consider optimizing memory allocation.</p>
 </div>
@@ -35716,7 +36212,7 @@ log.cleaner.io.max.bytes.per.second=1.7976931348623157E308
 </div>
 </div>
 <div class="sect3">
-<h4 id="handling_large_message_sizes"><a class="link" href="#handling_large_message_sizes">25.3.8. Handling large message sizes</a></h4>
+<h4 id="handling_large_message_sizes"><a class="link" href="#handling_large_message_sizes">26.3.8. Handling large message sizes</a></h4>
 <div class="paragraph">
 <p>The default batch size for messages is 1MB, which is optimal for maximum throughput in most use cases.
 Kafka can accommodate larger batches at a reduced throughput, assuming adequate disk capacity.</p>
@@ -35812,7 +36308,7 @@ The buffer size for the producers (<code>max.request.size</code>) and consumers 
 </div>
 </div>
 <div class="sect3">
-<h4 id="controlling_the_log_flush_of_message_data"><a class="link" href="#controlling_the_log_flush_of_message_data">25.3.9. Controlling the log flush of message data</a></h4>
+<h4 id="controlling_the_log_flush_of_message_data"><a class="link" href="#controlling_the_log_flush_of_message_data">26.3.9. Controlling the log flush of message data</a></h4>
 <div class="paragraph">
 <p>Generally, the recommendation is to not set explicit flush thresholds and let the operating system perform background flush using its default settings.
 Partition replication provides greater data durability than writes to any single disk, as a failed broker can recover from its in-sync replicas.</p>
@@ -35848,7 +36344,7 @@ Increasing the frequency of flushes can affect throughput.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="partition_rebalancing_for_availability"><a class="link" href="#partition_rebalancing_for_availability">25.3.10. Partition rebalancing for availability</a></h4>
+<h4 id="partition_rebalancing_for_availability"><a class="link" href="#partition_rebalancing_for_availability">26.3.10. Partition rebalancing for availability</a></h4>
 <div class="paragraph">
 <p>Partitions can be replicated across brokers for fault tolerance.
 For a given partition, one broker is elected leader and handles all produce requests (writes to the log).
@@ -35926,7 +36422,7 @@ The Grafana dashboards provided with Strimzi show metrics for under-replicated p
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-broker-config-properties-unclean-str"><a class="link" href="#con-broker-config-properties-unclean-str">25.3.11. Unclean leader election</a></h4>
+<h4 id="con-broker-config-properties-unclean-str"><a class="link" href="#con-broker-config-properties-unclean-str">26.3.11. Unclean leader election</a></h4>
 <div class="paragraph">
 <p>Leader election to an in-sync replica is considered clean because it guarantees no loss of data. And this is what happens by default.
 But what if there is no in-sync replica to take on leadership? Perhaps the ISR (in-sync replica) only contained the leader when the leader&#8217;s disk died. If a minimum number of in-sync replicas is not set, and there are no followers in sync with the partition leader when its hard drive fails irrevocably, data is already lost.
@@ -35954,7 +36450,7 @@ If you cannot afford the risk of data loss, then leave the default configuration
 </div>
 </div>
 <div class="sect3">
-<h4 id="avoiding_unnecessary_consumer_group_rebalances"><a class="link" href="#avoiding_unnecessary_consumer_group_rebalances">25.3.12. Avoiding unnecessary consumer group rebalances</a></h4>
+<h4 id="avoiding_unnecessary_consumer_group_rebalances"><a class="link" href="#avoiding_unnecessary_consumer_group_rebalances">26.3.12. Avoiding unnecessary consumer group rebalances</a></h4>
 <div class="paragraph">
 <p>For consumers joining a new consumer group, you can add a delay so that unnecessary rebalances to the broker are avoided:</p>
 </div>
@@ -35973,7 +36469,7 @@ But the delay also prevents the group from consuming until the period has ended.
 </div>
 </div>
 <div class="sect2">
-<h3 id="con-producer-config-properties-str"><a class="link" href="#con-producer-config-properties-str">25.4. Kafka producer configuration tuning</a></h3>
+<h3 id="con-producer-config-properties-str"><a class="link" href="#con-producer-config-properties-str">26.4. Kafka producer configuration tuning</a></h3>
 <div class="paragraph _abstract">
 <p>Use a basic producer configuration with optional properties that are tailored to specific use cases.</p>
 </div>
@@ -35982,7 +36478,7 @@ But the delay also prevents the group from consuming until the period has ended.
 You will need to experiment and tune your producer configuration to get the balance you need.</p>
 </div>
 <div class="sect3">
-<h4 id="basic_producer_configuration"><a class="link" href="#basic_producer_configuration">25.4.1. Basic producer configuration</a></h4>
+<h4 id="basic_producer_configuration"><a class="link" href="#basic_producer_configuration">26.4.1. Basic producer configuration</a></h4>
 <div class="paragraph">
 <p>Connection and serializer properties are required for every producer.
 Generally, it is good practice to add a client id for tracking,
@@ -36037,7 +36533,7 @@ Compression is useful for improving throughput and reducing the load on storage,
 </div>
 </div>
 <div class="sect3">
-<h4 id="data_durability"><a class="link" href="#data_durability">25.4.2. Data durability</a></h4>
+<h4 id="data_durability"><a class="link" href="#data_durability">26.4.2. Data durability</a></h4>
 <div class="paragraph">
 <p>Message delivery acknowledgments minimize the likelihood that messages are lost.
 Acknowledgments are enabled by default with the <code>acks</code> property set at <code>acks=all</code>.</p>
@@ -36162,7 +36658,7 @@ If the system fails, there is a risk of unsent data in the buffer being lost.
 </div>
 </div>
 <div class="sect3">
-<h4 id="ordered_delivery"><a class="link" href="#ordered_delivery">25.4.3. Ordered delivery</a></h4>
+<h4 id="ordered_delivery"><a class="link" href="#ordered_delivery">26.4.3. Ordered delivery</a></h4>
 <div class="paragraph">
 <p>Idempotent producers avoid duplicates as messages are delivered exactly once.
 IDs and sequence numbers are assigned to messages to ensure the order of delivery, even in the event of failure.
@@ -36224,7 +36720,7 @@ retries=2147483647
 </div>
 </div>
 <div class="sect3">
-<h4 id="reliability_guarantees"><a class="link" href="#reliability_guarantees">25.4.4. Reliability guarantees</a></h4>
+<h4 id="reliability_guarantees"><a class="link" href="#reliability_guarantees">26.4.4. Reliability guarantees</a></h4>
 <div class="paragraph">
 <p>Idempotence is useful for exactly once writes to a single partition.
 Transactions, when used with idempotence, allow exactly once writes across multiple partitions.</p>
@@ -36264,7 +36760,7 @@ or by computing the transactional id from the topic partition names using a func
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-producer-config-properties-throughput-str"><a class="link" href="#con-producer-config-properties-throughput-str">25.4.5. Optimizing producers for throughput and latency</a></h4>
+<h4 id="con-producer-config-properties-throughput-str"><a class="link" href="#con-producer-config-properties-throughput-str">26.4.5. Optimizing producers for throughput and latency</a></h4>
 <div class="paragraph">
 <p>Usually, the requirement of a system is to satisfy a particular throughput target for a proportion of messages within a given latency.
 For example, targeting 500,000 messages per second with 95% of messages being acknowledged within 2 seconds.</p>
@@ -36421,7 +36917,7 @@ The default is <code>120000</code> or 2 minutes.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="con-consumer-config-properties-str"><a class="link" href="#con-consumer-config-properties-str">25.5. Kafka consumer configuration tuning</a></h3>
+<h3 id="con-consumer-config-properties-str"><a class="link" href="#con-consumer-config-properties-str">26.5. Kafka consumer configuration tuning</a></h3>
 <div class="paragraph _abstract">
 <p>Use a basic consumer configuration with optional properties that are tailored to specific use cases.</p>
 </div>
@@ -36430,7 +36926,7 @@ The default is <code>120000</code> or 2 minutes.</p>
 As with the producer tuning, be prepared to make incremental changes until the consumers operate as expected.</p>
 </div>
 <div class="sect3">
-<h4 id="basic_consumer_configuration"><a class="link" href="#basic_consumer_configuration">25.5.1. Basic consumer configuration</a></h4>
+<h4 id="basic_consumer_configuration"><a class="link" href="#basic_consumer_configuration">26.5.1. Basic consumer configuration</a></h4>
 <div class="paragraph">
 <p>Connection and deserializer properties are required for every consumer.
 Generally, it is good practice to add a client id for tracking.</p>
@@ -36484,7 +36980,7 @@ If you are using a loadbalancer service to expose the Kafka cluster, you only ne
 </div>
 </div>
 <div class="sect3">
-<h4 id="scaling_data_consumption_using_consumer_groups"><a class="link" href="#scaling_data_consumption_using_consumer_groups">25.5.2. Scaling data consumption using consumer groups</a></h4>
+<h4 id="scaling_data_consumption_using_consumer_groups"><a class="link" href="#scaling_data_consumption_using_consumer_groups">26.5.2. Scaling data consumption using consumer groups</a></h4>
 <div class="paragraph">
 <p>Consumer groups share a typically large data stream generated by one or multiple producers from a given topic.
 Consumers are grouped using a <code>group.id</code> property, allowing messages to be spread across the members.
@@ -36518,7 +37014,7 @@ group.id=my-group-id <b class="conum">(1)</b>
 </div>
 </div>
 <div class="sect3">
-<h4 id="message_ordering_guarantees"><a class="link" href="#message_ordering_guarantees">25.5.3. Message ordering guarantees</a></h4>
+<h4 id="message_ordering_guarantees"><a class="link" href="#message_ordering_guarantees">26.5.3. Message ordering guarantees</a></h4>
 <div class="paragraph">
 <p>Kafka brokers receive fetch requests from consumers that ask the broker to send messages from a list of topics, partitions and offset positions.</p>
 </div>
@@ -36532,7 +37028,7 @@ Conversely, if a consumer is consuming messages from multiple partitions, the or
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-consumer-config-properties-throughput-str"><a class="link" href="#con-consumer-config-properties-throughput-str">25.5.4. Optimizing consumers for throughput and latency</a></h4>
+<h4 id="con-consumer-config-properties-throughput-str"><a class="link" href="#con-consumer-config-properties-throughput-str">26.5.4. Optimizing consumers for throughput and latency</a></h4>
 <div class="paragraph">
 <p>Control the number of messages returned when your client application calls <code>KafkaConsumer.poll()</code>.</p>
 </div>
@@ -36616,7 +37112,7 @@ max.partition.fetch.bytes=1048576 <b class="conum">(2)</b>
 </div>
 </div>
 <div class="sect3">
-<h4 id="avoiding_data_loss_or_duplication_when_committing_offsets"><a class="link" href="#avoiding_data_loss_or_duplication_when_committing_offsets">25.5.5. Avoiding data loss or duplication when committing offsets</a></h4>
+<h4 id="avoiding_data_loss_or_duplication_when_committing_offsets"><a class="link" href="#avoiding_data_loss_or_duplication_when_committing_offsets">26.5.5. Avoiding data loss or duplication when committing offsets</a></h4>
 <div class="paragraph">
 <p>The Kafka <em>auto-commit mechanism</em> allows a consumer to commit the offsets of messages automatically.
 If enabled, the consumer will commit offsets received from polling the broker at 5000ms intervals.</p>
@@ -36703,7 +37199,7 @@ isolation.level=read_committed <b class="conum">(1)</b>
 </div>
 </div>
 <div class="sect3">
-<h4 id="recovering_from_failure_to_avoid_data_loss"><a class="link" href="#recovering_from_failure_to_avoid_data_loss">25.5.6. Recovering from failure to avoid data loss</a></h4>
+<h4 id="recovering_from_failure_to_avoid_data_loss"><a class="link" href="#recovering_from_failure_to_avoid_data_loss">26.5.6. Recovering from failure to avoid data loss</a></h4>
 <div class="paragraph">
 <p>Use the <code>session.timeout.ms</code> and <code>heartbeat.interval.ms</code> properties to configure the time taken to check and recover from consumer failure within a consumer group.</p>
 </div>
@@ -36724,7 +37220,7 @@ However, take care not to set the timeout so low that the broker fails to receiv
 </div>
 </div>
 <div class="sect3">
-<h4 id="managing_offset_policy"><a class="link" href="#managing_offset_policy">25.5.7. Managing offset policy</a></h4>
+<h4 id="managing_offset_policy"><a class="link" href="#managing_offset_policy">26.5.7. Managing offset policy</a></h4>
 <div class="paragraph">
 <p>Use the <code>auto.offset.reset</code> property to control how a consumer behaves when no offsets have been committed,
 or a committed offset is no longer valid or deleted.</p>
@@ -36770,7 +37266,7 @@ In this case, you can lower <code>max.partition.fetch.bytes</code> or increase <
 </div>
 </div>
 <div class="sect3">
-<h4 id="minimizing_the_impact_of_rebalances"><a class="link" href="#minimizing_the_impact_of_rebalances">25.5.8. Minimizing the impact of rebalances</a></h4>
+<h4 id="minimizing_the_impact_of_rebalances"><a class="link" href="#minimizing_the_impact_of_rebalances">26.5.8. Minimizing the impact of rebalances</a></h4>
 <div class="paragraph">
 <p>The rebalancing of a partition between active consumers in a group is the time it takes for:</p>
 </div>
@@ -36833,7 +37329,7 @@ max.poll.records=500 <b class="conum">(3)</b>
 </div>
 </div>
 <div class="sect2">
-<h3 id="con-high-volume-config-properties-str"><a class="link" href="#con-high-volume-config-properties-str">25.6. Handling high volumes of messages</a></h3>
+<h3 id="con-high-volume-config-properties-str"><a class="link" href="#con-high-volume-config-properties-str">26.6. Handling high volumes of messages</a></h3>
 <div class="paragraph _abstract">
 <p>If your Strimzi deployment needs to handle a high volume of messages, you can use configuration options to optimize for throughput and latency.</p>
 </div>
@@ -36975,7 +37471,7 @@ New messages are not added to the buffer until these messages are acknowledged a
 You might need to keep adjusting the configuration values until they have the desired effect.</p>
 </div>
 <div class="sect3">
-<h4 id="configuring_kafka_connect_for_high_volume_messages"><a class="link" href="#configuring_kafka_connect_for_high_volume_messages">25.6.1. Configuring Kafka Connect for high-volume messages</a></h4>
+<h4 id="configuring_kafka_connect_for_high_volume_messages"><a class="link" href="#configuring_kafka_connect_for_high_volume_messages">26.6.1. Configuring Kafka Connect for high-volume messages</a></h4>
 <div class="paragraph">
 <p>Kafka Connect fetches data from the source external data system and hands it to the Kafka Connect runtime producers so that it&#8217;s replicated to the target cluster.</p>
 </div>
@@ -37087,7 +37583,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="configuring_mirrormaker_2_for_high_volume_messages"><a class="link" href="#configuring_mirrormaker_2_for_high_volume_messages">25.6.2. Configuring MirrorMaker 2 for high-volume messages</a></h4>
+<h4 id="configuring_mirrormaker_2_for_high_volume_messages"><a class="link" href="#configuring_mirrormaker_2_for_high_volume_messages">26.6.2. Configuring MirrorMaker 2 for high-volume messages</a></h4>
 <div class="paragraph">
 <p>MirrorMaker 2 fetches data from the source cluster and hands it to the Kafka Connect runtime producers so that it&#8217;s replicated to the target cluster.</p>
 </div>
@@ -37135,7 +37631,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="checking_the_mirrormaker_2_message_flow"><a class="link" href="#checking_the_mirrormaker_2_message_flow">25.6.3. Checking the MirrorMaker 2 message flow</a></h4>
+<h4 id="checking_the_mirrormaker_2_message_flow"><a class="link" href="#checking_the_mirrormaker_2_message_flow">26.6.3. Checking the MirrorMaker 2 message flow</a></h4>
 <div class="paragraph">
 <p>If you are using Prometheus and Grafana to monitor your deployment, you can check the MirrorMaker 2 message flow.</p>
 </div>
@@ -37174,244 +37670,19 @@ spec:
 </div>
 </div>
 <div class="sect1">
-<h2 id="management-tasks-str"><a class="link" href="#management-tasks-str">26. Managing Strimzi</a></h2>
+<h2 id="management-tasks-str"><a class="link" href="#management-tasks-str">27. Managing Strimzi</a></h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
 <p>Managing Strimzi requires performing various tasks to keep the Kafka clusters and associated resources running smoothly.
 Use <code>kubectl</code> commands to check the status of resources, configure maintenance windows for rolling updates, and leverage tools such as the Strimzi Drain Cleaner and Kafka Static Quota plugin to manage your deployment effectively.</p>
 </div>
 <div class="sect2">
-<h3 id="proc-add-service-discovery-str"><a class="link" href="#proc-add-service-discovery-str">26.1. Discovering services using labels and annotations</a></h3>
-<div class="paragraph">
-<p>Service discovery makes it easier for client applications running in the same Kubernetes cluster as Strimzi to interact with a Kafka cluster.</p>
-</div>
-<div class="paragraph">
-<p>A <em>service discovery</em> label and annotation is generated for services used to access the Kafka cluster:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Internal Kafka bootstrap service</p>
-</li>
-<li>
-<p>HTTP Bridge service</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>The label helps to make the service discoverable, and the annotation provides connection details that a client application can use to make the connection.</p>
-</div>
-<div class="paragraph">
-<p>The service discovery label, <code>strimzi.io/discovery</code>, is set as <code>true</code> for the <code>Service</code> resources.
-The service discovery annotation has the same key, providing connection details in JSON format for each service.</p>
-</div>
-<h4 id="example_internal_kafka_bootstrap_service" class="discrete">Example internal Kafka bootstrap service</h4>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    strimzi.io/discovery: |-
-      [ {
-        "port" : 9092,
-        "tls" : false,
-        "protocol" : "kafka",
-        "auth" : "scram-sha-512"
-      }, {
-        "port" : 9093,
-        "tls" : true,
-        "protocol" : "kafka",
-        "auth" : "tls"
-      } ]
-  labels:
-    strimzi.io/cluster: my-cluster
-    strimzi.io/discovery: "true"
-    strimzi.io/kind: Kafka
-    strimzi.io/name: my-cluster-kafka-bootstrap
-  name: my-cluster-kafka-bootstrap
-spec:
-  #...</code></pre>
-</div>
-</div>
-<h4 id="example_http_bridge_service" class="discrete">Example HTTP Bridge service</h4>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    strimzi.io/discovery: |-
-      [ {
-        "port" : 8080,
-        "tls" : false,
-        "auth" : "none",
-        "protocol" : "http"
-      } ]
-  labels:
-    strimzi.io/cluster: my-bridge
-    strimzi.io/discovery: "true"
-    strimzi.io/kind: KafkaBridge
-    strimzi.io/name: my-bridge-bridge-service</code></pre>
-</div>
-</div>
-<div class="sect3">
-<h4 id="returning_connection_details_on_services"><a class="link" href="#returning_connection_details_on_services">26.1.1. Returning connection details on services</a></h4>
-<div class="paragraph">
-<p>You can find the services by specifying the discovery label when fetching services from the command line or a corresponding API call.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">kubectl get service -l strimzi.io/discovery=true</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The connection details are returned when retrieving the service discovery label.</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="proc-connnecting-to-zookeeper-str"><a class="link" href="#proc-connnecting-to-zookeeper-str">26.2. Connecting to ZooKeeper from a terminal</a></h3>
-<div class="paragraph">
-<p>ZooKeeper services are secured with encryption and authentication and are not intended to be used by external applications that are not part of Strimzi.</p>
-</div>
-<div class="paragraph">
-<p>However, if you want to use CLI tools that require a connection to ZooKeeper, you can use a terminal inside a ZooKeeper pod and connect to <code>localhost:12181</code> as the ZooKeeper address.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>A Kubernetes cluster is available.</p>
-</li>
-<li>
-<p>A Kafka cluster is running.</p>
-</li>
-<li>
-<p>The Cluster Operator is running.</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Open the terminal using the Kubernetes console or run the <code>exec</code> command from your CLI.</p>
-<div class="paragraph">
-<p>For example:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl exec -ti <em>my-cluster</em>-zookeeper-0 -- bin/zookeeper-shell.sh localhost:12181 ls /</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Be sure to use <code>localhost:12181</code>.</p>
-</div>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect2">
-<h3 id="proc-pausing-reconciliation-str"><a class="link" href="#proc-pausing-reconciliation-str">26.3. Pausing reconciliation of custom resources</a></h3>
-<div class="paragraph">
-<p>Sometimes it is useful to pause the reconciliation of custom resources managed by Strimzi Operators,
-so that you can perform fixes or make updates.
-If reconciliations are paused, any changes made to custom resources are ignored by the Operators until the pause ends.</p>
-</div>
-<div class="paragraph">
-<p>If you want to pause reconciliation of a custom resource, set the <code>strimzi.io/pause-reconciliation</code> annotation to <code>true</code> in its configuration.
-This instructs the appropriate Operator to pause reconciliation of the custom resource.
-For example, you can apply the annotation to the <code>KafkaConnect</code> resource so that reconciliation by the Cluster Operator is paused.</p>
-</div>
-<div class="paragraph">
-<p>You can also create a custom resource with the pause annotation enabled.
-The custom resource is created, but it is ignored.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>The Strimzi Operator that manages the custom resource is running.</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Annotate the custom resource in Kubernetes, setting <code>pause-reconciliation</code> to <code>true</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate &lt;kind_of_custom_resource&gt; &lt;name_of_custom_resource&gt; strimzi.io/pause-reconciliation="true"</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>For example, for the <code>KafkaConnect</code> custom resource:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate KafkaConnect my-connect strimzi.io/pause-reconciliation="true"</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Check that the status conditions of the custom resource show a change to <code>ReconciliationPaused</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl describe &lt;kind_of_custom_resource&gt; &lt;name_of_custom_resource&gt;</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The <code>type</code> condition changes to <code>ReconciliationPaused</code> at the <code>lastTransitionTime</code>.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example custom resource with a paused reconciliation condition type</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaConnect
-metadata:
-  annotations:
-    strimzi.io/pause-reconciliation: "true"
-    strimzi.io/use-connector-resources: "true"
-  creationTimestamp: 2021-03-12T10:47:11Z
-  #...
-spec:
-  # ...
-status:
-  conditions:
-  - lastTransitionTime: 2021-03-12T10:47:41.689249Z
-    status: "True"
-    type: ReconciliationPaused</code></pre>
-</div>
-</div>
-</li>
-</ol>
-</div>
-<div class="ulist">
-<div class="title">Resuming from pause</div>
-<ul>
-<li>
-<p>To resume reconciliation, you can set the annotation to <code>false</code>, or remove the annotation.</p>
-</li>
-</ul>
-</div>
-<div class="ulist _additional-resources">
-<div class="title">Additional resources</div>
-<ul>
-<li>
-<p><a href="#con-custom-resources-status-str">Finding the status of a custom resource</a></p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect2">
-<h3 id="assembly-maintenance-time-windows-str"><a class="link" href="#assembly-maintenance-time-windows-str">26.4. Maintenance time windows for rolling updates</a></h3>
+<h3 id="assembly-maintenance-time-windows-str"><a class="link" href="#assembly-maintenance-time-windows-str">27.1. Maintenance time windows for rolling updates</a></h3>
 <div class="paragraph">
 <p>Maintenance time windows allow you to schedule certain rolling updates of your Kafka and ZooKeeper clusters to start at a convenient time.</p>
 </div>
 <div class="sect3">
-<h4 id="con-maintenance-time-windows-overview-str"><a class="link" href="#con-maintenance-time-windows-overview-str">26.4.1. Maintenance time windows overview</a></h4>
+<h4 id="con-maintenance-time-windows-overview-str"><a class="link" href="#con-maintenance-time-windows-overview-str">27.1.1. Maintenance time windows overview</a></h4>
 <div class="paragraph">
 <p>In most cases, the Cluster Operator only updates your Kafka or ZooKeeper clusters in response to changes to the corresponding <code>Kafka</code> resource.
 This enables you to plan when to apply changes to a <code>Kafka</code> resource to minimize the impact on Kafka client applications.</p>
@@ -37427,7 +37698,7 @@ If maintenance time windows are not configured for a cluster then it is possible
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-maintenance-time-window-definition-str"><a class="link" href="#con-maintenance-time-window-definition-str">26.4.2. Maintenance time window definition</a></h4>
+<h4 id="con-maintenance-time-window-definition-str"><a class="link" href="#con-maintenance-time-window-definition-str">27.1.2. Maintenance time window definition</a></h4>
 <div class="paragraph">
 <p>You configure maintenance time windows by entering an array of strings in the <code>Kafka.spec.maintenanceTimeWindows</code> property.
 Each string is a <a href="http://www.quartz-scheduler.org/documentation/quartz-2.3.0/tutorials/tutorial-lesson-06.html" target="_blank" rel="noopener">cron expression</a> interpreted as being in UTC (Coordinated Universal Time, which for practical purposes is the same as Greenwich Mean Time).</p>
@@ -37462,7 +37733,7 @@ Maintenance time windows must therefore be at least this long.
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-configuring-maintenance-time-windows-str"><a class="link" href="#proc-configuring-maintenance-time-windows-str">26.4.3. Configuring a maintenance time window</a></h4>
+<h4 id="proc-configuring-maintenance-time-windows-str"><a class="link" href="#proc-configuring-maintenance-time-windows-str">27.1.3. Configuring a maintenance time window</a></h4>
 <div class="paragraph">
 <p>You can configure a maintenance time window for rolling updates triggered by supported processes.</p>
 </div>
@@ -37524,111 +37795,7 @@ spec:
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-manual-delete-pod-pvc-kafka-str"><a class="link" href="#proc-manual-delete-pod-pvc-kafka-str">26.5. Deleting Kafka nodes using annotations</a></h3>
-<div class="paragraph">
-<p>This procedure describes how to delete an existing Kafka node by using a Kubernetes annotation.
-Deleting a Kafka node consists of deleting both the <code>Pod</code> on which the Kafka broker is running and the related <code>PersistentVolumeClaim</code> (if the cluster was deployed with persistent storage).
-After deletion, the <code>Pod</code> and its related <code>PersistentVolumeClaim</code> are recreated automatically.</p>
-</div>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Warning</div>
-</td>
-<td class="content">
-Deleting a <code>PersistentVolumeClaim</code> can cause permanent data loss and the availability of your cluster cannot be guaranteed.
-The following procedure should only be performed if you have encountered storage issues.
-</td>
-</tr>
-</table>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>A running Cluster Operator</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Find the name of the <code>Pod</code> that you want to delete.</p>
-<div class="paragraph">
-<p>Kafka broker pods are named <code>&lt;cluster_name&gt;-kafka-&lt;index_number&gt;</code>, where <code>&lt;index_number&gt;</code> starts at zero and ends at the total number of replicas minus one.
-For example, <code>my-cluster-kafka-0</code>.</p>
-</div>
-</li>
-<li>
-<p>Use <code>kubectl annotate</code> to annotate the <code>Pod</code> resource in Kubernetes:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate pod &lt;cluster_name&gt;-kafka-&lt;index_number&gt; strimzi.io/delete-pod-and-pvc="true"</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Wait for the next reconciliation, when the annotated pod with the underlying persistent volume claim will be deleted and then recreated.</p>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect2">
-<h3 id="proc-manual-delete-pod-pvc-zookeeper-str"><a class="link" href="#proc-manual-delete-pod-pvc-zookeeper-str">26.6. Deleting ZooKeeper nodes using annotations</a></h3>
-<div class="paragraph">
-<p>This procedure describes how to delete an existing ZooKeeper node by using a Kubernetes annotation.
-Deleting a ZooKeeper node consists of deleting both the <code>Pod</code> on which ZooKeeper is running and the related <code>PersistentVolumeClaim</code> (if the cluster was deployed with persistent storage).
-After deletion, the <code>Pod</code> and its related <code>PersistentVolumeClaim</code> are recreated automatically.</p>
-</div>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Warning</div>
-</td>
-<td class="content">
-Deleting a <code>PersistentVolumeClaim</code> can cause permanent data loss and the availability of your cluster cannot be guaranteed.
-The following procedure should only be performed if you have encountered storage issues.
-</td>
-</tr>
-</table>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>A running Cluster Operator</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Find the name of the <code>Pod</code> that you want to delete.</p>
-<div class="paragraph">
-<p>ZooKeeper pods are named <code>&lt;cluster_name&gt;-zookeeper-&lt;index_number&gt;</code>, where <code>&lt;index_number&gt;</code> starts at zero and ends at the total number of replicas minus one.
-For example, <code>my-cluster-zookeeper-0</code>.</p>
-</div>
-</li>
-<li>
-<p>Use <code>kubectl annotate</code> to annotate the <code>Pod</code> resource in Kubernetes:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate pod &lt;cluster_name&gt;-zookeeper-&lt;index_number&gt; strimzi.io/delete-pod-and-pvc="true"</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Wait for the next reconciliation, when the annotated pod with the underlying persistent volume claim will be deleted and then recreated.</p>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect2">
-<h3 id="assembly-rolling-updates-str"><a class="link" href="#assembly-rolling-updates-str">26.7. Starting rolling updates of Kafka and other operands using annotations</a></h3>
+<h3 id="assembly-rolling-updates-str"><a class="link" href="#assembly-rolling-updates-str">27.2. Starting rolling updates of Kafka and other operands using annotations</a></h3>
 <div class="paragraph">
 <p>Strimzi supports the use of annotations to manually trigger a rolling update of Kafka and other operands through the Cluster Operator.
 Use annotations to initiate rolling updates of Kafka, Kafka Connect, MirrorMaker 2, and ZooKeeper clusters.</p>
@@ -37648,7 +37815,7 @@ However, rather than deleting the pods directly, if you perform the rolling upda
 </ul>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-rolling-update-strimzipodset-str"><a class="link" href="#proc-manual-rolling-update-strimzipodset-str">26.7.1. Performing a rolling update using a pod management annotation</a></h4>
+<h4 id="proc-manual-rolling-update-strimzipodset-str"><a class="link" href="#proc-manual-rolling-update-strimzipodset-str">27.2.1. Performing a rolling update using a pod management annotation</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to trigger a rolling update of Kafka, Kafka Connect, MirrorMaker 2, or ZooKeeper clusters.
 To trigger the update, you add an annotation to the <code>StrimziPodSet</code> that manages the pods running on the cluster.</p>
@@ -37693,7 +37860,7 @@ When the rolling update of all the pods is complete, the annotation is automatic
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-rolling-update-pods-str"><a class="link" href="#proc-manual-rolling-update-pods-str">26.7.2. Performing a rolling update using a pod annotation</a></h4>
+<h4 id="proc-manual-rolling-update-pods-str"><a class="link" href="#proc-manual-rolling-update-pods-str">27.2.2. Performing a rolling update using a pod annotation</a></h4>
 <div class="paragraph">
 <p>This procedure describes how to manually trigger a rolling update of existing Kafka, Kafka Connect, MirrorMaker 2, or ZooKeeper clusters using a Kubernetes <code>Pod</code> annotation.
 When multiple pods are annotated, consecutive rolling updates are performed within the same reconciliation run.</p>
@@ -37794,7 +37961,7 @@ When the rolling update of a pod is complete, the annotation is automatically re
 </div>
 </div>
 <div class="sect2">
-<h3 id="cluster-recovery-str"><a class="link" href="#cluster-recovery-str">26.8. Recovering a cluster from persistent volumes</a></h3>
+<h3 id="cluster-recovery-str"><a class="link" href="#cluster-recovery-str">27.3. Recovering a cluster from persistent volumes</a></h3>
 <div class="paragraph">
 <p>You can recover a Kafka cluster from persistent volumes (PVs) if they are still present.</p>
 </div>
@@ -37812,7 +37979,7 @@ When the rolling update of a pod is complete, the annotation is automatically re
 </ul>
 </div>
 <div class="sect3">
-<h4 id="namespace-deletion_str"><a class="link" href="#namespace-deletion_str">26.8.1. Recovery from namespace deletion</a></h4>
+<h4 id="namespace-deletion_str"><a class="link" href="#namespace-deletion_str">27.3.1. Recovery from namespace deletion</a></h4>
 <div class="paragraph">
 <p>Recovery from namespace deletion is possible because of the relationship between persistent volumes and namespaces.
 A <code>PersistentVolume</code> (PV) is a storage resource that lives outside of a namespace.
@@ -37890,14 +38057,14 @@ Otherwise they will not be deleted, and may cause unnecessary expenditure on res
 </div>
 </div>
 <div class="sect3">
-<h4 id="cluster-loss_str"><a class="link" href="#cluster-loss_str">26.8.2. Recovery from loss of a Kubernetes cluster</a></h4>
+<h4 id="cluster-loss_str"><a class="link" href="#cluster-loss_str">27.3.2. Recovery from loss of a Kubernetes cluster</a></h4>
 <div class="paragraph">
 <p>When a cluster is lost, you can use the data from disks/volumes to recover the cluster if they were preserved within the infrastructure.
 The recovery procedure is the same as with namespace deletion, assuming PVs can be recovered and they were created manually.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="cluster-recovery-volume_str"><a class="link" href="#cluster-recovery-volume_str">26.8.3. Recovering a deleted cluster from persistent volumes</a></h4>
+<h4 id="cluster-recovery-volume_str"><a class="link" href="#cluster-recovery-volume_str">27.3.3. Recovering a deleted cluster from persistent volumes</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to recover a deleted cluster from persistent volumes (PVs).</p>
 </div>
@@ -38209,180 +38376,9 @@ You specify the required configuration using the properties described in the <a 
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-uninstalling-str"><a class="link" href="#assembly-uninstalling-str">26.9. Uninstalling Strimzi</a></h3>
-<div class="paragraph _abstract">
-<p>You can uninstall Strimzi using the CLI or by unsubscribing from OperatorHub.io.</p>
-</div>
-<div class="paragraph">
-<p>Use the same approach you used to install Strimzi.</p>
-</div>
-<div class="paragraph">
-<p>When you uninstall Strimzi, you will need to identify resources created specifically for a deployment and referenced from the Strimzi resource.</p>
-</div>
-<div class="paragraph">
-<p>Such resources include:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Secrets (Custom CAs and certificates, Kafka Connect secrets, and other Kafka secrets)</p>
-</li>
-<li>
-<p>Logging <code>ConfigMaps</code> (of type <code>external</code>)</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>These are resources referenced by <code>Kafka</code>, <code>KafkaConnect</code>, <code>KafkaMirrorMaker</code>, or <code>KafkaBridge</code> configuration.</p>
-</div>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Warning</div>
-</td>
-<td class="content">
-<div class="paragraph">
-<p><strong>Deleting CRDs and related custom resources</strong></p>
-</div>
-<div class="paragraph">
-<p>When a <code>CustomResourceDefinition</code> is deleted, custom resources of that type are also deleted.
-This includes the <code>Kafka</code>, <code>KafkaConnect</code>, <code>KafkaMirrorMaker</code>, and <code>KafkaBridge</code> resources managed by Strimzi, as well as the <code>StrimziPodSet</code> resource Strimzi uses to manage the pods of the Kafka components.
-In addition, any Kubernetes resources created by these custom resources, such as <code>Deployment</code>, <code>Pod</code>, <code>Service</code>, and <code>ConfigMap</code> resources, are also removed.
-Always exercise caution when deleting these resources to avoid unintended data loss.</p>
-</div>
-</td>
-</tr>
-</table>
-</div>
+<h3 id="con-cluster-operator-faqs-str"><a class="link" href="#con-cluster-operator-faqs-str">27.4. Frequently asked questions</a></h3>
 <div class="sect3">
-<h4 id="uninstalling-str"><a class="link" href="#uninstalling-str">26.9.1. Uninstalling Strimzi using the CLI</a></h4>
-<div class="paragraph _abstract">
-<p>This procedure describes how to use the <code>kubectl</code> command-line tool to uninstall Strimzi and remove resources related to the deployment.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>Access to a Kubernetes cluster using an account with <code>cluster-admin</code> or <code>strimzi-admin</code> permissions.</p>
-</li>
-<li>
-<p>You have identified the resources to be deleted.</p>
-<div class="paragraph">
-<p>You can use the following <code>kubectl</code> CLI command to find resources and also verify that they have been removed when you have uninstalled Strimzi.</p>
-</div>
-<div class="listingblock">
-<div class="title">Command to find resources related to a Strimzi deployment</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get <em>&lt;resource_type&gt;</em> --all-namespaces | grep <em>&lt;kafka_cluster_name&gt;</em></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Replace <em>&lt;resource_type&gt;</em> with the type of the resource you are checking, such as <code>secret</code> or <code>configmap</code>.</p>
-</div>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Delete the Cluster Operator <code>Deployment</code>, related <code>CustomResourceDefinitions</code>, and <code>RBAC</code> resources.</p>
-<div class="paragraph">
-<p>Specify the installation files used to deploy the Cluster Operator.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete -f install/cluster-operator</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Delete the resources you identified in the prerequisites.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete <em>&lt;resource_type&gt;</em> <em>&lt;resource_name&gt;</em> -n <em>&lt;namespace&gt;</em></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Replace <em>&lt;resource_type&gt;</em> with the type of resource you are deleting and <em>&lt;resource_name&gt;</em> with the name of the resource.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example to delete a secret</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete secret my-cluster-clients-ca-cert -n my-project</code></pre>
-</div>
-</div>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect3">
-<h4 id="uninstalling-operator-hub-str"><a class="link" href="#uninstalling-operator-hub-str">26.9.2. Uninstalling Strimzi from OperatorHub.io</a></h4>
-<div class="paragraph _abstract">
-<p>This procedure describes how to uninstall Strimzi from OperatorHub.io and remove resources related to the deployment.</p>
-</div>
-<div class="paragraph">
-<p>You perform the steps using the <code>kubectl</code> command-line tool.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>Access to a Kubernetes cluster using an account with <code>cluster-admin</code> or <code>strimzi-admin</code> permissions.</p>
-</li>
-<li>
-<p>You have identified the resources to be deleted.</p>
-<div class="paragraph">
-<p>You can use the following <code>kubectl</code> CLI command to find resources and also verify that they have been removed when you have uninstalled Strimzi.</p>
-</div>
-<div class="listingblock">
-<div class="title">Command to find resources related to a Strimzi deployment</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get <em>&lt;resource_type&gt;</em> --all-namespaces | grep <em>&lt;kafka_cluster_name&gt;</em></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Replace <em>&lt;resource_type&gt;</em> with the type of the resource you are checking, such as <code>secret</code> or <code>configmap</code>.</p>
-</div>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Delete the Strimzi subscription.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete subscription strimzi-cluster-operator -n <em>&lt;namespace&gt;</em></code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Delete the cluster service version (CSV).</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete csv strimzi-cluster-operator.<em>&lt;version&gt;</em>  -n <em>&lt;namespace&gt;</em></code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Remove related CRDs.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get crd -l app=strimzi -o name | xargs kubectl delete</code></pre>
-</div>
-</div>
-</li>
-</ol>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="con-cluster-operator-faqs-str"><a class="link" href="#con-cluster-operator-faqs-str">26.10. Frequently asked questions</a></h3>
-<div class="sect3">
-<h4 id="questions_related_to_the_cluster_operator"><a class="link" href="#questions_related_to_the_cluster_operator">26.10.1. Questions related to the Cluster Operator</a></h4>
+<h4 id="questions_related_to_the_cluster_operator"><a class="link" href="#questions_related_to_the_cluster_operator">27.4.1. Questions related to the Cluster Operator</a></h4>
 <div class="sect4">
 <h5 id="co-faq-admin-privileges_str"><a class="link" href="#co-faq-admin-privileges_str">Why do I need cluster administrator privileges to install Strimzi?</a></h5>
 <div class="paragraph">
@@ -38544,7 +38540,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-02-20 17:50:06 UTC
+Last updated 2024-02-20 21:39:13 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
