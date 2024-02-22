@@ -588,12 +588,13 @@
 <ul class="sectlevel3">
 <li><a href="#basic_consumer_configuration">26.5.1. Basic consumer configuration</a></li>
 <li><a href="#scaling_data_consumption_using_consumer_groups">26.5.2. Scaling data consumption using consumer groups</a></li>
-<li><a href="#message_ordering_guarantees">26.5.3. Message ordering guarantees</a></li>
-<li><a href="#con-consumer-config-properties-throughput-str">26.5.4. Optimizing consumers for throughput and latency</a></li>
-<li><a href="#avoiding_data_loss_or_duplication_when_committing_offsets">26.5.5. Avoiding data loss or duplication when committing offsets</a></li>
-<li><a href="#recovering_from_failure_to_avoid_data_loss">26.5.6. Recovering from failure to avoid data loss</a></li>
-<li><a href="#managing_offset_policy">26.5.7. Managing offset policy</a></li>
-<li><a href="#minimizing_the_impact_of_rebalances">26.5.8. Minimizing the impact of rebalances</a></li>
+<li><a href="#choosing_the_right_partition_assignment_strategy">26.5.3. Choosing the right partition assignment strategy</a></li>
+<li><a href="#message_ordering_guarantees">26.5.4. Message ordering guarantees</a></li>
+<li><a href="#con-consumer-config-properties-throughput-str">26.5.5. Optimizing consumers for throughput and latency</a></li>
+<li><a href="#avoiding_data_loss_or_duplication_when_committing_offsets">26.5.6. Avoiding data loss or duplication when committing offsets</a></li>
+<li><a href="#recovering_from_failure_to_avoid_data_loss">26.5.7. Recovering from failure to avoid data loss</a></li>
+<li><a href="#managing_offset_policy">26.5.8. Managing offset policy</a></li>
+<li><a href="#minimizing_the_impact_of_rebalances">26.5.9. Minimizing the impact of rebalances</a></li>
 </ul>
 </li>
 <li><a href="#con-high-volume-config-properties-str">26.6. Handling high volumes of messages</a>
@@ -18633,10 +18634,7 @@ metadata:
 <div class="sectionbody">
 <div class="paragraph _abstract">
 <p>Secure your Kafka cluster by managing the access a client has to Kafka brokers.
-Specify configuration options to secure Kafka brokers and clients</p>
-</div>
-<div class="paragraph">
-<p>A secure connection between Kafka brokers and clients can encompass the following:</p>
+A secure connection between Kafka brokers and clients can encompass the following:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -18652,8 +18650,48 @@ Specify configuration options to secure Kafka brokers and clients</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>The authentication and authorization mechanisms specified for a client must match those specified for the Kafka brokers.
-Strimzi operators automate the configuration process and create the certificates required for authentication.
+<p>In Strimzi, securing a connection involves configuring listeners and user accounts:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Listener configuration</dt>
+<dd>
+<p>Use the <code>Kafka</code> resource to configure listeners for client connections to Kafka brokers.
+Listeners define how clients authenticate, such as using mTLS, SCRAM-SHA-512, OAuth 2.0, or custom authentication methods.
+To enhance security, configure TLS encryption to secure communication between Kafka brokers and clients.
+You can further secure TLS-based communication by specifying the supported TLS versions and cipher suites in the Kafka broker configuration.</p>
+<div class="paragraph">
+<p>For an added layer of protection, use the <code>Kafka</code> resource to specify authorization methods for the Kafka cluster, such as simple, OAuth 2.0, OPA, or custom authorization.</p>
+</div>
+</dd>
+<dt class="hdlist1">User accounts</dt>
+<dd>
+<p>Set up user accounts and credentials with <code>KafkaUser</code> resources in Strimzi.
+Users represent your clients and determine how they should authenticate and authorize with the Kafka cluster.
+The authentication and authorization mechanisms specified in the user configuration must match the Kafka configuration.
+Additionally, define Access Control Lists (ACLs) to control user access to specific topics and actions for more fine-grained authorization.
+To further enhance security, specify user quotas to limit client access to Kafka brokers based on byte rates or CPU utilization.</p>
+<div class="paragraph">
+<p>You can also add producer or consumer configuration to your clients if you wish to limit the TLS versions and cipher suites they use.
+The configuration on the clients must only use protocols and cipher suites that are enabled on the broker.</p>
+</div>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If you are using an OAuth 2.0 to manage client access, user authentication and authorization credentials are managed through the authorization server.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Strimzi operators automate the configuration process and create the certificates required for authentication.
 The Cluster Operator automatically sets up TLS certificates for data encryption and authentication within your cluster.</p>
 </div>
 <div class="sect2">
@@ -18693,6 +18731,9 @@ which can be <code>nodeport</code>, <code>loadbalancer</code>, <code>ingress</co
 </li>
 <li>
 <p><a href="./configuring.html#type-KafkaListenerAuthenticationCustom-reference" target="_blank" rel="noopener">Custom authentication</a></p>
+</li>
+<li>
+<p><a href="./configuring.html#con-common-configuration-ssl-reference" target="_blank" rel="noopener">TLS versions and cipher suites</a></p>
 </li>
 </ol>
 </div>
@@ -36046,11 +36087,33 @@ But the delay also prevents the group from consuming until the period has ended.
 <div class="sect2">
 <h3 id="con-producer-config-properties-str"><a class="link" href="#con-producer-config-properties-str">26.4. Kafka producer configuration tuning</a></h3>
 <div class="paragraph _abstract">
-<p>Use a basic producer configuration with optional properties that are tailored to specific use cases.</p>
+<p>Use configuration properties to optimize the performance of Kafka producers.
+You can use standard Kafka producer configuration options.
+Adjusting your configuration to maximize throughput might increase latency or vice versa.
+You will need to experiment and tune your producer configuration to get the balance you need.</p>
 </div>
 <div class="paragraph">
-<p>Adjusting your configuration to maximize throughput might increase latency or vice versa.
-You will need to experiment and tune your producer configuration to get the balance you need.</p>
+<p>When configuring a producer, consider the following aspects carefully, as they significantly impact its performance and behavior:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Compression</dt>
+<dd>
+<p>By compressing messages before they are sent over the network, you can conserve network bandwidth and reduce disk storage requirements, but with the additional cost of increased CPU utilization due to the compression and decompression processes.</p>
+</dd>
+<dt class="hdlist1">Batching</dt>
+<dd>
+<p>Adjusting the batch size and time intervals when the producer sends messages can affect throughput and latency.</p>
+</dd>
+<dt class="hdlist1">Partitioning</dt>
+<dd>
+<p>Partitioning strategies in the Kafka cluster can support producers through parallelism and load balancing, whereby producers can write to multiple partitions concurrently and each partition receives an equal share of messages. Other strategies might include topic replication for fault tolerance.</p>
+</dd>
+<dt class="hdlist1">Securing access</dt>
+<dd>
+<p>Implement security measures for authentication, encryption, and authorization by setting up user accounts to <a href="#assembly-securing-access-str">manage secure access to Kafka</a>.</p>
+</dd>
+</dl>
 </div>
 <div class="sect3">
 <h4 id="basic_producer_configuration"><a class="link" href="#basic_producer_configuration">26.4.1. Basic producer configuration</a></h4>
@@ -36111,13 +36174,15 @@ Compression is useful for improving throughput and reducing the load on storage,
 <h4 id="data_durability"><a class="link" href="#data_durability">26.4.2. Data durability</a></h4>
 <div class="paragraph">
 <p>Message delivery acknowledgments minimize the likelihood that messages are lost.
-Acknowledgments are enabled by default with the <code>acks</code> property set at <code>acks=all</code>.</p>
+By default, acknowledgments are enabled with the acks property set to <code>acks=all</code>.
+To control the maximum time the producer waits for acknowledgments from the broker and handle potential delays in sending messages, you can use the <code>delivery.timeout.ms</code> property.</p>
 </div>
 <div class="listingblock">
 <div class="title">Acknowledging message delivery</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env"># ...
 acks=all <b class="conum">(1)</b>
+delivery.timeout.ms=120000 <b class="conum">(2)</b>
 # ...</code></pre>
 </div>
 </div>
@@ -36126,6 +36191,11 @@ acks=all <b class="conum">(1)</b>
 <li>
 <p><code>acks=all</code> forces a leader replica to replicate messages to a certain number of followers before
 acknowledging that the message request was successfully received.</p>
+</li>
+<li>
+<p>The maximum time in milliseconds to wait for a complete send request.
+You can set the value to <code>MAX_LONG</code> to delegate to Kafka an indefinite number of retries.
+The default is <code>120000</code> or 2 minutes.</p>
 </li>
 </ol>
 </div>
@@ -36379,43 +36449,30 @@ such as worse batching, start to counteract the effect on throughput.</p>
 </div>
 <div class="paragraph">
 <div class="title">Lowering latency</div>
-<p>When your application calls <code>KafkaProducer.send()</code> the messages are:</p>
+<p>When your application calls the <code>KafkaProducer.send()</code> method, messages undergo a series of operations before being sent:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Processed by any interceptors</p>
+<p>Interception: Messages are processed by any configured interceptors.</p>
 </li>
 <li>
-<p>Serialized</p>
+<p>Serialization: Messages are serialized into the appropriate format.</p>
 </li>
 <li>
-<p>Assigned to a partition</p>
+<p>Partition assignment: Each message is assigned to a specific partition.</p>
 </li>
 <li>
-<p>Compressed</p>
+<p>Compression: Messages are compressed to conserve network bandwidth.</p>
 </li>
 <li>
-<p>Added to a batch of messages in a per-partition queue</p>
+<p>Batching: Compressed messages are added to a batch in a partition-specific queue.</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>At which point the <code>send()</code> method returns.
-So the time <code>send()</code> is blocked is determined by:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>The time spent in the interceptors, serializers and partitioner</p>
-</li>
-<li>
-<p>The compression algorithm used</p>
-</li>
-<li>
-<p>The time spent waiting for a buffer to use for compression</p>
-</li>
-</ul>
+<p>During these operations, the <code>send()</code> method is momentarily blocked.
+It also remains blocked if the <code>buffer.memory</code> is full or if metadata is unavailable.</p>
 </div>
 <div class="paragraph">
 <p>Batches will remain in the queue until one of the following occurs:</p>
@@ -36423,21 +36480,22 @@ So the time <code>send()</code> is blocked is determined by:</p>
 <div class="ulist">
 <ul>
 <li>
-<p>The batch is full (according to <code>batch.size</code>)</p>
+<p>The batch is full (according to <code>batch.size</code>).</p>
 </li>
 <li>
-<p>The delay introduced by <code>linger.ms</code> has passed</p>
+<p>The delay introduced by <code>linger.ms</code> has passed.</p>
 </li>
 <li>
-<p>The sender is about to send message batches for other partitions to the same broker, and it is possible to add this batch too</p>
+<p>The sender is ready to dispatch batches for other partitions to the same broker and can include this batch.</p>
 </li>
 <li>
-<p>The producer is being flushed or closed</p>
+<p>The producer is being flushed or closed.</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>Look at the configuration for batching and buffering to mitigate the impact of <code>send()</code> blocking on latency.</p>
+<p>To minimize the impact of <code>send()</code> blocking on latency, optimize batching and buffering configurations.
+Use the <code>linger.ms</code> and <code>batch.size</code> properties to batch more messages into a single produce request for higher throughput.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -36451,29 +36509,25 @@ buffer.memory=33554432 <b class="conum">(3)</b>
 <div class="colist arabic">
 <ol>
 <li>
-<p>The <code>linger</code> property adds a delay in milliseconds so that larger batches of messages are accumulated and sent in a request. The default is <code>0'.</code></p>
+<p>The <code>linger.ms</code> property adds a delay in milliseconds so that larger batches of messages are accumulated and sent in a request. The default is <code>0</code>.</p>
 </li>
 <li>
 <p>If a maximum <code>batch.size</code> in bytes is used, a request is sent when the maximum is reached, or messages have been queued for longer than <code>linger.ms</code> (whichever comes sooner).
 Adding the delay allows batches to accumulate messages up to the batch size.</p>
 </li>
 <li>
-<p>The buffer size must be at least as big as the batch size, and be able to accommodate buffering, compression and in-flight requests.</p>
+<p>The buffer size must be at least as big as the batch size, and be able to accommodate buffering, compression, and in-flight requests.</p>
 </li>
 </ol>
 </div>
 <div class="paragraph">
 <div class="title">Increasing throughput</div>
-<p>Improve throughput of your message requests by adjusting the maximum time to wait before a message is delivered and completes a send request.</p>
-</div>
-<div class="paragraph">
-<p>You can also direct messages to a specified partition by writing a custom partitioner to replace the default.</p>
+<p>You can improve throughput of your message requests by directing messages to a specified partition using a custom partitioner to replace the default.</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env"># ...
-delivery.timeout.ms=120000 <b class="conum">(1)</b>
-partitioner.class=my-custom-partitioner <b class="conum">(2)</b>
+partitioner.class=my-custom-partitioner <b class="conum">(1)</b>
 
 # ...</code></pre>
 </div>
@@ -36481,11 +36535,7 @@ partitioner.class=my-custom-partitioner <b class="conum">(2)</b>
 <div class="colist arabic">
 <ol>
 <li>
-<p>The maximum time in milliseconds to wait for a complete send request. You can set the value to <code>MAX_LONG</code> to delegate to Kafka an indefinite number of retries.
-The default is <code>120000</code> or 2 minutes.</p>
-</li>
-<li>
-<p>Specify the class name of the custom partitioner.</p>
+<p>Specify the class name of your custom partitioner.</p>
 </li>
 </ol>
 </div>
@@ -36494,11 +36544,39 @@ The default is <code>120000</code> or 2 minutes.</p>
 <div class="sect2">
 <h3 id="con-consumer-config-properties-str"><a class="link" href="#con-consumer-config-properties-str">26.5. Kafka consumer configuration tuning</a></h3>
 <div class="paragraph _abstract">
-<p>Use a basic consumer configuration with optional properties that are tailored to specific use cases.</p>
+<p>Use configuration properties to optimize the performance of Kafka consumers.
+When tuning your consumers your primary concern will be ensuring that they cope efficiently with the amount of data ingested.
+As with the producer tuning, be prepared to make incremental changes until the consumers operate as expected.</p>
 </div>
 <div class="paragraph">
-<p>When tuning your consumers your primary concern will be ensuring that they cope efficiently with the amount of data ingested.
-As with the producer tuning, be prepared to make incremental changes until the consumers operate as expected.</p>
+<p>When tuning a consumer, consider the following aspects carefully, as they significantly impact its performance and behavior:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Scaling</dt>
+<dd>
+<p>Consumer groups enable parallel processing of messages by distributing the load across multiple consumers, enhancing scalability and throughput.
+The number of topic partitions determines the maximum level of parallelism that you can achieve, as one partition can only be assigned to one consumer in a consumer group.</p>
+</dd>
+<dt class="hdlist1">Message ordering</dt>
+<dd>
+<p>If absolute ordering within a topic is important, use a single-partition topic.
+A consumer observes messages in a single partition in the same order that they were committed to the broker, which means that Kafka only provides ordering guarantees for messages in a single partition.
+It is also possible to maintain message ordering for events specific to individual entities, such as users.
+If a new entity is created, you can create a new topic dedicated to that entity.
+You can use a unique ID, like a user ID, as the message key and route all messages with the same key to a single partition within the topic.</p>
+</dd>
+<dt class="hdlist1">Offset reset policy</dt>
+<dd>
+<p>Setting the appropriate offset policy ensures that the consumer consumes messages from the desired starting point and handles message processing accordingly.
+The default Kafka reset value is <code>latest</code>, which starts at the end of the partition, and consequently means some messages might be missed, depending on the consumer&#8217;s behavior and the state of the partition.
+Setting <code>auto.offset.reset</code> to <code>earliest</code> ensures that when connecting with a new <code>group.id</code>, all messages are retrieved from the beginning of the log.</p>
+</dd>
+<dt class="hdlist1">Securing access</dt>
+<dd>
+<p>Implement security measures for authentication, encryption, and authorization by setting up user accounts to <a href="#assembly-securing-access-str">manage secure access to Kafka</a>.</p>
+</dd>
+</dl>
 </div>
 <div class="sect3">
 <h4 id="basic_consumer_configuration"><a class="link" href="#basic_consumer_configuration">26.5.1. Basic consumer configuration</a></h4>
@@ -36571,6 +36649,7 @@ If you can meet throughput goals with fewer consumers, you save on resources.</p
 </div>
 <div class="paragraph">
 <p>Consumers within the same consumer group send offset commits and heartbeats to the same broker.
+The consumer sends heartbeats to the Kafka broker to indicate its activity within the consumer group.
 So the greater the number of consumers in the group, the higher the request load on the broker.</p>
 </div>
 <div class="listingblock">
@@ -36589,7 +36668,49 @@ group.id=my-group-id <b class="conum">(1)</b>
 </div>
 </div>
 <div class="sect3">
-<h4 id="message_ordering_guarantees"><a class="link" href="#message_ordering_guarantees">26.5.3. Message ordering guarantees</a></h4>
+<h4 id="choosing_the_right_partition_assignment_strategy"><a class="link" href="#choosing_the_right_partition_assignment_strategy">26.5.3. Choosing the right partition assignment strategy</a></h4>
+<div class="paragraph">
+<p>Select an appropriate partition assignment strategy, which determines how Kafka topic partitions are distributed among consumer instances in a group.</p>
+</div>
+<div class="paragraph">
+<p>Partition strategies are supported by the following classes:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>org.apache.kafka.clients.consumer.RangeAssignor</code></p>
+</li>
+<li>
+<p><code>org.apache.kafka.clients.consumer.RoundRobinAssignor</code></p>
+</li>
+<li>
+<p><code>org.apache.kafka.clients.consumer.StickyAssignor</code></p>
+</li>
+<li>
+<p><code>org.apache.kafka.clients.consumer.CooperativeStickyAssignor</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Specify a class using the <code>partition.assignment.strategy</code> consumer configuration property.
+The <strong>range</strong> assignment strategy assigns a range of partitions to each consumer, and is useful when you want to process related data together.</p>
+</div>
+<div class="paragraph">
+<p>Alternatively, opt for a <strong>round robin</strong> assignment strategy for equal partition distribution among consumers, which is ideal for high-throughput scenarios requiring parallel processing.</p>
+</div>
+<div class="paragraph">
+<p>For more stable partition assignments, consider the <strong>sticky</strong> and <strong>cooperative sticky</strong> strategies.
+Sticky strategies aim to maintain assigned partitions during rebalances, when possible.
+If a consumer was previously assigned certain partitions, the sticky strategies prioritize retaining those same partitions with the same consumer after a rebalance, while only revoking and reassigning the partitions that are actually moved to another consumer.
+Leaving partition assignments in place reduces the overhead on partition movements.
+The cooperative sticky strategy also supports cooperative rebalances, enabling uninterrupted consumption from partitions that are not reassigned.</p>
+</div>
+<div class="paragraph">
+<p>If none of the available strategies suit your data, you can create a custom strategy tailored to your specific requirements.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="message_ordering_guarantees"><a class="link" href="#message_ordering_guarantees">26.5.4. Message ordering guarantees</a></h4>
 <div class="paragraph">
 <p>Kafka brokers receive fetch requests from consumers that ask the broker to send messages from a list of topics, partitions and offset positions.</p>
 </div>
@@ -36603,7 +36724,7 @@ Conversely, if a consumer is consuming messages from multiple partitions, the or
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-consumer-config-properties-throughput-str"><a class="link" href="#con-consumer-config-properties-throughput-str">26.5.4. Optimizing consumers for throughput and latency</a></h4>
+<h4 id="con-consumer-config-properties-throughput-str"><a class="link" href="#con-consumer-config-properties-throughput-str">26.5.5. Optimizing consumers for throughput and latency</a></h4>
 <div class="paragraph">
 <p>Control the number of messages returned when your client application calls <code>KafkaConsumer.poll()</code>.</p>
 </div>
@@ -36687,7 +36808,7 @@ max.partition.fetch.bytes=1048576 <b class="conum">(2)</b>
 </div>
 </div>
 <div class="sect3">
-<h4 id="avoiding_data_loss_or_duplication_when_committing_offsets"><a class="link" href="#avoiding_data_loss_or_duplication_when_committing_offsets">26.5.5. Avoiding data loss or duplication when committing offsets</a></h4>
+<h4 id="avoiding_data_loss_or_duplication_when_committing_offsets"><a class="link" href="#avoiding_data_loss_or_duplication_when_committing_offsets">26.5.6. Avoiding data loss or duplication when committing offsets</a></h4>
 <div class="paragraph">
 <p>The Kafka <em>auto-commit mechanism</em> allows a consumer to commit the offsets of messages automatically.
 If enabled, the consumer will commit offsets received from polling the broker at 5000ms intervals.</p>
@@ -36774,28 +36895,32 @@ isolation.level=read_committed <b class="conum">(1)</b>
 </div>
 </div>
 <div class="sect3">
-<h4 id="recovering_from_failure_to_avoid_data_loss"><a class="link" href="#recovering_from_failure_to_avoid_data_loss">26.5.6. Recovering from failure to avoid data loss</a></h4>
+<h4 id="recovering_from_failure_to_avoid_data_loss"><a class="link" href="#recovering_from_failure_to_avoid_data_loss">26.5.7. Recovering from failure to avoid data loss</a></h4>
 <div class="paragraph">
-<p>Use the <code>session.timeout.ms</code> and <code>heartbeat.interval.ms</code> properties to configure the time taken to check and recover from consumer failure within a consumer group.</p>
+<p>In the event of failures within a consumer group, Kafka provides a rebalance protocol designed for effective detection and recovery.
+To minimize the potential impact of these failures, one key strategy is to adjust the <code>max.poll.records</code> property to balance efficient processing with system stability.
+This property determines the maximum number of records a consumer can fetch in a single poll.
+Fine-tuning <code>max.poll.records</code> helps to maintain a controlled consumption rate, preventing the consumer from overwhelming itself or the Kafka broker.</p>
 </div>
 <div class="paragraph">
-<p>The <code>session.timeout.ms</code> property specifies the maximum amount of time in milliseconds a consumer within a consumer group can be out of contact with a broker before being considered inactive and a <em>rebalancing</em> is triggered between the active consumers in the group.
-When the group rebalances, the partitions are reassigned to the members of the group.</p>
+<p>Additionally, Kafka offers advanced configuration properties like <code>session.timeout.ms</code> and <code>heartbeat.interval.ms</code>.
+These settings are typically reserved for more specialized use cases and may not require adjustment in standard scenarios.</p>
 </div>
 <div class="paragraph">
-<p>The <code>heartbeat.interval.ms</code> property specifies the interval in milliseconds between <em>heartbeat</em> checks to the consumer group coordinator to indicate that the consumer is active and connected.
-The heartbeat interval must be lower, usually by a third, than the session timeout interval.</p>
+<p>The <code>session.timeout.ms</code> property specifies the maximum amount of time a consumer can go without sending a heartbeat to the Kafka broker to indicate it is active within the consumer group.
+If a consumer fails to send a heartbeat within the session timeout, it is considered inactive.
+A consumer marked as inactive triggers a rebalancing of the partitions for the topic.
+Setting the <code>session.timeout.ms</code> property value too low can result in false-positive outcomes, while setting it too high can lead to delayed recovery from failures.</p>
 </div>
 <div class="paragraph">
-<p>If you set the <code>session.timeout.ms</code> property lower, failing consumers are detected earlier, and rebalancing can take place quicker.
-However, take care not to set the timeout so low that the broker fails to receive a heartbeat in time and triggers an unnecessary rebalance.</p>
-</div>
-<div class="paragraph">
-<p>Decreasing the heartbeat interval reduces the chance of accidental rebalancing, but more frequent heartbeats increases the overhead on broker resources.</p>
+<p>The <code>heartbeat.interval.ms</code> property determines how frequently a consumer sends heartbeats to the Kafka broker.
+A shorter interval between consecutive heartbeats allows for quicker detection of consumer failures.
+The heartbeat interval must be lower, usually by a third, than the session timeout.
+Decreasing the heartbeat interval reduces the chance of accidental rebalancing, but more frequent heartbeats increases the overhead on broker resources.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="managing_offset_policy"><a class="link" href="#managing_offset_policy">26.5.7. Managing offset policy</a></h4>
+<h4 id="managing_offset_policy"><a class="link" href="#managing_offset_policy">26.5.8. Managing offset policy</a></h4>
 <div class="paragraph">
 <p>Use the <code>auto.offset.reset</code> property to control how a consumer behaves when no offsets have been committed,
 or a committed offset is no longer valid or deleted.</p>
@@ -36841,9 +36966,9 @@ In this case, you can lower <code>max.partition.fetch.bytes</code> or increase <
 </div>
 </div>
 <div class="sect3">
-<h4 id="minimizing_the_impact_of_rebalances"><a class="link" href="#minimizing_the_impact_of_rebalances">26.5.8. Minimizing the impact of rebalances</a></h4>
+<h4 id="minimizing_the_impact_of_rebalances"><a class="link" href="#minimizing_the_impact_of_rebalances">26.5.9. Minimizing the impact of rebalances</a></h4>
 <div class="paragraph">
-<p>The rebalancing of a partition between active consumers in a group is the time it takes for:</p>
+<p>The rebalancing of a partition between active consumers in a group is the time it takes for the following to take place:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -36862,22 +36987,19 @@ In this case, you can lower <code>max.partition.fetch.bytes</code> or increase <
 </ul>
 </div>
 <div class="paragraph">
-<p>Clearly, the process increases the downtime of a service, particularly when it happens repeatedly during a rolling restart of a consumer group cluster.</p>
+<p>The rebalancing process can increase the downtime of a service, particularly if it happens repeatedly during a rolling restart of a consumer group cluster.</p>
 </div>
 <div class="paragraph">
-<p>In this situation, you can use the concept of <em>static membership</em> to reduce the number of rebalances.
-Rebalancing assigns topic partitions evenly among consumer group members.
-Static membership uses persistence so that a consumer instance is recognized during a restart after a session timeout.</p>
+<p>In this situation, you can introduce <em>static membership</em> by assigning a unique identifier (<code>group.instance.id</code>) to each consumer instance within the group.
+Static membership uses persistence so that a consumer instance is recognized during a restart after a session timeout.
+Consequently, the consumer maintains its assignment of topic partitions, reducing unnecessary rebalancing when it rejoins the group after a failure or restart.</p>
 </div>
 <div class="paragraph">
-<p>The consumer group coordinator can identify a new consumer instance using a unique id that is specified using the <code>group.instance.id</code> property.
-During a restart, the consumer is assigned a new member id, but as a static member it continues with the same instance id,
-and the same assignment of topic partitions is made.</p>
-</div>
-<div class="paragraph">
-<p>If the consumer application does not make a call to poll at least every <code>max.poll.interval.ms</code> milliseconds, the consumer is considered to be failed, causing a rebalance.
-If the application cannot process all the records returned from poll in time, you can avoid a rebalance by using the <code>max.poll.interval.ms</code> property to specify the interval in milliseconds between polls for new messages from a consumer.
-Or you can use the <code>max.poll.records</code> property to set a maximum limit on the number of records returned from the consumer buffer, allowing your application to process fewer records within the <code>max.poll.interval.ms</code> limit.</p>
+<p>Additionally, adjusting the <code>max.poll.interval.ms</code> configuration can prevent rebalances caused by prolonged processing tasks, allowing you to specify the maximum interval between polls for new messages.
+Use the <code>max.poll.records</code> property to cap the number of records returned from the consumer buffer during each poll.
+Reducing the number of records allows the consumer to process fewer messages more efficiently.
+In cases where lengthy message processing is unavoidable, consider offloading such tasks to a pool of worker threads.
+This parallel processing approach prevents delays and potential rebalances caused by overwhelming the consumer with a large volume of records.</p>
 </div>
 <div class="listingblock">
 <div class="content">
