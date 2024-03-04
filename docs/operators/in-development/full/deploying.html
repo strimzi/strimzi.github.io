@@ -2644,7 +2644,7 @@ Each Kafka version supported for the release has a separate image.
 <td class="tableblock halign-left valign-top"><div class="content"><div class="ulist">
 <ul>
 <li>
-<p>quay.io/strimzi/drain-cleaner:1.0.1</p>
+<p>quay.io/strimzi/drain-cleaner:1.1.0</p>
 </li>
 </ul>
 </div></div></td>
@@ -32911,9 +32911,6 @@ If your Kafka and ZooKeeper pods were deployed by Strimzi, you can use the Strim
 The Strimzi Drain Cleaner handles the eviction instead of Kubernetes.</p>
 </div>
 <div class="paragraph">
-<p>To use the Strimzi Drain Cleaner, you must set the <code>podDisruptionBudget</code> for your Kafka deployment to <code>0</code> (zero) so that Kubernetes is no longer allowed to evict pods automatically.</p>
-</div>
-<div class="paragraph">
 <p>By deploying the Strimzi Drain Cleaner, you can use the Cluster Operator to move Kafka pods instead of Kubernetes.
 The Cluster Operator ensures that topics are never under-replicated and Kafka can remain operational during the eviction process.
 The Cluster Operator waits for topics to synchronize, as the Kubernetes worker nodes drain consecutively.</p>
@@ -32990,13 +32987,11 @@ webhooks:
 <p>Deploy the Strimzi Drain Cleaner to the Kubernetes cluster where the Cluster Operator and Kafka cluster are running.</p>
 </div>
 <div class="paragraph">
-<p>Strimzi sets a default <code>PodDisruptionBudget</code> (PDB) that allows only one Kafka or ZooKeeper pod to be unavailable at any given time.
-To use the Drain Cleaner for planned maintenance or upgrades, you must set a PDB of zero.
-This is to prevent voluntary evictions of pods, and ensure that the Kafka or ZooKeeper cluster remains available.
-You do this by setting the <code>maxUnavailable</code> value to zero in the <code>Kafka</code> or <code>ZooKeeper</code> template.
-<code>StrimziPodSet</code> custom resources manage Kafka and ZooKeeper pods using a custom controller that cannot use the <code>maxUnavailable</code> value directly.
-Instead, the <code>maxUnavailable</code> value is converted to a <code>minAvailable</code> value.
-For example, if there are three broker pods and the <code>maxUnavailable</code> property is set to <code>0</code> (zero), the <code>minAvailable</code> setting is <code>3</code>, requiring all three broker pods to be available and allowing zero pods to be unavailable.</p>
+<p>Strimzi Drain Cleaner can run in two different modes.
+By default, the Drain Cleaner denies (blocks) the Kubernetes eviction request to prevent Kubernetes from evicting the pods and instead uses the Cluster Operator to move the pod.
+This mode has better compatibility with various cluster autoscaling tools and does not require any specific <code>PodDisuptionBudget</code> configuration.
+Alternatively, you can enable the legacy mode where it allows the eviction request while also instructing the Cluster Operator to move the pod.
+For the legacy mode to work, you have to configure the <code>PodDisruptionBudget</code> to not allow any pod evictions by setting the <code>maxUnavailable</code> option to <code>0</code>.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -33035,10 +33030,13 @@ spec:
 </div>
 <div class="paragraph">
 <div class="title">Excluding Kafka or ZooKeeper</div>
-<p>If you don&#8217;t want to include Kafka or ZooKeeper pods in Drain Cleaner operations, change the default environment variables in the Drain Cleaner <code>Deployment</code> configuration file.</p>
+<p>If you don&#8217;t want to include Kafka or ZooKeeper pods in Drain Cleaner operations, or if you prefer to use the Drain Cleaner in legacy mode, change the default environment variables in the Drain Cleaner <code>Deployment</code> configuration file:</p>
 </div>
 <div class="ulist">
 <ul>
+<li>
+<p>Set <code>STRIMZI_DENY_EVICTION</code> to <code>false</code> to use the legacy mode relying on the <code>PodDisruptionBudget</code> configuration</p>
+</li>
 <li>
 <p>Set <code>STRIMZI_DRAIN_KAFKA</code> to <code>false</code> to exclude Kafka pods</p>
 </li>
@@ -33061,6 +33059,8 @@ spec:
         - name: strimzi-drain-cleaner
           # ...
           env:
+            - name: STRIMZI_DENY_EVICTION
+              value: "true"
             - name: STRIMZI_DRAIN_KAFKA
               value: "true"
             - name: STRIMZI_DRAIN_ZOOKEEPER
@@ -33072,7 +33072,8 @@ spec:
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Set <code>maxUnavailable</code> to <code>0</code> (zero) in the Kafka and ZooKeeper sections of the <code>Kafka</code> resource using <code>template</code> settings.</p>
+<p>If you are using the legacy mode activated by setting the <code>STRIMZI_DENY_EVICTION</code> environment variable to <code>false</code>, you must also configure the <code>PodDisruptionBudget</code> resource.
+Set <code>maxUnavailable</code> to <code>0</code> (zero) in the Kafka and ZooKeeper sections of the <code>Kafka</code> resource using <code>template</code> settings.</p>
 <div class="listingblock">
 <div class="title">Specifying a pod disruption budget</div>
 <div class="content">
@@ -33304,7 +33305,7 @@ For more information on how the environment variables work, see <a href="#proc-d
 <div class="listingblock">
 <div class="title">Example configuration that installs a specific version of the Drain Cleaner and changes the number of replicas</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">helm install strimzi-drain-cleaner --set replicaCount=2 --version 1.0.0 oci://quay.io/strimzi-helm/strimzi-drain-cleaner</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">helm install strimzi-drain-cleaner --set replicaCount=2 --version 1.1.0 oci://quay.io/strimzi-helm/strimzi-drain-cleaner</code></pre>
 </div>
 </div>
 </li>
@@ -34036,30 +34037,7 @@ spec:
 <div class="sect3">
 <h4 id="rolling_pods_using_the_strimzi_drain_cleaner"><a class="link" href="#rolling_pods_using_the_strimzi_drain_cleaner">23.4.1. Rolling pods using the Strimzi Drain Cleaner</a></h4>
 <div class="paragraph">
-<p>When using the Strimzi Drain Cleaner to evict nodes during upgrade, it annotates pods with a manual rolling update annotation to inform the Cluster Operator to perform a rolling update of an evicted pod.</p>
-</div>
-<div class="paragraph">
-<p>A pod disruption budget limits the number of unavailable pods and ensures Kafka&#8217;s availability during planned maintenance.
-By default, the budget permits only one pod to be unavailable at a given time.
-To be able to use the Drain Cleaner to roll Kafka pods, you must set <code>maxUnavailable</code> to <code>0</code> (zero) in the template configuration of the <code>Kafka</code> resource.
-Reducing the pod disruption budget to zero prevents Kubernetes from evicting pods automatically, so pods must be evicted through Strimzi Drain Cleaner.</p>
-</div>
-<div class="listingblock">
-<div class="title">Specifying a pod disruption budget</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
-kind: Kafka
-metadata:
-  name: my-cluster
-  namespace: myproject
-spec:
-  kafka:
-    # ...
-    template:
-      podDisruptionBudget:
-        maxUnavailable: 0
-# ...</code></pre>
-</div>
+<p>When using the Strimzi Drain Cleaner to evict nodes during Kubernetes upgrade, it annotates pods with a manual rolling update annotation to inform the Cluster Operator to perform a rolling update of the pod that should be evicted and have it moved away from the Kubernetes node that is being upgraded.</p>
 </div>
 <div class="paragraph">
 <p>For more information, see <a href="#assembly-drain-cleaner-str">Evicting pods with the Strimzi Drain Cleaner</a>.</p>
@@ -39076,7 +39054,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-03-04 16:36:05 UTC
+Last updated 2024-03-04 18:27:13 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
