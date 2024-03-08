@@ -1009,11 +1009,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#increasing_bandwidth_for_high_latency_connections">27.3.5. Increasing bandwidth for high latency connections</a></li>
 <li><a href="#managing_kafka_logs_with_delete_and_compact_policies">27.3.6. Managing Kafka logs with delete and compact policies</a></li>
 <li><a href="#managing_efficient_disk_utilization_for_compaction">27.3.7. Managing efficient disk utilization for compaction</a></li>
-<li><a href="#handling_large_message_sizes">27.3.8. Handling large message sizes</a></li>
-<li><a href="#controlling_the_log_flush_of_message_data">27.3.9. Controlling the log flush of message data</a></li>
-<li><a href="#partition_rebalancing_for_availability">27.3.10. Partition rebalancing for availability</a></li>
-<li><a href="#con-broker-config-properties-unclean-str">27.3.11. Unclean leader election</a></li>
-<li><a href="#avoiding_unnecessary_consumer_group_rebalances">27.3.12. Avoiding unnecessary consumer group rebalances</a></li>
+<li><a href="#controlling_the_log_flush_of_message_data">27.3.8. Controlling the log flush of message data</a></li>
+<li><a href="#partition_rebalancing_for_availability">27.3.9. Partition rebalancing for availability</a></li>
+<li><a href="#con-broker-config-properties-unclean-str">27.3.10. Unclean leader election</a></li>
+<li><a href="#avoiding_unnecessary_consumer_group_rebalances">27.3.11. Avoiding unnecessary consumer group rebalances</a></li>
 </ul>
 </li>
 <li><a href="#con-producer-config-properties-str">27.4. Kafka producer configuration tuning</a>
@@ -1043,6 +1042,14 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#configuring_kafka_connect_for_high_volume_messages">27.6.1. Configuring Kafka Connect for high-volume messages</a></li>
 <li><a href="#configuring_mirrormaker_2_for_high_volume_messages">27.6.2. Configuring MirrorMaker 2 for high-volume messages</a></li>
 <li><a href="#checking_the_mirrormaker_2_message_flow">27.6.3. Checking the MirrorMaker 2 message flow</a></li>
+</ul>
+</li>
+<li><a href="#con-config-large-messages-str">27.7. Handling large message sizes</a>
+<ul class="sectlevel3">
+<li><a href="#configuring_kafka_components_to_handle_larger_messages">27.7.1. Configuring Kafka components to handle larger messages</a></li>
+<li><a href="#producer_side_compression">27.7.2. Producer-side compression</a></li>
+<li><a href="#reference_based_messaging">27.7.3. Reference-based messaging</a></li>
+<li><a href="#reference_based_messaging_flow">27.7.4. Reference-based messaging flow</a></li>
 </ul>
 </li>
 </ul>
@@ -36070,19 +36077,33 @@ metadata:
 <h2 id="assembly-tuning-config-str"><a class="link" href="#assembly-tuning-config-str">27. Tuning Kafka configuration</a></h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
-<p>Use configuration properties to optimize the performance of Kafka brokers, producers and consumers.</p>
+<p>Fine-tuning the performance of your Kafka deployment involves optimizing various configuration properties according to your specific requirements.
+This section provides an introduction to common configuration options available for Kafka brokers, producers, and consumers.</p>
 </div>
 <div class="paragraph">
-<p>A minimum set of configuration properties is required,
-but you can add or adjust properties to change how producers and consumers interact with Kafka brokers.
-For example, you can tune latency and throughput of messages so that clients can respond to data in real time.</p>
+<p>While a minimum set of configurations is necessary for Kafka to function, Kafka properties allow for extensive adjustments.
+Through configuration properties, you can enhance latency, throughput, and overall efficiency, ensuring that your Kafka deployment meets the demands of your applications.</p>
 </div>
 <div class="paragraph">
-<p>You might start by analyzing metrics to gauge where to make your initial configurations,
-then make incremental changes and further comparisons of metrics until you have the configuration you need.</p>
+<p>For effective tuning, take a methodical approach.
+Begin by analyzing relevant metrics to identify potential bottlenecks or areas for improvement.
+Adjust configuration parameters iteratively, monitoring the impact on performance metrics, and then refine your settings accordingly.</p>
 </div>
 <div class="paragraph">
 <p>For more information about Apache Kafka configuration properties, see the <a href="https://kafka.apache.org/documentation/" target="_blank" rel="noopener">Apache Kafka documentation</a>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The guidance provided here offers a starting point for tuning your Kafka deployment.
+Finding the optimal configuration depends on factors such as workload, infrastructure, and performance objectives.
+</td>
+</tr>
+</table>
 </div>
 <div class="sect2">
 <h3 id="tools_that_help_with_tuning"><a class="link" href="#tools_that_help_with_tuning">27.1. Tools that help with tuning</a></h3>
@@ -36645,103 +36666,7 @@ log.cleaner.io.max.bytes.per.second=1.7976931348623157E308
 </div>
 </div>
 <div class="sect3">
-<h4 id="handling_large_message_sizes"><a class="link" href="#handling_large_message_sizes">27.3.8. Handling large message sizes</a></h4>
-<div class="paragraph">
-<p>The default batch size for messages is 1MB, which is optimal for maximum throughput in most use cases.
-Kafka can accommodate larger batches at a reduced throughput, assuming adequate disk capacity.</p>
-</div>
-<div class="paragraph">
-<p>Large message sizes are handled in four ways:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p><a href="#con-producer-config-properties-throughput-str">Producer-side message compression</a> writes compressed messages to the log.</p>
-</li>
-<li>
-<p>Reference-based messaging sends only a reference to data stored in some other system in the message’s value.</p>
-</li>
-<li>
-<p>Inline messaging splits messages into chunks that use the same key, which are then combined on output using a stream-processor like Kafka Streams.</p>
-</li>
-<li>
-<p>Broker and producer/consumer client application configuration built to handle larger message sizes.</p>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>The reference-based messaging and message compression options are recommended and cover most situations.
-With any of these options, care must be take to avoid introducing performance issues.</p>
-</div>
-<div class="paragraph">
-<div class="title">Producer-side compression</div>
-<p>For producer configuration, you specify a <code>compression.type</code>, such as Gzip, which is then applied to batches of data generated by the producer.
-Using the broker configuration <code>compression.type=producer</code>, the broker retains whatever compression the producer used.
-Whenever producer and topic compression do not match, the broker has to compress batches again prior to appending them to the log, which impacts broker performance.</p>
-</div>
-<div class="paragraph">
-<p>Compression also adds additional processing overhead on the producer and decompression overhead on the consumer,
-but includes more data in a batch, so is often beneficial to throughput when message data compresses well.</p>
-</div>
-<div class="paragraph">
-<p>Combine producer-side compression with fine-tuning of the batch size to facilitate optimum throughput.
-Using metrics helps to gauge the average batch size needed.</p>
-</div>
-<div class="paragraph">
-<div class="title">Reference-based messaging</div>
-<p>Reference-based messaging is useful for data replication when you do not know how big a message will be.
-The external data store must be fast, durable, and highly available for this configuration to work.
-Data is written to the data store and a reference to the data is returned.
-The producer sends a message containing the reference to Kafka.
-The consumer gets the reference from the message and uses it to fetch the data from the data store.</p>
-</div>
-<div class="imageblock">
-<div class="content">
-<img src="images/tuning/broker-tuning-messaging-reference.png" alt="Image of reference-based messaging flow">
-</div>
-<div class="title">Figure 9. Reference-based messaging flow</div>
-</div>
-<div class="paragraph">
-<p>As the message passing requires more trips, end-to-end latency will increase.
-Another significant drawback of this approach is there is no automatic clean up of the data in the external system when the Kafka message gets cleaned up.
-A hybrid approach would be to only send large messages to the data store and process standard-sized messages directly.</p>
-</div>
-<div class="paragraph">
-<div class="title">Inline messaging</div>
-<p>Inline messaging is complex, but it does not have the overhead of depending on external systems like reference-based messaging.</p>
-</div>
-<div class="paragraph">
-<p>The producing client application has to serialize and then chunk the data if the message is too big.
-The producer then uses the Kafka <code>ByteArraySerializer</code> or similar to serialize each chunk again before sending it.
-The consumer tracks messages and buffers chunks until it has a complete message.
-The consuming client application receives the chunks, which are assembled before deserialization.
-Complete messages are delivered to the rest of the consuming application in order according to the offset of the first or last chunk for each set of chunked messages.
-Successful delivery of the complete message is checked against offset metadata to avoid duplicates during a rebalance.</p>
-</div>
-<div class="imageblock">
-<div class="content">
-<img src="images/tuning/broker-tuning-messaging-inline.png" alt="Image of inline messaging flow">
-</div>
-<div class="title">Figure 10. Inline messaging flow</div>
-</div>
-<div class="paragraph">
-<p>Inline messaging has a performance overhead on the consumer side because of the buffering required, particularly when handling a series of large messages in parallel.
-The chunks of large messages can become interleaved, so that it  is not always possible to commit when all the chunks of a message have been consumed if the chunks of another large message in the buffer are incomplete.
-For this reason, the buffering is usually supported by persisting message chunks or by implementing commit logic.</p>
-</div>
-<div class="paragraph">
-<div class="title">Configuration to handle larger messages</div>
-<p>If larger messages cannot be avoided, and to avoid blocks at any point of the message flow, you can increase message limits.
-To do this, configure <code>message.max.bytes</code> at the topic level to set the maximum record batch size for individual topics.
-If you set <code>message.max.bytes</code> at the broker level, larger messages are allowed for all topics.</p>
-</div>
-<div class="paragraph">
-<p>The broker will reject any message that is greater than the limit set with <code>message.max.bytes</code>.
-The buffer size for the producers (<code>max.request.size</code>) and consumers (<code>message.max.bytes</code>) must be able to accommodate the larger messages.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="controlling_the_log_flush_of_message_data"><a class="link" href="#controlling_the_log_flush_of_message_data">27.3.9. Controlling the log flush of message data</a></h4>
+<h4 id="controlling_the_log_flush_of_message_data"><a class="link" href="#controlling_the_log_flush_of_message_data">27.3.8. Controlling the log flush of message data</a></h4>
 <div class="paragraph">
 <p>Generally, the recommendation is to not set explicit flush thresholds and let the operating system perform background flush using its default settings.
 Partition replication provides greater data durability than writes to any single disk, as a failed broker can recover from its in-sync replicas.</p>
@@ -36777,7 +36702,7 @@ Increasing the frequency of flushes can affect throughput.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="partition_rebalancing_for_availability"><a class="link" href="#partition_rebalancing_for_availability">27.3.10. Partition rebalancing for availability</a></h4>
+<h4 id="partition_rebalancing_for_availability"><a class="link" href="#partition_rebalancing_for_availability">27.3.9. Partition rebalancing for availability</a></h4>
 <div class="paragraph">
 <p>Partitions can be replicated across brokers for fault tolerance.
 For a given partition, one broker is elected leader and handles all produce requests (writes to the log).
@@ -36855,7 +36780,7 @@ The Grafana dashboards provided with Strimzi show metrics for under-replicated p
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-broker-config-properties-unclean-str"><a class="link" href="#con-broker-config-properties-unclean-str">27.3.11. Unclean leader election</a></h4>
+<h4 id="con-broker-config-properties-unclean-str"><a class="link" href="#con-broker-config-properties-unclean-str">27.3.10. Unclean leader election</a></h4>
 <div class="paragraph">
 <p>Leader election to an in-sync replica is considered clean because it guarantees no loss of data. And this is what happens by default.
 But what if there is no in-sync replica to take on leadership? Perhaps the ISR (in-sync replica) only contained the leader when the leader&#8217;s disk died. If a minimum number of in-sync replicas is not set, and there are no followers in sync with the partition leader when its hard drive fails irrevocably, data is already lost.
@@ -36883,7 +36808,7 @@ If you cannot afford the risk of data loss, then leave the default configuration
 </div>
 </div>
 <div class="sect3">
-<h4 id="avoiding_unnecessary_consumer_group_rebalances"><a class="link" href="#avoiding_unnecessary_consumer_group_rebalances">27.3.12. Avoiding unnecessary consumer group rebalances</a></h4>
+<h4 id="avoiding_unnecessary_consumer_group_rebalances"><a class="link" href="#avoiding_unnecessary_consumer_group_rebalances">27.3.11. Avoiding unnecessary consumer group rebalances</a></h4>
 <div class="paragraph">
 <p>For consumers joining a new consumer group, you can add a delay so that unnecessary rebalances to the broker are avoided:</p>
 </div>
@@ -38181,6 +38106,301 @@ spec:
 </div>
 </div>
 </div>
+<div class="sect2">
+<h3 id="con-config-large-messages-str"><a class="link" href="#con-config-large-messages-str">27.7. Handling large message sizes</a></h3>
+<div class="paragraph">
+<p>Kafka&#8217;s default batch size for messages is 1MB, which is optimal for maximum throughput in most use cases.
+Kafka can accommodate larger batches at a reduced throughput, assuming adequate disk capacity.</p>
+</div>
+<div class="paragraph">
+<p>Large message sizes can be handled in four ways:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Brokers, producers, and consumers are configured to accommodate larger message sizes.</p>
+</li>
+<li>
+<p><a href="#con-producer-config-properties-throughput-str">Producer-side message compression</a> writes compressed messages to the log.</p>
+</li>
+<li>
+<p>Reference-based messaging sends only a reference to data stored in some other system in the message’s payload.</p>
+</li>
+<li>
+<p>Inline messaging splits messages into chunks that use the same key, which are then combined on output using a stream-processor like Kafka Streams.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Unless you are handling very large messages, the configuration approach is recommended.
+The reference-based messaging and message compression options cover most other situations.
+With any of these options, care must be taken to avoid introducing performance issues.</p>
+</div>
+<div class="sect3">
+<h4 id="configuring_kafka_components_to_handle_larger_messages"><a class="link" href="#configuring_kafka_components_to_handle_larger_messages">27.7.1. Configuring Kafka components to handle larger messages</a></h4>
+<div class="paragraph">
+<p>Large messages can impact system performance and introduce complexities in message processing.
+If they cannot be avoided, there are configuration options available.
+To handle larger messages efficiently and prevent blocks in the message flow, consider adjusting the following configurations:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Adjusting the maximum record batch size:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Set <code>message.max.bytes</code> at the broker level to support larger record batch sizes for all topics.</p>
+</li>
+<li>
+<p>Set <code>max.message.bytes</code> at the topic level to support larger record batch sizes for individual topics.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Increasing the maximum size of messages fetched by each partition follower (<code>replica.fetch.max.bytes</code>).</p>
+</li>
+<li>
+<p>Increasing the batch size (<code>batch.size</code>) for producers to increase the size of message batches sent in a single produce request.</p>
+</li>
+<li>
+<p>Configuring a higher maximum request size for producers (<code>max.request.size</code>) and consumers (<code>fetch.max.bytes</code>) to accommodate larger record batches.</p>
+</li>
+<li>
+<p>Setting a higher maximum limit (<code>max.partition.fetch.bytes</code>) on how much data is returned to consumers for each partition.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Ensure that the maximum size for batch requests is at least as large as <code>message.max.bytes</code> to accommodate the largest record batch size.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example broker configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">message.max.bytes: 10000000
+replica.fetch.max.bytes: 10485760</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example producer configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">batch.size: 327680
+max.request.size: 10000000</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example consumer configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">fetch.max.bytes: 10000000
+max.partition.fetch.bytes: 10485760</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It&#8217;s also possible to configure the producers and consumers used by other Kafka components like Kafka Bridge, Kafka Connect, and MirrorMaker 2 to handle larger messages more effectively.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Kafka Bridge</dt>
+<dd>
+<p>Configure the Kafka Bridge using specific producer and consumer configuration properties:</p>
+<div class="openblock">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><code>producer.config</code> for producers</p>
+</li>
+<li>
+<p><code>consumer.config</code> for consumers</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example Kafka Bridge configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaBridge
+metadata:
+  name: my-bridge
+spec:
+  # ...
+  producer:
+    config:
+      batch.size: 327680
+      max.request.size: 10000000
+  consumer:
+    config:
+      fetch.max.bytes: 10000000
+      max.partition.fetch.bytes: 10485760
+      # ...</code></pre>
+</div>
+</div>
+</dd>
+<dt class="hdlist1">Kafka Connect</dt>
+<dd>
+<p>For Kafka Connect, configure the source and sink connectors responsible for sending and retrieving messages using prefixes for producer and consumer configuration properties:</p>
+<div class="openblock">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><code>producer.override</code> for the producer used by the source connector to send messages to a Kafka cluster</p>
+</li>
+<li>
+<p><code>consumer</code> for the consumer used by the sink connector to retrieve messages from a Kafka cluster</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example Kafka Connect source connector configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: my-source-connector
+  labels:
+    strimzi.io/cluster: my-connect-cluster
+spec:
+  # ...
+  config:
+    producer.override.batch.size: 327680
+    producer.override.max.request.size: 10000000
+    # ...</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example Kafka Connect sink connector configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: my-sink-connector
+  labels:
+    strimzi.io/cluster: my-connect-cluster
+spec:
+  # ...
+  config:
+    consumer.fetch.max.bytes: 10000000
+    consumer.max.partition.fetch.bytes: 10485760
+    # ...</code></pre>
+</div>
+</div>
+</dd>
+<dt class="hdlist1">MirrorMaker 2</dt>
+<dd>
+<p>For MirrorMaker 2, configure the source connector responsible for retrieving messages from the source Kafka cluster using prefixes for producer and consumer configuration properties:</p>
+<div class="openblock">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><code>producer.override</code> for the runtime Kafka Connect producer used to replicate data to the target Kafka cluster</p>
+</li>
+<li>
+<p><code>consumer</code> for the consumer used by the sink connector to retrieve messages from the source Kafka cluster</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example MirrorMaker 2 source connector configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker2
+metadata:
+  name: my-mirror-maker2
+spec:
+  # ...
+  mirrors:
+  - sourceCluster: "my-cluster-source"
+    targetCluster: "my-cluster-target"
+    sourceConnector:
+      tasksMax: 2
+      config:
+        producer.override.batch.size: 327680
+        producer.override.max.request.size: 10000000
+        consumer.fetch.max.bytes: 10000000
+        consumer.max.partition.fetch.bytes: 10485760
+        # ...</code></pre>
+</div>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect3">
+<h4 id="producer_side_compression"><a class="link" href="#producer_side_compression">27.7.2. Producer-side compression</a></h4>
+<div class="paragraph">
+<p>For producer configuration, you specify a <code>compression.type</code>, such as Gzip, which is then applied to batches of data generated by the producer.
+Using the broker configuration <code>compression.type=producer</code> (default), the broker retains whatever compression the producer used.
+Whenever producer and topic compression do not match, the broker has to compress batches again prior to appending them to the log, which impacts broker performance.</p>
+</div>
+<div class="paragraph">
+<p>Compression also adds additional processing overhead on the producer and decompression overhead on the consumer,
+but includes more data in a batch, so is often beneficial to throughput when message data compresses well.</p>
+</div>
+<div class="paragraph">
+<p>Combine producer-side compression with fine-tuning of the batch size to facilitate optimum throughput.
+Using metrics helps to gauge the average batch size needed.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="reference_based_messaging"><a class="link" href="#reference_based_messaging">27.7.3. Reference-based messaging</a></h4>
+<div class="paragraph">
+<p>Reference-based messaging is useful for data replication when you do not know how big a message will be.
+The external data store must be fast, durable, and highly available for this configuration to work.
+Data is written to the data store and a reference to the data is returned.
+The producer sends a message containing the reference to Kafka.
+The consumer gets the reference from the message and uses it to fetch the data from the data store.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="reference_based_messaging_flow"><a class="link" href="#reference_based_messaging_flow">27.7.4. Reference-based messaging flow</a></h4>
+<div class="imageblock">
+<div class="content">
+<img src="images/tuning/broker-tuning-messaging-reference.png" alt="Image of reference-based messaging flow">
+</div>
+</div>
+<div class="paragraph">
+<p>As the message passing requires more trips, end-to-end latency will increase.
+Another significant drawback of this approach is there is no automatic clean up of the data in the external system when the Kafka message gets cleaned up.
+A hybrid approach would be to only send large messages to the data store and process standard-sized messages directly.</p>
+</div>
+<div class="paragraph">
+<div class="title">Inline messaging</div>
+<p>Inline messaging is complex, but it does not have the overhead of depending on external systems like reference-based messaging.</p>
+</div>
+<div class="paragraph">
+<p>The producing client application has to serialize and then chunk the data if the message is too big.
+The producer then uses the Kafka <code>ByteArraySerializer</code> or similar to serialize each chunk again before sending it.
+The consumer tracks messages and buffers chunks until it has a complete message.
+The consuming client application receives the chunks, which are assembled before deserialization.
+Complete messages are delivered to the rest of the consuming application in order according to the offset of the first or last chunk for each set of chunked messages.</p>
+</div>
+<div class="paragraph">
+<p>The consumer should commit its offset only after receiving and processing all message chunks to ensure accurate tracking of message delivery and prevent duplicates during rebalancing.
+Chunks might be spread across segments.
+Consumer-side handling should cover the possibility that a chunk becomes unavailable if a segment is subsequently deleted.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/tuning/broker-tuning-messaging-inline.png" alt="Image of inline messaging flow">
+</div>
+<div class="title">Figure 9. Inline messaging flow</div>
+</div>
+<div class="paragraph">
+<p>Inline messaging has a performance overhead on the consumer side because of the buffering required, particularly when handling a series of large messages in parallel.
+The chunks of large messages can become interleaved, so that it  is not always possible to commit when all the chunks of a message have been consumed if the chunks of another large message in the buffer are incomplete.
+For this reason, the buffering is usually supported by persisting message chunks or by implementing commit logic.</p>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -39054,7 +39274,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-03-08 16:59:49 UTC
+Last updated 2024-03-08 20:31:39 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
