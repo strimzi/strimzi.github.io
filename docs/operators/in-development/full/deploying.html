@@ -549,13 +549,13 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#serviceaccountpatching_feature_gate">8.1.2. ServiceAccountPatching feature gate</a></li>
 <li><a href="#ref-operator-use-strimzi-pod-sets-feature-gate-str">8.1.3. UseStrimziPodSets feature gate</a></li>
 <li><a href="#ref-operator-stable-connect-identities-feature-gate-str">8.1.4. StableConnectIdentities feature gate</a></li>
+<li><a href="#ref-operator-kafka-node-pools-feature-gate-str">8.1.5. KafkaNodePools feature gate</a></li>
 </ul>
 </li>
 <li><a href="#stable_feature_gates_beta">8.2. Stable feature gates (Beta)</a>
 <ul class="sectlevel3">
 <li><a href="#ref-operator-use-kraft-feature-gate-str">8.2.1. UseKRaft feature gate</a></li>
-<li><a href="#ref-operator-kafka-node-pools-feature-gate-str">8.2.2. KafkaNodePools feature gate</a></li>
-<li><a href="#ref-operator-unidirectional-topic-operator-feature-gate-str">8.2.3. UnidirectionalTopicOperator feature gate</a></li>
+<li><a href="#ref-operator-unidirectional-topic-operator-feature-gate-str">8.2.2. UnidirectionalTopicOperator feature gate</a></li>
 </ul>
 </li>
 <li><a href="#early_access_feature_gates_alpha">8.3. Early access feature gates (Alpha)</a></li>
@@ -6512,6 +6512,34 @@ You must first downgrade through one of the Strimzi versions in-between, disable
 </table>
 </div>
 </div>
+<div class="sect3">
+<h4 id="ref-operator-kafka-node-pools-feature-gate-str"><a class="link" href="#ref-operator-kafka-node-pools-feature-gate-str">8.1.5. KafkaNodePools feature gate</a></h4>
+<div class="paragraph">
+<p>The <code>KafkaNodePools</code> feature gate introduced a new <code>KafkaNodePool</code> custom resource that enables the configuration of different <em>pools</em> of Apache Kafka nodes.</p>
+</div>
+<div class="paragraph">
+<p>A node pool refers to a distinct group of Kafka nodes within a Kafka cluster.
+Each pool has its own unique configuration, which includes mandatory settings such as the number of replicas, storage configuration, and a list of assigned roles.
+You can assign the <em>controller</em> role, <em>broker</em> role, or both roles to all nodes in the pool using the <code>.spec.roles</code> property.
+When used with a ZooKeeper-based Apache Kafka cluster, it must be set to the <code>broker</code> role.
+When used with the <code>UseKRaft</code> feature gate, it can be set to <code>broker</code>, <code>controller</code>, or both.</p>
+</div>
+<div class="paragraph">
+<p>In addition, a node pool can have its own configuration of resource requests and limits, Java JVM options, and resource templates.
+Configuration options not set in the <code>KafkaNodePool</code> resource are inherited from the <code>Kafka</code> custom resource.</p>
+</div>
+<div class="paragraph">
+<p>The <code>KafkaNodePool</code> resources use a <code>strimzi.io/cluster</code> label to indicate to which Kafka cluster they belong.
+The label must be set to the name of the <code>Kafka</code> custom resource.</p>
+</div>
+<div class="paragraph">
+<p>Examples of the <code>KafkaNodePool</code> resources can be found in the <a href="#config-examples-str">example configuration files</a> provided by Strimzi.</p>
+</div>
+<div class="paragraph">
+<div class="title">Downgrading from KafkaNodePools</div>
+<p>If your cluster already uses <code>KafkaNodePool</code> custom resources, and you wish to downgrade to an older version of Strimzi that does not support them or with the <code>KafkaNodePools</code> feature gate disabled, you must first migrate from <code>KafkaNodePool</code> custom resources to managing Kafka nodes using only <code>Kafka</code> custom resources.</p>
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="stable_feature_gates_beta"><a class="link" href="#stable_feature_gates_beta">8.2. Stable feature gates (Beta)</a></h3>
@@ -6533,8 +6561,7 @@ They collectively manage the metadata, which is replicated across partitions.
 Controllers are responsible for coordinating operations and maintaining the cluster&#8217;s state.</p>
 </div>
 <div class="paragraph">
-<p>Using the <code>UseKRaft</code> feature gate requires the <code>KafkaNodePools</code> feature gate to be enabled as well.
-To deploy a Kafka cluster in KRaft mode, you must use the <code>KafkaNodePool</code> resources.
+<p>To deploy a Kafka cluster in KRaft mode, you must use the <code>KafkaNodePool</code> resources.
 For more details and examples, see <a href="#deploying-kafka-node-pools-str">Deploying a Kafka cluster with node pools</a>.
 The <code>Kafka</code> custom resource using KRaft mode must also have the annotation <code>strimzi.io/kraft="enabled"</code>.</p>
 </div>
@@ -6565,43 +6592,7 @@ The <code>type: jbod</code> storage can be used, but the JBOD array can contain 
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-operator-kafka-node-pools-feature-gate-str"><a class="link" href="#ref-operator-kafka-node-pools-feature-gate-str">8.2.2. KafkaNodePools feature gate</a></h4>
-<div class="paragraph">
-<p>The <code>KafkaNodePools</code> feature gate has a default state of <em>enabled</em>.</p>
-</div>
-<div class="paragraph">
-<p>The <code>KafkaNodePools</code> feature gate introduces a new <code>KafkaNodePool</code> custom resource that enables the configuration of different <em>pools</em> of Apache Kafka nodes.</p>
-</div>
-<div class="paragraph">
-<p>A node pool refers to a distinct group of Kafka nodes within a Kafka cluster.
-Each pool has its own unique configuration, which includes mandatory settings such as the number of replicas, storage configuration, and a list of assigned roles.
-You can assign the <em>controller</em> role, <em>broker</em> role, or both roles to all nodes in the pool in the <code>.spec.roles</code> field.
-When used with a ZooKeeper-based Apache Kafka cluster, it must be set to the <code>broker</code> role.
-When used with the <code>UseKRaft</code> feature gate, it can be set to <code>broker</code>, <code>controller</code>, or both.</p>
-</div>
-<div class="paragraph">
-<p>In addition, a node pool can have its own configuration of resource requests and limits, Java JVM options, and resource templates.
-Configuration options not set in the <code>KafkaNodePool</code> resource are inherited from the <code>Kafka</code> custom resource.</p>
-</div>
-<div class="paragraph">
-<p>The <code>KafkaNodePool</code> resources use a <code>strimzi.io/cluster</code> label to indicate to which Kafka cluster they belong.
-The label must be set to the name of the <code>Kafka</code> custom resource.</p>
-</div>
-<div class="paragraph">
-<p>Examples of the <code>KafkaNodePool</code> resources can be found in the <a href="#config-examples-str">example configuration files</a> provided by Strimzi.</p>
-</div>
-<div class="paragraph">
-<div class="title">Disabling the KafkaNodePools feature gate</div>
-<p>To disable the <code>KafkaNodePools</code> feature gate, specify <code>-KafkaNodePools</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.
-The <code>Kafka</code> custom resource using the node pools must also have the annotation <code>strimzi.io/node-pools: enabled</code>.</p>
-</div>
-<div class="paragraph">
-<div class="title">Downgrading from KafkaNodePools</div>
-<p>If your cluster already uses <code>KafkaNodePool</code> custom resources, and you wish to downgrade to an older version of Strimzi that does not support them or with the <code>KafkaNodePools</code> feature gate disabled, you must first migrate from <code>KafkaNodePool</code> custom resources to managing Kafka nodes using only <code>Kafka</code> custom resources.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="ref-operator-unidirectional-topic-operator-feature-gate-str"><a class="link" href="#ref-operator-unidirectional-topic-operator-feature-gate-str">8.2.3. UnidirectionalTopicOperator feature gate</a></h4>
+<h4 id="ref-operator-unidirectional-topic-operator-feature-gate-str"><a class="link" href="#ref-operator-unidirectional-topic-operator-feature-gate-str">8.2.2. UnidirectionalTopicOperator feature gate</a></h4>
 <div class="paragraph">
 <p>The <code>UnidirectionalTopicOperator</code> feature gate has a default state of <em>enabled</em>.</p>
 </div>
@@ -6688,8 +6679,8 @@ It is now permanently enabled and cannot be disabled.</p>
 <p>The <code>UseKRaft</code> feature gate is in beta stage and is enabled by default.</p>
 </li>
 <li>
-<p>The <code>KafkaNodePools</code> feature gate is in beta stage and is enabled by default.
-It is expected to move to GA phase and be always enabled from Strimzi 0.41.</p>
+<p>The <code>KafkaNodePools</code> feature gate moved to GA stage in Strimzi 0.41.
+It is now permanently enabled and cannot be disabled.</p>
 </li>
 <li>
 <p>The <code>UnidirectionalTopicOperator</code> feature gate is in beta stage and is enabled by default.
@@ -6760,7 +6751,7 @@ Feature gates might be removed when they reach GA. This means that the feature w
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaNodePools</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0.36</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0.39</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">0.41 (planned)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.41</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>UnidirectionalTopicOperator</code></p></td>
@@ -39295,7 +39286,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-03-12 16:26:15 UTC
+Last updated 2024-03-12 18:06:59 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
