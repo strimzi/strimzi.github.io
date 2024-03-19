@@ -194,7 +194,11 @@ It is also in charge of checking the migration status looking at the metrics for
 
 Before latest Strimzi 0.40.0 release, the `strimzi.io/kraft` annotation on the `Kafka` custom resource was used to define a ZooKeeper-based cluster, by using the `disabled` value, or a KRaft-based cluster, by using the `enabled` value.
 
-It is now possible to use two more values for the `strimzi.io/kraft` annotation: `migration` to start the migration process and `rollback` to revert the migration itself.
+It is now possible to use two more values for the `strimzi.io/kraft` annotation: 
+
+* `migration` to start the migration process;
+* `rollback` to revert the migration itself;
+
 One of the main prerequisites for the migration is about having the ZooKeeper-based cluster using the `KafkaNodePool`(s) to run the brokers.
 If that is not the case for you, please refer to the official Strimzi documentation [here](https://strimzi.io/docs/operators/latest/deploying#proc-migrating-clusters-node-pools-str).
 
@@ -235,7 +239,7 @@ Following a snippet of a `KafkaNodePool` custom resource to be deployed for gett
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaNodePool
 metadata:
-  name: kafka
+  name: controller
   labels:
     strimzi.io/cluster: my-cluster
 spec:
