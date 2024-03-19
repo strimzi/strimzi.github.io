@@ -7,10 +7,10 @@ author: paolo_patierno
 
 The Apache Kafka project has been using [Apache ZooKeeper](https://zookeeper.apache.org/) since its inception to store metadata.
 Registered brokers, the current controller and topics' configuration are just a few of the data that ZooKeeper stores for supporting a running Kafka cluster.
-Using a dedicated and centralized system for maintaining configuration data sounded the right approach at that time and ZooKeeper has been doing its work for long.
+Using a dedicated and centralized system for maintaining cluster metadata and offload leader election was the right approach at that time, because ZooKeeper was battle tested and it has been doing its work for long.
 But taking care of an additional component alongside your Kafka cluster is not that simple.
-Also, ZooKeeper has started to be a limitation for better scaling in terms of topics' partitions.
-For these and more other reasons, the Apache Kafka community opened the "famous" [KIP-500](https://cwiki.apache.org/confluence/display/KAFKA/KIP-500%3A+Replace+ZooKeeper+with+a+Self-Managed+Metadata+Quorum) in late 2019 and started to work on the ZooKeeper removal.
+Furthermore, ZooKeeper has become a bottleneck that limits the amount of topics' partitions that a single broker can handle.
+For these and other reasons, the Kafka community opened the "famous" [KIP-500](https://cwiki.apache.org/confluence/display/KAFKA/KIP-500%3A+Replace+ZooKeeper+with+a+Self-Managed+Metadata+Quorum) in late 2019 and started to work on the ZooKeeper removal.
 
 <!--more-->
 
@@ -50,11 +50,11 @@ get /config/topics/my-topic
 {"version":1,"config":{"retention.ms":"100000"}} // all the other configuration parameters are omitted because using default values
 ```
 
-ZooKeeper is designed to be replicated across a number of nodes which built an ensemble.
-A leader node is the one where all the write requests got by clients are forwarded from the other nodes and the operations are coordinated by using the ZooKeeper Atomic Broadcast (ZAB) protocol.
+ZooKeeper data are replicated across a number of nodes which form an ensemble.
+A leader node is the one where all the write requests, coming from clients, are forwarded to by the other nodes, and the operations are coordinated by using the ZooKeeper Atomic Broadcast (ZAB) protocol.
 This protocol keeps all nodes in sync and ensures reliability on messages delivery.
 
-But having ZooKeeper means dealing with a totally different system which needs to be deployed, managed and troubleshooted.
+But having ZooKeeper means dealing with a totally different distributed system which needs to be deployed, managed and troubleshooted.
 The admin doesn't have to take care of the Kafka cluster only but also the ZooKeeper ensemble running alongside it.
 Because ZooKeeper requires a quorum, not having the majority of nodes to process requests can also affect the Kafka cluster's availability.
 
@@ -66,10 +66,11 @@ The problem is that the metadata changes propagations, by using RPCs, grow with 
 ### Welcome to KRaft!
 
 In order to overcome the limitations related to the ZooKeeper usage, the Kafka community came with the idea of using Kafka itself to store metadata and using the event-driven pattern to take them updated across the nodes.
-The work started with [KIP-500](https://cwiki.apache.org/confluence/display/KAFKA/KIP-500%3A+Replace+ZooKeeper+with+a+Self-Managed+Metadata+Quorum) in late 2019 by introducing a self-managed metadata quorum based on a specific Kafka implementation of the [Raft](https://raft.github.io/) consensus protocol.
+The work started with [KIP-500](https://cwiki.apache.org/confluence/display/KAFKA/KIP-500%3A+Replace+ZooKeeper+with+a+Self-Managed+Metadata+Quorum) in late 2019 with the introduction of a built-in consensus protocol based on [Raft](https://raft.github.io/).
 That was named Kafka Raft ... KRaft for friends!
 
 KRaft is an event-based implementation of the Raft protocol with a quorum controller maintaining an event log, a single-partition topic named `__cluster_metadata`, to store the metadata.
+Unlike the other topics, this is special one, because records are written to disk synchronously, which is required by the Raft algorithm for correctness.
 It works in a leader-follower mode, where the leader writes events into the metadata topic which is then replicated to the follower controllers by using the KRaft replication algorithm.
 The leader of that single-partition topic is actually the controller node of the Kafka cluster.
 The metadata changes propagation has the benefit of being event-driven via replication and not using RPCs anymore.
@@ -120,7 +121,7 @@ Using the mixed-mode allows to reduce the number of nodes within the cluster com
 ### How to migrate from ZooKeeper to KRaft
 
 As today, it is expected to have users who are running ZooKeeper-based clusters but they are interested in migrating to KRaft mode as soon as possible in order to overcome all the limitations we have talked about.
-Furthermore, ZooKeeper is already considered as deprecated by the Apache Kafka community and its support will be removed with the 4.0 release later this year or early the next one.
+Furthermore, ZooKeeper is already considered as deprecated by the Apache Kafka community and its support will be removed with the 4.0 release later this year or early the next year.
 
 There is a manual procedure, made by several phases, to run in order to execute such a migration.
 The following content doesn't want to be an exhaustive description of the migration procedure but more an overview of how it is supposed to work.
@@ -172,7 +173,7 @@ The KRaft controllers are still in "dual-write" mode and any metadata changes ar
 
 The final step is about reconfiguring the KRaft controllers without the connection to ZooKeeper and disabling the migration flag.
 When all the KRaft controllers are rolled, the cluster is working in full KRaft mode and the ZooKeeper ensemble is not used anymore.
-From now on, it is possible to deprovision the ZooKeeper nodes if not used for any other purposes within your environment.
+From now on, it is possible to deprovision the ZooKeeper nodes from your environment.
 
 ![Cluster full KRaft](/assets/images/posts/2024-03-22-kraft-migration-06-kraft-cluster.png)
 
@@ -385,4 +386,4 @@ Of course, there are a lot of ZooKeeper-based clusters already running in produc
 While the manual process could be considered long and complex if your cluster is running on bare-metal or virtual machines, it is very easy if the cluster is running on Kubernetes instead.
 The Strimzi operator provides you a semi-automated process which needs just a few manual steps to update an annotation to migrate your cluster.
 If it is about testing on a development environment or a production one, let us know your experience about migrating your cluster with Strimzi.
-Your feedback are very welcome!
+Your feedback is very welcome!
