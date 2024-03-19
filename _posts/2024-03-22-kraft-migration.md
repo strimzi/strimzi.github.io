@@ -313,6 +313,7 @@ When the cluster is full KRaft, the operator will delete all the resources relat
 
 During the finalization, the cluster metadata state moves to the final `KRaft`.
 
+```shell
 NAME         DESIRED KAFKA REPLICAS   DESIRED ZK REPLICAS   READY   METADATA STATE   WARNINGS
 ...
 my-cluster   3                        3                     True    KRaftPostMigration   True
@@ -320,6 +321,7 @@ my-cluster   3                        3                     True    PreKRaft    
 my-cluster   3                        3                     True    KRaft                True
 my-cluster                                                  True    KRaft                True
 my-cluster                                                  True    KRaft                
+```
 
 As you can see, just a couple of changes on the `strimzi.io/kraft` annotation make the migration really straight forward.
 
