@@ -26,6 +26,10 @@ As already mentioned, Kafka has been using ZooKeeper as its metadata management 
 
 By using the `zookeeper-shell` tool, it is possible to connect to a ZooKeeper ensemble and see all the znodes.
 
+```shell
+bin/zookeeper-shell.sh <zookeeper-ip-address>:2181
+```
+
 The brokers within the cluster are listed under the `/brokers` znode and for each of them there are information about their endpoints.
 
 ```shell
