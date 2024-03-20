@@ -21,8 +21,8 @@ As already mentioned, Kafka has been using ZooKeeper as its metadata management 
 * **Cluster membership**: each broker, joining the Kafka cluster, registers itself with a ephemeral znode on ZooKeeper;
 * **Controller election**: when a broker starts, it tries to take the "controller" role by creating the ephemeral `/controller` znode on ZooKeeper. If that znode already exists, it indicates which broker is the current controller;
 * **Topics configuration**: all the topics' configuration parameters are stored in ZooKeeper together with information like the number of partitions and the current broker assignments for the replicas;
-* **Access Control Lists (ACLs)**: when a client connects to the cluster, it could be authenticated and authorized to read or write on several topics based on the ACLs stored in ZooKeeper;
-* **Quotas**: brokers can limit resources used by clients in terms of network bandwidth and CPU utilization via quotas stored in ZooKeeper;
+* **Access Control Lists (ACLs)**: when a client connects to the cluster, it could be authenticated and authorized to read or write on several topics based on the ACLs stored in ZooKeeper by the built-in Authorizer;
+* **Quotas**: brokers can limit resources used by clients in terms of network bandwidth and CPU utilization via quotas stored in ZooKeeper by the built-in Quotas provider;
 
 By using the `zookeeper-shell` tool, it is possible to connect to a ZooKeeper ensemble and see all the znodes.
 
@@ -51,7 +51,7 @@ get /config/topics/my-topic
 ```
 
 ZooKeeper data is replicated across a number of nodes which form an ensemble.
-A leader node is the one where all the write requests, coming from clients, are forwarded to by the other nodes, and the operations are coordinated by using the ZooKeeper Atomic Broadcast (ZAB) protocol.
+ZooKeeper uses the ZooKeeper Atomic Broadcast (ZAB) protocol to replicate data to all nodes in the ZooKeeper ensemble.`
 This protocol keeps all nodes in sync and ensures reliability on messages delivery.
 
 But having ZooKeeper means operating a totally different distributed system which needs to be deployed, managed and troubleshooted.
