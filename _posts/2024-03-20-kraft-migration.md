@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "From ZooKeeper to KRaft: let's automate the migration with Strimzi"
-date: 2024-03-22
+date: 2024-03-20
 author: paolo_patierno
 ---
 
@@ -74,7 +74,7 @@ The metadata changes propagation has the benefit of being event-driven via repli
 The metadata management is directly within Kafka itself with the usage of a new quorum controller service which uses an event-sources storage model.
 The KRaft protocol is used to ensure that metadata are fully replicated across the quorum.
 
-![Cluster metadata topic](/assets/images/posts/2024-03-22-kraft-migration-metadata-topic.png)
+![Cluster metadata topic](/assets/images/posts/2024-03-20-kraft-migration-metadata-topic.png)
 
 By using the `kafka-dump-log.sh` tool together with the `--cluster-metadata-decoder` option, you are able to dump the content of the `__cluster_metadata` segments and see how several events are generated in relation to metadata changes.
 
@@ -128,7 +128,7 @@ For more details, please refer to the official [ZooKeeper to KRaft Migration](ht
 
 At the beginning, we have the Kafka brokers running in ZooKeeper-mode and connected to the ZooKeeper ensemble used to store metadata.
 
-![ZooKeeper-based cluster](/assets/images/posts/2024-03-22-kraft-migration-01-zk-brokers.png)
+![ZooKeeper-based cluster](/assets/images/posts/2024-03-20-kraft-migration-01-zk-brokers.png)
 
 > NOTE: the green square boxed number highlights the "generation" of the nodes which are rolled more times during the process.
 
@@ -138,7 +138,7 @@ It is also important to highlight that the migration doesn't support the usage o
 The nodes forming the KRaft controller quorum are all configured with the connection to ZooKeeper together with the additional `zookeeper.metadata.migration.enable=true` flag which states the intention to run the migration.
 When the KRaft controllers start, they form a quorum, elect the leader and move in a state where they are waiting for the brokers to register.
 
-![KRaft controller quorum deployed](/assets/images/posts/2024-03-22-kraft-migration-02-kraft-deployed.png)
+![KRaft controller quorum deployed](/assets/images/posts/2024-03-20-kraft-migration-02-kraft-deployed.png)
 
 #### Enabling brokers to run the migration
 
@@ -148,14 +148,14 @@ After the update, the brokers need to be rolled one by one to make such configur
 On restart, the brokers register to the KRaft controller quorum and the migration begins.
 The KRaft controller leader copies all metadata from ZooKeeper to the `__cluster_metadata` topic.
 
-![KRaft migration running](/assets/images/posts/2024-03-22-kraft-migration-03-kraft-migration.png)
+![KRaft migration running](/assets/images/posts/2024-03-20-kraft-migration-03-kraft-migration.png)
 
 While the migration is running, you can verify its status by looking at the log on the KRaft controller leader or by checking the `ZkMigrationState` metric.
 When the migration is completed, the brokers are anyway still running in ZooKeeper mode.
 The KRaft controllers are in charge of handling any requests related to metadata changes within the cluster but they keep sending RPCs to the brokers for metadata updates.
 The metadata are still copied to ZooKeeper and the cluster is working in a so called "dual-write" mode.
 
-![KRaft dual-write](/assets/images/posts/2024-03-22-kraft-migration-04-kraft-dual-write.png)
+![KRaft dual-write](/assets/images/posts/2024-03-20-kraft-migration-04-kraft-dual-write.png)
 
 #### Moving brokers to be full KRaft
 
@@ -164,7 +164,7 @@ In order to do so, the brokers configuration is updated by removing the connecti
 All the brokers are rolled again and, on restart, they are now in full KRaft mode without any connection or usage of ZooKeeper.
 The KRaft controllers are still in "dual-write" mode and any metadata changes are copied to ZooKeeper.
 
-![Brokers only full KRaft](/assets/images/posts/2024-03-22-kraft-migration-05-brokers-kraft.png)
+![Brokers only full KRaft](/assets/images/posts/2024-03-20-kraft-migration-05-brokers-kraft.png)
 
 #### Migration finalization
 
@@ -172,7 +172,7 @@ The final step is about reconfiguring the KRaft controllers without the connecti
 When all the KRaft controllers are rolled, the cluster is working in full KRaft mode and the ZooKeeper ensemble is not used anymore.
 From now on, it is possible to deprovision the ZooKeeper nodes from your environment.
 
-![Cluster full KRaft](/assets/images/posts/2024-03-22-kraft-migration-06-kraft-cluster.png)
+![Cluster full KRaft](/assets/images/posts/2024-03-20-kraft-migration-06-kraft-cluster.png)
 
 #### Rollback support
 
