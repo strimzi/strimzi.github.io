@@ -7,9 +7,9 @@ author: paolo_patierno
 
 The Apache Kafka project has been using [Apache ZooKeeper](https://zookeeper.apache.org/) since its inception to store metadata.
 Registered brokers, the current controller and topics' configuration are just a few of the data that ZooKeeper stores for supporting a running Kafka cluster.
-Using a dedicated and centralized system for maintaining cluster metadata and offload leader election was the right approach at that time, because ZooKeeper was battle tested and it has been doing its work for long.
+Using a dedicated and centralized system for maintaining cluster metadata and offload leader election was the right approach at that time, because ZooKeeper was battle tested and it is purpose built for providing distributed coordination.
 But taking care of an additional component alongside your Kafka cluster is not that simple.
-Furthermore, ZooKeeper has become a bottleneck that limits the amount of topics' partitions that a single broker can handle.
+Furthermore, ZooKeeper has become a bottleneck that limits the amount of partitions that a single broker can handle.
 For these and other reasons, the Kafka community opened the "famous" [KIP-500](https://cwiki.apache.org/confluence/display/KAFKA/KIP-500%3A+Replace+ZooKeeper+with+a+Self-Managed+Metadata+Quorum) in late 2019 and started to work on the ZooKeeper removal.
 
 <!--more-->
@@ -18,13 +18,13 @@ For these and other reasons, the Kafka community opened the "famous" [KIP-500](h
 
 As already mentioned, Kafka has been using ZooKeeper as its metadata management system for several functions:
 
-* **Cluster membership**: each broker, joining the Kafka cluster, registers itself with a temporary znode on ZooKeeper;
-* **Controller election**: when a broker starts, it tries to take the "controller" role by creating the ephemeral `/controller` znode on ZooKeeper. If it already exists, it states what is the broker in the cluster having such a role and what is its epoch;
-* **Topics configuration**: all the topics' configuration parameters are stored in ZooKeeper together with information like the number of partitions and on which brokers the replicas are hosted;
+* **Cluster membership**: each broker, joining the Kafka cluster, registers itself with a ephemeral znode on ZooKeeper;
+* **Controller election**: when a broker starts, it tries to take the "controller" role by creating the ephemeral `/controller` znode on ZooKeeper. If that znode already exists, it indicates which broker is the current controller;
+* **Topics configuration**: all the topics' configuration parameters are stored in ZooKeeper together with information like the number of partitions and the current broker assignments for the replicas;
 * **Access Control Lists (ACLs)**: when a client connects to the cluster, it could be authenticated and authorized to read or write on several topics based on the ACLs stored in ZooKeeper;
 * **Quotas**: brokers can limit resources used by clients in terms of network bandwidth and CPU utilization via quotas stored in ZooKeeper;
 
-By using the `zookeeper-shell` tool, it is possible to connect to a ZooKeeper ensemble and show some of them.
+By using the `zookeeper-shell` tool, it is possible to connect to a ZooKeeper ensemble and see all the znodes.
 
 The brokers within the cluster are listed under the `/brokers` znode and for each of them there are information about their endpoints.
 
@@ -50,18 +50,15 @@ get /config/topics/my-topic
 {"version":1,"config":{"retention.ms":"100000"}} // all the other configuration parameters are omitted because using default values
 ```
 
-ZooKeeper data are replicated across a number of nodes which form an ensemble.
+ZooKeeper data is replicated across a number of nodes which form an ensemble.
 A leader node is the one where all the write requests, coming from clients, are forwarded to by the other nodes, and the operations are coordinated by using the ZooKeeper Atomic Broadcast (ZAB) protocol.
 This protocol keeps all nodes in sync and ensures reliability on messages delivery.
 
-But having ZooKeeper means dealing with a totally different distributed system which needs to be deployed, managed and troubleshooted.
-The admin doesn't have to take care of the Kafka cluster only but also the ZooKeeper ensemble running alongside it.
-Because ZooKeeper requires a quorum, not having the majority of nodes to process requests can also affect the Kafka cluster's availability.
-
+But having ZooKeeper means operating a totally different distributed system which needs to be deployed, managed and troubleshooted.
 ZooKeeper also represents a bottleneck for scalability and puts a limit on the number of topics and the corresponding partitions supported within a Kafka cluster.
 It has a performance impact when, for example, there is a controller failover and the new elected one has to fetch metadata from ZooKeeper, including all the topics information.
 Also, any metadata update needs to be propagated to the other brokers.
-The problem is that the metadata changes propagations, by using RPCs, grow with the number of topics' partitions involved and more partitions means more metadata to propagate, so it takes longer and the system gets slower.
+The problem is that the metadata changes propagations, by using RPCs, grow with the number of partitions involved and more partitions means more metadata to propagate, so it takes longer and the system gets slower.
 
 ### Welcome to KRaft!
 
@@ -106,7 +103,7 @@ These records bring the topic creation, the corresponding custom configuration a
 All the possible metadata changes are encoded as specific event records in Apache Kafka.
 They are all described using JSON files (which are then used to automatically build the corresponding Java classes) you can find [here](https://github.com/apache/kafka/tree/trunk/metadata/src/main/resources/common/metadata).
 
-Getting rid of an external system like ZooKeeper simplifies the overall architecture and removes the burden of taking care of an additional component.
+Removing an external system like ZooKeeper simplifies the overall architecture and removes the burden of taking care of an additional component.
 The scalability is also improved by reducing the load on the metadata store by using snapshots to avoid unbounded growth (compacted topic).
 When there is a leadership change in the quorum controller, the new leader already has all the committed metadata records so the recovery is pretty fast.
 
