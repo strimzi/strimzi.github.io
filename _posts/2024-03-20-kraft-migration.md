@@ -120,7 +120,7 @@ A `controller` node takes part in the controller quorum and replicates the metad
 Effectively, `broker` and `controller` are two different services running on the node within the JVM.
 When in "combined" mode, a node performs both roles with the corresponding responsibilities.
 Using the "combined" mode allows to reduce the number of nodes within the cluster compared to a ZooKeeper configuration.
-It is not recommended for critical use cases as this offer less isolation in case of failures.
+It is not recommended for critical use cases as this offers less isolation in case of failures.
 This mode is useful for small use cases, for example it allows setting up a Kafka development environment by starting a single node.
 
 ### How to migrate from ZooKeeper to KRaft
@@ -162,18 +162,19 @@ The KRaft controller leader copies all metadata from ZooKeeper to the `__cluster
 ![KRaft migration running](/assets/images/posts/2024-03-20-kraft-migration-03-kraft-migration.png)
 
 While the migration is running, you can verify its status by looking at the log on the KRaft controller leader or by checking the `kafka.controller:type=KafkaController,name=ZkMigrationState` metric.
-When the migration is completed, that is the metric value is `MIGRATION`, the brokers are anyway still running in ZooKeeper mode.
+When the migration is completed, that is the metric value is `MIGRATION`, the brokers are still running in ZooKeeper mode.
 The KRaft controllers are in charge of handling any requests related to metadata changes within the cluster but they keep sending RPCs to the brokers for metadata updates.
-The metadata are still copied to ZooKeeper and the cluster is working in a so called "dual-write" mode.
+Metadata updates are still copied to ZooKeeper and the cluster is working in a so called "dual-write" mode.
 
 ![KRaft dual-write](/assets/images/posts/2024-03-20-kraft-migration-04-kraft-dual-write.png)
 
-#### Moving brokers to be full KRaft
+#### Restarting the brokers in KRaft mode
 
-The next step is about moving the brokers to be in full KRaft mode and not using ZooKeeper anymore.
+The next step is to restart the brokers in KRaft mode and not using ZooKeeper anymore.
 In order to do so, the brokers configuration is updated by removing the connection to ZooKeeper and disabling the migration flag.
 All the brokers are rolled again and, on restart, they are now in full KRaft mode without any connection or usage of ZooKeeper.
 The KRaft controllers are still in "dual-write" mode and any metadata changes are copied to ZooKeeper.
+It is important to highlight this is the last chance to rollback and keep using ZooKeeper to store metadata.
 
 ![Brokers only full KRaft](/assets/images/posts/2024-03-20-kraft-migration-05-brokers-kraft.png)
 
@@ -181,7 +182,7 @@ The KRaft controllers are still in "dual-write" mode and any metadata changes ar
 
 The final step is to reconfigure the KRaft controllers without the connection to ZooKeeper and disabling the migration flag.
 When all the KRaft controllers are rolled, the cluster is working in full KRaft mode and the ZooKeeper ensemble is not used anymore.
-From now on, it is possible to deprovision the ZooKeeper nodes from your environment.
+From now on, you should deprovision the ZooKeeper nodes from your environment.
 
 ![Cluster full KRaft](/assets/images/posts/2024-03-20-kraft-migration-06-kraft-cluster.png)
 
@@ -197,4 +198,4 @@ The Apache Kafka community has deprecated the usage of ZooKeeper to store the cl
 It means that users should move soon to create new KRaft-based clusters only.
 Of course, there are a lot of ZooKeeper-based clusters already running in production out there which need to be migrated.
 The migration process is not trivial and needs a lot of manual intervention, with configuration updates and nodes to be rolled.
-But if you are running your cluster on Kubernetes, we'll see how the Strimzi operator provides a semi-automated approach making the migration a lot easier!
+But if you are running your cluster on Kubernetes, we'll see in an upcoming blog post how the Strimzi operator provides a semi-automated approach making the migration a lot easier!
