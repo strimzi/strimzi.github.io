@@ -77,6 +77,7 @@ The KRaft protocol is used to ensure that metadata are fully replicated across t
 ![Cluster metadata topic](/assets/images/posts/2024-03-20-kraft-migration-metadata-topic.png)
 
 By using the `kafka-dump-log.sh` tool together with the `--cluster-metadata-decoder` option, you are able to dump the content of the `__cluster_metadata` segments and see how several events are generated in relation to metadata changes.
+You can run the following command on the KRaft active controller node, assuming `/var/lib/kafka/data-0/kafka-log0` is the metadata log dir.
 
 ```shell
 bin/kafka-dump-log.sh --cluster-metadata-decoder --files /var/lib/kafka/data-0/kafka-log0/__cluster_metadata-0/00000000000000000000.log 
@@ -100,27 +101,33 @@ These records bring the topic creation, the corresponding custom configuration a
 | offset: 3008 CreateTime: 1710774451597 keySize: -1 valueSize: 113 sequence: -1 headerKeys: [] payload: {"type":"PARTITION_RECORD","version":1,"data":{"partitionId":2,"topicId":"xOxBrcYuSRWgtFuZIBiXIA","replicas":[4,5,3],"isr":[4,5,3],"removingReplicas":[],"addingReplicas":[],"leader":4,"leaderEpoch":0,"partitionEpoch":0,"directories":["p2UpbSD99eygD2ZToiSMzg","SaZDxfHKu3NMZ7OnFP7YnA","uHY7hO6-42Q7O4k0zLMmtg"]}}
 ```
 
-All the possible metadata changes are encoded as specific event records in Apache Kafka.
+All the possible metadata changes are encoded as specific event records in the metadata log topic in Apache Kafka.
 They are all described using JSON files (which are then used to automatically build the corresponding Java classes) you can find [here](https://github.com/apache/kafka/tree/trunk/metadata/src/main/resources/common/metadata).
 
-Removing an external system like ZooKeeper simplifies the overall architecture and removes the burden of taking care of an additional component.
+Removing an external system like ZooKeeper simplifies the overall architecture and removes the burden of operating an additional component.
 The scalability is also improved by reducing the load on the metadata store by using snapshots to avoid unbounded growth (compacted topic).
-When there is a leadership change in the quorum controller, the new leader already has all the committed metadata records so the recovery is pretty fast.
+When there is a leadership change in the controller quorum, the new leader already has all the committed metadata records so the recovery is pretty fast.
 
 Another interesting aspect of using the KRaft mode is about the role that a single node can have within the cluster itself.
-By using the new `process.roles` configuration parameter, a Kafka node can act as a `broker`, a `controller` or being in mixed-mode.
-As a `broker`, it is responsible to communicate with the Kafka clients and to store and serve data by handing read and write requests on topics.
-As a `controller`, it takes part at the quorum controller being a leader or follower, storing the cluster state and handling the metadata changes.
+By using the new `process.roles` configuration parameter, a Kafka node can act as a `broker`, a `controller` or perform both roles in "combined" mode
+A `broker` node is responsible for handing requests, including reads and writes on topics, from Kafka clients.
+A `controller` node takes part in the controller quorum and replicates the metadata log. At any time, one of the `controller` nodes is the quorum leader and the others are followers that can take over in case the current leader resigns if it's restarted or fails for example.
+
 Effectively, `broker` and `controller` are two different services running on the node within the JVM.
-When in mixed-mode, it gets both roles by taking care of Kafka clients communication on one hand and metadata changes on the other.
-Using the mixed-mode allows to reduce the number of nodes within the cluster compared to a ZooKeeper configuration, even if it is not recommended to be used in a production environment but only for testing or development purposes.
+When in "combined" mode, a node performs both roles with the corresponding responsibilities.
+Using the "combined" mode allows to reduce the number of nodes within the cluster compared to a ZooKeeper configuration.
+It is not recommended for critical use cases as this offer less isolation in case of failures.
+This mode is useful for small use cases, for example it allows setting up a Kafka development environment by starting a single node.
 
 ### How to migrate from ZooKeeper to KRaft
 
-As today, it is expected to have users who are running ZooKeeper-based clusters but they are interested in migrating to KRaft mode as soon as possible in order to overcome all the limitations we have talked about.
-Furthermore, ZooKeeper is already considered as deprecated by the Apache Kafka community and its support will be removed with the 4.0 release later this year or early the next year.
+Today, most of the existing Kafka clusters are ZooKeeper-based.
+Users are interested in migrating to KRaft mode in order to overcome all the limitations we have talked about.
+While KRaft is production ready for a few releases already, it lacked important features (JBOD support is still in early access) so few new clusters were deployed in KRaft mode.
 
-There is a manual procedure, made by several phases, to run in order to execute such a migration.
+Furthermore, ZooKeeper is already considered as deprecated and, with the Kafka project expecting to remove ZooKeeper support in an upcoming 4.0 release, expected in 2024, it is now time to consider migrating clusters from ZooKeeper to KRaft.
+
+There is a manual procedure, consisting of several phases, to run in order to migrate a cluster without any downtime.
 The following content doesn't want to be an exhaustive description of the migration procedure but more an overview of how it is supposed to work.
 For more details, please refer to the official [ZooKeeper to KRaft Migration](https://kafka.apache.org/documentation/#kraft_zk_migration) documentation.
 
@@ -130,11 +137,11 @@ At the beginning, we have the Kafka brokers running in ZooKeeper-mode and connec
 
 ![ZooKeeper-based cluster](/assets/images/posts/2024-03-20-kraft-migration-01-zk-brokers.png)
 
-> NOTE: the green square boxed number highlights the "generation" of the nodes which are rolled more times during the process.
+> NOTE: the green square boxed number highlights the "generation" of the nodes which are rolled several times during the process.
 
-The first step is about deploying the KRaft controller quorum which will be in charge of storing the metadata in KRaft mode.
-In general, the number of nodes will be the same as the number of the ZooKeeper nodes actually running.
-It is also important to highlight that the migration doesn't support the usage of mixed-nodes.
+The first step is to deploy the KRaft controller quorum which will be in charge of maintaining the metadata in KRaft mode.
+In general, the number of KRaft controller nodes will be the same as the number of the ZooKeeper nodes currently running.
+It is also important to highlight that the migration process doesn't support migrating to nodes running in "combined" mode
 The nodes forming the KRaft controller quorum are all configured with the connection to ZooKeeper together with the additional `zookeeper.metadata.migration.enable=true` flag which states the intention to run the migration.
 When the KRaft controllers start, they form a quorum, elect the leader and move in a state where they are waiting for the brokers to register.
 
@@ -142,16 +149,16 @@ When the KRaft controllers start, they form a quorum, elect the leader and move 
 
 #### Enabling brokers to run the migration
 
-The next step is about moving the brokers to migration mode.
-In order to do so, the brokers configuration needs to be updated by adding the connection to the KRaft controller quorum and enabling the migration with the `zookeeper.metadata.migration.enable=true` flag.
+The next step is to move the brokers to migration mode.
+In order to do so, the brokers' configuration needs to be updated by adding connection details for all nodes of the KRaft controller quorum and enabling the migration with the `zookeeper.metadata.migration.enable=true` flag.
 After the update, the brokers need to be rolled one by one to make such configuration changes effective.
 On restart, the brokers register to the KRaft controller quorum and the migration begins.
 The KRaft controller leader copies all metadata from ZooKeeper to the `__cluster_metadata` topic.
 
 ![KRaft migration running](/assets/images/posts/2024-03-20-kraft-migration-03-kraft-migration.png)
 
-While the migration is running, you can verify its status by looking at the log on the KRaft controller leader or by checking the `ZkMigrationState` metric.
-When the migration is completed, the brokers are anyway still running in ZooKeeper mode.
+While the migration is running, you can verify its status by looking at the log on the KRaft controller leader or by checking the `kafka.controller:type=KafkaController,name=ZkMigrationState` metric.
+When the migration is completed, that is the metric value is `MIGRATION`, the brokers are anyway still running in ZooKeeper mode.
 The KRaft controllers are in charge of handling any requests related to metadata changes within the cluster but they keep sending RPCs to the brokers for metadata updates.
 The metadata are still copied to ZooKeeper and the cluster is working in a so called "dual-write" mode.
 
@@ -168,7 +175,7 @@ The KRaft controllers are still in "dual-write" mode and any metadata changes ar
 
 #### Migration finalization
 
-The final step is about reconfiguring the KRaft controllers without the connection to ZooKeeper and disabling the migration flag.
+The final step is to reconfigure the KRaft controllers without the connection to ZooKeeper and disabling the migration flag.
 When all the KRaft controllers are rolled, the cluster is working in full KRaft mode and the ZooKeeper ensemble is not used anymore.
 From now on, it is possible to deprovision the ZooKeeper nodes from your environment.
 
