@@ -5,22 +5,20 @@ date: 2024-03-20
 author: paolo_patierno
 ---
 
-In the previous [blog post](TBD) we explored how ZooKeeper is used to store Kafka clusters metadata and what are the current limitations.
+In the previous [blog post](TBD) we explored how Apache ZooKeeper is used to store Apache Kafka clusters metadata and what are the current limitations.
 We introduced the new KRaft protocol which allows to overcome such limitations and store metadata in Kafka itself, taking into account that the ZooKeeper support will be removed soon.
 For this reason, there is the need to migrate existing clusters from using ZooKeeper to KRaft for storing metadata.
 We also covered the overall procedure to do that.
-Such procedure is not that simple because of the several configuration changes to be made on the cluster nodes, as well as the multiple times the nodes have to be rolled.
-But if your cluster is running on Kubernetes and it is Strimzi-operated, we got you covered!
-In this blog post, we are going to see how the Strimzi cluster operator provides a semi-automated process to run the migration easily, forgetting all the manual steps you should be doing to reach the same goal.
+The Kafka metadata migration procedure can be done without downtime, but it is not that straightforward because it requires manual configurations and several rolling updates.
+The good news is that, if your cluster is powered by Strimzi, this process is much easier, and can be driven by simply annotating your Kafka resource.
+In this blog post, we are going to show you how the Strimzi cluster operator provides a semi-automated process to run the migration easily, so that you don't need to worry about updating configurations and restarting cluster nodes.
 
 <!--more-->
 
 ### Strimzi migration support
 
-The migration procedure is not that easy and it relies on updating brokers and controllers configurations multiple times together with rolling the involved nodes across several phases.
-There is a lot of manual intervention even related to verify the migration status by looking at the KRaft controller leader log or checking the `kafka.controller:type=KafkaController,name=ZkMigrationState` metric.
-But if you are using the Strimzi operator to run your current ZooKeeper-based cluster on Kubernetes, the migration process is semi-automated.
-What you have to do is just updating the `strimzi.io/kraft` annotation on the `Kafka` cluster resource in order to allow the internal migration Finite State Machine (FSM) to move across the different phases.
+If you are using the Strimzi operator to run your current ZooKeeper-based cluster on Kubernetes, the migration process is semi-automated.
+What you have to do is just updating the `strimzi.io/kraft` annotation on the `Kafka` cluster resource in order to allow the internal migration service to move across the different phases.
 The operator is going to apply the needed configuration to the nodes and roll them.
 It is also in charge of checking the migration status looking at the metrics for you to make sure it was done successfully.
 
@@ -33,10 +31,10 @@ It is now possible to use two more values for the `strimzi.io/kraft` annotation:
 
 During migration or rollback, the `enabled` and `disabled` values are still used to finalize the procedure by ending with a cluster in KRaft mode or keeping the ZooKeeper mode.
 
-One of the main prerequisites for the migration is about having the ZooKeeper-based cluster using the `KafkaNodePool`(s) to run the brokers.
-If that is not the case for you, please refer to the official Strimzi documentation [here](https://strimzi.io/docs/operators/latest/deploying#proc-migrating-clusters-node-pools-str).
+One of the main prerequisites for the migration is about having the ZooKeeper-based cluster using the `KafkaNodePool` resource(s) to run the brokers.
+If that is not the case for you, please refer to the official Strimzi documentation [here](https://strimzi.io/docs/operators/latest/deploying#proc-migrating-clusters-node-pools-str) and this [series of blog posts](https://strimzi.io/blog/2023/08/14/kafka-node-pools-introduction/) focused on node pools.
 
-Following there is a snippet of a `Kafka` custom resource highlighting node pools enabled and using ZooKeeper for metadata.
+Before starting the migration, the `Kafka` custom resource has to have the `strimzi.io/node-pools: enabled` annotation to use node pools together with the `strimzi.io/kraft: disabled` which defines a ZooKeeper-based cluster.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -48,6 +46,8 @@ metadata:
     strimzi.io/node-pools: enabled
 # ...
 ```
+
+Using the Unidirectional Topic Operator and a Kafka version greater or equal 3.7.0 are important prerequisites as well.
 
 The deployed cluster has severals pods running for the Kafka brokers and ZooKeeper nodes.
 
@@ -65,7 +65,7 @@ strimzi-cluster-operator-7ddf57685d-245pd     1/1     Running   0          17m
 
 #### From ZooKeeper to full KRaft based brokers
 
-The first step is to deploy a `KafkaNodePool` custom resource which hosts the KRaft controllers and then changing the `strimzi.io/kraft` annotation from `disabled` to `migration` to trigger the process.
+The first step is to deploy a `KafkaNodePool` custom resource which is used to provision the KRaft controllers and then changing the `strimzi.io/kraft` annotation from `disabled` to `migration` to trigger the process.
 
 Following a snippet of a `KafkaNodePool` custom resource to be deployed for getting the KRaft controllers running.
 
@@ -102,12 +102,12 @@ metadata:
 # ...
 ```
 
-The annotation change triggers the Strimzi operator to run the following steps for you:
+The annotation change triggers the Strimzi operator to run the following steps:
 
 * deploy the KRaft controllers, which are configured with all the connection details to ZooKeeper and with the migration flag enabled;
 * configure the running brokers with the connection details to the KRaft controller quorum, the migration flag enabled and roll them;
-* checking the status of the migration, on each reconciliation, and updating the `Kafka` custom resource to provide such status to the user through the `status.kafkaMetadataState` field;
-* when the migration is done, the brokers are reconfigured to be not connected to ZooKeeper anymore, with the migration flag disabled and they are rolled again.
+* on each reconciliation, check the status of the migration and update the `Kafka` custom resource to provide such status to the user through the `status.kafkaMetadataState` field;
+* when the migration is done, reconfigure brokers to be not connected to ZooKeeper anymore, with the migration flag disabled, and roll them again;
 
 As you can see, just applying one single annotation value has covered most of the phases in the migration procedure with the user doing actually nothing but following what the operator is running for them.
 
@@ -148,6 +148,7 @@ metadata:
 
 The operator will configure the KRaft controllers without the ZooKeeper connection details, with the migration flag disabled and roll them.
 When both brokers and controllers are working in KRaft mode, the operator will delete all the resources related to ZooKeeper as well.
+At this point, the user can delete the `.spec.zookeeper` section from the `Kafka` custom resource because it is not needed anymore.
 
 During the finalization, the cluster metadata state moves to the final `KRaft`.
 
@@ -229,5 +230,5 @@ While the manual migration process could be considered long and complex if your 
 The Strimzi operator provides you a semi-automated process which needs just a few manual steps to update an annotation to migrate your cluster.
 Together with a GitOps approach you could easily migrate multiple cluster at the time.
 
-If it is about testing on a development environment or a production one, let us know your experience about migrating your cluster with Strimzi.
+Let us know your experience with the migration of your cluster with Strimzi.
 Your feedback is very welcome!
