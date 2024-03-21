@@ -5,10 +5,10 @@ date: 2024-03-20
 author: paolo_patierno
 ---
 
-In the previous [blog post](TBD) we explored how Apache ZooKeeper is used to store Apache Kafka clusters metadata and what are the current limitations.
+In the previous [blog post](https://strimzi.io/blog/2024/03/21/kraft-migration/) we explored how Apache ZooKeeper is used to store Apache Kafka clusters metadata and what are the current limitations.
 We introduced the new KRaft protocol which allows to overcome such limitations and store metadata in Kafka itself, taking into account that the ZooKeeper support will be removed soon.
 For this reason, there is the need to migrate existing clusters from using ZooKeeper to KRaft for storing metadata.
-We also covered the overall procedure to do that.
+The overall procedure was also covered.
 The Kafka metadata migration procedure can be done without downtime, but it is not that straightforward because it requires manual configurations and several rolling updates.
 The good news is that, if your cluster is powered by Strimzi, this process is much easier, and can be driven by simply annotating your Kafka resource.
 In this blog post, we are going to show you how the Strimzi cluster operator provides a semi-automated process to run the migration easily, so that you don't need to worry about updating configurations and restarting cluster nodes.
@@ -31,7 +31,7 @@ It is now possible to use two more values for the `strimzi.io/kraft` annotation:
 
 During migration or rollback, the `enabled` and `disabled` values are used to finalize the procedure by ending with a cluster in KRaft mode or keeping the ZooKeeper mode.
 
-One of the main prerequisites for the migration is about having the ZooKeeper-based cluster using the `KafkaNodePool` resource(s) to run the brokers.
+One of the main prerequisites for the migration is having the ZooKeeper-based cluster using the `KafkaNodePool` resource(s) to run the brokers.
 If that is not the case for you, please refer to the official Strimzi documentation [here](https://strimzi.io/docs/operators/latest/deploying#proc-migrating-clusters-node-pools-str) and this [series of blog posts](https://strimzi.io/blog/2023/08/14/kafka-node-pools-introduction/) focused on node pools.
 
 Before starting the migration, the `Kafka` custom resource has to have the `strimzi.io/node-pools: enabled` annotation to use node pools together with the `strimzi.io/kraft: disabled` which defines a ZooKeeper-based cluster.
@@ -139,6 +139,11 @@ In this status, the cluster is still working in "dual-write" mode and the user c
 If the `Kafka` custom resource has the `inter.broker.protocol.version` and `log.message.format.version` parameters set in the `spec.kafka.config` section, and because they are not supported in KRaft, the operator reports warnings into the status (see `WARNINGS` column).
 The user has to remove the parameters at the end of the process causing an additional rolling of the nodes.
 
+Once the metadata state is in `KRaftPostMigration` state, you have two options how you can continue:
+
+* [finalize the migration](#migration-finalization) to have a full KRaft cluster.
+* [rollback the process](#rollback-to-zookeeper) to keep using ZooKeeper.
+
 #### Migration finalization
 
 At this point, the user can finalize the migration by changing the `strimzi.io/kraft` annotation to `enabled`.
@@ -178,7 +183,7 @@ my-cluster                                                  True    KRaft
 
 As you can see, just a couple of changes on the `strimzi.io/kraft` annotation make the migration really straight forward.
 
-#### Rollback support
+#### Rollback to ZooKeeper
 
 When the migration is not finalized yet, so when the KRaft controllers are still connected to ZooKeeper, it is still possible to rollback.
 By applying the `rollback` value on the `strimzi.io/kraft` annotation, the operator reconfigures the brokers with the connection details to ZooKeeper again and roll them.
