@@ -29,7 +29,7 @@ It is now possible to use two more values for the `strimzi.io/kraft` annotation:
 * `migration` to start the migration process;
 * `rollback` to revert the migration itself;
 
-During migration or rollback, the `enabled` and `disabled` values are still used to finalize the procedure by ending with a cluster in KRaft mode or keeping the ZooKeeper mode.
+During migration or rollback, the `enabled` and `disabled` values are used to finalize the procedure by ending with a cluster in KRaft mode or keeping the ZooKeeper mode.
 
 One of the main prerequisites for the migration is about having the ZooKeeper-based cluster using the `KafkaNodePool` resource(s) to run the brokers.
 If that is not the case for you, please refer to the official Strimzi documentation [here](https://strimzi.io/docs/operators/latest/deploying#proc-migrating-clusters-node-pools-str) and this [series of blog posts](https://strimzi.io/blog/2023/08/14/kafka-node-pools-introduction/) focused on node pools.
@@ -102,6 +102,12 @@ metadata:
 # ...
 ```
 
+You can do that by annotating the custom resource.
+
+```shell
+kubectl annotate kafka my-cluster strimzi.io/kraft="migration" --overwrite
+```
+
 The annotation change triggers the Strimzi operator to run the following steps:
 
 * deploy the KRaft controllers, which are configured with all the connection details to ZooKeeper and with the migration flag enabled;
@@ -130,6 +136,8 @@ my-cluster   3                        3                     True    KRaftPostMig
 ```
 
 In this status, the cluster is still working in "dual-write" mode and the user can validate that everything is working fine before deciding to finalize the migration or rolling back to use ZooKeeper.
+If the `Kafka` custom resource has the `inter.broker.protocol.version` and `log.message.format.version` parameters set in the `spec.kafka.config` section, and because they are not supported in KRaft, the operator reports warnings into the status (see `WARNINGS` column).
+The user has to remove the parameters at the end of the process causing an additional rolling of the nodes.
 
 #### Migration finalization
 
@@ -144,6 +152,12 @@ metadata:
     strimzi.io/kraft: enabled # updated from "migration" to "enabled" to finalize the migration process
     strimzi.io/node-pools: enabled
 # ...
+```
+
+You can do that by annotating the custom resource.
+
+```shell
+kubectl annotate kafka my-cluster strimzi.io/kraft="enabled" --overwrite
 ```
 
 The operator will configure the KRaft controllers without the ZooKeeper connection details, with the migration flag disabled and roll them.
@@ -178,7 +192,13 @@ metadata:
     strimzi.io/kraft: rollback # updated from "migration" to "rollback" to revert the migration process
     strimzi.io/node-pools: enabled
 # ...
-```    
+```  
+
+You can do that by annotating the custom resource.
+
+```shell
+kubectl annotate kafka my-cluster strimzi.io/kraft="rollback" --overwrite
+```
 
 Because of the rollback, the cluster metadata state moves back to `KRaftDualWriting`, waiting for the user to finalize the revert.
 
@@ -198,11 +218,6 @@ my-cluster   3                        3                             KRaftDualWri
 
 After that, you have to delete the `KafkaNodePool` hosting the KRaft controllers and then apply the `disabled` value annotation.
 
-The annotation change triggers the Strimzi operator to run the following steps for you:
-
-* automatically delete the `/controller` znode on ZooKeeper to allow the brokers to elect the new controller among them in place of the previous KRaft controller;
-* reconfigure brokers without connection details to the KRaft controller quorum anymore but using ZooKeeper again and roll them;
-
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
@@ -213,6 +228,17 @@ metadata:
     strimzi.io/node-pools: enabled
 # ...
 ```
+
+You can do that by annotating the custom resource.
+
+```shell
+kubectl annotate kafka my-cluster strimzi.io/kraft="disabled" --overwrite
+```
+
+The annotation change triggers the Strimzi operator to run the following steps for you:
+
+* automatically delete the `/controller` znode on ZooKeeper to allow the brokers to elect the new controller among them in place of the previous KRaft controller;
+* reconfigure brokers without connection details to the KRaft controller quorum anymore but using ZooKeeper again and roll them;
 
 Finally, the cluster metadata state comes back to be `ZooKeeper`.
 
