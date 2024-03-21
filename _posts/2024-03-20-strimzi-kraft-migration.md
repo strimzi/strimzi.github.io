@@ -106,7 +106,7 @@ The annotation change triggers the Strimzi operator to run the following steps:
 
 * deploy the KRaft controllers, which are configured with all the connection details to ZooKeeper and with the migration flag enabled;
 * configure the running brokers with the connection details to the KRaft controller quorum, the migration flag enabled and roll them;
-* on each reconciliation, check the status of the migration and update the `Kafka` custom resource to provide such status to the user through the `status.kafkaMetadataState` field;
+* on each reconciliation, check the status of the migration by verifying the `kafka.controller:type=KafkaController,name=ZkMigrationState` metric and update the `Kafka` custom resource to provide such status to the user through the `status.kafkaMetadataState` field;
 * when the migration is done, reconfigure brokers to be not connected to ZooKeeper anymore, with the migration flag disabled, and roll them again;
 
 As you can see, just applying one single annotation value has covered most of the phases in the migration procedure with the user doing actually nothing but following what the operator is running for them.
