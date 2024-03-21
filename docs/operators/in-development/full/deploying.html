@@ -550,12 +550,12 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#ref-operator-use-strimzi-pod-sets-feature-gate-str">8.1.3. UseStrimziPodSets feature gate</a></li>
 <li><a href="#ref-operator-stable-connect-identities-feature-gate-str">8.1.4. StableConnectIdentities feature gate</a></li>
 <li><a href="#ref-operator-kafka-node-pools-feature-gate-str">8.1.5. KafkaNodePools feature gate</a></li>
+<li><a href="#ref-operator-unidirectional-topic-operator-feature-gate-str">8.1.6. UnidirectionalTopicOperator feature gate</a></li>
 </ul>
 </li>
 <li><a href="#stable_feature_gates_beta">8.2. Stable feature gates (Beta)</a>
 <ul class="sectlevel3">
 <li><a href="#ref-operator-use-kraft-feature-gate-str">8.2.1. UseKRaft feature gate</a></li>
-<li><a href="#ref-operator-unidirectional-topic-operator-feature-gate-str">8.2.2. UnidirectionalTopicOperator feature gate</a></li>
 </ul>
 </li>
 <li><a href="#early_access_feature_gates_alpha">8.3. Early access feature gates (Alpha)</a></li>
@@ -688,19 +688,13 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#using-the-topic-operator-str">11. Using the Topic Operator to manage Kafka topics</a>
 <ul class="sectlevel2">
-<li><a href="#ref-operator-topic-str">11.1. Topic management modes</a>
-<ul class="sectlevel3">
-<li><a href="#unidirectional_topic_management">11.1.1. Unidirectional topic management</a></li>
-<li><a href="#bidirectional_topic_management">11.1.2. Bidirectional topic management</a></li>
-</ul>
-</li>
+<li><a href="#ref-operator-topic-str">11.1. Topic management</a></li>
 <li><a href="#con-operator-topic-names-str">11.2. Topic naming conventions</a></li>
 <li><a href="#con-application-topic-handling-str">11.3. Handling changes to topics</a>
 <ul class="sectlevel3">
-<li><a href="#topic_store_for_bidirectional_topic_management">11.3.1. Topic store for bidirectional topic management</a></li>
-<li><a href="#migrating_topic_metadata_from_zookeeper_to_the_topic_store">11.3.2. Migrating topic metadata from ZooKeeper to the topic store</a></li>
-<li><a href="#downgrading_to_a_strimzi_version_that_uses_zookeeper_to_store_topic_metadata">11.3.3. Downgrading to a Strimzi version that uses ZooKeeper to store topic metadata</a></li>
-<li><a href="#automatic_creation_of_topics">11.3.4. Automatic creation of topics</a></li>
+<li><a href="#downgrading_to_a_strimzi_version_that_uses_internal_topics_to_store_topic_metadata">11.3.1. Downgrading to a Strimzi version that uses internal topics to store topic metadata</a></li>
+<li><a href="#downgrading_to_a_strimzi_version_that_uses_zookeeper_to_store_topic_metadata">11.3.2. Downgrading to a Strimzi version that uses ZooKeeper to store topic metadata</a></li>
+<li><a href="#automatic_creation_of_topics">11.3.3. Automatic creation of topics</a></li>
 </ul>
 </li>
 <li><a href="#proc-configuring-kafka-topic-str">11.4. Configuring Kafka topics</a></li>
@@ -708,10 +702,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#proc-converting-managed-topics-str">11.6. Managing KafkaTopic resources without impacting Kafka topics</a></li>
 <li><a href="#proc-converting-non-managed-topics-str">11.7. Enabling topic management for existing Kafka topics</a></li>
 <li><a href="#con-deleting-managed-topics-str">11.8. Deleting managed topics</a></li>
-<li><a href="#proc-changing-topic-operator-mode-str">11.9. Switching between Topic Operator modes</a></li>
-<li><a href="#con-removing-topic-finalizers-str">11.10. Removing finalizers on topics</a></li>
-<li><a href="#con-disabling-topic-deletion-str">11.11. Considerations when disabling topic deletion</a></li>
-<li><a href="#con-tuning-topic-request-batches-str">11.12. Tuning request batches for topic operations</a></li>
+<li><a href="#con-removing-topic-finalizers-str">11.9. Removing finalizers on topics</a></li>
+<li><a href="#con-disabling-topic-deletion-str">11.10. Considerations when disabling topic deletion</a></li>
+<li><a href="#con-tuning-topic-request-batches-str">11.11. Tuning request batches for topic operations</a></li>
 </ul>
 </li>
 <li><a href="#assembly-using-the-user-operator-str">12. Using the User Operator to manage Kafka users</a>
@@ -3612,9 +3605,7 @@ The deployment is successful when the <code>STATUS</code> displays as <code>Runn
 <div class="sect3">
 <h4 id="deploying-the-topic-operator-using-the-cluster-operator-str"><a class="link" href="#deploying-the-topic-operator-using-the-cluster-operator-str">5.3.3. Deploying the Topic Operator using the Cluster Operator</a></h4>
 <div class="paragraph _abstract">
-<p>This procedure describes how to deploy the Topic Operator using the Cluster Operator.
-The Topic Operator can be deployed for use in either bidirectional mode or unidirectional mode.
-To learn more about bidirectional and unidirectional topic management, see <a href="#ref-operator-topic-str">Topic management modes</a>.</p>
+<p>This procedure describes how to deploy the Topic Operator using the Cluster Operator.</p>
 </div>
 <div class="paragraph">
 <p>You configure the <code>entityOperator</code> property of the <code>Kafka</code> resource to include the <code>topicOperator</code>.
@@ -5692,11 +5683,8 @@ You adjust the deployment configuration for the standalone operator to match the
 <div class="sect3">
 <h4 id="deploying-the-topic-operator-standalone-str"><a class="link" href="#deploying-the-topic-operator-standalone-str">5.8.1. Deploying the standalone Topic Operator</a></h4>
 <div class="paragraph _abstract">
-<p>This procedure shows how to deploy the Topic Operator in unidirectional mode as a standalone component for topic management.
-You can use a standalone Topic Operator with a Kafka cluster that is not managed by the Cluster Operator.
-Unidirectional topic management maintains topics solely through <code>KafkaTopic</code> resources.
-For more information on unidirectional topic management, see <a href="#ref-operator-topic-str">Topic management modes</a>.
-Alternate configuration is also shown for deploying the Topic Operator in bidirectional mode.</p>
+<p>This procedure shows how to deploy the Topic Operator as a standalone component for topic management.
+You can use a standalone Topic Operator with a Kafka cluster that is not managed by the Cluster Operator.</p>
 </div>
 <div class="paragraph">
 <p>Standalone deployment files are provided with Strimzi.
@@ -5913,167 +5901,6 @@ The deployment is successful when the <code>AVAILABLE</code> output shows <code>
 </div>
 </li>
 </ol>
-</div>
-<div class="sect4">
-<h5 id="deploying_the_standalone_topic_operator_for_bidirectional_topic_management"><a class="link" href="#deploying_the_standalone_topic_operator_for_bidirectional_topic_management">Deploying the standalone Topic Operator for bidirectional topic management</a></h5>
-<div class="paragraph">
-<p>Bidirectional topic management requires ZooKeeper for cluster management, and maintains topics through <code>KafkaTopic</code> resources and within the Kafka cluster.
-If you want to switch to using the Topic Operator in this mode, follow these steps to deploy the standalone Topic Operator.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-As the feature gate enabling the Topic Operator to run in unidirectional mode progresses to General Availability, bidirectional mode will be phased out. This transition is aimed at enhancing the user experience, particularly in supporting Kafka in KRaft mode.
-</td>
-</tr>
-</table>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Undeploy the current standalone Topic Operator.</p>
-<div class="paragraph">
-<p>Retain the <code>KafkaTopic</code> resources, which are picked up by the Topic Operator when it is deployed again.</p>
-</div>
-</li>
-<li>
-<p>Edit the <code>Deployment</code> configuration for the standalone Topic Operator to include ZooKeeper-related environment variables:</p>
-<div class="ulist">
-<ul>
-<li>
-<p><code>STRIMZI_ZOOKEEPER_CONNECT</code></p>
-</li>
-<li>
-<p><code>STRIMZI_ZOOKEEPER_SESSION_TIMEOUT_MS</code></p>
-</li>
-<li>
-<p><code>TC_ZK_CONNECTION_TIMEOUT_MS</code></p>
-</li>
-<li>
-<p><code>STRIMZI_USE_ZOOKEEPER_TOPIC_STORE</code></p>
-<div class="paragraph">
-<p>It is the presence or absence of the ZooKeeper variables that defines whether the bidirectional Topic Operator is used.
-Unidirectional topic management does not use ZooKeeper.
-If ZooKeeper environment variables are not present, the unidirectional Topic Operator is used.
-Otherwise, the bidirectional Topic Operator is used.</p>
-</div>
-<div class="paragraph">
-<p>Other environment variables that are not used in unidirectional mode can be added if required:</p>
-</div>
-</li>
-<li>
-<p><code>STRIMZI_REASSIGN_THROTTLE</code></p>
-</li>
-<li>
-<p><code>STRIMZI_REASSIGN_VERIFY_INTERVAL_MS</code></p>
-</li>
-<li>
-<p><code>STRIMZI_TOPIC_METADATA_MAX_ATTEMPTS</code></p>
-</li>
-<li>
-<p><code>STRIMZI_TOPICS_PATH</code></p>
-</li>
-<li>
-<p><code>STRIMZI_STORE_TOPIC</code></p>
-</li>
-<li>
-<p><code>STRIMZI_STORE_NAME</code></p>
-</li>
-<li>
-<p><code>STRIMZI_APPLICATION_ID</code></p>
-</li>
-<li>
-<p><code>STRIMZI_STALE_RESULT_TIMEOUT_MS</code></p>
-<div class="listingblock">
-<div class="title">Example standalone Topic Operator deployment configuration for bidirectional topic management</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: strimzi-topic-operator
-  labels:
-    app: strimzi
-spec:
-  # ...
-  template:
-    # ...
-    spec:
-      # ...
-      containers:
-        - name: strimzi-topic-operator
-          # ...
-          env:
-            - name: STRIMZI_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-            - name: STRIMZI_KAFKA_BOOTSTRAP_SERVERS
-              value: my-kafka-bootstrap-address:9092
-            - name: STRIMZI_RESOURCE_LABELS
-              value: "strimzi.io/cluster=my-cluster"
-            - name: STRIMZI_ZOOKEEPER_CONNECT # <b class="conum">(1)</b>
-              value: my-cluster-zookeeper-client:2181
-            - name: STRIMZI_ZOOKEEPER_SESSION_TIMEOUT_MS # <b class="conum">(2)</b>
-              value: "18000"
-            - name: STRIMZI_TOPIC_METADATA_MAX_ATTEMPTS # <b class="conum">(3)</b>
-              value: "6"
-            - name: STRIMZI_FULL_RECONCILIATION_INTERVAL_MS
-              value: "120000"
-            - name: STRIMZI_LOG_LEVEL
-              value: INFO
-            - name: STRIMZI_TLS_ENABLED
-              value: "false"
-            - name: STRIMZI_JAVA_OPTS
-              value: "-Xmx=512M -Xms=256M"
-            - name: STRIMZI_JAVA_SYSTEM_PROPERTIES
-              value: "-Djavax.net.debug=verbose -DpropertyName=value"
-            - name: STRIMZI_PUBLIC_CA
-              value: "false"
-            - name: STRIMZI_TLS_AUTH_ENABLED
-              value: "false"
-            - name: STRIMZI_SASL_ENABLED
-              value: "false"
-            - name: STRIMZI_SASL_USERNAME
-              value: "admin"
-            - name: STRIMZI_SASL_PASSWORD
-              value: "password"
-            - name: STRIMZI_SASL_MECHANISM
-              value: "scram-sha-512"
-            - name: STRIMZI_SECURITY_PROTOCOL
-              value: "SSL"</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>(ZooKeeper) The host and port pair of the address to connect to the ZooKeeper cluster.
-This must be the same ZooKeeper cluster that your Kafka cluster is using.</p>
-</li>
-<li>
-<p>(ZooKeeper) The ZooKeeper session timeout, in milliseconds.
-The default is <code>18000</code> (18 seconds).</p>
-</li>
-<li>
-<p>The number of attempts at getting topic metadata from Kafka.
-The time between each attempt is defined as an exponential backoff.
-Consider increasing this value when topic creation takes more time due to the number of partitions or replicas.
-The default is <code>6</code> attempts.</p>
-</li>
-</ol>
-</div>
-</li>
-</ul>
-</div>
-</li>
-<li>
-<p>Apply the changes to the <code>Deployment</code> configuration to deploy the Topic Operator.</p>
-</li>
-</ol>
-</div>
 </div>
 </div>
 <div class="sect3">
@@ -6542,6 +6369,16 @@ The label must be set to the name of the <code>Kafka</code> custom resource.</p>
 <p>If your cluster already uses <code>KafkaNodePool</code> custom resources, and you wish to downgrade to an older version of Strimzi that does not support them or with the <code>KafkaNodePools</code> feature gate disabled, you must first migrate from <code>KafkaNodePool</code> custom resources to managing Kafka nodes using only <code>Kafka</code> custom resources.</p>
 </div>
 </div>
+<div class="sect3">
+<h4 id="ref-operator-unidirectional-topic-operator-feature-gate-str"><a class="link" href="#ref-operator-unidirectional-topic-operator-feature-gate-str">8.1.6. UnidirectionalTopicOperator feature gate</a></h4>
+<div class="paragraph">
+<p>The <code>UnidirectionalTopicOperator</code> feature gate introduced a unidirectional topic management mode for creating Kafka topics using the <code>KafkaTopic</code> resource.
+Unidirectional mode is compatible with using KRaft for cluster management.
+With unidirectional mode, you create Kafka topics using the <code>KafkaTopic</code> resource, which are then managed by the Topic Operator.
+Any configuration changes to a topic outside the <code>KafkaTopic</code> resource are reverted.
+For more information on topic management, see <a href="#ref-operator-topic-str">Topic management</a>.</p>
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="stable_feature_gates_beta"><a class="link" href="#stable_feature_gates_beta">8.2. Stable feature gates (Beta)</a></h3>
@@ -6573,10 +6410,6 @@ The <code>Kafka</code> custom resource using KRaft mode must also have the annot
 <div class="ulist">
 <ul>
 <li>
-<p>Only the <em>Unidirectional</em> Topic Operator is supported in KRaft mode.
-The <em>Bidirectional</em> Topic Operator is not supported and when the <code>UnidirectionalTopicOperator</code> feature gate is disabled, the <code>spec.entityOperator.topicOperator</code> property <strong>must be removed</strong> from the <code>Kafka</code> custom resource.</p>
-</li>
-<li>
 <p>JBOD storage is not supported.
 The <code>type: jbod</code> storage can be used, but the JBOD array can contain only one disk.</p>
 </li>
@@ -6588,23 +6421,6 @@ The <code>type: jbod</code> storage can be used, but the JBOD array can contain 
 <div class="paragraph">
 <div class="title">Disabling the UseKRaft feature gate</div>
 <p>To disable the <code>UseKRaft</code> feature gate, specify <code>-UseKRaft</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="ref-operator-unidirectional-topic-operator-feature-gate-str"><a class="link" href="#ref-operator-unidirectional-topic-operator-feature-gate-str">8.2.2. UnidirectionalTopicOperator feature gate</a></h4>
-<div class="paragraph">
-<p>The <code>UnidirectionalTopicOperator</code> feature gate has a default state of <em>enabled</em>.</p>
-</div>
-<div class="paragraph">
-<p>The <code>UnidirectionalTopicOperator</code> feature gate introduces a unidirectional topic management mode for creating Kafka topics using the <code>KafkaTopic</code> resource.
-Unidirectional mode is compatible with using KRaft for cluster management.
-With unidirectional mode, you create Kafka topics using the <code>KafkaTopic</code> resource, which are then managed by the Topic Operator.
-Any configuration changes to a topic outside the <code>KafkaTopic</code> resource are reverted.
-For more information on topic management, see <a href="#ref-operator-topic-str">Topic management modes</a>.</p>
-</div>
-<div class="paragraph">
-<div class="title">Disabling the <code>UnidirectionalTopicOperator</code> feature gate</div>
-<p>To disable the <code>UnidirectionalTopicOperator</code> feature gate, specify <code>-UnidirectionalTopicOperator</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.</p>
 </div>
 </div>
 </div>
@@ -6682,8 +6498,8 @@ It is now permanently enabled and cannot be disabled.</p>
 It is now permanently enabled and cannot be disabled.</p>
 </li>
 <li>
-<p>The <code>UnidirectionalTopicOperator</code> feature gate is in beta stage and is enabled by default.
-It is expected to move to GA phase and be always enabled from Strimzi 0.41.</p>
+<p>The <code>UnidirectionalTopicOperator</code> feature gate moved to GA stage in Strimzi 0.41.
+It is now permanently enabled and cannot be disabled.</p>
 </li>
 </ul>
 </div>
@@ -6756,7 +6572,7 @@ Feature gates might be removed when they reach GA. This means that the feature w
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>UnidirectionalTopicOperator</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0.36</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0.39</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">0.41 (planned)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.41</p></td>
 </tr>
 </tbody>
 </table>
@@ -6835,9 +6651,6 @@ Note also, the following:</p>
 <p>Verify that the ZooKeeper-based deployment is operating without the following, as they are not supported in KRaft mode:</p>
 <div class="ulist">
 <ul>
-<li>
-<p>The Topic Operator running in bidirectional mode. It should either be in unidirectional mode or disabled.</p>
-</li>
 <li>
 <p>JBOD storage. While the <code>jbod</code> storage type can be used, the JBOD array must contain only one disk.</p>
 </li>
@@ -9632,19 +9445,6 @@ spec:
 <div class="paragraph _abstract">
 <p>Use <code>topicOperator</code> properties in <code>Kafka.spec.entityOperator</code> to configure the Topic Operator.</p>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-If you are using unidirectional topic management, which is enabled by default, the following properties are not used and are ignored: <code>Kafka.spec.entityOperator.topicOperator.zookeeperSessionTimeoutSeconds</code> and <code>Kafka.spec.entityOperator.topicOperator.topicMetadataMaxAttempts</code>.
-For more information on unidirectional topic management, refer to <a href="#ref-operator-topic-str">Topic management modes</a>.
-</td>
-</tr>
-</table>
-</div>
 <div class="paragraph">
 <p>The following properties are supported:</p>
 </div>
@@ -9659,18 +9459,6 @@ Default is the namespace where the Kafka cluster is deployed.</p>
 <dd>
 <p>The interval between periodic reconciliations in seconds.
 Default <code>120</code>.</p>
-</dd>
-<dt class="hdlist1"><code>zookeeperSessionTimeoutSeconds</code></dt>
-<dd>
-<p>The ZooKeeper session timeout in seconds.
-Default <code>18</code>.</p>
-</dd>
-<dt class="hdlist1"><code>topicMetadataMaxAttempts</code></dt>
-<dd>
-<p>The number of attempts at getting topic metadata from Kafka.
-The time between each attempt is defined as an exponential back-off.
-Consider increasing this value when topic creation might take more time due to the number of partitions or replicas.
-Default <code>6</code>.</p>
 </dd>
 <dt class="hdlist1"><code>image</code></dt>
 <dd>
@@ -10003,13 +9791,6 @@ if no image is specified as the <code>Kafka.spec.entityOperator.topicOperator.im
 The default is <code>quay.io/strimzi/operator:latest</code>.
 The image name to use as the default when deploying the User Operator
 if no image is specified as the <code>Kafka.spec.entityOperator.userOperator.image</code> in the <code>Kafka</code> resource.</p>
-</dd>
-<dt class="hdlist1"><code>STRIMZI_DEFAULT_TLS_SIDECAR_ENTITY_OPERATOR_IMAGE</code></dt>
-<dd>
-<p>Optional.
-The default is <code>quay.io/strimzi/kafka:latest-kafka-3.7.0</code>.
-The image name to use as the default when deploying the sidecar container for the Entity Operator if no image is specified as the <code>Kafka.spec.entityOperator.tlsSidecar.image</code> in the <code>Kafka</code> resource.
-The sidecar provides TLS support.</p>
 </dd>
 <dt class="hdlist1"><code>STRIMZI_DEFAULT_KAFKA_EXPORTER_IMAGE</code></dt>
 <dd>
@@ -16592,38 +16373,12 @@ When you create, modify, or delete a topic using <code>KafkaTopic</code>, the To
 <p>For more information on the <code>KafkaTopic</code> resource, see the <a href="./configuring.html#type-KafkaTopic-reference" target="_blank" rel="noopener"><code>KafkaTopic</code> schema reference</a>.</p>
 </div>
 <div class="sect2">
-<h3 id="ref-operator-topic-str"><a class="link" href="#ref-operator-topic-str">11.1. Topic management modes</a></h3>
+<h3 id="ref-operator-topic-str"><a class="link" href="#ref-operator-topic-str">11.1. Topic management</a></h3>
 <div class="paragraph _abstract">
-<p>The <code>KafkaTopic</code> resource is responsible for managing a single topic within a Kafka cluster. The Topic Operator provides two modes for managing <code>KafkaTopic</code> resources and Kafka topics:</p>
+<p>The <code>KafkaTopic</code> resource is responsible for managing a single topic within a Kafka cluster.</p>
 </div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Unidirectional mode (default)</dt>
-<dd>
-<p>Unidirectional mode does not require ZooKeeper for cluster management. It is compatible with using Strimzi in KRaft mode.</p>
-</dd>
-<dt class="hdlist1">Bidirectional mode</dt>
-<dd>
-<p>Bidirectional mode requires ZooKeeper for cluster management. It is not compatible with using Strimzi in KRaft mode.</p>
-</dd>
-</dl>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-As the feature gate enabling the Topic Operator to run in unidirectional mode progresses to General Availability, bidirectional mode will be phased out. This transition is aimed at enhancing the user experience, particularly in supporting Kafka in KRaft mode.
-</td>
-</tr>
-</table>
-</div>
-<div class="sect3">
-<h4 id="unidirectional_topic_management"><a class="link" href="#unidirectional_topic_management">11.1.1. Unidirectional topic management</a></h4>
 <div class="paragraph">
-<p>In unidirectional mode, the Topic Operator operates as follows:</p>
+<p>The Topic Operator operates as follows:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -16640,36 +16395,6 @@ If a <code>KafkaTopic</code> does exist for a Kafka topic, any configuration cha
 <div class="paragraph">
 <p>The Topic Operator can detect cases where where multiple <code>KafkaTopic</code> resources are attempting to manage a Kafka topic using the same <code>.spec.topicName</code>.
 Only the oldest resource is reconciled, while the other resources fail with a resource conflict error.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="bidirectional_topic_management"><a class="link" href="#bidirectional_topic_management">11.1.2. Bidirectional topic management</a></h4>
-<div class="paragraph">
-<p>In bidirectional mode, the Topic Operator operates as follows:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>When a <code>KafkaTopic</code> is created, deleted, or changed, the Topic Operator performs the corresponding operation on the Kafka topic.</p>
-</li>
-<li>
-<p>Similarly, when a topic is created, deleted, or changed within the Kafka cluster, the Topic Operator performs the corresponding operation on the <code>KafkaTopic</code> resource.</p>
-</li>
-</ul>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Tip</div>
-</td>
-<td class="content">
-Try to stick to one method of managing topics, either through the <code>KafkaTopic</code> resources or directly in Kafka.
-Avoid routinely switching between both methods for a given topic.
-</td>
-</tr>
-</table>
-</div>
 </div>
 </div>
 <div class="sect2">
@@ -16751,19 +16476,8 @@ spec:
 The status of the newer resources is updated to indicate a conflict, and their <code>Ready</code> status is changed to <code>False</code>.</p>
 </div>
 <div class="paragraph">
-<p>If a Kafka client application, such as Kafka Streams, automatically creates topics with invalid Kubernetes resource names, the Topic Operator generates a valid <code>metadata.name</code> when used in bidirectional mode.
-It replaces invalid characters and appends a hash to the name.
-However, this behavior does not apply in unidirectional mode.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example of replacing an invalid topic name</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaTopic
-metadata:
-  name: my-topic---c55e57fe2546a33f9e603caf57165db4072e827e
-  # ...</code></pre>
-</div>
+<p>A Kafka client application, such as Kafka Streams, can automatically create topics with invalid Kubernetes resource names.
+If you want to manage these topics, you must create <code>KafkaTopic</code> resources with a different <code>.metadata.name</code>, as shown in the previous example.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -16781,89 +16495,19 @@ For more information on the requirements for identifiers and names in a cluster,
 <div class="sect2">
 <h3 id="con-application-topic-handling-str"><a class="link" href="#con-application-topic-handling-str">11.3. Handling changes to topics</a></h3>
 <div class="paragraph _abstract">
-<p>How the Topic Operator handles changes to topics depends on the <a href="#ref-operator-topic-str">mode of topic management</a>.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>For unidirectional topic management, configuration changes only go in one direction: from the <code>KafkaTopic</code> resource to the Kafka topic. Any changes to a Kafka topic managed outside the <code>KafkaTopic</code> resource are reverted.</p>
-</li>
-<li>
-<p>For bidirectional topic management, configuration changes are synchronized between the Kafka topic and the <code>KafkaTopic</code> resource in both directions. Incompatible changes prioritize the Kafka configuration, and the <code>KafkaTopic</code> resource is adjusted accordingly.</p>
-</li>
-</ul>
+<p>Configuration changes only go in one direction: from the <code>KafkaTopic</code> resource to the Kafka topic.
+Any changes to a Kafka topic managed outside the <code>KafkaTopic</code> resource are reverted.</p>
 </div>
 <div class="sect3">
-<h4 id="topic_store_for_bidirectional_topic_management"><a class="link" href="#topic_store_for_bidirectional_topic_management">11.3.1. Topic store for bidirectional topic management</a></h4>
+<h4 id="downgrading_to_a_strimzi_version_that_uses_internal_topics_to_store_topic_metadata"><a class="link" href="#downgrading_to_a_strimzi_version_that_uses_internal_topics_to_store_topic_metadata">11.3.1. Downgrading to a Strimzi version that uses internal topics to store topic metadata</a></h4>
 <div class="paragraph">
-<p>For bidirectional topic management, the Topic Operator is capable of handling changes to topics when there is no single source of truth.
-The <code>KafkaTopic</code> resource and the Kafka topic can undergo independent modifications, where real-time observation of changes may not always be feasible, particularly when the Topic Operator is not operational.
-To handle this, the Topic Operator maintains a topic store that stores topic configuration information about each topic.
-It compares the state of the Kafka cluster and Kubernetes with the topic store to determine the necessary changes for synchronization.
-This evaluation takes place during startup and at regular intervals while the Topic Operator is active.</p>
-</div>
-<div class="paragraph">
-<p>For example, if the Topic Operator is inactive, and a new <code>KafkaTopic</code> named <em>my-topic</em> is created, upon restart, the Topic Operator recognizes the absence of <em>my-topic</em> in the topic store.
-It recognizes that the <code>KafkaTopic</code> was created after its last operation.
-Consequently, the Topic Operator generates the corresponding Kafka topic and saves the metadata in the topic store.</p>
-</div>
-<div class="paragraph">
-<p>The topic store enables the Topic Operator to manage situations where the topic configuration is altered in both Kafka topics and <code>KafkaTopic</code> resources, as long as the changes are compatible.
-When Kafka topic configuration is updated or changes are made to the <code>KafkaTopic</code> custom resource, the topic store is updated after reconciling with the Kafka cluster, as long as the changes are compatible.</p>
-</div>
-<div class="paragraph">
-<p>The <em>topic store</em> is based on the Kafka Streams key-value mechanism, which uses Kafka topics to persist the state.
-Topic metadata is cached in-memory and accessed locally within the Topic Operator.
-Updates from operations applied to the local in-memory cache are persisted to a backup topic store on disk.
-The topic store is continually synchronized with updates from Kafka topics or Kubernetes <code>KafkaTopic</code> custom resources.
-Operations are handled rapidly with the topic store set up this way,
-but should the in-memory cache crash it is automatically repopulated from the persistent storage.</p>
-</div>
-<div class="paragraph">
-<p>Internal topics support the handling of topic metadata in the topic store.</p>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1"><code>__strimzi_store_topic</code></dt>
-<dd>
-<p>Input topic for storing the topic metadata</p>
-</dd>
-<dt class="hdlist1"><code>__strimzi-topic-operator-kstreams-topic-store-changelog</code></dt>
-<dd>
-<p>Retains a log of compacted topic store values</p>
-</dd>
-</dl>
-</div>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Warning</div>
-</td>
-<td class="content">
-Do not delete these topics, as they are essential to the running of the Topic Operator.
-</td>
-</tr>
-</table>
+<p>If you are reverting back to a version of Strimzi earlier than 0.41, which uses internal topics for the storage of topic metadata, you still downgrade your Cluster Operator to the previous version, then downgrade Kafka brokers and client applications to the previous Kafka version as standard.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="migrating_topic_metadata_from_zookeeper_to_the_topic_store"><a class="link" href="#migrating_topic_metadata_from_zookeeper_to_the_topic_store">11.3.2. Migrating topic metadata from ZooKeeper to the topic store</a></h4>
+<h4 id="downgrading_to_a_strimzi_version_that_uses_zookeeper_to_store_topic_metadata"><a class="link" href="#downgrading_to_a_strimzi_version_that_uses_zookeeper_to_store_topic_metadata">11.3.2. Downgrading to a Strimzi version that uses ZooKeeper to store topic metadata</a></h4>
 <div class="paragraph">
-<p>In previous releases of Strimzi, topic metadata was stored in ZooKeeper.
-The topic store removes this requirement, bringing the metadata into the Kafka cluster, and under the control of the Topic Operator.</p>
-</div>
-<div class="paragraph">
-<p>When upgrading to Strimzi latest, the transition to Topic Operator control of the topic store is seamless.
-Metadata is found and migrated from ZooKeeper, and the old store is deleted.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="downgrading_to_a_strimzi_version_that_uses_zookeeper_to_store_topic_metadata"><a class="link" href="#downgrading_to_a_strimzi_version_that_uses_zookeeper_to_store_topic_metadata">11.3.3. Downgrading to a Strimzi version that uses ZooKeeper to store topic metadata</a></h4>
-<div class="paragraph">
-<p>If you are reverting back to a version of Strimzi earlier than 0.22, which uses ZooKeeper for the storage of topic metadata,
-you still downgrade your Cluster Operator to the previous version,
-then downgrade Kafka brokers and client applications to the previous Kafka version as standard.</p>
+<p>If you are reverting back to a version of Strimzi earlier than 0.22, which uses ZooKeeper for the storage of topic metadata, you still downgrade your Cluster Operator to the previous version, then downgrade Kafka brokers and client applications to the previous Kafka version as standard.</p>
 </div>
 <div class="paragraph">
 <p>However, you must also delete the topics that were created for the topic store using a <code>kafka-topics</code> command, specifying the bootstrap address of the Kafka cluster.
@@ -16882,7 +16526,7 @@ For example:</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="automatic_creation_of_topics"><a class="link" href="#automatic_creation_of_topics">11.3.4. Automatic creation of topics</a></h4>
+<h4 id="automatic_creation_of_topics"><a class="link" href="#automatic_creation_of_topics">11.3.3. Automatic creation of topics</a></h4>
 <div class="paragraph">
 <p>Applications can trigger the automatic creation of topics in the Kafka cluster.
 By default, the Kafka broker configuration <code>auto.create.topics.enable</code> is set to <code>true</code>, allowing the broker to create topics automatically when an application attempts to produce or consume from a non-existing topic.
@@ -16890,13 +16534,10 @@ Applications might also use the Kafka <code>AdminClient</code> to automatically 
 When an application is deployed along with its <code>KafkaTopic</code> resources, it is possible that automatic topic creation in the cluster happens before the Topic Operator can react to the <code>KafkaTopic</code>.</p>
 </div>
 <div class="paragraph">
-<p>For bidirectional topic management, the Topic Operator synchronizes the changes between the topics and <code>KafkaTopic</code> resources.</p>
-</div>
-<div class="paragraph">
-<p>If you are using unidirectional topic management, this can mean that the topics created for an application deployment are initially created with default topic configuration.
+<p>The topics created for an application deployment are initially created with default topic configuration.
 If the Topic Operator attempts to reconfigure the topics based on <code>KafkaTopic</code> resource specifications included with the application deployment, the operation might fail because the required change to the configuration is not allowed.
 For example, if the change means lowering the number of topic partitions.
-For this reason, it is recommended to disable <code>auto.create.topics.enable</code> in the Kafka cluster configuration when using unidirectional topic management.</p>
+For this reason, it is recommended to disable <code>auto.create.topics.enable</code> in the Kafka cluster configuration.</p>
 </div>
 </div>
 </div>
@@ -16927,18 +16568,6 @@ Changes made to topic configuration in the <code>KafkaTopic</code> are propagate
 </div>
 <div class="paragraph">
 <p>This procedure shows how to create a topic with 10 partitions and 2 replicas.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The procedure is the same for the unidirectional and bidirectional modes of topic management.
-</td>
-</tr>
-</table>
 </div>
 <div class="paragraph">
 <div class="title">Before you begin</div>
@@ -17152,10 +16781,24 @@ For more information, see <a href="#proc-cruise-control-topic-replication-str">U
 <td class="content">
 In-sync replicas are used in conjunction with the <code>acks</code> configuration for producer applications.
 The <code>acks</code> configuration determines the number of follower partitions a message must be replicated to before the message is acknowledged as successfully received.
-The bidirectional Topic Operator runs with <code>acks=all</code> for its internal topics whereby messages must be acknowledged by all in-sync replicas.
+Replicas need to be reassigned when adding or removing brokers (see <a href="#con-scaling-kafka-clusters-str">Scaling clusters by adding or removing brokers</a>).
 </td>
 </tr>
 </table>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#assembly-downgrade-str">Downgrading Strimzi</a></p>
+</li>
+<li>
+<p><a href="#con-partition-reassignment-str">Partition reassignment tool overview</a></p>
+</li>
+<li>
+<p><a href="#cruise-control-concepts-str">Using Cruise Control for cluster rebalancing</a></p>
+</li>
+</ul>
 </div>
 </div>
 <div class="sect2">
@@ -17169,9 +16812,6 @@ You can only do that by deleting the original <code>KafkaTopic</code> resource a
 <div class="paragraph">
 <p>By annotating a <code>KafkaTopic</code> resource with <code>strimzi.io/managed=false</code>, you indicate that the Topic Operator should no longer manage that particular topic.
 This allows you to retain the Kafka topic while making changes to the resource&#8217;s configuration or other administrative tasks.</p>
-</div>
-<div class="paragraph">
-<p>You can perform this task if you are using unidirectional topic management.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -17272,9 +16912,6 @@ status:
 <p>This procedure describes how to enable topic management for topics that are not currently managed through the <code>KafkaTopic</code> resource.
 You do this by creating a matching <code>KafkaTopic</code> resource.</p>
 </div>
-<div class="paragraph">
-<p>You can perform this task if you are using unidirectional topic management.</p>
-</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -17374,7 +17011,7 @@ status:
 <div class="sect2">
 <h3 id="con-deleting-managed-topics-str"><a class="link" href="#con-deleting-managed-topics-str">11.8. Deleting managed topics</a></h3>
 <div class="paragraph _abstract">
-<p>Unidirectional topic management supports the deletion of topics managed through the <code>KafkaTopic</code> resource with or without Kubernetes finalizers.
+<p>The Topic Operator supports the deletion of topics managed through the <code>KafkaTopic</code> resource with or without Kubernetes finalizers.
 This is determined by the <code>STRIMZI_USE_FINALIZERS</code> Topic Operator environment variable.
 By default, this is set to <code>true</code>, though it can be set to <code>false</code> in the Topic Operator <code>env</code> configuration if you do not want the Topic Operator to add finalizers.</p>
 </div>
@@ -17425,148 +17062,15 @@ If the deletion fails, it is shown in the status of the resource.</p>
 </div>
 <div class="paragraph">
 <p>Finalizers also serve to prevent related resources from being deleted.
-If the unidirectional Topic Operator is not running, it won&#8217;t be able to remove its finalizer from the <code>metadata.finalizers</code>.
+If the Topic Operator is not running, it won&#8217;t be able to remove its finalizer from the <code>metadata.finalizers</code>.
 And any attempt to directly delete the <code>KafkaTopic</code> resources or the namespace will fail or timeout, leaving the namespace in a stuck terminating state.
 If this happens, you can bypass the finalization process by <a href="#con-removing-topic-finalizers-str">removing the finalizers on topics</a>.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-changing-topic-operator-mode-str"><a class="link" href="#proc-changing-topic-operator-mode-str">11.9. Switching between Topic Operator modes</a></h3>
+<h3 id="con-removing-topic-finalizers-str"><a class="link" href="#con-removing-topic-finalizers-str">11.9. Removing finalizers on topics</a></h3>
 <div class="paragraph _abstract">
-<p>You can switch between topic management modes when upgrading or downgrading Strimzi, or when using the same version of Strimzi, as long as the mode is supported for that version.</p>
-</div>
-<div class="olist arabic">
-<div class="title">Switching from bidirectional to unidirectional topic management mode</div>
-<ol class="arabic">
-<li>
-<p><a href="#ref-operator-unidirectional-topic-operator-feature-gate-str">Enable the <code>UnidirectionalTopicOperator</code> feature gate</a>.</p>
-<div class="paragraph">
-<p>The Cluster Operator deploys the Entity Operator with the Topic Operator in unidirectional topic management mode.</p>
-</div>
-</li>
-<li>
-<p>The internal topics that support the Topic Operator running in bidirectional topic management mode are no longer required, so you can delete the <code>KafkaTopic</code> resources to manage them:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete $(kubectl get kt -n &lt;namespace_name&gt; -o name | grep strimzi-store-topic) \
-  &amp;&amp; kubectl delete $(kubectl get kt -n &lt;namespace_name&gt; -o name | grep strimzi-topic-operator)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This command deletes the internal topics, which have names starting <code>strimzi-store-topic</code> and <code>strimzi-topic-operator</code>.</p>
-</div>
-</li>
-<li>
-<p>The internal topics for storing consumer offsets and transaction states must be retained in Kafka. So, you must first discontinue their management by the Topic Operator before deleting the <code>KafkaTopic</code> resources.</p>
-<div class="olist loweralpha">
-<ol class="loweralpha" type="a">
-<li>
-<p>Discontinue management of the topics:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate $(kubectl get kt -n &lt;namespace_name&gt; -o name | grep consumer-offsets) strimzi.io/managed="false" \
-  &amp;&amp; kubectl annotate $(kubectl get kt -n &lt;namespace_name&gt; -o name | grep transaction-state) strimzi.io/managed="false"</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>By annotating the <code>KafkaTopic</code> resources with <code>strimzi.io/managed="false"</code>, you indicate that the Topic Operator should no longer manage those topics.
-In this case, we are adding the annotation to resources for managing the internal topics with names starting <code>consumer-offsets</code> and <code>transaction-state</code>.</p>
-</div>
-</li>
-<li>
-<p>When their management is discontinued, delete the <code>KafkaTopic</code> resources (without deleting the topics inside Kafka):</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete $(kubectl get kt -n &lt;namespace_name&gt; -o name | grep consumer-offsets) \
-  &amp;&amp; kubectl delete $(kubectl get kt -n &lt;namespace_name&gt; -o name | grep transaction-state)</code></pre>
-</div>
-</div>
-</li>
-</ol>
-</div>
-</li>
-</ol>
-</div>
-<div class="olist arabic">
-<div class="title">Switching from unidirectional to bidirectional topic management mode</div>
-<ol class="arabic">
-<li>
-<p><a href="#ref-operator-unidirectional-topic-operator-feature-gate-str">Disable the <code>UnidirectionalTopicOperator</code> feature gate</a>.</p>
-<div class="paragraph">
-<p>The Cluster Operator deploys the Entity Operator with the Topic Operator in bidirectional topic management mode.</p>
-</div>
-<div class="paragraph">
-<p>The internal topics required by the Topic Operator running in bidirectional topic management mode are created.</p>
-</div>
-</li>
-<li>
-<p>Check whether finalizers are being used to control topic deletion.
-If <code>KafkaTopic</code> resources are using finalizers, ensure that you do one of the following after making the switch:</p>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="#con-removing-topic-finalizers-str">Remove all finalizers from topics</a>.</p>
-</li>
-<li>
-<p>Disable the finalizers by setting the <code>STRIMZI_USE_FINALIZERS</code> environment variable to <code>false</code> in the Topic Operator <code>env</code> configuration.</p>
-<div class="paragraph">
-<p>Use the same configuration for a Topic Operator running in a Strimzi-managed cluster or as a standalone deployment.</p>
-</div>
-<div class="listingblock">
-<div class="title">Disabling topic finalizers in a Strimzi-managed cluster</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: kafka.strimzi.io/v1beta2
-kind: Kafka
-metadata:
-  name: my-cluster
-spec:
-  # ...
-  entityOperator:
-    topicOperator: {}
-    userOperator: {}
-    template:
-      topicOperatorContainer:
-        env:
-          - name: STRIMZI_USE_FINALIZERS
-            value: "false"
-# ...</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="title">Disabling topic finalizers in a standalone deployment</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: strimzi-topic-operator
-spec:
-  template:
-    spec:
-      containers:
-        - name: STRIMZI_USE_FINALIZERS
-          value: "false"
-# ...</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The Topic Operator does not use finalizers in bidirectional mode.
-If they are retained after making the switch from unidirectional mode, you won&#8217;t be able to delete <code>KafkaTopic</code> and related resources.</p>
-</div>
-</li>
-</ul>
-</div>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>After switching between between Topic Operator modes, try creating a topic to make sure the operator is running correctly.
-For more information, see <a href="#proc-configuring-kafka-topic-str">Configuring Kafka topics</a>.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="con-removing-topic-finalizers-str"><a class="link" href="#con-removing-topic-finalizers-str">11.10. Removing finalizers on topics</a></h3>
-<div class="paragraph _abstract">
-<p>If the unidirectional Topic Operator is not running, and you want to bypass the finalization process when deleting managed topics, you have to remove the finalizers.
+<p>If the Topic Operator is not running, and you want to bypass the finalization process when deleting managed topics, you must remove the finalizers.
 You can do this manually by editing the resources directly or by using a command.</p>
 </div>
 <div class="paragraph">
@@ -17607,10 +17111,10 @@ For example, if you remove the finalizer from a <code>KafkaTopic</code> resource
 </div>
 </div>
 <div class="sect2">
-<h3 id="con-disabling-topic-deletion-str"><a class="link" href="#con-disabling-topic-deletion-str">11.11. Considerations when disabling topic deletion</a></h3>
+<h3 id="con-disabling-topic-deletion-str"><a class="link" href="#con-disabling-topic-deletion-str">11.10. Considerations when disabling topic deletion</a></h3>
 <div class="paragraph _abstract">
 <p>When the <code>delete.topic.enable</code> configuration in Kafka is set to <code>false</code>, topics cannot be deleted.
-This might be required in certain scenarios, but it introduces a consideration when using the Topic Operator in unidirectional mode.</p>
+This might be required in certain scenarios, but it introduces a consideration when using the Topic Operator.</p>
 </div>
 <div class="paragraph">
 <p>As topics cannot be deleted, finalizers added to the metadata of a <code>KafkaTopic</code> resource to control topic deletion are never removed by the Topic Operator (though they can be <a href="#con-removing-topic-finalizers-str">removed manually</a>).
@@ -17633,9 +17137,9 @@ To avoid using finalizers, you can set the <code>STRIMZI_USE_FINALIZERS</code> T
 </div>
 </div>
 <div class="sect2">
-<h3 id="con-tuning-topic-request-batches-str"><a class="link" href="#con-tuning-topic-request-batches-str">11.12. Tuning request batches for topic operations</a></h3>
+<h3 id="con-tuning-topic-request-batches-str"><a class="link" href="#con-tuning-topic-request-batches-str">11.11. Tuning request batches for topic operations</a></h3>
 <div class="paragraph">
-<p>In unidirectional mode, the Topic Operator uses the request batching capabilities of the Kafka Admin API for operations on topic resources.
+<p>The Topic Operator uses the request batching capabilities of the Kafka Admin API for operations on topic resources.
 You can fine-tune the batching mechanism using the following operator configuration properties:</p>
 </div>
 <div class="ulist">
@@ -34563,7 +34067,7 @@ You can access the CRDs from the <a href="https://github.com/strimzi/strimzi-kaf
 <div class="paragraph">
 <p>When deploying the Topic Operator to manage topics, the Cluster Operator enables unidirectional topic management by default.
 If you are switching from a version of Strimzi that used bidirectional topic management, there are some cleanup tasks to perform after upgrading the Cluster Operator.
-For more information, see <a href="#proc-changing-topic-operator-mode-str">Switching between Topic Operator modes</a>.</p>
+For more information, see <a href="#proc-changing-topic-operator-mode-str">[proc-changing-topic-operator-mode-str]</a>.</p>
 </div>
 </div>
 <div class="sect3">
@@ -39551,7 +39055,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-03-21 10:19:22 UTC
+Last updated 2024-03-21 13:50:47 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
