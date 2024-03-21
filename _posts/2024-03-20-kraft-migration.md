@@ -26,10 +26,10 @@ Some of them are:
 * **Access Control Lists (ACLs)**: when a client connects to the cluster, it could be authenticated and authorized to read or write on several topics based on the ACLs stored in ZooKeeper by the built-in Authorizer;
 * **Quotas**: brokers can limit resources used by clients in terms of network bandwidth and CPU utilization via quotas stored in ZooKeeper by the built-in Quotas provider;
 
-By using the `zookeeper-shell` tool, it is possible to connect to a ZooKeeper ensemble and see all the znodes.
+Assuming to have a ZooKeeper-based Kafka cluster `my-cluster` deployed with Strimzi on Kubernetes in the `kafka` namespace, you can use the `zookeeper-shell` tool on one of the ZooKeeper pods and see all the znodes.
 
 ```shell
-bin/zookeeper-shell.sh <zookeeper-ip-address>:2181
+kubectl exec -it my-cluster-zookeeper-0 -n kafka -- bin/zookeeper-shell.sh localhost:12181
 ```
 
 The brokers within the cluster are listed under the `/brokers` znode and for each of them there are information about their endpoints.
@@ -39,7 +39,7 @@ ls /brokers/ids
 [0, 1, 2]
 
 get /brokers/ids/0
-{"features":{},"listener_security_protocol_map":{"CONTROLPLANE-9090":"SSL","REPLICATION-9091":"SSL","PLAIN-9092":"PLAINTEXT","TLS-9093":"SSL"},"endpoints":["CONTROLPLANE-9090://my-cluster-kafka-0.my-cluster-kafka-brokers.myproject.svc:9090","REPLICATION-9091://my-cluster-kafka-0.my-cluster-kafka-brokers.myproject.svc:9091","PLAIN-9092://my-cluster-kafka-0.my-cluster-kafka-brokers.myproject.svc:9092","TLS-9093://my-cluster-kafka-0.my-cluster-kafka-brokers.myproject.svc:9093"],"jmx_port":-1,"port":9092,"host":"my-cluster-kafka-0.my-cluster-kafka-brokers.myproject.svc","version":5,"timestamp":"1710691902130"}
+{"features":{},"listener_security_protocol_map":{"CONTROLPLANE-9090":"SSL","REPLICATION-9091":"SSL","PLAIN-9092":"PLAINTEXT","TLS-9093":"SSL"},"endpoints":["CONTROLPLANE-9090://my-cluster-kafka-0.my-cluster-kafka-brokers.kafka.svc:9090","REPLICATION-9091://my-cluster-kafka-0.my-cluster-kafka-brokers.kafka.svc:9091","PLAIN-9092://my-cluster-kafka-0.my-cluster-kafka-brokers.kafka.svc:9092","TLS-9093://my-cluster-kafka-0.my-cluster-kafka-brokers.kafka.svc:9093"],"jmx_port":-1,"port":9092,"host":"my-cluster-kafka-0.my-cluster-kafka-brokers.kafka.svc","version":5,"timestamp":"1710691902130"}
 ```
 
 As mentioned, the controller election happens when the first broker creates the ephemeral `/controller` node storing the broker ID.
@@ -83,17 +83,18 @@ The KRaft protocol is used to ensure that metadata are fully replicated across t
 ![Cluster metadata topic](/assets/images/posts/2024-03-20-kraft-migration-metadata-topic.png)
 
 By using the `kafka-dump-log.sh` tool together with the `--cluster-metadata-decoder` option, you are able to dump the content of the `__cluster_metadata` segments and see how several events are generated in relation to metadata changes.
-You can run the following command on the KRaft active controller node, assuming `/var/lib/kafka/data-0/kafka-log0` is the metadata log dir.
+
+Assuming to have a KRaft-based Kafka cluster `my-cluster` deployed with Strimzi on Kubernetes in the `kafka` namespace, you can run the following command on the KRaft active controller node (that is `my-cluster-controller-0`).
 
 ```shell
-bin/kafka-dump-log.sh --cluster-metadata-decoder --files /var/lib/kafka/data-0/kafka-log0/__cluster_metadata-0/00000000000000000000.log 
+kubectl exec -it my-cluster-controller-0 -n kafka -- bin/kafka-dump-log.sh --cluster-metadata-decoder --files /var/lib/kafka/data-0/kafka-log0/__cluster_metadata-0/00000000000000000000.log
 Dumping /var/lib/kafka/data-0/kafka-log0/__cluster_metadata-0/00000000000000000000.log
 ```
 
 For example, you could see a `REGISTER_BROKER_RECORD` event related to cluster membership, when a new broker joins the cluster.
 
 ```shell
-| offset: 53 CreateTime: 1710772983743 keySize: -1 valueSize: 308 sequence: -1 headerKeys: [] payload: {"type":"REGISTER_BROKER_RECORD","version":3,"data":{"brokerId":3,"isMigratingZkBroker":false,"incarnationId":"5TICkSDlQOGOHY-sn-TtDw","brokerEpoch":53,"endPoints":[{"name":"REPLICATION-9091","host":"my-cluster-broker-3.my-cluster-kafka-brokers.myproject.svc","port":9091,"securityProtocol":1},{"name":"PLAIN-9092","host":"my-cluster-broker-3.my-cluster-kafka-brokers.myproject.svc","port":9092,"securityProtocol":0},{"name":"TLS-9093","host":"my-cluster-broker-3.my-cluster-kafka-brokers.myproject.svc","port":9093,"securityProtocol":1}],"features":[{"name":"metadata.version","minSupportedVersion":1,"maxSupportedVersion":19}],"rack":null,"fenced":true,"inControlledShutdown":false,"logDirs":["uHY7hO6-42Q7O4k0zLMmtg"]}}
+| offset: 53 CreateTime: 1710772983743 keySize: -1 valueSize: 308 sequence: -1 headerKeys: [] payload: {"type":"REGISTER_BROKER_RECORD","version":3,"data":{"brokerId":3,"isMigratingZkBroker":false,"incarnationId":"5TICkSDlQOGOHY-sn-TtDw","brokerEpoch":53,"endPoints":[{"name":"REPLICATION-9091","host":"my-cluster-broker-3.my-cluster-kafka-brokers.kafka.svc","port":9091,"securityProtocol":1},{"name":"PLAIN-9092","host":"my-cluster-broker-3.my-cluster-kafka-brokers.kafka.svc","port":9092,"securityProtocol":0},{"name":"TLS-9093","host":"my-cluster-broker-3.my-cluster-kafka-brokers.kafka.svc","port":9093,"securityProtocol":1}],"features":[{"name":"metadata.version","minSupportedVersion":1,"maxSupportedVersion":19}],"rack":null,"fenced":true,"inControlledShutdown":false,"logDirs":["uHY7hO6-42Q7O4k0zLMmtg"]}}
 ```
 
 When a topic is created, a `TOPIC_RECORD` event followed by a `CONFIG_RECORD` one together with multiple `PARTITION_RECORD` events would be generated.
