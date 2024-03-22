@@ -188,6 +188,8 @@ my-cluster                                                  True    KRaft
 
 As you can see, just a couple of changes on the `strimzi.io/kraft` annotation make the migration really straightforward.
 
+![Strimzi KRaft migration](/assets/images/posts/2024-03-22-strimzi-kraft-migration-01.png)
+
 #### Rolling back the cluster to ZooKeeper
 
 If the migration process is still not finalized, with the KRaft controllers remaining connected to ZooKeeper, it is still possible to initiate a rollback.
@@ -259,6 +261,8 @@ my-cluster   3                        3                             KRaftDualWri
 my-cluster   3                        3                             KRaftDualWriting     
 my-cluster   3                        3                     True    ZooKeeper            True
 ```
+
+![Strimzi KRaft migration rollback](/assets/images/posts/2024-03-22-strimzi-kraft-migration-rollback-02.png)
 
 ### Conclusion
 
