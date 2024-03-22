@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Migrate your Strimzi-operated cluster from ZooKeeper to KRaft"
-date: 2024-03-20
+date: 2024-03-22
 author: paolo_patierno
 ---
 
@@ -123,6 +123,8 @@ As you can see, just applying one single annotation value has covered most of th
 While the migration is going on, you can see the cluster changing the metadata state during the migration process from `ZooKeeper` to `KRaftPostMigration`, and then waiting for the user to finalize it.
 
 ```shell
+kubectl get kafka my-cluster -n kafka -w
+
 NAME         DESIRED KAFKA REPLICAS   DESIRED ZK REPLICAS   READY   METADATA STATE   WARNINGS
 my-cluster   3                        3                     True    ZooKeeper        
 my-cluster   3                        3                     True    ZooKeeper        
