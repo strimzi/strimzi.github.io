@@ -18,14 +18,15 @@ In this blog post, we are going to show you how the Strimzi Cluster Operator pro
 ### Strimzi's migration support
 
 If you are using the Strimzi operator to run your current ZooKeeper-based cluster on Kubernetes, the migration process is semi-automated.
-All you need to do is update the `strimzi.io/kraft` annotation on the `Kafka` custom resource. 
+It is managed by updating the `strimzi.io/kraft` annotation on the `Kafka` custom resource.
 This allows the internal migration service to transition smoothly across the different phases.
 The operator will apply the necessary configuration to the nodes and then initiate a rolling update.
 It is also in charge of checking the migration status by looking at the metrics to make sure it was done successfully.
 
 Before the Strimzi 0.40.0 release, the `strimzi.io/kraft` annotation on the `Kafka` custom resource was used to define a ZooKeeper-based cluster, by using the `disabled` value, or a KRaft-based cluster, by using the `enabled` value.
 
-It is now possible to use two more values for the `strimzi.io/kraft` annotation: 
+This is still used even in Strimzi 0.40.0.
+But now it is possible to use two additional values for the `strimzi.io/kraft` annotation:
 
 * `migration` to start the migration process
 * `rollback` to revert the migration itself
@@ -67,7 +68,7 @@ strimzi-cluster-operator-7ddf57685d-245pd     1/1     Running   0          17m
 #### Migrating from ZooKeeper to KRaft-based brokers
 
 The initial migration step involves deploying a `KafkaNodePool` custom resource to provision the KRaft controllers. 
-Then, you change the `strimzi.io/kraft` annotation from `disabled` to `migration` to initiate the process.
+Then, you change the `strimzi.io/kraft` annotation on the `Kafka` custom resource from `disabled` to `migration` to initiate the process.
 
 Here's a snippet of the `KafkaNodePool` custom resource needed to deploy and activate the KRaft controllers:
 
