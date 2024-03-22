@@ -17,7 +17,7 @@ In this blog post, we are going to show you how the Strimzi Cluster Operator pro
 
 ### Strimzi's migration support
 
-If you are using the Strimzi operator to run your current ZooKeeper-based cluster on Kubernetes, the migration process is semi-automated.
+If you are using the Strimzi operator 0.40.0 release to run your current ZooKeeper-based cluster on Kubernetes, the migration process is semi-automated.
 It is managed by updating the `strimzi.io/kraft` annotation on the `Kafka` custom resource.
 This allows the internal migration service to transition smoothly across the different phases.
 The operator will apply the necessary configuration to the nodes and then initiate a rolling update.

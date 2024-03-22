@@ -200,4 +200,4 @@ The Apache Kafka community has deprecated the usage of ZooKeeper to store the cl
 This means that users should soon consider moving to using KRaft-based clusters.
 Of course, there are a lot of ZooKeeper-based clusters already running in production out there which need to be migrated.
 The migration process is not trivial and needs a lot of manual intervention, with configuration updates and nodes to be rolled.
-But if you are running your cluster on Kubernetes, we'll see in an upcoming blog post how the Strimzi operator provides a semi-automated approach making the migration a lot easier!
+But if you are running your cluster on Kubernetes, you can read this [blog post](https://strimzi.io/blog/2024/03/22/strimzi-kraft-migration/) about how the Strimzi operator provides a semi-automated approach making the migration a lot easier!
