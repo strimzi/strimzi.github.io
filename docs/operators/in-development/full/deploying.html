@@ -945,8 +945,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#con-strategies-for-upgrading-clients-str">24.3. Strategies for upgrading clients</a></li>
 <li><a href="#con-upgrade-cluster-str">24.4. Upgrading Kubernetes with minimal downtime</a>
 <ul class="sectlevel3">
-<li><a href="#rolling_pods_using_the_strimzi_drain_cleaner">24.4.1. Rolling pods using the Strimzi Drain Cleaner</a></li>
-<li><a href="#rolling_pods_manually_while_keeping_topics_available">24.4.2. Rolling pods manually while keeping topics available</a></li>
+<li><a href="#rolling_pods_using_drain_cleaner">24.4.1. Rolling pods using Drain Cleaner</a></li>
+<li><a href="#rolling_pods_manually_alternative_to_drain_cleaner">24.4.2. Rolling pods manually (alternative to Drain Cleaner)</a></li>
 </ul>
 </li>
 <li><a href="#assembly-upgrade-cluster-operator-str">24.5. Upgrading the Cluster Operator</a>
@@ -33781,23 +33781,6 @@ Before upgrading Kubernetes, <a href="https://strimzi.io/downloads/" target="_bl
 </ol>
 </div>
 <div class="paragraph">
-<p>When using either of the methods to roll the pods, you must set a pod disruption budget of zero using the <code>maxUnavailable</code> property.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-<code>StrimziPodSet</code> custom resources manage Kafka and ZooKeeper pods using a custom controller that cannot use the <code>maxUnavailable</code> value directly.
-Instead, the <code>maxUnavailable</code> value is converted to a <code>minAvailable</code> value.
-If there are three broker pods and the <code>maxUnavailable</code> property is set to <code>0</code> (zero), the <code>minAvailable</code> setting is <code>3</code>, requiring all three broker pods to be available and allowing zero pods to be unavailable.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
 <p>For Kafka to stay operational, topics must also be replicated for high availability.
 This requires topic configuration that specifies a replication factor of at least 3 and a minimum number of in-sync replicas to 1 less than the replication factor.</p>
 </div>
@@ -33823,7 +33806,7 @@ spec:
 <p>In a highly available environment, the Cluster Operator maintains a minimum number of in-sync replicas for topics during the upgrade process so that there is no downtime.</p>
 </div>
 <div class="sect3">
-<h4 id="rolling_pods_using_the_strimzi_drain_cleaner"><a class="link" href="#rolling_pods_using_the_strimzi_drain_cleaner">24.4.1. Rolling pods using the Strimzi Drain Cleaner</a></h4>
+<h4 id="rolling_pods_using_drain_cleaner"><a class="link" href="#rolling_pods_using_drain_cleaner">24.4.1. Rolling pods using Drain Cleaner</a></h4>
 <div class="paragraph">
 <p>When using the Strimzi Drain Cleaner to evict nodes during Kubernetes upgrade, it annotates pods with a manual rolling update annotation to inform the Cluster Operator to perform a rolling update of the pod that should be evicted and have it moved away from the Kubernetes node that is being upgraded.</p>
 </div>
@@ -33832,29 +33815,42 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="rolling_pods_manually_while_keeping_topics_available"><a class="link" href="#rolling_pods_manually_while_keeping_topics_available">24.4.2. Rolling pods manually while keeping topics available</a></h4>
+<h4 id="rolling_pods_manually_alternative_to_drain_cleaner"><a class="link" href="#rolling_pods_manually_alternative_to_drain_cleaner">24.4.2. Rolling pods manually (alternative to Drain Cleaner)</a></h4>
 <div class="paragraph">
-<p>During an upgrade, you can trigger a manual rolling update of pods through the Cluster Operator.
+<p>As an alternative to using the Drain Cleaner to roll pods, you can trigger a manual rolling update of pods through the Cluster Operator.
 Using <code>Pod</code> resources, rolling updates restart the pods of resources with new pods.
-As with using the Strimzi Drain Cleaner, you&#8217;ll need to set the <code>maxUnavailable</code> value to zero for the pod disruption budget.</p>
+To replicate the operation of the Drain Cleaner by keeping topics available, you must also set the <code>maxUnavailable</code> value to zero for the pod disruption budget.
+Reducing the pod disruption budget to zero prevents Kubernetes from evicting pods automatically.</p>
+</div>
+<div class="listingblock">
+<div class="title">Specifying a pod disruption budget</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: myproject
+spec:
+  kafka:
+    # ...
+    template:
+      podDisruptionBudget:
+        maxUnavailable: 0
+# ...</code></pre>
+</div>
 </div>
 <div class="paragraph">
 <p>You need to watch the pods that need to be drained.
 You then add a pod annotation to make the update.</p>
 </div>
 <div class="paragraph">
-<p>Here, the annotation updates a Kafka broker.</p>
+<p>Here, the annotation updates a Kafka pod named <code>my-cluster-pool-a-1</code>.</p>
 </div>
 <div class="listingblock">
-<div class="title">Performing a manual rolling update on a Kafka broker pod</div>
+<div class="title">Performing a manual rolling update on a Kafka pod</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate pod &lt;cluster_name&gt;-kafka-&lt;index&gt; strimzi.io/manual-rolling-update="true"</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate pod my-cluster-pool-a-1 strimzi.io/manual-rolling-update="true"</code></pre>
 </div>
-</div>
-<div class="paragraph">
-<p>You replace &lt;cluster_name&gt; with the name of the cluster.
-Kafka broker pods are named &lt;cluster-name&gt;-kafka-&lt;index&gt;, where &lt;index&gt; starts at zero and ends at the total number of replicas minus one.
-For example, <code>my-cluster-kafka-0</code>.</p>
 </div>
 <div class="ulist _additional-resources">
 <div class="title">Additional resources</div>
@@ -39055,7 +39051,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-03-26 16:28:22 UTC
+Last updated 2024-03-26 20:50:10 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
