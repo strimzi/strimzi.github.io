@@ -643,6 +643,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#ref-jbod-storage-str">10.10.5. JBOD storage</a></li>
 <li><a href="#proc-adding-volumes-to-jbod-storage-str">10.10.6. Adding volumes to JBOD storage</a></li>
 <li><a href="#proc-removing-volumes-from-jbod-storage-str">10.10.7. Removing volumes from JBOD storage</a></li>
+<li><a href="#ref-tiered-storage-str">10.10.8. Tiered storage (early access)</a></li>
 </ul>
 </li>
 <li><a href="#config-resources-str">10.11. Configuring CPU and memory resource limits and requests</a></li>
@@ -13509,15 +13510,35 @@ By default, the Kafka Bridge connects to Kafka brokers without authentication.</
 <li>
 <p>JBOD (Kafka only; not available for ZooKeeper)</p>
 </li>
+<li>
+<p>Tiered storage (Early access)</p>
+</li>
 </ul>
 </div>
 <div class="paragraph">
 <p>To configure storage, you specify <code>storage</code> properties in the custom resource of the component.
-The storage type is set using the <code>storage.type</code> property.</p>
+The storage type is set using the <code>storage.type</code> property.
+When using node pools, you can specify storage configuration unique to each node pool used in a Kafka cluster.
+The same storage properties available to the <code>Kafka</code> resource are also available to the <code>KafkaNodePool</code> pool resource.</p>
 </div>
 <div class="paragraph">
-<p>When using node pools, you can specify storage configuration unique to each node pool used in the cluster.
-The same storage properties available to the <code>Kafka</code> resource are also available to the <code>KafkaNodePool</code> pool resource.</p>
+<p>Tiered storage provides more flexibility for data management by leveraging the parallel use of storage types with different characteristics.
+For example, tiered storage might include the following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Higher performance and higher cost block storage</p>
+</li>
+<li>
+<p>Lower performance and lower cost object storage</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Tiered storage is an early access feature in Kafka.
+To configure tiered storage, you specify <code>tieredStorage</code> properties.
+Tiered storage is configured only at the cluster level using the <code>Kafka</code> custom resource.</p>
 </div>
 <div class="paragraph">
 <p>The storage-related schema references provide more information on the storage configuration properties:</p>
@@ -13532,6 +13553,9 @@ The same storage properties available to the <code>Kafka</code> resource are als
 </li>
 <li>
 <p><a href="./configuring.html#type-JbodStorage-reference" target="_blank" rel="noopener"><code>JbodStorage</code> schema reference</a></p>
+</li>
+<li>
+<p><a href="./configuring.html#type-TieredStorageCustom-reference" target="_blank" rel="noopener"><code>TieredStorageCustom</code> schema reference</a></p>
 </li>
 </ul>
 </div>
@@ -14345,6 +14369,87 @@ spec:
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;kafka_configuration_file&gt;</em></code></pre>
 </div>
 </div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="ref-tiered-storage-str"><a class="link" href="#ref-tiered-storage-str">10.10.8. Tiered storage (early access)</a></h4>
+<div class="paragraph _abstract">
+<p>Tiered storage introduces a flexible approach to managing Kafka data whereby log segments are moved to a separate storage system.
+For example, you can combine the use of block storage on brokers for frequently accessed data and offload older or less frequently accessed data from the block storage to more cost-effective, scalable remote storage solutions, such as Amazon S3, without compromising data accessibility and durability.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Tiered storage is an early access Kafka feature, which is also available in Strimzi.
+Due to its <a href="https://kafka.apache.org/documentation/#tiered_storage_limitation" target="_blank" rel="noopener">current limitations</a>, it is not recommended for production environments.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Tiered storage requires an implementation of Kafka&#8217;s <code>RemoteStorageManager</code> interface to handle communication between Kafka and the remote storage system, which is enabled through configuration of the <code>Kafka</code> resource.
+Strimzi uses Kafka&#8217;s <a href="https://github.com/apache/kafka/blob/trunk/storage/src/main/java/org/apache/kafka/server/log/remote/metadata/storage/TopicBasedRemoteLogMetadataManager.java" target="_blank" rel="noopener"><code>TopicBasedRemoteLogMetadataManager</code></a> for Remote Log Metadata Management (RLMM) when custom tiered storage is enabled.
+The RLMM manages the metadata related to remote storage.</p>
+</div>
+<div class="paragraph">
+<p>To use custom tiered storage, do the following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Include a tiered storage plugin for Kafka in the Strimzi image by building a custom container image.
+The plugin must provide the necessary functionality for a Kafka cluster managed by Strimzi to interact with the tiered storage solution.</p>
+</li>
+<li>
+<p>Configure Kafka for tiered storage using <code>tieredStorage</code> properties in the <code>Kafka</code> resource.
+Specify the class name and path for the custom <code>RemoteStorageManager</code> implementation, as well as any additional configuration.</p>
+</li>
+<li>
+<p>If required, specify RLMM-specific tiered storage configuration.</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">Example custom tiered storage configuration for Kafka</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    tieredStorage:
+      type: custom # <b class="conum">(1)</b>
+      remoteStorageManager: # <b class="conum">(2)</b>
+        className: com.example.kafka.tiered.storage.s3.S3RemoteStorageManager
+        classPath: /opt/kafka/plugins/tiered-storage-s3/*
+        config:
+          storage.bucket.name: my-bucket # <b class="conum">(3)</b>
+          # ...
+    config:
+      rlmm.config.remote.log.metadata.topic.replication.factor: 1 # <b class="conum">(4)</b>
+  # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The <code>type</code> must be set to <code>custom</code>.</p>
+</li>
+<li>
+<p>The configuration for the custom <code>RemoteStorageManager</code> implementation, including class name and path.</p>
+</li>
+<li>
+<p>Configuration to pass to the custom <code>RemoteStorageManager</code> implementation, which Strimzi automatically prefixes with <code>rsm.config.</code>.</p>
+</li>
+<li>
+<p>Tiered storage configuration to pass to the RLMM, which requires an <code>rlmm.config.</code> prefix. For more information on tiered storage configuration, see the <a href="https://kafka.apache.org/documentation/" target="_blank" rel="noopener">Apache Kafka documentation</a>.</p>
 </li>
 </ol>
 </div>
@@ -39051,7 +39156,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-03-28 08:47:36 UTC
+Last updated 2024-03-28 11:12:55 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
