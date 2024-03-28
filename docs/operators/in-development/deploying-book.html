@@ -38240,38 +38240,21 @@ The recovery procedure is the same as with namespace deletion, assuming PVs can 
 <div class="sect3">
 <h4 id="cluster-recovery-volume_str"><a class="link" href="#cluster-recovery-volume_str">29.3.3. Recovering a deleted cluster from persistent volumes</a></h4>
 <div class="paragraph _abstract">
-<p>This procedure describes how to recover a deleted cluster from persistent volumes (PVs).</p>
+<p>This procedure describes how to recover a deleted cluster from persistent volumes (PVs) by recreating the original <code>PersistentVolumeClaim</code> (PVC) resources.</p>
 </div>
 <div class="paragraph">
-<p>In this situation, the Topic Operator identifies that topics exist in Kafka, but the <code>KafkaTopic</code> resources do not exist.</p>
+<p>If the Topic Operator and User Operator are deployed, you can recover <code>KafkaTopic</code> and <code>KafkaUser</code> resources by recreating them.
+It is important that you recreate the <code>KafkaTopic</code> resources with the same configurations, or the Topic Operator will try to update them in Kafka.
+This procedure shows how to recreate both resources.</p>
 </div>
-<div class="paragraph">
-<p>When you get to the step to recreate your cluster, you have two options:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Use <em>Option 1</em> when you can recover all <code>KafkaTopic</code> resources.</p>
-<div class="paragraph">
-<p>The <code>KafkaTopic</code> resources must therefore be recovered before the cluster is started so that the corresponding topics are not deleted by the Topic Operator.</p>
-</div>
-</li>
-<li>
-<p>Use <em>Option 2</em> when you are unable to recover all <code>KafkaTopic</code> resources.</p>
-<div class="paragraph">
-<p>In this case, you deploy your cluster without the Topic Operator, delete the Topic Operator topic store metadata, and then redeploy the Kafka cluster with the Topic Operator so it can recreate the <code>KafkaTopic</code> resources from the corresponding topics.</p>
-</div>
-</li>
-</ol>
-</div>
-<div class="admonitionblock note">
+<div class="admonitionblock warning">
 <table>
 <tr>
 <td class="icon">
-<div class="title">Note</div>
+<div class="title">Warning</div>
 </td>
 <td class="content">
-If the Topic Operator is not deployed, you only need to recover the <code>PersistentVolumeClaim</code> (PVC) resources.
+If the User Operator is enabled and Kafka users are not recreated, users are deleted from the Kafka cluster immediately after recovery.
 </td>
 </tr>
 </table>
@@ -38283,19 +38266,6 @@ A <code>volumeName</code> is specified for the PVC and this must match the name 
 </div>
 <div class="paragraph">
 <p>For more information, see <a href="#ref-persistent-storage-str">Persistent storage</a>.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The procedure does not include recovery of <code>KafkaUser</code> resources, which must be recreated manually.
-If passwords and certificates need to be retained, secrets must be recreated before creating the <code>KafkaUser</code> resources.
-</td>
-</tr>
-</table>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -38310,30 +38280,28 @@ If passwords and certificates need to be retained, secrets must be recreated bef
 <div class="paragraph">
 <p>Information is presented for PVs with data.</p>
 </div>
-<div class="paragraph">
-<p>Example output showing columns important to this procedure:</p>
-</div>
 <div class="listingblock">
+<div class="title">Example PV output</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                                         RECLAIMPOLICY CLAIM
-pvc-5e9c5c7f-3317-11ea-a650-06e1eadd9a4c ... Retain ...    myproject/data-my-cluster-zookeeper-1
-pvc-5e9cc72d-3317-11ea-97b0-0aef8816c7ea ... Retain ...    myproject/data-my-cluster-zookeeper-0
-pvc-5ead43d1-3317-11ea-97b0-0aef8816c7ea ... Retain ...    myproject/data-my-cluster-zookeeper-2
-pvc-7e1f67f9-3317-11ea-a650-06e1eadd9a4c ... Retain ...    myproject/data-0-my-cluster-kafka-0
-pvc-7e21042e-3317-11ea-9786-02deaf9aa87e ... Retain ...    myproject/data-0-my-cluster-kafka-1
-pvc-7e226978-3317-11ea-97b0-0aef8816c7ea ... Retain ...    myproject/data-0-my-cluster-kafka-2</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                                          RECLAIMPOLICY  CLAIM
+pvc-5e9c5c7f-3317-11ea-a650-06e1eadd9a4c ...  Retain ...     myproject/data-my-cluster-zookeeper-1
+pvc-5e9cc72d-3317-11ea-97b0-0aef8816c7ea ...  Retain ...     myproject/data-my-cluster-zookeeper-0
+pvc-5ead43d1-3317-11ea-97b0-0aef8816c7ea ...  Retain ...     myproject/data-my-cluster-zookeeper-2
+pvc-7e1f67f9-3317-11ea-a650-06e1eadd9a4c ...  Retain ...     myproject/data-0-my-cluster-kafka-0
+pvc-7e21042e-3317-11ea-9786-02deaf9aa87e ...  Retain ...     myproject/data-0-my-cluster-kafka-1
+pvc-7e226978-3317-11ea-97b0-0aef8816c7ea ...  Retain ...     myproject/data-0-my-cluster-kafka-2</code></pre>
 </div>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><em>NAME</em> shows the name of each PV.</p>
+<p><code>NAME</code> is the name of each PV.</p>
 </li>
 <li>
-<p><em>RECLAIM POLICY</em> shows that PVs are <em>retained</em>.</p>
+<p><code>RECLAIMPOLICY</code> shows that PVs are retained, meaning that the PV is not automatically deleted when the PVC is deleted.</p>
 </li>
 <li>
-<p><em>CLAIM</em> shows the link to the original PVCs.</p>
+<p><code>CLAIM</code> shows the link to the original PVCs.</p>
 </li>
 </ul>
 </div>
@@ -38342,16 +38310,17 @@ pvc-7e226978-3317-11ea-97b0-0aef8816c7ea ... Retain ...    myproject/data-0-my-c
 <p>Recreate the original namespace:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create namespace <em>myproject</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create namespace my-project</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>Here, we recreate the <code>my-project</code> namespace.</p>
 </div>
 </li>
 <li>
 <p>Recreate the original PVC resource specifications, linking the PVCs to the appropriate PV:</p>
-<div class="paragraph">
-<p>For example:</p>
-</div>
 <div class="listingblock">
+<div class="title">Example PVC resource specification</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: v1
 kind: PersistentVolumeClaim
@@ -38371,10 +38340,8 @@ spec:
 </li>
 <li>
 <p>Edit the PV specifications to delete the <code>claimRef</code> properties that bound the original PVC.</p>
-<div class="paragraph">
-<p>For example:</p>
-</div>
 <div class="listingblock">
+<div class="title">Example PV specification</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: v1
 kind: PersistentVolume
@@ -38441,108 +38408,89 @@ spec:
 </div>
 </li>
 <li>
-<p>Deploy the Cluster Operator.</p>
+<p>Deploy the Cluster Operator:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f install/cluster-operator -n <em>my-project</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f install/cluster-operator -n my-project</code></pre>
 </div>
 </div>
 </li>
 <li>
-<p>Recreate your cluster.</p>
-<div class="paragraph">
-<p>Follow the steps depending on whether or not you have all the <code>KafkaTopic</code> resources needed to recreate your cluster.</p>
-</div>
-<div class="openblock">
+<p>Recreate all <code>KafkaTopic</code> resources by applying the <code>KafkaTopic</code> resource configuration:</p>
+<div class="listingblock">
 <div class="content">
-<div class="paragraph">
-<p><strong><em>Option 1</em></strong>: If you have <strong>all</strong> the <code>KafkaTopic</code> resources that existed before you lost your cluster, including internal topics such as committed offsets from <code>__consumer_offsets</code>:</p>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f &lt;topic_configuration_file&gt;</code></pre>
 </div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Recreate all <code>KafkaTopic</code> resources.</p>
-<div class="paragraph">
-<p>It is essential that you recreate the resources before deploying the cluster, or the Topic Operator will delete the topics.</p>
 </div>
 </li>
 <li>
-<p>Deploy the Kafka cluster.</p>
+<p>Recreate all <code>KafkaUser</code> resources:</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>If user passwords and certificates need to be retained, recreate the user secrets before recreating the <code>KafkaUser</code> resources.</p>
 <div class="paragraph">
-<p>For example:</p>
+<p>If the secrets are not recreated, the User Operator will generate new credentials automatically.
+Ensure that the recreated secrets have exactly the same name, labels, and fields as the original secrets.</p>
 </div>
+</li>
+<li>
+<p>Apply the <code>KafkaUser</code> resource configuration:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>kafka.yaml</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f &lt;user_configuration_file&gt;</code></pre>
 </div>
 </div>
 </li>
 </ol>
 </div>
-</div>
-</div>
-<div class="openblock">
-<div class="content">
-<div class="paragraph">
-<p><strong><em>Option 2</em></strong>: If you do not have all the <code>KafkaTopic</code> resources that existed before you lost your cluster:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Deploy the Kafka cluster, as with the first option, but without the Topic Operator by removing the <code>topicOperator</code> property from the Kafka resource before deploying.</p>
-<div class="paragraph">
-<p>If you include the Topic Operator in the deployment, the Topic Operator will delete all the topics.</p>
-</div>
 </li>
 <li>
-<p>Delete the internal topic store topics from the Kafka cluster:</p>
+<p>Deploy the Kafka cluster using the original configuration for the <code>Kafka</code> resource:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl run kafka-admin -ti --image=quay.io/strimzi/kafka:latest-kafka-3.7.0 --rm=true --restart=Never -- ./bin/kafka-topics.sh --bootstrap-server localhost:9092 --topic __strimzi-topic-operator-kstreams-topic-store-changelog --delete &amp;&amp; ./bin/kafka-topics.sh --bootstrap-server localhost:9092 --topic __strimzi_store_topic --delete</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f &lt;kafka_resource_configuration&gt;.yaml -n my-project</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Verify the recovery of the <code>KafkaTopic</code> resources:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafkatopics -o wide -w -n my-project</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Kafka topic status</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME         CLUSTER     PARTITIONS  REPLICATION FACTOR READY
+my-topic-1   my-cluster  10          3                  True
+my-topic-2   my-cluster  10          3                  True
+my-topic-3   my-cluster  10          3                  True</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The command must correspond to the type of listener and authentication used to access the Kafka cluster.</p>
+<p><code>KafkaTopic</code> custom resource creation is successful when the <code>READY</code> output shows <code>True</code>.</p>
 </div>
 </li>
 <li>
-<p>Enable the Topic Operator by redeploying the Kafka cluster with the <code>topicOperator</code> property to recreate the <code>KafkaTopic</code> resources.</p>
+<p>Verify the recovery of the <code>KafkaUser</code> resources:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafkausers -o wide -w -n my-project</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Kafka user status</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME       CLUSTER     AUTHENTICATION  AUTHORIZATION READY
+my-user-1  my-cluster  tls             simple        True
+my-user-2  my-cluster  tls             simple        True
+my-user-3  my-cluster  tls             simple        True</code></pre>
+</div>
+</div>
 <div class="paragraph">
-<p>For example:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: kafka.strimzi.io/v1beta2
-kind: Kafka
-metadata:
-  name: my-cluster
-spec:
-  #...
-  entityOperator:
-    <strong>topicOperator: {}</strong> <b class="conum">(1)</b>
-    #...</code></pre>
-</div>
-</div>
-</li>
-</ol>
-</div>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Here we show the default configuration, which has no additional properties.
-You specify the required configuration using the properties described in the <a href="./configuring.html#type-EntityTopicOperatorSpec-reference" target="_blank" rel="noopener"><code>EntityTopicOperatorSpec</code> schema reference</a>.</p>
-</li>
-</ol>
-</div>
-</li>
-<li>
-<p>Verify the recovery by listing the <code>KafkaTopic</code> resources:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get KafkaTopic</code></pre>
-</div>
+<p><code>KafkaUser</code> custom resource creation is successful when the <code>READY</code> output shows <code>True</code>.</p>
 </div>
 </li>
 </ol>
