@@ -142,15 +142,16 @@
 <li><a href="#config-node-pools-str">10.3. Configuring node pools</a>
 <ul class="sectlevel3">
 <li><a href="#proc-managing-node-pools-ids-str">10.3.1. Assigning IDs to node pools for scaling operations</a></li>
-<li><a href="#proc-scaling-up-node-pools-str">10.3.2. Adding nodes to a node pool</a></li>
-<li><a href="#proc-scaling-down-node-pools-str">10.3.3. Removing nodes from a node pool</a></li>
-<li><a href="#proc-moving-node-pools-str">10.3.4. Moving nodes between node pools</a></li>
-<li><a href="#config-node-pools-roles-str">10.3.5. Changing node pool roles</a></li>
-<li><a href="#proc-splitting-node-pools-roles-str">10.3.6. Transitioning to separate broker and controller roles</a></li>
-<li><a href="#proc-joining-node-pools-roles-str">10.3.7. Transitioning to dual-role nodes</a></li>
-<li><a href="#proc-managing-storage-node-pools-str">10.3.8. Managing storage using node pools</a></li>
-<li><a href="#proc-managing-storage-affinity-node-pools-str">10.3.9. Managing storage affinity using node pools</a></li>
-<li><a href="#proc-migrating-clusters-node-pools-str">10.3.10. Migrating existing Kafka clusters to use Kafka node pools</a></li>
+<li><a href="#config-node-pools-dependencies-str">10.3.2. Impact on racks when moving nodes from node pools</a></li>
+<li><a href="#proc-scaling-up-node-pools-str">10.3.3. Adding nodes to a node pool</a></li>
+<li><a href="#proc-scaling-down-node-pools-str">10.3.4. Removing nodes from a node pool</a></li>
+<li><a href="#proc-moving-node-pools-str">10.3.5. Moving nodes between node pools</a></li>
+<li><a href="#config-node-pools-roles-str">10.3.6. Changing node pool roles</a></li>
+<li><a href="#proc-splitting-node-pools-roles-str">10.3.7. Transitioning to separate broker and controller roles</a></li>
+<li><a href="#proc-joining-node-pools-roles-str">10.3.8. Transitioning to dual-role nodes</a></li>
+<li><a href="#proc-managing-storage-node-pools-str">10.3.9. Managing storage using node pools</a></li>
+<li><a href="#proc-managing-storage-affinity-node-pools-str">10.3.10. Managing storage affinity using node pools</a></li>
+<li><a href="#proc-migrating-clusters-node-pools-str">10.3.11. Migrating existing Kafka clusters to use Kafka node pools</a></li>
 </ul>
 </li>
 <li><a href="#ref-kafka-entity-operator-str">10.4. Configuring the Entity Operator</a>
@@ -7707,7 +7708,34 @@ If you want to remove a specific node, you can assign a single node ID to the sc
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-scaling-up-node-pools-str"><a class="link" href="#proc-scaling-up-node-pools-str">10.3.2. Adding nodes to a node pool</a></h4>
+<h4 id="config-node-pools-dependencies-str"><a class="link" href="#config-node-pools-dependencies-str">10.3.2. Impact on racks when moving nodes from node pools</a></h4>
+<div class="paragraph _abstract">
+<p>If rack awareness is enabled on a Kafka cluster, replicas can be spread across different racks, data centers, or availability zones.
+When moving nodes from node pools, consider the implications on the cluster topology, particularly regarding rack awareness.
+Removing specific pods from node pools, especially out of order, may break the cluster topology or cause an imbalance in distribution across racks.
+An imbalance can impact both the distribution of nodes themselves and the partition replicas within the cluster.
+An uneven distribution of nodes and partitions across racks can affect the performance and resilience of the Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>Plan the removal of nodes strategically to maintain the required balance and resilience across racks.
+Use the <code>strimzi.io/remove-node-ids</code> annotation to move nodes with specific IDs with caution.
+Ensure that configuration to spread partition replicas across racks and for clients to consume from the closest replicas is not broken.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Tip</div>
+</td>
+<td class="content">
+Use Cruise Control and the <code>KafkaRebalance</code> resource with the <code>RackAwareGoal</code> to make sure that replicas remain distributed across different racks.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-scaling-up-node-pools-str"><a class="link" href="#proc-scaling-up-node-pools-str">10.3.3. Adding nodes to a node pool</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to scale up a node pool to add new nodes.
 Currently, scale up is only possible for broker-only node pools containing nodes that run as dedicated brokers.</p>
@@ -7817,7 +7845,7 @@ The reassignment can take some time depending on the number of topics and partit
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-scaling-down-node-pools-str"><a class="link" href="#proc-scaling-down-node-pools-str">10.3.3. Removing nodes from a node pool</a></h4>
+<h4 id="proc-scaling-down-node-pools-str"><a class="link" href="#proc-scaling-down-node-pools-str">10.3.4. Removing nodes from a node pool</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to scale down a node pool to remove nodes.
 Currently, scale down is only possible for broker-only node pools containing nodes that run as dedicated brokers.</p>
@@ -7919,7 +7947,7 @@ my-cluster-pool-b-kafka-2  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-moving-node-pools-str"><a class="link" href="#proc-moving-node-pools-str">10.3.4. Moving nodes between node pools</a></h4>
+<h4 id="proc-moving-node-pools-str"><a class="link" href="#proc-moving-node-pools-str">10.3.5. Moving nodes between node pools</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to move nodes between source and target Kafka node pools without downtime.
 You create a new node on the target node pool and reassign partitions to move data from the old node on the source node pool.
@@ -8070,7 +8098,7 @@ my-cluster-pool-b-kafka-5  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="config-node-pools-roles-str"><a class="link" href="#config-node-pools-roles-str">10.3.5. Changing node pool roles</a></h4>
+<h4 id="config-node-pools-roles-str"><a class="link" href="#config-node-pools-roles-str">10.3.6. Changing node pool roles</a></h4>
 <div class="paragraph _abstract">
 <p>Node pools can be used with Kafka clusters that operate in KRaft mode (using Kafka Raft metadata) or use ZooKeeper for metadata management.
 If you are using KRaft mode, you can specify roles for all nodes in the node pool to operate as brokers, controllers, or both.
@@ -8096,7 +8124,7 @@ For more information, see <a href="#proc-generating-optimization-proposals-str">
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-splitting-node-pools-roles-str"><a class="link" href="#proc-splitting-node-pools-roles-str">10.3.6. Transitioning to separate broker and controller roles</a></h4>
+<h4 id="proc-splitting-node-pools-roles-str"><a class="link" href="#proc-splitting-node-pools-roles-str">10.3.7. Transitioning to separate broker and controller roles</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to transition to using node pools with separate roles.
 If your Kafka cluster is using a node pool with combined controller and broker roles, you can transition to using two node pools with separate roles.
@@ -8291,7 +8319,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-joining-node-pools-roles-str"><a class="link" href="#proc-joining-node-pools-roles-str">10.3.7. Transitioning to dual-role nodes</a></h4>
+<h4 id="proc-joining-node-pools-roles-str"><a class="link" href="#proc-joining-node-pools-roles-str">10.3.8. Transitioning to dual-role nodes</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to transition from separate node pools with broker-only and controller-only roles to using a dual-role node pool.
 If your Kafka cluster is using node pools with dedicated controller and broker nodes, you can transition to using a single node pool with both roles.
@@ -8467,7 +8495,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-managing-storage-node-pools-str"><a class="link" href="#proc-managing-storage-node-pools-str">10.3.8. Managing storage using node pools</a></h4>
+<h4 id="proc-managing-storage-node-pools-str"><a class="link" href="#proc-managing-storage-node-pools-str">10.3.9. Managing storage using node pools</a></h4>
 <div class="paragraph _abstract">
 <p>Storage management in Strimzi is usually straightforward, and requires little change when set up, but there might be situations where you need to modify your storage configurations.
 Node pools simplify this process, because you can set up separate node pools that specify your new storage requirements.</p>
@@ -8623,7 +8651,7 @@ The reassignment can take some time depending on the number of topics and partit
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-managing-storage-affinity-node-pools-str"><a class="link" href="#proc-managing-storage-affinity-node-pools-str">10.3.9. Managing storage affinity using node pools</a></h4>
+<h4 id="proc-managing-storage-affinity-node-pools-str"><a class="link" href="#proc-managing-storage-affinity-node-pools-str">10.3.10. Managing storage affinity using node pools</a></h4>
 <div class="paragraph _abstract">
 <p>In situations where storage resources, such as local persistent volumes, are constrained to specific worker nodes, or availability zones, configuring storage affinity helps to schedule pods to use the right nodes.</p>
 </div>
@@ -8775,7 +8803,7 @@ my-cluster-pool-zone-2-kafka-6  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-migrating-clusters-node-pools-str"><a class="link" href="#proc-migrating-clusters-node-pools-str">10.3.10. Migrating existing Kafka clusters to use Kafka node pools</a></h4>
+<h4 id="proc-migrating-clusters-node-pools-str"><a class="link" href="#proc-migrating-clusters-node-pools-str">10.3.11. Migrating existing Kafka clusters to use Kafka node pools</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to migrate existing Kafka clusters to use Kafka node pools.
 After you have updated the Kafka cluster, you can use the node pools to manage the configuration of nodes within each pool.</p>
