@@ -956,8 +956,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#proc-upgrading-the-co-str">24.5.1. Upgrading the Cluster Operator using installation files</a></li>
 <li><a href="#upgrading_the_cluster_operator_using_the_operatorhub">24.5.2. Upgrading the Cluster Operator using the OperatorHub</a></li>
 <li><a href="#upgrading_the_cluster_operator_using_a_helm_chart">24.5.3. Upgrading the Cluster Operator using a Helm chart</a></li>
-<li><a href="#migrating_to_unidirectional_topic_management">24.5.4. Migrating to unidirectional topic management</a></li>
-<li><a href="#con-upgrade-cluster-operator-unsupported-kafka-str">24.5.5. Upgrading the Cluster Operator returns Kafka version error</a></li>
+<li><a href="#con-upgrade-cluster-operator-unsupported-kafka-str">24.5.4. Upgrading the Cluster Operator returns Kafka version error</a></li>
+<li><a href="#upgrading_from_a_strimzi_version_using_the_bidirectional_topic_operator">24.5.5. Upgrading from a Strimzi version using the Bidirectional Topic Operator</a></li>
 </ul>
 </li>
 <li><a href="#proc-upgrade-kafka-kraft-str">24.6. Upgrading KRaft-based Kafka clusters and client applications</a></li>
@@ -24316,8 +24316,7 @@ The listeners cannot be configured to use the ports reserved for interbroker com
 <dt class="hdlist1">ZooKeeper Port (2181)</dt>
 <dd>
 <p>ZooKeeper port for connection to Kafka brokers.
-Additionally, the Cluster Operator communicates with ZooKeeper through this port.
-If you are using the Topic Operator in bidirectional mode, it also communicates with ZooKeeper through this port.</p>
+Additionally, the Cluster Operator communicates with ZooKeeper through this port.</p>
 </dd>
 <dt class="hdlist1">ZooKeeper internodal communication port (2888)</dt>
 <dd>
@@ -29267,18 +29266,6 @@ One or more replication factor updates are then sent to Cruise Control for proce
 <div class="paragraph">
 <p>Progress is reflected in the status of the <code>KafkaTopic</code> resource.</p>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-This operation requires the unidirectional Topic Operator. It does not work when using the bidirectional Topic Operator.
-</td>
-</tr>
-</table>
-</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -29286,7 +29273,7 @@ This operation requires the unidirectional Topic Operator. It does not work when
 <p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
 </li>
 <li>
-<p><a href="#deploying-the-topic-operator-using-the-cluster-operator-str">The Topic Operator must be deployed</a> and running in unidirectional mode to manage topics through the <code>KafkaTopic</code> custom resource.</p>
+<p><a href="#deploying-the-topic-operator-using-the-cluster-operator-str">The Topic Operator must be deployed</a> to manage topics through the <code>KafkaTopic</code> custom resource.</p>
 </li>
 <li>
 <p><a href="#proc-configuring-deploying-cruise-control-str">Cruise Control is deployed with Kafka.</a></p>
@@ -33394,7 +33381,7 @@ cd tls-certificate</code></pre>
 <div class="title">Note</div>
 </td>
 <td class="content">
-If you change the name of the Strimzi Drain Cleaner service or install it into a different namespace, you must change the SAN (Subject Alternative Name) of the certificate, following the format <code>&lt;service_name&gt;.&lt;namespace_name&gt;.svc</code>.
+If you change the name of the Strimzi Drain Cleaner service or install it into a different namespace, you must change the SAN (Subject Alternative Name) of the certificate, following the format <code>&lt;service_name&gt;.&lt;namespace&gt;.svc</code>.
 </td>
 </tr>
 </table>
@@ -34192,15 +34179,7 @@ You can access the CRDs from the <a href="https://github.com/strimzi/strimzi-kaf
 </div>
 </div>
 <div class="sect3">
-<h4 id="migrating_to_unidirectional_topic_management"><a class="link" href="#migrating_to_unidirectional_topic_management">24.5.4. Migrating to unidirectional topic management</a></h4>
-<div class="paragraph">
-<p>When deploying the Topic Operator to manage topics, the Cluster Operator enables unidirectional topic management by default.
-If you are switching from a version of Strimzi that used bidirectional topic management, there are some cleanup tasks to perform after upgrading the Cluster Operator.
-For more information, see <a href="#proc-changing-topic-operator-mode-str">[proc-changing-topic-operator-mode-str]</a>.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="con-upgrade-cluster-operator-unsupported-kafka-str"><a class="link" href="#con-upgrade-cluster-operator-unsupported-kafka-str">24.5.5. Upgrading the Cluster Operator returns Kafka version error</a></h4>
+<h4 id="con-upgrade-cluster-operator-unsupported-kafka-str"><a class="link" href="#con-upgrade-cluster-operator-unsupported-kafka-str">24.5.4. Upgrading the Cluster Operator returns Kafka version error</a></h4>
 <div class="paragraph">
 <p>If you upgrade the Cluster Operator to a version that does not support the current version of Kafka you are using, you get an <em>unsupported Kafka version</em> error.
 This error applies to all installation methods and means that you must upgrade Kafka to a supported Kafka version.
@@ -34217,6 +34196,73 @@ Change the <code>spec.kafka.version</code> in the <code>Kafka</code> resource to
 </div>
 <div class="paragraph">
 <p>Replace &lt;kafka_cluster_name&gt; with the name of your Kafka cluster and &lt;namespace&gt; with the Kubernetes namespace where the pod is running.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="upgrading_from_a_strimzi_version_using_the_bidirectional_topic_operator"><a class="link" href="#upgrading_from_a_strimzi_version_using_the_bidirectional_topic_operator">24.5.5. Upgrading from a Strimzi version using the Bidirectional Topic Operator</a></h4>
+<div class="paragraph">
+<p>When deploying the Topic Operator to manage topics, the Cluster Operator enables unidirectional topic management.
+This means that the Topic Operator only manages Kafka topics associated with <code>KafkaTopic</code> resources and does not interfere with topics managed independently within the Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>Previously, the Topic Operator worked in bidirectional mode, which meant it could also perform operations on topics within the Kafka cluster.
+If you are switching from a version of Strimzi that uses the Bidirectional Topic Operator, after upgrading the Cluster Operator, perform some cleanup tasks on the following internal topics that were used by the operator:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>strimzi-store-topic</code></p>
+</li>
+<li>
+<p><code>strimzi-topic-operator</code></p>
+</li>
+<li>
+<p><code>consumer-offsets</code></p>
+</li>
+<li>
+<p><code>transaction-state</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For the <code>strimzi-store-topic</code> and <code>strimzi-topic-operator</code> topics, delete the resources that were used to manage them:</p>
+</div>
+<div class="listingblock">
+<div class="title">Deleting internal topics used by the operator</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete $(kubectl get kt -n &lt;namespace&gt; -o name | grep strimzi-store-topic) \
+  &amp;&amp; kubectl delete $(kubectl get kt -n &lt;namespace&gt; -o name | grep strimzi-topic-operator)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For the internal topics for storing consumer offsets and transaction states, <code>consumer-offsets</code> and <code>transaction-state</code>, you want to retain them in Kafka, but you don&#8217;t want them to be managed by the Topic Operator.</p>
+</div>
+<div class="paragraph">
+<p>Discontinue their management before deleting their resources.
+Annotating the <code>KafkaTopic</code> resources with <code>strimzi.io/managed="false"</code> indicates that the Topic Operator should no longer manage those topics:</p>
+</div>
+<div class="listingblock">
+<div class="title">Discontinuing management of internal topics</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate $(kubectl get kt -n &lt;namespace&gt; -o name | grep consumer-offsets) strimzi.io/managed="false" \
+  &amp;&amp; kubectl annotate $(kubectl get kt -n &lt;namespace&gt; -o name | grep transaction-state) strimzi.io/managed="false"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Check the statuses of the <code>KafkaTopic</code> resources to make sure the reconciliation was successful and the topics are no longer managed, as shown in the   <a href="#proc-converting-managed-topics-str">procedure to stop managing topics</a>.</p>
+</div>
+<div class="paragraph">
+<p>Having discontinued their management, delete the <code>KafkaTopic</code> resources:</p>
+</div>
+<div class="listingblock">
+<div class="title">Deleting the resources for managing internal topics</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete $(kubectl get kt -n &lt;namespace&gt; -o name | grep consumer-offsets) \
+  &amp;&amp; kubectl delete $(kubectl get kt -n &lt;namespace&gt; -o name | grep transaction-state)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>By discontinuing their management, they won&#8217;t also be deleted in Kafka.</p>
 </div>
 </div>
 </div>
@@ -39132,7 +39178,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-04-04 08:17:37 UTC
+Last updated 2024-04-04 12:51:22 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
