@@ -105,7 +105,10 @@
 <ul class="sectlevel2">
 <li><a href="#property-custom-authorization-authorizerclass-reference">24.1. <code>authorizerClass</code></a></li>
 <li><a href="#property-custom-authorization-superusers-reference">24.2. <code>superUsers</code></a></li>
-<li><a href="#type-KafkaAuthorizationCustom-schema-reference">24.3. <code>KafkaAuthorizationCustom</code> schema properties</a></li>
+<li><a href="#additional_configuration_options">24.3. Additional configuration options</a></li>
+<li><a href="#adding_custom_authorizer_jar_files_to_the_container_image">24.4. Adding custom authorizer JAR files to the container image</a></li>
+<li><a href="#using_custom_authorizers_with_oauth_authentication">24.5. Using custom authorizers with OAuth authentication</a></li>
+<li><a href="#type-KafkaAuthorizationCustom-schema-reference">24.6. <code>KafkaAuthorizationCustom</code> schema properties</a></li>
 </ul>
 </li>
 <li><a href="#type-Rack-reference">25. <code>Rack</code> schema reference</a>
@@ -4701,8 +4704,7 @@ It must have the value <code>keycloak</code> for the type <code>KafkaAuthorizati
 </div>
 <div class="paragraph">
 <p>Configure the <code>Kafka</code> custom resource to use custom authorization.
-Set the <code>type</code> property in the <code>authorization</code> section to the value <code>custom</code>,
-and the set following properties.</p>
+Set the <code>type</code> property in the <code>authorization</code> section to the value <code>custom</code>, and configure a list of super users.</p>
 </div>
 <div class="admonitionblock important">
 <table>
@@ -4711,7 +4713,7 @@ and the set following properties.</p>
 <div class="title">Important</div>
 </td>
 <td class="content">
-The custom authorizer must implement the <code>org.apache.kafka.server.authorizer.Authorizer</code> interface, and support configuration of <code>super.users</code> using the super.users configuration property.
+The custom authorizer must implement the <code>org.apache.kafka.server.authorizer.Authorizer</code> interface, and support configuration of super users using the <code>super.users</code> configuration property.
 </td>
 </tr>
 </table>
@@ -4727,8 +4729,25 @@ The custom authorizer must implement the <code>org.apache.kafka.server.authorize
 <div class="paragraph">
 <p>A list of user principals treated as super users, so that they are always allowed without querying ACL rules.</p>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The <code>super.user</code> configuration option in the <code>config</code> property in <code>Kafka.spec.kafka</code> is ignored.
+Designate super users in the <code>authorization</code> property instead.
+For more information, see <a href="#type-KafkaClusterSpec-reference">Kafka broker configuration</a>.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="additional_configuration_options"><a class="link" href="#additional_configuration_options">24.3. Additional configuration options</a></h3>
 <div class="paragraph">
-<p>You can add configuration for initializing the custom authorizer using <code>Kafka.spec.kafka.config</code>.</p>
+<p>You can add additional configuration for initializing the custom authorizer using <code>Kafka.spec.kafka.config</code>.</p>
 </div>
 <div class="listingblock">
 <div class="title">An example of custom authorization configuration under <code>Kafka.spec</code></div>
@@ -4755,28 +4774,35 @@ spec:
     # ...</code></pre>
 </div>
 </div>
+</div>
+<div class="sect2">
+<h3 id="adding_custom_authorizer_jar_files_to_the_container_image"><a class="link" href="#adding_custom_authorizer_jar_files_to_the_container_image">24.4. Adding custom authorizer JAR files to the container image</a></h3>
 <div class="paragraph">
-<p>In addition to the <code>Kafka</code> custom resource configuration, the JAR file containing the custom authorizer class along with its dependencies must be available on the classpath of the Kafka broker.</p>
+<p>In addition to the <code>Kafka</code> custom resource configuration, the JAR files containing the custom authorizer class along with its dependencies must be available on the classpath of the Kafka broker.</p>
 </div>
 <div class="paragraph">
-<p>The Strimzi Maven build process provides a mechanism to add custom third-party libraries to the generated Kafka broker container image by adding them as dependencies in the <code>pom.xml</code> file under the <code>docker-images/kafka/kafka-thirdparty-libs</code> directory. The directory contains different folders for different Kafka versions. Choose the appropriate folder. Before modifying the <code>pom.xml</code> file, the third-party library must be available in a Maven repository, and that Maven repository must be accessible to the Strimzi build process.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The <code>super.user</code> configuration option in the <code>config</code> property in <code>Kafka.spec.kafka</code> is ignored.
-Designate super users in the <code>authorization</code> property instead.
-For more information, see <a href="#type-KafkaClusterSpec-reference">Kafka broker configuration</a>.
-</td>
-</tr>
-</table>
+<p>You can add them by building Strimzi from the source-code.
+The Strimzi build process provides a mechanism to add custom third-party libraries to the generated Kafka broker container image by adding them as dependencies in the <code>pom.xml</code> file under the <code>docker-images/artifacts/kafka-thirdparty-libs</code> directory.
+The directory contains different folders for different Kafka versions. Choose the appropriate folder.
+Before modifying the <code>pom.xml</code> file, the third-party library must be available in a Maven repository, and that Maven repository must be accessible to the Strimzi build process.</p>
 </div>
 <div class="paragraph">
-<p>Custom authorization can make use of group membership information extracted from the JWT token during authentication when using <code>oauth</code> authentication and configuring <code>groupsClaim</code> configuration attribute. Groups are available on the <code>OAuthKafkaPrincipal</code> object during authorize() call as follows:</p>
+<p>Alternatively, you can add the JARs to an existing Strimzi container image:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">FROM quay.io/strimzi/kafka:latest-kafka-3.7.0
+USER root:root
+COPY ./<em>my-authorizer</em>/ /opt/kafka/libs/
+USER 1001</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="using_custom_authorizers_with_oauth_authentication"><a class="link" href="#using_custom_authorizers_with_oauth_authentication">24.5. Using custom authorizers with OAuth authentication</a></h3>
+<div class="paragraph">
+<p>When using <code>oauth</code> authentication with a <code>groupsClaim</code> configuration to extract user group information from JWT tokens, group information can be used in custom authorization calls.
+Groups are accessible through the <code>OAuthKafkaPrincipal</code> object during custom authorization calls, as follows:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -4795,7 +4821,7 @@ For more information, see <a href="#type-KafkaClusterSpec-reference">Kafka broke
 </div>
 </div>
 <div class="sect2">
-<h3 id="type-KafkaAuthorizationCustom-schema-reference"><a class="link" href="#type-KafkaAuthorizationCustom-schema-reference">24.3. <code>KafkaAuthorizationCustom</code> schema properties</a></h3>
+<h3 id="type-KafkaAuthorizationCustom-schema-reference"><a class="link" href="#type-KafkaAuthorizationCustom-schema-reference">24.6. <code>KafkaAuthorizationCustom</code> schema properties</a></h3>
 <div class="paragraph">
 <p>The <code>type</code> property is a discriminator that distinguishes use of the <code>KafkaAuthorizationCustom</code> type from <a href="#type-KafkaAuthorizationSimple-reference"><code>KafkaAuthorizationSimple</code></a>, <a href="#type-KafkaAuthorizationOpa-reference"><code>KafkaAuthorizationOpa</code></a>, <a href="#type-KafkaAuthorizationKeycloak-reference"><code>KafkaAuthorizationKeycloak</code></a>.
 It must have the value <code>custom</code> for the type <code>KafkaAuthorizationCustom</code>.</p>
