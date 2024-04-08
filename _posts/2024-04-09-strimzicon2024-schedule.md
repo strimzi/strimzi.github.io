@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "StrimziCon 2024: Schedule announced!"
-date: 2024-04-08
+date: 2024-04-09
 author: paolo_patierno
 ---
 
