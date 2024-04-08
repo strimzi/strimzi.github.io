@@ -29,4 +29,4 @@ The keynote will be followed by 3 hours of breakout sessions covering several to
 
 You can find more details about speakers and sessions on the official [page](https://community.cncf.io/events/details/cncf-virtual-project-events-2024-hosted-by-cncf-presents-strimzicon-2024-virtual/) as part of the CNCF events.
 
-Looking forward to see you at the conference and remember to register ... it's free!
+Looking forward to see you at the conference and remember to [register](https://community.cncf.io/events/details/cncf-virtual-project-events-2024-hosted-by-cncf-presents-strimzicon-2024-virtual/) ... it's free!
