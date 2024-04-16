@@ -3307,21 +3307,29 @@ To deploy a Kafka cluster in KRaft mode, you must use the <code>KafkaNodePool</c
 </div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1"><code>kafka-with-dual-role-kraft-nodes.yaml</code></dt>
-<dd>
-<p>Deploys a Kafka cluster with one pool of KRaft nodes that share the broker and controller roles.</p>
-</dd>
-<dt class="hdlist1"><code>kafka-with-kraft.yaml</code></dt>
-<dd>
-<p>Deploys a persistent Kafka cluster with one pool of controller nodes and one pool of broker nodes.</p>
-</dd>
-<dt class="hdlist1"><code>kafka-with-kraft-ephemeral.yaml</code></dt>
-<dd>
-<p>Deploys an ephemeral Kafka cluster with one pool of controller nodes and one pool of broker nodes.</p>
-</dd>
-<dt class="hdlist1"><code>kafka.yaml</code></dt>
+<dt class="hdlist1"><code>kafka/kafka-with-node-pools.yaml</code></dt>
 <dd>
 <p>Deploys ZooKeeper with 3 nodes, and 2 different pools of Kafka brokers. Each of the pools has 3 brokers. The pools in the example use different storage configuration.</p>
+</dd>
+<dt class="hdlist1"><code>kafka/kraft/kafka-with-dual-role-kraft-nodes.yaml</code></dt>
+<dd>
+<p>Deploys a KRaft-based Kafka cluster with one pool of KRaft nodes that share the broker and controller roles.</p>
+</dd>
+<dt class="hdlist1"><code>kafka/kraft/kafka.yaml</code></dt>
+<dd>
+<p>Deploys a persistent KRaft-based Kafka cluster with one pool of controller nodes and one pool of broker nodes.</p>
+</dd>
+<dt class="hdlist1"><code>kafka/kraft/kafka-ephemeral.yaml</code></dt>
+<dd>
+<p>Deploys an ephemeral KRaft-based Kafka cluster with one pool of controller nodes and one pool of broker nodes.</p>
+</dd>
+<dt class="hdlist1"><code>kafka/kraft/kafka-single-node.yaml</code></dt>
+<dd>
+<p>Deploys a KRaft-based Kafka cluster with a single node.</p>
+</dd>
+<dt class="hdlist1"><code>kafka/kraft/kafka-jbod.yaml</code></dt>
+<dd>
+<p>Deploys a KRaft-based Kafka cluster with multiple volumes in each broker node.</p>
 </dd>
 </dl>
 </div>
@@ -3353,34 +3361,10 @@ You can perform the steps outlined here to deploy a new Kafka cluster with <code
 <div class="ulist">
 <ul>
 <li>
-<p>To deploy a Kafka cluster in KRaft mode with a single node pool that uses dual-role nodes:</p>
+<p>For example, to deploy a Kafka cluster in KRaft mode with a single node pool that uses dual-role nodes:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka/kraft/kafka-with-dual-role-nodes.yaml</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>To deploy a persistent Kafka cluster in KRaft mode with separate node pools for broker and controller nodes:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka/kraft/kafka.yaml</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>To deploy an ephemeral Kafka cluster in KRaft mode with separate node pools for broker and controller nodes:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka/kraft/kafka-ephemeral.yaml</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>To deploy a Kafka cluster and ZooKeeper cluster with two node pools of three brokers:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f examples/kafka/kafka-with-node-pools.yaml</code></pre>
 </div>
 </div>
 </li>
@@ -6433,8 +6417,8 @@ The <code>Kafka</code> custom resource using KRaft mode must also have the annot
 <div class="ulist">
 <ul>
 <li>
-<p>JBOD storage is not supported.
-The <code>type: jbod</code> storage can be used, but the JBOD array can contain only one disk.</p>
+<p>JBOD storage is supported only with Apache Kafka 3.7.0 and higher.
+(Storage with <code>type: jbod</code> configuration can be used also with older Kafka versions, but the JBOD array can contain only one disk.)</p>
 </li>
 <li>
 <p>Scaling of KRaft controller-only nodes up or down is not supported.</p>
@@ -14254,6 +14238,38 @@ The <code><em>id</em></code> is the ID of the volume used for storing data for K
 </div>
 <div class="paragraph">
 <p>Where <code><em>id</em></code> is the ID of the volume used for storing data for Kafka broker pod <code><em>idx</em></code>. For example <code>/var/lib/kafka/data-0/kafka-log0</code>.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="configuring_the_storage_volume_used_to_store_the_kraft_metadata_log"><a class="link" href="#configuring_the_storage_volume_used_to_store_the_kraft_metadata_log">Configuring the storage volume used to store the KRaft metadata log</a></h5>
+<div class="paragraph">
+<p>When running a Kafka cluster in a KRaft mode, each node must store the KRaft metadata log on one of its data volumes.
+By default, the KRaft metadata log is stored on the volume with the lowest ID.
+However, you can specify another volume using the <code>kraftMetadata</code> property.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example JBOD storage configuration using volume with ID 1 to store the KRaft metadata</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: pool-a
+  # ...
+spec:
+  storage:
+    type: jbod
+    volumes:
+    - id: 0
+      type: persistent-claim
+      size: 100Gi
+      deleteClaim: false
+    - id: 1
+      type: persistent-claim
+      size: 100Gi
+      kraftMetadata: shared
+      deleteClaim: false
+  # ...</code></pre>
+</div>
 </div>
 </div>
 </div>
@@ -39225,7 +39241,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-04-16 20:27:06 UTC
+Last updated 2024-04-16 23:18:20 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
