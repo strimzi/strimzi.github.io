@@ -5886,6 +5886,100 @@ env:
 </div>
 </li>
 <li>
+<p>If you need to configure custom SASL authentication, you can define the necessary authentication properties using the <code>STRIMZI_SASL_CUSTOM_CONFIG_JSON</code> environment variable for the standalone operator.
+For example, this configuration may be used for accessing a Kafka cluster in a cloud provider with a custom login module like the <a href="https://github.com/aws/aws-msk-iam-auth" target="_blank" rel="noopener">Amazon MSK Library for AWS Identity and Access Management</a> (<code>aws-msk_iam-auth</code>).</p>
+<div class="paragraph">
+<p>The property <code>STRIMZI_ALTERABLE_TOPIC_CONFIG</code> defaults to <code>ALL</code>, allowing all <code>.spec.config</code> properties to be set in the <code>KafkaTopic</code> resource.
+If this setting is not suitable for a managed Kafka service, do as follows:</p>
+</div>
+<div class="openblock">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p>If only a subset of properties is configurable, list them as comma-separated values.</p>
+</li>
+<li>
+<p>If no  properties are to be configured, use <code>NONE</code>, which is equivalent to an empty property list.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Only Kafka configuration properties starting with <code>sasl.</code> can be set with the <code>STRIMZI_SASL_CUSTOM_CONFIG_JSON</code> environment variable.
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">Example custom SASL configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># ....
+env:
+  - name: STRIMZI_SASL_ENABLED
+    value: "true"
+  - name: STRIMZI_SECURITY_PROTOCOL
+    value: SASL_SSL
+  - name: STRIMZI_SKIP_CLUSTER_CONFIG_REVIEW # <b class="conum">(1)</b>
+    value: "true"
+  - name: STRIMZI_ALTERABLE_TOPIC_CONFIG # <b class="conum">(2)</b>
+    value: compression.type, max.message.bytes, message.timestamp.difference.max.ms, message.timestamp.type, retention.bytes, retention.ms
+  - name: STRIMZI_SASL_CUSTOM_CONFIG_JSON # <b class="conum">(3)</b>
+    value: |
+      {
+        "sasl.mechanism": "AWS_MSK_IAM",
+        "sasl.jaas.config": "software.amazon.msk.auth.iam.IAMLoginModule required;",
+        "sasl.client.callback.handler.class": "software.amazon.msk.auth.iam.IAMClientCallbackHandler"
+      }
+  - name: STRIMZI_PUBLIC_CA
+    value: "true"
+  - name: STRIMZI_TRUSTSTORE_LOCATION
+    value: /etc/pki/java/cacerts
+  - name: STRIMZI_TRUSTSTORE_PASSWORD
+    value: changeit
+  - name: STRIMZI_KAFKA_BOOTSTRAP_SERVERS
+    value: my-kafka-cluster-.kafka-serverless.us-east-1.amazonaws.com:9098
+# ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Disables cluster configuration lookup for managed Kafka services that don&#8217;t allow topic configuration changes.</p>
+</li>
+<li>
+<p>Defines the topic configuration properties that can be updated based on the limitations set by managed Kafka services.</p>
+</li>
+<li>
+<p>Specifies the SASL properties to be set in JSON format. Only properties starting with <code>sasl.</code> are allowed.</p>
+<div class="listingblock">
+<div class="title">Example Dockerfile with external jars</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">FROM strimzi/operator:latest
+
+USER root
+
+RUN mkdir -p ${STRIMZI_HOME}/external-libs
+RUN chmod +rx ${STRIMZI_HOME}/external-libs
+
+COPY ./aws-msk-iam-auth-and-dependencies/* ${STRIMZI_HOME}/external-libs/
+ENV JAVA_CLASSPATH=${STRIMZI_HOME}/external-libs/*
+
+USER 1001</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</li>
+<li>
 <p>Apply the changes to the <code>Deployment</code> configuration to deploy the Topic Operator.</p>
 </li>
 <li>
@@ -39241,7 +39335,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-04-16 23:18:20 UTC
+Last updated 2024-04-17 15:07:32 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
