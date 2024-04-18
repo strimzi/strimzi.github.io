@@ -31320,7 +31320,7 @@ The port for the JMX exporter HTTP endpoint is 9404.
 Prometheus scrapes this endpoint to collect Kafka metrics.</p>
 </div>
 <div class="paragraph">
-<p>You set the <code>enableMetrics</code> property to <code>true</code> in order to expose metrics for these components:</p>
+<p>Set the <code>enableMetrics</code> property to <code>true</code> in order to expose metrics for these components:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -31379,7 +31379,7 @@ The process is the same when deploying the example files for other resources.</p
 </td>
 <td class="content">
 Kafka Exporter only provides additional metrics related to consumer lag and consumer offsets.
-For regular Kafka metrics, you must configure the Prometheus metrics in <a href="#proc-metrics-kafka-deploy-options-str">Kafka brokers</a>.
+For regular Kafka metrics, configure Prometheus metrics in the <code>Kafka</code> resource.
 </td>
 </tr>
 </table>
@@ -31399,7 +31399,7 @@ For regular Kafka metrics, you must configure the Prometheus metrics in <a href=
 </div>
 </div>
 <div class="paragraph">
-<p>Alternatively, you can copy the example configuration in <code>kafka-metrics.yaml</code> to your own <code>Kafka</code> resource.</p>
+<p>Alternatively, copy the example configuration in <code>kafka-metrics.yaml</code> to your own <code>Kafka</code> resource.</p>
 </div>
 <div class="listingblock">
 <div class="title">Copying the example configuration</div>
@@ -31441,10 +31441,10 @@ data:
 <div class="colist arabic">
 <ol>
 <li>
-<p>Copy the <code>metricsConfig</code> property that references the ConfigMap that contains metrics configuration.</p>
+<p>Copy the <code>metricsConfig</code> property that references the <code>ConfigMap</code> containing metrics configuration.</p>
 </li>
 <li>
-<p>Copy the whole <code>ConfigMap</code> that specifies the metrics configuration.</p>
+<p>Copy the whole <code>ConfigMap</code> specifying the metrics configuration.</p>
 </li>
 </ol>
 </div>
@@ -31452,7 +31452,7 @@ data:
 <li>
 <p>To deploy Kafka Exporter, add <code>kafkaExporter</code> configuration.</p>
 <div class="paragraph">
-<p><code>kafkaExporter</code> configuration is only specified in the <code>Kafka</code> resource.</p>
+<p><code>kafkaExporter</code> configuration is specified only in the <code>Kafka</code> resource.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example configuration for deploying Kafka Exporter</div>
@@ -31464,21 +31464,22 @@ metadata:
 spec:
   # ...
   kafkaExporter:
-    image: my-registry.io/my-org/my-exporter-cluster:latest <b class="conum">(1)</b>
-    groupRegex: ".*" <b class="conum">(2)</b>
-    topicRegex: ".*" <b class="conum">(3)</b>
-    groupExcludeRegex: "^excluded-.*" <b class="conum">(4)</b>
-    topicExcludeRegex: "^excluded-.*" <b class="conum">(5)</b>
-    resources: <b class="conum">(6)</b>
+    image: my-registry.io/my-org/my-exporter-cluster:latest # <b class="conum">(1)</b>
+    groupRegex: ".*" # <b class="conum">(2)</b>
+    topicRegex: ".*" # <b class="conum">(3)</b>
+    groupExcludeRegex: "^excluded-.*" # <b class="conum">(4)</b>
+    topicExcludeRegex: "^excluded-.*" # <b class="conum">(5)</b>
+    showAllOffsets: false # <b class="conum">(6)</b>
+    resources: # <b class="conum">(7)</b>
       requests:
         cpu: 200m
         memory: 64Mi
       limits:
         cpu: 500m
         memory: 128Mi
-    logging: debug <b class="conum">(7)</b>
-    enableSaramaLogging: true <b class="conum">(8)</b>
-    template: <b class="conum">(9)</b>
+    logging: debug # <b class="conum">(8)</b>
+    enableSaramaLogging: true # <b class="conum">(9)</b>
+    template: # <b class="conum">(10)</b>
       pod:
         metadata:
           labels:
@@ -31489,10 +31490,10 @@ spec:
           runAsUser: 1000001
           fsGroup: 0
         terminationGracePeriodSeconds: 120
-    readinessProbe: <b class="conum">(10)</b>
+    readinessProbe: # <b class="conum">(11)</b>
       initialDelaySeconds: 15
       timeoutSeconds: 5
-    livenessProbe: <b class="conum">(11)</b>
+    livenessProbe: # <b class="conum">(12)</b>
       initialDelaySeconds: 15
       timeoutSeconds: 5
 # ...</code></pre>
@@ -31514,6 +31515,9 @@ spec:
 </li>
 <li>
 <p>A regular expression to specify the topics to exclude in the metrics.</p>
+</li>
+<li>
+<p>By default, metrics are collected for all consumers regardless of their connection status. Setting <code>showAllOffsets</code> to <code>false</code> stops collecting metrics on disconnected consumers.</p>
 </li>
 <li>
 <p>CPU and memory resources to reserve.</p>
@@ -31578,14 +31582,12 @@ spec:
 <dl>
 <dt class="hdlist1">OAuth 2.0 metrics</dt>
 <dd>
-<p>Enable metrics for Kafka cluster authorization and Kafka listener authentication in the <code>Kafka</code> resource.</p>
-<div class="paragraph">
-<p>You can also enable metrics for OAuth 2.0 authentication in the custom resource of other <a href="#proc-oauth-kafka-config-str">supported components</a>.</p>
-</div>
+<p>Enable metrics for Kafka cluster authorization and Kafka listener authentication in the <code>Kafka</code> resource.
+You can also enable metrics for OAuth 2.0 authentication in the custom resource of other <a href="#proc-oauth-kafka-config-str">supported components</a>.</p>
 </dd>
 <dt class="hdlist1">OPA metrics</dt>
 <dd>
-<p>Enable metrics for Kafka cluster authorization the <code>Kafka</code> resource in the same way as for OAuth 2.0.</p>
+<p>Enable metrics for Kafka cluster authorization in the <code>Kafka</code> resource similar to OAuth 2.0.</p>
 </dd>
 </dl>
 </div>
@@ -31620,8 +31622,7 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p>To use the OAuth 2.0 metrics with Prometheus, you can use the <code>oauth-metrics.yaml</code> file to deploy example Prometheus metrics configuration.
-Copy the <code>ConfigMap</code> configuration the <code>oauth-metrics.yaml</code> file contains to the same <code>Kafka</code> resource configuration file where you enabled metrics for OAuth 2.0.</p>
+<p>To use OAuth 2.0 metrics with Prometheus, copy the <code>ConfigMap</code> configuration from the <code>oauth-metrics.yaml</code> file to the same <code>Kafka</code> resource configuration file where you enabled metrics for OAuth 2.0 and then apply the configuration.</p>
 </div>
 </div>
 <div class="sect3">
@@ -39335,7 +39336,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-04-17 23:34:19 UTC
+Last updated 2024-04-18 07:16:43 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
