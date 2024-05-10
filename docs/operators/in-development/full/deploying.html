@@ -14285,7 +14285,7 @@ pvc-82dc78c9-...   2000Gi     my-project/data-my-cluster-kafka-1</code></pre>
 <h4 id="ref-jbod-storage-str"><a class="link" href="#ref-jbod-storage-str">10.10.5. JBOD storage</a></h4>
 <div class="paragraph _abstract">
 <p>JBOD storage allows you to configure your Kafka cluster to use multiple disks or volumes.
-This approach provides increased data storage capacity for Kafka brokers, and can lead to performance improvements.
+This approach provides increased data storage capacity for Kafka nodes, and can lead to performance improvements.
 A JBOD configuration is defined by one or more volumes, each of which can be either <a href="#ref-ephemeral-storage-str">ephemeral</a> or <a href="#ref-persistent-storage-str">persistent</a>.
 The rules and constraints for JBOD volume declarations are the same as those for ephemeral and persistent storage.
 For example, you cannot decrease the size of a persistent storage volume after it has been provisioned, nor can you change the value of <code>sizeLimit</code> when the type is <code>ephemeral</code>.</p>
@@ -14304,7 +14304,7 @@ JBOD storage is supported for <strong>Kafka only</strong>, not for ZooKeeper.
 </div>
 <div class="paragraph">
 <p>To use JBOD storage, you set the storage type configuration in the <code>Kafka</code> resource to <code>jbod</code>.
-If you are using node pools, you can also specify <code>jbod</code> in the storage configuration of individual node pools.</p>
+If you are using node pools, you can also specify <code>jbod</code> in the storage configuration for nodes belonging to a specific node pool.</p>
 </div>
 <div class="paragraph">
 <p>The <code>volumes</code> property allows you to describe the disks that make up your JBOD storage array or configuration.</p>
@@ -14368,9 +14368,24 @@ The <code><em>id</em></code> is the ID of the volume used for storing data for K
 <div class="sect4">
 <h5 id="configuring_the_storage_volume_used_to_store_the_kraft_metadata_log"><a class="link" href="#configuring_the_storage_volume_used_to_store_the_kraft_metadata_log">Configuring the storage volume used to store the KRaft metadata log</a></h5>
 <div class="paragraph">
-<p>When running a Kafka cluster in a KRaft mode, each node must store the KRaft metadata log on one of its data volumes.
-By default, the KRaft metadata log is stored on the volume with the lowest ID.
+<p>In KRaft mode, a copy of the Kafka cluster&#8217;s metadata log is stored on every node, including brokers and controllers.
+Each node uses one of its data volumes for the KRaft metadata log.
+By default, the log is stored on the volume with the lowest ID.
 However, you can specify another volume using the <code>kraftMetadata</code> property.</p>
+</div>
+<div class="paragraph">
+<p>For controller-only nodes, which don&#8217;t handle data, storage is used only used for the metadata log.
+The metadata log is always stored only on one volume, so using JBOD storage with multiple volumes does not improve the performance or increase the available disk space.</p>
+</div>
+<div class="paragraph">
+<p>Meanwhile, broker nodes or nodes combining broker and controller roles share the same volume for storing both the metadata log and partition replica data.
+This sharing optimizes disk utilization.
+They can also utilize JBOD storage with multiple volumes so that one of the volumes is shared by the metadata log and partition replica data and any additional volumes are used for partition replica data only.</p>
+</div>
+<div class="paragraph">
+<p>Changing the volume that stores the metadata log triggers a rolling update of nodes in the cluster.
+This process involves deleting the old metadata log and creating a new one in the new location.
+If <code>kraftMetadata</code> isn&#8217;t specified on any volume, adding a new volume with a lower ID also triggers an update and relocation of the metadata log.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -39412,7 +39427,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-05-10 09:22:56 UTC
+Last updated 2024-05-10 10:47:32 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
