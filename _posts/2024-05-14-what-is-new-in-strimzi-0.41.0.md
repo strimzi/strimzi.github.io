@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Video: What's new in Strimzi 0.41.0"
-date: 2024-05-13
+date: 2024-05-14
 author: jakub_scholz
 ---
 
