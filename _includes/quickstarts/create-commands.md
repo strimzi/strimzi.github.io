@@ -31,11 +31,11 @@ Once the operator is running it will watch for new custom resources and create t
 
 # Create an Apache Kafka cluster
 
-Create a new Kafka custom resource to get a small persistent Apache Kafka Cluster with one node for Apache Zookeeper and Apache Kafka:
+Create a new Kafka custom resource to get a small persistent Apache Kafka Cluster with a one node:
 
 ```shell
 # Apply the `Kafka` Cluster CR file
-kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka 
+kubectl apply -f https://strimzi.io/examples/latest/kafka/kraft/kafka-single-node.yaml -n kafka 
 ```
 
 Wait while Kubernetes starts the required pods, services, and so on:
@@ -58,7 +58,7 @@ Once everything is set up correctly, you'll see a prompt where you can type in y
 ```shell
 If you don't see a command prompt, try pressing enter.
 
->Hello strimzi!
+>Hello Strimzi!
 ```
 
 And to receive them in a different terminal, run:
@@ -70,5 +70,5 @@ If everything works as expected, you'll be able to see the message you produced 
 ```shell
 If you don't see a command prompt, try pressing enter.
 
->Hello strimzi!
+>Hello Strimzi!
 ```
