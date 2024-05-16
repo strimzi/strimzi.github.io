@@ -31,7 +31,7 @@ Once the operator is running it will watch for new custom resources and create t
 
 # Create an Apache Kafka cluster
 
-Create a new Kafka custom resource to get a small persistent Apache Kafka Cluster with a one node:
+Create a new Kafka custom resource to get a single node Apache Kafka cluster:
 
 ```shell
 # Apply the `Kafka` Cluster CR file
