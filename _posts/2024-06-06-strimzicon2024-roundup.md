@@ -73,7 +73,7 @@ Speaker: Colt McNealy @ LittleHorse
 The "LH Cloud Enterprise" product uses Strimzi CRD's to enable partial multi-tenancy, in which multiple applications (in their case LittleHorse clusters) share a single Kafka cluster.
 In this session Colt covered how the KafkaTopic CRD simplifies the provisioning of new LH Clusters, how they use the KafkaUser CRD to enable tenant isolation, and how they use the KafkaRebalance CRD to take advantage of Cruise Control.
 
-#### How to survive managing Strimzi in an enterprise ([Recording][axual-pres])
+#### How to survive managing Strimzi in an enterprise ([Recording][axual-pres]/[Slides][axual-slides])
 
 Speaker: Richard Bosch, @ Axual BV
 
@@ -120,6 +120,7 @@ If you want to join the conversation and connect with other Strimzi users and co
 [maersk-pres]: https://youtu.be/b_Ld-mfDnjE?feature=shared
 [littlehorse-slides]: https://docs.google.com/presentation/d/1YlUVz8EUfWsOuM5F4Dfo7nmUKnDp6fmYAHJDnpTXYt4/edit?usp=sharing
 [littlehorse-pres]: https://youtu.be/BY-QXGR_5AE?feature=shared
+[axual-slides]: https://docs.google.com/presentation/d/1l_QCzmIoyYP2fJGOGiNQRPKKiNnIpxol/edit
 [axual-pres]: https://youtu.be/LUfMEfVcOtQ?feature=shared
 [apple-slides]: https://drive.google.com/file/d/1iaV16cUj-QG8Znv46FD44G5vOGbE9nX_/view?usp=sharing
 [apple-pres]: https://youtu.be/lOY3Tg1evOQ?feature=shared
