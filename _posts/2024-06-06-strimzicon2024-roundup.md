@@ -9,7 +9,7 @@ author: kate_stanley
 
 StrimziCon 2024 is finished!
 
-In the end we had:
+The packed program included:
 * 8 sessions
 * 11 speakers from 6 organizations
 * Over 5 hours of content
@@ -18,13 +18,14 @@ The sessions covered a wide range of topics, from company use cases, to experien
 We heard from maintainers, contributors and developers who've been running Strimzi in production.
 The main message that shined through on every session was how much people love working with Strimzi, not only running it, but engaging with the community as well. 
 
-A massive thank you to all the attendees (almost 300!) who joined us live on the day, it was so great to engage with the community in real time.
+A massive thank you to all the attendees (almost 300!) who joined us live on the day.
+It was so great to engage with the community in real time.
 
-We also of course need to thank everyone who helped make StrimziCon a reality - the speakers, program committee and of course CNCF who provided so much assistance in running the event.
+We also extend our thanks to everyone who helped make StrimziCon a reality - the speakers, program committee, and of course CNCF who provided so much assistance in running the event.
 
 ### Session Recordings and Slides
 
-If you weren't able to make it you'll be pleased to hear that all the session recordings are now available over on the [Strimzi YouTube channel](https://youtube.com/playlist?list=PLpI4X8PMthYemH5ffnnOFLRhKpJiY1oAn&feature=shared).
+If you weren't able to make it, you'll be pleased to hear that all the session recordings are now available over on the [Strimzi YouTube channel](https://youtube.com/playlist?list=PLpI4X8PMthYemH5ffnnOFLRhKpJiY1oAn&feature=shared).
 In case you aren't sure which sessions to watch, here's a rundown of the event, including links to the recording and slides for each session.
 
 ##### Keynote ([Recording][keynote-pres]/[Slides][keynote-slides])
@@ -37,15 +38,15 @@ Kate and Paolo kicked off the event with a recap of Strimzi's past, a look at th
 
 _Speaker: Jakub Scholz @ Red Hat_
 
-Jakub explained why staying up to date is important for security reasons but also for example to get help.
+Jakub explained why staying up to date is important not only for security reasons, but also for things like getting help.
 He also showed that staying up to date is not as hard as many users think by going through the various ways of upgrading Strimzi and demoing some of them.
 
 ##### Exploring Strimzi’s implementation of rolling updates ([Recording][tina-pres]/[Slides][tina-slides])
 
 _Speaker: Gantigmaa Selenge @ Red Hat_
 
-In this session, Gantigmaa delved into the Strimzi component known as KafkaRoller.
-She explained KafkaRoller’s decision making process and the safety assessment when performing rolling updates.
+In this session, Gantigmaa delved into the Strimzi component known as `KafkaRoller`.
+She explained decision making process of `KafkaRoller` and the safety assessment when performing rolling updates.
 
 ##### Transition to Apache Kafka on Kubernetes with Strimzi ([Recording][maersk-pres]/[Slides][maersk-slides])
 
@@ -72,8 +73,8 @@ Distinguishing itself from its predecessor, the Bidirectional Topic Operator (BT
 
 _Speaker: Colt McNealy @ LittleHorse_
 
-The "LH Cloud Enterprise" product uses Strimzi CRD's to enable partial multi-tenancy, in which multiple applications (in their case LittleHorse clusters) share a single Kafka cluster.
-In this session Colt covered how the KafkaTopic CRD simplifies the provisioning of new LH Clusters, how they use the KafkaUser CRD to enable tenant isolation, and how they use the KafkaRebalance CRD to take advantage of Cruise Control.
+The "LH Cloud Enterprise" product uses Strimzi CRDs to enable partial multi-tenancy, in which multiple applications (in their case LittleHorse clusters) share a single Kafka cluster.
+In this session Colt covered how the `KafkaTopic` CRD simplifies the provisioning of new LH Clusters, how they use the `KafkaUser` CRD to enable tenant isolation, and how they use the `KafkaRebalance` CRD to take advantage of Cruise Control.
 
 ##### How to survive managing Strimzi in an enterprise ([Recording][axual-pres]/[Slides][axual-slides])
 
@@ -86,7 +87,7 @@ Identifying the need to answer questions like who is the data owner of our topic
 
 _Speakers: Lixin Yao, Vrishali Bhor, Bo Gao @ Apple_
 
-Lixin, Vrashali and Bo shared their experience integrating the Apache Kafka tiered storage feature with Strimzi Kafka operator and Strimzi operated Kafka clusters, and their proposal to support tiered storage feature in Strimzi natively.
+Lixin, Vrashali and Bo shared their experience integrating the Apache Kafka tiered storage feature with Strimzi Kafka operator and Strimzi-operated Kafka clusters, and their proposal to support the tiered storage feature in Strimzi natively.
 They also talked about their journey of optimizing performance for their remote storage manager implementation and the valuable insights they gained along the way.
 
 ### What Next?
