@@ -7,7 +7,7 @@ author: kate_stanley
 
 ![StrimziCon 2024 Banner](/assets/images/posts/2024-01-29-strimzicon2024-banner.png)
 
-StrimziCon 2024 is finished!
+StrimziCon 2024 was a resounding success!
 
 The packed program included:
 * 8 sessions
@@ -21,7 +21,7 @@ The main message that shined through on every session was how much people love w
 A massive thank you to all the attendees (almost 300!) who joined us live on the day.
 It was so great to engage with the community in real time.
 
-We also extend our thanks to everyone who helped make StrimziCon a reality - the speakers, program committee, and of course CNCF who provided so much assistance in running the event.
+We also extend our thanks to everyone who helped make StrimziCon a reality - the speakers, program committee, and of course [CNCF](https://www.cncf.io/) who provided so much assistance in running the event.
 
 ### Session Recordings and Slides
 
