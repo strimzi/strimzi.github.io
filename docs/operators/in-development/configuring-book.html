@@ -565,31 +565,45 @@ config:
 <div class="sect2">
 <h3 id="con-common-configuration-trusted-certificates-reference"><a class="link" href="#con-common-configuration-trusted-certificates-reference">2.4. <code>trustedCertificates</code></a></h3>
 <div class="paragraph">
-<p>Having set <code>tls</code> to configure TLS encryption, use the <code>trustedCertificates</code> property to provide a list of secrets with key names under which the certificates are stored in X.509 format.</p>
+<p>Use the <code>tls</code> and <code>trustedCertificates</code> properties to enable TLS encryption and specify secrets under which TLS certificates are stored in X.509 format.
+You can add this configuration to the Kafka Connect, Kafka MirrorMaker, and Kafka Bridge components for TLS connections to the Kafka cluster.</p>
 </div>
 <div class="paragraph">
 <p>You can use the secrets created by the Cluster Operator for the Kafka cluster,
 or you can create your own TLS certificate file, then create a <code>Secret</code> from the file:</p>
 </div>
 <div class="listingblock">
+<div class="title">Creating a secret</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create secret generic <em>MY-SECRET</em> \
---from-file=<em>MY-TLS-CERTIFICATE-FILE.crt</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create secret generic &lt;my_secret&gt; \
+--from-file=&lt;my_tls_certificate_file.crt&gt;</code></pre>
 </div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Replace <code>&lt;my_secret&gt;</code> with your secret name.</p>
+</li>
+<li>
+<p>Replace <code>&lt;my_tls_certificate_file.crt&gt;</code> with the path to your TLS certificate file.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Use the <code>pattern</code> property to include all files in the secret that match the pattern.
+Using the <code>pattern</code> property means that the custom resource does not need to be updated if certificate file names change.
+However, you can specify a specific file using the <code>certificate</code> property instead of the <code>pattern</code> property.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example TLS encryption configuration</div>
+<div class="title">Example TLS encryption configuration for components</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">tls:
   trustedCertificates:
     - secretName: my-cluster-cluster-cert
-      certificate: ca.crt
+      pattern: "*.crt"
     - secretName: my-cluster-cluster-cert
       certificate: ca2.crt</code></pre>
 </div>
-</div>
-<div class="paragraph">
-<p>If certificates are stored in the same secret, it can be listed multiple times.</p>
 </div>
 <div class="paragraph">
 <p>If you want to enable TLS encryption, but use the default set of public certification authorities shipped with Java,
@@ -600,6 +614,18 @@ you can specify <code>trustedCertificates</code> as an empty array:</p>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">tls:
   trustedCertificates: []</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Similarly, you can use the <code>tlstrustedCertificates</code> property in the configuration for <code>oauth</code>, <code>keycloak</code>, and <code>opa</code> authentication and authorization types that integrate with authorization servers.
+The configuration sets up encrypted TLS connections to the authorization server.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example TLS encryption configuration for authentication types</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">tlsTrustedCertificates:
+  - secretName: oauth-server-ca
+    pattern: "*.crt"</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -10198,11 +10224,11 @@ The OAuth client will connect to the OAuth server, authenticate using the client
 In the <code>clientSecret</code> property, specify a link to a <code>Secret</code> containing the client secret.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example of OAuth client authentication using client ID and client secret</div>
+<div class="title">Example client ID and client secret configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">authentication:
   type: oauth
-  tokenEndpointUri: https://sso.myproject.svc:8443/auth/realms/internal/protocol/openid-connect/token
+  tokenEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_token_endpoint&gt;
   clientId: my-client-id
   clientSecret:
     secretName: my-client-oauth-secret
@@ -10219,11 +10245,11 @@ The OAuth client will connect to the OAuth server, authenticate using the client
 In the <code>refreshToken</code> property, specify a link to a <code>Secret</code> containing the refresh token.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example of OAuth client authentication using client ID and refresh token</div>
+<div class="title">Example client ID and refresh token configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">authentication:
   type: oauth
-  tokenEndpointUri: https://sso.myproject.svc:8443/auth/realms/internal/protocol/openid-connect/token
+  tokenEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_token_endpoint&gt;
   clientId: my-client-id
   refreshToken:
     secretName: my-refresh-token-secret
@@ -10237,7 +10263,7 @@ In this case, you do not specify the <code>tokenEndpointUri</code>.
 In the <code>accessToken</code> property, specify a link to a <code>Secret</code> containing the access token.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example of OAuth client authentication using only an access token</div>
+<div class="title">Example access token only configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">authentication:
   type: oauth
@@ -10268,11 +10294,11 @@ The OAuth client will connect to the OAuth server, authenticate using the userna
 If you are using a confidential OAuth client, you also have to configure a <code>clientSecret</code>.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example of OAuth client authentication using username and a password with a public client</div>
+<div class="title">Example username and password configuration with a public client</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">authentication:
   type: oauth
-  tokenEndpointUri: https://sso.myproject.svc:8443/auth/realms/internal/protocol/openid-connect/token
+  tokenEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_token_endpoint&gt;
   username: my-username
   passwordSecret:
     secretName: my-password-secret-name
@@ -10281,11 +10307,11 @@ If you are using a confidential OAuth client, you also have to configure a <code
 </div>
 </div>
 <div class="listingblock">
-<div class="title">An example of OAuth client authentication using a username and a password with a confidential client</div>
+<div class="title">Example username and password configuration with a confidential client</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">authentication:
   type: oauth
-  tokenEndpointUri: https://sso.myproject.svc:8443/auth/realms/internal/protocol/openid-connect/token
+  tokenEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_token_endpoint&gt;
   username: my-username
   passwordSecret:
     secretName: my-password-secret-name
@@ -10304,23 +10330,22 @@ If you are using a confidential OAuth client, you also have to configure a <code
 <p>Accessing the OAuth server using the HTTPS protocol does not require any additional configuration as long as the TLS certificates used by it are signed by a trusted certification authority and its hostname is listed in the certificate.</p>
 </div>
 <div class="paragraph">
-<p>If your OAuth server is using certificates which are self-signed or are signed by a certification authority which is not trusted, you can configure a list of trusted certificates in the custom resource.
-The <code>tlsTrustedCertificates</code> property contains a list of secrets with key names under which the certificates are stored.
-The certificates must be stored in X509 format.</p>
+<p>If your OAuth server uses self-signed certificates or certificates signed by an untrusted certification authority, use the <code>tlsTrustedCertificates</code> property to specify the secrets containing them.
+The certificates must be in X.509 format.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example of TLS certificates provided</div>
+<div class="title">Example configuration specifying TLS certificates</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">authentication:
   type: oauth
-  tokenEndpointUri: https://sso.myproject.svc:8443/auth/realms/internal/protocol/openid-connect/token
+  tokenEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_token_endpoint&gt;
   clientId: my-client-id
   refreshToken:
     secretName: my-refresh-token-secret
     key: refresh-token
   tlsTrustedCertificates:
     - secretName: oauth-server-ca
-      certificate: tls.crt</code></pre>
+      pattern: "*.crt"</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -10328,11 +10353,11 @@ The certificates must be stored in X509 format.</p>
 If it is not required, you can disable the hostname verification.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example of disabled TLS hostname verification</div>
+<div class="title">Example configuration to disable TLS hostname verification</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">authentication:
   type: oauth
-  tokenEndpointUri: https://sso.myproject.svc:8443/auth/realms/internal/protocol/openid-connect/token
+  tokenEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_token_endpoint&gt;
   clientId: my-client-id
   refreshToken:
     secretName: my-refresh-token-secret
