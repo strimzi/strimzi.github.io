@@ -7737,7 +7737,7 @@ spec:
 <h4 id="proc-setting-broker-limits-str"><a class="link" href="#proc-setting-broker-limits-str">10.2.1. Setting throughput and storage limits on brokers</a></h4>
 <div class="paragraph _abstract">
 <p>Use the <em>Kafka Static Quota</em> plugin to set throughput and storage limits on brokers in your Kafka cluster.
-You enable the plugin and set limits by configuring the <code>Kafka</code> resource.
+You enable the plugin and set limits by configuring the <code>quotas</code> section of the <code>Kafka</code> resource.
 You can set a byte-rate threshold and storage quotas to put limits on the clients interacting with your brokers.</p>
 </div>
 <div class="admonitionblock note">
@@ -7761,25 +7761,11 @@ For example, you can set a byte-rate threshold of 40 MBps for producers.
 If two producers are running, they are each limited to a throughput of 20 MBps.</p>
 </div>
 <div class="paragraph">
-<p>Storage quotas throttle Kafka disk storage limits between a soft limit and hard limit.
-The limits apply to all available disk space.
-Producers are slowed gradually between the soft and hard limit.
-The limits prevent disks filling up too quickly and exceeding their capacity.
-Full disks can lead to issues that are hard to rectify.
-The hard limit is the maximum storage limit.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-For JBOD storage, the limit applies across all disks.
-If a broker is using two 1 TB disks and the quota is 1.1 TB, one disk might fill and the other disk will be almost empty.
-</td>
-</tr>
-</table>
+<p>Storage quotas enforce the throttling of Kafka producers based on Kafka disk storage utilization when it reaches the specified limit.
+You can specify the limit in bytes or percentage of available disk space.
+The limit applies to every disk individually.
+It prevents disks filling up too quickly and exceeding their capacity.
+Full disks can lead to issues that are hard to rectify.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -7793,9 +7779,9 @@ If a broker is using two 1 TB disks and the quota is 1.1 TB, one disk might fill
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Add the plugin properties to the <code>config</code> of the <code>Kafka</code> resource.</p>
+<p>Add the plugin configuration to the <code>quotas</code> section of the <code>Kafka</code> resource.</p>
 <div class="paragraph">
-<p>The plugin properties are shown in this example configuration.</p>
+<p>The plugin configuration is shown in this example configuration.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example Kafka Static Quota plugin configuration</div>
@@ -7807,20 +7793,17 @@ metadata:
 spec:
   kafka:
     # ...
-    config:
-      client.quota.callback.class: io.strimzi.kafka.quotas.StaticQuotaCallback <b class="conum">(1)</b>
-      client.quota.callback.static.produce: 1000000 <b class="conum">(2)</b>
-      client.quota.callback.static.fetch: 1000000 <b class="conum">(3)</b>
-      client.quota.callback.static.storage.soft: 400000000000 <b class="conum">(4)</b>
-      client.quota.callback.static.storage.hard: 500000000000 <b class="conum">(5)</b>
-      client.quota.callback.static.storage.check-interval: 5 <b class="conum">(6)</b></code></pre>
+    quotas:
+      type: strimzi
+      producerByteRate: 1000000 # <b class="conum">(1)</b>
+      consumerByteRate: 1000000 # <b class="conum">(2)</b>
+      minAvailableBytesPerVolume: 500000000000 # <b class="conum">(3)</b>
+      excludedPrincipals: # <b class="conum">(4)</b>
+        - my-user</code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <ol>
-<li>
-<p>Loads the Kafka Static Quota plugin.</p>
-</li>
 <li>
 <p>Sets the producer byte-rate threshold. 1 MBps in this example.</p>
 </li>
@@ -7828,30 +7811,38 @@ spec:
 <p>Sets the consumer byte-rate threshold. 1 MBps in this example.</p>
 </li>
 <li>
-<p>Sets the lower soft limit for storage. 400 GB in this example.</p>
+<p>Sets the available bytes limit for storage. 500 GB in this example.</p>
 </li>
 <li>
-<p>Sets the higher hard limit for storage. 500 GB in this example.</p>
-</li>
-<li>
-<p>Sets the interval in seconds between checks on storage. 5 seconds in this example. You can set this to 0 to disable the check.</p>
+<p>Sets the list of excluded users that are removed from the quota. <code>my-user</code> in this example.</p>
 </li>
 </ol>
 </div>
 </li>
 <li>
-<p>Update the resource.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;kafka_configuration_file&gt;</em></code></pre>
-</div>
-</div>
+<p>Apply the changes to the <code>Kafka</code> configuration.</p>
 </li>
 </ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<code>minAvailableBytesPerVolume</code> and <code>minAvailableRatioPerVolume</code> are mutually exclusive.
+This means that only one of these parameters should be configured.
+</td>
+</tr>
+</table>
 </div>
 <div class="ulist _additional-resources">
 <div class="title">Additional resources</div>
 <ul>
+<li>
+<p><a href="./configuring.html#type-QuotasPluginStrimzi-reference" target="_blank" rel="noopener"><code>QuotasPluginStrimzi</code> schema reference</a></p>
+</li>
 <li>
 <p><a href="./configuring.html#type-KafkaUserQuotas-reference" target="_blank" rel="noopener"><code>KafkaUserQuotas</code> schema reference</a></p>
 </li>
@@ -38922,7 +38913,7 @@ In the Java client, you can do this by setting the configuration option <code>ss
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-06-22 18:31:57 UTC
+Last updated 2024-06-22 23:10:33 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
