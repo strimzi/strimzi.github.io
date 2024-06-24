@@ -22,7 +22,7 @@ Currently Strimzi offers first-class support for three use cases:
 * Balancing the whole cluster.
   This uses the `KafkaRebalance` custom resource.
 * Assigning replicas to newly-added brokers. This uses a `KafkaRebalance` with `spec.mode` set to `add-broker`, which was added in Strimzi 0.29.
-* Reassigning replicas away from brokers prior to scaling down the cluster. This uses a `KafkaRebalance` with `spec.model` set to `remove-broker`. This was also added in Strimzi 0.29.
+* Reassigning replicas away from brokers prior to scaling down the cluster. This uses a `KafkaRebalance` with `spec.mode` set to `remove-broker`. This was also added in Strimzi 0.29.
 
 These use cases are covered extensively in [the Strimzi documentation](https://strimzi.io/docs/operators/latest/configuring.html#cruise-control-concepts-str).
 
