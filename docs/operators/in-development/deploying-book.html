@@ -37650,6 +37650,29 @@ A shorter interval between consecutive heartbeats allows for quicker detection o
 The heartbeat interval must be lower, usually by a third, than the session timeout.
 Decreasing the heartbeat interval reduces the chance of accidental rebalancing, but more frequent heartbeats increases the overhead on broker resources.</p>
 </div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env"># ...
+max.poll.records=100 # <b class="conum">(1)</b>
+session.timeout.ms=30000 # <b class="conum">(2)</b>
+heartbeat.interval.ms=5000 # <b class="conum">(3)</b>
+# ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Set the number records returned to the consumer when calling the <code>poll()</code> method.</p>
+</li>
+<li>
+<p>Set the timeout for detecting client failure.
+If the broker configuration has a <code>group.min.session.timeout.ms</code> and <code>group.max.session.timeout.ms</code>, the session timeout value must be within that range.</p>
+</li>
+<li>
+<p>Adjust the heartbeat interval according to anticipated rebalances.</p>
+</li>
+</ol>
+</div>
 </div>
 <div class="sect3">
 <h4 id="managing_offset_policy"><a class="link" href="#managing_offset_policy">31.5.8. Managing offset policy</a></h4>
@@ -37671,21 +37694,12 @@ If a consumer group or standalone consumer is inactive and commits no offsets du
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-env hljs" data-lang="env"># ...
-heartbeat.interval.ms=3000 <b class="conum">(1)</b>
-session.timeout.ms=45000 <b class="conum">(2)</b>
-auto.offset.reset=earliest <b class="conum">(3)</b>
+auto.offset.reset=earliest # <b class="conum">(1)</b>
 # ...</code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <ol>
-<li>
-<p>Adjust the heartbeat interval lower according to anticipated rebalances.</p>
-</li>
-<li>
-<p>If no heartbeats are received by the Kafka broker before the timeout duration expires, the consumer is removed from the consumer group and a rebalance is initiated.
-If the broker configuration has a <code>group.min.session.timeout.ms</code> and <code>group.max.session.timeout.ms</code>, the session timeout value must be within that range.</p>
-</li>
 <li>
 <p>Set to <code>earliest</code> to return to the start of a partition and avoid data loss if offsets were not committed.</p>
 </li>
@@ -37700,7 +37714,8 @@ In this case, you can lower <code>max.partition.fetch.bytes</code> or increase <
 <div class="sect3">
 <h4 id="minimizing_the_impact_of_rebalances"><a class="link" href="#minimizing_the_impact_of_rebalances">31.5.9. Minimizing the impact of rebalances</a></h4>
 <div class="paragraph">
-<p>The rebalancing of a partition between active consumers in a group is the time it takes for the following to take place:</p>
+<p>Rebalances in Kafka consumer groups can introduce latency and reduce throughput, impacting overall service performance.
+The rebalancing of a partition between active consumers in a group is the time it takes for the following to take place:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -37719,41 +37734,160 @@ In this case, you can lower <code>max.partition.fetch.bytes</code> or increase <
 </ul>
 </div>
 <div class="paragraph">
-<p>The rebalancing process can increase the downtime of a service, particularly if it happens repeatedly during a rolling restart of a consumer group cluster.</p>
+<p>Rebalances are triggered by changes in consumer health, network issues, configuration updates, and scaling events.
+This process can increase service downtime, especially if it occurs frequently, such as during rolling restarts of consumers in a group.</p>
 </div>
 <div class="paragraph">
-<p>In this situation, you can introduce <em>static membership</em> by assigning a unique identifier (<code>group.instance.id</code>) to each consumer instance within the group.
-Static membership uses persistence so that a consumer instance is recognized during a restart after a session timeout.
-Consequently, the consumer maintains its assignment of topic partitions, reducing unnecessary rebalancing when it rejoins the group after a failure or restart.</p>
+<p>To minimize the impact of rebalances, consider the following strategies and configurations:</p>
 </div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Assess throughput and parallelism</dt>
+<dd>
+<p>Assess the expected throughput (bytes and records per second) and parallelism (number of partitions) of the input topics against the number of consumers.</p>
 <div class="paragraph">
-<p>Additionally, adjusting the <code>max.poll.interval.ms</code> configuration can prevent rebalances caused by prolonged processing tasks, allowing you to specify the maximum interval between polls for new messages.
-Use the <code>max.poll.records</code> property to cap the number of records returned from the consumer buffer during each poll.
-Reducing the number of records allows the consumer to process fewer messages more efficiently.
-In cases where lengthy message processing is unavoidable, consider offloading such tasks to a pool of worker threads.
-This parallel processing approach prevents delays and potential rebalances caused by overwhelming the consumer with a large volume of records.</p>
+<p>If adjustments are needed, start by setting up static membership, adopting a partition assignment strategy, and setting a limit on the number of records returned using the <code>max.poll.records</code> property.
+Add further configurations for timeouts and intervals, if required and with care, as these can introduce issues related to the handling of failures.</p>
+</div>
+</dd>
+<dt class="hdlist1">Use static membership</dt>
+<dd>
+<p>Assign a unique identifier (<code>group.instance.id</code>) to each consumer instance.
+Static membership introduces persistence so static consumers retain partition assignments across restarts, reducing unnecessary rebalances.</p>
+</dd>
+<dt class="hdlist1">Adopt partition assignment strategies</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Use appropriate partition assignment strategies to reduce the number of partitions that need to be reassigned during a rebalance, minimizing the impact on active consumers.</p>
+</li>
+<li>
+<p>The <code>org.apache.kafka.clients.consumer.CooperativeStickyAssignor</code> strategy is particularly effective, as it ensures minimal partition movement and better stability during rebalances.</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">Adjust record limits and poll intervals</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Use the <code>max.poll.records</code> property to limit the number of records returned during each poll.
+Processing fewer messages more efficiently can prevent delays.</p>
+</li>
+<li>
+<p>Use the <code>max.poll.interval.ms</code> property to prevent rebalances caused by prolonged processing tasks by setting the maximum interval between calls to the <code>poll()</code> method.</p>
+</li>
+<li>
+<p>Alternatively, consider pausing partitions to retrieve fewer records at a time.</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">Adjust session timeout and heartbeat intervals</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Use the <code>session.timeout.ms</code> property to set a longer timeout to reduce rebalances caused by temporary network glitches or minor processing delays.</p>
+</li>
+<li>
+<p>Adjust the <code>heartbeat.interval.ms</code> property to balance failure detection checks with minimizing unnecessary rebalances.</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">Monitor consumer health</dt>
+<dd>
+<p>Instability in consumer applications, such as frequent crashes, can trigger rebalances.
+Use Kafka consumer metrics to monitor such things as rebalance rates, session timouts, and failed fetch requests.</p>
+</dd>
+</dl>
 </div>
 <div class="listingblock">
+<div class="title">Example configuration to minimize the impact of rebalances</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># ...
-group.instance.id=<em>UNIQUE-ID</em> <b class="conum">(1)</b>
-max.poll.interval.ms=300000 <b class="conum">(2)</b>
-max.poll.records=500 <b class="conum">(3)</b>
+group.instance.id=&lt;unique_id&gt;
+max.poll.interval.ms=300000
+max.poll.records=500
+session.timeout.ms=30000
+heartbeat.interval.ms=5000
+partition.assignment.strategy=org.apache.kafka.clients.consumer.CooperativeStickyAssignor
 # ...</code></pre>
 </div>
 </div>
-<div class="colist arabic">
-<ol>
+<div class="paragraph">
+<div class="title">Scaling strategies</div>
+<p>To minimize the impact of rebalances during scaling of consumer groups, consider the following approaches:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Set a rebalance delay</dt>
+<dd>
+<p>Use the <code>group.initial.rebalance.delay.ms</code> property in the Kafka configuration to delay the time it takes for consumers to join a new consumer group before performing a rebalance.
+Introducing a delay helps avoid triggering several rebalances when starting multiple consumers near the same time.
+The appropriate delay depends on the orchestration used and might not be suitable in some circumstances.</p>
+</dd>
+<dt class="hdlist1">Avoid frequent scaling</dt>
+<dd>
+<div class="ulist">
+<ul>
 <li>
-<p>The unique instance id ensures that a new consumer instance receives the same assignment of topic partitions.</p>
+<p>Keep the number of consumers stable, scaling only when necessary and in controlled increments.</p>
 </li>
 <li>
-<p>Set the interval to check the consumer is continuing to process messages.</p>
+<p>Monitor system performance and adjust your scaling strategy as needed.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Lag per partition should be constant and low.</p>
 </li>
 <li>
-<p>Sets the number of processed records returned from the consumer.</p>
+<p>Records processed per second by consumers should match the records per second in the input topics.</p>
 </li>
-</ol>
+</ul>
+</div>
+</li>
+<li>
+<p>Use the Kafka Exporter to check for consumer lag and determine if scaling is required.</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">Implement dynamic scaling policies</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>If using dynamic or event-driven tools for scaling of consumer applications, set lag thresholds based on the backlog of messages.</p>
+</li>
+<li>
+<p>Define maximum and minimum replica counts for consumer groups.</p>
+</li>
+<li>
+<p>Set periods between scaling events to prevent rapid scaling.</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+In cases where lengthy message processing is unavoidable, consider pausing and resuming partitions as needed.
+If you pause all partitions, <code>poll()</code> returns no records, allowing you to keep calling it without overwhelming the consumers.
+Alternatively, you can offload the processing tasks to a pool of worker threads.
+This helps prevents delays and potential rebalances.
+</td>
+</tr>
+</table>
 </div>
 </div>
 </div>
