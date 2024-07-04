@@ -681,25 +681,95 @@ Setting equal requests and limits for resources guarantees quality of service, a
 Kubernetes will not kill containers unless they exceed their limits.</p>
 </div>
 <div class="paragraph">
-<p>You can configure resource requests and limits for one or more supported resources.</p>
+<p>Configure resource requests and limits for components using <code>resources</code> properties in the <code>spec</code> of following custom resources:</p>
+</div>
+<div class="paragraph">
+<p>Use the <code>KafkaNodePool</code> custom resource for the following components:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>KRaft-based Kafka nodes (<code>spec.resources</code>)</p>
+</li>
+<li>
+<p>ZooKeeper-based Kafka nodes using node pools (<code>spec.resources</code>)</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Use the <code>Kafka</code> custom resource for the following components:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Kafka for ZooKeeper-based clusters without node pools (<code>spec.kafka.resources</code>)</p>
+</li>
+<li>
+<p>ZooKeeper (<code>spec.zookeeper.resources</code>)</p>
+</li>
+<li>
+<p>Topic Operator (<code>spec.entityOperator.topicOperator.resources</code>)</p>
+</li>
+<li>
+<p>User Operator (<code>spec.entityOperator.userOperator.resources</code>)</p>
+</li>
+<li>
+<p>Cruise Control (<code>spec.cruiseControl.resources</code>)</p>
+</li>
+<li>
+<p>Kafka Exporter (<code>spec.kafkaExporter.resources</code>)</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For other components, resources are configured in the corresponding custom resource.
+For example:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>KafkaConnect</code> resource for Kafka Connect (<code>spec.resources</code>)</p>
+</li>
+<li>
+<p><code>KafkaMirrorMaker2</code> resource for MirrorMaker (<code>spec.resources</code>)</p>
+</li>
+<li>
+<p><code>KafkaBridge</code> resource for Kafka Bridge (<code>spec.resources</code>)</p>
+</li>
+</ul>
 </div>
 <div class="listingblock">
-<div class="title">Example resource configuration</div>
+<div class="title">Example resource configuration for a node pool</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
-kind: Kafka
+kind: KafkaNodePool
 metadata:
-  name: my-cluster
+  name: pool-a
+  labels:
+    strimzi.io/cluster: my-cluster
 spec:
-  kafka:
-    #...
-    resources:
+  replicas: 3
+  roles:
+    - broker
+  resources:
       requests:
         memory: 64Gi
         cpu: "8"
       limits:
         memory: 64Gi
         cpu: "12"
+  # ...</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example resource configuration for the Topic Operator</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  # ..
   entityOperator:
     #...
     topicOperator:
@@ -712,9 +782,6 @@ spec:
           memory: 512Mi
           cpu: "1"</code></pre>
 </div>
-</div>
-<div class="paragraph">
-<p>Resource requests and limits for the Topic Operator and User Operator are set in the <code>Kafka</code> resource.</p>
 </div>
 <div class="paragraph">
 <p>If the resource request is for more than the available free resources in the Kubernetes cluster, the pod is not scheduled.</p>
