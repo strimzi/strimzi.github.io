@@ -3224,14 +3224,14 @@ spec:
 <li>
 <p>For each namespace listed, install the <code>RoleBindings</code>.</p>
 <div class="paragraph">
-<p>In this example, we replace <code><em>watched-namespace</em></code> in these commands with the namespaces listed in the previous step,
+<p>In this example, we replace <code>watched-namespace</code> in these commands with the namespaces listed in the previous step,
 repeating them for <code>watched-namespace-1</code>, <code>watched-namespace-2</code>, <code>watched-namespace-3</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f install/cluster-operator/020-RoleBinding-strimzi-cluster-operator.yaml -n <em>&lt;watched_namespace&gt;</em>
-kubectl create -f install/cluster-operator/023-RoleBinding-strimzi-cluster-operator.yaml -n <em>&lt;watched_namespace&gt;</em>
-kubectl create -f install/cluster-operator/031-RoleBinding-strimzi-cluster-operator-entity-operator-delegation.yaml -n <em>&lt;watched_namespace&gt;</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f install/cluster-operator/020-RoleBinding-strimzi-cluster-operator.yaml -n &lt;watched_namespace&gt;
+kubectl create -f install/cluster-operator/023-RoleBinding-strimzi-cluster-operator.yaml -n &lt;watched_namespace&gt;
+kubectl create -f install/cluster-operator/031-RoleBinding-strimzi-cluster-operator-entity-operator-delegation.yaml -n &lt;watched_namespace&gt;</code></pre>
 </div>
 </div>
 </li>
@@ -33942,7 +33942,8 @@ You then add a pod annotation to make the update.</p>
 <p>This procedure describes how to upgrade a Cluster Operator deployment to use Strimzi latest.</p>
 </div>
 <div class="paragraph">
-<p>Follow this procedure if you deployed the Cluster Operator using the installation YAML files.</p>
+<p>Follow this procedure if you deployed the Cluster Operator using the installation YAML files in the <code>install/cluster-operator/</code> directory.
+The steps include the necessary configuration changes when the Cluster Operator watches multiple or all namespaces.</p>
 </div>
 <div class="paragraph">
 <p>The availability of Kafka clusters managed by the Cluster Operator is not affected by the upgrade operation.</p>
@@ -33968,24 +33969,25 @@ Refer to the documentation supporting a specific version of Strimzi for informat
 <li>
 <p>You have <a href="#downloads-str">downloaded the release artifacts for Strimzi latest</a>.</p>
 </li>
+<li>
+<p>You need an account with permission to create and manage <code>CustomResourceDefinition</code> and RBAC (<code>ClusterRole</code>, and <code>RoleBinding</code>) resources.</p>
+</li>
 </ul>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Take note of any configuration changes made to the existing Cluster Operator resources (in the <code>/install/cluster-operator</code> directory).
-Any changes will be <strong>overwritten</strong> by the new version of the Cluster Operator.</p>
+<p>Take note of any configuration changes made during the previous Cluster Operator installation.</p>
+<div class="paragraph">
+<p>Any changes will be <strong>overwritten</strong> by the new version of the Cluster Operator.</p>
+</div>
 </li>
 <li>
 <p>Update your custom resources to reflect the supported configuration options available for Strimzi version latest.</p>
 </li>
 <li>
-<p>Update the Cluster Operator.</p>
-<div class="olist loweralpha">
-<ol class="loweralpha" type="a">
-<li>
-<p>Modify the installation files for the new Cluster Operator version according to the namespace the Cluster Operator is running in.</p>
+<p>Modify the installation files for the new Cluster Operator version to reflect the namespace in which the Cluster Operator is running.</p>
 <div class="paragraph">
 <p>On Linux, use:</p>
 </div>
@@ -34004,10 +34006,49 @@ Any changes will be <strong>overwritten</strong> by the new version of the Clust
 </div>
 </li>
 <li>
-<p>If you modified one or more environment variables in your existing Cluster Operator <code>Deployment</code>, edit the
-<code>install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml</code> file to use those environment variables.</p>
+<p>If you modified environment variables in the <code>Deployment</code> configuration, edit the
+<code>060-Deployment-strimzi-cluster-operator.yaml</code> file to use those environment variables.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>If the Cluster Operator is watching multiple namespaces, add the list of namespaces to the <code>STRIMZI_NAMESPACE</code> environment variable.</p>
 </li>
-</ol>
+<li>
+<p>If the Cluster Operator is watching all namespaces, specify <code>value: "*"</code> for the <code>STRIMZI_NAMESPACE</code> environment variable.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>If the Cluster Operator is watching more than one namespace, update the role bindings.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>If watching multiple namespaces, replace the <code>namespace</code> in the <code>RoleBinding</code> installation files with the actual namespace name and create the role bindings for <strong>each</strong> namespace:</p>
+<div class="listingblock">
+<div class="title">Creating role bindings for a namespace</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f install/cluster-operator/020-RoleBinding-strimzi-cluster-operator.yaml -n &lt;watched_namespace&gt;
+kubectl create -f install/cluster-operator/023-RoleBinding-strimzi-cluster-operator.yaml -n &lt;watched_namespace&gt;
+kubectl create -f install/cluster-operator/031-RoleBinding-strimzi-cluster-operator-entity-operator-delegation.yaml -n &lt;watched_namespace&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, if the Cluster Operator is watching three namespaces, create three sets of role bindings by substituting <code>&lt;watched_namespace&gt;</code> with the name of each namespace.</p>
+</div>
+</li>
+<li>
+<p>If watching all namespaces, recreate the cluster role bindings that grant cluster-wide access (if needed):</p>
+<div class="listingblock">
+<div class="title">Granting cluster-wide access using role bindings</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create clusterrolebinding strimzi-cluster-operator-namespaced --clusterrole=strimzi-cluster-operator-namespaced --serviceaccount my-cluster-operator-namespace:strimzi-cluster-operator
+kubectl create clusterrolebinding strimzi-cluster-operator-watched --clusterrole=strimzi-cluster-operator-watched --serviceaccount my-cluster-operator-namespace:strimzi-cluster-operator
+kubectl create clusterrolebinding strimzi-cluster-operator-entity-operator-delegation --clusterrole=strimzi-entity-operator --serviceaccount my-cluster-operator-namespace:strimzi-cluster-operator</code></pre>
+</div>
+</div>
+</li>
+</ul>
 </div>
 </li>
 <li>
@@ -34022,12 +34063,12 @@ Any changes will be <strong>overwritten</strong> by the new version of the Clust
 </div>
 </li>
 <li>
-<p>If the new Operator version no longer supports the Kafka version you are upgrading from, the Cluster Operator returns an error message to say the version is not supported.
-Otherwise, no error message is returned.</p>
-<div class="ulist">
-<ul>
-<li>
-<p>If the error message is returned, upgrade to a Kafka version that is supported by the new Cluster Operator version:</p>
+<p>If the new operator version no longer supports the Kafka version you are upgrading from, an error message is returned.</p>
+<div class="paragraph">
+<p>To resolve this, upgrade to a supported Kafka version:</p>
+</div>
+<div class="openblock">
+<div class="content">
 <div class="olist loweralpha">
 <ol class="loweralpha" type="a">
 <li>
@@ -34038,12 +34079,10 @@ Otherwise, no error message is returned.</p>
 </li>
 </ol>
 </div>
-</li>
-<li>
-<p>If the error message is <em>not</em> returned, go to the next step.
-You will upgrade the Kafka version later.</p>
-</li>
-</ul>
+</div>
+</div>
+<div class="paragraph">
+<p>If no error message is returned, you can proceed to the next step and upgrade the Kafka version later.</p>
 </div>
 </li>
 <li>
@@ -35067,8 +35106,10 @@ If a feature gate is permanently enabled, you may need to downgrade to a version
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Take note of any configuration changes made to the existing Cluster Operator resources (in the <code>/install/cluster-operator</code> directory).
-Any changes will be <strong>overwritten</strong> by the previous version of the Cluster Operator.</p>
+<p>Take note of any configuration changes made during the previous Cluster Operator installation.</p>
+<div class="paragraph">
+<p>Any changes will be <strong>overwritten</strong> by the previous version of the Cluster Operator.</p>
+</div>
 </li>
 <li>
 <p>Revert your custom resources to reflect the supported configuration options available for the version of Strimzi you are downgrading to.</p>
