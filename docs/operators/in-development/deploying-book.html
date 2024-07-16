@@ -19566,9 +19566,35 @@ and are supported by all authorization mechanisms.</p>
 <div class="paragraph">
 <p>To designate super users for a Kafka cluster, add a list of user principals to the <code>superUsers</code> property.
 If a user uses mTLS authentication, the username is the common name from the TLS certificate subject prefixed with <code>CN=</code>.
-If you are not using the User Operator and using your own certificates for mTLS, the username is the full certificate subject.
-A full certificate subject can have the following fields: <code>CN=user,OU=my_ou,O=my_org,L=my_location,ST=my_state,C=my_country_code</code>.
-Omit any fields that are not present.</p>
+If you are not using the User Operator and using your own certificates for mTLS, the username is the full certificate subject.</p>
+</div>
+<div class="paragraph">
+<p>A full certificate subject can include the following fields:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>CN=&lt;common_name&gt;</code></p>
+</li>
+<li>
+<p><code>OU=&lt;organizational_unit&gt;</code></p>
+</li>
+<li>
+<p><code>O=&lt;organization&gt;</code></p>
+</li>
+<li>
+<p><code>L=&lt;locality&gt;</code></p>
+</li>
+<li>
+<p><code>ST=&lt;state&gt;</code></p>
+</li>
+<li>
+<p><code>C=&lt;country_code&gt;</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Omit any fields that are not applicable.</p>
 </div>
 <div class="listingblock">
 <div class="title">An example configuration with super users</div>
@@ -19584,12 +19610,12 @@ spec:
     authorization:
       type: simple
       superUsers:
-        - CN=client_1
-        - user_2
-        - CN=client_3
-        - CN=client_4,OU=my_ou,O=my_org,L=my_location,ST=my_state,C=US
-        - CN=client_5,OU=my_ou,O=my_org,C=GB
-        - CN=client_6,O=my_org
+        - CN=user-1
+        - user-2
+        - CN=user-3
+        - CN=user-4,OU=my-ou,O=my-org,L=my-location,ST=my-state,C=US
+        - CN=user-5,OU=my-ou,O=my-org,C=GB
+        - CN=user-6,O=my-org
     # ...</code></pre>
 </div>
 </div>
@@ -19979,12 +20005,30 @@ the user is allowed unlimited access to the cluster regardless of any authorizat
 <div class="sect3">
 <h4 id="con-configuring-client-quotas-str"><a class="link" href="#con-configuring-client-quotas-str">14.3.4. Configuring user quotas</a></h4>
 <div class="paragraph _abstract">
-<p>Configure the <code>spec</code> for the <code>KafkaUser</code> resource to enforce quotas so that a user does not overload the Kafka brokers.
-Set size-based network usage and time-based CPU utilization thresholds.
-You can also add a partition mutation quota to control the rate at which requests to change partitions are accepted for user requests.</p>
+<p>Configure the <code>spec</code> for the <code>KafkaUser</code> resource to enforce quotas so that a user does not overload Kafka brokers.
+Set size-based network usage and time-based CPU utilization thresholds.</p>
+</div>
+<div class="paragraph">
+<p>Partition mutations occur in response to the following types of user requests:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Creating partitions for a new topic</p>
+</li>
+<li>
+<p>Adding partitions to an existing topic</p>
+</li>
+<li>
+<p>Deleting partitions from a topic</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>You can also add a partition mutation quota to control the rate at which requests to change partitions are accepted.</p>
 </div>
 <div class="listingblock">
-<div class="title">An example <code>KafkaUser</code> with user quotas</div>
+<div class="title">Example <code>KafkaUser</code> with user quotas</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaUser
@@ -20018,7 +20062,22 @@ spec:
 </ol>
 </div>
 <div class="paragraph">
-<p>For more information on these properties, see the <a href="./configuring.html#type-KafkaUserQuotas-reference" target="_blank" rel="noopener"><code>KafkaUserQuotas</code> schema reference</a>.</p>
+<p>Using quotas for Kafka clients might be useful in a number of situations.
+Consider a wrongly configured Kafka producer which is sending requests at too high a rate.
+Such misconfiguration can cause a denial of service to other clients, so the problematic client ought to be blocked.
+By using a network limiting quota, it is possible to prevent this situation from significantly impacting other clients.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Strimzi supports user-level quotas, but not client-level quotas.
+</td>
+</tr>
+</table>
 </div>
 </div>
 </div>
@@ -22103,9 +22162,9 @@ spec:
       delegateToKafkaAcls: false <b class="conum">(4)</b>
       disableTlsHostnameVerification: false <b class="conum">(5)</b>
       superUsers: <b class="conum">(6)</b>
-        - CN=client_1
-        - user_2
-        - CN=client_3
+        - CN=user-1
+        - user-2
+        - CN=user-3
       tlsTrustedCertificates: <b class="conum">(7)</b>
         - secretName: oauth-server-cert
           pattern: "*.crt"
