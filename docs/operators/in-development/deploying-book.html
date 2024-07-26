@@ -20757,10 +20757,13 @@ Token provision can be configured to use the following methods:</p>
 <div class="ulist">
 <ul>
 <li>
-<p>Client ID and secret (using the the OAuth 2.0 <em>client credentials mechanism</em>)</p>
+<p>Client ID and secret (using the OAuth 2.0 <em>client credentials mechanism</em>)</p>
 </li>
 <li>
-<p>Long-lived access token</p>
+<p>Client ID and client assertion</p>
+</li>
+<li>
+<p>Long-lived access token or Service account token</p>
 </li>
 <li>
 <p>Long-lived refresh token obtained manually</p>
@@ -20784,7 +20787,7 @@ Using the <code>PLAIN</code> authentication mechanism, credentials exchange can 
 <div class="ulist">
 <ul>
 <li>
-<p>Client ID and secret (using the the OAuth 2.0 <em>client credentials mechanism</em>)</p>
+<p>Client ID and secret (using the OAuth 2.0 <em>client credentials mechanism</em>)</p>
 </li>
 <li>
 <p>Long-lived access token<br>
@@ -20930,6 +20933,69 @@ If required, you can use a JsonPath expression like <code>"['user.info'].['user.
 </li>
 </ol>
 </div>
+<div id="con-oauth-authentication-broker-serviceaccounts-str" class="paragraph">
+<div class="title">Configuring fast local JWT token validation with Kubernetes service accounts</div>
+<p>To configure the listener for Kubernetes service accounts, the Kubernetes API server must be used as the authorization server.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example configuration for fast local JWT token validation using Kubernetes API server as authorization server</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">#...
+- name: external3
+  port: 9094
+  type: loadbalancer
+  tls: true
+  authentication:
+    type: oauth
+    validIssuerUri: https://kubernetes.default.svc.cluster.local # <b class="conum">(1)</b>
+    jwksEndpointUri: https://kubernetes.default.svc.cluster.local/openid/v1/jwks # <b class="conum">(2)</b>
+    serverBearerTokenLocation: /var/run/secrets/kubernetes.io/serviceaccount/token # <b class="conum">(3)</b>
+    checkAccessTokenType: false # <b class="conum">(4)</b>
+    includeAcceptHeader: false # <b class="conum">(5)</b>
+    tlsTrustedCertificates: # <b class="conum">(6)</b>
+      - secretName: oauth-server-cert
+        pattern: "*.crt"
+    maxSecondsWithoutReauthentication: 3600
+    customClaimCheck: "@.['kubernetes.io'] &amp;&amp; @.['kubernetes.io'].['namespace'] in ['myproject']" # <b class="conum">(7)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>URI of the token issuer used for authentication. Must use FQDN, including the <code>.cluster.local</code> extension, which may vary based on the Kubernetes cluster configuration.</p>
+</li>
+<li>
+<p>URI of the JWKS certificate endpoint used for local JWT validation. Must use FQDN, including the <code>.cluster.local</code> extension, which may vary based on the Kubernetes cluster configuration.</p>
+</li>
+<li>
+<p>Location to the access token used by the Kafka broker to authenticate to the Kubernetes API server in order to access the <code>jwksEndpointUri</code>.</p>
+</li>
+<li>
+<p>Skip the access token type check, as the claim for this is not present in service account tokens.</p>
+</li>
+<li>
+<p>Skip sending <code>Accept</code> header in HTTP requests to the JWKS endpoint, as the Kubernetes API server does not support it.</p>
+</li>
+<li>
+<p>Trusted certificates to connect to authorization server. This should point to a manually created Secret that contains the Kubernetes API server public certificate, which is mounted to the running pods under <code>/var/run/secrets/kubernetes.io/serviceaccount/ca.crt</code>. You can use the following command to create the Secret:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get cm kube-root-ca.crt -o jsonpath="{['data']['ca\.crt']}" &gt; /tmp/ca.crt
+kubectl create secret generic oauth-server-cert --from-file=ca.crt=/tmp/ca.crt</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>(Optional) Additional constraints that JWT token has to fulfill in order to be accepted, expressed as JsonPath filter query. In this example the service account has to belong to <code>myproject</code> namespace in order to be allowed to authenticate.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>The above configuration uses the <code>sub</code> claim from the service account JWT token as the user ID. For example, the default service account for pods deployed in the <code>myproject</code> namespace has the username: <code>system:serviceaccount:myproject:default</code>.</p>
+</div>
+<div class="paragraph">
+<p>When configuring ACLs the general form of how to refer to the ServiceAccount user should in that case be: <code>User:system:serviceaccount:&lt;Namespace&gt;:&lt;ServiceAccount-name&gt;</code></p>
+</div>
 <div id="con-oauth-authentication-broker-intro-str" class="paragraph">
 <div class="title">Configuring token validation using an introspection endpoint</div>
 <p>Token validation using an OAuth 2.0 introspection endpoint treats a received access token as opaque. The Kafka broker sends an access token to the introspection endpoint, which responds with the token information necessary for validation.
@@ -20980,6 +21046,47 @@ Depending on the authorization server, you typically have to specify a <code>cli
 </li>
 </ol>
 </div>
+<div id="con-oauth-authentication-broker-protected-str" class="paragraph">
+<div class="title">Authenticating brokers to the authorization server protected endpoints</div>
+<p>Usually, the certificates endpoint of the authorization server (<code>jwksEndpointUri</code>) is publicly accessible, while the introspection endpoint (<code>introspectionEndpointUri</code>) is protected.
+However, this may vary depending on the authorization server configuration.</p>
+</div>
+<div class="paragraph">
+<p>The Kafka broker can authenticate to the authorization server&#8217;s protected endpoints in one of two ways using HTTP authentication schemes:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>HTTP Basic authentication</strong> uses a client ID and secret.</p>
+</li>
+<li>
+<p><strong>HTTP Bearer authentication</strong> uses a bearer token.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>To configure HTTP Basic authentication, set the following properties:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>clientId</code></p>
+</li>
+<li>
+<p><code>clientSecret</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For HTTP Bearer authentication, set the following property:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>serverBearerTokenLocation</code> to specify the file path on disk containing the bearer token.</p>
+</li>
+</ul>
+</div>
 <div id="con-oauth-authentication-broker-additional-str" class="paragraph">
 <div class="title">Including additional configuration options</div>
 <p>Specify additional settings depending on the authentication requirements and the authorization server you are using.
@@ -21001,7 +21108,7 @@ The Kafka broker interprets the password as a raw access token.</p>
 </div>
 <div class="paragraph">
 <p>If the <code>password</code> is set as the access token, the <code>username</code> must be set to the same principal name that the Kafka broker obtains from the access token.
-You can specify username extraction options in your listener using the <code>userNameClaim</code>, <code>fallbackUserNameClaim</code>, <code>fallbackUsernamePrefix</code>, and <code>userInfoEndpointUri</code> properties.
+You can specify username extraction options in your listener using the <code>userNameClaim</code>, <code>usernamePrefix</code>, <code>fallbackUserNameClaim</code>, <code>fallbackUsernamePrefix</code>, and <code>userInfoEndpointUri</code> properties.
 The username extraction process also depends on your authorization server; in particular, how it maps client IDs to account names.</p>
 </div>
 <div class="admonitionblock note">
@@ -21018,7 +21125,7 @@ Use either client credentials (client ID + secret) or an access token for authen
 </table>
 </div>
 <div class="listingblock">
-<div class="title">Example additional configuration settings</div>
+<div class="title">Example optional configuration settings</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  # ...
   authentication:
@@ -21026,23 +21133,25 @@ Use either client credentials (client ID + secret) or an access token for authen
     # ...
     checkIssuer: false # <b class="conum">(1)</b>
     checkAudience: true # <b class="conum">(2)</b>
-    fallbackUserNameClaim: client_id # <b class="conum">(3)</b>
-    fallbackUserNamePrefix: client-account- # <b class="conum">(4)</b>
-    validTokenType: bearer # <b class="conum">(5)</b>
-    userInfoEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_userinfo_endpoint&gt; # <b class="conum">(6)</b>
-    enableOauthBearer: false # <b class="conum">(7)</b>
-    enablePlain: true # <b class="conum">(8)</b>
-    tokenEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_token_endpoint&gt; # <b class="conum">(9)</b>
-    customClaimCheck: "@.custom == 'custom-value'" # <b class="conum">(10)</b>
-    clientAudience: audience # <b class="conum">(11)</b>
-    clientScope: scope # <b class="conum">(12)</b>
-    connectTimeoutSeconds: 60 # <b class="conum">(13)</b>
-    readTimeoutSeconds: 60 # <b class="conum">(14)</b>
-    httpRetries: 2 # <b class="conum">(15)</b>
-    httpRetryPauseMs: 300 # <b class="conum">(16)</b>
-    groupsClaim: "$.groups" # <b class="conum">(17)</b>
-    groupsClaimDelimiter: "," # <b class="conum">(18)</b>
-    includeAcceptHeader: false # <b class="conum">(19)</b></code></pre>
+    usernamePrefix: user- # <b class="conum">(3)</b>
+    fallbackUserNameClaim: client_id # <b class="conum">(4)</b>
+    fallbackUserNamePrefix: client-account- # <b class="conum">(5)</b>
+    serverBearerTokenLocation: path/to/access/token # <b class="conum">(6)</b>
+    validTokenType: bearer # <b class="conum">(7)</b>
+    userInfoEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_userinfo_endpoint&gt; # <b class="conum">(8)</b>
+    enableOauthBearer: false # <b class="conum">(9)</b>
+    enablePlain: true # <b class="conum">(10)</b>
+    tokenEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_token_endpoint&gt; # <b class="conum">(11)</b>
+    customClaimCheck: "@.custom == 'custom-value'" # <b class="conum">(12)</b>
+    clientAudience: audience # <b class="conum">(13)</b>
+    clientScope: scope # <b class="conum">(14)</b>
+    connectTimeoutSeconds: 60 # <b class="conum">(15)</b>
+    readTimeoutSeconds: 60 # <b class="conum">(16)</b>
+    httpRetries: 2 # <b class="conum">(17)</b>
+    httpRetryPauseMs: 300 # <b class="conum">(18)</b>
+    groupsClaim: "$.groups" # <b class="conum">(19)</b>
+    groupsClaimDelimiter: "," # <b class="conum">(20)</b>
+    includeAcceptHeader: false # <b class="conum">(21)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -21054,10 +21163,16 @@ Use either client credentials (client ID + secret) or an access token for authen
 <p>If your authorization server provides an <code>aud</code> (audience) claim, and you want to enforce an audience check, set <code>checkAudience</code> to <code>true</code>. Audience checks identify the intended recipients of tokens. As a result, the Kafka broker will reject tokens that do not have its <code>clientId</code> in their <code>aud</code> claim. Default is <code>false</code>.</p>
 </li>
 <li>
+<p>The prefix used when constructing the user ID. This only takes effect if <code>userNameClaim</code> is configured.</p>
+</li>
+<li>
 <p>An authorization server may not provide a single attribute to identify both regular users and clients. When a client authenticates in its own name, the server might provide a <em>client ID</em>. When a user authenticates using a username and password to obtain a refresh token or an access token, the server might provide a <em>username</em> attribute in addition to a client ID. Use this fallback option to specify the username claim (attribute) to use if a primary user ID attribute is not available. If necessary, a JsonPath expression like <code>"['client.info'].['client.id']"</code> can be used to retrieve the fallback username  to retrieve the username from nested JSON attributes within a token.</p>
 </li>
 <li>
 <p>In situations where <code>fallbackUserNameClaim</code> is applicable, it may also be necessary to prevent name collisions between the values of the username claim, and those of the fallback username claim. Consider a situation where a client called <code>producer</code> exists, but also a regular user called <code>producer</code> exists. In order to differentiate between the two, you can use this property to add a prefix to the user ID of the client.</p>
+</li>
+<li>
+<p>The location of the access token used by the Kafka broker to authenticate to the Kubernetes API server for accessing protected endpoints. The authorization server must support <code>OAUTHBEARER</code> authentication. This is an alternative to specifying <code>clientId</code> and <code>clientSecret</code>, which uses <code>PLAIN</code> authentication.</p>
 </li>
 <li>
 <p>(Only applicable when using <code>introspectionEndpointUri</code>) Depending on the authorization server you are using, the introspection endpoint may or may not return the <em>token type</em> attribute, or it may contain different values. You can specify a valid token type value that the response from the introspection endpoint has to contain.</p>
@@ -21208,7 +21323,7 @@ Additionally, it handles login credentials for clients using the OAuth 2.0 passw
 <dl>
 <dt class="hdlist1">Using client credentials</dt>
 <dd>
-<p>Using client credentials involves configuring the client with the necessary credentials (client ID and secret) to obtain a valid access token from an authorization server. This is the simplest mechanism.</p>
+<p>Using client credentials involves configuring the client with the necessary credentials (client ID and secret, or client ID and client assertion) to obtain a valid access token from an authorization server. This is the simplest mechanism.</p>
 </dd>
 <dt class="hdlist1">Using access tokens</dt>
 <dd>
@@ -21232,13 +21347,13 @@ When a client obtains an access token, no further communication with the authori
 <p>OAuth 2.0 client credentials</p>
 </li>
 <li>
-<p>OAuth 2.0 password grant (deprecated)</p>
-</li>
-<li>
-<p>Access token</p>
+<p>Access token or Service account token</p>
 </li>
 <li>
 <p>Refresh token</p>
+</li>
+<li>
+<p>OAuth 2.0 password grant (deprecated)</p>
 </li>
 </ul>
 </div>
@@ -21252,6 +21367,9 @@ When a client obtains an access token, no further communication with the authori
 <ul>
 <li>
 <p>Client ID and secret</p>
+</li>
+<li>
+<p>Client ID and client assertion</p>
 </li>
 <li>
 <p>Client ID, refresh token, and (optionally) a secret</p>
@@ -21275,7 +21393,7 @@ For Java system properties, you can set them using <code>setProperty</code> and 
 </table>
 </div>
 <div id="con-oauth-authentication-client-credentials-str" class="listingblock">
-<div class="title">Example client credentials configuration</div>
+<div class="title">Example client credentials configuration using the client secret</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">security.protocol=SASL_SSL # <b class="conum">(1)</b>
 sasl.mechanism=OAUTHBEARER # <b class="conum">(2)</b>
@@ -21330,6 +21448,38 @@ An authorization server may require a client to specify the scope.</p>
 <li>
 <p>(Optional) The <code>audience</code> for requesting the token from the token endpoint.
 An authorization server may require a client to specify the audience.</p>
+</li>
+</ol>
+</div>
+<div id="con-oauth-authentication-client-assertion-str" class="listingblock">
+<div class="title">Example client credentials configuration using the client assertion</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">security.protocol=SASL_SSL
+sasl.mechanism=OAUTHBEARER
+ssl.truststore.location=/tmp/truststore.p12
+ssl.truststore.password=$STOREPASS
+ssl.truststore.type=PKCS12
+sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+  oauth.token.endpoint.uri="&lt;token_endpoint_url&gt;" \
+  oauth.client.id="&lt;client_id&gt;" \
+  oauth.client.assertion.location="&lt;path_to_client_assertion_token_file&gt;" \ # <b class="conum">(1)</b>
+  oauth.client.assertion.type="urn:ietf:params:oauth:client-assertion-type:jwt-bearer" \ # <b class="conum">(2)</b>
+  oauth.ssl.truststore.location="/tmp/oauth-truststore.p12" \
+  oauth.ssl.truststore.password="$STOREPASS" \
+  oauth.ssl.truststore.type="PKCS12" \
+  oauth.scope="&lt;scope&gt;" \
+  oauth.audience="&lt;audience&gt;" ;
+sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Path to the client assertion file used for authenticating the client. This file is a private key file as an alternative to the client secret.
+Alternatively, use <code>oauth.client.assertion</code> option to specify the client assertion value in clear text.</p>
+</li>
+<li>
+<p>(Optional) Sometimes you may need to specify the client assertion type. In not specified, the default value is <code>urn:ietf:params:oauth:client-assertion-type:jwt-bearer</code>.</p>
 </li>
 </ol>
 </div>
@@ -21392,18 +21542,34 @@ ssl.truststore.location=/tmp/truststore.p12
 ssl.truststore.password=$STOREPASS
 ssl.truststore.type=PKCS12
 sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-  oauth.token.endpoint.uri="&lt;token_endpoint_url&gt;" \
-  oauth.access.token="&lt;access_token&gt;" \ # <b class="conum">(1)</b>
-  oauth.ssl.truststore.location="/tmp/oauth-truststore.p12" \
-  oauth.ssl.truststore.password="$STOREPASS" \
-  oauth.ssl.truststore.type="PKCS12" ;
+  oauth.access.token="&lt;access_token&gt;" ; # <b class="conum">(1)</b>
 sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler</code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <ol>
 <li>
-<p>Long-lived access token for Kafka clients.</p>
+<p>Long-lived access token for Kafka clients. Alternatively, <code>oauth.access.token.location</code> can be used to specify the file that contains the access token.</p>
+</li>
+</ol>
+</div>
+<div id="con-oauth-authentication-serviceaccount-token-str" class="listingblock">
+<div class="title">Example Kubernetes service account token configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">security.protocol=SASL_SSL
+sasl.mechanism=OAUTHBEARER
+ssl.truststore.location=/tmp/truststore.p12
+ssl.truststore.password=$STOREPASS
+ssl.truststore.type=PKCS12
+sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+  oauth.access.token.location="/var/run/secrets/kubernetes.io/serviceaccount/token";  # <b class="conum">(1)</b>
+sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Location to the service account token on the filesystem (assuming that the client is deployed as a Kubernetes pod)</p>
 </li>
 </ol>
 </div>
@@ -21466,7 +21632,7 @@ The authorization server provides a JWKS endpoint with public certificates that 
 <li>
 <p>You can use a call to a token introspection endpoint provided by an authorization server.
 Each time a new Kafka broker connection is established, the broker passes the access token received from the client to the authorization server.
-The Kafka broker checks the response to confirm whether or not the token is valid.</p>
+The Kafka broker checks the response to confirm whether the token is valid.</p>
 </li>
 </ul>
 </div>
@@ -21491,7 +21657,7 @@ An authorization server might only allow the use of opaque access tokens, which 
 <p>Direct local access using a previously generated long-lived access token</p>
 </li>
 <li>
-<p>Contact with the authorization server for a new access token to be issued (using a client ID and a secret, or a refresh token, or a username and a password)</p>
+<p>Contact with the authorization server for a new access token to be issued (using a client ID and credentials, or a refresh token, or a username and a password)</p>
 </li>
 </ul>
 </div>
@@ -21501,13 +21667,13 @@ An authorization server might only allow the use of opaque access tokens, which 
 <p>You can use the following communication flows for Kafka authentication using the SASL <code>OAUTHBEARER</code> mechanism.</p>
 </div>
 <div id="oauth-introspection-endpoint-str" class="paragraph">
-<div class="title">Client using client ID and secret, with broker delegating validation to authorization server</div>
+<div class="title">Client using client ID and credentials, with broker delegating validation to authorization server</div>
 <p><span class="image"><img src="images/oauth-introspection-endpoint.png" alt="Client using client ID and secret with broker delegating validation to authorization server"></span></p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>The Kafka client requests an access token from the authorization server using a client ID and secret, and optionally a refresh token. Alternatively, the client may authenticate using a username and a password.</p>
+<p>The Kafka client requests an access token from the authorization server using a client ID and credentials, and optionally a refresh token. Alternatively, the client may authenticate using a username and a password.</p>
 </li>
 <li>
 <p>The authorization server generates a new access token.</p>
@@ -21524,13 +21690,13 @@ An authorization server might only allow the use of opaque access tokens, which 
 </ol>
 </div>
 <div id="oauth-jwt-str" class="paragraph">
-<div class="title">Client using client ID and secret, with broker performing fast local token validation</div>
-<p><span class="image"><img src="images/oauth-jwt-signature.png" alt="Client using client ID and secret with broker performing fast local token validation"></span></p>
+<div class="title">Client using client ID and credentials, with broker performing fast local token validation</div>
+<p><span class="image"><img src="images/oauth-jwt-signature.png" alt="Client using client ID and credentials with broker performing fast local token validation"></span></p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>The Kafka client authenticates with the authorization server from the token endpoint, using a client ID and secret, and optionally a refresh token. Alternatively, the client may authenticate using a username and a password.</p>
+<p>The Kafka client authenticates with the authorization server from the token endpoint, using a client ID and credentials, and optionally a refresh token. Alternatively, the client may authenticate using a username and a password.</p>
 </li>
 <li>
 <p>The authorization server generates a new access token.</p>
@@ -21887,7 +22053,7 @@ In this procedure, the properties are specified in a properties file, then loade
 <div class="ulist">
 <ul>
 <li>
-<p><a href="#con-oauth-authentication-client-credentials-str">Example client credentials configuration</a></p>
+<p><a href="#con-oauth-authentication-client-credentials-str">Example client credentials configuration using the client secret</a></p>
 </li>
 <li>
 <p><a href="#con-oauth-authentication-password-grants-str">Example password grants configuration</a></p>
@@ -22007,6 +22173,9 @@ data:
 <p>Client ID and secret</p>
 </li>
 <li>
+<p>Client ID and client assertion</p>
+</li>
+<li>
 <p>Client ID and refresh token</p>
 </li>
 <li>
@@ -22028,7 +22197,7 @@ data:
 <div class="openblock">
 <div class="content">
 <div class="listingblock">
-<div class="title">Example OAuth 2.0 authentication configuration</div>
+<div class="title">Example OAuth 2.0 authentication configuration using the client secret</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaBridge
@@ -22064,6 +22233,69 @@ spec:
 </div>
 </div>
 <div class="paragraph">
+<p>In this example, OAuth 2.0 is assigned to the Kafka Bridge client using a client ID and the location of a client assertion file, with TLS to connect to the authorization server:</p>
+</div>
+<div class="openblock">
+<div class="content">
+<div class="listingblock">
+<div class="title">Example OAuth 2.0 authentication configuration using client assertion</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaBridge
+metadata:
+  name: my-bridge
+spec:
+  # ...
+  authentication:
+    type: oauth
+    tokenEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_token_endpoint&gt;
+    clientId: kafka-bridge
+    clientAssertionLocation: /var/run/secrets/sso/assertion # <b class="conum">(1)</b>
+    tlsTrustedCertificates:
+      - secretName: oauth-server-cert
+        pattern: "*.crt"</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Filesystem path to the client assertion file used for authenticating the client.
+This file is typically added to the deployed pod by an external operator service.
+Alternatively, use <code>clientAssertion</code> to refer to a secret containing the client assertion value.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Here, OAuth 2.0 is assigned to the Kafka Bridge client using a service account token:</p>
+</div>
+<div class="openblock">
+<div class="content">
+<div class="listingblock">
+<div class="title">Example OAuth 2.0 authentication configuration using the service account token</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaBridge
+metadata:
+  name: my-bridge
+spec:
+  # ...
+  authentication:
+    type: oauth
+    accessTokenLocation: /var/run/secrets/kubernetes.io/serviceaccount/token # <b class="conum">(1)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Path to the service account token file location.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="paragraph">
 <p>Depending on how you apply OAuth 2.0 authentication, and the type of authorization server, there are additional configuration options you can use:</p>
 </div>
 <div class="openblock">
@@ -22077,24 +22309,20 @@ spec:
   authentication:
     # ...
     disableTlsHostnameVerification: true # <b class="conum">(1)</b>
-    checkAccessTokenType: false # <b class="conum">(2)</b>
-    accessTokenIsJwt: false # <b class="conum">(3)</b>
-    scope: any # <b class="conum">(4)</b>
-    audience: kafka # <b class="conum">(5)</b>
-    connectTimeoutSeconds: 60 # <b class="conum">(6)</b>
-    readTimeoutSeconds: 60 # <b class="conum">(7)</b>
-    httpRetries: 2 # <b class="conum">(8)</b>
-    httpRetryPauseMs: 300 # <b class="conum">(9)</b>
-    includeAcceptHeader: false # <b class="conum">(10)</b></code></pre>
+    accessTokenIsJwt: false # <b class="conum">(2)</b>
+    scope: any # <b class="conum">(3)</b>
+    audience: kafka # <b class="conum">(4)</b>
+    connectTimeoutSeconds: 60 # <b class="conum">(5)</b>
+    readTimeoutSeconds: 60 # <b class="conum">(6)</b>
+    httpRetries: 2 # <b class="conum">(7)</b>
+    httpRetryPauseMs: 300 # <b class="conum">(8)</b>
+    includeAcceptHeader: false # <b class="conum">(9)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <ol>
 <li>
 <p>(Optional) Disable TLS hostname verification. Default is <code>false</code>.</p>
-</li>
-<li>
-<p>If the authorization server does not return a <code>typ</code> (type) claim inside the JWT token, you can apply <code>checkAccessTokenType: false</code> to skip the token type check. Default is <code>true</code>.</p>
 </li>
 <li>
 <p>If you are using opaque tokens, you can apply <code>accessTokenIsJwt: false</code> so that access tokens are not treated as JWT tokens.</p>
