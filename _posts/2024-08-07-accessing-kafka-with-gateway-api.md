@@ -5,7 +5,7 @@ date: 2024-08-07
 author: colt_mcnealy
 ---
 
-At [LittleHorse](https://littlehorse.dev), we use the [Gateway API](https://gateway-api.sigs.k8s.io) to allow external traffic into our kubernetes clusters. We will soon need to allow external clients to access our [Kafka](https://kafka.apache.org) clusters (managed by Strimzi, of course!) from outside ouf our Kubernetes clusters. We have so far been pleased with the performance and simplicity of [Envoy Gateway](https://gateway.envoyproxy.io/) as a Gateway Controller, which motivated this investigation into using Envoy Gateway to access our Kafka clusters.
+At [LittleHorse](https://littlehorse.dev), we use the [Gateway API](https://gateway-api.sigs.k8s.io) to allow external traffic into our kubernetes clusters. We will soon need to allow external clients to access our [Kafka](https://kafka.apache.org) clusters (managed by Strimzi, of course!) from outside of our Kubernetes clusters. We have so far been pleased with the performance and simplicity of [Envoy Gateway](https://gateway.envoyproxy.io/) as a Gateway Controller, which motivated this investigation into using Envoy Gateway to access our Kafka clusters.
 
 ## Background
 
@@ -24,7 +24,7 @@ As Jakub [noted](https://strimzi.io/blog/2019/04/17/accessing-kafka-part-1/), ac
 
 ### The Gateway API
 
-The Gateway API is a much more flexible and extensible take on north-south traffic than `Ingress`. The entirety of the Gateway API is beyond the scope of this post, but there are two resources in particular that will be of interest to us:
+The Gateway API is a much more flexible and extensible solution for north-south traffic than `Ingress`. The entirety of the Gateway API is beyond the scope of this post, but there are two resources in particular that will be of interest to us:
 
 1. `TCPRoute`s, which proxy unencrypted TCP traffic.
 2. `TLSRoute`s, which control encrypted TCP traffic.
@@ -32,6 +32,10 @@ The Gateway API is a much more flexible and extensible take on north-south traff
 The `HTTPRoute` and `GRPCRoute` resources will not work with Kafka because Kafka does not speak an HTTP-based protocol.
 
 _NOTE: The `HTTPRoute` resource has reached GA in the Gateway API; however, the `TLSRoute` is still in beta. Some advise not using it, but it should be fine as long as you check release notes and test before upgrading!_
+
+This post will focus on the `TLSRoute`. In particular, we will use _passthrough TLS_ in which the TLS connections are terminated not at the Gateway Controller but rather at the Kafka Servers. In more detail, it looks like the following:
+
+![Architecture with TLSRoutes](/assets/images/posts/2024-08-07-tls-routes.png)
 
 ## Putting It Into Practice
 
