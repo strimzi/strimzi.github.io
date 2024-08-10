@@ -245,6 +245,8 @@ spec:
   selfSigned: {}
 ```
 
+In the github repo, you can follow along via:
+
 ```
 kubectl apply -f certificate.yaml
 ```
@@ -369,6 +371,8 @@ spec:
       type: cluster-ip
     version: 3.7.1
 ```
+
+If you're following along on GitHub, it's just:
 
 ```
 kubectl apply -f kafka.yaml
