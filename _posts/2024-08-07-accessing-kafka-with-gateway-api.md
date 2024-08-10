@@ -104,7 +104,7 @@ helm upgrade --install envoygateway oci://docker.io/envoyproxy/gateway-helm \
 
 Once the installation process is complete, we need to deploy a `Gateway` with a specific `GatewayClass` that will listen on the correct `NodePort`s. We'll refer to this `Gateway` later when we create `TLSRoute`s to access our Kafka cluster.
 
-Before creating the `Gateway`, we must create and configurethe `GatewayClass`. A `GatewayClass` is just like an `IngressClass`: it defines a type of Gateway which can be reconciled by a Gateway Controller. Envoy Gateway also has an additional CRD called `EnvoyProxy` which can be _attached to_ a `GatewayClass` to tell Envoy Gateway how to reconcile gateways of that class.
+Before creating the `Gateway`, we must create and configure the `GatewayClass`. A `GatewayClass` is just like an `IngressClass`: it defines a type of Gateway which can be reconciled by a Gateway Controller. Envoy Gateway also has an additional CRD called `EnvoyProxy` which can be _attached to_ a `GatewayClass` to tell Envoy Gateway how to reconcile gateways of that class.
 
 If you recall from earlier, we want to create a `GatewayClass` that is configured to run Envoy Proxy pods with a NodePort service type, mapping port `30992` on the K8s Node to port `9092` on the Envoy Proxy pods. You can do that as follows:
 
