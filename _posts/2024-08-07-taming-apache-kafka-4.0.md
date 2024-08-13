@@ -60,7 +60,7 @@ And if you are interested in what might come in the future, you can always check
 
 In this case, the two relevant proposals are the ones with numbers 77 and 79 that were approved in July:
 * [#77: Support for Apache Kafka 4.0](https://github.com/strimzi/proposals/blob/main/077-support-for-kafka-4.0.md)
-* [#79: Removal of Mirror Maker 1](https://github.com/strimzi/proposals/blob/main/079-removal-of-mirror-maker-1.md)
+* [#79: Removal of MirrorMaker 1](https://github.com/strimzi/proposals/blob/main/079-removal-of-mirror-maker-1.md)
 
 Let's have a look in a bit more detail at what they say and what the plans look like.
 
@@ -102,31 +102,31 @@ The following table provides an overview of the different versions and their sup
 
 For more details and other alternatives we considered, please check out the [_Support for Apache Kafka 4.0_](https://github.com/strimzi/proposals/blob/main/077-support-for-kafka-4.0.md) proposal.
 
-#### Mirror Maker 1 removal
+#### MirrorMaker 1 removal
 
 To make things easier to remember, we decided to remove the support for MirrorMaker 1 using the same schedule as we have for the ZooKeeper support removal.
 So the `0.4y` version will be the last Strimzi version with support for MirrorMaker 1.
 
-While many different mirroring tools for Apache Kafka can replace Mirror Maker 1, the most obvious choice is Mirror Maker 2.
-Mirror Maker 2 has been part of the Apache Kafka project already for a long time and was from the beginning developed as an improved replacement and successor of Mirror Maker 1
+While many different mirroring tools for Apache Kafka can replace MirrorMaker 1, the most obvious choice is MirrorMaker 2.
+MirrorMaker 2 has been part of the Apache Kafka project already for a long time and was from the beginning developed as an improved replacement and successor of MirrorMaker 1
 It is also supported by Strimzi since Strimzi 0.17.
-While the Mirror Maker 2 architecture is completely different from Mirror Maker 1, it can be configured to work similarly by using the `IdentityReplicationPolicy`.
-But it has also many new features that you should consider while migrating from Mirror Maker 1.
+While the MirrorMaker 2 architecture is completely different from MirrorMaker 1, it can be configured to work similarly by using the `IdentityReplicationPolicy`.
+But it has also many new features that you should consider while migrating from MirrorMaker 1.
 For example better support for active-active mirroring or mirroring of committed consumer group offsets.
 
-Strimzi will not provide any automatic migration from Mirror Maker 1 to Mirror Maker 2.
+Strimzi will not provide any automatic migration from MirrorMaker 1 to MirrorMaker 2.
 There are several reasons why such automatic migration would not be feasible:
-* Monitoring of Mirror Maker 2 is different from Mirror Maker 1 (different dashboards, alerts, etc.)
-* Mirror Maker 2 is based on Kafka Connect, connectors managing the transfer of data between clusters, so it requires additional topics, configurations and access rights.
+* Monitoring of MirrorMaker 2 is different from MirrorMaker 1 (different dashboards, alerts, etc.)
+* MirrorMaker 2 is based on Kafka Connect, connectors managing the transfer of data between clusters, so it requires additional topics, configurations and access rights.
   In particular, automatically finding the correct configuration for the Connect cluster that will not conflict with other clusters or ensuring the users have the required privileges might be very complicated.
-  Also, the resource requirements for Mirror Maker 1 and Mirror Maker 2 might differ.
+  Also, the resource requirements for MirrorMaker 1 and MirrorMaker 2 might differ.
 * It might not be possible to ensure a smooth transition without any message loss or duplicate messages.
 
-So if you still use Mirror Maker 1, you should migrate to Mirror Maker 2 before upgrading to Strimzi `0.4z`.
-If you have any Mirror Maker 1 cluster deployed and running when you upgrade to Strimzi `0.4z`, Strimzi will not delete this cluster.
+So if you still use MirrorMaker 1, you should migrate to MirrorMaker 2 before upgrading to Strimzi `0.4z`.
+If you have any MirrorMaker 1 cluster deployed and running when you upgrade to Strimzi `0.4z`, Strimzi will not delete this cluster.
 But it will not be able to operate such a cluster either and it will just ignore it.
 
-The following table provides an overview of the different versions and their support for Mirror Maker 1 and 2:
+The following table provides an overview of the different versions and their support for MirrorMaker 1 and 2:
 
 | Version | Supported Kafka versions | MM1 support | MM2 support |
 | :-----: |:-------------------------|:------------|:------------|
@@ -136,7 +136,7 @@ The following table provides an overview of the different versions and their sup
 | 0.4z    | 3.9.x, 4.0.x             | no          | yes         |
 | ...     | 4.0.x, 4.1.x             | no          | yes         |
 
-For more details and other alternatives we considered, please check out the [_Removal of Mirror Maker 1_](https://github.com/strimzi/proposals/blob/main/079-removal-of-mirror-maker-1.md) proposal.
+For more details and other alternatives we considered, please check out the [_Removal of MirrorMaker 1_](https://github.com/strimzi/proposals/blob/main/079-removal-of-mirror-maker-1.md) proposal.
 
 #### Other changes
 
@@ -160,7 +160,7 @@ That will make Strimzi easier to maintain and add more new features.
 
 We are well aware that many Apache Kafka users are reluctant to move to KRaft just yet.
 So we will try to provide _extended support_ for the Strimzi `0.4y` release.
-That should make it easier for users who want to stick with ZooKeeper or Mirror Maker 1 for a bit longer.
+That should make it easier for users who want to stick with ZooKeeper or MirrorMaker 1 for a bit longer.
 What does _extended support_ mean?
 Where possible, it includes:
 * Addressing any critical Common Vulnerabilities and Exposures (CVEs) that arise.
