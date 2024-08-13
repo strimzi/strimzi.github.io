@@ -5,10 +5,10 @@ date: 2024-08-07
 author: jakub_scholz
 ---
 
-Apache Kafka 4.0 release is just around the corner.
+The Apache Kafka 4.0 release is just around the corner.
 It will be a very significant release for Apache Kafka.
 But it will also have a huge impact on Strimzi.
-Therefore in this blog post, we will look closer at what changes will Apache Kafka 4.0 bring, when is it currently planned to be released and how will it be supported by Strimzi.
+Therefore in this blog post, we will look closer at what changes Apache Kafka 4.0 will bring, when is it currently planned to be released, and how it will be supported by Strimzi.
 
 <!--more-->
 
@@ -20,9 +20,9 @@ But unlike the previous Apache Kafka major releases that Strimzi went through an
 
 * Kafka 4.0 will not support ZooKeeper-based Apache Kafka clusters anymore.
   The only way how to run a Kafka cluster will be by using KRaft.
-  That means that all existing ZooKeeper-based clusters will need to be migrated to KRaft before upgrading to Apache Kafka 4.0.
-* Mirror Maker 1 was already deprecated in Kafka 3.0 and it will be completely removed in Kafka 4.0.
-  You will need to migrate to Mirror Maker 2 or some other mirroring tool of your choice before upgrading to Kafka 4.0.
+  This means that all existing ZooKeeper-based clusters will need to be migrated to KRaft before upgrading to Apache Kafka 4.0.
+* MirrorMaker 1 was already deprecated in Kafka 3.0 and it will be completely removed in Kafka 4.0.
+  You will need to migrate to MirrorMaker 2 or some other mirroring tool of your choice before upgrading to Kafka 4.0.
 * Logging in the Kafka components is moving from the Log4j1 (Reload4j) APIs to Log4j2.
 
 These changes have a big impact on Strimzi and its code base.
@@ -45,7 +45,7 @@ The planned release dates might be moved.
 And - although unlikely - it might even happen that another minor release has to be done before releasing Kafka 4.0.
 So keep this in mind when reading this blog post.
 
-### How will Strimzi handle it
+### How will Strimzi handle Kafka 4.0 changes
 
 Because of these changes and their impact on Strimzi, we needed to have a clear plan for how to adopt Kafka 4.0.
 Strimzi always supports at least the two latest Apache Kafka minor versions.
@@ -88,8 +88,7 @@ You can read more about it in our [blog post about KRaft migration](https://stri
 
 If you don't migrate your Kafka cluster to KRaft before upgrading to Strimzi `0.4z`, Strimzi will not delete or damage the Kafka cluster.
 But it will not be able to operate such a cluster.
-So you will have to either delete the cluster and create a new one based on KRaft.
-Or downgrade Strimzi and migrate the cluster to KRaft.
+So, you will need to either delete the cluster and create a new one based on KRaft, or downgrade Strimzi and then migrate the cluster to KRaft.
 
 The following table provides an overview of the different versions and their support for ZooKeeper and KRaft:
 
@@ -105,8 +104,8 @@ For more details and other alternatives we considered, please check out the [_Su
 
 #### Mirror Maker 1 removal
 
-To make things easier to remember, we decided to remove the support for Mirror Maker 1 using the same schedule as we have for the ZooKeeper support removal.
-So the `0.4y` version will be the last Strimzi version with support for Mirror Maker 1.
+To make things easier to remember, we decided to remove the support for MirrorMaker 1 using the same schedule as we have for the ZooKeeper support removal.
+So the `0.4y` version will be the last Strimzi version with support for MirrorMaker 1.
 
 While many different mirroring tools for Apache Kafka can replace Mirror Maker 1, the most obvious choice is Mirror Maker 2.
 Mirror Maker 2 has been part of the Apache Kafka project already for a long time and was from the beginning developed as an improved replacement and successor of Mirror Maker 1
@@ -118,7 +117,7 @@ For example better support for active-active mirroring or mirroring of committed
 Strimzi will not provide any automatic migration from Mirror Maker 1 to Mirror Maker 2.
 There are several reasons why such automatic migration would not be feasible:
 * Monitoring of Mirror Maker 2 is different from Mirror Maker 1 (different dashboards, alerts, etc.)
-* Mirror Maker 2 is based on Kafka Connect, so it requires additional topics, configurations and access rights.
+* Mirror Maker 2 is based on Kafka Connect, connectors managing the transfer of data between clusters, so it requires additional topics, configurations and access rights.
   In particular, automatically finding the correct configuration for the Connect cluster that will not conflict with other clusters or ensuring the users have the required privileges might be very complicated.
   Also, the resource requirements for Mirror Maker 1 and Mirror Maker 2 might differ.
 * It might not be possible to ensure a smooth transition without any message loss or duplicate messages.
@@ -153,7 +152,7 @@ But if you use some custom logging configurations, you might need to update the 
 While this change is not directly related to Kafka 4.0, we decided to use the disruption caused by the other changes to also deprecate and remove support of the [_Storage class overrides_](https://strimzi.io/docs/operators/0.42.0/full/deploying.html#storage_class_overrides).
 They are deprecated as of Strimzi 0.43.0.
 And they will be completely ignored in Strimzi `0.4z`.
-If you are using _storage class overrides_ today, you can replace them by using multiple node pools with different storage classes each.
+If you are using storage class overrides today, you can replace them by using multiple node pools, each with a different storage class.
 This change will allow us to simplify the code and the Strimzi API.
 That will make Strimzi easier to maintain and add more new features.
 
@@ -162,14 +161,16 @@ That will make Strimzi easier to maintain and add more new features.
 We are well aware that many Apache Kafka users are reluctant to move to KRaft just yet.
 So we will try to provide _extended support_ for the Strimzi `0.4y` release.
 That should make it easier for users who want to stick with ZooKeeper or Mirror Maker 1 for a bit longer.
-What does _extended support_ mean:
-* We will try to address any critical CVEs
-* We will try to add support for new Apache Kafka 3.9 patch releases
-* We will try to continue fixing critical bugs related to ZooKeeper, KRaft and migration from ZooKeeper to Kraft
+What does _extended support_ mean?
+Where possible, it includes:
+* Addressing any critical Common Vulnerabilities and Exposures (CVEs) that arise.
+* Aiming to support any new patch releases of Apache Kafka 3.9.
+* Continuing to fix critical bugs related to ZooKeeper, KRaft, and the migration process from ZooKeeper to KRaft.
 
 We will try to do this for one year after the initial Kafka 3.9 is released, which is the same time for which the Apache Kafka project plans to support the 3.9 release.
 Unfortunately, sometimes, even seemingly straightforward tasks such as updating a dependency to address a CVE can lead to major code changes.
-That is why the word `try` is important - we will try our best, but it is always possible that for some changes it might not be feasible to address them with a reasonable effort.
+That’s why the phrase _where possible_ is important. 
+While we will try to address these issues, there may be cases where it’s not feasible to do so with reasonable effort due to the complexity of the changes required.
 We also do not plan to add any new features to Strimzi as part of `0.4y` patch releases.
 You should also keep in mind that regardless of how long you wait on Strimzi `0.4y`, you will in the end always need to first migrate to KRaft with Strimzi `0.4y` and Apache Kafka 3.9 before upgrading to any newer Kafka or Strimzi version.
 
