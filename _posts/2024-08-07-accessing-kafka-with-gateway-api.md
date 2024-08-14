@@ -439,7 +439,7 @@ strimzi-cluster-operator-6948497896-s7q46           1/1     Running   0         
 
 #### Creating `TLSRoute`s
 
-Next, we will need to create four `TLSRoute`'s:
+Next, we will need to create four `TLSRoute`s:
 
 * A `bootstrap` one that points to the bootstrap service.
 * A `TLSRoute` for each broker that is deployed.
