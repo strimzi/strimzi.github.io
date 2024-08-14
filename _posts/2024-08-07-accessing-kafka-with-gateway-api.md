@@ -245,7 +245,7 @@ spec:
   selfSigned: {}
 ```
 
-In the github repo, you can follow along via:
+In the GitHub repo, you can follow along via:
 
 ```
 kubectl apply -f certificate.yaml
