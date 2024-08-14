@@ -444,7 +444,7 @@ Next, we will need to create four `TLSRoute`'s:
 * A `bootstrap` one that points to the bootstrap service.
 * A `TLSRoute` for each broker that is deployed.
 
-It will be as follows:
+The `TLSRoute` definitions look like this:
 
 ```
 apiVersion: gateway.networking.k8s.io/v1alpha2
