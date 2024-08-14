@@ -5,7 +5,7 @@ date: 2024-08-07
 author: colt_mcnealy
 ---
 
-At [LittleHorse](https://littlehorse.dev), we use the [Gateway API](https://gateway-api.sigs.k8s.io) to allow external traffic into our kubernetes clusters. We will soon need to allow external clients to access our [Kafka](https://kafka.apache.org) clusters (managed by Strimzi, of course!) from outside of our Kubernetes clusters. We have so far been pleased with the performance and simplicity of [Envoy Gateway](https://gateway.envoyproxy.io/) as a Gateway Controller, which motivated this investigation into using Envoy Gateway to access our Kafka clusters.
+At [LittleHorse](https://littlehorse.dev), we use the [Gateway API](https://gateway-api.sigs.k8s.io) to allow external traffic into our Kubernetes clusters. We will soon need to allow external clients to access our [Kafka](https://kafka.apache.org) clusters (managed by Strimzi, of course!) from outside of our Kubernetes clusters. We have so far been pleased with the performance and simplicity of [Envoy Gateway](https://gateway.envoyproxy.io/) as a Gateway Controller, which motivated this investigation into using Envoy Gateway to access our Kafka clusters.
 
 ### Background
 
