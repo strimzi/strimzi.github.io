@@ -35,7 +35,7 @@ The `HTTPRoute` and `GRPCRoute` resources will not work with Kafka because Kafka
 
 _NOTE: The `HTTPRoute` resource has reached GA in the Gateway API; however, the `TLSRoute` is still in beta. Some advise not using it, but it should be fine as long as you check release notes and test before upgrading!_
 
-This post will focus on the `TLSRoute`. In particular, we will use _passthrough TLS_ in which the TLS connections are terminated not at the Gateway Controller but rather at the Kafka Servers. In more detail, it looks like the following:
+This post will focus on the `TLSRoute`. In particular, we will use _passthrough TLS_ in which the TLS connections are terminated not at the Gateway Controller but rather at the Kafka brokers. In more detail, it looks like the following:
 
 ![Architecture with TLSRoutes](/assets/images/posts/2024-08-07-tls-routes.png)
 
