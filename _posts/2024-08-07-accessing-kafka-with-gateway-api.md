@@ -13,7 +13,7 @@ The [Gateway API](https://gateway-api.sigs.k8s.io/) in Kubernetes aims to replac
 
 ![Strimzi and Envoy Gateway](/assets/images/posts/2024-08-07-strimzi-gateway-api.png)
 
-The Gateway API has [many implementations](https://gateway-api.sigs.k8s.io/implementations/). In this blog we will use Envoy Gateway as our Gateway Controller. At LittleHorse we chose Envoy Gateway for production use because of its simple deployment model, Envoy's maturity and great performance, and our extensive past experience with Envoy.
+The Gateway API has [many implementations](https://gateway-api.sigs.k8s.io/implementations/). In this blog we will use Envoy Gateway as our Gateway Controller. We chose Envoy Gateway for production at LittleHorse due to its simple deployment model, Envoy's maturity and performance, and our extensive experience with Envoy.
 
 #### Accessing Kafka
 
