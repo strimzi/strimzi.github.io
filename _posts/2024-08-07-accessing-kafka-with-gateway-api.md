@@ -49,7 +49,7 @@ If you would like to follow along without copying and pasting yaml files, you ca
 
 This example will utilize a few small hacks to make it possible to do local development with your KIND cluster. We want to access Kafka using a TLS-encrypted connection, which means that:
 
-1. We'll have to create a certificate with some hostname for the Kafka servers.
+1. We'll have to create a certificate with some hostname for the Kafka brokers.
 2. We'll need to be able to somehow redirect traffic from that hostname into the KIND cluster before the `TLSRoute` Gateway Controller is even able to route the traffic to Kafka.
 
 KIND is very flexible and has some options to do this. What we will do is:
