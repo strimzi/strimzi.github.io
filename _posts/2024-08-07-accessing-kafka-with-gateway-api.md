@@ -643,7 +643,7 @@ cat /tmp/kafka-client-config.properties
 
 #### Accessing Kafka
 
-The last thing we need to do is use our Kafka cluster! We'll use the Strimzi docker images and the `kafka-console-{producer,consumer}.sh` scripts.
+The last thing we need to do is use our Kafka cluster! We'll use the Strimzi Docker images and the `kafka-console-{producer,consumer}.sh` scripts.
 
 In one terminal, start a consumer:
 
