@@ -31,7 +31,7 @@ The Gateway API is a much more flexible and extensible solution for north-south 
 1. `TCPRoute`s, which proxy unencrypted TCP traffic.
 2. `TLSRoute`s, which control encrypted TCP traffic.
 
-The `HTTPRoute` and `GRPCRoute` resources will not work with Kafka because Kafka does not speak an HTTP or GRPC-based protocol.
+The `HTTPRoute` and `GRPCRoute` resources will not work with Kafka because Kafka does not speak an HTTP or gRPC-based protocol.
 
 _NOTE: The `HTTPRoute` resource has reached GA in the Gateway API; however, the `TLSRoute` is still in beta. Some advise not using it, but it should be fine as long as you check release notes and test before upgrading!_
 
