@@ -272,7 +272,7 @@ We will:
 
 #### Deploying the `Kafka` Cluster
 
-Let's create a Kafka cluster. Our cluster will have 1 Controller and 3 Brokers. This means we're going to need a single `Kafka` resource and two `KafkaNodePool`s.
+Let's create a Kafka cluster in KRaft mode. Our cluster will have 1 Controller and 3 Brokers. This means we're going to need a single `Kafka` resource and two `KafkaNodePool`s.
 
 Our `Kafka` cluster will have one listener on it, on port `9092`:
 
