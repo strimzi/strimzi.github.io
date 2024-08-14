@@ -28,8 +28,8 @@ As Jakub [noted](https://strimzi.io/blog/2019/04/17/accessing-kafka-part-1/), ac
 
 The Gateway API is a much more flexible and extensible solution for north-south traffic than `Ingress`. The entirety of the Gateway API is beyond the scope of this post, but there are two resources in particular that will be of interest to us:
 
-1. `TCPRoute`s, which proxy unencrypted TCP traffic.
-2. `TLSRoute`s, which control encrypted TCP traffic.
+1. `TCPRoute` resources, which proxy unencrypted TCP traffic.
+2. `TLSRoute` resources, which control encrypted TCP traffic.
 
 The `HTTPRoute` and `GRPCRoute` resources will not work with Kafka because Kafka does not speak an HTTP or gRPC-based protocol.
 
