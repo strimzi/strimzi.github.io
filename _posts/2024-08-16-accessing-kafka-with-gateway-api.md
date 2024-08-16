@@ -11,7 +11,7 @@ At [LittleHorse](https://littlehorse.dev), we use the [Gateway API](https://gate
 
 The [Gateway API](https://gateway-api.sigs.k8s.io/) in Kubernetes aims to replace the `Ingress` resource as the de facto standard for allowing external traffic to reach workloads running on Kubernetes. It addresses many shortcomings of the `Ingress` resource, including poor support for non-HTTP 1.0 traffic.
 
-![Strimzi and Envoy Gateway](/assets/images/posts/2024-08-07-strimzi-gateway-api.png)
+![Strimzi and Envoy Gateway](/assets/images/posts/2024-08-16-strimzi-gateway-api.png)
 
 The Gateway API has [many implementations](https://gateway-api.sigs.k8s.io/implementations/). In this blog we will use Envoy Gateway as our Gateway Controller. We chose Envoy Gateway for production at LittleHorse due to its simple deployment model, Envoy's maturity and performance, and our extensive experience with Envoy.
 
@@ -61,7 +61,7 @@ Together, the four steps above will make it possible to send traffic to your KIN
 
 Lastly, once we have traffic successfully routed to the Envoy Proxy (Gateway Controller) pod, we will use a `TLSRoute` resource to ensure that traffic reaches our Kafka brokers. The entire networking setup can be visualized as follows:
 
-![Networking Overview](/assets/images/posts/2024-08-07-kind-cluster-networking-architecture.png)
+![Networking Overview](/assets/images/posts/2024-08-16-kind-cluster-networking-architecture.png)
 
 1. From your local terminal, you make a request to `boostrap.strimzi.gateway.api.test:9092`.
 2. The `/etc/hosts` file re-routes it to `localhost`.
