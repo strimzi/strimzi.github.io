@@ -61,7 +61,7 @@ Together, the four steps above will make it possible to send traffic to your KIN
 
 Lastly, once we have traffic successfully routed to the Envoy Proxy (Gateway Controller) pod, we will use a `TLSRoute` resource to ensure that traffic reaches our Kafka brokers. The entire networking setup can be visualized as follows:
 
-![Networking Overview](../assets/images/posts/2024-08-07-kind-cluster-networking-architecture.png)
+![Networking Overview](/assets/images/posts/2024-08-07-kind-cluster-networking-architecture.png)
 
 1. From your local terminal, you make a request to `boostrap.strimzi.gateway.api.test:9092`.
 2. The `/etc/hosts` file re-routes it to `localhost`.
