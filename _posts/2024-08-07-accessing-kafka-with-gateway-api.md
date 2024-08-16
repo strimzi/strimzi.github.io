@@ -35,9 +35,7 @@ The `HTTPRoute` and `GRPCRoute` resources will not work with Kafka because Kafka
 
 _NOTE: The `HTTPRoute` resource has reached GA in the Gateway API; however, the `TLSRoute` is still in beta. Some advise not using it, but it should be fine as long as you check release notes and test before upgrading!_
 
-This post will focus on the `TLSRoute`. In particular, we will use _passthrough TLS_ in which the TLS connections are terminated not at the Gateway Controller but rather at the Kafka brokers. In more detail, it looks like the following:
-
-![Architecture with TLSRoutes](/assets/images/posts/2024-08-07-tls-routes.png)
+This post will focus on the `TLSRoute`. In particular, we will use _passthrough TLS_ in which the TLS connections are terminated not at the Gateway Controller but rather at the Kafka brokers.
 
 ### Putting It Into Practice
 
@@ -60,6 +58,16 @@ KIND is very flexible and has some options to do this. What we will do is:
 * Deploy the Envoy Gateway pods with a `NodePort` service mapping port `30992` on the K8s node to port `9092` on the Envoy Gateway Pod.
 
 Together, the four steps above will make it possible to send traffic to your KIND cluster as if it were running in a public network.
+
+Lastly, once we have traffic successfully routed to the Envoy Proxy (Gateway Controller) pod, we will use a `TLSRoute` resource to ensure that traffic reaches our Kafka brokers. The entire networking setup can be visualized as follows:
+
+![Networking Overview](../assets/images/posts/2024-08-07-kind-cluster-networking-architecture.png)
+
+1. From your local terminal, you make a request to `boostrap.strimzi.gateway.api.test:9092`.
+2. The `/etc/hosts` file re-routes it to `localhost`.
+3. The KIND cluster has a node running as a docker container with your host port `9092` mapped to container port `30992`.
+4. There is a `NodePort` Service routing traffic from port `30992` on the Kubernetes Nodes to the Envoy Gateway pod.
+5. We use `TLSRoute` resources to configure Envoy to send traffic to the Kafka brokers.
 
 #### KIND Cluster Setup
 
@@ -418,6 +426,7 @@ spec:
     type: persistent-claim
 ```
 
+In the github repository, you can create the above resources via the following command:
 ```
 kubectl apply -f kafka-node-pools.yaml
 ```
@@ -532,6 +541,7 @@ spec:
       port: 9092
 ```
 
+To follow along in the github repo, you can run:
 ```
 kubectl apply -f tls-routes.yaml
 ```
@@ -593,9 +603,13 @@ spec:
   replicas: 3
 ```
 
+Once again, in github this can be done via the `user-and-topic.yaml` file:
+
 ```
 kubectl apply -f user-and-topic.yaml
 ```
+
+At this point, you should be able to see a `KafkaTopic` and `KafkaUser` resource created in your Kubernetes cluster:
 
 ```
 -> kubectl get kafkauser
