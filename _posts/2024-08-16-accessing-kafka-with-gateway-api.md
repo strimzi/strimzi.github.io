@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Accessing Kafka with the Gateway API"
-date: 2024-08-07
+date: 2024-08-16
 author: colt_mcnealy
 ---
 
