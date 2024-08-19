@@ -92,13 +92,13 @@ So, you will need to either delete the cluster and create a new one based on KRa
 
 The following table provides an overview of the different versions and their support for ZooKeeper and KRaft:
 
-| Version | Supported Kafka versions | Supported metadata modes |
-| :-----: |:-------------------------|:-------------------------|
-| ...     | 3.7.x, 3.8.x             | ZooKeeper, KRaft         |
-| 0.4x    | 3.8.x, 3.9.x             | ZooKeeper, KRaft         |
-| 0.4y    | 3.8.x, 3.9.x             | ZooKeeper, KRaft         |
-| 0.4z    | 3.9.x, 4.0.x             | KRaft                    |
-| ...     | 4.0.x, 4.1.x             | KRaft                    |
+| Version | Supported Kafka versions | ZooKeeper supported | KRaft supported |
+| :-----: |:-------------------------|:--------------------|:----------------|
+| ...     | 3.7.x, 3.8.x             | yes                 | yes             |
+| 0.4x    | 3.8.x, 3.9.x             | yes                 | yes             |
+| 0.4y    | 3.8.x, 3.9.x             | yes                 | yes             |
+| 0.4z    | 3.9.x, 4.0.x             | no                  | yes             |
+| ...     | 4.0.x, 4.1.x             | no                  | yes             |
 
 For more details and other alternatives we considered, please check out the [_Support for Apache Kafka 4.0_](https://github.com/strimzi/proposals/blob/main/077-support-for-kafka-4.0.md) proposal.
 
@@ -108,7 +108,7 @@ To make things easier to remember, we decided to remove the support for MirrorMa
 So the `0.4y` version will be the last Strimzi version with support for MirrorMaker 1.
 
 While many different mirroring tools for Apache Kafka can replace MirrorMaker 1, the most obvious choice is MirrorMaker 2.
-MirrorMaker 2 has been part of the Apache Kafka project already for a long time and was from the beginning developed as an improved replacement and successor of MirrorMaker 1
+MirrorMaker 2 has been part of the Apache Kafka project already for a long time and was from the beginning developed as an improved replacement and successor of MirrorMaker 1.
 It is also supported by Strimzi since Strimzi 0.17.
 While the MirrorMaker 2 architecture is completely different from MirrorMaker 1, it can be configured to work similarly by using the `IdentityReplicationPolicy`.
 But it has also many new features that you should consider while migrating from MirrorMaker 1.
