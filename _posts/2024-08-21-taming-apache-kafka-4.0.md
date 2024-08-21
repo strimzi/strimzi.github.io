@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Taming Apache Kafka 4.0"
-date: 2024-08-07
+date: 2024-08-21
 author: jakub_scholz
 ---
 
