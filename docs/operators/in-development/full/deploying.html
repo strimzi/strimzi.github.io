@@ -17868,7 +17868,7 @@ Replicas need to be reassigned when adding or removing brokers (see <a href="#co
 <div class="sect2">
 <h3 id="proc-converting-managed-topics-str"><a class="link" href="#proc-converting-managed-topics-str">11.6. Managing KafkaTopic resources without impacting Kafka topics</a></h3>
 <div class="paragraph _abstract">
-<p>This procedure describes how to convert Kafka topics that are currently managed through the <code>KafkaTopic</code> resource into non-managed topics.
+<p>This procedure describes how to convert Kafka topics that are currently managed through the <code>KafkaTopic</code> resource into unmanaged topics.
 This capability can be useful in various scenarios.
 For instance, you might want to update the <code>metadata.name</code> of a <code>KafkaTopic</code> resource.
 You can only do that by deleting the original <code>KafkaTopic</code> resource and recreating a new one.</p>
@@ -17892,7 +17892,7 @@ This allows you to retain the Kafka topic while making changes to the resource&#
 <p>Annotate the <code>KafkaTopic</code> resource in Kubernetes, setting <code>strimzi.io/managed</code> to <code>false</code>:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafkatopic my-topic-1 strimzi.io/managed="false"</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafkatopic my-topic-1 strimzi.io/managed="false" --overwrite</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -17903,11 +17903,11 @@ This allows you to retain the Kafka topic while making changes to the resource&#
 <p>Check the status of the <code>KafkaTopic</code> resource to make sure the request was successful:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">oc get kafkatopics my-topic-1 -o yaml</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafkatopic my-topic-1 -o yaml</code></pre>
 </div>
 </div>
 <div class="listingblock">
-<div class="title">Example topic with a <code>Ready</code> status</div>
+<div class="title">Example topic with an <code>Unmanaged</code> status</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
@@ -17915,30 +17915,31 @@ metadata:
   generation: 124
   name: my-topic-1
   finalizer:
-    strimzi.io/topic-operator
+  - strimzi.io/topic-operator
   labels:
     strimzi.io/cluster: my-cluster
+  annotations:
+    strimzi.io/managed: "false"
 spec:
   partitions: 10
   replicas: 2
-
-# ...
+  config:
+    retention.ms: 432000000
 status:
   observedGeneration: 124 # <b class="conum">(1)</b>
-  topicName: my-topic-1
   conditions:
-  - type: Ready
-    status: True
-    lastTransitionTime: 20230301T103000Z</code></pre>
+  - lastTransitionTime: "2024-08-22T06:07:57.671085635Z"
+    status: "True"
+    type: Unmanaged # <b class="conum">(2)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <ol>
 <li>
-<p>Successful reconciliation of the resource means the topic is no longer managed.</p>
-<div class="paragraph">
-<p>The value of <code>metadata.generation</code> (the current version of the deployment) must <code>match status.observedGeneration</code> (the latest reconciliation of the resource).</p>
-</div>
+<p>The value of <code>metadata.generation</code> must <code>match status.observedGeneration</code>.</p>
+</li>
+<li>
+<p>The <code>Unmanaged</code> condition means that the <code>KafkaTopic</code> is no longer reconciled.</p>
 </li>
 </ol>
 </div>
@@ -39666,7 +39667,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-08-22 16:47:48 UTC
+Last updated 2024-08-22 21:22:26 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
