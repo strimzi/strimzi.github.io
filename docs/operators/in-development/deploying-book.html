@@ -16514,13 +16514,13 @@ spec:
 <h4 id="proc-loading-config-from-file-str"><a class="link" href="#proc-loading-config-from-file-str">10.18.4. Loading configuration values from a file within a directory</a></h4>
 <div class="paragraph _abstract">
 <p>Use the <code>FileConfigProvider</code> to provide configuration properties from a file within a directory.
-Files can be config maps or secrets.</p>
+Files can be stored in config maps or secrets.</p>
 </div>
 <div class="paragraph">
 <p>In this procedure, a file provides configuration properties for a connector.
 A database name and password are specified as properties of a secret.
 The secret is mounted to the Kafka Connect pod as a volume.
-Volumes are mounted on the path <code>/opt/kafka/external-configuration/&lt;volume-name&gt;</code>.</p>
+Volumes are mounted on the path <code>/mnt/&lt;volume-name&gt;</code>.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -16573,7 +16573,7 @@ stringData:
 <p>Enable the <code>FileConfigProvider</code></p>
 </li>
 <li>
-<p>Specify the file using the <code>externalConfiguration</code> property.</p>
+<p>Specify the additional volume using the <code>template</code> property.</p>
 </li>
 </ul>
 </div>
@@ -16592,11 +16592,16 @@ spec:
     config.providers: file # <b class="conum">(1)</b>
     config.providers.file.class: org.apache.kafka.common.config.provider.FileConfigProvider # <b class="conum">(2)</b>
   #...
-  externalConfiguration:
-    volumes:
-      - name: connector-config # <b class="conum">(3)</b>
-        secret:
-          secretName: mysecret # <b class="conum">(4)</b></code></pre>
+  template:
+    pod:
+      volumes:
+        - name: connector-config-volume # <b class="conum">(3)</b>
+          secret:
+            secretName: mysecret # <b class="conum">(4)</b>
+    kafkaContainer:
+      volumeMounts:
+        - name: connector-config-volume # <b class="conum">(5)</b>
+          mountPath: /mnt/mysecret # <b class="conum">(6)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -16613,6 +16618,12 @@ The parameter uses the alias from <code>config.providers</code>, taking the form
 </li>
 <li>
 <p>The name of the secret.</p>
+</li>
+<li>
+<p>The name of the mounted volume, which must match the volume name in the <code>volumes</code> list.</p>
+</li>
+<li>
+<p>The path where the secret is mounted, which must start with <code>/mnt/</code>.</p>
 </li>
 </ol>
 </div>
@@ -16642,8 +16653,8 @@ spec:
   config:
     database.hostname: 192.168.99.1
     database.port: "3306"
-    database.user: "${file:/opt/kafka/external-configuration/connector-config/mysecret:dbUsername}"
-    database.password: "${file:/opt/kafka/external-configuration/connector-config/mysecret:dbPassword}"
+    database.user: "${file:/mnt/mysecret/connector.properties:dbUsername}"
+    database.password: "${file:/mnt/mysecret/connector.properties:dbPassword}"
     database.server.id: "184054"
     #...</code></pre>
 </div>
@@ -16666,7 +16677,7 @@ Files can be config maps or secrets.</p>
 <p>In this procedure, a secret provides the TLS keystore and truststore user credentials for a connector.
 The credentials are in separate files.
 The secrets are mounted into the Kafka Connect pod as volumes.
-Volumes are mounted on the path <code>/opt/kafka/external-configuration/&lt;volume-name&gt;</code>.</p>
+Volumes are mounted on the path <code>/mnt/&lt;volume-name&gt;</code>.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -16720,7 +16731,7 @@ data:
 <p>Enable the <code>DirectoryConfigProvider</code></p>
 </li>
 <li>
-<p>Specify the files using the <code>externalConfiguration</code> property.</p>
+<p>Specify the additional volume using the <code>template</code> property.</p>
 </li>
 </ul>
 </div>
@@ -16739,6 +16750,21 @@ spec:
     config.providers: directory # <b class="conum">(1)</b>
     config.providers.directory.class: org.apache.kafka.common.config.provider.DirectoryConfigProvider # <b class="conum">(2)</b>
   #...
+  template:
+    pod:
+      volumes:
+        - name: my-user-volume # <b class="conum">(3)</b>
+          secret:
+            secretName: my-user # <b class="conum">(4)</b>
+        - name: cluster-ca-volume
+          secret:
+            secretName: my-cluster-cluster-ca-cert
+    kafkaContainer:
+      volumeMounts:
+        - name: my-user-volume # <b class="conum">(5)</b>
+          mountPath: /mnt/my-user # <b class="conum">(6)</b>
+        - name: cluster-ca-volume
+          mountPath: /mnt/cluster-ca
   externalConfiguration:
     volumes: # <b class="conum">(3)</b>
       - name: cluster-ca # <b class="conum">(4)</b>
@@ -16758,13 +16784,16 @@ spec:
 <p><code>DirectoryConfigProvider</code> provides values from files in a directory. The parameter uses the alias from <code>config.providers</code>, taking the form <code>config.providers.${alias}.class</code>.</p>
 </li>
 <li>
-<p>The names of the volumes containing the secrets.</p>
+<p>The name of the volume containing the secret.</p>
 </li>
 <li>
-<p>The name of the secret for the cluster CA certificate to supply truststore configuration.</p>
+<p>The name of the secret.</p>
 </li>
 <li>
-<p>The name of the secret for the user to supply keystore configuration.</p>
+<p>The name of the mounted volume, which must match the volume name in the <code>volumes</code> list.</p>
+</li>
+<li>
+<p>The path where the secret is mounted, which must start with <code>/mnt/</code>.</p>
 </li>
 </ol>
 </div>
@@ -16795,10 +16824,10 @@ spec:
     # ...
     database.history.producer.security.protocol: SSL
     database.history.producer.ssl.truststore.type: PEM
-    database.history.producer.ssl.truststore.certificates: "${directory:/opt/kafka/external-configuration/cluster-ca:ca.crt}"
+    database.history.producer.ssl.truststore.certificates: "${directory:/mtn/cluster-ca:ca.crt}"
     database.history.producer.ssl.keystore.type: PEM
-    database.history.producer.ssl.keystore.certificate.chain: "${directory:/opt/kafka/external-configuration/my-user:user.crt}"
-    database.history.producer.ssl.keystore.key: "${directory:/opt/kafka/external-configuration/my-user:user.key}"
+    database.history.producer.ssl.keystore.certificate.chain: "${directory:/mnt/my-user:user.crt}"
+    database.history.producer.ssl.keystore.key: "${directory:/mnt/my-user:user.key}"
     #...</code></pre>
 </div>
 </div>
