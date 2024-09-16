@@ -8092,38 +8092,10 @@ metadata:
   name: my-cluster
 # Deployment specifications
 spec:
+  # Kafka configuration (required)
   kafka:
     # Replicas (required)
     replicas: 3
-    # Kafka version (recommended)
-    version: 3.8.0
-    # Logging configuration (optional)
-    logging:
-      type: inline
-      loggers:
-        kafka.root.logger.level: INFO
-    # Resources requests and limits (recommended)
-    resources:
-      requests:
-        memory: 64Gi
-        cpu: "8"
-      limits:
-        memory: 64Gi
-        cpu: "12"
-    # Readiness probe (optional)
-    readinessProbe:
-      initialDelaySeconds: 15
-      timeoutSeconds: 5
-    # Liveness probe (optional)
-    livenessProbe:
-      initialDelaySeconds: 15
-      timeoutSeconds: 5
-    # JVM options (optional)
-    jvmOptions:
-      -Xms: 8192m
-      -Xmx: 8192m
-    # Custom image (optional)
-    image: my-org/my-image:latest
     # Listener configuration (required)
     listeners:
       - name: plain
@@ -8147,9 +8119,12 @@ spec:
             secretName: my-secret
             certificate: my-certificate.crt
             key: my-key.key
-    # Authorization (optional)
-    authorization:
-      type: simple
+    # Storage configuration (required)
+    storage:
+      type: persistent-claim
+      size: 10000Gi
+    # Kafka version (recommended)
+    version: 3.8.0
     # Kafka configuration (recommended)
     config:
       auto.create.topics.enable: "false"
@@ -8159,10 +8134,36 @@ spec:
       default.replication.factor: 3
       min.insync.replicas: 2
       inter.broker.protocol.version: "3.8"
-    # Storage configuration (required)
-    storage:
-      type: persistent-claim
-      size: 10000Gi
+    # Resources requests and limits (recommended)
+    resources:
+      requests:
+        memory: 64Gi
+        cpu: "8"
+      limits:
+        memory: 64Gi
+        cpu: "12"
+    # Logging configuration (optional)
+    logging:
+      type: inline
+      loggers:
+        kafka.root.logger.level: INFO
+    # Readiness probe (optional)
+    readinessProbe:
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+    # Liveness probe (optional)
+    livenessProbe:
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+    # JVM options (optional)
+    jvmOptions:
+      -Xms: 8192m
+      -Xmx: 8192m
+    # Custom image (optional)
+    image: my-org/my-image:latest
+    # Authorization (optional)
+    authorization:
+      type: simple
     # Rack awareness (optional)
     rack:
       topologyKey: topology.kubernetes.io/zone
@@ -8178,11 +8179,10 @@ spec:
   zookeeper: # <b class="conum">(1)</b>
     # Replicas (required)
     replicas: 3 # <b class="conum">(2)</b>
-    # Logging configuration (optional)
-    logging: # <b class="conum">(3)</b>
-      type: inline
-      loggers:
-        zookeeper.root.logger: INFO
+    # Storage configuration (required)
+    storage: # <b class="conum">(3)</b>
+      type: persistent-claim
+      size: 1000Gi
     # Resources requests and limits (recommended)
     resources: # <b class="conum">(4)</b>
       requests:
@@ -8191,14 +8191,15 @@ spec:
       limits:
         memory: 8Gi
         cpu: "2"
+    # Logging configuration (optional)
+    logging: # <b class="conum">(5)</b>
+      type: inline
+      loggers:
+        zookeeper.root.logger: INFO
     # JVM options (optional)
-    jvmOptions: # <b class="conum">(5)</b>
+    jvmOptions: # <b class="conum">(6)</b>
       -Xms: 4096m
       -Xmx: 4096m
-    # Storage configuration (required)
-    storage: # <b class="conum">(6)</b>
-      type: persistent-claim
-      size: 1000Gi
     # Metrics configuration (optional)
     metricsConfig: # <b class="conum">(7)</b>
       type: jmxPrometheusExporter
@@ -8210,13 +8211,6 @@ spec:
   # Entity operator (recommended)
   entityOperator:
     topicOperator:
-      watchedNamespace: my-topic-namespace
-      reconciliationIntervalSeconds: 60
-      # Logging configuration (optional)
-      logging:
-        type: inline
-        loggers:
-          rootLogger.level: INFO
       # Resources requests and limits (recommended)
       resources:
         requests:
@@ -8225,14 +8219,14 @@ spec:
         limits:
           memory: 512Mi
           cpu: "1"
+      # Logging configuration (optional)
+      logging:
+        type: inline
+        loggers:
+          rootLogger.level: INFO
+      watchedNamespace: my-topic-namespace
+      reconciliationIntervalSeconds: 60
     userOperator:
-      watchedNamespace: my-topic-namespace
-      reconciliationIntervalSeconds: 60
-      # Logging configuration (optional)
-      logging:
-        type: inline
-        loggers:
-          rootLogger.level: INFO
       # Resources requests and limits (recommended)
       resources:
         requests:
@@ -8241,6 +8235,13 @@ spec:
         limits:
           memory: 512Mi
           cpu: "1"
+      # Logging configuration (optional)
+      logging:
+        type: inline
+        loggers:
+          rootLogger.level: INFO
+      watchedNamespace: my-topic-namespace
+      reconciliationIntervalSeconds: 60
   # Kafka Exporter (optional)
   kafkaExporter:
     # ...
@@ -8260,16 +8261,16 @@ If the ZooKeeper cluster loses its quorum, it will stop responding to clients an
 Having a stable and highly available ZooKeeper cluster is crucial for Strimzi.</p>
 </li>
 <li>
-<p>ZooKeeper loggers and log levels.</p>
+<p>Storage size for persistent volumes may be increased and additional volumes may be added to JBOD storage.</p>
 </li>
 <li>
 <p>Requests for reservation of supported resources, currently <code>cpu</code> and <code>memory</code>, and limits to specify the maximum resources that can be consumed.</p>
 </li>
 <li>
-<p>JVM configuration options to optimize performance for the Virtual Machine (VM) running ZooKeeper.</p>
+<p>ZooKeeper loggers and log levels.</p>
 </li>
 <li>
-<p>Storage size for persistent volumes may be increased and additional volumes may be added to JBOD storage.</p>
+<p>JVM configuration options to optimize performance for the Virtual Machine (VM) running ZooKeeper.</p>
 </li>
 <li>
 <p>Prometheus metrics enabled. In this example, metrics are configured for the Prometheus JMX Exporter (the default metrics exporter).</p>
@@ -11212,24 +11213,10 @@ metadata:
 spec:
   # Replicas (required)
   replicas: 3 # <b class="conum">(3)</b>
-  # Authentication (optional)
-  authentication: # <b class="conum">(4)</b>
-    type: tls
-    certificateAndKey:
-      certificate: source.crt
-      key: source.key
-      secretName: my-user-source
   # Bootstrap servers (required)
-  bootstrapServers: my-cluster-kafka-bootstrap:9092 # <b class="conum">(5)</b>
-  # TLS configuration (optional)
-  tls: # <b class="conum">(6)</b>
-    trustedCertificates:
-      - secretName: my-cluster-cluster-cert
-        pattern: "*.crt"
-      - secretName: my-cluster-cluster-cert
-        pattern: "*.crt"
+  bootstrapServers: my-cluster-kafka-bootstrap:9092 # <b class="conum">(4)</b>
   # Kafka Connect configuration (recommended)
-  config: # <b class="conum">(7)</b>
+  config: # <b class="conum">(5)</b>
     group.id: my-connect-cluster
     offset.storage.topic: my-connect-cluster-offsets
     config.storage.topic: my-connect-cluster-configs
@@ -11241,13 +11228,35 @@ spec:
     config.storage.replication.factor: 3
     offset.storage.replication.factor: 3
     status.storage.replication.factor: 3
+  # Resources requests and limits (recommended)
+  resources: # <b class="conum">(6)</b>
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  # Authentication (optional)
+  authentication: # <b class="conum">(7)</b>
+    type: tls
+    certificateAndKey:
+      certificate: source.crt
+      key: source.key
+      secretName: my-user-source
+  # TLS configuration (optional)
+  tls: # <b class="conum">(8)</b>
+    trustedCertificates:
+      - secretName: my-cluster-cluster-cert
+        pattern: "*.crt"
+      - secretName: my-cluster-cluster-cert
+        pattern: "*.crt"
   # Build configuration (optional)
-  build: # <b class="conum">(8)</b>
-    output: # <b class="conum">(9)</b>
+  build: # <b class="conum">(9)</b>
+    output: # <b class="conum">(10)</b>
       type: docker
       image: my-registry.io/my-org/my-connect-cluster:latest
       pushSecret: my-registry-credentials
-    plugins: # <b class="conum">(10)</b>
+    plugins: # <b class="conum">(11)</b>
       - name: connector-1
         artifacts:
           - type: tgz
@@ -11259,7 +11268,7 @@ spec:
             url: &lt;url_to_download_connector_2_artifact&gt;
             sha512sum: &lt;SHA-512_checksum_of_connector_2_artifact&gt;
   # External configuration (optional)
-  externalConfiguration: # <b class="conum">(11)</b>
+  externalConfiguration: # <b class="conum">(12)</b>
     env:
       - name: AWS_ACCESS_KEY_ID
         valueFrom:
@@ -11271,14 +11280,6 @@ spec:
           secretKeyRef:
             name: aws-creds
             key: awsSecretAccessKey
-  # Resources requests and limits (recommended)
-  resources: # <b class="conum">(12)</b>
-    requests:
-      cpu: "1"
-      memory: 2Gi
-    limits:
-      cpu: "2"
-      memory: 2Gi
   # Logging configuration (optional)
   logging: # <b class="conum">(13)</b>
     type: inline
@@ -11345,14 +11346,7 @@ spec:
 <p>The number of replica nodes for the workers that run tasks.</p>
 </li>
 <li>
-<p>Authentication for the Kafka Connect cluster, specified as mTLS, token-based OAuth, SASL-based SCRAM-SHA-256/SCRAM-SHA-512, or PLAIN.
-By default, Kafka Connect connects to Kafka brokers using a plain text connection.</p>
-</li>
-<li>
 <p>Bootstrap address for connection to the Kafka cluster. The address takes the format <code>&lt;cluster_name&gt;-kafka-bootstrap:&lt;port_number&gt;</code>. The Kafka cluster doesn&#8217;t need to be managed by Strimzi or deployed to a Kubernetes cluster.</p>
-</li>
-<li>
-<p>TLS configuration for encrypted connections to the Kafka cluster, with trusted certificates stored in X.509 format within the specified secrets.</p>
 </li>
 <li>
 <p>Kafka Connect configuration of workers (not connectors) that run connectors and their tasks.
@@ -11360,6 +11354,16 @@ Standard Apache Kafka configuration may be provided, restricted to those propert
 In this example, JSON convertors are specified.
 A replication factor of 3 is set for the internal topics used by Kafka Connect (minimum requirement for production environment).
 Changing the replication factor after the topics have been created has no effect.</p>
+</li>
+<li>
+<p>Requests for reservation of supported resources, currently <code>cpu</code> and <code>memory</code>, and limits to specify the maximum resources that can be consumed.</p>
+</li>
+<li>
+<p>Authentication for the Kafka Connect cluster, specified as mTLS, token-based OAuth, SASL-based SCRAM-SHA-256/SCRAM-SHA-512, or PLAIN.
+By default, Kafka Connect connects to Kafka brokers using a plain text connection.</p>
+</li>
+<li>
+<p>TLS configuration for encrypted connections to the Kafka cluster, with trusted certificates stored in X.509 format within the specified secrets.</p>
 </li>
 <li>
 <p>Build configuration properties for building a container image with connector plugins automatically.</p>
@@ -11373,9 +11377,6 @@ Changing the replication factor after the topics have been created has no effect
 <li>
 <p>External configuration for connectors using environment variables, as shown here, or volumes.
 You can also use configuration provider plugins to load configuration values from external sources.</p>
-</li>
-<li>
-<p>Requests for reservation of supported resources, currently <code>cpu</code> and <code>memory</code>, and limits to specify the maximum resources that can be consumed.</p>
 </li>
 <li>
 <p>Specified Kafka Connect loggers and log levels added directly (<code>inline</code>) or indirectly (<code>external</code>) through a ConfigMap. A custom Log4j configuration must be placed under the <code>log4j.properties</code> or <code>log4j2.properties</code> key in the ConfigMap. For the Kafka Connect <code>log4j.rootLogger</code> logger, you can set the log level to INFO, ERROR, WARN, TRACE, DEBUG, FATAL or OFF.</p>
@@ -12019,88 +12020,88 @@ For more information, see <a href="#con-high-volume-config-properties-str">Handl
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># Basic configuration (required)
 apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaMirrorMaker2 # <b class="conum">(1)</b>
+kind: KafkaMirrorMaker2
 metadata:
   name: my-mirror-maker2
 # Deployment specifications
 spec:
-  # Kafka version (recommended)
-  version: 3.8.0 # <b class="conum">(1)</b>
   # Replicas (required)
-  replicas: 3 # <b class="conum">(2)</b>
+  replicas: 3 # <b class="conum">(1)</b>
   # Connect cluster name (required)
-  connectCluster: "my-cluster-target" # <b class="conum">(3)</b>
+  connectCluster: "my-cluster-target" # <b class="conum">(2)</b>
   # Cluster configurations (required)
-  clusters: # <b class="conum">(4)</b>
-    - alias: "my-cluster-source" # <b class="conum">(5)</b>
+  clusters: # <b class="conum">(3)</b>
+    - alias: "my-cluster-source" # <b class="conum">(4)</b>
       # Authentication (optional)
-      authentication: # <b class="conum">(6)</b>
+      authentication: # <b class="conum">(5)</b>
         certificateAndKey:
           certificate: source.crt
           key: source.key
           secretName: my-user-source
         type: tls
-      bootstrapServers: my-cluster-source-kafka-bootstrap:9092 # <b class="conum">(7)</b>
+      bootstrapServers: my-cluster-source-kafka-bootstrap:9092 # <b class="conum">(6)</b>
       # TLS configuration (optional)
-      tls: # <b class="conum">(8)</b>
+      tls: # <b class="conum">(7)</b>
         trustedCertificates:
           - pattern: "*.crt"
             secretName: my-cluster-source-cluster-ca-cert
-    - alias: "my-cluster-target" # <b class="conum">(9)</b>
+    - alias: "my-cluster-target" # <b class="conum">(8)</b>
       # Authentication (optional)
-      authentication: # <b class="conum">(10)</b>
+      authentication: # <b class="conum">(9)</b>
         certificateAndKey:
           certificate: target.crt
           key: target.key
           secretName: my-user-target
         type: tls
-      bootstrapServers: my-cluster-target-kafka-bootstrap:9092 # <b class="conum">(11)</b>
+      bootstrapServers: my-cluster-target-kafka-bootstrap:9092 # <b class="conum">(10)</b>
       # Kafka Connect configuration (optional)
-      config: # <b class="conum">(12)</b>
+      config: # <b class="conum">(11)</b>
         config.storage.replication.factor: 1
         offset.storage.replication.factor: 1
         status.storage.replication.factor: 1
       # TLS configuration (optional)
-      tls: # <b class="conum">(13)</b>
+      tls: # <b class="conum">(12)</b>
         trustedCertificates:
           - pattern: "*.crt"
             secretName: my-cluster-target-cluster-ca-cert
   # Mirroring configurations (required)
-  mirrors: # <b class="conum">(14)</b>
-    - sourceCluster: "my-cluster-source" # <b class="conum">(15)</b>
-      targetCluster: "my-cluster-target" # <b class="conum">(16)</b>
+  mirrors: # <b class="conum">(13)</b>
+    - sourceCluster: "my-cluster-source" # <b class="conum">(14)</b>
+      targetCluster: "my-cluster-target" # <b class="conum">(15)</b>
+      # Topic and group patterns (required)
+      topicsPattern: "topic1|topic2|topic3" # <b class="conum">(16)</b>
+      groupsPattern: "group1|group2|group3" # <b class="conum">(17)</b>
       # Source connector configuration (required)
-      sourceConnector: # <b class="conum">(17)</b>
-        tasksMax: 10 # <b class="conum">(18)</b>
-        autoRestart: # <b class="conum">(19)</b>
+      sourceConnector: # <b class="conum">(18)</b>
+        tasksMax: 10 # <b class="conum">(19)</b>
+        autoRestart: # <b class="conum">(20)</b>
           enabled: true
         config:
-          replication.factor: 1 # <b class="conum">(20)</b>
-          offset-syncs.topic.replication.factor: 1 # <b class="conum">(21)</b>
-          sync.topic.acls.enabled: "false" # <b class="conum">(22)</b>
-          refresh.topics.interval.seconds: 60 # <b class="conum">(23)</b>
-          replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy" # <b class="conum">(24)</b>
+          replication.factor: 1 # <b class="conum">(21)</b>
+          offset-syncs.topic.replication.factor: 1 # <b class="conum">(22)</b>
+          sync.topic.acls.enabled: "false" # <b class="conum">(23)</b>
+          refresh.topics.interval.seconds: 60 # <b class="conum">(24)</b>
+          replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy" # <b class="conum">(25)</b>
       # Heartbeat connector configuration (optional)
-      heartbeatConnector: # <b class="conum">(25)</b>
+      heartbeatConnector: # <b class="conum">(26)</b>
         autoRestart:
           enabled: true
         config:
-          heartbeats.topic.replication.factor: 1 # <b class="conum">(26)</b>
+          heartbeats.topic.replication.factor: 1 # <b class="conum">(27)</b>
           replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy"
       # Checkpoint connector configuration (optional)
-      checkpointConnector: # <b class="conum">(27)</b>
+      checkpointConnector: # <b class="conum">(28)</b>
         autoRestart:
           enabled: true
         config:
-          checkpoints.topic.replication.factor: 1 # <b class="conum">(28)</b>
-          refresh.groups.interval.seconds: 600 # <b class="conum">(29)</b>
-          sync.group.offsets.enabled: true # <b class="conum">(30)</b>
-          sync.group.offsets.interval.seconds: 60 # <b class="conum">(31)</b>
-          emit.checkpoints.interval.seconds: 60 # <b class="conum">(32)</b>
+          checkpoints.topic.replication.factor: 1 # <b class="conum">(29)</b>
+          refresh.groups.interval.seconds: 600 # <b class="conum">(30)</b>
+          sync.group.offsets.enabled: true # <b class="conum">(31)</b>
+          sync.group.offsets.interval.seconds: 60 # <b class="conum">(32)</b>
+          emit.checkpoints.interval.seconds: 60 # <b class="conum">(33)</b>
           replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy"
-      # Topic and group patterns (required)
-      topicsPattern: "topic1|topic2|topic3" # <b class="conum">(33)</b>
-      groupsPattern: "group1|group2|group3" # <b class="conum">(34)</b>
+  # Kafka version (recommended)
+  version: 3.8.0 # <b class="conum">(34)</b>
   # Resources requests and limits (recommended)
   resources: # <b class="conum">(35)</b>
     requests:
@@ -12172,9 +12173,6 @@ spec:
 <div class="colist arabic">
 <ol>
 <li>
-<p>The Kafka Connect and MirrorMaker 2 version, which will always be the same.</p>
-</li>
-<li>
 <p>The number of replica nodes for the workers that run tasks.</p>
 </li>
 <li>
@@ -12219,6 +12217,12 @@ Standard Apache Kafka configuration may be provided, restricted to those propert
 </li>
 <li>
 <p>Cluster alias for the target cluster used by the MirrorMaker 2 connectors.</p>
+</li>
+<li>
+<p>Topic replication from the source cluster defined as a comma-separated list or regular expression pattern. The source connector replicates the specified topics. The checkpoint connector tracks offsets for the specified topics. Here we request three topics by name.</p>
+</li>
+<li>
+<p>Consumer group replication from the source cluster defined as a comma-separated list or regular expression pattern. The checkpoint connector replicates the specified consumer groups. Here we request three consumer groups by name.</p>
 </li>
 <li>
 <p>Configuration for the <code>MirrorSourceConnector</code> that creates remote topics. The <code>config</code> overrides the default configuration options.</p>
@@ -12269,10 +12273,7 @@ Standard Apache Kafka configuration may be provided, restricted to those propert
 <p>Adjusts the frequency of checks for offset tracking. If you change the frequency of offset synchronization, you might also need to adjust the frequency of these checks.</p>
 </li>
 <li>
-<p>Topic replication from the source cluster defined as a comma-separated list or regular expression pattern. The source connector replicates the specified topics. The checkpoint connector tracks offsets for the specified topics. Here we request three topics by name.</p>
-</li>
-<li>
-<p>Consumer group replication from the source cluster defined as a comma-separated list or regular expression pattern. The checkpoint connector replicates the specified consumer groups. Here we request three consumer groups by name.</p>
+<p>The Kafka Connect and MirrorMaker 2 version, which will always be the same.</p>
 </li>
 <li>
 <p>Requests for reservation of supported resources, currently <code>cpu</code> and <code>memory</code>, and limits to specify the maximum resources that can be consumed.</p>
@@ -14162,43 +14163,43 @@ spec:
   replicas: 3 # <b class="conum">(1)</b>
   # Kafka bootstrap servers (required)
   bootstrapServers: <em>&lt;cluster_name&gt;</em>-cluster-kafka-bootstrap:9092 # <b class="conum">(2)</b>
-  # TLS configuration (optional)
-  tls: # <b class="conum">(3)</b>
-    trustedCertificates:
-      - secretName: my-cluster-cluster-cert
-        pattern: "*.crt"
-      - secretName: my-cluster-cluster-cert
-        certificate: ca2.crt
-  # Authentication (optional)
-  authentication: # <b class="conum">(4)</b>
-    type: tls
-    certificateAndKey:
-      secretName: my-secret
-      certificate: public.crt
-      key: private.key
   # HTTP configuration (required)
-  http: # <b class="conum">(5)</b>
+  http: # <b class="conum">(3)</b>
     port: 8080
     # CORS configuration (optional)
-    cors: # <b class="conum">(6)</b>
+    cors: # <b class="conum">(4)</b>
       allowedOrigins: "https://strimzi.io"
       allowedMethods: "GET,POST,PUT,DELETE,OPTIONS,PATCH"
-  # Consumer configuration (optional)
-  consumer: # <b class="conum">(7)</b>
-    config:
-      auto.offset.reset: earliest
-  # Producer configuration (optional)
-  producer: # <b class="conum">(8)</b>
-    config:
-      delivery.timeout.ms: 300000
   # Resources requests and limits (recommended)
-  resources: # <b class="conum">(9)</b>
+  resources: # <b class="conum">(5)</b>
     requests:
       cpu: "1"
       memory: 2Gi
     limits:
       cpu: "2"
       memory: 2Gi
+  # TLS configuration (optional)
+  tls: # <b class="conum">(6)</b>
+    trustedCertificates:
+      - secretName: my-cluster-cluster-cert
+        pattern: "*.crt"
+      - secretName: my-cluster-cluster-cert
+        certificate: ca2.crt
+  # Authentication (optional)
+  authentication: # <b class="conum">(7)</b>
+    type: tls
+    certificateAndKey:
+      secretName: my-secret
+      certificate: public.crt
+      key: private.key
+  # Consumer configuration (optional)
+  consumer: # <b class="conum">(8)</b>
+    config:
+      auto.offset.reset: earliest
+  # Producer configuration (optional)
+  producer: # <b class="conum">(9)</b>
+    config:
+      delivery.timeout.ms: 300000
   # Logging configuration (optional)
   logging: # <b class="conum">(10)</b>
     type: inline
@@ -14255,6 +14256,15 @@ spec:
 <p>Bootstrap address for connection to the target Kafka cluster. The address takes the format <code>&lt;cluster_name&gt;-kafka-bootstrap:&lt;port_number&gt;</code>. The Kafka cluster doesn&#8217;t need to be managed by Strimzi or deployed to a Kubernetes cluster.</p>
 </li>
 <li>
+<p>HTTP access to Kafka brokers.</p>
+</li>
+<li>
+<p>CORS access specifying selected resources and access methods. Additional HTTP headers in requests describe the origins that are permitted access to the Kafka cluster.</p>
+</li>
+<li>
+<p>Requests for reservation of supported resources, currently <code>cpu</code> and <code>memory</code>, and limits to specify the maximum resources that can be consumed.</p>
+</li>
+<li>
 <p>TLS configuration for encrypted connections to the Kafka cluster, with trusted certificates stored in X.509 format within the specified secrets.</p>
 </li>
 <li>
@@ -14262,19 +14272,10 @@ spec:
 By default, the Kafka Bridge connects to Kafka brokers without authentication.</p>
 </li>
 <li>
-<p>HTTP access to Kafka brokers.</p>
-</li>
-<li>
-<p>CORS access specifying selected resources and access methods. Additional HTTP headers in requests describe the origins that are permitted access to the Kafka cluster.</p>
-</li>
-<li>
 <p>Consumer configuration options.</p>
 </li>
 <li>
 <p>Producer configuration options.</p>
-</li>
-<li>
-<p>Requests for reservation of supported resources, currently <code>cpu</code> and <code>memory</code>, and limits to specify the maximum resources that can be consumed.</p>
 </li>
 <li>
 <p>Specified Kafka Bridge loggers and log levels added directly (<code>inline</code>) or indirectly (<code>external</code>) through a ConfigMap. A custom Log4j configuration must be placed under the <code>log4j.properties</code> or <code>log4j2.properties</code> key in the ConfigMap. For the Kafka Bridge loggers, you can set the log level to INFO, ERROR, WARN, TRACE, DEBUG, FATAL or OFF.</p>
@@ -39721,7 +39722,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-09-16 07:59:12 UTC
+Last updated 2024-09-16 12:43:51 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
