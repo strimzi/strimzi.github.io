@@ -616,70 +616,60 @@ These operators are designed with specialized operational knowledge to efficient
 <h2 id="kafka-components_str">2. Strimzi deployment of Kafka</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Apache Kafka components are provided for deployment to Kubernetes with the Strimzi distribution.
-The Kafka components are generally run as clusters for availability.</p>
+<p>Strimzi enables the deployment of Apache Kafka components to a Kubernetes cluster, typically running as clusters for high availability.</p>
 </div>
 <div class="paragraph">
-<p>A typical deployment incorporating Kafka components might include:</p>
+<p>A standard Kafka deployment using Strimzi might include the following components:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Kafka</strong> cluster of broker nodes</p>
-</li>
-<li>
-<p><strong>ZooKeeper</strong> cluster of replicated ZooKeeper instances</p>
+<p><strong>Kafka</strong> cluster of broker nodes as the core component</p>
 </li>
 <li>
 <p><strong>Kafka Connect</strong> cluster for external data connections</p>
 </li>
 <li>
-<p><strong>Kafka MirrorMaker</strong> cluster to mirror the Kafka cluster in a secondary cluster</p>
+<p><strong>Kafka MirrorMaker</strong> cluster to mirror data to another Kafka cluster</p>
 </li>
 <li>
 <p><strong>Kafka Exporter</strong> to extract additional Kafka metrics data for monitoring</p>
 </li>
 <li>
-<p><strong>Kafka Bridge</strong> to make HTTP-based requests to the Kafka cluster</p>
+<p><strong>Kafka Bridge</strong> to enable HTTP-based communication with Kafka</p>
 </li>
 <li>
-<p><strong>Cruise Control</strong> to rebalance topic partitions across broker nodes</p>
+<p><strong>Cruise Control</strong> to rebalance topic partitions across brokers</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>Not all of these components are mandatory, though you need Kafka and ZooKeeper as a minimum.
-Some components can be deployed without Kafka, such as MirrorMaker or Kafka Connect.</p>
+<p>Not all of these components are required, though you need Kafka as a minimum for a Strimzi-managed Kafka cluster.
+Depending on your use case, you can deploy the additional components as needed.
+These components can also be used with Kafka clusters that are not managed by Strimzi.</p>
 </div>
 <div class="sect2">
 <h3 id="kafka-concepts-components_str">2.1. Kafka component architecture</h3>
 <div class="paragraph _abstract">
-<p>A Kafka cluster comprises the brokers responsible for message delivery.</p>
+<p>A KRaft-based Kafka cluster consists of broker nodes responsible for message delivery and controller nodes that manage cluster metadata and coordinate clusters.
+These roles can be configured using node pools in Strimzi.</p>
 </div>
 <div class="paragraph">
-<p>ZooKeeper is used for cluster management.
-When deploying Kafka in KRaft (Kafka Raft metadata) mode, cluster management is simplified by integrating broker and controller roles within Kafka nodes, eliminating the need for ZooKeeper.
-Kafka nodes take on the roles of brokers, controllers, or both.
-Roles are configured in Strimzi using node pools.</p>
-</div>
-<div class="paragraph">
-<p>Each of the other Kafka components interact with the Kafka cluster to perform specific roles.</p>
+<p>Other Kafka components interact with the Kafka cluster for specific tasks.</p>
 </div>
 <div class="paragraph">
 <div class="title">Kafka component interaction</div>
-<p><span class="image"><img src="images/overview/kafka-concepts-supporting-components.png" alt="Data flows between several Kafka components and the Kafka cluster. See the component descriptions after this image."></span></p>
+<p><span class="image"><img src="images/overview/kafka-concepts-supporting-components.png" alt="Data flows between several Kafka components and the Kafka cluster."></span></p>
 </div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1">Apache ZooKeeper</dt>
-<dd>
-<p>Apache ZooKeeper provides a cluster coordination service, storing and tracking the status of brokers and consumers. ZooKeeper is also used for controller election. If ZooKeeper is used, the ZooKeeper cluster must be ready before running Kafka. In KRaft mode, ZooKeeper is not required because the coordination is managed in the Kafka cluster by Kafka nodes operating as controllers.</p>
-</dd>
 <dt class="hdlist1">Kafka Connect</dt>
 <dd>
-<p>Kafka Connect is an integration toolkit for streaming data between Kafka brokers and other systems using <em>Connector</em> plugins.
+<p>Kafka Connect is an integration toolkit for streaming data between Kafka brokers and other systems using <em>connector</em> plugins.
 Kafka Connect provides a framework for integrating Kafka with an external data source or target, such as a database, for import or export of data using connectors.
-Connectors are plugins that provide the connection configuration needed.</p>
+Connectors provide the connection configuration needed.</p>
+<div class="openblock">
+<div class="content">
 <div class="ulist">
 <ul>
 <li>
@@ -687,22 +677,21 @@ Connectors are plugins that provide the connection configuration needed.</p>
 </li>
 <li>
 <p>A <em>sink</em> connector extracts data  out of Kafka</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
 <div class="paragraph">
 <p>External data is translated and transformed into the appropriate format.</p>
 </div>
 <div class="paragraph">
-<p>You can deploy Kafka Connect with <code>build</code> configuration that automatically builds a container image with the connector plugins you require for your data connections.</p>
-</div>
-</li>
-</ul>
+<p>Kafka Connect can be configured to build custom container images with the required connectors.</p>
 </div>
 </dd>
 <dt class="hdlist1">Kafka MirrorMaker</dt>
 <dd>
-<p>Kafka MirrorMaker replicates data between two Kafka clusters, within or across data centers.</p>
-<div class="paragraph">
-<p>MirrorMaker takes messages from a source Kafka cluster and writes them to a target Kafka cluster.</p>
-</div>
+<p>Kafka MirrorMaker replicates data between two Kafka clusters, either in the same data center or across different locations.</p>
 </dd>
 <dt class="hdlist1">Kafka Bridge</dt>
 <dd>
@@ -711,6 +700,12 @@ Connectors are plugins that provide the connection configuration needed.</p>
 <dt class="hdlist1">Kafka Exporter</dt>
 <dd>
 <p>Kafka Exporter extracts data for analysis as Prometheus metrics, primarily data relating to offsets, consumer groups, consumer lag and topics. Consumer lag is the delay between the last message written to a partition and the message currently being picked up from that partition by a consumer</p>
+</dd>
+<dt class="hdlist1">Apache ZooKeeper (optional)</dt>
+<dd>
+<p>Apache ZooKeeper provides a cluster coordination service, storing and tracking the status of brokers and consumers.
+ZooKeeper is also used for controller election. If ZooKeeper is used, the ZooKeeper cluster must be ready before running Kafka.
+However, since the introduction of KRaft, ZooKeeper is no longer required as Kafka nodes handle cluster coordination and control natively.</p>
 </dd>
 </dl>
 </div>
@@ -1578,7 +1573,7 @@ The Prometheus <strong>Alertmanager</strong> plugin handles alerts and routes th
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-09-18 18:37:48 UTC
+Last updated 2024-09-19 08:25:40 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
