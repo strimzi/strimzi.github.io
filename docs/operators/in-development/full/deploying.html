@@ -11264,26 +11264,13 @@ spec:
           - type: jar
             url: &lt;url_to_download_connector_2_artifact&gt;
             sha512sum: &lt;SHA-512_checksum_of_connector_2_artifact&gt;
-  # External configuration (optional)
-  externalConfiguration: # <b class="conum">(12)</b>
-    env:
-      - name: AWS_ACCESS_KEY_ID
-        valueFrom:
-          secretKeyRef:
-            name: aws-creds
-            key: awsAccessKey
-      - name: AWS_SECRET_ACCESS_KEY
-        valueFrom:
-          secretKeyRef:
-            name: aws-creds
-            key: awsSecretAccessKey
   # Logging configuration (optional)
-  logging: # <b class="conum">(13)</b>
+  logging: # <b class="conum">(12)</b>
     type: inline
     loggers:
       log4j.rootLogger: INFO
   # Readiness probe (optional)
-  readinessProbe: # <b class="conum">(14)</b>
+  readinessProbe: # <b class="conum">(13)</b>
     initialDelaySeconds: 15
     timeoutSeconds: 5
   # Liveness probe (optional)
@@ -11291,23 +11278,23 @@ spec:
     initialDelaySeconds: 15
     timeoutSeconds: 5
   # Metrics configuration (optional)
-  metricsConfig: # <b class="conum">(15)</b>
+  metricsConfig: # <b class="conum">(14)</b>
     type: jmxPrometheusExporter
     valueFrom:
       configMapKeyRef:
         name: my-config-map
         key: my-key
   # JVM options (optional)
-  jvmOptions: # <b class="conum">(16)</b>
+  jvmOptions: # <b class="conum">(15)</b>
     "-Xmx": "1g"
     "-Xms": "1g"
   # Custom image (optional)
-  image: my-org/my-image:latest # <b class="conum">(17)</b>
+  image: my-org/my-image:latest # <b class="conum">(16)</b>
   # Rack awareness (optional)
   rack:
-    topologyKey: topology.kubernetes.io/zone # <b class="conum">(18)</b>
-  # Pod template (optional)
-  template: # <b class="conum">(19)</b>
+    topologyKey: topology.kubernetes.io/zone # <b class="conum">(17)</b>
+  # Pod and container template (optional)
+  template: # <b class="conum">(18)</b>
     pod:
       affinity:
         podAntiAffinity:
@@ -11320,15 +11307,25 @@ spec:
                       - postgresql
                       - mongodb
               topologyKey: "kubernetes.io/hostname"
-    connectContainer: # <b class="conum">(20)</b>
+    connectContainer: # <b class="conum">(19)</b>
       env:
         - name: OTEL_SERVICE_NAME
           value: my-otel-service
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: "http://otlp-host:4317"
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: aws-creds
+              key: awsAccessKey
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-creds
+              key: awsSecretAccessKey
   # Tracing configuration (optional)
   tracing:
-    type: opentelemetry # <b class="conum">(21)</b></code></pre>
+    type: opentelemetry # <b class="conum">(20)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -11372,10 +11369,6 @@ By default, Kafka Connect connects to Kafka brokers using a plain text connectio
 <p>(Required) List of connector plugins and their artifacts to add to the new container image. Each plugin must be configured with at least one <code>artifact</code>.</p>
 </li>
 <li>
-<p>External configuration for connectors using environment variables, as shown here, or volumes.
-You can also use configuration provider plugins to load configuration values from external sources.</p>
-</li>
-<li>
 <p>Specified Kafka Connect loggers and log levels added directly (<code>inline</code>) or indirectly (<code>external</code>) through a ConfigMap. A custom Log4j configuration must be placed under the <code>log4j.properties</code> or <code>log4j2.properties</code> key in the ConfigMap. For the Kafka Connect <code>log4j.rootLogger</code> logger, you can set the log level to INFO, ERROR, WARN, TRACE, DEBUG, FATAL or OFF.</p>
 </li>
 <li>
@@ -11397,7 +11390,7 @@ You can also use configuration provider plugins to load configuration values fro
 <p>Template customization. Here a pod is scheduled with anti-affinity, so the pod is not scheduled on nodes with the same hostname.</p>
 </li>
 <li>
-<p>Environment variables are set for distributed tracing.</p>
+<p>Environment variables are set for distributed tracing and to pass credentials to connectors.</p>
 </li>
 <li>
 <p>Distributed tracing is enabled by using OpenTelemetry.</p>
@@ -11702,7 +11695,7 @@ spec:
 </ol>
 </div>
 <div class="paragraph">
-<p>To include external connector configurations, such as user access credentials stored in a secret, use the <code>externalConfiguration</code> property of the <code>KafkaConnect</code> resource.
+<p>To include external connector configurations, such as user access credentials stored in a secret, use the <code>template</code> property of the <code>KafkaConnect</code> resource.
 You can also load values using <a href="#assembly-loading-config-with-providers-str">configuration providers</a>.</p>
 </div>
 <div class="sect3">
@@ -12151,20 +12144,7 @@ spec:
           value: "http://otlp-host:4317"
   # Tracing configuration (optional)
   tracing:
-    type: opentelemetry # <b class="conum">(43)</b>
-  # External configuration (optional)
-  externalConfiguration: # <b class="conum">(44)</b>
-    env:
-      - name: AWS_ACCESS_KEY_ID
-        valueFrom:
-          secretKeyRef:
-            name: aws-creds
-            key: awsAccessKey
-      - name: AWS_SECRET_ACCESS_KEY
-        valueFrom:
-          secretKeyRef:
-            name: aws-creds
-            key: awsSecretAccessKey</code></pre>
+    type: opentelemetry # <b class="conum">(43)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -12298,10 +12278,6 @@ Standard Apache Kafka configuration may be provided, restricted to those propert
 </li>
 <li>
 <p>Distributed tracing is enabled by using OpenTelemetry.</p>
-</li>
-<li>
-<p>External configuration for a Kubernetes Secret mounted to Kafka MirrorMaker as an environment variable.
-You can also use configuration provider plugins to load configuration values from external sources.</p>
 </li>
 </ol>
 </div>
@@ -16424,7 +16400,7 @@ logging:
 <p>To use a ConfigMap for metrics configuration, you add a reference to the <code>metricsConfig</code> configuration of the component in the same way.</p>
 </div>
 <div class="paragraph">
-<p><code>ExternalConfiguration</code> properties make data from a ConfigMap (or Secret) mounted to a pod available as environment variables or volumes.
+<p><code>template</code> properties allow data from a <code>ConfigMap</code> or <code>Secret</code> to be mounted in a pod as environment variables or volumes.
 You can use external configuration data for the connectors used by Kafka Connect.
 The data might be related to an external data source, providing the values needed for the connector to communicate with that data source.</p>
 </div>
@@ -16440,13 +16416,14 @@ metadata:
   name: my-connect
 spec:
   # ...
-  externalConfiguration:
-    env:
-      - name: MY_ENVIRONMENT_VARIABLE
-        valueFrom:
-          configMapKeyRef:
-            name: my-config-map
-            key: my-key</code></pre>
+  template:
+    connectContainer:
+      env:
+        - name: MY_ENVIRONMENT_VARIABLE
+          valueFrom:
+            configMapKeyRef:
+              name: my-config-map
+              key: my-key</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -16475,7 +16452,7 @@ The ConfigMaps created by Strimzi must not be edited.</p>
 <p><a href="./configuring.html#con-common-configuration-prometheus-reference" target="_blank" rel="noopener"><code>metricsConfig</code></a></p>
 </li>
 <li>
-<p><a href="./configuring.html#type-ExternalConfiguration-reference" target="_blank" rel="noopener"><code>ExternalConfiguration</code> schema reference</a></p>
+<p><a href="./configuring.html#type-ContainerTemplate-reference" target="_blank" rel="noopener"><code>ContainerTemplate</code> schema reference</a></p>
 </li>
 <li>
 <p><a href="#assembly-loading-config-with-providers-str">Loading configuration values from external sources</a></p>
@@ -16568,7 +16545,7 @@ You can supply connector configuration for Kafka Connect or MirrorMaker 2 in thi
 <p>Enable <code>EnvVarConfigProvider</code>, <code>FileConfigProvider</code>, or <code>DirectoryConfigProvider</code> in the Kafka Connect or MirrorMaker 2 configuration</p>
 </li>
 <li>
-<p>Pass connector configuration using the <code>externalConfiguration</code> property in the <code>spec</code> of the <code>KafkaConnect</code> or <code>KafkaMirrorMaker2</code> resource</p>
+<p>Pass connector configuration using the <code>template</code> property in the <code>spec</code> of the <code>KafkaConnect</code> or <code>KafkaMirrorMaker2</code> resource</p>
 </li>
 </ul>
 </div>
@@ -16603,7 +16580,7 @@ A restart is required when using a new <code>Secret</code> or <code>ConfigMap</c
 </div>
 <div class="paragraph _additional-resources">
 <div class="title">Additional resources</div>
-<p><a href="./configuring.html#type-ExternalConfiguration-reference" target="_blank" rel="noopener"><code>ExternalConfiguration</code> schema reference</a></p>
+<p><a href="./configuring.html#type-KafkaConnectTemplate-reference" target="_blank" rel="noopener"><code>KafkaConnectTemplate</code> schema reference</a></p>
 </div>
 </div>
 <div class="sect3">
@@ -16842,7 +16819,7 @@ data:
 <p>Enable the <code>EnvVarConfigProvider</code></p>
 </li>
 <li>
-<p>Specify the environment variables using the <code>externalConfiguration</code> property.</p>
+<p>Specify the environment variables using the <code>template</code> property.</p>
 </li>
 </ul>
 </div>
@@ -16864,18 +16841,19 @@ spec:
     config.providers: env # <b class="conum">(1)</b>
     config.providers.env.class: org.apache.kafka.common.config.provider.EnvVarConfigProvider # <b class="conum">(2)</b>
   # ...
-  externalConfiguration:
-    env:
-      - name: AWS_ACCESS_KEY_ID # <b class="conum">(3)</b>
-        valueFrom:
-          secretKeyRef:
-            name: aws-creds # <b class="conum">(4)</b>
-            key: awsAccessKey # <b class="conum">(5)</b>
-      - name: AWS_SECRET_ACCESS_KEY
-        valueFrom:
-          secretKeyRef:
-            name: aws-creds
-            key: awsSecretAccessKey
+  template:
+    connectContainer:
+      env:
+        - name: AWS_ACCESS_KEY_ID # <b class="conum">(3)</b>
+          valueFrom:
+            secretKeyRef:
+              name: aws-creds # <b class="conum">(4)</b>
+              key: awsAccessKey # <b class="conum">(5)</b>
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-creds
+              key: awsSecretAccessKey
   # ...</code></pre>
 </div>
 </div>
@@ -17203,15 +17181,7 @@ spec:
         - name: my-user-volume # <b class="conum">(5)</b>
           mountPath: /mnt/my-user # <b class="conum">(6)</b>
         - name: cluster-ca-volume
-          mountPath: /mnt/cluster-ca
-  externalConfiguration:
-    volumes: # <b class="conum">(3)</b>
-      - name: cluster-ca # <b class="conum">(4)</b>
-        secret:
-          secretName: my-cluster-cluster-ca-cert # <b class="conum">(5)</b>
-      - name: my-user
-        secret:
-          secretName: my-user # <b class="conum">(6)</b></code></pre>
+          mountPath: /mnt/cluster-ca</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -39678,7 +39648,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-09-23 11:24:26 UTC
+Last updated 2024-09-23 15:57:04 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
