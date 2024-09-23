@@ -2867,9 +2867,11 @@ The client connects on port 443, the default controller port, but traffic is the
 which is <code>9095</code> in the following example.</p>
 </div>
 <div class="paragraph">
-<p>You must specify the hostnames used by the bootstrap and per-broker services
-using <a href="#type-GenericKafkaListenerConfigurationBootstrap-reference"><code>GenericKafkaListenerConfigurationBootstrap</code></a>
-and <a href="#type-GenericKafkaListenerConfigurationBroker-reference"><code>GenericKafkaListenerConfigurationBroker</code></a> properties.</p>
+<p>You must specify the hostname used by the bootstrap service using <a href="#type-GenericKafkaListenerConfigurationBootstrap-reference"><code>GenericKafkaListenerConfigurationBootstrap</code></a> property.
+And you must also specify the hostnames used by the per-broker services
+using <a href="#type-GenericKafkaListenerConfigurationBroker-reference"><code>GenericKafkaListenerConfigurationBroker</code></a>
+or <a href="#type-GenericKafkaListenerConfiguration-reference"><code>hostTemplate</code></a> properties.
+With the <code>hostTemplate</code> property, you don&#8217;t need to specify the configuration for every broker.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example <code>ingress</code> listener configuration</div>
@@ -2887,15 +2889,9 @@ spec:
         authentication:
           type: tls
         configuration:
+          hostTemplate: broker-{nodeId}.myingress.com
           bootstrap:
             host: bootstrap.myingress.com
-          brokers:
-          - broker: 0
-            host: broker-0.myingress.com
-          - broker: 1
-            host: broker-1.myingress.com
-          - broker: 2
-            host: broker-2.myingress.com
   #...</code></pre>
 </div>
 </div>
@@ -4043,6 +4039,46 @@ listeners:
 # ...</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>Instead of specifying the <code>host</code> property for every broker, you can also use an <code>hostTemplate</code> to generate them automatically.
+The <code>hostTemplate</code> supports the following variables:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The <code>{nodeId}</code> variable is replaced with the ID of the Kafka node to which the template is applied.</p>
+</li>
+<li>
+<p>The <code>{nodePodName}</code> variable is replaced with the Kubernetes pod name for the Kafka node where the template is applied.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>hostTemplate</code> property applies only to per-broker values.
+The bootstrap <code>host</code> property must always be specified.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example <code>ingress</code> listener with <code>hostTemplate</code> configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">#...
+spec:
+  kafka:
+    #...
+    listeners:
+      #...
+      - name: external2
+        port: 9095
+        type: ingress
+        tls: true
+        authentication:
+          type: tls
+        configuration:
+          hostTemplate: broker-{nodeId}.myingress.com
+          bootstrap:
+            host: bootstrap.myingress.com
+  #...</code></pre>
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="property-listener-config-nodeport-reference">13.7. Overriding assigned node ports</h3>
@@ -4345,6 +4381,20 @@ listeners:
 <p>Configures whether the service endpoints are considered "ready" even if the Pods themselves are not. Defaults to <code>false</code>. This field can not be used with <code>internal</code> listeners.</p>
 </div></div></td>
 </tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">hostTemplate</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Configures the template for generating the hostnames of the individual brokers. Valid placeholders that you can use in the template are <code>{nodeId}</code> and <code>{nodePodName}</code>.</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">advertisedHostTemplate</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Configures the template for generating the advertised hostnames of the individual brokers. Valid placeholders that you can use in the template are <code>{nodeId}</code> and <code>{nodePodName}</code>.</p>
+</div></div></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -4551,6 +4601,34 @@ Overriding the advertised host and ports is available for all types of listeners
       - broker: 2
         advertisedHost: example.hostname.2
         advertisedPort: 12342
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Instead of specifying the <code>advertisedHost</code> field for every broker, you can also use an <code>advertisedHostTemplate</code> to generate them automatically.
+The <code>advertisedHostTemplate</code> supports the following variables:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The <code>{nodeId}</code> variable is replaced with the ID of the Kafka node to which the template is applied.</p>
+</li>
+<li>
+<p>The <code>{nodePodName}</code> variable is replaced with the Kubernetes pod name for the Kafka node where the template is applied.</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">Example <code>route</code> listener with <code>advertisedHostTemplate</code> configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">listeners:
+  #...
+  - name: external1
+    port: 9094
+    type: route
+    tls: true
+    configuration:
+      advertisedHostTemplate: example.hostname.{nodeId}
 # ...</code></pre>
 </div>
 </div>
@@ -17094,7 +17172,7 @@ Do not create, modify or delete <code>StrimziPodSet</code> resources as this mig
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-09-22 14:06:45 UTC
+Last updated 2024-09-23 08:47:41 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
