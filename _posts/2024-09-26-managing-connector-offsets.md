@@ -6,7 +6,7 @@ author: kate_stanley
 ---
 
 When building data pipelines using Kafka Connect, or replicating data using MirrorMaker, offsets are used to keep track of the flow of data.
-Sink connectors use the usual Kafka consumer offset mechanism, while source connectors can store offsets with a custom format in a Kafka topic.
+Sink connectors use Kafka's standard consumer offset mechanism, while source connectors store offsets in a custom format within a Kafka topic.
 
 To manage connector offsets, rather than directly interacting with the underlying Kafka topics, you can make use of the following endpoints from the Connect REST API:
 
@@ -14,7 +14,7 @@ To manage connector offsets, rather than directly interacting with the underlyin
 * `PATCH /connectors/{connector}/offsets` to alter offsets
 * `DELETE /connectors/{connector}/offsets` to reset offsets
 
-In the next release of Strimzi you will also be able to manage connector offsets directly in the KafkaConnector and KafkaMirrorMaker2 custom resources.
+From Strimzi 0.44 onwards you can also manage connector offsets directly in the `KafkaConnector` and `KafkaMirrorMaker2` custom resources.
 This blog post steps through how you can use this new functionality.
 The process is very similar for both Kafka Connect and MirrorMaker, so we'll demonstrate how to do it with KafkaConnect and then explain how the process applies to MirrorMaker.
 
@@ -32,7 +32,7 @@ Once you have a Kafka cluster you can deploy Connect and a connector using the f
 
 ### Listing offsets
 
-To list offsets edit your `KafkaConnector` resource using `kubectl edit kafkaconnector my-source-connector -n kafka` to add configuration for where to output the offsets:
+To list offsets, edit your `KafkaConnector` resource by running `kubectl edit kafkaconnector my-source-connector -n kafka` and add the configuration to specify where the offsets should be output:
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -48,7 +48,7 @@ spec:
 
 This tells Strimzi to write the offsets to a ConfigMap called `my-connector-offsets`.
 
-To trigger the Strimzi to get the latest offsets you need to annotate your `KafkaConnector` resource:
+To trigger Strimzi to get the latest offsets, annotate your `KafkaConnector` resource:
 
 ```shell
 $ kubectl annotate kafkaconnector my-source-connector strimzi.io/connector-offsets=list -n kafka
@@ -89,8 +89,8 @@ data:   (3)
     }
 ```
 
-1. If the ConfigMap doesn't already exist Strimzi will create it.
-2. The owner reference points to your KafkaConnector resource. To provide a custom owner reference, create the ConfigMap in advance and set an owner reference.
+1. If the ConfigMap doesn't already exist, Strimzi will create it automatically.
+2. The owner reference points to your `KafkaConnector` resource. To provide a custom owner reference, create the ConfigMap in advance and set an owner reference manually.
 3. Strimzi puts the offsets into a field called `offsets.json`. It doesn't overwrite any other fields when updating an existing ConfigMap.
 
 You can check that the output matches the results from the Connect REST API by calling the `GET /connectors/{connector}/offsets` endpoint directly:
@@ -102,9 +102,9 @@ $ kubectl exec -n kafka -it my-connect-cluster-connect-0 -- curl localhost:8083/
 
 ### Altering offsets
 
-To alter offsets for a connector you also need a ConfigMap, this time to tell Strimzi the new offsets to set.
+To alter a connector's offsets, you need to create a ConfigMap that instructs Strimzi on the new offsets to apply.
 All sink connectors use the same format, however for source connectors it varies.
-The easiest way to create the ConfigMap for altering offsets, is actually to reuse the ConfigMap that Strimzi wrote the offsets into.
+The easiest way to create a ConfigMap for altering offsets is to reuse the one that Strimzi originally wrote the offsets to.
 
 To alter connector offsets the connector also needs to be stopped.
 
@@ -159,10 +159,25 @@ $ kubectl exec -n kafka -it my-connect-cluster-connect-0 -- curl localhost:8083/
 {"offsets":[{"partition":{"filename":"/opt/kafka/LICENSE"},"offset":{"position":10}}]}
 ```
 
+#### Resuming the connector
+
+Once Strimzi has altered the offsets you need to manually resume the connector.
+Edit the `KafkaConnector` resource to set the `state` to `running`:
+
+```yaml
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+# ...
+spec:
+  #...
+  state: running
+  #...
+```
+
 ### Resetting offsets
 
 The final action you can perform is to reset the connector offsets.
-For this action the connector also needs to be in a `stopped` state, but you don't need any ConfigMap.
+For this action the connector also needs to be in a `stopped` state, but you don't need a ConfigMap.
 
 Reset the offsets for your connector by annotating the resource:
 
@@ -170,17 +185,19 @@ Reset the offsets for your connector by annotating the resource:
 $ kubectl annotate kafkaconnector my-source-connector strimzi.io/connector-offsets=reset -n kafka
 ```
 
-Once complete the connector offsets will be empty:
+Once completed, the connector offsets will be empty:
 
 ```shell
 $ kubectl exec -n kafka -it my-connect-cluster-connect-0 -- curl localhost:8083/connectors/my-source-connector/offsets
 {"offsets":[]}
 ```
 
+Similar to altering offsets, make sure you manually resume the connector by changing the `state` in `KafkaConnector` to `running`.
+
 ### Managing offsets for MirrorMaker
 
 In addition to connectors managed via the `KafkaConnector` resource, you can also manage the connectors that are deployed as part of a `KafkaMirrorMaker2` resource.
-When using a `KafkaMirrorMaker2` resource the configurations for the ConfigMaps for listing and altering offsets are provided on a per-connector basis. For example:
+When using a `KafkaMirrorMaker2` resource, the configurations for the ConfigMaps for listing and altering offsets, as well as the `state` configuration for stopping and resuming the connector, are specified on a per-connector basis. For example:
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -198,17 +215,19 @@ spec:
       alterOffsets:
         fromConfigMap:
           name: my-connector-offsets
+      state: stopped
     # ...
 ```
 
-Strimzi allows you to list, alter and reset offsets for all the MirrorMaker connectors (MirrorSourceConnector, MirrorCheckpointConnector, MirrorHeartbeatConnector).
-However, be aware that the only connector that currently actively uses its offsets is the MirrorSourceConnector.
-You may find listing offsets useful for the MirrorCheckpointConnector and MirrorHeartbeatConnector to track progress, but it is uncommon to need to alter or reset offsets for those connectors.
+Strimzi allows you to list, alter and reset offsets for all the MirrorMaker connectors (`MirrorSourceConnector`, `MirrorCheckpointConnector`, `MirrorHeartbeatConnector`).
+However, be aware that the only connector that currently actively uses its offsets is the `MirrorSourceConnector`.
+Listing offsets can be useful for the `MirrorCheckpointConnector` and `MirrorHeartbeatConnector` to track progress.
+However, altering or resetting offsets for these connectors is rarely necessary.
 
-Strimzi only allows you to perform an action on a single connector, in a single mirror at a time.
+Strimzi only allows you to perform actions on one connector within a single mirror at a time.
 Therefore, to initiate an action from a `KafkaMirrorMaker2` resource you must apply two annotations:
-* strimzi.io/connector-offsets
-* strimzi.io/mirrormaker-connector
+* `strimzi.io/connector-offsets`
+* `strimzi.io/mirrormaker-connector`
 
 Set `strimzi.io/connector-offsets` to one of `list`, `alter` or `reset`.
 At the same time set `strimzi.io/mirrormaker-connector` to the name of your connector.
@@ -216,7 +235,7 @@ At the same time set `strimzi.io/mirrormaker-connector` to the name of your conn
 Strimzi names the connectors using the format `<SOURCE_ALIAS>-><TARGET_ALIAS>.<CONNECTOR_TYPE>`, for example `east-kafka->west-kafka.MirrorSourceConnector`.
 
 You can use a single command to annotate the resource with both annotations.
-For example to list offsets for a connector called `east-kafka->west-kafka.MirrorSourceConnector`:
+For example, this command lists offsets for a connector called `east-kafka->west-kafka.MirrorSourceConnector`:
 
 ```shell
 $ kubectl annotate kafkaconnector my-source-connector strimzi.io/connector-offsets=list strimzi.io/mirrormaker-connector="east-kafka->west-kafka.MirrorSourceConnector" -n kafka
@@ -249,4 +268,4 @@ data:
 
 ### Conclusion
 
-Now you can list, alter and reset offsets of your connectors using the `KafkaConnector` and `KafkaMirrorMaker2` custom resources.
+Now you can list, alter, and reset offsets of your connectors using the `KafkaConnector` and `KafkaMirrorMaker2` custom resources.
