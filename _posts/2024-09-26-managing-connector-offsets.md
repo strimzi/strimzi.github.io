@@ -8,15 +8,20 @@ author: kate_stanley
 When building data pipelines using Kafka Connect, or replicating data using MirrorMaker, offsets are used to keep track of the flow of data.
 Sink connectors use Kafka's standard consumer offset mechanism, while source connectors store offsets in a custom format within a Kafka topic.
 
-To manage connector offsets, rather than directly interacting with the underlying Kafka topics, you can make use of the following endpoints from the Connect REST API:
+To manage connector offsets, rather than directly interacting with the underlying Kafka topics, you should make use of the following endpoints from the Connect REST API:
 
 * `GET /connectors/{connector}/offsets` to list offsets
 * `PATCH /connectors/{connector}/offsets` to alter offsets
 * `DELETE /connectors/{connector}/offsets` to reset offsets
 
-From Strimzi 0.44 onwards you can also manage connector offsets directly in the `KafkaConnector` and `KafkaMirrorMaker2` custom resources.
+Some common use-cases for managing connector offsets are:
+* skipping a poison record
+* replaying records
+* specifying a starting offset for a new connector
+
+From Strimzi 0.44 onwards you can manage connector offsets directly in the `KafkaConnector` and `KafkaMirrorMaker2` custom resources.
 This blog post steps through how you can use this new functionality.
-The process is very similar for both Kafka Connect and MirrorMaker, so we'll demonstrate how to do it with KafkaConnect and then explain how the process applies to MirrorMaker.
+The process is very similar for both Kafka Connect and MirrorMaker, so we'll demonstrate how to do it with Kafka Connect and then explain how the process applies to MirrorMaker.
 
 ### Before we begin
 
@@ -241,7 +246,7 @@ For example, this command lists offsets for a connector called `east-kafka->west
 $ kubectl annotate kafkaconnector my-source-connector strimzi.io/connector-offsets=list strimzi.io/mirrormaker-connector="east-kafka->west-kafka.MirrorSourceConnector" -n kafka
 ```
 
-When listing and altering offsets for MirrorMaker connectors, Strimzi uses the connector name in the data field.
+When listing and altering offsets for MirrorMaker connectors, Strimzi uses the connector name in the data field replacing `->` with `--`.
 For example, the above command to list offsets for the connector `east-kafka->west-kafka.MirrorSourceConnector` results in a ConfigMap containing:
 
 ```yaml
@@ -269,3 +274,4 @@ data:
 ### Conclusion
 
 Now you can list, alter, and reset offsets of your connectors using the `KafkaConnector` and `KafkaMirrorMaker2` custom resources.
+Use this new feature to manage the flow of data in your Connect data pipelines, whether that's to skip poison records, replay records, or even to check on the status of your connector.
