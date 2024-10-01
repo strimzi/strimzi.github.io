@@ -29,11 +29,26 @@ If you want to follow along the steps in this blog post you need a Kubernetes cl
 First run through the Strimzi [quickstart guide](https://strimzi.io/quickstarts/) to deploy your Strimzi operator and Kafka cluster.
 
 Once you have a Kafka cluster you can deploy Connect and a connector using the following commands:
-1. `kubectl apply -f https://strimzi.io/examples/latest/connect/kafka-connect-build.yaml -n kafka`
-2. `kubectl wait kafkaconnect/my-connect-cluster --for=condition=Ready --timeout=300s -n kafka`
-3. `kubectl annotate kafkaconnect my-connect-cluster strimzi.io/use-connector-resources=true -n kafka`
-4. `kubectl apply -f https://strimzi.io/examples/latest/connect/source-connector.yaml -n kafka`
-5. `kubectl wait kafkaconnector/my-source-connector --for=condition=Ready --timeout=300s -n kafka`
+1. Deploy a Connect cluster
+   ```
+   kubectl apply -f https://strimzi.io/examples/latest/connect/kafka-connect-build.yaml -n kafka
+   ```
+2. Wait for Connect to be ready
+   ```
+   kubectl wait kafkaconnect/my-connect-cluster --for=condition=Ready --timeout=300s -n kafka
+   ```
+3. Enable `KafkaConnector` resources on your Connect cluster
+   ```
+   kubectl annotate kafkaconnect my-connect-cluster strimzi.io/use-connector-resources=true -n kafka
+   ```
+4. Create a source connector
+   ```
+   kubectl apply -f https://strimzi.io/examples/latest/connect/source-connector.yaml -n kafka
+   ```
+5. Wait for the source connector to be ready
+   ```
+   kubectl wait kafkaconnector/my-source-connector --for=condition=Ready --timeout=300s -n kafka
+   ```
 
 ### Listing offsets
 
@@ -59,7 +74,7 @@ To trigger Strimzi to get the latest offsets, annotate your `KafkaConnector` res
 $ kubectl annotate kafkaconnector my-source-connector strimzi.io/connector-offsets=list -n kafka
 ```
 
-After a couple of minutes you should have a new ConfigMap containing the output:
+Once you have annotated the resource, Strimzi creates a new ConfigMap containing the offsets:
 
 ```shell
 $ kubectl get configmap my-connector-offsets -n kafka -oyaml
@@ -95,7 +110,7 @@ data:   (3)
 ```
 
 1. If the ConfigMap doesn't already exist, Strimzi will create it automatically.
-2. The owner reference points to your `KafkaConnector` resource. To provide a custom owner reference, create the ConfigMap in advance and set an owner reference manually.
+2. The owner reference points to your `KafkaConnector` resource. To provide a custom owner reference, for example to prevent the ConfigMap being deleted when the `KafkaConnector` resource is, create the ConfigMap in advance and set an owner reference manually.
 3. Strimzi puts the offsets into a field called `offsets.json`. It doesn't overwrite any other fields when updating an existing ConfigMap.
 
 You can check that the output matches the results from the Connect REST API by calling the `GET /connectors/{connector}/offsets` endpoint directly:
@@ -237,7 +252,7 @@ Therefore, to initiate an action from a `KafkaMirrorMaker2` resource you must ap
 Set `strimzi.io/connector-offsets` to one of `list`, `alter` or `reset`.
 At the same time set `strimzi.io/mirrormaker-connector` to the name of your connector.
 
-Strimzi names the connectors using the format `<SOURCE_ALIAS>-><TARGET_ALIAS>.<CONNECTOR_TYPE>`, for example `east-kafka->west-kafka.MirrorSourceConnector`.
+Strimzi names the connectors using the format `[SOURCE_ALIAS]->[TARGET_ALIAS].[CONNECTOR_TYPE]`, for example `east-kafka->west-kafka.MirrorSourceConnector`.
 
 You can use a single command to annotate the resource with both annotations.
 For example, this command lists offsets for a connector called `east-kafka->west-kafka.MirrorSourceConnector`:
