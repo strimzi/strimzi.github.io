@@ -258,7 +258,7 @@ You can use a single command to annotate the resource with both annotations.
 For example, this command lists offsets for a connector called `east-kafka->west-kafka.MirrorSourceConnector`:
 
 ```shell
-$ kubectl annotate kafkaconnector my-source-connector strimzi.io/connector-offsets=list strimzi.io/mirrormaker-connector="east-kafka->west-kafka.MirrorSourceConnector" -n kafka
+$ kubectl annotate kafkamirrormaker2 my-mirror-maker-2 strimzi.io/connector-offsets=list strimzi.io/mirrormaker-connector="east-kafka->west-kafka.MirrorSourceConnector" -n kafka
 ```
 
 When listing and altering offsets for MirrorMaker connectors, Strimzi uses the connector name in the data field replacing `->` with `--`.
