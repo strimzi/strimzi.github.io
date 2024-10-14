@@ -631,6 +631,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#proc-manual-stop-pause-connector-str">11.8.1. Manually stopping or pausing Kafka Connect connectors</a></li>
 <li><a href="#proc-manual-restart-connector-str">11.8.2. Manually restarting Kafka Connect connectors</a></li>
 <li><a href="#proc-manual-restart-connector-task-str">11.8.3. Manually restarting Kafka Connect connector tasks</a></li>
+<li><a href="#proc-listing-connector-offsets-str">11.8.4. Listing connector offsets</a></li>
+<li><a href="#proc-altering-connector-offsets-str">11.8.5. Altering connector offsets</a></li>
+<li><a href="#proc-resetting-connector-offsets-str">11.8.6. Resetting connector offsets</a></li>
 </ul>
 </li>
 <li><a href="#con-config-mirrormaker2-str">11.9. Configuring Kafka MirrorMaker 2</a>
@@ -11821,6 +11824,432 @@ When Kafka Connect accepts the restart request, the annotation is removed from t
 </ol>
 </div>
 </div>
+<div class="sect3">
+<h4 id="proc-listing-connector-offsets-str">11.8.4. Listing connector offsets</h4>
+<div class="paragraph _abstract">
+<p>To track connector offsets using <code>KafkaConnector</code> resources, add the <code>listOffsets</code> configuration.
+The offsets, which keep track of the flow of data, are written to a config map specified in the configuration.
+If the config map does not exist, Strimzi creates it.</p>
+</div>
+<div class="paragraph">
+<p>After the configuration is in place, annotate the <code>KafkaConnector</code> resource to write the list to the config map.</p>
+</div>
+<div class="paragraph">
+<p>Sink connectors use Kafka&#8217;s standard consumer offset mechanism, while source connectors store offsets in a custom format within a Kafka topic.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>For sink connectors, the list shows Kafka topic partitions and the last committed offset for each partition.</p>
+</li>
+<li>
+<p>For source connectors, the list shows the source system’s partition and the last offset processed.</p>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>KafkaConnector</code> resource for the connector to include the <code>listOffsets</code> configuration.</p>
+<div class="listingblock">
+<div class="title">Example configuration to list offsets</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: my-source-connector
+  labels:
+    strimzi.io/cluster: my-connect-cluster
+spec:
+  listOffsets:
+    toConfigMap: # <b class="conum">(1)</b>
+      name: my-connector-offsets # <b class="conum">(2)</b>
+  # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The reference to the config map where the list of offsets will be written to.</p>
+</li>
+<li>
+<p>The name of the config map, which is named <code>my-connector-offsets</code> in this example.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Run the command to write the list to the config map by annotating the <code>KafkaConnector</code> resource:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafkaconnector my-source-connector strimzi.io/connector-offsets=list -n &lt;namespace&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The annotation remains until either the list operation succeeds or it is manually removed from the resource.</p>
+</div>
+</li>
+<li>
+<p>After the <code>KafkaConnector</code> resource is updated, use the following command to check if the config map with the offsets was created:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get configmap my-connector-offsets -n &lt;namespace&gt;</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Inspect the contents of the config map to verify the offsets are being listed:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl describe configmap my-connector-offsets -n &lt;namespace&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Strimzi puts the offset information into the <code>offsets.json</code> property.
+This does not overwrite any other properties when updating an existing config map.</p>
+</div>
+<div class="openblock">
+<div class="content">
+<div class="listingblock">
+<div class="title">Example source connector offset list</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  # ...
+  ownerReferences: # <b class="conum">(1)</b>
+  - apiVersion: kafka.strimzi.io/v1beta2
+    blockOwnerDeletion: false
+    controller: false
+    kind: KafkaConnector
+    name: my-source-connector
+    uid: 637e3be7-bd96-43ab-abde-c55b4c4550e0
+  resourceVersion: "66951"
+  uid: 641d60a9-36eb-4f29-9895-8f2c1eb9638e
+data:
+  offsets.json: |-
+    {
+      "offsets" : [ {
+        "partition" : {
+          "filename" : "/data/myfile.txt" # <b class="conum">(2)</b>
+        },
+        "offset" : {
+          "position" : 15295 # <b class="conum">(3)</b>
+        }
+      } ]
+    }</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The owner reference pointing to the <code>KafkaConnector</code> resource for the source connector.
+To provide a custom owner reference, create the config map in advance and set the owner reference.</p>
+</li>
+<li>
+<p>The source partition, represented by the filename <code>/data/myfile.txt</code> in this example for a file-based connector.</p>
+</li>
+<li>
+<p>The last processed offset position in the source partition.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="openblock">
+<div class="content">
+<div class="listingblock">
+<div class="title">Example sink connector offset list</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  # ...
+  ownerReferences: # <b class="conum">(1)</b>
+  - apiVersion: kafka.strimzi.io/v1beta2
+    blockOwnerDeletion: false
+    controller: false
+    kind: KafkaConnector
+    name: my-sink-connector
+    uid: 84a29d7f-77e6-43ac-bfbb-719f9b9a4b3b
+  resourceVersion: "79241"
+  uid: 721e30bc-23df-41a2-9b48-fb2b7d9b042c
+data:
+  offsets.json: |-
+    {
+      "offsets": [
+        {
+          "partition": {
+            "kafka_topic": "my-topic", # <b class="conum">(2)</b>
+            "kafka_partition": 2 # <b class="conum">(3)</b>
+          },
+          "offset": {
+            "kafka_offset": 4 # <b class="conum">(4)</b>
+          }
+        }
+      ]
+    }</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The owner reference pointing to the <code>KafkaConnector</code> resource for the sink connector.</p>
+</li>
+<li>
+<p>The Kafka topic that the sink connector is consuming from.</p>
+</li>
+<li>
+<p>The partition of the Kafka topic.</p>
+</li>
+<li>
+<p>The last committed Kafka offset for this topic and partition.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-altering-connector-offsets-str">11.8.5. Altering connector offsets</h4>
+<div class="paragraph _abstract">
+<p>To alter connector offsets using <code>KafkaConnector</code> resources, configure the resource to stop the connector and add <code>alterOffsets</code> configuration to specify the offset changes in a config map.
+You can reuse the same config map used to <a href="#proc-listing-connector-offsets-str">list offsets</a>.</p>
+</div>
+<div class="paragraph">
+<p>After the connector is stopped and the configuration is in place, annotate the <code>KafkaConnector</code> resource to apply the offset alteration, then restart the connector.</p>
+</div>
+<div class="paragraph">
+<p>Altering connector offsets can be useful, for example, to skip a <em>poison</em> record or replay a record.</p>
+</div>
+<div class="paragraph">
+<p>In this procedure, we alter the offset position for a source connector named <code>my-source-connector</code>.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>KafkaConnector</code> resource to stop the connector and include the <code>alterOffsets</code> configuration.</p>
+<div class="listingblock">
+<div class="title">Example configuration to stop a connector and alter offsets</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: my-source-connector
+  labels:
+    strimzi.io/cluster: my-connect-cluster
+spec:
+  state: stopped # <b class="conum">(1)</b>
+  alterOffsets:
+    fromConfigMap: # <b class="conum">(2)</b>
+      name: my-connector-offsets # <b class="conum">(3)</b>
+  # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Changes the state of the connector to <code>stopped</code>. The default state for the connector when this property is not set is <code>running</code>.</p>
+</li>
+<li>
+<p>The reference to the config map that provides the update.</p>
+</li>
+<li>
+<p>The name of the config map, which is named <code>my-connector-offsets</code> in this example.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Edit the config map to make the alteration.</p>
+<div class="paragraph">
+<p>In this example, we&#8217;re resetting the offset position for a source connector to 15000.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example source connector offset list configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  # ...
+data:
+  offsets.json: |- # <b class="conum">(1)</b>
+    {
+      "offsets" : [ {
+        "partition" : {
+          "filename" : "/data/myfile.txt"
+        },
+        "offset" : {
+          "position" : 15000 # <b class="conum">(2)</b>
+        }
+      } ]
+    }</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Edits must be made within the <code>offsets.json</code> property.</p>
+</li>
+<li>
+<p>The updated offset position in the source partition.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Run the command to update the offset position by annotating the <code>KafkaConnector</code> resource:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafkaconnector my-source-connector strimzi.io/connector-offsets=alter -n &lt;namespace&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The annotation remains until either the update operation succeeds or it is manually removed from the resource.</p>
+</div>
+</li>
+<li>
+<p>Check the changes by using the procedure to <a href="#proc-listing-connector-offsets-str">list connector offsets</a>.</p>
+</li>
+<li>
+<p>Restart the connector by changing the state to <code>running</code>.</p>
+<div class="listingblock">
+<div class="title">Example configuration to start a connector</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: my-source-connector
+  labels:
+    strimzi.io/cluster: my-connect-cluster
+spec:
+  state: running
+  # ...</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-resetting-connector-offsets-str">11.8.6. Resetting connector offsets</h4>
+<div class="paragraph _abstract">
+<p>To reset connector offsets using <code>KafkaConnector</code> resources, configure the resource to stop the connector.</p>
+</div>
+<div class="paragraph">
+<p>After the connector is stopped, annotate the <code>KafkaConnector</code> resource to clear the offsets, then restart the connector.</p>
+</div>
+<div class="paragraph">
+<p>In this procedure, we reset the offset position for a source connector named <code>my-source-connector</code>.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Cluster Operator is running.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>KafkaConnector</code> resource to stop the connector.</p>
+<div class="listingblock">
+<div class="title">Example configuration to stop a connector</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: my-source-connector
+  labels:
+    strimzi.io/cluster: my-connect-cluster
+spec:
+  # ...
+  state: stopped # <b class="conum">(1)</b>
+  # ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Changes the state of the connector to <code>stopped</code>. The default state for the connector when this property is not set is <code>running</code>.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Run the command to reset the offset position by annotating the <code>KafkaConnector</code> resource:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafkaconnector my-source-connector strimzi.io/connector-offsets=reset -n &lt;namespace&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The annotation remains until either the reset operation succeeds or it is manually removed from the resource.</p>
+</div>
+</li>
+<li>
+<p>Check the changes by using the procedure to <a href="#proc-listing-connector-offsets-str">list connector offsets</a>.</p>
+<div class="paragraph">
+<p>After resetting, the <code>offsets.json</code> property is empty.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example source connector offset list</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  # ...
+data:
+  offsets.json: |-
+    {
+      "offsets" : []
+    }</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Restart the connector by changing the state to <code>running</code>.</p>
+<div class="listingblock">
+<div class="title">Example configuration to start a connector</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: my-source-connector
+  labels:
+    strimzi.io/cluster: my-connect-cluster
+spec:
+  state: running
+  # ...</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="con-config-mirrormaker2-str">11.9. Configuring Kafka MirrorMaker 2</h3>
@@ -12879,6 +13308,131 @@ Specifically, ensure that the following properties have the same value across al
 <div class="paragraph">
 <p>For example, the value for <code>replication.policy.class</code> must be the same for the source, checkpoint, and heartbeat connectors.
 Mismatched or missing settings cause issues with data replication or offset syncing, so it&#8217;s essential to keep all relevant connectors configured with the same settings.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="listing_the_offsets_of_mirrormaker_2_connectors">Listing the offsets of MirrorMaker 2 connectors</h5>
+<div class="paragraph">
+<p>To list the offset positions of the internal MirrorMaker 2 connectors, use the same configuration that&#8217;s used to manage Kafka Connect connectors.
+For more information on setting up the configuration and listing offsets, see <a href="#proc-listing-connector-offsets-str">Listing connector offsets</a>.</p>
+</div>
+<div class="paragraph">
+<p>In this example, the <code>sourceConnector</code> configuration is updated to return the connector offset position.
+The offset information is written to a specified config map.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example configuration for MirrorMaker 2 connector</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker2
+metadata:
+  name: my-mirror-maker2
+spec:
+  version: 3.8.0
+  # ...
+  clusters:
+  - alias: "my-cluster-source"
+    bootstrapServers: my-cluster-source-kafka-bootstrap:9092
+  - alias: "my-cluster-target"
+    bootstrapServers: my-cluster-target-kafka-bootstrap:9092
+  mirrors:
+  - sourceCluster: "my-cluster-source"
+    targetCluster: "my-cluster-target"
+    sourceConnector:
+      listOffsets:
+        toConfigMap:
+          name: my-connector-offsets
+        # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You must apply the following annotations to the <code>KafkaMirrorMaker2</code> resource be able to manage connector offsets:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>strimzi.io/connector-offsets</code></p>
+</li>
+<li>
+<p><code>strimzi.io/mirrormaker-connector</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>strimzi.io/mirrormaker-connector</code> annotation must be set to the name of the connector.
+These annotations remain until the operation succeeds or they are manually removed from the resource.</p>
+</div>
+<div class="paragraph">
+<p>MirrorMaker 2 connectors are named using the aliases of the source and target clusters, followed by the connector type: <code>&lt;source_alias&gt;&#45;&#62;&lt;target_alias&gt;.&lt;connector_type&gt;</code>.</p>
+</div>
+<div class="paragraph">
+<p>In the following example, the annotations are applied for a connector named <code>my-cluster-source&#45;&#62;my-cluster-target.MirrorSourceConnector</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example application of annotations for connector</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafkamirrormaker2 my-mirror-maker-2 strimzi.io/connector-offsets=list strimzi.io/mirrormaker-connector="my-cluster-source-&gt;my-cluster-target.MirrorSourceConnector" -n kafka</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The offsets are listed in the specified config map.
+Strimzi puts the offset information into a <code>.json</code> property named after the connector.
+This does not overwrite any other properties when updating an existing config map.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example source connector offset list</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  # ...
+  ownerReferences: # <b class="conum">(1)</b>
+  - apiVersion: kafka.strimzi.io/v1beta2
+    blockOwnerDeletion: false
+    controller: false
+    kind: KafkaMirrorMaker2
+    name: my-mirror-maker2
+    uid: 637e3be7-bd96-43ab-abde-c55b4c4550e0
+data:
+  my-cluster-source--my-cluster-target.MirrorSourceConnector.json: |- # <b class="conum">(2)</b>
+    {
+      "offsets": [
+        {
+          "partition": {
+            "cluster": "east-kafka",
+            "partition": 0,
+            "topic": "mirrormaker2-cluster-configs"
+          },
+          "offset": {
+            "offset": 0
+          }
+        }
+      ]
+    }</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The owner reference pointing to the <code>KafkaMirrorMaker2</code> resource.
+To provide a custom owner reference, create the config map in advance and set the owner reference.</p>
+</li>
+<li>
+<p>The <code>.json</code> property uses the connector name. Since <code>&#45;&#62;</code> characters are not allowed in config map keys, <code>&#45;&#62;</code> is changed to <code>--</code> in the connector name.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+It is possible to use configuration to <a href="#proc-altering-connector-offsets-str">alter</a> or <a href="#proc-resetting-connector-offsets-str">reset</a> connector offsets, though this is rarely necessary.
+</td>
+</tr>
+</table>
 </div>
 </div>
 </div>
@@ -23827,7 +24381,7 @@ kubectl get -n $NS secret $SECRET_NAME -o yaml | grep PASSWORD | awk '{print $2}
 <p><code>Groups</code> organize users and set permissions.
 Groups can be linked to an LDAP identity provider and used to compartmentalize users, such as by region or department.
 Users can be added to groups through a custom LDAP interface to manage permissions for Kafka resources.
-For more information on using KeyCloak&#8217;s LDAP provider, see the the guide to <a href="https://www.keycloak.org/docs/latest/authorization_services/index.html" target="_blank" rel="noopener">Keycloak Server Administration</a>.</p>
+For more information on using KeyCloak&#8217;s LDAP provider, see the guide to <a href="https://www.keycloak.org/docs/latest/authorization_services/index.html" target="_blank" rel="noopener">Keycloak Server Administration</a>.</p>
 </dd>
 <dt class="hdlist1">Users</dt>
 <dd>
@@ -35970,7 +36524,7 @@ The status provides information on the Strimzi and Kafka versions being used.</p
 <p><code>operatorLastSuccessfulVersion</code> is the version of the Strimzi operator that last performed a successful reconciliation.</p>
 </li>
 <li>
-<p><code>kafkaVersion</code> is the the version of Kafka being used by the Kafka cluster.</p>
+<p><code>kafkaVersion</code> is the version of Kafka being used by the Kafka cluster.</p>
 </li>
 <li>
 <p><code>kafkaMetadataVersion</code> is the metadata version used by KRaft-based Kafka clusters</p>
@@ -39587,7 +40141,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-10-13 20:52:11 UTC
+Last updated 2024-10-14 12:51:37 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
