@@ -1044,7 +1044,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#recovering_from_cluster_loss">31.1.2. Recovering from cluster loss</a></li>
 </ul>
 </li>
-<li><a href="#proc-cluster-recovery-volume-str">31.2. Recovering a deleted Kafka cluster</a></li>
+<li><a href="#proc-cluster-recovery-volume-str">31.2. Recovering a deleted KRaft-based Kafka cluster</a></li>
+<li><a href="#proc-cluster-recovery-volume-zk-str">31.3. Recovering a deleted ZooKeeper-based Kafka cluster</a></li>
 </ul>
 </li>
 <li><a href="#assembly-tuning-config-str">32. Tuning Kafka configuration</a>
@@ -37414,9 +37415,301 @@ However, it&#8217;s possible to recover if the physical storage backing the PVs 
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-cluster-recovery-volume-str">31.2. Recovering a deleted Kafka cluster</h3>
+<h3 id="proc-cluster-recovery-volume-str">31.2. Recovering a deleted KRaft-based Kafka cluster</h3>
 <div class="paragraph _abstract">
-<p>This procedure describes how to recover a deleted cluster from persistent volumes (PVs) by recreating the original <code>PersistentVolumeClaim</code> (PVC) resources.</p>
+<p>This procedure describes how to recover a deleted Kafka cluster operating in KRaft mode from persistent volumes (PVs) by recreating the original <code>PersistentVolumeClaim</code> (PVC) resources.</p>
+</div>
+<div class="paragraph">
+<p>If the Topic Operator and User Operator are deployed, you can recover <code>KafkaTopic</code> and <code>KafkaUser</code> resources by recreating them.
+It is important that you recreate the <code>KafkaTopic</code> resources with the same configurations, or the Topic Operator will try to update them in Kafka.
+This procedure shows how to recreate both resources.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+If the User Operator is enabled and Kafka users are not recreated, users are deleted from the Kafka cluster immediately after recovery.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<div class="title">Before you begin</div>
+<p>In this procedure, it is essential that PVs are mounted into the correct PVC to avoid data corruption.
+A <code>volumeName</code> is specified for the PVC and this must match the name of the PV.</p>
+</div>
+<div class="paragraph">
+<p>For more information, see <a href="#ref-persistent-storage-str">Persistent storage</a>.</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Check information on the PVs in the cluster:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pv</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Information is presented for PVs with data.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example PV output</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                                          RECLAIMPOLICY  CLAIM
+pvc-5e9c5c7f-3317-11ea-a650-06e1eadd9a4c ...  Retain ...     myproject/data-0-my-cluster-broker-0
+pvc-5e9cc72d-3317-11ea-97b0-0aef8816c7ea ...  Retain ...     myproject/data-0-my-cluster-broker-1
+pvc-5ead43d1-3317-11ea-97b0-0aef8816c7ea ...  Retain ...     myproject/data-0-my-cluster-broker-2
+pvc-7e1f67f9-3317-11ea-a650-06e1eadd9a4c ...  Retain ...     myproject/data-0-my-cluster-controller-3
+pvc-7e21042e-3317-11ea-9786-02deaf9aa87e ...  Retain ...     myproject/data-0-my-cluster-controller-4
+pvc-7e226978-3317-11ea-97b0-0aef8816c7ea ...  Retain ...     myproject/data-0-my-cluster-controller-5</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>NAME</code> is the name of each PV.</p>
+</li>
+<li>
+<p><code>RECLAIMPOLICY</code> shows that PVs are retained, meaning that the PV is not automatically deleted when the PVC is deleted.</p>
+</li>
+<li>
+<p><code>CLAIM</code> shows the link to the original PVCs.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Recreate the original namespace:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create namespace myproject</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here, we recreate the <code>myproject</code> namespace.</p>
+</div>
+</li>
+<li>
+<p>Recreate the original PVC resource specifications, linking the PVCs to the appropriate PV:</p>
+<div class="listingblock">
+<div class="title">Example PVC resource specification</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-0-my-cluster-broker-0
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: gp2-retain
+  volumeMode: Filesystem
+  volumeName: <strong>pvc-7e1f67f9-3317-11ea-a650-06e1eadd9a4c</strong></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Edit the PV specifications to delete the <code>claimRef</code> properties that bound the original PVC.</p>
+<div class="listingblock">
+<div class="title">Example PV specification</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    kubernetes.io/createdby: aws-ebs-dynamic-provisioner
+    pv.kubernetes.io/bound-by-controller: "yes"
+    pv.kubernetes.io/provisioned-by: kubernetes.io/aws-ebs
+  creationTimestamp: "&lt;date&gt;"
+  finalizers:
+  - kubernetes.io/pv-protection
+  labels:
+    failure-domain.beta.kubernetes.io/region: eu-west-1
+    failure-domain.beta.kubernetes.io/zone: eu-west-1c
+  name: pvc-5ead43d1-3317-11ea-97b0-0aef8816c7ea
+  resourceVersion: "39431"
+  selfLink: /api/v1/persistentvolumes/pvc-7e226978-3317-11ea-97b0-0aef8816c7ea
+  uid: 7efe6b0d-3317-11ea-a650-06e1eadd9a4c
+spec:
+  accessModes:
+  - ReadWriteOnce
+  awsElasticBlockStore:
+    fsType: xfs
+    volumeID: aws://eu-west-1c/vol-09db3141656d1c258
+  capacity:
+    storage: 100Gi
+  <strong>claimRef:</strong>
+    <strong>apiVersion: v1</strong>
+    <strong>kind: PersistentVolumeClaim</strong>
+    <strong>name: data-0-my-cluster-kafka-2</strong>
+    <strong>namespace: myproject</strong>
+    <strong>resourceVersion: "39113"</strong>
+    <strong>uid: 54be1c60-3319-11ea-97b0-0aef8816c7ea</strong>
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: failure-domain.beta.kubernetes.io/zone
+          operator: In
+          values:
+          - eu-west-1c
+        - key: failure-domain.beta.kubernetes.io/region
+          operator: In
+          values:
+          - eu-west-1
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: gp2-retain
+  volumeMode: Filesystem</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In the example, the following properties are deleted:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">claimRef:
+  apiVersion: v1
+  kind: PersistentVolumeClaim
+  name: data-0-my-cluster-broker-2
+  namespace: myproject
+  resourceVersion: "39113"
+  uid: 54be1c60-3319-11ea-97b0-0aef8816c7ea</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Deploy the Cluster Operator:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f install/cluster-operator -n myproject</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Recreate all <code>KafkaTopic</code> resources by applying the <code>KafkaTopic</code> resource configuration:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f &lt;topic_configuration_file&gt; -n myproject</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Recreate all <code>KafkaUser</code> resources:</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>If user passwords and certificates need to be retained, recreate the user secrets before recreating the <code>KafkaUser</code> resources.</p>
+<div class="paragraph">
+<p>If the secrets are not recreated, the User Operator will generate new credentials automatically.
+Ensure that the recreated secrets have exactly the same name, labels, and fields as the original secrets.</p>
+</div>
+</li>
+<li>
+<p>Apply the <code>KafkaUser</code> resource configuration:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f &lt;user_configuration_file&gt; -n myproject</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Deploy the Kafka cluster using the original configuration for the <code>Kafka</code> resource.
+Add the annotation <code>strimzi.io/pause-reconciliation="true"</code> to the original configuration for the <code>Kafka</code> resource, and then deploy the Kafka cluster using the updated configuration.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f &lt;kafka_resource_configuration&gt;.yaml -n myproject</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Recover the original <code>clusterId</code> from logs or copies of the <code>Kafka</code> custom resource.
+Otherwise, you can retrieve it from one of the volumes by spinning up a temporary pod.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">PVC_NAME="data-0-my-cluster-kafka-0"
+COMMAND="grep cluster.id /disk/kafka-log*/meta.properties | awk -F'=' '{print \$2}'"
+kubectl run tmp -itq --rm --restart "Never" --image "foo" --overrides "{\"spec\":
+  {\"containers\":[{\"name\":\"busybox\",\"image\":\"busybox\",\"command\":[\"/bin/sh\",
+  \"-c\",\"$COMMAND\"],\"volumeMounts\":[{\"name\":\"disk\",\"mountPath\":\"/disk\"}]}],
+  \"volumes\":[{\"name\":\"disk\",\"persistentVolumeClaim\":{\"claimName\":
+  \"$PVC_NAME\"}}]}}" -n myproject</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Edit the <code>Kafka</code> resource to set the <code>.status.clusterId</code> with the recovered value:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit kafka &lt;cluster-name&gt; --subresource status -n myproject</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Unpause the <code>Kafka</code> resource reconciliation:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafka my-cluster strimzi.io/pause-reconciliation=false \
+  --overwrite -n myproject</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Verify the recovery of the <code>KafkaTopic</code> resources:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafkatopics -o wide -w -n myproject</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Kafka topic status</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME         CLUSTER     PARTITIONS  REPLICATION FACTOR READY
+my-topic-1   my-cluster  10          3                  True
+my-topic-2   my-cluster  10          3                  True
+my-topic-3   my-cluster  10          3                  True</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>KafkaTopic</code> custom resource creation is successful when the <code>READY</code> output shows <code>True</code>.</p>
+</div>
+</li>
+<li>
+<p>Verify the recovery of the <code>KafkaUser</code> resources:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafkausers -o wide -w -n myproject</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Kafka user status</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME       CLUSTER     AUTHENTICATION  AUTHORIZATION READY
+my-user-1  my-cluster  tls             simple        True
+my-user-2  my-cluster  tls             simple        True
+my-user-3  my-cluster  tls             simple        True</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>KafkaUser</code> custom resource creation is successful when the <code>READY</code> output shows <code>True</code>.</p>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-cluster-recovery-volume-zk-str">31.3. Recovering a deleted ZooKeeper-based Kafka cluster</h3>
+<div class="paragraph _abstract">
+<p>This procedure describes how to recover a deleted Kafka cluster operating in a ZooKeeper-based environment from persistent volumes (PVs) by recreating the original <code>PersistentVolumeClaim</code> (PVC) resources.</p>
 </div>
 <div class="paragraph">
 <p>If the Topic Operator and User Operator are deployed, you can recover <code>KafkaTopic</code> and <code>KafkaUser</code> resources by recreating them.
@@ -37486,11 +37779,11 @@ pvc-7e226978-3317-11ea-97b0-0aef8816c7ea ...  Retain ...     myproject/data-0-my
 <p>Recreate the original namespace:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create namespace my-project</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create namespace myproject</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Here, we recreate the <code>my-project</code> namespace.</p>
+<p>Here, we recreate the <code>myproject</code> namespace.</p>
 </div>
 </li>
 <li>
@@ -37587,7 +37880,7 @@ spec:
 <p>Deploy the Cluster Operator:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f install/cluster-operator -n my-project</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f install/cluster-operator -n myproject</code></pre>
 </div>
 </div>
 </li>
@@ -37595,7 +37888,7 @@ spec:
 <p>Recreate all <code>KafkaTopic</code> resources by applying the <code>KafkaTopic</code> resource configuration:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f &lt;topic_configuration_file&gt;</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f &lt;topic_configuration_file&gt; -n myproject</code></pre>
 </div>
 </div>
 </li>
@@ -37614,7 +37907,7 @@ Ensure that the recreated secrets have exactly the same name, labels, and fields
 <p>Apply the <code>KafkaUser</code> resource configuration:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f &lt;user_configuration_file&gt;</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f &lt;user_configuration_file&gt; -n myproject</code></pre>
 </div>
 </div>
 </li>
@@ -37622,10 +37915,10 @@ Ensure that the recreated secrets have exactly the same name, labels, and fields
 </div>
 </li>
 <li>
-<p>Deploy the Kafka cluster using the original configuration for the <code>Kafka</code> resource:</p>
+<p>Deploy the Kafka cluster using the original configuration for the <code>Kafka</code> resource.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f &lt;kafka_resource_configuration&gt;.yaml -n my-project</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f &lt;kafka_resource_configuration&gt;.yaml -n myproject</code></pre>
 </div>
 </div>
 </li>
@@ -37633,7 +37926,7 @@ Ensure that the recreated secrets have exactly the same name, labels, and fields
 <p>Verify the recovery of the <code>KafkaTopic</code> resources:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafkatopics -o wide -w -n my-project</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafkatopics -o wide -w -n myproject</code></pre>
 </div>
 </div>
 <div class="listingblock">
@@ -37653,7 +37946,7 @@ my-topic-3   my-cluster  10          3                  True</code></pre>
 <p>Verify the recovery of the <code>KafkaUser</code> resources:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafkausers -o wide -w -n my-project</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafkausers -o wide -w -n myproject</code></pre>
 </div>
 </div>
 <div class="listingblock">
@@ -40141,7 +40434,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-10-21 14:47:47 UTC
+Last updated 2024-10-21 17:37:05 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
