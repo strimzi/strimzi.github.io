@@ -392,6 +392,12 @@
 <li><a href="#proc-replacing-your-own-private-keys-str">17.6.3. Renewing or replacing CA certificates and private keys with your own</a></li>
 </ul>
 </li>
+<li><a href="#assembly-access-operator-str">17.7. Using the Access Operator to manage client connections</a>
+<ul class="sectlevel3">
+<li><a href="#proc-deploy-access-operator-str">17.7.1. Deploying the Access Operator</a></li>
+<li><a href="#proc-using-access-operator-str">17.7.2. Using the Access Operator</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#assembly-security-providers-str">18. Applying security context to Strimzi pods and containers</a>
@@ -26899,6 +26905,256 @@ type: Opaque</code></pre>
 <p>Start a manual rolling update of your cluster to pick up the changes made to the secret configuration.</p>
 <div class="paragraph">
 <p>See <a href="#assembly-rolling-updates-str">Managing rolling updates</a>.</p>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="assembly-access-operator-str">17.7. Using the Access Operator to manage client connections</h3>
+<div class="paragraph _abstract">
+<p>The Strimzi Access Operator is an optional feature that simplifies the sharing of Kafka connection information and credentials between namespaces</p>
+</div>
+<div class="paragraph">
+<p>The Access Operator is deployed separately and manages the distribution of connection details, which are stored as a <code>Secret</code> resource.
+The secret contains cluster connection details and optional user credentials, and can be referenced by applications across different namespaces.</p>
+</div>
+<div class="sect3">
+<h4 id="proc-deploy-access-operator-str">17.7.1. Deploying the Access Operator</h4>
+<div class="paragraph _abstract">
+<p>This procedure shows how to deploy the Access Operator for access management of a Kafka cluster.
+You cannot use the Access Operator with a Kafka cluster that is not managed by the Cluster Operator.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Access Operator installation files must be downloaded and extracted from the latest release archive (<code>strimzi-latest.*</code>) from the <a href="https://github.com/strimzi/strimzi-kafka-operator/releases" target="_blank" rel="noopener">GitHub releases page</a>.<br>
+The installation files are contained in the <code>./install</code> directory.</p>
+</li>
+<li>
+<p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>By default, the Access Operator is deployed in the <code>strimzi-access-operator</code> namespace.
+To deploy the operator in a different namespace, update the <code>namespace</code> property in the installation files.</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Deploy the Access Operator using the installation files from the <code>install</code> directory:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create -f ./install/access-operator</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Check the status of the deployment:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get deployments</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Output shows the deployment name and readiness</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                     READY  UP-TO-DATE  AVAILABLE
+strimzi-access-operator  1/1    1           1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>READY</code> shows the number of replicas that are ready/expected.
+The deployment is successful when the <code>AVAILABLE</code> output shows <code>1</code>.</p>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-using-access-operator-str">17.7.2. Using the Access Operator</h4>
+<div class="paragraph _abstract">
+<p>This procedure shows how to use the Access Operator to manage access to a Kafka cluster.
+The Access Operator simplifies access management by creating a binding <code>Secret</code> containing the connection details for a Kafka cluster and optional user credentials.</p>
+</div>
+<div class="paragraph">
+<p>Kafka instances and Kafka users are specified in a <code>KafkaAccess</code> resource.
+Optionally, a listener to connect to the Kafka cluster can also be specified.
+The operator will look up the Kafka instance and users specified in the <code>KafkaAccess</code> resource to create a secret with the details required for connection.
+Any authentication credentials required by a user to connect to Kafka are also added to the secret.
+If no listener is specified it will choose according to these rules:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If only one listener is configured in the <code>Kafka</code> resource, that listener is selected.</p>
+</li>
+<li>
+<p>If multiple listeners are configured, the operator selects one with the appropriate security based on <code>tls</code> and <code>authentication</code> properties in the <code>Kafka</code> and <code>KafkaUser</code> resources.</p>
+</li>
+<li>
+<p>If multiple listeners with appropriate security are available, the operator selects an internal listener, if present.</p>
+</li>
+<li>
+<p>If multiple internal listeners with appropriate security are available, the operator selects the first listener alphabetically by name.</p>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Kafka cluster deployed  using a <code>Kafka</code> resource and managed by the Cluster Operator.</p>
+</li>
+<li>
+<p><code>KafkaUser</code> resources must be created for any users needing authentication to the Kafka cluster.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Example <code>KafkaAccess</code> resource specifications are contained in the <code>./examples</code> directory of the latest release archive (<code>strimzi-latest.*</code>) from the <a href="https://github.com/strimzi/strimzi-kafka-operator/releases" target="_blank" rel="noopener">GitHub releases page</a>.</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Configure a <code>KafkaAccess</code> custom resource to bind your applications to the Kafka cluster.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Specify the name of the <code>Kafka</code> resource to connect to the Kafka cluster.</p>
+</li>
+<li>
+<p>(Optional) Specify the name of the listener used to connect to the Kafka cluster.</p>
+</li>
+<li>
+<p>(Optional) Specify the <code>KafkaUser</code> resources representing users requiring access to the Kafka cluster.</p>
+<div class="paragraph">
+<p>Make sure the name, namespace and listener in the <code>KafkaAccess</code> custom resource match those of your Kafka instance.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example access configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: access.strimzi.io/v1alpha1
+kind: KafkaAccess
+metadata:
+  name: my-kafka-access
+spec:
+  kafka:
+    name: my-cluster
+    namespace: kafka
+    listener: tls
+  user:
+    kind: KafkaUser
+    apiGroup: kafka.strimzi.io
+    name: my-user
+    namespace: kafka</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Create the <code>KafkaAccess</code> resource in Kubernetes:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f &lt;kafka_access_config_file&gt; -n strimzi-access-operator</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Check the status of the <code>KafkaAccess</code> custom resource:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafkaaccess my-kafka-access -o yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The status of the resource is updated once the operator creates the binding <code>Secret</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Status shows binding secret created</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+status:
+  binding:
+    name:
+      kafka-binding</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Inspect the created binding secret:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret kafka-binding -o yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The secret contains connection details and user credentials in various formats to accommodate the requirements of different development environments and applications.
+The user credentials included depend on the authentication method specified for the <code>KafkaUser</code> resource.
+For example, SCRAM-SHA-512 credentials are provided if that type of authentication is used.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example binding secret</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
+kind: Secret
+metadata:
+  name: kafka-binding
+type: servicebinding.io/kafka
+data:
+  type: kafka
+  provider: strimzi
+  # Kafka cluster connection properties # <b class="conum">(1)</b>
+  bootstrap.servers: my-cluster-kafka-bootstrap:9092
+  bootstrap-servers: my-cluster-kafka-bootstrap:9092
+  bootstrapServers: my-cluster-kafka-bootstrap:9092
+  # Security protocol option # <b class="conum">(2)</b>
+  security.protocol: SSL
+  securityProtocol: SSL
+  # TLS enabled
+  ssl.truststore.crt: my-cluster-cluster-ca-cert # <b class="conum">(3)</b>
+  # SCRAM-SHA-512 authentication properties # <b class="conum">(4)</b>
+  username: admin
+  password: password
+  sasl.jaas.config: com.example.ScramLoginModule required;
+  sasl.mechanism: SCRAM-SHA-512
+  saslMechanism: SCRAM-SHA-512
+  # mTLS authentication properties # <b class="conum">(5)</b>
+  ssl.keystore.crt: user.crt
+  ssl.keystore.key: user.key</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Comma-separated host:port connection details for Kafka clusters.</p>
+</li>
+<li>
+<p>The security protocol used for communication with Kafka, which can be <code>PLAINTEXT</code>, <code>SSL</code>, <code>SASL_PLAINTEXT</code> or <code>SASL_SSL</code>.</p>
+</li>
+<li>
+<p>The Strimzi cluster CA certificate if TLS is enabled.</p>
+</li>
+<li>
+<p>Credentials for SCRAM-SHA-512 client authentication.</p>
+</li>
+<li>
+<p>Credentials for mTLs client authentication.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Make the secret available to your application.</p>
+<div class="paragraph">
+<p>Applications can reference the secret directly, or you can inject it into an application&#8217;s environment using an operator to implement the <a href="https://servicebinding.io/spec/core/1.0.0/">Service Binding specification</a>.</p>
 </div>
 </li>
 </ol>
