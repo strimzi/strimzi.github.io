@@ -1,34 +1,35 @@
 ---
 layout: post
-title:  "Autorebalancing on cluster scaling"
+title:  "Auto-rebalancing on cluster scaling"
 date: 2024-10-24
 author: paolo_patierno
 ---
 
-Scaling up or down an Apache Kafka cluster is usually done in order to achieve different goals and to get several benefits.
-When scaling up, by adding new brokers, the cluster is capable to handle more load in terms of data transmitted across clients.
-When scaling down, by removing some brokers from the cluster, we are able to reduce costs and energy consumption when there is not that much demand for performance due to a lower load.
+Scaling an Apache Kafka cluster up or down can help meet various goals and deliver multiple benefits.
+Scaling up by adding new brokers enables the cluster to handle a higher data load across clients.
+Scaling down by removing brokers can reduce costs and energy consumption when demand is lower.
 But scaling the cluster makes more sense if it's done automatically, for example by leveraging the HPA (Horizontal Pod Autoscaler) within Kubernetes.
-The problem comes when, after scaling up, the cluster is not balanced and the newly added brokers are just empty and there is the need to rebalance topics' partitions to equally spread the load across all the brokers (older and newer).
-On the other side, scaling down could be not possible when brokers to be removed are hosting topics' partitions, unless we accept to have offline replicas and losing HA (High Availability).
+After scaling up, the issue arises from the cluster being unbalanced, with new brokers left empty.
+This requires rebalancing topic partitions to equally spread the load across all brokers, old and new.
+On the other hand, scaling down may not be possible if the brokers to be removed host topic partitions, unless we are willing to accept offline replicas and sacrifice High Availability (HA).
 In both scenarios, rebalancing the cluster by using the Cruise Control integration within Strimzi is the solution.
-Doing it automatically is even better and this is what we are going to talk about in this blog post.
+Doing it automatically makes the process even easier and this is what we are going to talk about in this blog post.
 
 <!--more-->
 
-### Scaling and rebalancing, how do you do today?
+### How scaling and rebalancing is done today
 
-When scaling up an Apache Kafka cluster, the newly added brokers don't get any partitions of the already existing topics hosted on the other brokers.
-The new brokers are just empty and they are going to get partitions for newly created topics based on the distribution mechanism within Apache Kafka itself.
+When scaling up a Kafka cluster, newly added brokers don't get any partitions for the topics hosted on the other brokers.
+The new brokers remain empty and will receive partitions for newly created topics based on Apache Kafka's distribution mechanism.
 Quite often, this is not what you want because you are scaling up in order to spread the load across more brokers and getting better performance.
-Today, the only way to do so with Strimzi, is about running a manual rebalancing by leveraging the `KafkaRebalance` custom resource with the `add-brokers` mode (listing the added brokers) and the goals to be satisfied by Cruise Control.
-This way, some of the already existing topics' partitions are moved from the old brokers to the new ones, making the cluster more balanced.
+Currently, the only way to achieve this with Strimzi is by manually rebalancing the cluster using the `KafkaRebalance` custom resource in `add-brokers` mode, where you list the added brokers and specify the goals to be met by Cruise Control.
+This way, some of the already existing topic partitions are moved from the old brokers to the new ones, making the cluster more balanced.
 
-When scaling down, the operation of removing brokers could be blocked by the Strimzi operator because those brokers are hosting topics' partitions and the immediate shutdown will cause offline replicas and losing HA.
+When scaling down, the operation to remove brokers could be blocked by the Cluster Operator because those brokers are hosting topic partitions and the immediate shutdown will cause offline replicas and loss of HA.
 In order to move forward, before scaling down, it is possible to run a manual rebalancing by using a `KafkaRebalance` custom resource with the `remove-brokers` mode (listing the brokers to remove) and the goals for that.
 This way, Cruise Control moves partitions off the brokers to be removed so that they become empty and can be scaled down.
 
-For more details about how to do so, please refer to the official [documention](https://strimzi.io/docs/operators/latest/deploying#cruise-control-concepts-str) related to the Cruise Control integration within Strimzi. 
+For more details about how to do this, please refer to the official [documention](https://strimzi.io/docs/operators/latest/deploying#cruise-control-concepts-str) related to the Cruise Control integration within Strimzi.
 
 While both the above approaches work, the process is still actually manual and done in two separate steps:
 
@@ -36,12 +37,12 @@ While both the above approaches work, the process is still actually manual and d
 * run a rebalancing, then scale the cluster down.
 
 What if it could be possible to automate such a process?
-What about having the Strimzi operator running a rebalance right after the scale up operation, or right before the attempt of scaling down the cluster?
+What about having the Cluster Operator running a rebalance right after a scale up operation, or right before scaling down the cluster?
 The new Strimzi 0.44.0 release brings to you the new auto-rebalancing on cluster scaling feature!
 
 ### The auto-rebalancing on scaling feature to the rescue!
 
-Enabling the auto-rebalancing is totally configurable through the new `autoRebalance` property within the `cruiseControl` section in the `Kafka` custom resource.
+Enabling auto-rebalancing is totally configurable through the new `autoRebalance` property within the `cruiseControl` section in the `Kafka` custom resource.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -90,11 +91,11 @@ spec:
 ```
 
 The configuration template can be the same for both scaling operations or the user can decide to use different ones.
-Using the `KafkaRebalance` custom resource is a way to make lives easier to the Strimzi users because they already know how it works in regards the integration with Cruise Control.
-There isn't anything new to learn but just applying the template annotation and not specifying fields like `mode` and `brokers` because they will be set automatically by the Strimzi operator when running the auto-rebalancing.
-Indeed, when an auto-rebalancing has to run, the Strimzi operator starts from the template and create an actual `KafkaRebalance` custom resource by using that configuration and adding the right `mode` and the `brokers`.
+Using the `KafkaRebalance` custom resource is a way to make the lives of Strimzi users easier because they already know how it works in regards to integration with Cruise Control.
+There isn't anything new to learn beyond applying the template annotation and not specifying fields like `mode` and `brokers` because they will be set automatically by the Strimzi operator when running the auto-rebalancing.
+Indeed, when an auto-rebalancing has to run, the Cluster Opertaor starts from the template and creates an actual `KafkaRebalance` custom resource by using that configuration and adding the right `mode` and the `brokers`.
 
-In the following shell snippet you can see the `KafkaRebalance` resources involved in two auto-rebalancing operations. 
+In the following shell snippet, you can see the `KafkaRebalance` resources involved in two auto-rebalancing operations.
 The first one is about scaling up and the next one is about scaling down.
 It shows how the `KafkaRebalance` resources go through the usual states when the operator interacts with Cruise Control for running the rebalancing.
 
@@ -143,8 +144,9 @@ If you want to see the auto-rebalancing in action, you can watch this [video](ht
 
 ### Conclusion
 
-Scaling an Apache Kafka cluster plays an important role to get better performance on one side and save costs and energy consumption on the other side.
+Scaling an Apache Kafka cluster plays an important role in getting better performance on one side and saving costs and energy consumption on the other side.
 But just scaling can't bring all the advantages by itself and it needs to be supported by a rebalancing process in order to get a more balanced cluster to spread the load across all the brokers.
-Having an automatic mechanism to do so is the key for making your cluster able to scale more elastically, as also demonstrated by Jakub Scholz in this [video](https://www.youtube.com/watch?v=b8JZpom-67I).
-We hope that this new feature is going to be useful to the Strimzi users, so we invite you all to try it out and let us know how it works, if there are any issues to address or if you have any suggestions for us.
+Having an automatic mechanism to do so is the key for making your cluster capable of scaling more elastically, as also demonstrated by Jakub Scholz in this [video](https://www.youtube.com/watch?v=b8JZpom-67I).
+We hope this new feature proves useful for Strimzi users, and we encourage you to try it out.
+Please let us know how it works, any issues you encounter, or any suggestions you may have.
 Looking forward to hear from our beloved community!
