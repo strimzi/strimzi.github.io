@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Managing Connector Offsets"
-date: 2024-08-26
+date: 2024-11-04
 author: kate_stanley
 ---
 
