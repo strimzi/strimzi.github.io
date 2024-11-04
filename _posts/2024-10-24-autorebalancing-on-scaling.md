@@ -21,7 +21,7 @@ Doing it automatically makes the process even easier and this is what we are goi
 
 When scaling up a Kafka cluster, newly added brokers don't get any partitions for the topics hosted on the other brokers.
 The new brokers remain empty and will receive partitions for newly created topics based on Apache Kafka's distribution mechanism.
-Quite often, this is not what you want because you are scaling up in order to spread the load across more brokers and getting better performance.
+Quite often, this is not what you want because you are scaling up in order to spread the load across more brokers and to get better performance.
 Currently, the only way to achieve this with Strimzi is by manually rebalancing the cluster using the `KafkaRebalance` custom resource in `add-brokers` mode, where you list the added brokers and specify the goals to be met by Cruise Control.
 This way, some of the already existing topic partitions are moved from the old brokers to the new ones, making the cluster more balanced.
 
@@ -33,8 +33,8 @@ For more details about how to do this, please refer to the official [documention
 
 While both the above approaches work, the process is still actually manual and done in two separate steps:
 
-* scale the cluster up, then run a rebalancing.
-* run a rebalancing, then scale the cluster down.
+* scale the cluster up, then run a rebalancing by using the `add-brokers` mode.
+* run a rebalancing by using the `remove-brokers` mode, then scale the cluster down.
 
 What if it could be possible to automate such a process?
 What about having the Cluster Operator running a rebalance right after a scale up operation, or right before scaling down the cluster?
@@ -91,9 +91,9 @@ spec:
 ```
 
 The configuration template can be the same for both scaling operations or the user can decide to use different ones.
-Using the `KafkaRebalance` custom resource is a way to make the lives of Strimzi users easier because they already know how it works in regards to integration with Cruise Control.
+Using the `KafkaRebalance` custom resource as a template is a way to make the lives of Strimzi users easier because they already know how it works in regards to integration with Cruise Control.
 There isn't anything new to learn beyond applying the template annotation and not specifying fields like `mode` and `brokers` because they will be set automatically by the Strimzi operator when running the auto-rebalancing.
-Indeed, when an auto-rebalancing has to run, the Cluster Opertaor starts from the template and creates an actual `KafkaRebalance` custom resource by using that configuration and adding the right `mode` and the `brokers`.
+Indeed, when an auto-rebalancing has to run, the Cluster Operator starts from the template and creates an actual `KafkaRebalance` custom resource by using that configuration and adding the right `mode` and `brokers` properties.
 
 In the following shell snippet, you can see the `KafkaRebalance` resources involved in two auto-rebalancing operations.
 The first one is about scaling up and the next one is about scaling down.
@@ -148,5 +148,6 @@ Scaling an Apache Kafka cluster plays an important role in getting better perfor
 But just scaling can't bring all the advantages by itself and it needs to be supported by a rebalancing process in order to get a more balanced cluster to spread the load across all the brokers.
 Having an automatic mechanism to do so is the key for making your cluster capable of scaling more elastically, as also demonstrated by Jakub Scholz in this [video](https://www.youtube.com/watch?v=b8JZpom-67I).
 We hope this new feature proves useful for Strimzi users, and we encourage you to try it out.
+A better integration between Kafka an Cruise Control is one of the long-term goals of the Strimzi project that would allow a sort of Kafka auto pilot mode, and this is a significant step in that direction.
 Please let us know how it works, any issues you encounter, or any suggestions you may have.
-Looking forward to hear from our beloved community!
+Looking forward to hearing from our beloved community!
