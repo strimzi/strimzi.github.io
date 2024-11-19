@@ -140,7 +140,7 @@ status:
     state: RebalanceOnScaleUp
 ```
 
-If you want to see the auto-rebalancing in action, you can watch this [video](https://www.youtube.com/watch?v=u6qHPL-VXRE) published on the official Strimzi YouTube channel.
+If you want to see the auto-rebalancing in action together with cluster auto-scaling, you can watch the KubeCon NA 2025 session, [Elastic Data Streaming: Autoscaling Apache Kafka](https://www.youtube.com/watch?v=pj6eLTC2tv8), delivered by Jakub Scholz. 
 
 ### Conclusion
 
