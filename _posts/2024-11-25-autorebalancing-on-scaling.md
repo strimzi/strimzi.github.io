@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Auto-rebalancing on cluster scaling"
-date: 2024-10-24
+date: 2024-11-25
 author: paolo_patierno
 ---
 
@@ -140,7 +140,9 @@ status:
     state: RebalanceOnScaleUp
 ```
 
-If you want to see the auto-rebalancing in action together with cluster auto-scaling, you can watch the KubeCon NA 2025 session, [Elastic Data Streaming: Autoscaling Apache Kafka](https://www.youtube.com/watch?v=pj6eLTC2tv8), delivered by Jakub Scholz. 
+If you want to see the auto-rebalancing in action together with cluster auto-scaling, you can watch the KubeCon NA 2025 session, [Elastic Data Streaming: Autoscaling Apache Kafka](https://www.youtube.com/watch?v=pj6eLTC2tv8), delivered by Jakub Scholz.
+
+<iframe width="560" height="315" src="https://www.youtube.com/watch?v=pj6eLTC2tv8" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ### Conclusion
 
