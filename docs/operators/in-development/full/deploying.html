@@ -471,7 +471,12 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#assembly-kraft-mode-str">2. Using Kafka in KRaft mode</a>
 <ul class="sectlevel2">
-<li><a href="#kraft_limitations">2.1. KRaft limitations</a></li>
+<li><a href="#kraft_limitations">2.1. KRaft limitations</a>
+<ul class="sectlevel3">
+<li><a href="#controller_scaling">2.1.1. Controller scaling</a></li>
+<li><a href="#limitations_with_static_controller_quorums">2.1.2. Limitations with static controller quorums</a></li>
+</ul>
+</li>
 <li><a href="#proc-deploy-migrate-kraft-str">2.2. Migrating to KRaft mode</a>
 <ul class="sectlevel3">
 <li><a href="#proc-deploy-migrate-kraft-rollback-str">2.2.1. Performing a rollback on the migration</a></li>
@@ -2319,14 +2324,84 @@ In the following example, three nodes perform a dual role and two nodes act only
 <div class="sect2">
 <h3 id="kraft_limitations">2.1. KRaft limitations</h3>
 <div class="paragraph">
-<p>Currently, the KRaft mode in Strimzi has the following major limitations:</p>
+<p>KRaft limitations primarily relate to controller scaling, which impacts cluster operations.</p>
+</div>
+<div class="sect3">
+<h4 id="controller_scaling">2.1.1. Controller scaling</h4>
+<div class="paragraph">
+<p>KRaft mode supports two types of controller quorums:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Scaling of KRaft controller nodes up or down is not supported.</p>
+<p><strong>Static controller quorums</strong><br>
+In this mode, the number of controllers is fixed, and scaling requires downtime.</p>
+</li>
+<li>
+<p><strong>Dynamic controller quorums</strong><br>
+This mode enables dynamic scaling of controllers without downtime.
+New controllers join as observers, replicate the metadata log, and eventually become eligible to join the quorum.
+If a controller being removed is the active controller, it will step down from the quorum only after the new quorum is confirmed.</p>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>Scaling is useful not only for adding or removing controllers, but supports the following operations:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Renaming a node pool, which involves adding a new node pool with the desired name and deleting the old one.</p>
+</li>
+<li>
+<p>Changing non-JBOD storage, which requires creating a new node pool with the updated storage configuration and removing the old one.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Dynamic controller quorums provide the flexibility to make these operations significantly easier to perform.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="limitations_with_static_controller_quorums">2.1.2. Limitations with static controller quorums</h4>
+<div class="paragraph">
+<p>Migration between static and dynamic controller quorums is not currently supported by Apache Kafka, though it is expected to be introduced in a future release.
+All pre-existing KRaft-based Apache Kafka clusters that use static controller quorums must continue using them.
+To ensure compatibility with existing KRaft-based clusters, Strimzi continues to use static controller quorums as well.</p>
+</div>
+<div class="paragraph">
+<p>This limitation means dynamic scaling of controller quorums cannot be used to support the following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Adding or removing node pools with controller roles</p>
+</li>
+<li>
+<p>Adding the controller role to an existing node pool</p>
+</li>
+<li>
+<p>Removing the controller role from an existing node pool</p>
+</li>
+<li>
+<p>Scaling a node pool with the controller role</p>
+</li>
+<li>
+<p>Renaming a node pool with the controller role</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Static controller quorums also limit operations that require scaling.
+For example, changing the storage type for a node pool with a controller role is not possible because it involves scaling the controller quorum.
+For non-JBOD storage, creating a new node pool with the desired storage type, adding it to the cluster, and removing the old one would require scaling operations, which are not supported.
+In some cases, workarounds are possible.
+For instance, when modifying node pool roles to combine controller and broker functions, you can <a href="#proc-joining-node-pools-roles-str">add broker roles to controller nodes</a> instead of adding controller roles to broker nodes to avoid controller scaling.
+However, this approach would require reassigning more data, which may temporarily affect cluster performance.</p>
+</div>
+<div class="paragraph">
+<p>Once migration is possible, Strimzi plans to assess introducing support for dynamic quorums.</p>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -10065,7 +10140,11 @@ Node pools simplify this process, because you can set up separate node pools tha
 </div>
 <div class="paragraph">
 <p>In this procedure we create and manage storage for a node pool called <code>pool-a</code> containing three nodes.
-We show how to change the storage class (<code>volumes.class</code>) that defines the type of persistent storage it uses.
+The steps require a scaling operation to add a new node pool.
+Currently, scaling is only possible for broker-only node pools containing nodes that run as dedicated brokers.</p>
+</div>
+<div class="paragraph">
+<p>We show how to change the storage class (<code>volumes.class</code>) that defines the type of persistent storage it uses.
 You can use the same steps to change the storage size (<code>volumes.size</code>).
 This approach is particularly useful if you want to reduce disk sizes.
 When increasing disk sizes, you have the option to <a href="#proc-resizing-persistent-volumes-str">dynamically resize persistent volumes</a>.</p>
@@ -10113,6 +10192,8 @@ metadata:
   labels:
     strimzi.io/cluster: my-cluster
 spec:
+  roles:
+    - broker
   replicas: 3
   storage:
     type: jbod
@@ -40469,7 +40550,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2024-11-25 21:48:40 UTC
+Last updated 2024-11-26 01:09:27 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
