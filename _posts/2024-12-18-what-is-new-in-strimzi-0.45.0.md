@@ -2,7 +2,7 @@
 layout: post
 title:  "Video: What's new in Strimzi 0.45.0"
 date: 2024-12-18
-author: ppatierno
+author: paolo_patierno
 ---
 
 Strimzi 0.45.0 has been released with multiple new features and improvements.
