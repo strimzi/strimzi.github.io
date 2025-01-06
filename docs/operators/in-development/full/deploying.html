@@ -957,7 +957,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#con-upgrade-paths-str">29.2. Strimzi upgrade paths</a>
 <ul class="sectlevel3">
 <li><a href="#con-upgrade-paths-kafka-versions-str">29.2.1. Support for Kafka versions when upgrading</a></li>
-<li><a href="#con-upgrade-paths-earlier-versions-str">29.2.2. Upgrading from a Strimzi version earlier than 0.22</a></li>
+<li><a href="#upgrading_from_a_strimzi_version_earlier_than_0_39">29.2.2. Upgrading from a Strimzi version earlier than 0.39</a></li>
 <li><a href="#con-versions-and-images-str">29.2.3. Kafka version and image mappings</a></li>
 </ul>
 </li>
@@ -974,12 +974,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#upgrading_the_cluster_operator_using_the_operatorhub">29.5.2. Upgrading the Cluster Operator using the OperatorHub</a></li>
 <li><a href="#upgrading_the_cluster_operator_using_a_helm_chart">29.5.3. Upgrading the Cluster Operator using a Helm chart</a></li>
 <li><a href="#con-upgrade-cluster-operator-unsupported-kafka-str">29.5.4. Upgrading the Cluster Operator returns Kafka version error</a></li>
-<li><a href="#upgrading_from_a_strimzi_version_using_the_bidirectional_topic_operator">29.5.5. Upgrading from a Strimzi version using the Bidirectional Topic Operator</a></li>
 </ul>
 </li>
 <li><a href="#proc-upgrade-kafka-kraft-str">29.6. Upgrading KRaft-based Kafka clusters</a></li>
 <li><a href="#con-upgrade-status-str">29.7. Checking the status of an upgrade</a></li>
-<li><a href="#proc-reenabling-FIPS-mode-str">29.8. Switching to FIPS mode when upgrading Strimzi</a></li>
 </ul>
 </li>
 <li><a href="#assembly-downgrade-str">30. Downgrading Strimzi</a>
@@ -6047,8 +6045,6 @@ Make sure you use the appropriate update channel.
 Installing Strimzi from the default <em>stable</em> channel is generally safe.
 However, we do not recommend enabling <em>automatic</em> OLM updates on the stable channel.
 An automatic upgrade will skip any necessary steps prior to upgrade.
-For example, to upgrade from 0.22 or earlier
-you must first <a href="#con-upgrade-paths-earlier-versions-str">update custom resources to support the <code>v1beta2</code> API version</a>.
 Use automatic upgrades only on version-specific channels.
 </td>
 </tr>
@@ -33687,6 +33683,12 @@ During this time, overall cluster availability is temporarily reduced, which may
 </div>
 </li>
 <li>
+<p>Make sure you use Strimzi 0.39 or newer and all your Apache Kafka clusters are Kraft-based.</p>
+<div class="paragraph">
+<p>ZooKeeper-based Apache Kafka clusters are not supported anymore and need to be migrated to KRaft before upgrading the Cluster Operator or Apache Kafka.</p>
+</div>
+</li>
+<li>
 <p><a href="#assembly-upgrade-str">Upgrade the Cluster Operator</a>.</p>
 </li>
 <li>
@@ -33761,76 +33763,10 @@ In this case, you must upgrade the Kafka version as part of the Strimzi upgrade 
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-upgrade-paths-earlier-versions-str">29.2.2. Upgrading from a Strimzi version earlier than 0.22</h4>
+<h4 id="upgrading_from_a_strimzi_version_earlier_than_0_39">29.2.2. Upgrading from a Strimzi version earlier than 0.39</h4>
 <div class="paragraph">
-<p>If you are upgrading to the latest version of Strimzi from a version prior to version 0.22, do the following:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Upgrade Strimzi to version 0.22 following the <a href="#con-upgrade-sequence-str">standard sequence</a>.</p>
-</li>
-<li>
-<p>Convert Strimzi custom resources to <code>v1beta2</code> using the <em>API conversion tool</em> provided with Strimzi.</p>
-</li>
-<li>
-<p>Do one of the following:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>Upgrade Strimzi to a version between 0.23 and 0.26 (where the <code>ControlPlaneListener</code> feature gate is disabled by default).</p>
-</li>
-<li>
-<p>Upgrade Strimzi to a version between 0.27 and 0.31 (where the <code>ControlPlaneListener</code> feature gate is enabled by default) with the <code>ControlPlaneListener</code> feature gate disabled.</p>
-</li>
-</ul>
-</div>
-</li>
-<li>
-<p>Enable the <code>ControlPlaneListener</code> feature gate.</p>
-</li>
-<li>
-<p>Upgrade to Strimzi latest following the <a href="#con-upgrade-sequence-str">standard sequence</a>.</p>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>Strimzi custom resources started using the <code>v1beta2</code> API version in release 0.22.
-CRDs and custom resources must be converted <strong>before</strong> upgrading to Strimzi 0.23 or newer.
-For information on using the API conversion tool, see the <a href="https://strimzi.io/docs/operators/0.24.0/deploying.html#assembly-upgrade-resources-str" target="_blank" rel="noopener">Strimzi 0.24.0 upgrade documentation</a>.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-As an alternative to first upgrading to version 0.22, you can install the custom resources from version 0.22 and then convert the resources.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>The <code>ControlPlaneListener</code> feature is now permanently enabled in Strimzi.
-You must upgrade to a version of Strimzi where it is disabled, then enable it using the
-<code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.</p>
-</div>
-<div class="listingblock">
-<div class="title">Disabling the <code>ControlPlaneListener</code> feature gate</div>
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
-  - name: STRIMZI_FEATURE_GATES
-    value: -ControlPlaneListener</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="title">Enabling the <code>ControlPlaneListener</code> feature gate</div>
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
-  - name: STRIMZI_FEATURE_GATES
-    value: +ControlPlaneListener</code></pre>
-</div>
+<p>Strimzi latest supports upgrades only for KRaft-based Apache Kafka clusters managed by Strimzi 0.39 and newer.
+When upgrading from older Strimzi versions, please make sure to first upgrade to a Strimzi version from 0.39 to 0.45 and migrate to KRaft before upgrading to Strimzi latest.</p>
 </div>
 </div>
 <div class="sect3">
@@ -33844,7 +33780,7 @@ You must upgrade to a version of Strimzi where it is disabled, then enable it us
 <p>Each <code>Kafka</code> resource can be configured with a <code>Kafka.spec.kafka.version</code>, which defaults to the latest supported Kafka version (3.9.0) if not specified.</p>
 </li>
 <li>
-<p>The Cluster Operator&#8217;s <code>STRIMZI_KAFKA_IMAGES</code> environment variable provides a mapping (&lt;kafka_version&gt;=&lt;image&gt;) between a Kafka version and the image to be used when a specific Kafka version is requested in a given <code>Kafka</code> resource. For example, 3.9.0=quay.io/strimzi/kafka:latest-kafka-3.9.0.</p>
+<p>The Cluster Operator&#8217;s <code>STRIMZI_KAFKA_IMAGES</code> environment variable provides a mapping (<code>&lt;kafka_version&gt;=&lt;image&gt;</code>) between a Kafka version and the image to be used when a specific Kafka version is requested in a given <code>Kafka</code> resource. For example, <code>3.9.0=quay.io/strimzi/kafka:latest-kafka-3.9.0</code>.</p>
 <div class="ulist">
 <ul>
 <li>
@@ -34257,73 +34193,6 @@ Change the <code>spec.kafka.version</code> in the <code>Kafka</code> resource to
 <p>Replace &lt;kafka_cluster_name&gt; with the name of your Kafka cluster and &lt;namespace&gt; with the Kubernetes namespace where the pod is running.</p>
 </div>
 </div>
-<div class="sect3">
-<h4 id="upgrading_from_a_strimzi_version_using_the_bidirectional_topic_operator">29.5.5. Upgrading from a Strimzi version using the Bidirectional Topic Operator</h4>
-<div class="paragraph">
-<p>When deploying the Topic Operator to manage topics, the Cluster Operator enables unidirectional topic management.
-This means that the Topic Operator only manages Kafka topics associated with <code>KafkaTopic</code> resources and does not interfere with topics managed independently within the Kafka cluster.</p>
-</div>
-<div class="paragraph">
-<p>Previously, the Topic Operator worked in bidirectional mode, which meant it could also perform operations on topics within the Kafka cluster.
-If you are switching from a version of Strimzi that uses the Bidirectional Topic Operator, after upgrading the Cluster Operator, perform some cleanup tasks on the following internal topics that were used by the operator:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>strimzi-store-topic</code></p>
-</li>
-<li>
-<p><code>strimzi-topic-operator</code></p>
-</li>
-<li>
-<p><code>consumer-offsets</code></p>
-</li>
-<li>
-<p><code>transaction-state</code></p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>For the <code>strimzi-store-topic</code> and <code>strimzi-topic-operator</code> topics, delete the resources that were used to manage them:</p>
-</div>
-<div class="listingblock">
-<div class="title">Deleting internal topics used by the operator</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete $(kubectl get kt -n &lt;namespace&gt; -o name | grep strimzi-store-topic) -n &lt;namespace&gt; \
-  &amp;&amp; kubectl delete $(kubectl get kt -n &lt;namespace&gt; -o name | grep strimzi-topic-operator) -n &lt;namespace&gt;</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>For the internal topics for storing consumer offsets and transaction states, <code>consumer-offsets</code> and <code>transaction-state</code>, you want to retain them in Kafka, but you don&#8217;t want them to be managed by the Topic Operator.</p>
-</div>
-<div class="paragraph">
-<p>Discontinue their management before deleting their resources.
-Annotating the <code>KafkaTopic</code> resources with <code>strimzi.io/managed="false"</code> indicates that the Topic Operator should no longer manage those topics:</p>
-</div>
-<div class="listingblock">
-<div class="title">Discontinuing management of internal topics</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate $(kubectl get kt -n &lt;namespace&gt; -o name | grep consumer-offsets) strimzi.io/managed="false" -n &lt;namespace&gt; \
-  &amp;&amp; kubectl annotate $(kubectl get kt -n &lt;namespace&gt; -o name | grep transaction-state) strimzi.io/managed="false" -n &lt;namespace&gt;</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Check the statuses of the <code>KafkaTopic</code> resources to make sure the reconciliation was successful and the topics are no longer managed, as shown in the   <a href="#proc-converting-managed-topics-str">procedure to stop managing topics</a>.</p>
-</div>
-<div class="paragraph">
-<p>Having discontinued their management, delete the <code>KafkaTopic</code> resources:</p>
-</div>
-<div class="listingblock">
-<div class="title">Deleting the resources for managing internal topics</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete $(kubectl get kt -n &lt;namespace&gt; -o name | grep consumer-offsets) -n &lt;namespace&gt; \
-  &amp;&amp; kubectl delete $(kubectl get kt -n &lt;namespace&gt; -o name | grep transaction-state) -n &lt;namespace&gt;</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>By discontinuing their management, they won&#8217;t also be deleted in Kafka.</p>
-</div>
-</div>
 </div>
 <div class="sect2">
 <h3 id="proc-upgrade-kafka-kraft-str">29.6. Upgrading KRaft-based Kafka clusters</h3>
@@ -34592,72 +34461,6 @@ status:
   operatorLastSuccessfulVersion: latest
   kafkaMetadataVersion: 3.9</code></pre>
 </div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="proc-reenabling-FIPS-mode-str">29.8. Switching to FIPS mode when upgrading Strimzi</h3>
-<div class="paragraph _abstract">
-<p>Upgrade Strimzi to run in FIPS mode on FIPS-enabled Kubernetes clusters.
-Until Strimzi 0.33, running on FIPS-enabled Kubernetes clusters was possible only by disabling FIPS mode using the <code>FIPS_MODE</code> environment variable.
-From release 0.33, Strimzi supports FIPS mode.
-If you run Strimzi on a FIPS-enabled Kubernetes cluster with the <code>FIPS_MODE</code> set to <code>disabled</code>, you can enable it by following this procedure.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>FIPS-enabled Kubernetes cluster</p>
-</li>
-<li>
-<p>An existing Cluster Operator deployment with the <code>FIPS_MODE</code> environment variable set to <code>disabled</code></p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Upgrade the Cluster Operator to version 0.33 or newer but keep the <code>FIPS_MODE</code> environment variable set to <code>disabled</code>.</p>
-</li>
-<li>
-<p>If you initially deployed a Strimzi version older than 0.30, it might use old encryption and digest algorithms in its PKCS #12 stores, which are not supported with FIPS enabled.
-To recreate the certificates with updated algorithms, renew the cluster and clients CA certificates.</p>
-<div class="olist loweralpha">
-<ol class="loweralpha" type="a">
-<li>
-<p>To renew the CAs generated by the Cluster Operator, <a href="#proc-renewing-ca-certs-manually-str">add the <code>force-renew</code> annotation to the CA secrets to trigger a renewal</a>.</p>
-</li>
-<li>
-<p>To renew your own CAs, <a href="#renewing-your-own-ca-certificates-str">add the new certificate to the CA secret and update the <code>ca-cert-generation</code> annotation with a higher incremental value to capture the update</a>.</p>
-</li>
-</ol>
-</div>
-</li>
-<li>
-<p>If you use SCRAM-SHA-512 authentication, check the password length of your users.
-If they are less than 32 characters long, generate a new password in one of the following ways:</p>
-<div class="olist loweralpha">
-<ol class="loweralpha" type="a">
-<li>
-<p>Delete the user secret so that the User Operator generates a new one with a new password of sufficient length.</p>
-</li>
-<li>
-<p>If you provided your password using the <code>.spec.authentication.password</code> properties of the <code>KafkaUser</code> custom resource, update the password in the Kubernetes secret referenced in the same password configuration.
-Don&#8217;t forget to update your clients to use the new passwords.</p>
-</li>
-</ol>
-</div>
-</li>
-<li>
-<p>Ensure that the CA certificates are using the correct algorithms and the SCRAM-SHA-512 passwords are of sufficient length.
-You can then enable the FIPS mode.</p>
-</li>
-<li>
-<p>Remove the <code>FIPS_MODE</code> environment variable from the Cluster Operator deployment.
-This restarts the Cluster Operator and rolls all the operands to enable the FIPS mode.
-After the restart is complete, all Kafka clusters now run with FIPS mode enabled.</p>
-</li>
-</ol>
 </div>
 </div>
 </div>
@@ -37964,7 +37767,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-01-03 17:06:17 UTC
+Last updated 2025-01-06 13:30:26 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
