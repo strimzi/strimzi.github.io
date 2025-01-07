@@ -644,6 +644,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#proc-manual-stop-pause-mirrormaker2-connector-str">11.9.8. Manually stopping or pausing MirrorMaker 2 connectors</a></li>
 <li><a href="#proc-manual-restart-mirrormaker2-connector-str">11.9.9. Manually restarting MirrorMaker 2 connectors</a></li>
 <li><a href="#proc-manual-restart-mirrormaker2-connector-task-str">11.9.10. Manually restarting MirrorMaker 2 connector tasks</a></li>
+<li><a href="#con-mm2-recovery-str">11.9.11. Disaster recovery in an active/passive configuration</a></li>
 </ul>
 </li>
 <li><a href="#con-config-kafka-bridge-str">11.10. Configuring the Kafka Bridge</a></li>
@@ -13593,6 +13594,78 @@ When MirrorMaker 2 accepts the request, the annotation is removed from the <code
 </div>
 </li>
 </ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-mm2-recovery-str">11.9.11. Disaster recovery in an active/passive configuration</h4>
+<div class="paragraph _abstract">
+<p>MirrorMaker 2 can be configured for active/passive disaster recovery.
+To support this, the Kafka cluster should also be monitored for health and performance to detect issues that require failover promptly.</p>
+</div>
+<div class="paragraph">
+<p>If failover occurs, which can be automated, operations switch from the active cluster to the passive cluster when the active cluster becomes unavailable.
+The original active cluster is typically considered permanently lost.
+The passive cluster is promoted to active status, taking over as the source for all application traffic.
+In this state, MirrorMaker 2 no longer replicates data from the original active cluster while it remains unavailable.</p>
+</div>
+<div class="paragraph">
+<p>Failback, or restoring operations to the original active cluster, requires careful planning.</p>
+</div>
+<div class="paragraph">
+<p>It is technically possible to reverse roles in MirrorMaker 2 by swapping the source and target clusters and deploying this configuration as a new instance.
+However, this approach risks data duplication, as records mirrored to the passive cluster may be mirrored back to the original active cluster.
+Avoiding duplicates requires resetting consumer offsets, which adds complexity.
+For a simpler and more reliable failback process, rebuild the original active cluster in a clean state and mirror data from the disaster recovery cluster.</p>
+</div>
+<div class="paragraph">
+<p>Follow these best practices for disaster recovery in the event of failure of the active cluster in an active/passive configuration:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Promote the passive recovery cluster to an active role.<br>
+Designate the passive cluster as the active cluster for all client connections.
+This minimizes downtime and ensures operations can continue.</p>
+</li>
+<li>
+<p>Redirect applications to the new active recovery cluster.<br>
+MirrorMaker 2 synchronizes committed offsets to passive clusters, allowing consumer applications to resume from the last transferred offset when switching to the recovery cluster.
+However, because of the time lag in offset synchronization, switching consumers may result in some message duplication.
+To minimize duplication, switch all members of a consumer group together as soon as possible.
+Keeping the group intact minimizes the chance of a consumer processing duplicate messages.</p>
+</li>
+<li>
+<p>Remove the MirrorMaker 2 configuration for replication from the original active cluster to the passive cluster.<br>
+After failover, the original configuration is no longer needed and should be removed to avoid conflicts.</p>
+</li>
+<li>
+<p>Re-create the failed cluster in a clean state, adhering to the original configuration.</p>
+</li>
+<li>
+<p>Deploy a new MirrorMaker 2 instance to replicate data from the active recovery cluster to the rebuilt cluster.<br>
+Treat the rebuilt cluster as the passive cluster during this replication process.
+To prevent automatic renaming of topics, configure MirrorMaker 2 to use the <code>IdentityReplicationPolicy</code> by setting the <code>replication.policy.class</code> property in the MirrorMaker 2 configuration.
+With this configuration applied, topics retain their original names in the target cluster.</p>
+</li>
+<li>
+<p>Ensure the rebuilt cluster mirrors all data from the now-active recovery cluster.</p>
+</li>
+<li>
+<p>(Optional) Promote the rebuilt cluster back to active status by redirecting applications to the rebuilt cluster, after ensuring it is fully synchronized with the active cluster.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Before implementing any failover or failback processes, test your recovery approach in a controlled environment to minimize downtime and maintain data integrity.
+</td>
+</tr>
+</table>
 </div>
 </div>
 </div>
@@ -37764,7 +37837,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-01-06 19:22:53 UTC
+Last updated 2025-01-07 17:49:57 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
