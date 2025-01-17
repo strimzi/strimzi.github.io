@@ -20,8 +20,7 @@ This feature makes use of the `remove-disks` endpoint of Cruise Control that tri
 ### Setting up the environment
 
 Let's set up a cluster to work through an example demonstrating this feature.
-During the example we will see how we can safely remove the JBOD disks by moving the data from one disk to another, and we will be making use of the following resources:
-We use a Kafka resource and KafkaNodePool resources to create a KRaft cluster.
+During the example we will see how we can safely remove the JBOD disks by moving the data from one disk to another, and we will use Kafka and KafkaNodePool resources to create a KRaft cluster.
 Then, we create a KafkaRebalance resource in remove-disks mode, specifying the brokers and volume IDs for partition reassignment.
 After generating the optimization proposal, we approve it to move the data.
 
@@ -132,9 +131,9 @@ spec:
     segment.bytes: 1073741824
 ```
 
-Let's see the partition replicas assigned to the volumes on the brokers using the `kafka-log-dir.sh` tool.
+Let's see the partition replicas assigned to the volumes on the brokers using the `kafka-log-dir.sh` tool and a helper pod named `my-pod`.
 ```shell
-kubectl exec -n myproject -ti my-cluster-pool-a-0   /bin/bash -- bin/kafka-log-dirs.sh --describe --bootstrap-server my-cluster-kafka-bootstrap:9092  --broker-list 3,4,5 --topic-list my-topic
+kubectl -n myproject run my-pod -ti --image=quay.io/strimzi/kafka:0.45.0-kafka-3.9.0 --rm=true --restart=Never -- bin/kafka-log-dirs.sh --describe --bootstrap-server my-cluster-kafka-bootstrap:9092  --broker-list 3,4,5 --topic-list my-topic
 ```
 
 Output:
@@ -352,7 +351,7 @@ If the `strimzi.io/rebalance-auto-approval` is specified and set to `true`, the 
 
 After the rebalance is complete, use the `kafka-log-dirs.sh` tool again to verify that the data has been moved.
 ```shell
- kubectl exec -n myproject -ti my-cluster-pool-a-0   /bin/bash -- bin/kafka-log-dirs.sh --describe --bootstrap-server my-cluster-kafka-bootstrap:9092  --broker-list 3,4,5 --topic-list my-topic
+kubectl -n myproject run my-pod -ti --image=quay.io/strimzi/kafka:0.45.0-kafka-3.9.0 --rm=true --restart=Never -- bin/kafka-log-dirs.sh --describe --bootstrap-server my-cluster-kafka-bootstrap:9092  --broker-list 3,4,5 --topic-list my-topic
  ```
 
 Output:
@@ -538,8 +537,8 @@ You can remove the other PVC's in the same way.
 
 1. This feature only works if JBOD storage is enabled and multiple disks are used else you will be prompted for not having enough volumes to move the data to.
 2. The optimization proposal does not show the load before optimization, it only shows the load after optimization.
-3. New partition replicas might be scheduled to the disks between cleaning them up with cruise control and removing them which might lead to data loss again.
-4. After all replicas are moved from the specified disk, the disk may still be used by CC during rebalances and Kafka can still use it when creating topics so make sure to delete the disk manually if not required.
+3. New partition replicas might be scheduled to the disks between cleaning them up with Cruise Control and removing them which might lead to data loss again.
+4. After all replicas are moved from the specified disk, the disk may still be used by Cruise Control during rebalances and Kafka can still use it when creating topics so make sure to delete the disk manually if not required.
 
 ### What's next
 
