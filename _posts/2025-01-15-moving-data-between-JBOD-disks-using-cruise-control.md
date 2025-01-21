@@ -5,28 +5,32 @@ date: 2025-01-15
 author: shubham_rawat
 ---
 
-Apache Kafka is a platform which provides durability and fault tolerance by storing messages on disks and JBOD storage is one of the storage configuration types supported by Strimzi.
-The JBOD data storage configuration allows Kafka brokers to make use of multiple disks.
+Apache Kafka is a platform that provides durability and fault tolerance by storing messages on persistent volumes.
+In most cases, each Kafka broker will use one persistent volume.
+However, it is also possible to use multiple volumes for each broker.
+This configuration is called JBOD storage.
 Using JBOD storage, you can increase the data storage capacity for Kafka nodes, which can further lead to performance improvements.
-If you plan to remove a disk that contains partition replicas, the data must be safely moved to other disks first.
+It might happen that you need to add or remove volumes to increase or shrink the overall capacity and performance of the Kafka cluster.
+When adding new volumes, you first need to add the volume and then move some data to it.
+That can be done using the [_intrabroker_](https://strimzi.io/docs/operators/in-development/deploying#con-rebalance-str) rebalance.
+When removing volumes, you have to first safely move the data to other volumes first.
 Failing to do so could result in data loss.
-Moving data between the JBOD disks can be done using the `kafka-reassign-partitions.sh` tool which is not very user-friendly, therefore in Strimzi 0.45.0 we introduced the ability to move data between the JBOD disks using Cruise Control.
+Moving data between the JBOD disks can be done using the `kafka-reassign-partitions.sh` tool, which is not very user-friendly, therefore in Strimzi 0.45.0 we introduced the ability to move data between the JBOD disks using Cruise Control.
 
-### Cruise Control to move data between JBOD disks
+### New `remove-disks` mode in KafkaRebalance
 
-This feature will allow you to move the data from one JBOD disk to another JBOD disk using the `KafkaRebalance` custom resource that we have in Strimzi.
+The new `remove-disks` mode allows you to move the data from one JBOD disk to another JBOD disk using Strimzi's `KafkaRebalance` custom resource.
 This feature makes use of the `remove-disks` endpoint of Cruise Control that triggers a rebalancing operation which moves all replicas, starting with the largest and proceeding to the smallest, to the remaining disks.
 
 ### Setting up the environment
 
 Let's set up a cluster to work through an example demonstrating this feature.
-During the example we will see how we can safely remove the JBOD disks by moving the data from one disk to another, and we will use Kafka and KafkaNodePool resources to create a KRaft cluster.
-Then, we create a KafkaRebalance resource in remove-disks mode, specifying the brokers and volume IDs for partition reassignment.
+In the example we will see how to safely remove the JBOD disks by moving the data from one disk to another, and we will use `Kafka` and `KafkaNodePool` resources to create a KRaft cluster.
+Then, we create a `KafkaRebalance` resource in remove-disks mode, specifying the brokers and volume IDs for partition reassignment.
 After generating the optimization proposal, we approve it to move the data.
 
 To get the KRaft cluster up and running, we will first have to install the Strimzi Cluster Operator and then deploy the `Kafka` and `KafkaNodePool` resources.
-You can install the Cluster Operator with any installation method you prefer.
-You can also refer to the [Strimzi documentation](https://strimzi.io/docs/operators/in-development/deploying#con-strimzi-installation-methods_str).
+You can install the Cluster Operator with the installation method you prefer, which are described in the [Strimzi documentation](https://strimzi.io/docs/operators/in-development/deploying#con-strimzi-installation-methods_str).
 
 Let's deploy a KRaft cluster with JBOD storage and Cruise Control enabled.
 ```yaml
@@ -115,7 +119,7 @@ spec:
   cruiseControl: {}
 ```
 
-Once the Kafka cluster is ready, now you can create some topics so that the volumes on brokers will contain some partition replicas.
+Once the Kafka cluster is ready, you can create some topics so that the volumes on brokers contain partition replicas.
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
@@ -268,7 +272,8 @@ Output:
 }
 ```
 
-Next, let's move the data from volumes 1 and 2 to volume 0 for all the brokers. For doing that let's create a `KafkaRebalance` resource with `remove-disks` mode.
+Next, let's move the data from volumes 1 and 2 to volume 0 for all the brokers.
+To do that, we create a `KafkaRebalance` resource and specify `remove-disks` mode.
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaRebalance
@@ -281,11 +286,17 @@ spec:
   mode: remove-disks
   moveReplicasOffVolumes:
     - brokerId: 3
-      volumeIds: [1, 2]
+      volumeIds:
+        - 1
+        - 2
     - brokerId: 4
-      volumeIds: [1, 2]
+      volumeIds:
+        - 1
+        - 2
     - brokerId: 5
-      volumeIds: [1, 2]
+      volumeIds:
+        - 1
+        - 2
 ```
 
 Now let’s wait for the `KafkaRebalance` resource to move to `ProposalReady` state. You can check the rebalance summary by running the following command once the proposal is ready:
@@ -347,9 +358,9 @@ status:
 ```
 
 Now you can use the `approve` annotation to apply the generated proposal.
-If the `strimzi.io/rebalance-auto-approval` is specified and set to `true`, the cluster operator will approve the proposal automatically by annotating the KafkaRebalance custom resource with the `strimzi.io/rebalance=approve annotation`.
+If the `strimzi.io/rebalance-auto-approval` annotation is set to `true` in the `KafkaRebalance` resource, the Cluster Operator will approve the proposal automatically.
 
-After the rebalance is complete, use the `kafka-log-dirs.sh` tool again to verify that the data has been moved.
+After the rebalance is complete, we use the `kafka-log-dirs.sh` tool again to verify that the data has been moved.
 ```shell
 kubectl -n myproject run my-pod -ti --image=quay.io/strimzi/kafka:0.45.0-kafka-3.9.0 --rm=true --restart=Never -- bin/kafka-log-dirs.sh --describe --bootstrap-server my-cluster-kafka-bootstrap:9092  --broker-list 3,4,5 --topic-list my-topic
  ```
@@ -480,7 +491,7 @@ Output:
 }
 ```
 As shown in the output, the data has been moved from volumes 1 and 2 of all the brokers, which no longer contain any partition replicas.
-To remove volume 1 and volume 2 from all the brokers, you will need to update the broker nodepool in Kafka custom resources with just volume 0 and then apply the changes.
+To remove volume 1 and volume 2 from all the brokers, we need to update the configuration for the node pools to specify only volume 0 and then apply the changes.
 ```yaml
 # ...
 apiVersion: kafka.strimzi.io/v1beta2
@@ -506,7 +517,7 @@ spec:
 # ...
 ```
 
-If you now check the PVCs then you will see that they are not deleted.
+Checking the PVCs, we see that they are not deleted.
 ```shell
  kubectl get pvc -n myproject
 ```
@@ -526,21 +537,23 @@ data-2-my-cluster-broker-4       Bound    pvc-3d79414f-e227-4555-8589-41893d433d
 data-2-my-cluster-broker-5       Bound    pvc-0c126dc5-863f-4e2a-96ae-1a4fef9d8839   100Gi      RWO            standard       63m
 ```
 
-It is because they are not deleted by default, and you need to remove them yourself. You can delete the PVC's using the following command.
+It is because they are not deleted by default, and you need to remove them yourself. You can delete the PVCs using the following command.
 ```shell
 kubectl delete pvc data-1-my-cluster-broker-3  -n myproject 
 ```
 
-You can remove the other PVC's in the same way. 
+You can remove the other PVCs in the same way.
+
+#### What's missing?
+
+After all replicas are moved from the specified disk, it is very much possible that some new  partitions replicas gets assigned to them when a new topic is created and also the disk may still be used by Cruise Control during the rebalance, so make sure that you delete the  unrequired volumes once they are cleaned before performing new operations like rebalancing or creating topics.
 
 #### Additional notes
 
-1. This feature only works if JBOD storage is enabled and multiple disks are used else you will be prompted for not having enough volumes to move the data to.
+1. This feature only works if JBOD storage is enabled and multiple disks are used, otherwise you will be prompted for not having enough volumes to move the data to.
 2. The optimization proposal does not show the load before optimization, it only shows the load after optimization.
-3. New partition replicas might be scheduled to the disks between cleaning them up with Cruise Control and removing them which might lead to data loss again.
-4. After all replicas are moved from the specified disk, the disk may still be used by Cruise Control during rebalances and Kafka can still use it when creating topics so make sure to delete the disk manually if not required.
 
 ### What's next
 
 We hope this blog post has provided you with a clear understanding of how you can use the `KafkaRebalance` custom resource in `remove-disks` to easily move the data between the JBOD disks.
-If you encounter any issues or want to know more, refer to our documentation on [Using Cruise Control to reassign partitions on JBOD disks](https://strimzi.io/docs/operators/latest/deploying#proc-cruise-control-moving-data-str)
+If you encounter any issues or want to know more, refer to our documentation on [Using Cruise Control to reassign partitions on JBOD disks](https://strimzi.io/docs/operators/latest/deploying#proc-cruise-control-moving-data-str).
