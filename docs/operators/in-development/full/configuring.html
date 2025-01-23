@@ -481,8 +481,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#type-CertSecretSource-reference">11. <code>CertSecretSource</code> schema reference</a></li>
 <li><a href="#type-KafkaListenerAuthenticationCustom-reference">12. <code>KafkaListenerAuthenticationCustom</code> schema reference</a>
 <ul class="sectlevel2">
-<li><a href="#setting_a_custom_principal_builder">12.1. Setting a custom principal builder</a></li>
-<li><a href="#type-KafkaListenerAuthenticationCustom-schema-reference">12.2. <code>KafkaListenerAuthenticationCustom</code> schema properties</a></li>
+<li><a href="#configuring_customized_tls_client_authentication">12.1. Configuring customized TLS Client Authentication</a></li>
+<li><a href="#setting_a_custom_principal_builder">12.2. Setting a custom principal builder</a></li>
+<li><a href="#type-KafkaListenerAuthenticationCustom-schema-reference">12.3. <code>KafkaListenerAuthenticationCustom</code> schema properties</a></li>
 </ul>
 </li>
 <li><a href="#type-GenericKafkaListenerConfiguration-reference">13. <code>GenericKafkaListenerConfiguration</code> schema reference</a>
@@ -3599,7 +3600,7 @@ Custom authentication allows for any type of Kafka-supported authentication to b
             oauthbearer.sasl.jaas.config: |
               org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required ;
           secrets:
-            - name: example</code></pre>
+            - secretName: example</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -3626,7 +3627,38 @@ Custom authentication allows for any type of Kafka-supported authentication to b
 For example, the mounted secret (<code>example</code>) in the example configuration would be located at <code>/opt/kafka/custom-authn-secrets/custom-listener-oauth-bespoke-9093/example</code>.</p>
 </div>
 <div class="sect2">
-<h3 id="setting_a_custom_principal_builder">12.1. Setting a custom principal builder</h3>
+<h3 id="configuring_customized_tls_client_authentication">12.1. Configuring customized TLS Client Authentication</h3>
+<div class="paragraph">
+<p>You can also use the <code>custom</code> authentication to configure customized TLS client authentication.
+This allows configuration options that are not permissible with <code>type: tls</code> authentication.
+For example, it&#8217;s possible to configure a custom truststore with multiple trusted CAs or options such as <code>ssl.principal.mapping.rules</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example custom TLS Client Authentication configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  kafka:
+    listeners:
+      - name: tls
+        port: 9093
+        tls: true
+        type: internal
+        authentication:
+          type: custom
+          sasl: false
+          listenerConfig:
+            ssl.client.auth: required
+            ssl.principal.mapping.rules: RULE:^CN=(.*?),(.*)$/$1@my-cluster.com/
+            ssl.truststore.location: /opt/kafka/custom-authn-secrets/custom-listener-tls-9093/custom-truststore/ca.crt
+            ssl.truststore.type: PEM
+          secrets:
+            - key: ca.crt
+              secretName: custom-truststore</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="setting_a_custom_principal_builder">12.2. Setting a custom principal builder</h3>
 <div class="paragraph">
 <p>You can set a custom principal builder in the Kafka cluster configuration.
 However, the principal builder is subject to the following requirements:</p>
@@ -3696,7 +3728,7 @@ The custom principal builder should provide a principal of type <code>user</code
 </div>
 </div>
 <div class="sect2">
-<h3 id="type-KafkaListenerAuthenticationCustom-schema-reference">12.2. <code>KafkaListenerAuthenticationCustom</code> schema properties</h3>
+<h3 id="type-KafkaListenerAuthenticationCustom-schema-reference">12.3. <code>KafkaListenerAuthenticationCustom</code> schema properties</h3>
 <div class="paragraph">
 <p>The <code>type</code> property is a discriminator that distinguishes use of the <code>KafkaListenerAuthenticationCustom</code> type from <a href="#type-KafkaListenerAuthenticationTls-reference"><code>KafkaListenerAuthenticationTls</code></a>, <a href="#type-KafkaListenerAuthenticationScramSha512-reference"><code>KafkaListenerAuthenticationScramSha512</code></a>, <a href="#type-KafkaListenerAuthenticationOAuth-reference"><code>KafkaListenerAuthenticationOAuth</code></a>.
 It must have the value <code>custom</code> for the type <code>KafkaListenerAuthenticationCustom</code>.</p>
@@ -16386,7 +16418,7 @@ Do not create, modify or delete <code>StrimziPodSet</code> resources as this mig
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-01-23 16:51:44 UTC
+Last updated 2025-01-23 19:17:57 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
