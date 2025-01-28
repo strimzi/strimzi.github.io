@@ -15,9 +15,10 @@ When adding new volumes, you first need to add the volume and then move some dat
 That can be done using the [_intrabroker_](https://strimzi.io/docs/operators/in-development/deploying#con-rebalance-str) rebalance.
 When removing volumes, you have to first safely move the data to other volumes first.
 Failing to do so could result in data loss.
-Moving data between the JBOD disks can be done using the `kafka-reassign-partitions.sh` tool, which is not very user-friendly, therefore in Strimzi 0.45.0 we introduced the ability to move data between the JBOD disks using Cruise Control.
+Moving data between the JBOD disks can be done using the `kafka-reassign-partitions.sh` tool, which is not very user-friendly.
+Therefore - in Strimzi 0.45.0 - we introduced the ability to move data between the JBOD disks using Cruise Control.
 
-### New `remove-disks` mode in KafkaRebalance
+### New remove-disks mode in KafkaRebalance
 
 The new `remove-disks` mode allows you to move the data from one JBOD disk to another JBOD disk using Strimzi's `KafkaRebalance` custom resource.
 This feature makes use of the `remove-disks` endpoint of Cruise Control that triggers a rebalancing operation which moves all replicas, starting with the largest and proceeding to the smallest, to the remaining disks.
@@ -359,6 +360,7 @@ status:
 
 Now you can use the `approve` annotation to apply the generated proposal.
 If the `strimzi.io/rebalance-auto-approval` annotation is set to `true` in the `KafkaRebalance` resource, the Cluster Operator will approve the proposal automatically.
+For more details, you can refer to our [Strimzi documentation](https://strimzi.io/docs/operators/latest/deploying#con-optimization-proposals-str).
 
 After the rebalance is complete, we use the `kafka-log-dirs.sh` tool again to verify that the data has been moved.
 ```shell
