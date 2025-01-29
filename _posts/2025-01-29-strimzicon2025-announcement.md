@@ -20,10 +20,7 @@ StrimziCon is an event for developers, DevOps engineers, and solution architects
 This event will bring together the Strimzi community, and you will learn from experts and users about use cases, best practices, and their experience using Strimzi in their organizations.
 If you are working with cloud-native technologies, and you are looking for how to deal with data in motion in a cloud-based environment, don’t miss the opportunity.
 
-The conference will take place on <b>Wednesday, June 4th</b> (afternoon CEST), with one track covering the following themes:
-
-* Features, How Strimzi Works (features)
-* Operations, Using Strimzi with other projects (operations)
+The conference will take place on <b>Wednesday, June 4th</b> (afternoon CEST).
 
 The call for <b>speakers</b> is now open, and we're eagerly awaiting your proposals to discuss:
 
@@ -42,7 +39,7 @@ From the community to the community, this is the best way to share.
 Paolo Patierno and Kate Stanley, as maintainers and contributors in the Strimzi community, have been organizing the conference together with the CNCF team, and will be your host during the event.
 
 All the submitted sessions will be evaluated by the StrimziCon program committee made up of people from different companies which already use Strimzi in production as adopters.
-We'll have representatives from Apple, Axual, Decathlon, IBM, LittleHorse Enterprises, Maersk, Red Hat, and SBB:
+We'll have representatives from Apple, Axual, IBM, LittleHorse Enterprises, Maersk, and Red Hat:
 
 * [Paolo Patierno](https://www.linkedin.com/in/paolopatierno/) (Senior Principal Software Engineer @Red Hat)
 * [Kate Stanley](https://www.linkedin.com/in/katherine-kate-stanley-3796b579/) (Principal Software Engineer @Red Hat)
