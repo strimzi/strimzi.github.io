@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Moving data between JBOD disks using Cruise Control"
-date: 2025-01-15
+date: 2025-01-31
 author: shubham_rawat
 ---
 
@@ -12,8 +12,8 @@ This configuration is called JBOD storage.
 Using JBOD storage, you can increase the data storage capacity for Kafka nodes, which can further lead to performance improvements.
 It might happen that you need to add or remove volumes to increase or shrink the overall capacity and performance of the Kafka cluster.
 When adding new volumes, you first need to add the volume and then move some data to it.
-That can be done using the [_intrabroker_](https://strimzi.io/docs/operators/in-development/deploying#con-rebalance-str) rebalance.
-When removing volumes, you have to first safely move the data to other volumes first.
+That can be done using the [_intra-broker_](https://strimzi.io/docs/operators/in-development/deploying#con-rebalance-str) rebalance.
+When removing volumes, you have to safely move the data to other volumes first.
 Failing to do so could result in data loss.
 Moving data between the JBOD disks can be done using the `kafka-reassign-partitions.sh` tool, which is not very user-friendly.
 Therefore - in Strimzi 0.45.0 - we introduced the ability to move data between the JBOD disks using Cruise Control.
@@ -27,7 +27,7 @@ This feature makes use of the `remove-disks` endpoint of Cruise Control that tri
 
 Let's set up a cluster to work through an example demonstrating this feature.
 In the example we will see how to safely remove the JBOD disks by moving the data from one disk to another, and we will use `Kafka` and `KafkaNodePool` resources to create a KRaft cluster.
-Then, we create a `KafkaRebalance` resource in remove-disks mode, specifying the brokers and volume IDs for partition reassignment.
+Then, we create a `KafkaRebalance` resource in `remove-disks` mode, specifying the brokers and volume IDs for partition reassignment.
 After generating the optimization proposal, we approve it to move the data.
 
 To get the KRaft cluster up and running, we will first have to install the Strimzi Cluster Operator and then deploy the `Kafka` and `KafkaNodePool` resources.
@@ -557,5 +557,5 @@ After all replicas are moved from the specified disk, it is very much possible t
 
 ### What's next
 
-We hope this blog post has provided you with a clear understanding of how you can use the `KafkaRebalance` custom resource in `remove-disks` to easily move the data between the JBOD disks.
+We hope this blog post has provided you with a clear understanding of how you can use the `KafkaRebalance` custom resource in `remove-disks` mode to easily move the data between the JBOD disks.
 If you encounter any issues or want to know more, refer to our documentation on [Using Cruise Control to reassign partitions on JBOD disks](https://strimzi.io/docs/operators/latest/deploying#proc-cruise-control-moving-data-str).
