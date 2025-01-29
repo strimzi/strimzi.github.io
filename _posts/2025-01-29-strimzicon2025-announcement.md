@@ -5,9 +5,9 @@ date: 2025-01-29
 author: paolo_patierno
 ---
 
-We are very pleased to announce the new edition of the StrimziCon, scheduled later this year!
-After the big success of the [first edition last year](https://strimzi.io/blog/2024/06/06/strimzicon2024-roundup/), the Strimzi community decided to have a new one.
-As last year, this is going to be focused on our beloved Strimzi and Apache Kafka projects and it will be "virtual".
+We are very pleased to announce the return of StrimziCon, scheduled later this year!
+After the huge success of [StrimziCon 2024](https://strimzi.io/blog/2024/06/06/strimzicon2024-roundup/), the Strimzi community decided to repeat the event for 2025.
+Like last year, this is going to be focused on our beloved Strimzi and Apache Kafka projects and it will be "virtual".
 It is organized and driven by the project maintainers in collaboration with the [Cloud Native Computing Foundation](https://www.cncf.io/).
 
 <!--more-->
@@ -39,7 +39,7 @@ The submission deadline is March 16th.
 We encourage any community members to submit a talk: from a Strimzi deep dive, to how you operate and use it in production, through integrations with other projects.
 From the community to the community, this is the best way to share.
 
-Paolo Patierno and Kate Stanley, as maintainer and contributor in the Strimzi community, have been organizing the conference together with the CNCF team, and will be your host during the event.
+Paolo Patierno and Kate Stanley, as maintainers and contributors in the Strimzi community, have been organizing the conference together with the CNCF team, and will be your host during the event.
 
 All the submitted sessions will be evaluated by the StrimziCon program committee made up of people from different companies which already use Strimzi in production as adopters.
 We'll have representatives from Apple, Axual, Decathlon, IBM, LittleHorse Enterprises, Maersk, Red Hat, and SBB:
@@ -64,4 +64,5 @@ Don't forget to submit your proposal [here](https://sessionize.com/strimzicon-20
 
 Even if you're not considering presenting, we hope you will still join us as an attendee.
 
-It's virtual, it's free, it's going to be epic again, all reasons to be together with the Strimzi community at the StrimziCon!
+It's virtual, it's free, and it's going to be epic again!
+Join the Strimzi community at StrimziCon!
