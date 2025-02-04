@@ -15,8 +15,8 @@ When adding new volumes, you first need to add the volume and then move some dat
 That can be done using the [_intra-broker_](https://strimzi.io/docs/operators/in-development/deploying#con-rebalance-str) rebalance.
 When removing volumes, you have to safely move the data to other volumes first.
 Failing to do so could result in data loss.
-Moving data between the JBOD disks can be done using the `kafka-reassign-partitions.sh` tool, which is not very user-friendly.
-Therefore - in Strimzi 0.45.0 - we introduced the ability to move data between the JBOD disks using Cruise Control.
+Data movement between JBOD disks can be managed using the `kafka-reassign-partitions.sh` tool, though it is not particularly user-friendly.
+To simplify this process, Strimzi 0.45.0 introduces support for moving data between JBOD disks using Cruise Control.
 
 ### New remove-disks mode in KafkaRebalance
 
