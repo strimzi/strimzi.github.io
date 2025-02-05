@@ -3599,8 +3599,16 @@ Custom authentication allows for any type of Kafka-supported authentication to b
             sasl.enabled.mechanisms: oauthbearer
             oauthbearer.sasl.jaas.config: |
               org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required ;
-          secrets:
-            - secretName: example</code></pre>
+    template:
+      pod:
+        volumes:
+          - name: example-secret
+            secret:
+              secretName: example
+      kafkaContainer:
+        volumeMounts:
+          - name: example-secret
+            mountPath: /mnt/secret-volume</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -3623,8 +3631,8 @@ Custom authentication allows for any type of Kafka-supported authentication to b
 </ul>
 </div>
 <div class="paragraph">
-<p>Secrets are mounted to <code>/opt/kafka/custom-authn-secrets/custom-listener-&lt;listener_name&gt;-&lt;port&gt;/&lt;secret_name&gt;</code> in the Kafka broker nodes' containers.
-For example, the mounted secret (<code>example</code>) in the example configuration would be located at <code>/opt/kafka/custom-authn-secrets/custom-listener-oauth-bespoke-9093/example</code>.</p>
+<p>Secrets are mounted to the <code>/mnt</code> directory in the Kafka broker nodes' containers.
+For example, the mounted secret (<code>example</code>) in the example configuration would be located at <code>/mnt/secret-volume</code>.</p>
 </div>
 <div class="sect2">
 <h3 id="configuring_customized_tls_client_authentication">12.1. Configuring customized TLS Client Authentication</h3>
@@ -3649,11 +3657,18 @@ For example, it&#8217;s possible to configure a custom truststore with multiple 
           listenerConfig:
             ssl.client.auth: required
             ssl.principal.mapping.rules: RULE:^CN=(.*?),(.*)$/$1@my-cluster.com/
-            ssl.truststore.location: /opt/kafka/custom-authn-secrets/custom-listener-tls-9093/custom-truststore/ca.crt
+            ssl.truststore.location: /mnt/my-truststore/ca.crt
             ssl.truststore.type: PEM
-          secrets:
-            - key: ca.crt
-              secretName: custom-truststore</code></pre>
+    template:
+      pod:
+        volumes:
+          - name: my-truststore
+            secret:
+              secretName: custom-truststore
+      kafkaContainer:
+        volumeMounts:
+          - name: my-truststore
+            mountPath: /mnt/my-truststore</code></pre>
 </div>
 </div>
 </div>
@@ -3772,7 +3787,7 @@ It must have the value <code>custom</code> for the type <code>KafkaListenerAuthe
 <td class="tableblock halign-left valign-top"><p class="tableblock">secrets</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#type-GenericSecretSource-reference"><code>GenericSecretSource</code></a> array</p></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Secrets to be mounted to <code>/opt/kafka/custom-authn-secrets/custom-listener-&lt;listener_name&gt;-&lt;port&gt;/&lt;secret_name&gt;</code>.</p>
+<p><strong>The <code>secrets</code> property has been deprecated.</strong> Please use the template section to configure additional volumes instead. Secrets to be mounted to <code>/opt/kafka/custom-authn-secrets/custom-listener-&lt;listener_name&gt;-&lt;port&gt;/&lt;secret_name&gt;</code>.</p>
 </div></div></td>
 </tr>
 </tbody>
@@ -16418,7 +16433,7 @@ Do not create, modify or delete <code>StrimziPodSet</code> resources as this mig
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-02-04 09:08:51 UTC
+Last updated 2025-02-05 08:25:46 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
