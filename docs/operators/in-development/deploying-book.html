@@ -110,25 +110,15 @@
 <li><a href="#deploying-cluster-operator-helm-chart-str">9. Deploying Strimzi using Helm</a></li>
 <li><a href="#ref-operator-cluster-feature-gates-str">10. Feature gates</a>
 <ul class="sectlevel2">
-<li><a href="#graduated_feature_gates_ga">10.1. Graduated feature gates (GA)</a>
+<li><a href="#feature_gate_releases">10.1. Feature gate releases</a></li>
+<li><a href="#graduated_feature_gates_ga">10.2. Graduated feature gates (GA)</a></li>
+<li><a href="#stable_feature_gates_beta">10.3. Stable feature gates (Beta)</a>
 <ul class="sectlevel3">
-<li><a href="#controlplanelistener_feature_gate">10.1.1. ControlPlaneListener feature gate</a></li>
-<li><a href="#serviceaccountpatching_feature_gate">10.1.2. ServiceAccountPatching feature gate</a></li>
-<li><a href="#ref-operator-use-strimzi-pod-sets-feature-gate-str">10.1.3. UseStrimziPodSets feature gate</a></li>
-<li><a href="#ref-operator-stable-connect-identities-feature-gate-str">10.1.4. StableConnectIdentities feature gate</a></li>
-<li><a href="#ref-operator-kafka-node-pools-feature-gate-str">10.1.5. KafkaNodePools feature gate</a></li>
-<li><a href="#ref-operator-unidirectional-topic-operator-feature-gate-str">10.1.6. UnidirectionalTopicOperator feature gate</a></li>
-<li><a href="#ref-operator-use-kraft-feature-gate-str">10.1.7. UseKRaft feature gate</a></li>
+<li><a href="#ref-operator-continue-reconciliation-on-manual-ru-failure-feature-gate-str">10.3.1. ContinueReconciliationOnManualRollingUpdateFailure feature gate</a></li>
 </ul>
 </li>
-<li><a href="#stable_feature_gates_beta">10.2. Stable feature gates (Beta)</a>
-<ul class="sectlevel3">
-<li><a href="#ref-operator-continue-reconciliation-on-manual-ru-failure-feature-gate-str">10.2.1. ContinueReconciliationOnManualRollingUpdateFailure feature gate</a></li>
-</ul>
-</li>
-<li><a href="#early_access_feature_gates_alpha">10.3. Early access feature gates (Alpha)</a></li>
-<li><a href="#enabling_feature_gates">10.4. Enabling feature gates</a></li>
-<li><a href="#ref-operator-cluster-feature-gate-releases-str">10.5. Feature gate releases</a></li>
+<li><a href="#early_access_feature_gates_alpha">10.4. Early access feature gates (Alpha)</a></li>
+<li><a href="#enabling_feature_gates">10.5. Enabling feature gates</a></li>
 </ul>
 </li>
 <li><a href="#overview-str">11. Configuring a deployment</a>
@@ -5653,286 +5643,41 @@ A feature gate at the GA stage cannot be disabled.</p>
 <div class="paragraph">
 <p>The supported feature gates are applicable to all Strimzi operators.
 While a particular feature gate might be used by one operator and ignored by the others, it can still be configured in all operators.
-When deploying the User Operator and Topic Operator within the context of the`Kafka` custom resource, the Cluster Operator automatically propagates the feature gates configuration to them.
+When deploying the User Operator and Topic Operator within the context of the <code>Kafka</code> custom resource, the Cluster Operator automatically propagates the feature gates configuration to them.
 When the User Operator and Topic Operator are deployed standalone, without a Cluster Operator available to configure the feature gates, they must be directly configured within their deployments.</p>
 </div>
 <div class="sect2">
-<h3 id="graduated_feature_gates_ga">10.1. Graduated feature gates (GA)</h3>
-<div class="paragraph">
-<p>Graduated feature gates have reached General Availability (GA) and are permanently enabled features.</p>
-</div>
-<div class="sect3">
-<h4 id="controlplanelistener_feature_gate">10.1.1. ControlPlaneListener feature gate</h4>
-<div class="paragraph">
-<p>The <code>ControlPlaneListener</code> feature gate separates listeners for data replication and coordination:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Connections between the Kafka controller and brokers use an internal <em>control plane listener</em> on port 9090.</p>
-</li>
-<li>
-<p>Replication of data between brokers, as well as internal connections from Strimzi operators, Cruise Control, or the Kafka Exporter use a <em>replication listener</em> on port 9091.</p>
-</li>
-</ul>
-</div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-With the <code>ControlPlaneListener</code> feature gate permanently enabled, direct upgrades or downgrades between Strimzi 0.22 and earlier and Strimzi 0.32 and newer are not possible.
-You must first upgrade or downgrade through one of the Strimzi versions in-between, disable the <code>ControlPlaneListener</code> feature gate, and then downgrade or upgrade (with the feature gate enabled) to the target version.
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect3">
-<h4 id="serviceaccountpatching_feature_gate">10.1.2. ServiceAccountPatching feature gate</h4>
-<div class="paragraph">
-<p>The <code>ServiceAccountPatching</code> feature gate ensures that the Cluster Operator always reconciles service accounts and updates them when needed.
-For example, when you change service account labels or annotations using the <code>template</code> property of a custom resource, the operator automatically updates them on the existing service account resources.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="ref-operator-use-strimzi-pod-sets-feature-gate-str">10.1.3. UseStrimziPodSets feature gate</h4>
-<div class="paragraph">
-<p>The <code>UseStrimziPodSets</code> feature gate introduced the <code>StrimziPodSet</code> custom resource for managing Kafka and ZooKeeper pods, replacing the use of Kubernetes <code>StatefulSet</code> resources.</p>
-</div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-With the <code>UseStrimziPodSets</code> feature gate permanently enabled, direct downgrades from Strimzi 0.35 and newer to Strimzi 0.27 or earlier are not possible.
-You must first downgrade through one of the Strimzi versions in-between, disable the <code>UseStrimziPodSets</code> feature gate, and then downgrade to Strimzi 0.27 or earlier.
-Before upgrading from Strimzi 0.34.0 or older to 0.46.0 or newer, make sure the <code>UseStrimziPodSets</code> feature gate is enabled and <code>StrimziPodSet</code> resources are in use for Kafka.
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect3">
-<h4 id="ref-operator-stable-connect-identities-feature-gate-str">10.1.4. StableConnectIdentities feature gate</h4>
-<div class="paragraph">
-<p>The <code>StableConnectIdentities</code> feature gate introduced the <code>StrimziPodSet</code> custom resource for managing Kafka Connect and Kafka MirrorMaker 2 pods, replacing the use of Kubernetes <code>Deployment</code> resources.</p>
-</div>
-<div class="paragraph">
-<p><code>StrimziPodSet</code> resources give the pods stable names and stable addresses, which do not change during rolling upgrades, replacing the use of Kubernetes <code>Deployment</code> resources.</p>
-</div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-With the <code>StableConnectIdentities</code> feature gate permanently enabled, direct downgrades from Strimzi 0.39 and newer to Strimzi 0.33 or earlier are not possible.
-You must first downgrade through one of the Strimzi versions in-between, disable the <code>StableConnectIdentities</code> feature gate, and then downgrade to Strimzi 0.33 or earlier.
-Before upgrading from Strimzi 0.38.0 or older to 0.46.0 or newer, make sure the <code>StableConnectIdentities</code> feature gate is enabled and <code>StrimziPodSet</code> resources are in use for Kafka Connect or Kafka MirrorMaker 2.
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect3">
-<h4 id="ref-operator-kafka-node-pools-feature-gate-str">10.1.5. KafkaNodePools feature gate</h4>
-<div class="paragraph">
-<p>The <code>KafkaNodePools</code> feature gate introduced the <code>KafkaNodePool</code> custom resource, enabling the configuration of distinct <em>pools</em> of Apache Kafka nodes within a Kafka cluster.
-Each pool can have its own unique configuration, as described in <a href="#config-node-pools-str">Configuring node pools</a>.</p>
-</div>
-<div class="paragraph">
-<p>To use node pools, ensure the following configuration is present:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>The <code>strimzi.io/node-pools: enabled</code> annotation in the <code>Kafka</code> resource.</p>
-</li>
-<li>
-<p>The <code>strimzi.io/cluster: &lt;cluster_name&gt;</code> label in each <code>KafkaNodePool</code> resource to associate it with the <code>Kafka</code> resource.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Examples of the <code>KafkaNodePool</code> resources can be found in the <a href="#config-examples-str">example configuration files</a> provided by Strimzi.</p>
-</div>
-<div class="paragraph">
-<div class="title">Downgrading from KafkaNodePools</div>
-<p>KRaft-based Kafka clusters always use <code>KafkaNodePools</code>.
-Downgrading to a cluster without node pools is not possible.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="ref-operator-unidirectional-topic-operator-feature-gate-str">10.1.6. UnidirectionalTopicOperator feature gate</h4>
-<div class="paragraph">
-<p>The <code>UnidirectionalTopicOperator</code> feature gate introduced a unidirectional topic management mode for creating Kafka topics using the <code>KafkaTopic</code> resource.
-Unidirectional mode is compatible with using KRaft for cluster management.
-With unidirectional mode, you create Kafka topics using the <code>KafkaTopic</code> resource, which are then managed by the Topic Operator.
-Any configuration changes to a topic outside the <code>KafkaTopic</code> resource are reverted.
-For more information on topic management, see <a href="#ref-operator-topic-str">Topic management</a>.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="ref-operator-use-kraft-feature-gate-str">10.1.7. UseKRaft feature gate</h4>
-<div class="paragraph">
-<p>The <code>UseKRaft</code> feature gate introduced the KRaft (Kafka Raft metadata) mode for running Apache Kafka clusters without ZooKeeper.
-ZooKeeper and KRaft are mechanisms used to manage metadata and coordinate operations in Kafka clusters.
-KRaft mode eliminates the need for an external coordination service like ZooKeeper.
-In KRaft mode, Kafka nodes take on the roles of brokers, controllers, or both.
-They collectively manage the metadata, which is replicated across partitions.
-Controllers are responsible for coordinating operations and maintaining the cluster&#8217;s state.
-For more information on using KRraft, see <a href="#assembly-kraft-mode-str">Using Kafka in KRaft mode</a>.</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="stable_feature_gates_beta">10.2. Stable feature gates (Beta)</h3>
-<div class="paragraph">
-<p>Stable feature gates have reached a beta level of maturity, and are generally enabled by default for all users.
-Stable feature gates are production-ready, but they can still be disabled.</p>
-</div>
-<div class="sect3">
-<h4 id="ref-operator-continue-reconciliation-on-manual-ru-failure-feature-gate-str">10.2.1. ContinueReconciliationOnManualRollingUpdateFailure feature gate</h4>
-<div class="paragraph">
-<p>The <code>ContinueReconciliationOnManualRollingUpdateFailure</code> feature gate has a default state of <em>enabled</em>.</p>
-</div>
-<div class="paragraph">
-<p>The <code>ContinueReconciliationOnManualRollingUpdateFailure</code> feature gate allows the Cluster Operator to continue a reconciliation if the manual rolling update of the operands fails.
-It applies to the following operands that support manual rolling updates using the <code>strimzi.io/manual-rolling-update</code> annotation:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Kafka</p>
-</li>
-<li>
-<p>Kafka Connect</p>
-</li>
-<li>
-<p>Kafka MirrorMaker 2</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Continuing the reconciliation after a manual rolling update failure allows the operator to recover from various situations that might prevent the update from succeeding.
-For example, a missing Persistent Volume Claim (PVC) or Persistent Volume (PV) might cause the manual rolling update to fail.
-However, the PVCs and PVs are created only in a later stage of the reconciliation.
-By continuing the reconciliation after this failure, the process can recreate the missing PVC or PV and recover.</p>
-</div>
-<div class="paragraph">
-<p>The <code>ContinueReconciliationOnManualRollingUpdateFailure</code> feature gate is used by the Cluster Operator.
-It is ignored by the User and Topic Operators.</p>
-</div>
-<div class="paragraph">
-<div class="title">Disabling the ContinueReconciliationOnManualRollingUpdateFailure feature gate</div>
-<p>To disable the <code>ContinueReconciliationOnManualRollingUpdateFailure</code> feature gate, specify <code>-ContinueReconciliationOnManualRollingUpdateFailure</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="early_access_feature_gates_alpha">10.3. Early access feature gates (Alpha)</h3>
-<div class="paragraph">
-<p>Early access feature gates have not yet reached the beta stage, and are disabled by default.
-An early access feature gate provides an opportunity for assessment before its functionality is permanently incorporated into Strimzi.
-Currently, there are no alpha level feature gates.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="enabling_feature_gates">10.4. Enabling feature gates</h3>
-<div class="paragraph">
-<p>To modify a feature gate&#8217;s default state, use the <code>STRIMZI_FEATURE_GATES</code> environment variable in the operator&#8217;s configuration.
-You can modify multiple feature gates using this single environment variable.
-Specify a comma-separated list of feature gate names and prefixes.
-A <code>+</code> prefix enables the feature gate and a <code>-</code> prefix  disables it.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example feature gate configuration that enables <code>FeatureGate1</code> and disables <code>FeatureGate2</code></div>
-<div class="content">
-<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
-  - name: STRIMZI_FEATURE_GATES
-    value: +FeatureGate1,-FeatureGate2</code></pre>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="ref-operator-cluster-feature-gate-releases-str">10.5. Feature gate releases</h3>
+<h3 id="feature_gate_releases">10.1. Feature gate releases</h3>
 <div class="paragraph _abstract">
 <p>Feature gates have three stages of maturity:</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>Alpha — typically disabled by default</p>
-</li>
-<li>
-<p>Beta — typically enabled by default</p>
-</li>
-<li>
-<p>General Availability (GA) — typically always enabled</p>
-</li>
-</ul>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Alpha</dt>
+<dd>
+<p>Alpha stage features are disabled by default.<br>
+They might be experimental or unstable, subject to change, or not sufficiently tested for production use.</p>
+</dd>
+<dt class="hdlist1">Beta</dt>
+<dd>
+<p>Beta stage features are enabled by default, but they can be disabled if needed.<br>
+They are well tested and their functionality is not likely to change.</p>
+</dd>
+<dt class="hdlist1">General Availability (GA)</dt>
+<dd>
+<p>GA features are always enabled and cannot be disabled.<br>
+They are stable and should not change in the future.
+Feature gates might be removed when they reach GA, which means that the feature was incorporated into the Strimzi core features.</p>
+</dd>
+</dl>
 </div>
 <div class="paragraph">
-<p>Alpha stage features might be experimental or unstable, subject to change, or not sufficiently tested for production use.
-Beta stage features are well tested and their functionality is not likely to change.
-GA stage features are stable and should not change in the future.
-Alpha and beta stage features are removed if they do not prove to be useful.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>The <code>ControlPlaneListener</code> feature gate moved to GA stage in Strimzi 0.32. It is now permanently enabled and cannot be disabled.</p>
-</li>
-<li>
-<p>The <code>ServiceAccountPatching</code> feature gate moved to GA stage in Strimzi 0.30. It is now permanently enabled and cannot be disabled.</p>
-</li>
-<li>
-<p>The <code>UseStrimziPodSets</code> feature gate moved to GA stage in Strimzi 0.35 and the support for StatefulSets is completely removed. It is now permanently enabled and cannot be disabled.</p>
-</li>
-<li>
-<p>The <code>StableConnectIdentities</code> feature gate moved to GA stage in Strimzi 0.39.
-It is now permanently enabled and cannot be disabled.</p>
-</li>
-<li>
-<p>The <code>KafkaNodePools</code> feature gate moved to GA stage in Strimzi 0.41.
-It is now permanently enabled and cannot be disabled.
-To use <code>KafkaNodePool</code> resources, you still need to use the <code>strimzi.io/node-pools: enabled</code> annotation on the <code>Kafka</code> custom resources.</p>
-</li>
-<li>
-<p>The <code>UnidirectionalTopicOperator</code> feature gate moved to GA stage in Strimzi 0.41.
-It is now permanently enabled and cannot be disabled.</p>
-</li>
-<li>
-<p>The <code>UseKRaft</code> feature gate moved to GA stage in Strimzi 0.42.
-It is now permanently enabled and cannot be disabled.
-To use KRaft (ZooKeeper-less Apache Kafka), you still need to use the <code>strimzi.io/kraft: enabled</code> annotation on the <code>Kafka</code> custom resources.</p>
-</li>
-<li>
-<p>The <code>ContinueReconciliationOnManualRollingUpdateFailure</code> feature was introduced in Strimzi 0.41 and moved to beta stage in Strimzi 0.44.0.
-It is now enabled by default, but can be disabled if needed.</p>
-</li>
-</ul>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Feature gates might be removed when they reach GA. This means that the feature was incorporated into the Strimzi core features and can no longer be disabled.
-</td>
-</tr>
-</table>
+<p>Alpha and beta stage features are removed if they do not prove to be useful.
+When a feature gate reaches GA, it is permanently enabled and can no longer be disabled.
+The following table shows the maturity of the feature gates introduced across Strimzi versions.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 9. Feature gates and the Strimzi versions when they moved to alpha, beta, or GA</caption>
+<caption class="title">Table 9. Feature gate maturity across Strimzi versions</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 25%;">
@@ -5998,42 +5743,81 @@ Feature gates might be removed when they reach GA. This means that the feature w
 </tr>
 </tbody>
 </table>
-<div class="paragraph">
-<p>If a feature gate is enabled, you may need to disable it before upgrading or downgrading from a specific Strimzi version (or first upgrade / downgrade to a version of Strimzi where it can be disabled).
-The following table shows which feature gates you need to disable when upgrading or downgrading Strimzi versions.</p>
 </div>
-<table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 10. Feature gates to disable when upgrading or downgrading Strimzi</caption>
-<colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 33.3333%;">
-<col style="width: 33.3334%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Disable Feature gate</th>
-<th class="tableblock halign-left valign-top">Upgrading from Strimzi version</th>
-<th class="tableblock halign-left valign-top">Downgrading to Strimzi version</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ControlPlaneListener</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">0.22 and earlier</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">0.22 and earlier</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>UseStrimziPodSets</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">0.27 and earlier</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>StableConnectIdentities</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">-</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">0.33 and earlier</p></td>
-</tr>
-</tbody>
-</table>
+<div class="sect2">
+<h3 id="graduated_feature_gates_ga">10.2. Graduated feature gates (GA)</h3>
+<div class="paragraph">
+<p>For information on feature gates that have reached GA, see the documentation for the Strimzi version in which they were introduced.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="stable_feature_gates_beta">10.3. Stable feature gates (Beta)</h3>
+<div class="paragraph">
+<p>Stable feature gates have reached a beta level of maturity, and are generally enabled by default for all users.
+Stable feature gates are production-ready, but they can still be disabled.</p>
+</div>
+<div class="sect3">
+<h4 id="ref-operator-continue-reconciliation-on-manual-ru-failure-feature-gate-str">10.3.1. ContinueReconciliationOnManualRollingUpdateFailure feature gate</h4>
+<div class="paragraph">
+<p>The <code>ContinueReconciliationOnManualRollingUpdateFailure</code> feature gate has a default state of <em>enabled</em>.</p>
+</div>
+<div class="paragraph">
+<p>The <code>ContinueReconciliationOnManualRollingUpdateFailure</code> feature gate allows the Cluster Operator to continue a reconciliation if the manual rolling update of the operands fails.
+It applies to the following operands that support manual rolling updates using the <code>strimzi.io/manual-rolling-update</code> annotation:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Kafka</p>
+</li>
+<li>
+<p>Kafka Connect</p>
+</li>
+<li>
+<p>Kafka MirrorMaker 2</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Continuing the reconciliation after a manual rolling update failure allows the operator to recover from various situations that might prevent the update from succeeding.
+For example, a missing Persistent Volume Claim (PVC) or Persistent Volume (PV) might cause the manual rolling update to fail.
+However, the PVCs and PVs are created only in a later stage of the reconciliation.
+By continuing the reconciliation after this failure, the process can recreate the missing PVC or PV and recover.</p>
+</div>
+<div class="paragraph">
+<p>The <code>ContinueReconciliationOnManualRollingUpdateFailure</code> feature gate is used by the Cluster Operator.
+It is ignored by the User and Topic Operators.</p>
+</div>
+<div class="paragraph">
+<div class="title">Disabling the ContinueReconciliationOnManualRollingUpdateFailure feature gate</div>
+<p>To disable the <code>ContinueReconciliationOnManualRollingUpdateFailure</code> feature gate, specify <code>-ContinueReconciliationOnManualRollingUpdateFailure</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="early_access_feature_gates_alpha">10.4. Early access feature gates (Alpha)</h3>
+<div class="paragraph">
+<p>Early access feature gates have not yet reached the beta stage, and are disabled by default.
+An early access feature gate provides an opportunity for assessment before its functionality is permanently incorporated into Strimzi.
+Currently, there are no alpha level feature gates.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="enabling_feature_gates">10.5. Enabling feature gates</h3>
+<div class="paragraph">
+<p>To modify a feature gate&#8217;s default state, use the <code>STRIMZI_FEATURE_GATES</code> environment variable in the operator&#8217;s configuration.
+You can modify multiple feature gates using this single environment variable.
+Specify a comma-separated list of feature gate names and prefixes.
+A <code>+</code> prefix enables the feature gate and a <code>-</code> prefix  disables it.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example feature gate configuration that enables <code>FeatureGate1</code> and disables <code>FeatureGate2</code></div>
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">env:
+  - name: STRIMZI_FEATURE_GATES
+    value: +FeatureGate1,-FeatureGate2</code></pre>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -10188,7 +9972,7 @@ For more information on configuring a <code>KafkaUser</code> resource to use sim
 The following table shows the default names configured for the topics and cluster group ID.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 11. Names for the access rights configuration</caption>
+<caption class="title">Table 10. Names for the access rights configuration</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -11545,7 +11329,7 @@ In practice, this means all instances form a cluster and use the same internal t
 <p>The following table describes connector properties and the connectors you configure to use them.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 12. MirrorMaker 2 connector configuration properties</caption>
+<caption class="title">Table 11. MirrorMaker 2 connector configuration properties</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 20%;">
@@ -12209,7 +11993,7 @@ Producer and consumer configuration options depend on the MirrorMaker 2 implemen
 <p>The following tables describe the producers and consumers for each of the connectors and where you can add configuration.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 13. Source connector producers and consumers</caption>
+<caption class="title">Table 12. Source connector producers and consumers</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 20%;">
@@ -12247,7 +12031,7 @@ Producer and consumer configuration options depend on the MirrorMaker 2 implemen
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 14. Checkpoint connector producers and consumers</caption>
+<caption class="title">Table 13. Checkpoint connector producers and consumers</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 20%;">
@@ -12290,7 +12074,7 @@ You can set <code>offset-syncs.topic.location</code> to <code>target</code> to u
 </table>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 15. Heartbeat connector producer</caption>
+<caption class="title">Table 14. Heartbeat connector producer</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 20%;">
@@ -16582,7 +16366,7 @@ If you scale your Kafka cluster while using external listeners, it might trigger
 <p>From the listener configuration, the resulting listener bootstrap and per-broker service names are structured according to the following naming conventions:</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 16. Listener naming conventions</caption>
+<caption class="title">Table 15. Listener naming conventions</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 40%;">
@@ -16626,7 +16410,7 @@ The resulting external listener naming convention varies slightly.
 The specific combinations of listener name and port configuration values in the following table are backwards compatible.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 17. Backwards compatible listener name and port combinations</caption>
+<caption class="title">Table 16. Backwards compatible listener name and port combinations</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 16.6666%;">
@@ -18206,7 +17990,7 @@ A rolling update is also started if you update a Kafka listener certificate in a
 <p>For external listeners which have TLS encryption enabled, the hostnames you need to specify in certificates depends on the external listener <code>type</code>.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 18. SANs for each type of external listener</caption>
+<caption class="title">Table 17. SANs for each type of external listener</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -22973,7 +22757,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </table>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
+<caption class="title">Table 18. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -22992,7 +22776,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
+<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -23019,7 +22803,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 21. Fields in the <code><em>&lt;cluster_name&gt;</em>-<em>&lt;pool_name&gt;</em>-<em>&lt;node_id&gt;</em></code> secret</caption>
+<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-<em>&lt;pool_name&gt;</em>-<em>&lt;node_id&gt;</em></code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23042,7 +22826,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 22. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
+<caption class="title">Table 21. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23074,7 +22858,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 23. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
+<caption class="title">Table 22. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23106,7 +22890,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 24. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
+<caption class="title">Table 23. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23138,7 +22922,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 25. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
+<caption class="title">Table 24. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23170,7 +22954,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 26. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
+<caption class="title">Table 25. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23216,7 +23000,7 @@ This secret must be accessible to the Strimzi components and for administrative 
 You can enforce this using Kubernetes role-based access controls, if necessary.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 27. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
+<caption class="title">Table 26. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -23235,7 +23019,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 28. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
+<caption class="title">Table 27. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -23271,7 +23055,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 <p>When a user is created using the User Operator, a secret is generated using the name of the user.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 29. Fields in the <code><em>user_name</em></code> secret</caption>
+<caption class="title">Table 28. Fields in the <code><em>user_name</em></code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 30%;">
@@ -23908,7 +23692,7 @@ Instead, follow the procedure for <a href="#renewing-your-own-ca-certificates-st
 <li>
 <p>Apply the <code>strimzi.io/force-replace</code> annotation to the <code>Secret</code> that contains the private key that you want to renew.</p>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 30. Commands for replacing private keys</caption>
+<caption class="title">Table 29. Commands for replacing private keys</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -26705,7 +26489,7 @@ Fewer data movements at a single time reduces the load on the cluster.</p>
 <p>The following table explains the properties contained in the optimization proposal&#8217;s summary.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 31. Properties contained in an optimization proposal summary</caption>
+<caption class="title">Table 30. Properties contained in an optimization proposal summary</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -26850,7 +26634,7 @@ Each broker has a set of key metrics represented by three values:</p>
 </div>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 32. Properties captured in the config map</caption>
+<caption class="title">Table 31. Properties captured in the config map</caption>
 <colgroup>
 <col style="width: 35%;">
 <col style="width: 65%;">
@@ -27002,7 +26786,7 @@ Cruise Control does not perform inter-broker and intra-broker balancing at the s
 </ul>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 33. Rebalance configuration tuning properties</caption>
+<caption class="title">Table 32. Rebalance configuration tuning properties</caption>
 <colgroup>
 <col style="width: 36.3636%;">
 <col style="width: 36.3636%;">
@@ -27256,7 +27040,7 @@ The deployment is successful when the <code>AVAILABLE</code> output shows <code>
 <p>The following table shows the three topics that are automatically created when Cruise Control is deployed. These topics are required for Cruise Control to work properly and must not be deleted or changed. You can change the name of the topic using the specified configuration option.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 34. Topics created when Cruise Control is deployed</caption>
+<caption class="title">Table 33. Topics created when Cruise Control is deployed</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 16.6666%;">
@@ -30053,7 +29837,7 @@ For example, the value of a label may be derived from the name of a Kafka server
 When deploying Prometheus metrics configuration, you can can deploy the example custom resource or copy the metrics configuration to your own custom resource definition.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 35. Example custom resources with metrics configuration</caption>
+<caption class="title">Table 34. Example custom resources with metrics configuration</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -30176,7 +29960,7 @@ For example, the Grafana dashboard for Strimzi operators provides information on
 The dashboards are populated with a representative set of metrics for monitoring.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 36. Example Grafana dashboard files</caption>
+<caption class="title">Table 35. Example Grafana dashboard files</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -31241,7 +31025,7 @@ For the latest information, see the <a href="https://opentelemetry.io/docs/" tar
 <p>The following table describes the key environment variables for setting up tracing with OpenTelemetry.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 37. OpenTelemetry environment variables</caption>
+<caption class="title">Table 36. OpenTelemetry environment variables</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 20%;">
@@ -32237,7 +32021,7 @@ You can use the configuration to control how certificates are watched for update
 For more information on how the environment variables work, see <a href="#proc-drain-cleaner-certs-renewing-str">Watching the TLS certificates used by the Strimzi Drain Cleaner</a>.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 38. Chart configuration options</caption>
+<caption class="title">Table 37. Chart configuration options</caption>
 <colgroup>
 <col style="width: 45.4545%;">
 <col style="width: 36.3636%;">
@@ -32638,7 +32422,7 @@ But you can disable the watching of certificates by setting the <code>STRIMZI_CE
 <p>With <code>STRIMZI_CERTIFICATE_WATCH_ENABLED</code> enabled, you can also use the following environment variables for watching TLS certificates.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 39. Drain Cleaner environment variables for watching TLS certificates</caption>
+<caption class="title">Table 38. Drain Cleaner environment variables for watching TLS certificates</caption>
 <colgroup>
 <col style="width: 45.4545%;">
 <col style="width: 36.3636%;">
@@ -32928,7 +32712,7 @@ You can export and monitor restart events using metrics collection tools like Pr
 You can check the reason by fetching information on the restart event.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 40. Restart reasons</caption>
+<caption class="title">Table 39. Restart reasons</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 66.6667%;">
@@ -33534,6 +33318,10 @@ Refer to the documentation supporting a specific version of Strimzi for informat
 </li>
 </ul>
 </div>
+<div class="paragraph">
+<p>Currently, no feature gates require enabling or disabling before upgrading.
+If a feature gate introduces such a requirement, the details will be provided here.</p>
+</div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
 <ol class="arabic">
@@ -34044,6 +33832,19 @@ you can revert your installation.</p>
 <div class="paragraph">
 <p>This procedure describes how to downgrade a Cluster Operator deployment to a previous version.</p>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Kafka clusters managed by Strimzi always use node pools.
+Downgrading to a cluster without node pools is not possible.
+</td>
+</tr>
+</table>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -34056,9 +33857,8 @@ you can revert your installation.</p>
 </ul>
 </div>
 <div class="paragraph">
-<div class="title">Before you begin</div>
-<p>Check the downgrade requirements of the <a href="#ref-operator-cluster-feature-gates-str">Strimzi feature gates</a>.
-If a feature gate is permanently enabled, you may need to downgrade to a version that allows you to disable it before downgrading to your target version.</p>
+<p>Currently, no feature gates require enabling or disabling before downgrading.
+If a feature gate introduces such a requirement, the details will be provided here.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
@@ -35762,7 +35562,7 @@ You can also override <code>min.insync.replicas</code> at the topic level in the
 <p>The following table describes how this configuration operates depending on the availability of followers that replicate the leader replica.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 41. Follower availability</caption>
+<caption class="title">Table 40. Follower availability</caption>
 <colgroup>
 <col style="width: 28.5714%;">
 <col style="width: 42.8571%;">
