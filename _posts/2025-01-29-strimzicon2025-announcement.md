@@ -39,7 +39,7 @@ From the community to the community, this is the best way to share.
 Paolo Patierno and Kate Stanley, as maintainers and contributors in the Strimzi community, have been organizing the conference together with the CNCF team, and will be your host during the event.
 
 All the submitted sessions will be evaluated by the StrimziCon program committee made up of people from different companies which already use Strimzi in production as adopters.
-We'll have representatives from Apple, Axual, IBM, LittleHorse Enterprises, Maersk, and Red Hat:
+We'll have representatives from Apple, Axual, Corti, IBM, LittleHorse Enterprises, and Red Hat:
 
 * [Paolo Patierno](https://www.linkedin.com/in/paolopatierno/) (Senior Principal Software Engineer @Red Hat)
 * [Kate Stanley](https://www.linkedin.com/in/katherine-kate-stanley-3796b579/) (Principal Software Engineer @Red Hat)
@@ -49,7 +49,7 @@ We'll have representatives from Apple, Axual, IBM, LittleHorse Enterprises, Maer
 * [Daniel Mulder](https://www.linkedin.com/in/daniel-mulder-81923981/) (Senior Cloud DevOps Engineer @Axual)
 * [Gantigmaa Selenge](https://www.linkedin.com/in/gselenge/) (Senior Software Engineer @Red Hat)
 * [Maros Orsak](https://www.linkedin.com/in/majkl-orsak/) (Senior Software Quality Engineer @Red Hat)
-* [Steffen Wirenfeldt Karlsson](https://www.linkedin.com/in/steffenwk/) (Lead Software Engineer @Maersk)
+* [Steffen Wirenfeldt Karlsson](https://www.linkedin.com/in/steffenwk/) (Senior Staff Platform Engineer @Corti)
 
 The committee members will leverage their experience and knowledge on the project as users and contributors in order to select the best proposals and make an awesome agenda.
 
