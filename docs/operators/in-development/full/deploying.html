@@ -738,7 +738,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#con-securing-client-labels-str">15.3.1. Associating users with Kafka clusters</a></li>
 <li><a href="#con-securing-client-authentication-str">15.3.2. Configuring user authentication</a></li>
 <li><a href="#con-securing-client-authorization-str">15.3.3. Configuring user authorization</a></li>
-<li><a href="#con-configuring-client-quotas-str">15.3.4. Configuring user quotas</a></li>
+<li><a href="#con-securing-client-acls-str">15.3.4. Defining ACL rules</a></li>
+<li><a href="#con-configuring-client-quotas-str">15.3.5. Configuring user quotas</a></li>
 </ul>
 </li>
 <li><a href="#setup-external-clients-str">15.4. Example: Setting up secure client access</a>
@@ -18509,7 +18510,7 @@ The authorization method is defined in the <code>type</code> field.</p>
 and are supported by all authorization mechanisms.</p>
 </div>
 <div class="paragraph">
-<p>To designate super users for a Kafka cluster, add a list of user principals to the <code>superUsers</code> property.
+<p>To designate super users for a Kafka cluster, add a list of user principals to the <code>superUsers</code> property of the <code>Kafka</code> resource.
 If a user uses mTLS authentication, the username is the common name from the TLS certificate subject prefixed with <code>CN=</code>.
 If you are not using the User Operator and using your own certificates for mTLS, the username is the full certificate subject.</p>
 </div>
@@ -18924,31 +18925,66 @@ You can disable it using the <code>STRIMZI_ACLS_ADMIN_API_SUPPORTED</code> envir
 Whether such a <code>KafkaUser</code> can still access resources depends on the authorizer being used.
 For example, for <code>simple</code> authorization, this is determined by the <code>allow.everyone.if.no.acl.found</code> configuration in the Kafka cluster.</p>
 </div>
-<div class="sect4">
-<h5 id="acl_rules">ACL rules</h5>
+</div>
+<div class="sect3">
+<h4 id="con-securing-client-acls-str">15.3.4. Defining ACL rules</h4>
 <div class="paragraph">
-<p><code>simple</code> authorization uses ACL rules to manage access to Kafka brokers.</p>
+<p>The <code>simple</code> authorization mechanism uses ACL rules to manage access to Kafka brokers.
+Enabling <code>simple</code> authorization for a Kafka cluster means access is denied unless explicit ACL rules are configured in the <code>KafkaUser</code> resource.
+ACL rules define access rights for users, which you specify using the <code>acls</code> property.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example user with ACL rules configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: my-user
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource: # <b class="conum">(1)</b>
+          type: topic
+          name: my-topic
+          patternType: literal
+        operations: # <b class="conum">(2)</b>
+          - Describe
+          - Read
+      - resource:
+          type: group
+          name: my-group
+          patternType: literal
+        operations:
+          - Read</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Defines the Kafka resource type to which the ACL rules apply, such as <code>topic</code> or <code>group</code>, the name of the resource, and how the name is matched by <code>patternType</code>.</p>
+</li>
+<li>
+<p>Specifies the operations, such as <code>Describe</code>, <code>Read</code>, that the user is allowed to perform on the resource.</p>
+</li>
+</ol>
 </div>
 <div class="paragraph">
-<p>ACL rules grant access rights to the user, which you specify in the <code>acls</code> property.</p>
+<p>The User Operator manages ACLs for standard Kafka users but cannot define rules for special usernames such as <code>User:ANONYMOUS</code> or <code>User:*</code>.
+These users are ignored because their names are not valid Kubernetes resource names.
+You can manually configure ACL rules for these usernames using tools like <code>kafka-acls.sh</code>.
+When these manual configurations are present in Kafka, the User Operator logs a message for information but does not delete them.</p>
 </div>
 <div class="paragraph">
-<p>For more information about the <code>AclRule</code> object, see the <a href="./configuring.html#type-AclRule-reference" target="_blank" rel="noopener"><code>AclRule</code> schema reference</a>.</p>
-</div>
-</div>
-<div class="sect4">
-<h5 id="super_user_access_to_kafka_brokers">Super user access to Kafka brokers</h5>
-<div class="paragraph">
-<p>If a user is added to a list of super users in a Kafka broker configuration,
-the user is allowed unlimited access to the cluster regardless of any authorization constraints defined in ACLs in <code>KafkaUser</code>.</p>
-</div>
-<div class="paragraph">
-<p>For more information on configuring super user access to brokers, see <a href="#con-securing-kafka-authorization-str">Kafka authorization</a>.</p>
-</div>
+<p>For more information about the <code>AclRule</code> object and the properties used to configure ACLs, see the <a href="./configuring.html#type-AclRule-reference" target="_blank" rel="noopener"><code>AclRule</code> schema reference</a>.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-configuring-client-quotas-str">15.3.4. Configuring user quotas</h4>
+<h4 id="con-configuring-client-quotas-str">15.3.5. Configuring user quotas</h4>
 <div class="paragraph _abstract">
 <p>Configure the <code>spec</code> for the <code>KafkaUser</code> resource to enforce quotas so that a user does not overload Kafka brokers.
 Set size-based network usage and time-based CPU utilization thresholds.</p>
@@ -37553,7 +37589,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-02-10 12:16:02 UTC
+Last updated 2025-02-10 21:35:35 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
