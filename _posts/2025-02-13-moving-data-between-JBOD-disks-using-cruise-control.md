@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Moving data between JBOD disks using Cruise Control"
-date: 2025-01-31
+date: 2025-02-13
 author: shubham_rawat
 ---
 
