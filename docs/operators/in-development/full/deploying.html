@@ -973,8 +973,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#assembly-downgrade-str">30. Downgrading Strimzi</a>
 <ul class="sectlevel2">
-<li><a href="#proc-downgrade-cluster-operator-str">30.1. Downgrading the Cluster Operator to a previous version</a></li>
-<li><a href="#proc-downgrade-kafka-kraft-str">30.2. Downgrading Kafka clusters and client applications</a></li>
+<li><a href="#proc-downgrade-kafka-kraft-str">30.1. Downgrading Kafka clusters and client applications</a></li>
+<li><a href="#proc-downgrade-cluster-operator-str">30.2. Downgrading the Cluster Operator to a previous version</a></li>
 </ul>
 </li>
 <li><a href="#assembly-uninstalling-str">31. Uninstalling Strimzi</a>
@@ -34301,12 +34301,31 @@ status:
 <div class="sectionbody">
 <div class="paragraph _abstract">
 <p>If you are encountering issues with the version of Strimzi you upgraded to,
-you can revert your installation to the previous version.</p>
+you can revert to a previous version.</p>
 </div>
 <div class="paragraph">
-<p>If you used the YAML installation files to install Strimzi, you can use the YAML installation files from the previous release to perform the downgrade procedures.
-You can downgrade Strimzi by updating the Cluster Operator and the version of Kafka you are using.
-Kafka version downgrades are performed by the Cluster Operator.</p>
+<p>If you installed Strimzi using the YAML installation files, you can use the files from the previous release to perform the downgrade.</p>
+</div>
+<div class="paragraph">
+<p>Downgrading Strimzi involves two key steps:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Downgrading the Kafka cluster to a version supported by the target Cluster Operator (if required).</p>
+</li>
+<li>
+<p>Downgrading the Cluster Operator to the previous release.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>If downgrading through multiple versions, you may need to repeat these steps.</p>
+</div>
+<div class="paragraph">
+<p>Always downgrade Kafka before the Cluster Operator to maintain compatibility.
+Ensure that the Kafka version you downgrade to is supported by the target Cluster Operator.
+The metadata version of the Kafka cluster must not be higher than the maximum version supported by the downgraded Kafka version.</p>
 </div>
 <div class="admonitionblock warning">
 <table>
@@ -34316,122 +34335,13 @@ Kafka version downgrades are performed by the Cluster Operator.</p>
 </td>
 <td class="content">
 The following downgrade instructions are only suitable if you installed Strimzi using the installation files.
-If you installed Strimzi using another method, like <a href="https://operatorhub.io/operator/strimzi-kafka-operator" target="_blank" rel="noopener">OperatorHub.io</a>, downgrade may not be supported by that method unless specified in their documentation.
-To ensure a successful downgrade process, it is essential to use a supported approach.
+If you installed Strimzi using another method, such as <a href="https://operatorhub.io/operator/strimzi-kafka-operator" target="_blank" rel="noopener">OperatorHub.io</a>, downgrade may not be supported by that method unless specified in its documentation.
 </td>
 </tr>
 </table>
 </div>
 <div class="sect2">
-<h3 id="proc-downgrade-cluster-operator-str">30.1. Downgrading the Cluster Operator to a previous version</h3>
-<div class="paragraph">
-<p>If you are encountering issues with Strimzi,
-you can revert your installation.</p>
-</div>
-<div class="paragraph">
-<p>This procedure describes how to downgrade a Cluster Operator deployment to a previous version.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Kafka clusters managed by Strimzi always use node pools.
-Downgrading to a cluster without node pools is not possible.
-</td>
-</tr>
-</table>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>An existing Cluster Operator deployment is available.</p>
-</li>
-<li>
-<p>You have <a href="#downloads-str">downloaded the installation files for the previous version</a>.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Currently, no feature gates require enabling or disabling before downgrading.
-If a feature gate introduces such a requirement, the details will be provided here.</p>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Take note of any configuration changes made during the previous Cluster Operator installation.</p>
-<div class="paragraph">
-<p>Any changes will be <strong>overwritten</strong> by the previous version of the Cluster Operator.</p>
-</div>
-</li>
-<li>
-<p>Revert your custom resources to reflect the supported configuration options available for the version of Strimzi you are downgrading to.</p>
-</li>
-<li>
-<p>Update the Cluster Operator.</p>
-<div class="olist loweralpha">
-<ol class="loweralpha" type="a">
-<li>
-<p>Modify the installation files for the previous version according to the namespace the Cluster Operator is running in.</p>
-<div class="paragraph">
-<p>On Linux, use:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">sed -i 's/namespace: .*/namespace: my-cluster-operator-namespace/' install/cluster-operator/*RoleBinding*.yaml</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>On MacOS, use:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">sed -i '' 's/namespace: .*/namespace: my-cluster-operator-namespace/' install/cluster-operator/*RoleBinding*.yaml</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>If you modified one or more environment variables in your existing Cluster Operator <code>Deployment</code>, edit the
-<code>install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml</code> file to use those environment variables.</p>
-</li>
-</ol>
-</div>
-</li>
-<li>
-<p>When you have an updated configuration, deploy it along with the rest of the installation resources:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl replace -f install/cluster-operator</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Wait for the rolling updates to complete.</p>
-</div>
-</li>
-<li>
-<p>Get the image for the Kafka pod to ensure the downgrade was successful:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pod my-cluster-kafka-0 -o jsonpath='{.spec.containers[0].image}'</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The image tag shows the new Strimzi version followed by the Kafka version.
-For example, <code>&lt;strimzi_version&gt;-kafka-&lt;kafka_version&gt;</code>.</p>
-</div>
-<div class="paragraph">
-<p>You can also <a href="#con-upgrade-status-str">check the downgrade has completed successfully from the status of the <code>Kafka</code> resource</a>.</p>
-</div>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect2">
-<h3 id="proc-downgrade-kafka-kraft-str">30.2. Downgrading Kafka clusters and client applications</h3>
+<h3 id="proc-downgrade-kafka-kraft-str">30.1. Downgrading Kafka clusters and client applications</h3>
 <div class="paragraph _abstract">
 <p>Downgrade a Kafka cluster to an earlier version.
 When downgrading a Kafka cluster to a lower version, like moving from 3.9.0 to 3.8.0, ensure that the metadata version used by the Kafka cluster is a version supported by the Kafka version you want to downgrade to.
@@ -34572,6 +34482,110 @@ spec:
 <p>Downgrade all client applications (consumers) to use the previous version of the client binaries.</p>
 <div class="paragraph">
 <p>The Kafka cluster and clients are now using the previous Kafka version.</p>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-downgrade-cluster-operator-str">30.2. Downgrading the Cluster Operator to a previous version</h3>
+<div class="paragraph _abstract">
+<p>This procedure describes how to downgrade a Cluster Operator deployment to a previous version.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Kafka clusters managed by Strimzi always use node pools.
+Downgrading to a cluster without node pools is not possible.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>An existing Cluster Operator deployment is available.</p>
+</li>
+<li>
+<p>You have <a href="#downloads-str">downloaded the installation files for the previous version</a>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Currently, no feature gates require enabling or disabling before downgrading.
+If a feature gate introduces such a requirement, the details will be provided here.</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Take note of any configuration changes made during the previous Cluster Operator installation.</p>
+<div class="paragraph">
+<p>Any changes will be <strong>overwritten</strong> by the previous version of the Cluster Operator.</p>
+</div>
+</li>
+<li>
+<p>Revert your custom resources to reflect the supported configuration options available for the version of Strimzi you are downgrading to.</p>
+</li>
+<li>
+<p>Update the Cluster Operator.</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>Modify the installation files for the previous version according to the namespace the Cluster Operator is running in.</p>
+<div class="paragraph">
+<p>On Linux, use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">sed -i 's/namespace: .*/namespace: my-cluster-operator-namespace/' install/cluster-operator/*RoleBinding*.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On MacOS, use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">sed -i '' 's/namespace: .*/namespace: my-cluster-operator-namespace/' install/cluster-operator/*RoleBinding*.yaml</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If you modified one or more environment variables in your existing Cluster Operator <code>Deployment</code>, edit the
+<code>install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml</code> file to use those environment variables.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>When you have an updated configuration, deploy it along with the rest of the installation resources:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl replace -f install/cluster-operator</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Wait for the rolling updates to complete.</p>
+</div>
+</li>
+<li>
+<p>Get the image for the Kafka pod to ensure the downgrade was successful:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pod my-cluster-kafka-0 -o jsonpath='{.spec.containers[0].image}'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The image tag shows the new Strimzi version followed by the Kafka version.
+For example, <code>&lt;strimzi_version&gt;-kafka-&lt;kafka_version&gt;</code>.</p>
+</div>
+<div class="paragraph">
+<p>You can also <a href="#con-upgrade-status-str">check the downgrade has completed successfully from the status of the <code>Kafka</code> resource</a>.</p>
 </div>
 </li>
 </ol>
@@ -37607,7 +37621,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-02-17 14:13:18 UTC
+Last updated 2025-02-17 18:37:18 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
