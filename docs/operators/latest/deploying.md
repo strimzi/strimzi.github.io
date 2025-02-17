@@ -1,5 +1,5 @@
 ---
-title: Deploying and Upgrading (!LATEST_OPERATOR_VERSION!)
+title: Deploying and Managing (!LATEST_OPERATOR_VERSION!)
 layout: default
 ---
 
