@@ -49,11 +49,12 @@
 <li><a href="#assembly-kafka-bridge-config-bridge">3. Kafka Bridge configuration</a>
 <ul class="sectlevel2">
 <li><a href="#proc-configuring-kafka-bridge-bridge">3.1. Configuring Kafka Bridge properties</a></li>
-<li><a href="#proc-configuring-kafka-bridge-metrics-bridge">3.2. Configuring metrics</a></li>
-<li><a href="#proc-configuring-kafka-bridge-tracing-bridge">3.3. Configuring distributed tracing</a>
+<li><a href="#proc-configuring-kafka-bridge-jmx-metrics-bridge">3.2. Configuring Prometheus JMX Exporter metrics</a></li>
+<li><a href="#proc-configuring-kafka-bridge-smr-metrics-bridge">3.3. Configuring Strimzi Metrics Reporter metrics</a></li>
+<li><a href="#proc-configuring-kafka-bridge-tracing-bridge">3.4. Configuring distributed tracing</a>
 <ul class="sectlevel3">
-<li><a href="#specifying_tracing_systems_with_opentelemetry">3.3.1. Specifying tracing systems with OpenTelemetry</a></li>
-<li><a href="#supported_span_attributes">3.3.2. Supported Span attributes</a></li>
+<li><a href="#specifying_tracing_systems_with_opentelemetry">3.4.1. Specifying tracing systems with OpenTelemetry</a></li>
+<li><a href="#supported_span_attributes">3.4.2. Supported Span attributes</a></li>
 </ul>
 </li>
 </ul>
@@ -1644,8 +1645,8 @@ You can also use the <a href="#seektobeginning">positions/beginning</a> endpoint
 <h2 id="assembly-kafka-bridge-config-bridge"><a class="link" href="#assembly-kafka-bridge-config-bridge">3. Kafka Bridge configuration</a></h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
-<p>Configure a deployment of the Kafka Bridge using configuration properties.
-Configure Kafka and specify the HTTP connection details needed to be able to interact with Kafka.
+<p>Configure a deployment of the Kafka Bridge with Kafka-related properties and specify the HTTP connection details needed to be able to interact with Kafka.
+Additionally, enable metrics in Prometheus format using either the <a href="https://github.com/prometheus/jmx_exporter">Prometheus JMX Exporter</a> or the <a href="https://github.com/strimzi/metrics-reporter">Strimzi Metrics Reporter</a>.
 You can also use configuration properties to enable and use distributed tracing with the Kafka Bridge.
 Distributed tracing allows you to track the progress of transactions between applications in a distributed system.</p>
 </div>
@@ -1770,9 +1771,9 @@ http.cors.allowedMethods=GET,POST,PUT,DELETE,OPTIONS,PATCH <b class="conum">(4)<
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-configuring-kafka-bridge-metrics-bridge"><a class="link" href="#proc-configuring-kafka-bridge-metrics-bridge">3.2. Configuring metrics</a></h3>
+<h3 id="proc-configuring-kafka-bridge-jmx-metrics-bridge"><a class="link" href="#proc-configuring-kafka-bridge-jmx-metrics-bridge">3.2. Configuring Prometheus JMX Exporter metrics</a></h3>
 <div class="paragraph _abstract">
-<p>Enable metrics for the Kafka Bridge by setting the <code>KAFKA_BRIDGE_METRICS_ENABLED</code> environment variable.</p>
+<p>Enable the Prometheus JMX Exporter to collect Kafka Bridge metrics by setting the <code>bridge.metrics</code> option to <code>jmxPrometheusExporter</code>.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -1786,31 +1787,88 @@ http.cors.allowedMethods=GET,POST,PUT,DELETE,OPTIONS,PATCH <b class="conum">(4)<
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Set the environment variable for enabling metrics to <code>true</code>.</p>
+<p>Set the <code>bridge.metrics</code> configuration to <code>jmxPrometheusExporter</code>.</p>
 <div class="listingblock">
-<div class="title">Environment variable for enabling metrics</div>
+<div class="title">Configuration for enabling metrics</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">KAFKA_BRIDGE_METRICS_ENABLED=true</code></pre>
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">bridge.metrics=jmxPrometheusExporter</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>Optionally, you can add a custom Prometheus JMX Exporter configuration using the <code>bridge.metrics.exporter.config.path</code> property.
+If not configured, a default embedded configuration file is used.</p>
 </div>
 </li>
 <li>
-<p>Run the Kafka Bridge script to enable metrics.</p>
+<p>Run the Kafka Bridge run script.</p>
 <div class="listingblock">
-<div class="title">Running the Kafka Bridge to enable metrics</div>
+<div class="title">Running the Kafka Bridge</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">./bin/kafka_bridge_run.sh --config-file=&lt;path&gt;/application.properties</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>With metrics enabled, you can use <code>GET /metrics</code> with the <code>/metrics</code> endpoint to retrieve Kafka Bridge metrics in Prometheus format.</p>
+<p>With metrics enabled, you can scrape metrics in Prometheus format from the <code>/metrics</code> endpoint of the Kafka Bridge.</p>
 </div>
 </li>
 </ol>
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-configuring-kafka-bridge-tracing-bridge"><a class="link" href="#proc-configuring-kafka-bridge-tracing-bridge">3.3. Configuring distributed tracing</a></h3>
+<h3 id="proc-configuring-kafka-bridge-smr-metrics-bridge"><a class="link" href="#proc-configuring-kafka-bridge-smr-metrics-bridge">3.3. Configuring Strimzi Metrics Reporter metrics</a></h3>
+<div class="paragraph _abstract">
+<p>Enable the Strimzi Metrics Reporter to collect Kafka Bridge metrics by setting the <code>bridge.metrics</code> option to <code>strimziMetricsReporter</code>.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p><a href="#proc-downloading-kafka-bridge-bridge">The Kafka Bridge installation archive is downloaded</a>.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Set the <code>bridge.metrics</code> configuration to <code>strimziMetricsReporter</code>.</p>
+<div class="listingblock">
+<div class="title">Configuration for enabling metrics</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">bridge.metrics=strimziMetricsReporter</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Optionally, you can configure a comma-separated list of regular expressions to filter exposed metrics using the <code>kafka.prometheus.metrics.reporter.allowlist</code> property.
+If not configured, a default set of metrics is exposed.</p>
+</div>
+<div class="paragraph">
+<p>When needed, it is possible to configure the <code>allowlist</code> per client type.
+For example, by using the <code>kafka.admin</code> prefix and setting <code>kafka.admin.prometheus.metrics.reporter.allowlist=</code>, all admin client metrics are excluded.</p>
+</div>
+<div class="paragraph">
+<p>You can add any plugin configuration to the Kafka Bridge properties file using <code>kafka.</code>, <code>kafka.admin.</code>, <code>kafka.producer.</code>, and <code>kafka.consumer.</code> prefixes.
+In the event that the same property is configured with multiple prefixes, the most specific prefix takes precedence.
+For example, <code>kafka.producer.prometheus.metrics.reporter.allowlist</code> takes precedence over <code>kafka.prometheus.metrics.reporter.allowlist</code>.</p>
+</div>
+</li>
+<li>
+<p>Run the Kafka Bridge run script.</p>
+<div class="listingblock">
+<div class="title">Running the Kafka Bridge</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">./bin/kafka_bridge_run.sh --config-file=&lt;path&gt;/application.properties</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>With metrics enabled, you can scrape metrics in Prometheus format from the <code>/metrics</code> endpoint of the Kafka Bridge.</p>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-configuring-kafka-bridge-tracing-bridge"><a class="link" href="#proc-configuring-kafka-bridge-tracing-bridge">3.4. Configuring distributed tracing</a></h3>
 <div class="paragraph _abstract">
 <p>Enable distributed tracing to trace messages consumed and produced by the Kafka Bridge, and HTTP requests from client applications.</p>
 </div>
@@ -1952,7 +2010,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 # <b class="conum">(2)</b></co
 </ol>
 </div>
 <div class="sect3">
-<h4 id="specifying_tracing_systems_with_opentelemetry"><a class="link" href="#specifying_tracing_systems_with_opentelemetry">3.3.1. Specifying tracing systems with OpenTelemetry</a></h4>
+<h4 id="specifying_tracing_systems_with_opentelemetry"><a class="link" href="#specifying_tracing_systems_with_opentelemetry">3.4.1. Specifying tracing systems with OpenTelemetry</a></h4>
 <div class="paragraph">
 <p>Instead of the default OTLP tracing system, you can specify other tracing systems that are supported by OpenTelemetry.</p>
 </div>
@@ -1989,7 +2047,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </div>
 </div>
 <div class="sect3">
-<h4 id="supported_span_attributes"><a class="link" href="#supported_span_attributes">3.3.2. Supported Span attributes</a></h4>
+<h4 id="supported_span_attributes"><a class="link" href="#supported_span_attributes">3.4.2. Supported Span attributes</a></h4>
 <div class="paragraph">
 <p>The Kafka Bridge adds, in addition to the standard OpenTelemetry attributes, the following attributes from the <a href="https://opentelemetry.io/docs/specs/semconv/http/http-spans/#http-server-semantic-conventions">OpenTelemetry standard conventions for HTTP</a> to its spans.</p>
 </div>
@@ -4029,6 +4087,11 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Metrics in Prometheus format retrieved successfully.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#String">[String]</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">404</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The metrics endpoint is not enabled.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">&lt;&lt;&gt;&gt;</p></td>
 </tr>
 </tbody>
 </table>
@@ -7516,7 +7579,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <div class="paragraph">
-<p><em>Revised on 2025-02-19 07:43:24 UTC</em></p>
+<p><em>Revised on 2025-02-20 11:15:34 UTC</em></p>
 </div>
 </div>
 </div>
