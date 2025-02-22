@@ -1,5 +1,5 @@
 ---
-title: Deploying and Upgrading (0.35.1)
+title: Deploying and Managing (0.35.1)
 layout: default
 ---
 
