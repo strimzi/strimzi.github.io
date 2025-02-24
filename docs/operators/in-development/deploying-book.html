@@ -535,7 +535,17 @@
 <li><a href="#assembly-downgrade-str">30. Downgrading Strimzi</a>
 <ul class="sectlevel2">
 <li><a href="#proc-downgrade-kafka-kraft-str">30.1. Downgrading Kafka clusters and client applications</a></li>
-<li><a href="#proc-downgrade-cluster-operator-str">30.2. Downgrading the Cluster Operator to a previous version</a></li>
+<li><a href="#con-downgrade-paths-str">30.2. Strimzi downgrade paths</a>
+<ul class="sectlevel3">
+<li><a href="#con-downgrade-paths-kafka-versions-str">30.2.1. Support for Kafka versions when downgrading</a></li>
+</ul>
+</li>
+<li><a href="#assembly-downgrade-cluster-operator-str">30.3. Downgrading the Cluster Operator</a>
+<ul class="sectlevel3">
+<li><a href="#proc-downgrade-cluster-operator-str">30.3.1. Downgrading the Cluster Operator to a previous version</a></li>
+<li><a href="#con-downgrade-cluster-operator-unsupported-kafka-str">30.3.2. Downgrading the Cluster Operator returns Kafka version error</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#assembly-uninstalling-str">31. Uninstalling Strimzi</a>
@@ -34143,7 +34153,62 @@ spec:
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-downgrade-cluster-operator-str">30.2. Downgrading the Cluster Operator to a previous version</h3>
+<h3 id="con-downgrade-paths-str">30.2. Strimzi downgrade paths</h3>
+<div class="paragraph _abstract">
+<p>Two downgrade paths are available for Strimzi.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Incremental downgrade</dt>
+<dd>
+<p>An incremental downgrade involves downgrading Strimzi from version latest to the previous minor version.</p>
+</dd>
+<dt class="hdlist1">Multi-version downgrade</dt>
+<dd>
+<p>A multi-version downgrade involves downgrading from version latest to an older version of Strimzi within a single step, skipping one or more intermediate versions.
+Downgrading to some older versions may not be sucessful, for example, due to configuration changes or extra steps for a particular Kafka version upgrade path performed by later versions that the target version is unable to undo. It is therefore necessary to validate your wanted downgrade path before attempting in a production environment. See table <a href="#downgrade-version-limitations">Known limitations in downgrade paths</a> for details on specific paths.</p>
+</dd>
+</dl>
+</div>
+<div class="sect3">
+<h4 id="con-downgrade-paths-kafka-versions-str">30.2.1. Support for Kafka versions when downgrading</h4>
+<div class="paragraph">
+<p>When downgrading Strimzi, it is important to ensure compatibility with the Kafka version being used.</p>
+</div>
+<div class="paragraph">
+<p>Multi-version downgrades are possible even if the supported Kafka versions differ between the old and new versions.
+However, if you attempt to downgrade to an older Strimzi version that does not support the current Kafka version, <a href="#con-downgrade-cluster-operator-unsupported-kafka-str">an error indicating that the Kafka version is not supported is generated</a>.
+In this case, you must, if possible, downgrade the Kafka version as part of the Strimzi downgrade by changing the <code>spec.kafka.version</code> in the <code>Kafka</code> custom resource to the supported version for the target Strimzi version. If it is not possible to downgrade the Kafka version (for example in Strimzi version 0.45.0 or earlier), then the Strimzi downgrade path you are attempting is not supported.</p>
+</div>
+<div class="paragraph">
+<p>The following table details known limitations for specific downgrade paths.</p>
+</div>
+<table id="downgrade-version-limitations" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 40. Known limitations in downgrade paths</caption>
+<colgroup>
+<col style="width: 28.5714%;">
+<col style="width: 71.4286%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Target Strimzi Version</th>
+<th class="tableblock halign-left valign-top">Limitation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">&#8656; 0.45.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The current Kafka version must be supported by the target Strimzi version.</p>
+<p class="tableblock">It is only possible to downgrade from unsupported Kafka versions in Strimzi version 0.46.0 and higher.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="assembly-downgrade-cluster-operator-str">30.3. Downgrading the Cluster Operator</h3>
+<div class="sect3">
+<h4 id="proc-downgrade-cluster-operator-str">30.3.1. Downgrading the Cluster Operator to a previous version</h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to downgrade a Cluster Operator deployment to a previous version.</p>
 </div>
@@ -34229,6 +34294,29 @@ If a feature gate introduces such a requirement, the details will be provided he
 </div>
 </li>
 <li>
+<p>If the target operator version does not support the current Kafka version, an error message is returned.</p>
+<div class="paragraph">
+<p>To resolve this, downgrade to a supported Kafka version if possible:</p>
+</div>
+<div class="openblock">
+<div class="content">
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>Edit the <code>Kafka</code> custom resource.</p>
+</li>
+<li>
+<p>Change the <code>spec.kafka.version</code> property to a supported Kafka version.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>If no error message is returned, you can proceed to the next step and upgrade the Kafka version later.</p>
+</div>
+</li>
+<li>
 <p>Get the image for the Kafka pod to ensure the downgrade was successful:</p>
 <div class="listingblock">
 <div class="content">
@@ -34244,6 +34332,27 @@ For example, <code>&lt;strimzi_version&gt;-kafka-&lt;kafka_version&gt;</code>.</
 </div>
 </li>
 </ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-downgrade-cluster-operator-unsupported-kafka-str">30.3.2. Downgrading the Cluster Operator returns Kafka version error</h4>
+<div class="paragraph">
+<p>If you downgrade the Cluster Operator to a version that does not support the current version of Kafka you are using, you get an <em>unsupported Kafka version</em> error.
+This error applies to all installation methods and means that you must downgrade Kafka to a supported Kafka version.
+Change the <code>spec.kafka.version</code> in the <code>Kafka</code> resource to the supported version.</p>
+</div>
+<div class="paragraph">
+<p>You can use <code>kubectl</code> to check for error messages like this in the <code>status</code> of the <code>Kafka</code> resource.</p>
+</div>
+<div class="listingblock">
+<div class="title">Checking the Kafka status for errors</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka &lt;kafka_cluster_name&gt; -n &lt;namespace&gt; -o jsonpath='{.status.conditions}'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Replace &lt;kafka_cluster_name&gt; with the name of your Kafka cluster and &lt;namespace&gt; with the Kubernetes namespace where the pod is running.</p>
+</div>
 </div>
 </div>
 </div>
@@ -35727,7 +35836,7 @@ You can also override <code>min.insync.replicas</code> at the topic level in the
 <p>The following table describes how this configuration operates depending on the availability of followers that replicate the leader replica.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 40. Follower availability</caption>
+<caption class="title">Table 41. Follower availability</caption>
 <colgroup>
 <col style="width: 28.5714%;">
 <col style="width: 42.8571%;">
