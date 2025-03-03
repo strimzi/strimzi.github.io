@@ -8,42 +8,43 @@
 <li><a href="#how_strimzi_supports_kafka">1.3. How Strimzi supports Kafka</a></li>
 </ul>
 </li>
-<li><a href="#kafka-components_str">2. Strimzi deployment of Kafka</a>
+<li><a href="#overview-components_str">2. Strimzi operators</a>
 <ul class="sectlevel2">
-<li><a href="#kafka-concepts-components_str">2.1. Kafka component architecture</a></li>
+<li><a href="#overview-components-cluster-operator-str">2.1. Cluster Operator</a></li>
+<li><a href="#overview-concepts-topic-operator-str">2.2. Topic Operator</a></li>
+<li><a href="#overview-concepts-user-operator-str">2.3. User Operator</a></li>
+<li><a href="#overview-concepts-drain-cleaner-str">2.4. Drain Cleaner</a></li>
+<li><a href="#con-feature-gates-overview-str">2.5. Feature gates in Strimzi Operators</a></li>
 </ul>
 </li>
-<li><a href="#kafka-concepts_str">3. About Kafka</a>
+<li><a href="#kafka-components_str">3. Strimzi deployment of Kafka</a>
 <ul class="sectlevel2">
-<li><a href="#kafka-concepts-key_str">3.1. How Kafka operates as a message broker</a></li>
-<li><a href="#kafka-concepts-producers-consumers_str">3.2. Producers and consumers</a></li>
+<li><a href="#kafka-concepts-components_str">3.1. Kafka component architecture</a></li>
 </ul>
 </li>
-<li><a href="#kafka-connect-components_str">4. About Kafka Connect</a>
+<li><a href="#kafka-concepts_str">4. About Kafka</a>
 <ul class="sectlevel2">
-<li><a href="#key-features-kafka-connect_str">4.1. How Kafka Connect streams data</a>
+<li><a href="#kafka-concepts-key_str">4.1. How Kafka operates as a message broker</a></li>
+<li><a href="#kafka-concepts-producers-consumers_str">4.2. Producers and consumers</a></li>
+</ul>
+</li>
+<li><a href="#kafka-connect-components_str">5. About Kafka Connect</a>
+<ul class="sectlevel2">
+<li><a href="#key-features-kafka-connect_str">5.1. How Kafka Connect streams data</a>
 <ul class="sectlevel3">
-<li><a href="#connectors">4.1.1. Connectors</a></li>
-<li><a href="#tasks">4.1.2. Tasks</a></li>
-<li><a href="#workers">4.1.3. Workers</a></li>
-<li><a href="#transforms">4.1.4. Transforms</a></li>
-<li><a href="#converters">4.1.5. Converters</a></li>
+<li><a href="#connectors">5.1.1. Connectors</a></li>
+<li><a href="#tasks">5.1.2. Tasks</a></li>
+<li><a href="#workers">5.1.3. Workers</a></li>
+<li><a href="#transforms">5.1.4. Transforms</a></li>
+<li><a href="#converters">5.1.5. Converters</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#overview-components-kafka-bridge_str">5. Kafka Bridge interface</a>
+<li><a href="#overview-components-kafka-bridge_str">6. Kafka Bridge interface</a>
 <ul class="sectlevel2">
-<li><a href="#http_requests">5.1. HTTP requests</a></li>
-<li><a href="#con-overview-components-kafka-bridge-clients_str">5.2. Supported clients for the Kafka Bridge</a></li>
-</ul>
-</li>
-<li><a href="#overview-components_str">6. Strimzi Operators</a>
-<ul class="sectlevel2">
-<li><a href="#overview-components-cluster-operator-str">6.1. Cluster Operator</a></li>
-<li><a href="#overview-concepts-topic-operator-str">6.2. Topic Operator</a></li>
-<li><a href="#overview-concepts-user-operator-str">6.3. User Operator</a></li>
-<li><a href="#con-feature-gates-overview-str">6.4. Feature gates in Strimzi Operators</a></li>
+<li><a href="#http_requests">6.1. HTTP requests</a></li>
+<li><a href="#con-overview-components-kafka-bridge-clients_str">6.2. Supported clients for the Kafka Bridge</a></li>
 </ul>
 </li>
 <li><a href="#configuration-points_str">7. Configuring Kafka</a></li>
@@ -171,7 +172,189 @@ These operators are designed with specialized operational knowledge to efficient
 </div>
 </div>
 <div class="sect1">
-<h2 id="kafka-components_str">2. Strimzi deployment of Kafka</h2>
+<h2 id="overview-components_str">2. Strimzi operators</h2>
+<div class="sectionbody">
+<div class="paragraph _abstract">
+<p>Operators are Kubernetes components that package, deploy, and manage applications by extending the Kubernetes API.
+They simplify administrative tasks and reduce manual intervention.</p>
+</div>
+<div class="paragraph">
+<p>Strimzi operators automate the deployment and management of Apache Kafka components on Kubernetes.
+Strimzi custom resources define the deployment configuration.</p>
+</div>
+<div class="paragraph">
+<p>The following operators manage Kafka in a Kubernetes cluster:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Cluster Operator</dt>
+<dd>
+<p>Manages Kafka clusters and related components.</p>
+</dd>
+<dt class="hdlist1">Entity Operator</dt>
+<dd>
+<p>Comprises the Topic Operator and User Operator.</p>
+</dd>
+<dt class="hdlist1">Topic Operator</dt>
+<dd>
+<p>Creates, configures, and deletes Kafka topics.</p>
+</dd>
+<dt class="hdlist1">User Operator</dt>
+<dd>
+<p>Manages Kafka users and their authentication credentials.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>Additionally, Strimzi provides Drain Cleaner, a separate tool that can be used alongside the Cluster Operator to assist with safe pod eviction during maintenance or upgrades.</p>
+</div>
+<div class="paragraph">
+<div class="title">Operators within the Strimzi architecture</div>
+<p><span class="image"><img src="images/operators.png" alt="Operators within the Strimzi architecture"></span></p>
+</div>
+<div class="sect2">
+<h3 id="overview-components-cluster-operator-str">2.1. Cluster Operator</h3>
+<div class="paragraph _abstract">
+<p>Strimzi uses the Cluster Operator to deploy and manage clusters.
+By default, when you deploy Strimzi a single Cluster Operator replica is deployed.
+You can add replicas with leader election so that additional Cluster Operators are on standby in case of disruption.</p>
+</div>
+<div class="paragraph">
+<p>The Cluster Operator manages the clusters of the following Kafka components:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Kafka (including Entity Operator, Kafka Exporter, and Cruise Control)</p>
+</li>
+<li>
+<p>Kafka Connect</p>
+</li>
+<li>
+<p>Kafka MirrorMaker</p>
+</li>
+<li>
+<p>Kafka Bridge</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The clusters are deployed using custom resources.</p>
+</div>
+<div class="paragraph">
+<p>For example, to deploy a Kafka cluster:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A <code>Kafka</code> resource with the cluster configuration is created within the Kubernetes cluster.</p>
+</li>
+<li>
+<p>The Cluster Operator deploys a corresponding Kafka cluster, based on what is declared in the <code>Kafka</code> resource.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The Cluster Operator can also deploy the following Strimzi operators through configuration of the <code>Kafka</code> resource:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Topic Operator to provide operator-style topic management through <code>KafkaTopic</code> custom resources</p>
+</li>
+<li>
+<p>User Operator to provide operator-style user management through <code>KafkaUser</code> custom resources</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The Topic Operator and User Operator function within the Entity Operator on deployment.</p>
+</div>
+<div class="paragraph">
+<div class="title">Example architecture for the Cluster Operator</div>
+<p><span class="image"><img src="images/cluster-operator.png" alt="The Cluster Operator creates and deploys Kafka clusters"></span></p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="overview-concepts-topic-operator-str">2.2. Topic Operator</h3>
+<div class="paragraph _abstract">
+<p>The Topic Operator provides a way of managing topics in a Kafka cluster through <code>KafkaTopic</code> resources.
+The Cluster Operator can deploy the Topic Operator as part of the <strong>Entity Operator</strong> configuration at the same time as a Kafka cluster.
+The operator can also be deployed standalone to help manage topics for Kafka clusters not operated by Strimzi.</p>
+</div>
+<div class="paragraph">
+<div class="title">Example architecture for the Topic Operator</div>
+<p><span class="image"><img src="images/topic-operator.png" alt="The Topic Operator manages topics for a Kafka cluster via KafkaTopic resources"></span></p>
+</div>
+<div class="paragraph">
+<p>The Topic Operator manages Kafka topics by watching for <code>KafkaTopic</code> resources that describe Kafka topics, and ensuring that they are configured properly in the Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>When a <code>KafkaTopic</code> is created, deleted, or changed, the Topic Operator performs the corresponding action on the Kafka topic.</p>
+</div>
+<div class="paragraph">
+<p>You can declare a <code>KafkaTopic</code> as part of your application&#8217;s deployment and the Topic Operator manages the Kafka topic for you.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="overview-concepts-user-operator-str">2.3. User Operator</h3>
+<div class="paragraph _abstract">
+<p>The User Operator provides a way of managing users in a Kafka cluster through <code>KafkaUser</code> resources.
+The Cluster Operator can deploy the User Operator as part of the <strong>Entity Operator</strong> configuration at the same time as a Kafka cluster.
+The operator can also be deployed standalone to help manage users for Kafka clusters not operated by Strimzi.</p>
+</div>
+<div class="paragraph">
+<p>The User Operator manages Kafka users for a Kafka cluster by watching for <code>KafkaUser</code> resources that describe Kafka users,
+and ensuring that they are configured properly in the Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>When a <code>KafkaUser</code> is created, deleted, or changed, the User Operator performs the corresponding action on the Kafka user.</p>
+</div>
+<div class="paragraph">
+<p>You can declare a <code>KafkaUser</code> resource as part of your application&#8217;s deployment and the User Operator manages the Kafka user for you.
+You can specify the authentication and authorization mechanism for the user.
+You can also configure <em>user quotas</em> that control usage of Kafka resources to ensure, for example, that a user does not monopolize access to a broker.</p>
+</div>
+<div class="paragraph">
+<p>When the user is created, the user credentials are created in a <code>Secret</code>.
+Your application needs to use the user and its credentials for authentication and to produce or consume messages.</p>
+</div>
+<div class="paragraph">
+<p>In addition to managing credentials for authentication, the User Operator also manages authorization rules by including a description of the user&#8217;s access rights in the <code>KafkaUser</code> declaration.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="overview-concepts-drain-cleaner-str">2.4. Drain Cleaner</h3>
+<div class="paragraph _abstract">
+<p>If you are using the Cluster Operator to manage your Kafka cluster, you can deploy and use the Drain Cleaner to streamline the process of moving Kafka pods from Kubernetes nodes scheduled for maintenance.</p>
+</div>
+<div class="paragraph">
+<p>By deploying the Strimzi Drain Cleaner, you can use the Cluster Operator to move Kafka pods instead of Kubernetes.
+Strimzi Drain Cleaner annotates pods being evicted with a rolling update annotation.
+The annotation informs the Cluster Operator to perform the rolling update.</p>
+</div>
+<div class="paragraph">
+<p>Drain Cleaner ensures that no partition replicas become under-replicated during node draining, maintaining data availability and fault tolerance.
+This controlled approach minimizes potential disruptions to your Kafka cluster when draining pods.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="con-feature-gates-overview-str">2.5. Feature gates in Strimzi Operators</h3>
+<div class="paragraph">
+<p>Strimzi operators use feature gates to enable or disable specific features and functions. Enabling a feature gate alters the behavior of the associated operator, introducing the corresponding feature to your Strimzi deployment.</p>
+</div>
+<div class="paragraph">
+<p>Feature gates are set in the operator configuration and have three stages of maturity: alpha, beta, or graduated.
+Graduated feature gates have reached General Availability (GA) and are permanently enabled features.</p>
+</div>
+<div class="paragraph">
+<p>For more information, see <a href="./deploying.html#ref-operator-cluster-feature-gates-str" target="_blank" rel="noopener">Feature gates</a>.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="kafka-components_str">3. Strimzi deployment of Kafka</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Strimzi enables the deployment of Apache Kafka components to a Kubernetes cluster, typically running as clusters for high availability.</p>
@@ -207,7 +390,7 @@ Depending on your use case, you can deploy the additional components as needed.
 These components can also be used with Kafka clusters that are not managed by Strimzi.</p>
 </div>
 <div class="sect2">
-<h3 id="kafka-concepts-components_str">2.1. Kafka component architecture</h3>
+<h3 id="kafka-concepts-components_str">3.1. Kafka component architecture</h3>
 <div class="paragraph _abstract">
 <p>A Kafka cluster consists of broker nodes responsible for message delivery and controller nodes that manage cluster metadata and coordinate clusters.
 These roles can be configured using node pools in Strimzi.</p>
@@ -265,7 +448,7 @@ Connectors provide the connection configuration needed.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="kafka-concepts_str">3. About Kafka</h2>
+<h2 id="kafka-concepts_str">4. About Kafka</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Apache Kafka is an open-source distributed publish-subscribe messaging system for fault-tolerant real-time data feeds.</p>
@@ -274,7 +457,7 @@ Connectors provide the connection configuration needed.</p>
 <p>For more information about Apache Kafka, see the <a href="https://kafka.apache.org/documentation/" target="_blank" rel="noopener">Apache Kafka documentation</a>.</p>
 </div>
 <div class="sect2">
-<h3 id="kafka-concepts-key_str">3.1. How Kafka operates as a message broker</h3>
+<h3 id="kafka-concepts-key_str">4.1. How Kafka operates as a message broker</h3>
 <div class="paragraph _abstract">
 <p>To maximise your experience of using Strimzi, you need to understand how Kafka operates as a message broker.</p>
 </div>
@@ -341,7 +524,7 @@ In this way, if the leader fails the message is not lost.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="kafka-concepts-producers-consumers_str">3.2. Producers and consumers</h3>
+<h3 id="kafka-concepts-producers-consumers_str">4.2. Producers and consumers</h3>
 <div class="paragraph">
 <p>Producers and consumers send and receive messages (publish and subscribe) through brokers.
 Messages comprise an optional <em>key</em> and a <em>value</em> that contains the message data, plus headers and related metadata.
@@ -388,7 +571,7 @@ A <code>__consumer_offsets</code> topic stores information on committed offsets,
 </div>
 </div>
 <div class="sect1">
-<h2 id="kafka-connect-components_str">4. About Kafka Connect</h2>
+<h2 id="kafka-connect-components_str">5. About Kafka Connect</h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
 <p>Kafka Connect is an integration toolkit for streaming data between Kafka brokers and other systems.
@@ -427,7 +610,7 @@ Transforms adjust messages, such as filtering certain data, before they are conv
 Kafka Connect has some built-in transforms, but other transformations can be provided by plugins if necessary.</p>
 </div>
 <div class="sect2">
-<h3 id="key-features-kafka-connect_str">4.1. How Kafka Connect streams data</h3>
+<h3 id="key-features-kafka-connect_str">5.1. How Kafka Connect streams data</h3>
 <div class="paragraph _abstract">
 <p>Kafka Connect uses connector instances to integrate with other systems to stream data.</p>
 </div>
@@ -461,7 +644,7 @@ If a worker fails, its tasks are automatically assigned to active workers in the
 </ul>
 </div>
 <div class="sect3">
-<h4 id="connectors">4.1.1. Connectors</h4>
+<h4 id="connectors">5.1.1. Connectors</h4>
 <div class="paragraph">
 <p>Connectors can be one of the following type:</p>
 </div>
@@ -578,7 +761,7 @@ Workers can run one or more tasks for more than one connector instance.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="tasks">4.1.2. Tasks</h4>
+<h4 id="tasks">5.1.2. Tasks</h4>
 <div class="paragraph">
 <p>Data transfer orchestrated by the Kafka Connect runtime is split into tasks that run in parallel.
 A task is started using the configuration supplied by a connector instance.
@@ -615,7 +798,7 @@ In the context of Kafka Connect, a <em>partition</em> can mean a topic partition
 </div>
 </div>
 <div class="sect3">
-<h4 id="workers">4.1.3. Workers</h4>
+<h4 id="workers">5.1.3. Workers</h4>
 <div class="paragraph">
 <p>Workers employ the connector configuration deployed to the Kafka Connect cluster.
 The configuration is stored in an internal Kafka topic used by Kafka Connect.
@@ -637,7 +820,7 @@ You can add to a group of worker pods through configuration of the <code>replica
 </div>
 </div>
 <div class="sect3">
-<h4 id="transforms">4.1.4. Transforms</h4>
+<h4 id="transforms">5.1.4. Transforms</h4>
 <div class="paragraph">
 <p>Kafka Connect translates and transforms external data.
 Single-message transforms change messages into a format suitable for the target destination.
@@ -660,7 +843,7 @@ Kafka Connect provides a set of standard transforms, but you can also create you
 </div>
 </div>
 <div class="sect3">
-<h4 id="converters">4.1.5. Converters</h4>
+<h4 id="converters">5.1.5. Converters</h4>
 <div class="paragraph">
 <p>When a worker receives data, it converts the data into an appropriate format using a converter.
 You specify converters for workers in the worker <code>config</code> in the <code>KafkaConnect</code> resource.</p>
@@ -701,7 +884,7 @@ You can also specify converters for specific connectors to override the general 
 </div>
 </div>
 <div class="sect1">
-<h2 id="overview-components-kafka-bridge_str">5. Kafka Bridge interface</h2>
+<h2 id="overview-components-kafka-bridge_str">6. Kafka Bridge interface</h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
 <p>The Kafka Bridge provides a RESTful interface that allows HTTP-based clients to interact with a Kafka cluster. 
@@ -711,7 +894,7 @@ It offers the advantages of a HTTP API connection to Strimzi for clients to prod
 <p>The API has two main resources — <code>consumers</code> and <code>topics</code> — that are exposed and made accessible through endpoints to interact with consumers and producers in your Kafka cluster. The resources relate only to the Kafka Bridge, not the consumers and producers connected directly to Kafka.</p>
 </div>
 <div class="sect2">
-<h3 id="http_requests">5.1. HTTP requests</h3>
+<h3 id="http_requests">6.1. HTTP requests</h3>
 <div class="paragraph">
 <p>The Kafka Bridge supports HTTP requests to a Kafka cluster, with methods to perform operations such as the following:</p>
 </div>
@@ -763,7 +946,7 @@ Messages can be sent in JSON or binary formats.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="con-overview-components-kafka-bridge-clients_str">5.2. Supported clients for the Kafka Bridge</h3>
+<h3 id="con-overview-components-kafka-bridge-clients_str">6.2. Supported clients for the Kafka Bridge</h3>
 <div class="paragraph">
 <p>You can use the Kafka Bridge to integrate both <em>internal</em> and <em>external</em> HTTP client applications with your Kafka cluster.</p>
 </div>
@@ -784,178 +967,6 @@ External clients can access the Kafka Bridge through an OpenShift Route, a loadb
 <div class="paragraph">
 <div class="title">HTTP internal and external client integration</div>
 <p><span class="image"><img src="images/kafka-bridge.png" alt="Internal and external HTTP producers and consumers exchange data with the Kafka brokers through the Kafka Bridge"></span></p>
-</div>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="overview-components_str">6. Strimzi Operators</h2>
-<div class="sectionbody">
-<div class="paragraph _abstract">
-<p>Operators are a method of packaging, deploying, and managing Kubernetes applications.
-They provide a way to extend the Kubernetes API and simplify the administration tasks associated with specific applications.</p>
-</div>
-<div class="paragraph">
-<p>Strimzi operators support tasks related to a Kafka deployment.
-Strimzi custom resources provide the deployment configuration.
-This includes configuration for Kafka clusters, topics, users, and other components.
-Leveraging custom resource configuration, Strimzi operators create, configure, and manage Kafka components within a Kubernetes environment.
-Using operators reduces the need for manual intervention and streamlines the process of managing Kafka in a Kubernetes cluster.</p>
-</div>
-<div class="paragraph">
-<p>Strimzi provides the following operators for managing a Kafka cluster running within a Kubernetes cluster.</p>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Cluster Operator</dt>
-<dd>
-<p>Deploys and manages Apache Kafka clusters, Kafka Connect, Kafka MirrorMaker, Kafka Bridge, Kafka Exporter, Cruise Control, and the Entity Operator</p>
-</dd>
-<dt class="hdlist1">Entity Operator</dt>
-<dd>
-<p>Comprises the Topic Operator and User Operator</p>
-</dd>
-<dt class="hdlist1">Topic Operator</dt>
-<dd>
-<p>Manages Kafka topics</p>
-</dd>
-<dt class="hdlist1">User Operator</dt>
-<dd>
-<p>Manages Kafka users</p>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>The Cluster Operator can deploy the Topic Operator and User Operator as part of an <strong>Entity Operator</strong> configuration at the same time as a Kafka cluster.</p>
-</div>
-<div class="paragraph">
-<div class="title">Operators within the Strimzi architecture</div>
-<p><span class="image"><img src="images/operators.png" alt="Operators within the Strimzi architecture"></span></p>
-</div>
-<div class="sect2">
-<h3 id="overview-components-cluster-operator-str">6.1. Cluster Operator</h3>
-<div class="paragraph _abstract">
-<p>Strimzi uses the Cluster Operator to deploy and manage clusters.
-By default, when you deploy Strimzi a single Cluster Operator replica is deployed.
-You can add replicas with leader election so that additional Cluster Operators are on standby in case of disruption.</p>
-</div>
-<div class="paragraph">
-<p>The Cluster Operator manages the clusters of the following Kafka components:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Kafka (including Entity Operator, Kafka Exporter, and Cruise Control)</p>
-</li>
-<li>
-<p>Kafka Connect</p>
-</li>
-<li>
-<p>Kafka MirrorMaker</p>
-</li>
-<li>
-<p>Kafka Bridge</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>The clusters are deployed using custom resources.</p>
-</div>
-<div class="paragraph">
-<p>For example, to deploy a Kafka cluster:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>A <code>Kafka</code> resource with the cluster configuration is created within the Kubernetes cluster.</p>
-</li>
-<li>
-<p>The Cluster Operator deploys a corresponding Kafka cluster, based on what is declared in the <code>Kafka</code> resource.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>The Cluster Operator can also deploy the following Strimzi operators through configuration of the <code>Kafka</code> resource:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Topic Operator to provide operator-style topic management through <code>KafkaTopic</code> custom resources</p>
-</li>
-<li>
-<p>User Operator to provide operator-style user management through <code>KafkaUser</code> custom resources</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>The Topic Operator and User Operator function within the Entity Operator on deployment.</p>
-</div>
-<div class="paragraph">
-<p>You can use the Cluster Operator with a deployment of Strimzi Drain Cleaner to help with pod evictions.
-By deploying the Strimzi Drain Cleaner, you can use the Cluster Operator to move Kafka pods instead of Kubernetes.
-Strimzi Drain Cleaner annotates pods being evicted with a rolling update annotation.
-The annotation informs the Cluster Operator to perform the rolling update.</p>
-</div>
-<div class="paragraph">
-<div class="title">Example architecture for the Cluster Operator</div>
-<p><span class="image"><img src="images/cluster-operator.png" alt="The Cluster Operator creates and deploys Kafka clusters"></span></p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="overview-concepts-topic-operator-str">6.2. Topic Operator</h3>
-<div class="paragraph _abstract">
-<p>The Topic Operator provides a way of managing topics in a Kafka cluster through <code>KafkaTopic</code> resources.</p>
-</div>
-<div class="paragraph">
-<div class="title">Example architecture for the Topic Operator</div>
-<p><span class="image"><img src="images/topic-operator.png" alt="The Topic Operator manages topics for a Kafka cluster via KafkaTopic resources"></span></p>
-</div>
-<div class="paragraph">
-<p>The Topic Operator manages Kafka topics by watching for <code>KafkaTopic</code> resources that describe Kafka topics, and ensuring that they are configured properly in the Kafka cluster.</p>
-</div>
-<div class="paragraph">
-<p>When a <code>KafkaTopic</code> is created, deleted, or changed, the Topic Operator performs the corresponding action on the Kafka topic.</p>
-</div>
-<div class="paragraph">
-<p>You can declare a <code>KafkaTopic</code> as part of your application&#8217;s deployment and the Topic Operator manages the Kafka topic for you.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="overview-concepts-user-operator-str">6.3. User Operator</h3>
-<div class="paragraph _abstract">
-<p>The User Operator provides a way of managing users in a Kafka cluster through <code>KafkaUser</code> resources.</p>
-</div>
-<div class="paragraph">
-<p>The User Operator manages Kafka users for a Kafka cluster by watching for <code>KafkaUser</code> resources that describe Kafka users,
-and ensuring that they are configured properly in the Kafka cluster.</p>
-</div>
-<div class="paragraph">
-<p>When a <code>KafkaUser</code> is created, deleted, or changed, the User Operator performs the corresponding action on the Kafka user.</p>
-</div>
-<div class="paragraph">
-<p>You can declare a <code>KafkaUser</code> resource as part of your application&#8217;s deployment and the User Operator manages the Kafka user for you.
-You can specify the authentication and authorization mechanism for the user.
-You can also configure <em>user quotas</em> that control usage of Kafka resources to ensure, for example, that a user does not monopolize access to a broker.</p>
-</div>
-<div class="paragraph">
-<p>When the user is created, the user credentials are created in a <code>Secret</code>.
-Your application needs to use the user and its credentials for authentication and to produce or consume messages.</p>
-</div>
-<div class="paragraph">
-<p>In addition to managing credentials for authentication, the User Operator also manages authorization rules by including a description of the user&#8217;s access rights in the <code>KafkaUser</code> declaration.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="con-feature-gates-overview-str">6.4. Feature gates in Strimzi Operators</h3>
-<div class="paragraph">
-<p>Strimzi operators use feature gates to enable or disable specific features and functions. Enabling a feature gate alters the behavior of the associated operator, introducing the corresponding feature to your Strimzi deployment.</p>
-</div>
-<div class="paragraph">
-<p>Feature gates are set in the operator configuration and have three stages of maturity: alpha, beta, or graduated.
-Graduated feature gates have reached General Availability (GA) and are permanently enabled features.</p>
-</div>
-<div class="paragraph">
-<p>For more information, see <a href="./deploying.html#ref-operator-cluster-feature-gates-str" target="_blank" rel="noopener">Feature gates</a>.</p>
 </div>
 </div>
 </div>
