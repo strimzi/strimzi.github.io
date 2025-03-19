@@ -1,39 +1,40 @@
 ---
 layout: post
 title: "Collecting diagnostic data"
-date: 2025-03-17
+date: 2025-03-19
 author: federico_valeri
 ---
 
-Debugging distributed systems like Apache Kafka can be challenging.
+Debugging distributed systems, such as Apache Kafka, can be challenging.
 Without access to the right diagnostic data, identifying the root cause of an issue can become a time-consuming process.
 Strimzi, the Kubernetes-native Kafka operator, provides a [bash script](https://github.com/strimzi/strimzi-kafka-operator/blob/0.45.0/tools/report.sh) to collect cluster artifacts, including logs and configurations.
 
-Sometimes, this is not enough and we need long-term storage to collect custom and advanced diagnostic data such as heap dumps and flame graphs.
-Fortunately, Strimzi recently introduced the **additional volumes** feature that makes this task really easy.
+Sometimes, this is not enough and we need persistent high-capacity storage to collect custom diagnostic data to debug memory or performance issues.
+Fortunately, Strimzi recently introduced the **additional volumes** feature that makes it easier to capture these artifacts by leveraging Kubernetes-native mechanisms such as persistent volumes.
 
 <!--more-->
 
 ### The need for diagnostic data in Kafka troubleshooting
 
 Kafka clusters can encounter a range of issues, from resource exhaustion to unexpected application crashes.
-When these issues arise, collecting relevant diagnostic data such as logs, metrics, heap dumps, and thread dumps is essential for effective debugging.
+When these issues arise, collecting relevant diagnostic data is essential for effective debugging.
 Without this information, developers are left guessing, often leading to unnecessary downtime and prolonged resolutions.
 
-Common diagnostic artifacts needed for debugging Kafka and Java application in general include:
+Common diagnostic artifacts needed for debugging Kafka and Java applications in general include:
 
-- **Heap dumps**: To analyze memory usage and detect memory leaks.
 - **Thread dumps**: To inspect thread states and potential deadlocks.
+- **Heap dumps**: To analyze memory usage and detect memory leaks.
 - **JVM metrics**: To monitor CPU, memory, and GC activity.
 - **Log files**: To track application errors and warnings.
 - **Flame graphs**: To visually identify performance bottlenecks.
-
-Strimzi makes it easier to capture these artifacts by leveraging Kubernetes-native mechanisms such as persistent volumes.
 
 ### Introducing Strimzi additional volumes
 
 The additional volumes feature, introduced via [proposal 75](https://github.com/strimzi/proposals/blob/main/075-additional-volumes-support.md), allows users to define extra storage volumes in all operands.
 This enhancement supports different types of volumes, but here we are interested in `PersistentVolumeClaims` to durably store and retrieve any kind of diagnostic data under the `/mnt` mount point.
+
+> Adding a custom volume triggers pod restarts, which can make it difficult to capture an issue that has already occurred.
+> If the issue cannot be easily reproduced in a test environment, configuring the volume in advance could help avoid the pod restarts when you need them most.
 
 With additional volumes, users can:
 
@@ -41,17 +42,22 @@ With additional volumes, users can:
 - Capture JVM dumps without modifying the default storage configuration.
 - Enable better debugging workflows by keeping artifacts accessible even after a pod restart.
 
+Although debugging locally is often easier and faster, certain issues are best diagnosed within a Kubernetes environment due to the following factors:
+
+- **Environment parity**: Some issues only manifest in Kubernetes due to factors like networking, resource limits, or interactions with other components.
+  Debugging in the actual deployment environment can help reproduce and diagnose these problems.
+- **Configuration differences**: Even if you try to match your local setup to the Kubernetes configuration, subtle differences (e.g. service discovery, security settings, or operator-managed logic) might lead to different behavior.
+
 ### Example: capturing heap dumps with additional volumes
 
 A practical example of how additional volumes simplify debugging is demonstrated in the following procedure.
 The scenario involves collecting heap dumps from a Kafka broker when observing excessive memory consumption.
-Memory leaks can sometimes lead to out of memory exceptions (OOME) and service disruption.
+Memory leaks can sometimes lead to an `OutOfMemoryError` (OOME) and service disruption.
 
-> [!WARNING]
-> Taking a heap dump is a heavy operation that makes the Java application hangs.
-> It is not recommended in production, unless it is not possible to reproduce the memory issue in a lower environment.
+> Taking a heap dump is a heavy operation that can cause the Java application to hang.
+> It is not recommended in production, unless it is not possible to reproduce the memory issue in a test environment.
 
-1. **Create the volume claim**: create a persistent volume claim of the desired size, which is bound to a persistent volume:
+1. **Create the volume claim**: Create a persistent volume claim of the desired size, which is bound to a persistent volume:
 
     ```sh
     kind: PersistentVolumeClaim
@@ -66,7 +72,7 @@ Memory leaks can sometimes lead to out of memory exceptions (OOME) and service d
       storageClassName: standard
     ```
 
-2. **Configure the additional volume**: edit the Kafka resource definition to include an extra volume (rolling update):
+2. **Configure the additional volume**: Edit the Kafka resource definition to include an extra volume and wait for the rolling update:
 
     ```sh
     spec:
@@ -83,7 +89,7 @@ Memory leaks can sometimes lead to out of memory exceptions (OOME) and service d
                   mountPath: "/mnt/data"
     ```
 
-3. **Trigger the heap dump generation**: use the `jcmd` tool to generate a heap dump inside the mounted directory.
+3. **Trigger the heap dump generation**: Use the `jcmd` tool to generate a heap dump inside the mounted directory.
 
     ```sh
     $ PID="$(kubectl exec my-cluster-broker-5 -- jcmd | grep "kafka.Kafka" | awk '{print $1}')" && \
@@ -93,14 +99,14 @@ Memory leaks can sometimes lead to out of memory exceptions (OOME) and service d
     Heap dump file created [179236580 bytes in 0.664 secs]
     ```
 
-4. **Retrieve the heap dump file**: use the `kubectl` tool to copy the heap dump file to your local machine for analysis.
+4. **Retrieve the heap dump file**: Use the `kubectl` tool to copy the heap dump file to your local machine for analysis.
 
     ```sh
     $ kubectl cp my-cluster-broker-5:/mnt/data/heap.hprof "$HOME"/Downloads/heap.hprof
     tar: Removing leading `/' from member names
     ```
 
-5. **Analyze the heap dump**: use tools like [Eclipse Memory Analyzer](https://eclipse.dev/mat) to investigate the memory issue.
+5. **Analyze the heap dump**: Use tools like [Eclipse Memory Analyzer](https://eclipse.dev/mat) to investigate the memory issue.
 
 ### Conclusion
 
