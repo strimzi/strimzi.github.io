@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Collecting diagnostic data"
-date: 2025-03-19
+date: 2025-03-20
 author: federico_valeri
 ---
 
