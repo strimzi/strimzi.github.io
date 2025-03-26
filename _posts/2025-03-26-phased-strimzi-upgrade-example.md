@@ -1,39 +1,67 @@
 ---
 layout: post
 title: "Phased upgrades of Strimzi managed Kafka fleets"
-date: 2025-03-20
+date: 2025-03-25
 author: tom_cooper
+mermaid: true
 ---
 
-## TL;DR
+### Summary
 
 When you upgrade an instance of the Strimzi Cluster Operator you will force **all** the Kafka clusters that it manages to roll. 
 For large fleets this could be quite disruptive.
 It would be nice to be able to decide which Kafka clusters upgrade to the new Strimzi version and when.
 
-This blog provides an example of how phased Strimzi upgrades can be performed.
-By using kustomize to create a deployment that allows multiple Strimzi versions to run concurrently and the `STRIMZI_CUSTOM_RESOURCE_SELECTOR` to allow us to specify which Strimzi instance manages which Kafka cluster.
+This post provides an example of how phased Strimzi upgrades can be performed.
+By using [kustomize](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/) to create a deployment that allows multiple Strimzi versions to run concurrently and the `STRIMZI_CUSTOM_RESOURCE_SELECTOR` environment variable to allow us to specify which Strimzi instance manages which Kafka cluster via labels on the Kafka custom resources.
 
-An [example repository](https://github.com/tomncooper/strimzi-phased-upgrade) is provided showing the final setup and providing example scripting and templates for adding new Strimzi versions.
+An [example repository](https://github.com/tomncooper/strimzi-phased-upgrade) is provided showing the final setup and provides example scripting and templates for adding new Strimzi versions.
 
-## Background
+This is a simplified example and comes with several key caveats that need to be considered when implementing a systems like this:
+- Strimzi's CRDs are only guaranteed to be backwards compatible between adjacent versions. So, while it is possible to have more than two versions installed, you should aim to only have two adjacent Strimzi versions running at any one time.
+- Changes in CRD API versions (`v1beta2` to `v1` for example) will require special handling, with all Kafka clusters moved to the new API version before a newer version of Strimzi is installed. 
+- Special care needs to be taken when removing old Strimzi versions. The CRDs should be handled separately and with great care as deleting them would remove all Strimzi managed Kafka clusters (and other operands).
+
+### Contents
+
+- [Background](#background)
+   - [Custom Resource Definitions](#custom-resource-definitions)
+   - [Strimzi Deployment](#strimzi-deployment)
+- [Options for phased upgrades](#options-for-phased-upgrades)
+   - [Strimzi per Namespace](#strimzi-per-namespace)
+   - [Pause Reconciliation](#pause-reconciliation)
+   - [Resource Selector](#resource-selector)
+- [Resource Selector based upgrade](#resource-selector-based-upgrade)
+   - [Concurrent Strimzi Deployments](#concurrent-strimzi-deployments)
+      - [Custom Resource Definitions](#custom-resource-definitions-1)
+      - [Strimzi install resources](#strimzi-install-resources)
+      - [Deploying Strimzi with Kustomize](#deploying-strimzi-with-kustomize)
+      - [Renaming Resources](#renaming-resources)
+      - [Patching Environment Variables](#patching-environment-variables)
+      - [Patching Role and ClusterRole Bindings](#patching-role-and-clusterrole-bindings)
+      - [Watching all namespaces](#watching-all-namespaces)
+      - [Operator Set](#operator-set)
+   - [The Phased Upgrade Process](#the-phased-upgrade-process)
+   - [Things to watch out for](#things-to-watch-out-for)
+   - [Further deployment options](#further-deployment-options)
+- [Conclusion](#conclusion)
+
+### Background
 
 Strimzi handles the [upgrade of Kafka clusters](https://strimzi.io/docs/operators/latest/deploying#proc-upgrade-kafka-kraft-str) for you, making it simple and easy for infrastructure teams to handle these complex operations. 
 The [upgrade of the Strimzi operator](https://strimzi.io/docs/operators/latest/deploying#assembly-upgrade-cluster-operator-str) itself is also straight-forward. 
 However, when you have a large fleet of Kafka clusters being managed by Strimzi, there are several elements you must keep in mind when performing the upgrade. 
 
-First, lets go over what a Strimzi upgrade involves:
+#### Custom Resource Definitions 
 
-### CRDs
+The first step in a Strimzi operator upgrade is the Custom Resource Definitions (CRDs) for the Strimzi Custom Resources (CRs): `Kafka`, `KafkaTopic`, `KafkaUser` etc (we refer to these as the Strimzi operator's _operands_). 
+The CRDs are Kubernetes cluster-wide resources and need to match the most recent version of Strimzi you have installed on the Kubernetes cluster. 
+This is because new fields could have been added to the CRDs that the new Strimzi version expects to be there. 
+Strimzi CRDs are backwards compatible (within the same API version -- see [this section](#custom-resource-definitions-1) for more details), so older Strimzi versions are ok with newer CRDs (they will ignore the new fields) but not the other way around.
 
-The first step in a Strimzi operator upgrade is the Custom Resource Definitions (CRDs) for the Strimzi Custom Resources (CRs): `Kafka`, `KafkaTopic`, `KafkaUser` etc. 
-These are Kubernetes cluster wide resources and need to match the most recent version of Strimzi you have installed on the Kubernetes Cluster. 
-They need to match the most recent version as new fields could have been added to the CRDs that the new Strimzi version expects to be there. 
-Strimzi CRDs are backwards compatible (within the same API version), so older Strimzi versions are ok with newer CRDs (they will ignore the new fields) but not the other way around.
+#### Strimzi Deployment
 
-### Strimzi Deployment
-
-Once the CRDs are updated, you then need to [upgrade the Strimzi Operator](https://strimzi.io/docs/operators/latest/deploying#assembly-upgrade-cluster-operator-str) its self. 
+Once the CRDs are updated, you then need to [upgrade the Strimzi Operator](https://strimzi.io/docs/operators/latest/deploying#assembly-upgrade-cluster-operator-str) itself. 
 This requires you to update the [Deployment CR](https://github.com/strimzi/strimzi-kafka-operator/blob/main/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml) (and any additional RBAC or other resources the new version needs). 
 This will in-turn change the `key=value` maps, in the Deployment's container template environment variables, which control the default image assignments for each of the operands that Strimzi manages (Kafka, Kafka Connect etc.):
 
@@ -83,29 +111,16 @@ However, rolling every Kafka cluster in your fleet could be quite disruptive.
 
 So what can we do to add more control?
 
-## Phased upgrades
+### Options for phased upgrades
 
 What we need is a way to control which Kafka clusters get upgraded and in what order. 
 This is often referred to as a phased upgrade or as an upgrade with _"blast radius"_ control because we can limit the application of the upgrade to a small number of resources (the radius) and contain any potential negative effects (the blast).
 
 There are several possible ways to implement phased upgrades of the Kafka clusters managed by a Strimzi operator:
 
-### Custom image per Kafka cluster
+#### Strimzi per Namespace
 
-You can prevent the fleet rolling situation by overriding the [image](https://strimzi.io/docs/operators/latest/configuring#con-common-configuration-images-reference) used by each Kafka cluster. 
-You could manually set this to the version used by the current Strimzi Operator version.
-As you have manually set this, the changes to the image map environment variables when you upgrade the Strimzi Operator would not change the images of the operands.
-So no automatic rolling would occur.
-You could then manually switch the image used by each Kafka cluster to the new Strimzi version. 
-This would allow you to control which clusters rolled and when.
-
-However, you would then enter a situation where a new operator version (for example 0.45) is talking to a Kafka cluster running the old Strimzi version's container images (eg 0.44). 
-As mentioned in the introduction, the Strimzi container images represent an API with certain scripts, endpoints and environment variables expected to be present. 
-Running a newer Strimzi version administering a Kafka cluster using older Strimzi images _could_ lead to issues and is not a recommended or supported deployment model.
-
-### Strimzi per Namespace
-
-Another way to achieve blast radius control is to install a Strimzi Cluster Operator in every namespace where Kafka clusters are running. 
+The first option is to install a Strimzi Cluster Operator in every namespace where Kafka clusters are running. 
 This way you could upgrade the Cluster Operator Deployment one namespace at a time and have blast radius control (limited to each namespace) and could, if you encounter an issue, roll back a particular Operator upgrade.
 
 However, if you have multiple Kafka clusters in a namespace you would still roll all of them automatically. 
@@ -113,21 +128,21 @@ More seriously, as a single Strimzi instance is capable of running multiple Kafk
 
 The Cluster Operators would also all share the cluster-wide CRDs and so care and time would need to be taken to update these and upgrade all the Operators in a timely fashion.
 
-### Pause Reconciliation
+#### Pause Reconciliation
 
 If you have a Strimzi Cluster Operator managing multiple Kafka clusters, either across a whole Kubernetes cluster or in a namespace, then another option is to temporarily stop the Operator from managing a given Kafka cluster (or other operand) until the upgrade is complete.
 
 To do this you would need to:
-1) Apply the [pause reconciliation annotation](https://strimzi.io/docs/operators/latest/deploying#proc-pausing-reconciliation-str) to all Kafka CRs (and other operands like Kafka Connect deployments)
-2) Upgrade the CRDs and the Strimzi Operator Deployment to the new version.
-3) In the order you want, remove the annotation from each Kafka CR. The operator will resume reconciliation, update the image reference and roll the Kafka cluster.
+1. Apply the [pause reconciliation annotation](https://strimzi.io/docs/operators/latest/deploying#proc-pausing-reconciliation-str) to all Kafka CRs (and other operands like Kafka Connect deployments).
+2. Upgrade the CRDs and the Strimzi Operator Deployment to the new version.
+3. In the order you want, remove the annotation from each Kafka CR. The operator will resume reconciliation, update the image reference and roll the Kafka cluster.
 
 While this process does give you blast radius control, it does have several drawbacks:
 - You need to annotate _everything_ you don't want to automatically update.
 - Until a specific Kafka resource is finally upgraded, that resource is _unmanaged_. Strimzi will not reconcile it, fix any issues or perform any admin operations.
 - Roll back is an _all or nothing_ operation. If you encounter an issue you would need to pause _all_ Kafka resources again, downgrade the Strimzi Operator and then un-pause the resources.   
 
-### Resource Selector
+#### Resource Selector
 
 While the options above work in theory, in practice they have several drawbacks which make them unsuitable for production deployments. 
 A better option comes by using the _Custom Resource Selector_. 
@@ -141,29 +156,69 @@ This is an [environment variable](https://strimzi.io/docs/operators/latest/deplo
 > 	  value: label1=value1,label2=value2 
 > ```
 
-Using this selector you can set a label, `Strimzi-043` for example, in a cluster scoped Strimzi Deployment and then tag all the Kafka CRs (and other operands) with this label and that Strimzi deployment will manage them and only them. 
+Using this selector you can set a label, `strimzi-0-43-0` for example, in an all-namespaces scoped Strimzi Deployment and then tag all the Kafka CRs (and other operands) with this label and that Strimzi deployment will manage them and only them. 
 Any operand CRs without the label will be ignored. 
 
-You could then deploy _another_ cluster-scoped Strimzi operator with a different custom resource selector, `Strimzi-043-b` for example, and tag a different set of Operand CRs with that label.
+You could then deploy _another_ cluster-scoped Strimzi operator with a different custom resource selector, `strimzi-0-43-0-b` for example, and tag a different set of Operand CRs with that label.
 The two Strimzi deployments would coexist happily (provided you have setup independent RBAC -- more on this later), managing completely separate sets of CRs.
 
 This features allows us to create a more robust upgrade process for the Strimzi Operator and its operands.
 
-## Resource Selector based upgrade
+### Resource Selector based upgrade
 
-Using the Custom Resource Selector (CRS) allows us to have fine grained control over which operands are upgraded to new Strimzi versions and when. 
+Using the Custom Resource Selector allows us to have fine grained control over which operands are upgraded to new Strimzi versions and when. 
 However, in order to use this process we need to deploy multiple versions of Strimzi concurrently.
+That requires us to consider several key aspects of the Strimzi installation resources:
 
-### Concurrent Strimzi Deployments
+#### Concurrent Strimzi Deployments
+
+##### Custom Resource Definitions
+
+The first major consideration when designing a deployment strategy for multiple Strimzi versions is the [Custom Resource Definitions](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#customresourcedefinitions) (CRDs). 
+As discussed above, these are backwards compatible between Strimzi versions but not forwards compatible.
+Older Strimzi operands can use newer CRDs but not the other way around.
+This means that, for concurrent Strimzi deployments, we need to make sure that only the most recent version of the CRDs is installed in the Kubernetes cluster.
+We will cover how to separate out the CRDs from the installation files in the sections below. 
+However, first we need to cover some important considerations regarding the CRDs and multiple Strimzi versions.
+
+###### Supported concurrent versions
+
+As with any other Kubernetes resource the CRDs have an API version.
+[Currently](https://github.com/strimzi/strimzi-kafka-operator/blob/ac5f9b48db851737aba12abebee4000295d2ec1c/install/cluster-operator/040-Crd-kafka.yaml#L23) this is `v1beta2`.
+Theoretically, Strimzi operands that share this API version can coexist and you _could_ run multiple versions concurrently on the same Kubernetes cluster (0.43. 0.44 ad 0.45 for example).
+However, the only guaranteed and tested configuration is two adjacent Strimzi versions.
+This has to be supported to allow the upgrade of a single Strimzi instance and so is tested as part of a Strimzi release. 
+If you install more than 2 adjacent Strimzi versions you are running the risk of newer CRDs causing issues for older operands. 
+For example operands being managed by Strimzi 0.43 when the 0.45 CRDs are installed in the cluster.
+This is an untested configuration and so you may encounter issues.
+Therefore, it is strongly recommended that you only run two adjacent Strimzi versions using a system like the one proposed in this post.
+
+###### CRD API version upgrades
+
+The next consideration is when the CRD API version is upgraded.
+For example when Strimzi eventually upgrades from `v1beta2` to `v1` CRDs.
+When this occurs you will need to first make sure **all** operands are updated to the latest Strimzi version running the old CRD API version (e.g. `v1beta1`).
+You will need to do this **before** you install the CRDs for the new Strimzi version which uses the new CRD API version (e.g. `v1`)
+You would then follow any specific upgrade instructions and move each operand onto the new Strimzi version and CRD API version.
+
+Using the last CRD API version upgrade as an example, we can illustrate the process. Strimzi 0.22 used `v1beta1` and Strimzi 0.23 used `v1beta2` CRDs. If we were running a setup with Strimzi 0.21 and 0.22 installed concurrently, to move to 0.23 we would need to:
+- First move **all** Kafka clusters, Kafka Connect deployments and other operands to be run by the Strimzi 0.22 Operator.
+- Then remove Strimzi 0.21 and only then add Strimzi 0.23 and its CRDs. This step is important as 0.21 based operands **cannot** run with 0.23 CRDs. 
+- Finally move every operand across to the 0.23 Operator and perform the specific [CRD upgrade instructions](https://strimzi.io/docs/operators/0.23.0/deploying#assembly-upgrade-resources-str).
+- Remove the 0.22 Operator.
+
+##### Strimzi install resources
+
+With the above considerations around CRDs in mind, lets move on to how to handle the rest of the Strimzi installation resources when installing multiple concurrent Strimzi versions.
 
 The standard Strimzi deployment includes service accounts and RBAC resources (`Role`s, `ClusterRole`s and their associated bindings) needed for Strimzi to do its job. 
 By default these are all named `strimzi-cluster-operator` or similar.
 If we try and deploy multiple operator instances in the same namespace, or over multiple namespaces but needing to share `ClusterRole`s and bindings, things will get messy.
 Also, different Strimzi versions may need different permissions and so we need to make sure independent copies of these RBAC resources are deployed for each Strimzi version.
 
-#### Deploying Strimzi with Kustomize
+##### Deploying Strimzi with Kustomize
 
-There are many ways to template Kubernetes deployments, Helm is a common option and for Operators OLM is often used. 
+There are many ways to template Kubernetes deployments, Helm is a common option and for Operators, OLM is often used. 
 For this example however, we will use the one built into `kubectl`: [kustomize](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/).
 This gives us a way to take a base set of resources, in this case the Strimzi installation resources, and alter them using patches defined in a `kustomization.yaml` file.
 
@@ -173,7 +228,7 @@ In this way you can define patches at each folder level and then pull all the fo
 
 This will be easier to understand with an example.
 In order to have multiple concurrent Strimzi versions, the first thing we need to do is separate out the CRDs, so we can always have the most recent ones installed.
-The folder structure below illustrates how to use kustomize to do this:
+The folder structure shown below illustrates how to use kustomize to take the standard [Strimzi installation resource files](https://github.com/strimzi/strimzi-kafka-operator/tree/release-0.43.x/install) and separate out the CRDs:
 
 ```shell
 install-files
@@ -212,7 +267,7 @@ install-files
 └── kustomization.yaml
 ```
 
-`install-files/cluster-operator-0.43.0/kustomization.yaml`
+Contents of `install-files/cluster-operator-0.43.0/kustomization.yaml`
 ```yaml
 resources:
 - 010-ServiceAccount-strimzi-cluster-operator.yaml
@@ -234,7 +289,7 @@ resources:
 - 060-Deployment-strimzi-cluster-operator.yaml
 ``` 
 
-`install-files/crds/kustomization.yaml`
+Contents of `install-files/crds/kustomization.yaml`
 ```yaml
 resources:
 - 040-Crd-kafka.yaml
@@ -250,7 +305,7 @@ resources:
 - 04A-Crd-kafkanodepool.yaml
 ```
 
-`install-files/crds/kustomization.yaml`
+Contents of `install-files/crds/kustomization.yaml`
 ```yaml
 resources:
 - cluster-operator-0.43.0
@@ -274,7 +329,7 @@ kubectl kustomize install-files
 
 This will render the kustomize altered install resources to the console.
 
-#### Renaming Resources
+##### Renaming Resources
 
 Now we have a deployment for a single Strimzi version we need to add another. 
 As discussed above however, we need to rename the RBAC and configuration resources so each version has its own set. 
@@ -313,9 +368,9 @@ resources:
 nameSuffix: '-0-44-0'
 ```
 
-#### Patching Environment Variables
+##### Patching Environment Variables
 
-Sadly, the `nameSuffix` is not sufficient on it own. 
+Sadly, the `nameSuffix` is not sufficient on its own. 
 There are several other elements of the deployment files that need to be customised in order to allow the Strimzi versions to exist concurrently.
 
 The first of these are the environment variables in the Strimzi operator `Deployment` resource, several of which need to be individualised to each Strimzi version. 
@@ -326,7 +381,7 @@ We can patch the env vars in the Strimzi cluster operator `Deployment` CR using 
 To do this we create a yaml file containing the entries we would like to change or add.
 We then tell kustomize to merge this patch yaml with the operator's `Deployment` resource:
 
-`install-files/cluster-operator-0.43.0/patches/patch-deployment.yaml`
+Contents of `install-files/cluster-operator-0.43.0/patches/patch-deployment.yaml`
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -344,7 +399,7 @@ spec:
               value: "strimzi-cluster-operator-0-43-0"
 ```
 
-`install-files/cluster-operator-0.43.0/kustomization.yaml`
+Contents of `install-files/cluster-operator-0.43.0/kustomization.yaml`
 ```yaml
 resources:
 - 010-ServiceAccount-strimzi-cluster-operator.yaml
@@ -360,12 +415,12 @@ patches:
       name: strimzi-cluster-operator
 ```
 
-#### Patching Role and ClusterRole Bindings
+##### Patching Role and ClusterRole Bindings
 
 Another element that needs individualising for each Strimzi version are the `RoleBinding`s and `ClusterRoleBinding`s used by the operator.
 Again we can apply a patch to these in the `kustomization.yaml`:
 
-`install-files/cluster-operator-0.43.0/patches/patch-role-references.yaml`
+Contents of `install-files/cluster-operator-0.43.0/patches/patch-role-references.yaml`
 ```yaml
 - op: replace
   path: /subjects/0/name
@@ -375,7 +430,7 @@ Again we can apply a patch to these in the `kustomization.yaml`:
   value: strimzi
 ```
 
-`install-files/cluster-operator-0.43.0/kustomization.yaml`
+Contents of `install-files/cluster-operator-0.43.0/kustomization.yaml`
 ```yaml
 resources:
 - 010-ServiceAccount-strimzi-cluster-operator.yaml
@@ -397,7 +452,7 @@ This name should be the original name in the base Strimzi  operator `ServiceAcco
 It will also patch the `namespace` which should match the namespace where the service account is installed. 
 In this case we assume all operator versions are installed in the `strimzi` namespace.
 
-#### Watching all namespaces
+##### Watching all namespaces
 
 The final thing we need to setup is configuring the namespaces that the Strimzi Operators will watch.
 For this example we assume that the various Strimzi versions will be watching all namespaces on the Kubernetes cluster.
@@ -407,7 +462,7 @@ However, that is already handled by the step above.
 We then need to set the `STRIMZI_NAMESPACE` env var in the operator `Deployment` to `*`.
 For this we can update the `patch-deployment.yaml` from the earlier step:
 
-`install-files/cluster-operator-0.43.0/patches/patch-deployment.yaml`
+Contents of `install-files/cluster-operator-0.43.0/patches/patch-deployment.yaml`
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -428,8 +483,8 @@ spec:
               value: "strimzi-cluster-operator-0-43-0"
 ```
 
-[The documentation](https://strimzi.io/docs/operators/latest/deploying#deploying-cluster-operator-to-watch-whole-cluster-str) then says we need to create several additional (Cluster)Roles and bindings. 
-We can add these to the base install resources by using the `--dry-run=client` and `-o yaml` flags for the `kubectle create` command to output the resource files to yaml format and then send that to a file.
+[The documentation](https://strimzi.io/docs/operators/latest/deploying#deploying-cluster-operator-to-watch-whole-cluster-str) then says we need to create several additional `ClusterRoleBindings`. 
+We can add these to the base install resources by using the `--dry-run=client` and `-o yaml` flags for the `kubectl create` command to output the resource files to yaml format and then send that to a file.
 For example:
 
 ```shell
@@ -442,7 +497,7 @@ kubectl create --dry-run=client -o yaml \
 
 We can then add these additional resources to the `resources` list in the respective `kustomization.yaml` files and they will be modified by the same `nameSuffix` and `patch-role-reference.yaml` patches as the other RBAC resources.
 
-#### Operator Set
+##### Operator Set
 
 After all these steps we now have a pattern for installing multiple versions of Strimzi at the same time without them interfering with one another, we can call this group of Strimzi versions the "Operator Set".
 
@@ -460,6 +515,9 @@ install-files
 │  ├── ...
 │  ├── 060-Deployment-strimzi-cluster-operator.yaml
 │  ├── kustomization.yaml
+│  ├── strimzi-cluster-operator-entity-operator-delegation.yaml
+│  ├── strimzi-cluster-operator-namespaced.yaml
+│  └── strimzi-cluster-operator-watched.yaml
 ├── cluster-operator-0.44.0
 │  ├── patches
 │  │  ├── patch-deployment.yaml
@@ -468,14 +526,9 @@ install-files
 │  ├── ...
 │  ├── 060-Deployment-strimzi-cluster-operator.yaml
 │  ├── kustomization.yaml
-├── cluster-operator-0.45.0
-│  ├── patches
-│  │  ├── patch-deployment.yaml
-│  │  └── patch-role-references.yaml
-│  ├── 010-ServiceAccount-strimzi-cluster-operator.yaml
-│  ├── ...
-│  ├── 060-Deployment-strimzi-cluster-operator.yaml
-│  ├── kustomization.yaml
+│  ├── strimzi-cluster-operator-entity-operator-delegation.yaml
+│  ├── strimzi-cluster-operator-namespaced.yaml
+│  └── strimzi-cluster-operator-watched.yaml
 ├── crds
 │  ├── 04A-Crd-kafkanodepool.yaml
 │  ├── 040-Crd-kafka.yaml
@@ -498,14 +551,14 @@ To install the entire Operator Set you simply run:
 kubectl -n strimzi apply -k install-files
 ```
 
-Note that the namespace you install the Operator set into needs to match the one you have used in the `patch-role-references.yaml`.
+Note that the namespace you install the Operator Set into needs to match the one you have used in the `patch-role-references.yaml`.
 
 A full example of the Operator Set above can be seen in the [strimzi-phased-upgrade](https://github.com/tomncooper/strimzi-phased-upgrade) repository.
 That repository also contains scripting to automate the addition of new Strimzi versions and templates for the generation of patch and kustomization files. 
 
-### The Phased Upgrade Process
+#### The Phased Upgrade Process
 
-Now that we have a way to install multiple Strimzi versions we can go over the process of moving Kafka clusters (and other operands) between them.
+Now that we have a way to install multiple Strimzi versions, we can go over the process of moving Kafka clusters (and other operands) between them.
 
 Firstly, this setup requires all Kafka clusters to be labelled with the appropriate Strimzi custom resource selector.
 Lets imagine that our Kafka fleet consists of 3 clusters: A, B & C, which are all running Kafka 3.8.0 and are located in the `kafka` namespace.
@@ -537,10 +590,9 @@ Once we have applied this label to all the Kafka clusters in our fleet, we shoul
 ```mermaid
 flowchart TD
 	S_043(Strimzi 0.43) --> K_A(Kafka A)
-    S_043 --> K_B(Kafka B)
-    S_043 --> K_C(Kafka C)
+  S_043 --> K_B(Kafka B)
+  S_043 --> K_C(Kafka C)
 	S_044(Strimzi 0.44)
-	S_045(Strimzi 0.45)
 ```
 
 We now want to upgrade to a newer Strimzi version. 
@@ -556,10 +608,9 @@ It will then roll the cluster, one broker at a time, on to the new image.
 
 ```mermaid
 flowchart TD
-    S_043(Strimzi 0.43) --> K_A(Kafka A)
-    S_043 --> K_B(Kafka B)
+  S_043(Strimzi 0.43) --> K_A(Kafka A)
+  S_043 --> K_B(Kafka B)
 	S_044(Strimzi 0.44) --> K_C(Kafka C)
-	S_045(Strimzi 0.45)
 ```
 
 After a burn-in period, where we are happy with the stability of the cluster, our client side canary jobs are stable and no client teams are reporting issues, we begin to move the rest of the fleet.
@@ -567,10 +618,9 @@ After a burn-in period, where we are happy with the stability of the cluster, ou
 ```mermaid
 flowchart TD
 	S_043(Strimzi 0.43)
-    S_044(Strimzi 0.44) --> K_A(Kafka A)
-    S_044 --> K_B(Kafka B)
+  S_044(Strimzi 0.44) --> K_A(Kafka A)
+  S_044 --> K_B(Kafka B)
 	S_044 --> K_C(Kafka C)
-	S_045(Strimzi 0.45)
 	style K_A stroke:#f66,stroke-width:2px,stroke-dasharray: 5 5
 ```
 
@@ -585,46 +635,58 @@ kubectl -n kafka label --overwrite kafka kafka-a strimzi-resource-selector=strim
 
 ```mermaid
 flowchart TD
-    S_043(Strimzi 0.43) --> K_A(Kafka A)
-    S_044(Strimzi 0.44) --> K_B(Kafka B)
+  S_043(Strimzi 0.43) --> K_A(Kafka A)
+  S_044(Strimzi 0.44) --> K_B(Kafka B)
 	S_044 --> K_C(Kafka C)
-	S_045(Strimzi 0.45)
 ```
 
 We fix the configuration issue and move Kafka cluster A over to the 0.44 operator.
-We then move cluster C onto the latest 0.45 operator, ready to upgrade the rest of the fleet.
 
 ```mermaid
 flowchart TD
-    S_043(Strimzi 0.43)
+  S_043(Strimzi 0.43)
 	style S_043 stroke:#f66,stroke-width:2px
-    S_044(Strimzi 0.44) --> K_A(Kafka A)
-	S_044 --> K_B(Kafka B)
-	S_045(Strimzi 0.45) --> K_C(Kafka C)
+  S_044(Strimzi 0.44) --> K_A(Kafka A)
+  S_044 --> K_B(Kafka B)
+	S_044 --> K_C(Kafka C)
 ```
 
 At this point the Strimzi 0.43 operator is not managing any Kafka clusters and all the clusters being managed by the 0.44 operator have been stable for sufficient period that we are confident we don't need to roll back. 
 We can now remove the Strimzi 0.43 operator deployment and its associated RBAC resources.
+At this point we can add a new version to the Operator Set, adding the 0.45 installation files and upgrading the CRDs to those of the 0.45 version.
 
-### Things to watch out for
+```mermaid
+flowchart TD
+  S_044(Strimzi 0.44) --> K_A(Kafka A)
+  S_044 --> K_B(Kafka B)
+	S_044 --> K_C(Kafka C)
+  S_045(Strimzi 0.45)
+	style S_045 stroke:#008000,stroke-width:2px
+```
+
+#### Things to watch out for
 
 The main things to watch for when using this Strimzi deployment pattern are:
-- That the Kafka version of the Kafka CR is supported by the version of Strimzi you are moving too. You can add checks to deployment scripts, GitOps CI that checks for this.
+- Take note of the advice in the [CRD section](#custom-resource-definitions-1) above around the number of concurrent versions and CRD API version upgrades:
+  - The only supported configuration is running two adjacent Strimzi versions concurrently.
+  - When upgrading the CRD API version. You will need to upgrade all operands to the last Strimzi version before the API upgrade, before adding the new Strimzi version with the new CRD API version.
+- Extreme care should be taken, while updating the Operator Set, to not remove the CRDs from the Kubernetes cluster. Doing so would result in the removal of **all** Kafka clusters (and other Strimzi operands).
+- You should ensure that the Kafka version of the Kafka CR is supported by the version of Strimzi you are moving too. This should not be an issue of are moving between adjacent Strimzi versions. However, you can add checks to deployment scripts and GitOps repository CI that checks for this.
 - When removing old versions of Strimzi that are no longer needed, care should be taken to make sure that no Kafka CRs are still labelled for that version. Again, scripting or CI can run checks against the Kubernetes cluster to ensure this.
 
-### Further deployment options
+#### Further deployment options
 
 We have covered how to do upgrades using the custom resource selector and multiple different versions of Strimzi. 
 However, there is no reason there should be only one instance of each version.
 You could have `strimzi-0-43-0-a` and `stimzi-0-43-0-b`, you could then load balance Kafka cluster management between them.
 This would be particularly useful if you have a large number of small Kafka clusters or _very_ large Kafka clusters with many brokers.
 
-You could also separate out critical Kafka cluster management to Strimzi operator with different RBAC.
+You could also separate out critical Kafka cluster management to a Strimzi operator with different RBAC.
 Perhaps your infrastructure management system itself runs though a Kafka cluster managed by Strimzi, you could have a separate Strimzi operator deployed just to manage this critical cluster and lock it down with very restrictive controls.
 Alternatively, you could have a developer team that wants access to the Strimzi operator running the Kafka cluster they use. 
 Leaving aside whether this is a good idea or not, using the setup proposed in this post, you could create an isolated operator instance just for that team which would not effect any other running Kafka clusters.
 
-## Conclusion
+### Conclusion
 
 In this post we have covered an example Strimzi deployment setup that allows you to deploy multiple versions of the Strimzi operator concurrently and pass Kafka cluster management between them on a cluster-by-cluster basis. 
 This allows you to control what Kafka clusters are upgraded and when and also allows easy rollback in the case of issues.
@@ -634,4 +696,5 @@ It also provides scripting to automate the addition of new Strimzi versions.
 However, a similar outcome could be achieved using [Helm](https://helm.sh/) or the [Operator Lifecycle Manager (OLM)](https://olm.operatorframework.io/) tool from the Operator Framework.
 
 Obviously, this is a simplified example and will need to be modified for your own deployment model, Kafka cluster topologies and RBAC requirements. 
-However, we hope it shows how Strimzi gives you the tools to provide a production grade Kafka setup.
+There are also several [caveats related to the CRDs](#custom-resource-definitions-1) which need to be kept in mind.
+However, we hope it shows how Strimzi gives you the tools to provide a production grade, robust, Kafka setup.
