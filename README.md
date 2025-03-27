@@ -55,6 +55,24 @@ We try to use the following process for blog posts:
 4. Once the content is good we'll do a final review pass focussing on things like spelling and grammar.
    Don't worry if you're not a native English speaker; our main intent here isn't necessarily _perfect_ English, but to ensure the content is easily understood.
 
+### Diagrams
+
+You can include diagrams by adding images to `assets/images/posts` directory (the filename should start with the date of the post) and linking to them directly. 
+Alternatively, you can enable [Mermaid](https://mermaid.js.org/) diagram rendering in you post's markdown. 
+To do this add `mermaid: true` to your post's front matter, then tag your diagram code blocks with the `mermaid` language tag:
+```markdown
+---
+layout: post
+mermaid: true
+---
+
+```mermaid
+flowchart TD
+A --> B
+B --> C
+``` `
+```
+
 ## Quick starts
 
 [Strimzi quick starts](https://strimzi.io/quickstarts/) provide instructions for evaluating Strimzi using _Minikube_, _Kubernetes kind_ or _Docker Desktop_.
