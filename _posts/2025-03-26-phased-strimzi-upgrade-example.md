@@ -20,7 +20,7 @@ An [example repository](https://github.com/tomncooper/strimzi-phased-upgrade) is
 This is a simplified example and comes with several key caveats that need to be considered when implementing a systems like this:
 - Strimzi's CRDs are only guaranteed to be backwards compatible between adjacent versions. So, while it is possible to have more than two versions installed, you should aim to only have two adjacent Strimzi versions running at any one time.
 - Changes in CRD API versions (`v1beta2` to `v1` for example) will require special handling, with all Kafka clusters moved to the new API version before a newer version of Strimzi is installed. 
-- Special care needs to be taken when removing old Strimzi versions. The CRDs should be handled separately and with great care as deleting them would remove all Strimzi managed Kafka clusters (and other operands).
+- Special care needs to be taken when removing old Strimzi versions. The CRDs should be handled separately and great care should be taken when upgrading them. Removing the CRDs (even temporarily), rather than upgrading them, would cause all Strimzi managed Kafka clusters (and other operands) to be deleted.
 
 ### Contents
 
@@ -54,7 +54,7 @@ However, when you have a large fleet of Kafka clusters being managed by Strimzi,
 
 #### Custom Resource Definitions 
 
-The first step in a Strimzi operator upgrade is the Custom Resource Definitions (CRDs) for the Strimzi Custom Resources (CRs): `Kafka`, `KafkaTopic`, `KafkaUser` etc (we refer to these as the Strimzi operator's _operands_). 
+The first step in a Strimzi operator upgrade is to update the [Custom Resource Definitions](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#customresourcedefinitions) (CRDs) for the Strimzi Custom Resources (CRs): `Kafka`, `KafkaTopic`, `KafkaUser` etc (we refer to these as the Strimzi operator's _operands_). 
 The CRDs are Kubernetes cluster-wide resources and need to match the most recent version of Strimzi you have installed on the Kubernetes cluster. 
 This is because new fields could have been added to the CRDs that the new Strimzi version expects to be there. 
 Strimzi CRDs are backwards compatible (within the same API version -- see [this section](#custom-resource-definitions-1) for more details), so older Strimzi versions are ok with newer CRDs (they will ignore the new fields) but not the other way around.
@@ -174,7 +174,7 @@ That requires us to consider several key aspects of the Strimzi installation res
 
 ##### Custom Resource Definitions
 
-The first major consideration when designing a deployment strategy for multiple Strimzi versions is the [Custom Resource Definitions](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#customresourcedefinitions) (CRDs). 
+The first major consideration when designing a deployment strategy for multiple Strimzi versions is the CRDs. 
 As discussed above, these are backwards compatible between Strimzi versions but not forwards compatible.
 Older Strimzi operands can use newer CRDs but not the other way around.
 This means that, for concurrent Strimzi deployments, we need to make sure that only the most recent version of the CRDs is installed in the Kubernetes cluster.
@@ -198,7 +198,7 @@ Therefore, it is strongly recommended that you only run two adjacent Strimzi ver
 The next consideration is when the CRD API version is upgraded.
 For example when Strimzi eventually upgrades from `v1beta2` to `v1` CRDs.
 When this occurs you will need to first make sure **all** operands are updated to the latest Strimzi version running the old CRD API version (e.g. `v1beta1`).
-You will need to do this **before** you install the CRDs for the new Strimzi version which uses the new CRD API version (e.g. `v1`)
+You will need to do this **before** you install the CRDs for the new Strimzi version which uses the new CRD API version (e.g. `v1`).
 You would then follow any specific upgrade instructions and move each operand onto the new Strimzi version and CRD API version.
 
 Using the last CRD API version upgrade as an example, we can illustrate the process. Strimzi 0.22 used `v1beta1` and Strimzi 0.23 used `v1beta2` CRDs. If we were running a setup with Strimzi 0.21 and 0.22 installed concurrently, to move to 0.23 we would need to:
