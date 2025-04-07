@@ -3580,7 +3580,7 @@ In this guide, the term <em>connector</em> is used when the meaning is clear fro
 <p>This procedure shows how to deploy a Kafka Connect cluster to your Kubernetes cluster using the Cluster Operator.</p>
 </div>
 <div class="paragraph">
-<p>A Kafka Connect cluster deployment is implemented with a configurable number of nodes (also called <em>workers</em>) that distribute the workload of connectors as <em>tasks</em> so that the message flow is highly scalable and reliable.</p>
+<p>A Kafka Connect cluster deployment is implemented with a configurable number of nodes (also called <em>workers</em>) that distribute the workload of connectors as <em>tasks</em>, ensuring a scalable and reliable message flow.</p>
 </div>
 <div class="paragraph">
 <p>The deployment uses a YAML file to provide the specification to create a <code>KafkaConnect</code> resource.</p>
@@ -3596,30 +3596,57 @@ In this procedure, we use the following example file:</p>
 </li>
 </ul>
 </div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-If deploying Kafka Connect clusters to run in parallel, each instance must use unique names for internal Kafka Connect topics.
-To do this, <a href="#con-config-kafka-connect-multiple-instances-str">configure each Kafka Connect instance to replace the defaults</a>.
-</td>
-</tr>
-</table>
-</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
 <li>
-<p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
+<p>Cluster Operator is deployed.</p>
+</li>
+<li>
+<p>Kafka cluster is running.</p>
+<div class="paragraph">
+<p>This procedure assumes that the Kafka cluster was deployed using Strimzi.</p>
+</div>
 </li>
 </ul>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
 <ol class="arabic">
+<li>
+<p>Edit the deployment file to configure connection details (if required).</p>
+<div class="paragraph">
+<p>In <code>examples/connect/kafka-connect.yaml</code>, add or update the following properties as needed:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.bootstrapServers</code> to specify the Kafka bootstrap address.</p>
+</li>
+<li>
+<p><code>spec.authentication</code> to specify the authentication type as <code>tls</code>, <code>scram-sha-256</code>, <code>scram-sha-512</code>, <code>plain</code>, or <code>oauth</code>.<br>
+See the <a href="./configuring.html#type-KafkaConnectSpec-schema-reference" target="_blank" rel="noopener"><code>KafkaConnectSpec</code> schema properties</a> for configuration details.</p>
+</li>
+<li>
+<p><code>spec.tls.trustedCertificates</code> to configure the TLS certificate.<br>
+Use <code>[]</code> (an empty array) to trust the default Java CAs, or specify secrets containing trusted certificates.<br>
+See <a href="./configuring.html#con-common-configuration-trusted-certificates-reference" target="_blank" rel="noopener"><code>trustedCertificates</code> properties</a> for configuration details.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Configure the deployment for multiple Kafka Connect clusters (if required).</p>
+<div class="paragraph">
+<p>If you plan to run more than one Kafka Connect cluster in the same environment, each instance must use unique internal topic names and a unique group ID.</p>
+</div>
+<div class="paragraph">
+<p>Update the <code>spec.config</code> properties in <code>kafka-connect.yaml</code> to replace the default values.</p>
+</div>
+<div class="paragraph">
+<p>See <a href="#con-config-kafka-connect-multiple-instances-str">Configuring multiple Kafka Connect clusters</a> for details.</p>
+</div>
+</li>
 <li>
 <p>Deploy Kafka Connect to your Kubernetes cluster.
 Use the <code>examples/connect/kafka-connect.yaml</code> file to deploy Kafka Connect.</p>
@@ -3633,7 +3660,7 @@ Use the <code>examples/connect/kafka-connect.yaml</code> file to deploy Kafka Co
 <p>Check the status of the deployment:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n <em>&lt;my_cluster_operator_namespace&gt;</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n &lt;my_cluster_operator_namespace&gt;</code></pre>
 </div>
 </div>
 <div class="listingblock">
@@ -3644,17 +3671,11 @@ my-connect-cluster-connect-&lt;pod_id&gt;  1/1    Running  0</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p><code>my-connect-cluster</code> is the name of the Kafka Connect cluster.</p>
-</div>
-<div class="paragraph">
-<p>A pod ID identifies each pod created.</p>
-</div>
-<div class="paragraph">
-<p>With the default deployment, you create a single Kafka Connect pod.</p>
-</div>
-<div class="paragraph">
-<p><code>READY</code> shows the number of replicas that are ready/expected.
-The deployment is successful when the <code>STATUS</code> displays as <code>Running</code>.</p>
+<p>In this example, <code>my-connect-cluster</code> is the name of the Kafka Connect cluster.
+A pod ID identifies each created pod.
+By default, the deployment creates a single Kafka Connect pod.
+<code>READY</code> shows the number of ready versus expected replicas.
+The deployment is successful when the <code>STATUS</code> is <code>Running</code>.</p>
 </div>
 </li>
 </ol>
@@ -9878,8 +9899,9 @@ Changing the replication factor after the topics have been created has no effect
 <p>Requests for reservation of supported resources, currently <code>cpu</code> and <code>memory</code>, and limits to specify the maximum resources that can be consumed.</p>
 </li>
 <li>
-<p>Authentication for the Kafka Connect cluster, specified as mTLS, token-based OAuth, SASL-based SCRAM-SHA-256/SCRAM-SHA-512, or PLAIN.
-By default, Kafka Connect connects to Kafka brokers using a plain text connection.</p>
+<p>Authentication for the Kafka Connect cluster, specified as <code>tls</code>, <code>scram-sha-256</code>, <code>scram-sha-512</code>, <code>plain</code>, or <code>oauth</code>.
+By default, Kafka Connect connects to Kafka brokers using a plaintext connection.
+For details on configuring authentication, see the <a href="./configuring.html#type-KafkaConnectSpec-schema-reference" target="_blank" rel="noopener"><code>KafkaConnectSpec</code> schema properties</a>.</p>
 </li>
 <li>
 <p>TLS configuration for encrypted connections to the Kafka cluster, with trusted certificates stored in X.509 format within the specified secrets.</p>
