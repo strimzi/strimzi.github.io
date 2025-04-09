@@ -62,7 +62,7 @@ Strimzi CRDs are backwards compatible (within the same API version -- see [this 
 #### Strimzi Deployment
 
 Once the CRDs are updated, you then need to [upgrade the Strimzi Operator](https://strimzi.io/docs/operators/latest/deploying#assembly-upgrade-cluster-operator-str) itself. 
-This requires you to update the [Deployment CR](https://github.com/strimzi/strimzi-kafka-operator/blob/main/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml) (and any additional RBAC or other resources the new version needs). 
+This requires you to update the [Deployment resource](https://github.com/strimzi/strimzi-kafka-operator/blob/main/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml) (and any additional RBAC or other resources the new version needs). 
 This will in-turn change the `key=value` maps, in the Deployment's container template environment variables, which control the default image assignments for each of the operands that Strimzi manages (Kafka, Kafka Connect etc.):
 
 ```yaml
@@ -199,11 +199,20 @@ When this occurs you will need to first make sure **all** operands are updated t
 You will need to do this **before** you install the CRDs for the new Strimzi version which uses the new CRD API version (e.g. `v1`).
 You would then follow any specific upgrade instructions and move each operand onto the new Strimzi version and CRD API version.
 
-Using the last CRD API version upgrade as an example, we can illustrate the process. Strimzi 0.22 uses `v1beta1` and Strimzi 0.23 uses `v1beta2` CRDs. If we were running a setup with Strimzi 0.21 and 0.22 installed concurrently, to move to 0.23 we would need to:
-- First move **all** Kafka clusters, Kafka Connect deployments and other operands to be run by the Strimzi 0.22 Operator.
-- Then remove Strimzi 0.21 and only then add Strimzi 0.23 and its CRDs. This step is important as 0.21 based operands **cannot** run with 0.23 CRDs. 
-- Finally move every operand across to the 0.23 Operator and perform the specific [CRD upgrade instructions](https://strimzi.io/docs/operators/0.23.0/deploying#assembly-upgrade-resources-str).
-- Remove the 0.22 Operator.
+Using the last CRD API version upgrade as an example, we can illustrate the process. 
+Strimzi 0.21 supports the older `v1beta1` API version, Strimzi 0.22 supports both the older `v1beta1` as well as the newer `v1beta2` and finally, Strimzi 0.23 supports only the new `v1beta2` CRDs. 
+Because of this, we can run Strimzi 0.21 and 0.22 concurrently as both support the older `v1beta1` API. 
+We can also run Strimzi 0.22 and 0.23 concurrently, as both support the newer `v1beta2` API. 
+However, we cannot run Strimzi 0.21 and 0.23 concurrently, as each supports a different API version.
+
+So, if we were running a setup with Strimzi 0.21 and wanted to upgrade to 0.23, we have to:
+
+- First install CRDs from Strimzi 0.22 with both `v1beta1` and `v1beta2` API versions and install the Stirmzi 0.22 deployment, RBAC resources, etc.
+- Migrate all operands from 0.21 to 0.22.
+- Remove the 0.21 operator.
+- Perform the specific [CRD upgrade instructions](https://strimzi.io/docs/operators/0.23.0/deploying#assembly-upgrade-resources-str), install CRDs from Strimzi 0.23 with only the `v1beta2` API versions and install the Stirmzi 0.23 deployment, RBAC resources, etc.
+- Migrate all operands from 0.22 to 0.23.
+- Remove the 0.22 operator.
 
 ##### Strimzi install resources
 
@@ -562,7 +571,7 @@ Now that we have a way to install multiple Strimzi versions, we can go over the 
 
 Firstly, this setup requires all Kafka clusters to be labelled with the appropriate Strimzi custom resource selector.
 Lets imagine that our Kafka fleet consists of 3 clusters: A, B & C, which are all running Kafka 3.8.0 and are located in the `kafka` namespace.
-We want these clusters to be managed by the Stimzi 0.43 instance.
+We want these clusters to be managed by the Strimzi 0.43 instance.
 So we apply the label defined in the `install-files/cluster-operator-0.43.0/patches/patch-deployment.yaml` file above: `strimzi-resource-selector=strimzi-0-43-0`.
 This can either be done in the Kafka cluster CR:
 
@@ -597,13 +606,27 @@ flowchart TD
 
 We now want to upgrade to a newer Strimzi version. 
 The Kafka C cluster is our most risk tolerant cluster, it hosts topics used by low tier data pipelines which can tolerate extended downtime, so it will go first to ensure there are no issues.
-We first check that the Kafka C cluster is error free and in the `Ready` state and then apply the Strimzi custom resource selector label for the 0.44.0 Strimzi operator:
+We first check that the Kafka C cluster is error free and in the `Ready` state. 
+We then apply the [pause reconciliation annotation](https://strimzi.io/docs/operators/latest/deploying#proc-pausing-reconciliation-str) to the Kafka CR so that the Strimzi operator currently managing it does not attempt to start an operation when we are about to move the CR:
+
+```shell
+kubectl annotate kafka kafka-c strimzi.io/pause-reconciliation="true"
+```
+
+We then check to make sure that reconciliation is actually paused by making sure the `ReconciliationPaused` condition is present on the Kafka CR. 
+We then apply the Strimzi custom resource selector label for the 0.44.0 Strimzi operator:
 
 ```shell
 kubectl -n kafka label --overwrite kafka kafka-c strimzi-resource-selector=strimzi-0-44-0
 ```
 
-The 0.44.0 Operator instance will see the new cluster and update the image reference.
+We can then unpause the reconciliation of the Kafka CR:
+
+```shell
+kubectl annotate kafka kafka-c strimzi.io/pause-reconciliation="true"
+```
+
+The 0.44.0 Operator instance will then see the Kafka CR and update the image reference.
 It will then roll the cluster, one broker at a time, on to the new image.
 
 ```mermaid
@@ -628,7 +651,7 @@ flowchart TD
 All is well until we move our highest tier cluster, A. 
 The move to Strimzi 0.44 revealed a configuration issue.
 We think we know what the issue is and how to fix it, but as this is a critical cluster we need to roll back and make sure all the dependant services are running correctly. 
-In this setup the roll back is a simple label change:
+In this setup the roll back is a simple label change, remembering to pause reconciliation before and unpause after:
 
 ```shell
 kubectl -n kafka label --overwrite kafka kafka-a strimzi-resource-selector=strimzi-0-43-0
@@ -665,6 +688,8 @@ flowchart TD
 	style S_045 stroke:#008000,stroke-width:2px
 ```
 
+With the Kafka clusters upgraded to the new Strimzi version you can repeat the process with any other Strimzi managed resources such as Kafka Connect clusters, Mirror Maker deployments, the Strimzi Kafka Bridge etc.
+
 #### Things to watch out for
 
 The main things to watch for when using this Strimzi deployment pattern are:
@@ -679,7 +704,7 @@ The main things to watch for when using this Strimzi deployment pattern are:
 
 We have covered how to do upgrades using the custom resource selector and multiple different versions of Strimzi. 
 However, there is no reason there should be only one instance of each version.
-You could have `strimzi-0-43-0-a` and `stimzi-0-43-0-b`, you could then load balance Kafka cluster management between them.
+You could have `strimzi-0-43-0-a` and `stimzi-0-43-0-b` and distribute Kafka clusters between them.
 This would be particularly useful if you have a large number of small Kafka clusters or _very_ large Kafka clusters with many brokers.
 
 You could also separate out critical Kafka cluster management to a Strimzi operator with different RBAC.
