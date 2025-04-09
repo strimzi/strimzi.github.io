@@ -172,10 +172,16 @@ That requires us to consider several key aspects of the Strimzi installation res
 
 #### Concurrent Strimzi Deployments
 
+The Strimzi installation resources consist of several main components; CRDs, RBAC, configuration and Deployments resources.
+In order for multiple Strimzi versions to run concurrently most of these need to be customized (with distinct names and configurations) for each Strimzi version. 
+A suggestion of how to do this this is covered in the [sections below](#strimzi-install-resources).
+However, first we must address the CRDs.
+
 ##### Custom Resource Definitions
 
 The first major consideration when designing a deployment strategy for multiple Strimzi versions is the CRDs. 
-As discussed, these are backwards compatible between Strimzi versions but not forwards compatible.
+These are cluster scoped and so there can only be one version of them installed per Kubernetes cluster.
+As discussed, they are backwards compatible between Strimzi versions but not forwards compatible.
 Older Strimzi managed CRs can use newer CRDs but not the other way around.
 This means that, for concurrent Strimzi deployments, we need to make sure that only the most recent version of the CRDs is installed in the Kubernetes cluster.
 We will cover how to separate out the CRDs from the installation files in the sections below. 
@@ -207,12 +213,12 @@ However, we cannot run Strimzi 0.21 and 0.23 concurrently, as each supports a di
 
 So, if we were running a setup with Strimzi 0.21 and wanted to upgrade to 0.23, we have to:
 
-- First install CRDs from Strimzi 0.22 with both `v1beta1` and `v1beta2` API versions and install the Stirmzi 0.22 deployment, RBAC resources, etc.
-- Migrate all Strimzi managed CRs from 0.21 to 0.22.
-- Remove the 0.21 operator.
-- Perform the specific [CRD upgrade instructions](https://strimzi.io/docs/operators/0.23.0/deploying#assembly-upgrade-resources-str), install CRDs from Strimzi 0.23 with only the `v1beta2` API versions and install the Stirmzi 0.23 deployment, RBAC resources, etc.
-- Migrate all Strimzi managed CRs from 0.22 to 0.23.
-- Remove the 0.22 operator.
+1. First install CRDs from Strimzi 0.22 with both `v1beta1` and `v1beta2` API versions and install the Stirmzi 0.22 deployment, RBAC resources, etc.
+1. Migrate all Strimzi managed CRs from 0.21 to 0.22.
+1. Remove the 0.21 operator.
+1. Perform the specific [CRD upgrade instructions](https://strimzi.io/docs/operators/0.23.0/deploying#assembly-upgrade-resources-str), install CRDs from Strimzi 0.23 with only the `v1beta2` API versions and install the Stirmzi 0.23 deployment, RBAC resources, etc.
+1. Migrate all Strimzi managed CRs from 0.22 to 0.23.
+1. Remove the 0.22 operator.
 
 ##### Strimzi install resources
 
