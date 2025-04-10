@@ -34,7 +34,7 @@ This is a simplified example and comes with several key caveats that need to be 
 - [Resource Selector based upgrade](#resource-selector-based-upgrade)
    - [Concurrent Strimzi Deployments](#concurrent-strimzi-deployments)
       - [Custom Resource Definitions](#custom-resource-definitions-1)
-      - [Strimzi install resources](#strimzi-install-resources)
+      - [Strimzi installation resources](#strimzi-installation-resources)
       - [Deploying Strimzi with Kustomize](#deploying-strimzi-with-kustomize)
       - [Renaming Resources](#renaming-resources)
       - [Patching Environment Variables](#patching-environment-variables)
@@ -220,7 +220,7 @@ So, if we were running a setup with Strimzi 0.21 and wanted to upgrade to 0.23, 
 1. Migrate all Strimzi managed CRs from 0.22 to 0.23.
 1. Remove the 0.22 operator.
 
-##### Strimzi install resources
+##### Strimzi installation resources
 
 With the above considerations around CRDs in mind, lets move on to how to handle the rest of the Strimzi installation resources when installing multiple concurrent Strimzi versions.
 
@@ -620,6 +620,11 @@ kubectl annotate kafka kafka-c strimzi.io/pause-reconciliation="true"
 ```
 
 We then check to make sure that reconciliation is actually paused by making sure the `ReconciliationPaused` condition is present on the Kafka CR. 
+
+```shell
+kubectl wait kafka/kafka-c --for=condition=ReconciliationPaused --timeout=300s
+```
+
 We then apply the Strimzi custom resource selector label for the 0.44.0 Strimzi operator:
 
 ```shell
@@ -629,7 +634,7 @@ kubectl -n kafka label --overwrite kafka kafka-c strimzi-resource-selector=strim
 We can then unpause the reconciliation of the Kafka CR:
 
 ```shell
-kubectl annotate kafka kafka-c strimzi.io/pause-reconciliation="true"
+kubectl annotate kafka kafka-c strimzi.io/pause-reconciliation="false"
 ```
 
 The 0.44.0 Operator instance will then see the Kafka CR and update the image reference.
