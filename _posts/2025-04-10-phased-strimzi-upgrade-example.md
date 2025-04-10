@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Phased upgrades of Strimzi managed Kafka fleets"
-date: 2025-04-09
+date: 2025-04-10
 author: tom_cooper
 mermaid: true
 ---
