@@ -389,7 +389,8 @@ There are several other elements of the deployment files that need to be customi
 
 The first of these are the environment variables in the Strimzi operator `Deployment` resource, several of which need to be tailored to each Strimzi version. 
 The Custom Resource Selector env var value must be specific to each Strimzi version so that each operator instance knows which label to look for on the CRs.
-We also need to update the env var which controls the name of the lease for Strimzi's high availability mode. 
+We also need to update the env var which controls the name of the lease for Strimzi's high availability (HA) mode.
+The HA env var is included in the default deployment and has to be unique to each Operator version deployment so that the correct leader instance can be selected.
 
 We can patch the env vars in the Strimzi cluster operator `Deployment` CR using kustomize.
 To do this we create a yaml file containing the entries we would like to change or add.
