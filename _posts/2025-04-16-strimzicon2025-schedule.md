@@ -13,9 +13,9 @@ The program committee found it really tough to choose among them in order to bui
 
 ![StrimziCon 2025 Banner](/assets/images/posts/2025-01-29-strimzicon2025-banner.png)
 
-### Awesome sessions ... join the StrimziCon! 
+### Awesome sessions ... join StrimziCon! 
 
-The conference will take place on <b>Wednesday, June 4th</b> (afternoon CEST).
+The conference will take place on <b>Wednesday, June 4th, 2025</b> (afternoon CEST).
 It will start with a keynote from Kate Stanley (Red Hat, Strimzi maintainer) and Paolo Patierno (Red Hat, Strimzi maintainer) talking about Strimzi, its current status and the future roadmap together with the Apache Kafka project.
 The keynote will be followed by 5 hours of breakout sessions covering several topics from core Strimzi features, to use cases and integrations.
 
@@ -32,4 +32,4 @@ The keynote will be followed by 5 hours of breakout sessions covering several to
 
 You can find more details about speakers and sessions on the official [page](https://community.cncf.io/events/details/cncf-virtual-project-events-hosted-by-cncf-presents-strimzicon-2025-virtual/) as part of the CNCF events.
 
-Looking forward to seeing you at the conference and remember to [register](https://community.cncf.io/events/details/cncf-virtual-project-events-hosted-by-cncf-presents-strimzicon-2025-virtual/) ... it's free!
+Looking forward to seeing you at the conference and don't forget to [register](https://community.cncf.io/events/details/cncf-virtual-project-events-hosted-by-cncf-presents-strimzicon-2025-virtual/). It's free!
