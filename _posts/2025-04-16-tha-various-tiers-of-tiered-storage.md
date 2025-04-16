@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "The various tiers of Tiered Storage"
-date: 2025-04-15
+date: 2025-04-16
 author: jakub_scholz
 ---
 
@@ -198,12 +198,12 @@ spec:
           storage.backend.class: io.aiven.kafka.tieredstorage.storage.filesystem.FileSystemStorage
           storage.root: /mnt/tiered-storage/
           storage.overwrite.enabled: "true"
-          # Tiered storage tunning
-          chunk.size: "4194304" # 4 MiB
+          chunk.size: "4194304"
   # ...
 ```
 
-And in all `KafkaNodePool` resources with the broker role, we have to mount the NFS volume in `.spec.template`.
+And in all `KafkaNodePool` resources with the `broker` role, we have to mount the NFS volume in `.spec.template` using the additional volumes feature.
+The `KafkaNodePool` resources that have only the `controller` role do not need the volume as the would not use tiered storage.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -228,20 +228,224 @@ spec:
           mountPath: /mnt/tiered-storage/
 ```
 
-TODO: Topic
+Once the Kafka cluster is ready, we can to create a Kafka topic named `tiered-storage-test`.
+Keep in mind that in order to use the tiered storage, you always have to enable in the topic as well:
 
+```yaml
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: tiered-storage-test
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 10
+  replicas: 3
+  config:
+    min.insync.replicas: 2
+    retention.bytes: 107374182400 # ~100 Gi
+    retention.ms: 604800000 # 7 days
+    segment.bytes: 10485760 # ~10MB
+    file.delete.delay.ms: 1000
+    # Tiered storage configuration
+    remote.storage.enable: true
+    local.retention.ms: 60000 # 1 minute
+    local.retention.bytes: 50000000 # 50 MB
+```
 
+To make it easier to see how the tiered storage works, the YAML above tunes some of the configuration options:
+* Uses small segment size
+* Keeps the local retention very short so that we can better see the log segments being offloaded to the remote storage tier
 
-TODO: Producer and consumer
+For a real life use of tiered storage, the values will be likely higher.
+But the actual values might differ based on your use-case.
+So make sure to tun them accordingly.
 
+Finally, with the topic ready and with enabled tiered storage, we can start producing some messages.
+To demonstrate the tiered storage functionality, we can use a Kubernetes Job to produce large amount of messages to out topic:
 
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app: kafka-producer
+  name: kafka-producer
+spec:
+  parallelism: 5
+  completions: 5
+  backoffLimit: 1
+  template:
+    metadata:
+      name: kafka-producer
+      labels:
+        app: kafka-producer
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: kafka-producer
+        image: quay.io/strimzi/kafka:0.45.0-kafka-3.9.0
+        command: [ "bin/kafka-producer-perf-test.sh" ]
+        args: [ "--topic", "tiered-storage-test", "--throughput", "1000000000", "--num-records", "1000000000", "--producer-props", "acks=all", "bootstrap.servers=my-cluster-kafka-bootstrap:9092", "--record-size", "1000" ]
+```
 
-TODO: Check NFS files
+The Job above will start 5 parallel producers that will each send `1000000000` records with 1000 bytes each to our `tiered-storage-test` topic.
+Once you deploy it, you can check the logs to monitor the progress:
 
+```
+...
+31543 records sent, 6302.3 records/sec (6.01 MB/sec), 1953.5 ms avg latency, 4185.0 ms max latency.
+31808 records sent, 6292.4 records/sec (6.00 MB/sec), 5002.5 ms avg latency, 6663.0 ms max latency.
+38112 records sent, 7620.9 records/sec (7.27 MB/sec), 4633.1 ms avg latency, 6517.0 ms max latency.
+43296 records sent, 8659.2 records/sec (8.26 MB/sec), 3936.9 ms avg latency, 5309.0 ms max latency.
+...
+```
 
+Let it run for some time and then we will check how the storage in the Kafka cluster is used.
+We can pick up one of the partitions of our topic and just list the files in the directory where the local storage tier stores its data.
+This will be in `/var/lib/kafka/`.
+For example:
 
-TODO: Read from tiered storage
+```
+$ kubectl exec -ti my-cluster-broker-0 -- ls -l /var/lib/kafka/data-0/kafka-log0/tiered-storage-test-0/
+total 92312
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:23 00000000000001314704.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:23 00000000000001314704.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:23 00000000000001314704.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1344 Apr 16 20:23 00000000000001314704.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:23 00000000000001325056.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:23 00000000000001325056.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:23 00000000000001325056.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1296 Apr 16 20:23 00000000000001325056.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:23 00000000000001335408.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:23 00000000000001335408.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:23 00000000000001335408.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1380 Apr 16 20:23 00000000000001335408.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:23 00000000000001345760.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:23 00000000000001345760.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:23 00000000000001345760.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1248 Apr 16 20:23 00000000000001345760.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:23 00000000000001356112.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:23 00000000000001356112.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:23 00000000000001356112.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1368 Apr 16 20:23 00000000000001356112.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:23 00000000000001366464.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:23 00000000000001366464.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:23 00000000000001366464.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1440 Apr 16 20:23 00000000000001366464.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:23 00000000000001376816.index
+-rw-r--r--. 1 1000740000 1000740000 10484650 Apr 16 20:23 00000000000001376816.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:23 00000000000001376816.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1260 Apr 16 20:23 00000000000001376816.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:23 00000000000001387168.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:23 00000000000001387168.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:23 00000000000001387168.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1236 Apr 16 20:23 00000000000001387168.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:23 00000000000001397520.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:23 00000000000001397520.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:23 00000000000001397520.snapshot
+-rw-r--r--. 1 1000740000 1000740000 10485756 Apr 16 20:23 00000000000001397520.timeindex
+-rw-r--r--. 1 1000740000 1000740000        8 Apr 16 20:16 leader-epoch-checkpoint
+-rw-r--r--. 1 1000740000 1000740000       43 Apr 16 20:16 partition.metadata
+```
 
+We can see that this partition has a bunch of segments here.
+Thanks to the aggressive topic configuration, you can repeat the command just few minutes later and you should see that despite our topic having very long retention, the old segments are gone and new segments took their place:
+
+```
+$ kubectl exec -ti my-cluster-broker-0 -- ls -l /var/lib/kafka/data-0/kafka-log0/tiered-storage-test-0/
+total 104448
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:24 00000000000002277440.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:24 00000000000002277440.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:24 00000000000002277440.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1284 Apr 16 20:24 00000000000002277440.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:24 00000000000002287792.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:24 00000000000002287792.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:24 00000000000002287792.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1344 Apr 16 20:24 00000000000002287792.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:24 00000000000002298144.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:24 00000000000002298144.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:24 00000000000002298144.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1380 Apr 16 20:24 00000000000002298144.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:24 00000000000002308496.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:24 00000000000002308496.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:24 00000000000002308496.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1128 Apr 16 20:24 00000000000002308496.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:24 00000000000002318848.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:24 00000000000002318848.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:24 00000000000002318848.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1404 Apr 16 20:24 00000000000002318848.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:24 00000000000002329200.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:24 00000000000002329200.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:24 00000000000002329200.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1284 Apr 16 20:24 00000000000002329200.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:24 00000000000002339552.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:24 00000000000002339552.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:24 00000000000002339552.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1380 Apr 16 20:24 00000000000002339552.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:24 00000000000002349904.index
+-rw-r--r--. 1 1000740000 1000740000 10484650 Apr 16 20:24 00000000000002349904.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:24 00000000000002349904.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1044 Apr 16 20:24 00000000000002349904.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:24 00000000000002360256.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:24 00000000000002360256.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:24 00000000000002360256.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1068 Apr 16 20:24 00000000000002360256.timeindex
+-rw-r--r--. 1 1000740000 1000740000     5168 Apr 16 20:24 00000000000002370608.index
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:24 00000000000002370608.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:24 00000000000002370608.snapshot
+-rw-r--r--. 1 1000740000 1000740000     1248 Apr 16 20:24 00000000000002370608.timeindex
+-rw-r--r--. 1 1000740000 1000740000 10485760 Apr 16 20:24 00000000000002380960.index
+-rw-r--r--. 1 1000740000 1000740000  1912190 Apr 16 20:24 00000000000002380960.log
+-rw-r--r--. 1 1000740000 1000740000      240 Apr 16 20:24 00000000000002380960.snapshot
+-rw-r--r--. 1 1000740000 1000740000 10485756 Apr 16 20:24 00000000000002380960.timeindex
+-rw-r--r--. 1 1000740000 1000740000        8 Apr 16 20:16 leader-epoch-checkpoint
+-rw-r--r--. 1 1000740000 1000740000       43 Apr 16 20:16 partition.metadata
+```
+
+So, where did the old segments go?
+They were offloaded to the remote storage tier.
+And because we use NFS, we can easily verify that with the `ls` command again.
+Inside our NFS volume at the `/mnt/tiered-storage/` path, you will see a subdirectory for each topic that is using tiered storage.
+And inside the topic subdirectory another subdirectory for each partition.
+And inside that, you will find all the segments that were offloaded to the remote storage tier:
+
+```
+kubectl exec -ti my-cluster-broker-0 -- ls -l /mnt/tiered-storage/tiered-stroage-test-ZLI5GN1xR1aOqKnwKu5NOQ/0
+total 5710364
+-rw-r--r--. 1 1000740000 1000740000     6808 Apr 16 20:20 00000000000000000000-eKFr45f2Sca1O0kauyoFBw.indexes
+-rw-r--r--. 1 1000740000 1000740000 10484635 Apr 16 20:20 00000000000000000000-eKFr45f2Sca1O0kauyoFBw.log
+-rw-r--r--. 1 1000740000 1000740000      736 Apr 16 20:20 00000000000000000000-eKFr45f2Sca1O0kauyoFBw.rsm-manifest
+-rw-r--r--. 1 1000740000 1000740000     6172 Apr 16 20:20 00000000000000010352-DmFiyQe8TpOzrpUjPF3rMQ.indexes
+-rw-r--r--. 1 1000740000 1000740000 10484650 Apr 16 20:20 00000000000000010352-DmFiyQe8TpOzrpUjPF3rMQ.log
+-rw-r--r--. 1 1000740000 1000740000      743 Apr 16 20:20 00000000000000010352-DmFiyQe8TpOzrpUjPF3rMQ.rsm-manifest
+-rw-r--r--. 1 1000740000 1000740000     6520 Apr 16 20:20 00000000000000020704-WpjsPsRHTlivhNhxKOpGMA.indexes
+-rw-r--r--. 1 1000740000 1000740000 10484680 Apr 16 20:20 00000000000000020704-WpjsPsRHTlivhNhxKOpGMA.log
+-rw-r--r--. 1 1000740000 1000740000      744 Apr 16 20:20 00000000000000020704-WpjsPsRHTlivhNhxKOpGMA.rsm-manifest
+...
+```
+
+Let's also try to consume the messages to make sure that the broker will correctly retrieve the data from the remote tier and deliver them to the consumer.
+We can use the following command to show us the timestamp of the oldest messages in our topic:
+
+```
+$ kubectl run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.45.0-kafka-3.9.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic tiered-storage-test --from-beginning --max-messages 10 --property print.timestamp=true --property print.value=false
+CreateTime:1744834829639
+CreateTime:1744834829639
+CreateTime:1744834829639
+CreateTime:1744834829639
+CreateTime:1744834829639
+CreateTime:1744834829639
+CreateTime:1744834829639
+CreateTime:1744834829639
+CreateTime:1744834829639
+CreateTime:1744834829639
+Processed a total of 10 messages
+pod "kafka-consumer" deleted
+```
+
+When I convert the timestamp to regular time, I can see that it corresponds to `Wed Apr 16 2025 20:20:29`, which is the time when I deployed my producer and it is also the time when the oldest segment in the remote storage tier was created.
+That way, we have confirmed that the data offloaded tot he remote storage tier are provided when the consumer requests them.
 
 ### Conclusion
 
