@@ -1,11 +1,11 @@
 ---
 layout: post
-title:  "The various tiers of Tiered Storage"
+title:  "The various tiers of Apache Kafka Tiered Storage"
 date: 2025-04-16
 author: jakub_scholz
 ---
 
-When it comes to tiered storage, most people will automatically connect it with object storage such as Amazon AWS S3.
+When people think of tiered storage, they generally associate it with object storage such as Amazon AWS S3.
 If you are in one of the public clouds, using their object storage is usually the most obvious choice.
 But what if you are running Kafka on-premises?
 There are multiple projects that allow you to deploy your own S3-compatible object storage.
@@ -39,15 +39,21 @@ How much data is kept locally, how often it is offloaded, and other details ... 
 #### Benefits of tiered storage for Apache Kafka clusters
 
 Using tiered storage has multiple benefits:
-* The capacity of the local storage tier is ultimately limited by the maximum disk size.
+* **Overcoming disk limitations**
+  
+  The capacity of the local storage tier is ultimately limited by the maximum disk size.
   While you can use JBOD storage to combine the capacity of multiple disks, there will always be a limit to how many disks can be mounted on your server.
   With JBOD storage, you also need careful balancing of the data between the different volumes.
   Compared to that, the capacity of something like Amazon AWS S3 storage is practically unlimited.
-* By offloading the older data to the remote storage tier, the Kafka brokers will keep less data locally.
+* **Faster operations and recovery**
+  
+  By offloading the older data to the remote storage tier, the Kafka brokers will keep less data locally.
   That can help during various Kafka operations.
   For example, brokers might start faster, especially after an unclean shutdown.
   And if you loose the whole broker including its storage, its recovery will be much faster because it will need to replicate a lot less data from the other brokers.
-* Scaling your Kafka cluster will become much easier because of better separation between the storage and compute layers.
+* **Easier cluster scaling**
+  
+  Scaling your Kafka cluster will become much easier because of better separation between the storage and compute layers.
   When adding or removing brokers from your cluster, you will not need to move so much data between them, particularly when most of the data is stored in the remote tier and is unaffected when the number of brokers changes.
 
 Tiered storage might also improve the running costs of your cluster, because in many situations, the remote storage tier will be significantly cheaper than the local storage tier.
@@ -64,7 +70,7 @@ Fortunately, Apache Kafka lets you configure the tiered storage on a per-topic b
 So unlike other streaming platforms that rely only on the remote storage tier, you can decide where to use tiered storage at the topic level.
 This flexibility allows you to keep low-latency or frequent-access topics fully local while using remote storage for others.
 
-#### What makes a good remote storage?
+#### Choosing the right remote storage
 
 The remote storage is used by all Kafka brokers from a given cluster.
 The data stored in the remote tier isn't assigned to any particular broker.
@@ -83,7 +89,7 @@ Apart from the object storage, it can be for example HDFS storage or shared file
 
 NOTE: Apache Kafka uses plugins for the different implementations of the remote storage tier.
 But no actual implementations are shipped as part of Apache Kafka itself.
-So unless you want to write your own plugin, you have to also make sure that there is already some plugin implemented by someone else and has the required quality.
+So unless you want to write your own plugin, make sure a plugin exists that matches your requirements.
 
 ### Shared storage as a tiered storage option
 
