@@ -433,24 +433,25 @@ total 5710364
 ```
 
 We can try to consume the messages to make sure that the broker correctly retrieves the data from the remote tier and delivers them to the consumer.
-We can use the following command to show us the timestamp of the oldest messages in our topic:
+We can use the following command to show us the offset and timestamp of the oldest messages in our topic:
 
 ```
-$ kubectl run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.45.0-kafka-3.9.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic tiered-storage-test --from-beginning --max-messages 10 --property print.timestamp=true --property print.value=false
-CreateTime:1744834829639
-CreateTime:1744834829639
-CreateTime:1744834829639
-CreateTime:1744834829639
-CreateTime:1744834829639
-CreateTime:1744834829639
-CreateTime:1744834829639
-CreateTime:1744834829639
-CreateTime:1744834829639
-CreateTime:1744834829639
+$ kubectl run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.45.0-kafka-3.9.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic tiered-storage-test --from-beginning --max-messages 10 --property print.offset=true --property print.timestamp=true --property print.value=false
+CreateTime:1744834829639	  Offset:0
+CreateTime:1744834829639	  Offset:1
+CreateTime:1744834829639	  Offset:2
+CreateTime:1744834829639	  Offset:3
+CreateTime:1744834829639	  Offset:4
+CreateTime:1744834829639	  Offset:5
+CreateTime:1744834829639	  Offset:6
+CreateTime:1744834829639	  Offset:7
+CreateTime:1744834829639	  Offset:8
+CreateTime:1744834829639	  Offset:9
 Processed a total of 10 messages
 pod "kafka-consumer" deleted
 ```
 
+The offsets start from zero, confirming that these are the first messages in given partition.
 Converting the timestamp to regular time, it corresponds to `Wed Apr 16 2025 20:20:29`, which is the time when the producer was deployed and the oldest segment in the remote storage tier was created.
 This confirms that the data offloaded to the remote storage tier is provided on request to the consumer.
 
