@@ -7,74 +7,73 @@ author: jakub_scholz
 
 When it comes to tiered storage, most people will automatically connect it with object storage such as Amazon AWS S3.
 If you are in one of the public clouds, using their object storage is usually the most obvious choice.
-But what if you run on-premises?
+But what if you are running Kafka on-premises?
 There are multiple projects that allow you to deploy your own S3-compatible object storage.
-But do you have time to manage the object storage deployment?
+However, managing these deployments can be time-consuming.
 Will you be able to run it with the same durability and availability as AWS?
 And will it have comparable performance?
-That is why you should consider some other options as well.
-In this blog post, we will look at one of them.
+That’s why it’s worth considering other storage options.
+In this post, we will look at how shared storage can be used as tiered storage.
 
 <!--more-->
 
 ### What is tiered storage
 
 Tiered storage support in Apache Kafka was introduced in Kafka 3.6.0 as an early access feature.
-And it is considered _production-ready_ from Kafka 3.9.0 (make sure to check out the current [Tiered storage limitations](https://kafka.apache.org/documentation/#tiered_storage_limitation)).
+And it is considered _production-ready_ from Kafka 3.9.0 (make sure to check out the current [tiered storage limitations](https://kafka.apache.org/documentation/#tiered_storage_limitation)).
 When enabled, Apache Kafka brokers use two types (tiers) of storage:
 * The _local_ storage tier
 * The _remote_ storage tier
 
-The _local_ tier is the same storage Apache Kafka has been using since its beginnings.
+The _local_ tier is the same storage Apache Kafka has been using from the beginning.
 It is typically based on block storage volumes.
-While Apache Kafka documentation calls it _local_, the storage does not have to be physically located in the same machine where the Kafka broker using it is running.
+Despite the term _local_, the storage does not have to be physically located in the same machine where the Kafka broker using it is running.
 It can be a block storage mounted over the network such as Amazon AWS EBS volumes, iSCSI volumes, etc.
 The _remote_ tier is the new tier introduced by tiered storage.
-It is typically based on some external storage, such as the object storage we mentioned at the beginning of this blog post.
+It is typically based on some external storage, such as Amazon S3.
 
-Apache Kafka brokers always keep the latest data on the local storage tier.
+Kafka brokers always keep the latest data on the local storage tier.
 But the older data will be offloaded to the remote tier.
-How much data will be kept locally, how often will they be offloaded and so on ... that depends on how you configure the tiered storage.
+How much data is kept locally, how often it is offloaded, and other details ... that depends on how you configure the tiered storage.
 
-#### What are the main benefits?
+#### Benefits of tiered storage for Apache Kafka clusters
 
 Using tiered storage has multiple benefits:
-* The capacity local storage tier is ultimately limited by the maximum disk size.
+* The capacity of the local storage tier is ultimately limited by the maximum disk size.
   While you can use JBOD storage to combine the capacity of multiple disks, there will always be a limit to how many disks can be mounted on your server.
-  With JBOD storage, you also need to take care of balancing the data between the different volumes.
+  With JBOD storage, you also need careful balancing of the data between the different volumes.
   Compared to that, the capacity of something like Amazon AWS S3 storage is practically unlimited.
 * By offloading the older data to the remote storage tier, the Kafka brokers will keep less data locally.
   That can help during various Kafka operations.
-  For example, your brokers might a little bit start faster.
-  This applies especially after some unclean shutdown.
+  For example, brokers might start faster, especially after an unclean shutdown.
   And if you loose the whole broker including its storage, its recovery will be much faster because it will need to replicate a lot less data from the other brokers.
-* Scaling your Kafka cluster will become much easier because better separation between the storage and compute layers.
-  When you want to add or remove brokers from your cluster, you will not need to move so many data between them as most of the data might be stored in the remote tier and are not affected at all when number of brokers in the cluster changes.
+* Scaling your Kafka cluster will become much easier because of better separation between the storage and compute layers.
+  When adding or removing brokers from your cluster, you will not need to move so much data between them, particularly when most of the data is stored in the remote tier and is unaffected when the number of brokers changes.
 
 Tiered storage might also improve the running costs of your cluster, because in many situations, the remote storage tier will be significantly cheaper than the local storage tier.
-But be careful, as this differs from use case to use case and from user to user.
+But this depends on your Kafka usage and workload.
 The remote storage tier often uses completely different pricing schemas.
-For example, with Amazon AWS S3 we already mentioned before, your price is calculated based on the amount of data you store there, but also based on the number of API calls you make.
-So while in most use-cases using object storage should be cheaper compared block storage, there might be some situations when the tiered storage is actually more expensive than the local storage tier.
+For example, with Amazon AWS S3, price is calculated based on the amount of data stored and the number of API calls made.
+So while object storage is often cheaper compared to block storage, there might be some situations when tiered storage ends up being more expensive than the local storage tier.
 
-The performance profile of the remote storage is usually also different from the block storage used for the local tier.
-In particular the latency is often higher.
-So accessing your older data that were offloaded to the remote tier might not be as fast as accessing the data kept locally.
+Performance is also another factor.
+Remote storage typically has a higher latency than local block storage.
+So accessing older data offloaded to the remote tier might not be as fast as accessing the local data.
 
-Luckily, Apache Kafka allows us to configure the tiered storage on a per-topic basis.
-So unlike other streaming platforms that rely only on the remote storage tier, you can decide when will tiered storage be used.
-That way, you can keep the topics where low latency is critical or where repeated consumption would make the costs skyrocket as local only.
+Fortunately, Apache Kafka lets you configure the tiered storage on a per-topic basis.
+So unlike other streaming platforms that rely only on the remote storage tier, you can decide where to use tiered storage at the topic level.
+This flexibility allows you to keep low-latency or frequent-access topics fully local while using remote storage for others.
 
 #### What makes a good remote storage?
 
 The remote storage is used by all Kafka brokers from a given cluster.
-The data stored in the remote tier are not assigned to any particular broker.
-The data for given partition will be always written to the remote storage by the broker hosting the leader replica.
-And they will be read by the brokers hosting the leader or follower replicas.
+The data stored in the remote tier isn't assigned to any particular broker.
+For any given partition, the data is always written to the remote storage by the broker hosting the leader replica.
+And the data is read by the brokers hosting the leader or follower replicas.
 But when partition replicas are reassigned between the brokers, their data will remain unchanged in the remote storage tier.
 So whatever type of storage you use as the remote tier, it must allow shared read and write access to all the data from all brokers.
 
-Another important aspect when choosing the right remote storage is its performance, scalability, durability, and availability.
+Performance, scalability, durability, and availability are also important requirements when evaluating remote storage options.
 The actual requirements depend on your use-cases or on the type of environment where you use it.
 But your Kafka cluster will be only as good as its weakest part.
 So if you require high availability, durability, and performance, you have to make sure that your remote storage supports these requirements.
@@ -86,33 +85,34 @@ NOTE: Apache Kafka uses plugins for the different implementations of the remote 
 But no actual implementations are shipped as part of Apache Kafka itself.
 So unless you want to write your own plugin, you have to also make sure that there is already some plugin implemented by someone else and has the required quality.
 
-### Shared storage as a tiered storage
+### Shared storage as a tiered storage option
 
-While running high-quality object storage on-premise might be challenging, shared file storage is often already available.
-It might have for example the form of Network File System (NFS) volumes.
-While the quality of it might differ between the users and their environments, it is in many cases already used by other applications and has the required availability and reliability.
+While running high-quality object storage on-premises might be challenging, shared file storage is often already available.
+For example, it might set up as Network File System (NFS) volumes.
+While performance can vary depending of the setup, NFS is commonly used by other applications and often has the required availability and reliability.
 
 NFS storage matches the requirements we listed in the previous section.
 You can use it as a shared read-write-many volume between all your Kafka brokers.
 And it can provide similar benefits to object storage.
 
-Some of the tiered storage benefits can be even amplified when running Kafka on-premise.
+Some of the benefits of tiered storage can be further amplified when running Kafka on-premises.
 For example, when using local persistent volumes as the local storage tier, if you lose the physical server due to hardware failure, you often lose its storage as well.
 And tiered storage might make it significantly faster to fully recover your Kafka cluster.
 
 Depending on the size of your Kafka cluster, one of the challenges with NFS storage might be its overall capacity and performance.
-But that will be problem mainly for very large Kafka clusters with many brokers and large throughput.
+But that's a problem mainly for very large Kafka clusters with many brokers and large throughput.
 
-In some cases, shared file storage might also be a viable alternative to consider even when running in public cloud.
-Especially if the pricing schema used for the object storage is not a good fit for the way you use Apache Kafka, shared file storage is something you should include in your considerations.
+In some cases, shared file storage might also be a viable alternative to consider even when running in a public cloud.
+If the object storage pricing model is not a good fit with the way you use Apache Kafka, it’s worth considering shared file storage as an alternative.
 Using your own self-managed shared storage might also give you better control over your data, their security, and privacy compared to the fully managed object storage service.
 
 So how to use NFS as a tiered storage with Strimzi?
 
 #### Using shared tiered storage with Strimzi
 
+In this example, we’ll show how to use NFS as a remote storage tier in Apache Kafka running on Strimzi.
 We will not cover how to deploy and run NFS.
-We will expect that you already have it available and that your Kubernetes cluster has a Storage Class named `nfs` available that can be used to provision NFS volumes.
+We assume that NFS storage is available and the Kubernetes cluster has a Storage Class named `nfs` available that can be used to provision NFS volumes.
 
 First, we will need to add the tiered storage plugin to the Strimzi container image so that we can use it.
 We will use the [Aiven Tiered Storage plugin](https://github.com/Aiven-Open/tiered-storage-for-apache-kafka) - in particular its filesystem part which can be used with NFS storage.
@@ -204,7 +204,7 @@ spec:
 ```
 
 And in all `KafkaNodePool` resources with the `broker` role, we have to mount the NFS volume in `.spec.template` using the additional volumes feature.
-The `KafkaNodePool` resources that have only the `controller` role do not need the volume as the would not use tiered storage.
+The `KafkaNodePool` resources that have only the `controller` role do not need the volume as they won't use tiered storage.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -258,11 +258,11 @@ To make it easier to see how the tiered storage works, the YAML above tunes some
 * Uses small segment size
 * Keeps the local retention very short so that we can better see the log segments being offloaded to the remote storage tier
 
-For a real life use of tiered storage, the values will be likely higher.
+In real-world deployments, these values are typically higher.
 But the actual values might differ based on your use-case.
 So make sure to tune them accordingly.
 
-Finally, with the topic ready and with enabled tiered storage, we can start producing some messages.
+Finally, with the topic ready and with tiered storage enabled, we can start producing some messages.
 To demonstrate the tiered storage functionality, we can use a Kubernetes Job to produce a large amount of messages to our topic:
 
 ```yaml
@@ -290,7 +290,7 @@ spec:
         args: [ "--topic", "tiered-storage-test", "--throughput", "1000000000", "--num-records", "1000000000", "--producer-props", "acks=all", "bootstrap.servers=my-cluster-kafka-bootstrap:9092", "--record-size", "1000" ]
 ```
 
-The Job above will start 5 parallel producers that will each send `1000000000` records with 1000 bytes each to our `tiered-storage-test` topic.
+The Job above starts 5 parallel producers, each sending `1000000000` records with 1000 bytes each to our `tiered-storage-test` topic.
 Once you deploy it, you can check the logs to monitor the progress:
 
 ```
@@ -302,9 +302,9 @@ Once you deploy it, you can check the logs to monitor the progress:
 ...
 ```
 
-Let it run for some time and then we will check how the storage in the Kafka cluster is used.
+After running for some time, we can check how the storage in the Kafka cluster is used.
 We can pick up one of the partitions of our topic and just list the files in the directory where the local storage tier stores its data.
-This will be in `/var/lib/kafka/`.
+This is in `/var/lib/kafka/`.
 For example:
 
 ```
@@ -351,7 +351,7 @@ total 92312
 ```
 
 We can see that this partition has a bunch of segments here.
-Thanks to the aggressive topic configuration, you can repeat the command just few minutes later and you should see that despite our topic having very long retention, the old segments are gone and new segments took their place:
+Thanks to the aggressive topic configuration, we can repeat the command just few minutes later and see that despite our topic having very long retention, the old segments are gone and new segments took their place:
 
 ```
 $ kubectl exec -ti my-cluster-broker-0 -- ls -l /var/lib/kafka/data-0/kafka-log0/tiered-storage-test-0/
@@ -409,7 +409,7 @@ They were offloaded to the remote storage tier.
 And because we use NFS, we can easily verify that with the `ls` command again.
 Inside our NFS volume at the `/mnt/tiered-storage/` path, you will see a subdirectory for each topic that is using tiered storage.
 And inside the topic subdirectory another subdirectory for each partition.
-And inside that, you will find all the segments that were offloaded to the remote storage tier:
+And inside that, we find all the segments that were offloaded to the remote storage tier:
 
 ```
 kubectl exec -ti my-cluster-broker-0 -- ls -l /mnt/tiered-storage/tiered-storage-test-ZLI5GN1xR1aOqKnwKu5NOQ/0
@@ -426,7 +426,7 @@ total 5710364
 ...
 ```
 
-Let's also try to consume the messages to make sure that the broker will correctly retrieve the data from the remote tier and deliver them to the consumer.
+We can try to consume the messages to make sure that the broker correctly retrieves the data from the remote tier and delivers them to the consumer.
 We can use the following command to show us the timestamp of the oldest messages in our topic:
 
 ```
@@ -445,11 +445,11 @@ Processed a total of 10 messages
 pod "kafka-consumer" deleted
 ```
 
-When I convert the timestamp to regular time, I can see that it corresponds to `Wed Apr 16 2025 20:20:29`, which is the time when I deployed my producer and it is also the time when the oldest segment in the remote storage tier was created.
-That way, we have confirmed that the data offloaded tot he remote storage tier are provided when the consumer requests them.
+Converting the timestamp to regular time, it corresponds to `Wed Apr 16 2025 20:20:29`, which is the time when the producer was deployed and the oldest segment in the remote storage tier was created.
+This confirms that the data offloaded to the remote storage tier is provided on request to the consumer.
 
 ### Conclusion
 
-Hopefully, this blog post demonstrated that object storage is not the only option when it comes to tiered storage in Apache Kafka.
+Hopefully, this blog post has demonstrated that object storage is not the only option when it comes to tiered storage in Apache Kafka.
 Depending on your infrastructure and on your requirements, shared file storage such as NFS is worth considering as well.
-And thanks to that, even if you do not run in public cloud and don't have high-quality object storage available, you can still enjoy the immense benefits of using tiered storage in your Apache Kafka clusters.
+If you're running outside the public cloud and don't have high-quality object storage available, you can still enjoy the immense benefits of using tiered storage in your Apache Kafka clusters.
