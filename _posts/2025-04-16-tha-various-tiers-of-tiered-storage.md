@@ -105,8 +105,9 @@ But that will be problem mainly for very large Kafka clusters with many brokers 
 
 In some cases, shared file storage might also be a viable alternative to consider even when running in public cloud.
 Especially if the pricing schema used for the object storage is not a good fit for the way you use Apache Kafka, shared file storage is something you should include in your considerations.
+Using your own self-managed shared storage might also give you better control over your data, their security, and privacy compared to the fully managed object storage service.
 
-So how do use NFS as a tiered storage with Strimzi?
+So how to use NFS as a tiered storage with Strimzi?
 
 #### Using shared tiered storage with Strimzi
 
@@ -126,8 +127,8 @@ USER root:root
 # Add Aiven Filesystem tiered storage plugin
 #####
 RUN mkdir $KAFKA_HOME/tiered-storage-filesystem
-RUN curl -sL https://github.com/Aiven-Open/tiered-storage-for-apache-kafka/releases/download//core-0.0.1-SNAPSHOT.tgz | tar -xz  --strip-components=1 -C $KAFKA_HOME/tiered-storage-filesystem
-RUN curl -sL https://github.com/Aiven-Open/tiered-storage-for-apache-kafka/releases/download//filesystem-0.0.1-SNAPSHOT.tgz | tar -xz  --strip-components=1 -C $KAFKA_HOME/tiered-storage-filesystem
+RUN curl -sL https://github.com/Aiven-Open/tiered-storage-for-apache-kafka/releases/download/2025-03-14-1741959436/core-0.0.1-SNAPSHOT.tgz | tar -xz  --strip-components=1 -C $KAFKA_HOME/tiered-storage-filesystem
+RUN curl -sL https://github.com/Aiven-Open/tiered-storage-for-apache-kafka/releases/download/2025-03-14-1741959436/filesystem-0.0.1-SNAPSHOT.tgz | tar -xz  --strip-components=1 -C $KAFKA_HOME/tiered-storage-filesystem
 
 USER 1001
 ```
@@ -228,8 +229,8 @@ spec:
           mountPath: /mnt/tiered-storage/
 ```
 
-Once the Kafka cluster is ready, we can to create a Kafka topic named `tiered-storage-test`.
-Keep in mind that in order to use the tiered storage, you always have to enable in the topic as well:
+Once the Kafka cluster is ready, we can create a Kafka topic named `tiered-storage-test`.
+Keep in mind that in order to use the tiered storage, you have to enable in the topic as well:
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -259,7 +260,7 @@ To make it easier to see how the tiered storage works, the YAML above tunes some
 
 For a real life use of tiered storage, the values will be likely higher.
 But the actual values might differ based on your use-case.
-So make sure to tun them accordingly.
+So make sure to tune them accordingly.
 
 Finally, with the topic ready and with enabled tiered storage, we can start producing some messages.
 To demonstrate the tiered storage functionality, we can use a Kubernetes Job to produce a large amount of messages to our topic:
