@@ -5,7 +5,7 @@ date: 2025-04-16
 author: jakub_scholz
 ---
 
-When people think of tiered storage, they generally associate it with object storage such as Amazon AWS S3.
+When people think of tiered storage, they generally associate it with object storage such as Amazon S3.
 If you are in one of the public clouds, using their object storage is usually the most obvious choice.
 But what if you are running Kafka on-premises?
 There are multiple projects that allow you to deploy your own S3-compatible object storage.
@@ -25,7 +25,7 @@ When enabled, Apache Kafka brokers use two types (tiers) of storage:
 * The _local_ storage tier
 * The _remote_ storage tier
 
-The _local_ tier is the same storage Apache Kafka has been using from the beginning.
+The _local_ tier is the same storage Apache Kafka has been using since the beginning.
 It is typically based on block storage volumes.
 Despite the term _local_, the storage does not have to be physically located in the same machine where the Kafka broker using it is running.
 It can be a block storage mounted over the network such as Amazon AWS EBS volumes, iSCSI volumes, etc.
@@ -34,7 +34,7 @@ It is typically based on some external storage, such as Amazon S3.
 
 Kafka brokers always keep the latest data on the local storage tier.
 But the older data will be offloaded to the remote tier.
-How much data is kept locally, how often it is offloaded, and other details ... that depends on how you configure the tiered storage.
+The amount of data retained locally, the frequency of offloading, and other specifics depend on the tiered storage configuration.
 
 #### Benefits of tiered storage for Apache Kafka clusters
 
@@ -44,7 +44,7 @@ Using tiered storage has multiple benefits:
   The capacity of the local storage tier is ultimately limited by the maximum disk size.
   While you can use JBOD storage to combine the capacity of multiple disks, there will always be a limit to how many disks can be mounted on your server.
   With JBOD storage, you also need careful balancing of the data between the different volumes.
-  Compared to that, the capacity of something like Amazon AWS S3 storage is practically unlimited.
+  Compared to that, the capacity of something like Amazon S3 storage is practically unlimited.
 * **Faster operations and recovery**
   
   By offloading the older data to the remote storage tier, the Kafka brokers will keep less data locally.
@@ -59,7 +59,7 @@ Using tiered storage has multiple benefits:
 Tiered storage might also improve the running costs of your cluster, because in many situations, the remote storage tier will be significantly cheaper than the local storage tier.
 But this depends on your Kafka usage and workload.
 The remote storage tier often uses completely different pricing schemas.
-For example, with Amazon AWS S3, price is calculated based on the amount of data stored and the number of API calls made.
+For example, with Amazon S3, price is calculated based on the amount of data stored and the number of API calls made.
 So while object storage is often cheaper compared to block storage, there might be some situations when tiered storage ends up being more expensive than the local storage tier.
 
 Performance is also another factor.
@@ -193,8 +193,7 @@ spec:
     config:
       # Tiered storage tunning
       remote.log.manager.task.interval.ms: 5000
-      # Delete segments ever 10 seconds
-      log.retention.check.interval.ms: 10000
+      log.retention.check.interval.ms: 10000 # Delete segments every 10 seconds
       # ...
     tieredStorage:
       type: custom
@@ -210,7 +209,7 @@ spec:
 ```
 
 And in all `KafkaNodePool` resources with the `broker` role, we have to mount the NFS volume in `.spec.template` using the additional volumes feature.
-The `KafkaNodePool` resources that have only the `controller` role do not need the volume as they won't use tiered storage.
+The `KafkaNodePool` resources that have only the `controller` role do not need the volume as they don't use tiered storage.
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
