@@ -4657,7 +4657,7 @@ MirrorMaker consumes messages from a source cluster and republishes those messag
 <div class="sect3">
 <h4 id="deploying-kafka-mirror-maker-str">7.5.1. Deploying Kafka MirrorMaker to your Kubernetes cluster</h4>
 <div class="paragraph _abstract">
-<p>This procedure shows how to deploy a Kafka MirrorMaker cluster to your Kubernetes cluster using the Cluster Operator.</p>
+<p>This procedure shows how to deploy a Kafka MirrorMaker 2 cluster to your Kubernetes cluster using the Cluster Operator.</p>
 </div>
 <div class="paragraph">
 <p>The deployment uses a YAML file to provide the specification to create a <code>KafkaMirrorMaker2</code> resource.
@@ -4674,30 +4674,60 @@ In this procedure, we use the following example file:</p>
 </li>
 </ul>
 </div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-If deploying MirrorMaker 2 clusters to run in parallel, using the same target Kafka cluster, each instance must use unique names for internal Kafka Connect topics.
-To do this, <a href="#con-config-mm2-multiple-instances-str">configure each MirrorMaker 2 instance to replace the defaults</a>.
-</td>
-</tr>
-</table>
-</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
 <li>
-<p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
+<p>Cluster Operator is deployed.</p>
+</li>
+<li>
+<p>Kafka cluster is running.</p>
+<div class="paragraph">
+<p>This procedure assumes that the Kafka cluster was deployed using Strimzi.</p>
+</div>
 </li>
 </ul>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
 <ol class="arabic">
+<li>
+<p>Edit the deployment file to configure connection details (if required).</p>
+<div class="paragraph">
+<p>In <code>examples/mirror-maker/kafka-mirror-maker-2.yaml</code>, add or update the following properties as needed:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.clusters[].bootstrapServers</code> to specify the Kafka bootstrap address for the source and target clusters.</p>
+</li>
+<li>
+<p><code>spec.clusters[].alias</code> to specify a unique identifier for each cluster.</p>
+</li>
+<li>
+<p><code>spec.clusters[].authentication</code> to specify the authentication type for each cluster as <code>tls</code>, <code>scram-sha-256</code>, <code>scram-sha-512</code>, <code>plain</code>, or <code>oauth</code>.<br>
+See the <a href="./configuring.html#type-KafkaMirrorMaker2ClusterSpec-schema-reference" target="_blank" rel="noopener"><code>KafkaMirrorMaker2Spec</code> schema properties</a> for configuration details.</p>
+</li>
+<li>
+<p><code>spec.clusters[].tls.trustedCertificates</code> to configure the TLS certificate for each cluster.<br>
+Use <code>[]</code> (an empty array) to trust the default Java CAs, or specify secrets containing trusted certificates.<br>
+See <a href="./configuring.html#con-common-configuration-trusted-certificates-reference" target="_blank" rel="noopener"><code>trustedCertificates</code> properties</a> for configuration details.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Configure the deployment for multiple MirrorMaker 2 clusters (if required).</p>
+<div class="paragraph">
+<p>If you plan to run more than one MirrorMaker 2 cluster in the same environment, each instance must use unique internal topic names and a unique group ID.</p>
+</div>
+<div class="paragraph">
+<p>Update the <code>spec.clusters[].config</code> properties in <code>kafka-mirror-maker-2.yaml</code> to replace the default values.</p>
+</div>
+<div class="paragraph">
+<p>See <a href="#con-config-mm2-multiple-instances-str">Configuring multiple MirrorMaker 2 clusters</a> for details.</p>
+</div>
+</li>
 <li>
 <p>Deploy Kafka MirrorMaker to your Kubernetes cluster:</p>
 <div class="listingblock">
@@ -4710,7 +4740,7 @@ To do this, <a href="#con-config-mm2-multiple-instances-str">configure each Mirr
 <p>Check the status of the deployment:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n <em>&lt;my_cluster_operator_namespace&gt;</em></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n &lt;my_cluster_operator_namespace&gt;</code></pre>
 </div>
 </div>
 <div class="listingblock">
@@ -4721,17 +4751,11 @@ my-mm2-cluster-mirrormaker2-&lt;pod_id&gt;    1/1    Running  1</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p><code>my-mm2-cluster</code> is the name of the Kafka MirrorMaker 2 cluster.</p>
-</div>
-<div class="paragraph">
-<p>A pod ID identifies each pod created.</p>
-</div>
-<div class="paragraph">
-<p>With the default deployment, you install a single MirrorMaker 2 pod.</p>
-</div>
-<div class="paragraph">
-<p><code>READY</code> shows the number of replicas that are ready/expected.
-The deployment is successful when the <code>STATUS</code> displays as <code>Running</code>.</p>
+<p>In this example, <code>my-mm2-cluster</code> is the name of the Kafka MirrorMaker 2 cluster.
+A pod ID identifies each created pod.
+By default, the deployment creates a single MirrorMaker 2 pod.
+<code>READY</code> shows the number of ready versus expected replicas.
+The deployment is successful when the <code>STATUS</code> is <code>Running</code>.</p>
 </div>
 </li>
 </ol>
@@ -4740,7 +4764,7 @@ The deployment is successful when the <code>STATUS</code> displays as <code>Runn
 <div class="title">Additional resources</div>
 <ul>
 <li>
-<p><a href="#con-config-mirrormaker2-str">Kafka MirrorMaker cluster configuration</a></p>
+<p><a href="#con-config-mirrormaker2-str">Kafka MirrorMaker 2 cluster configuration</a></p>
 </li>
 </ul>
 </div>
@@ -11083,7 +11107,8 @@ spec:
 <p>Cluster alias for the source Kafka cluster.</p>
 </li>
 <li>
-<p>Authentication for the source cluster, specified as mTLS, token-based OAuth, SASL-based SCRAM-SHA-256/SCRAM-SHA-512, or PLAIN.</p>
+<p>Authentication for the source cluster, specified as <code>tls</code>, <code>scram-sha-256</code>, <code>scram-sha-512</code>, <code>plain</code>, or <code>oauth</code>.
+For details on configuring authentication, see the <a href="./configuring.html#type-KafkaMirrorMaker2ClusterSpec-schema-reference" target="_blank" rel="noopener"><code>KafkaMirrorMaker2Spec</code> schema properties</a></p>
 </li>
 <li>
 <p>Bootstrap address for connection to the source Kafka cluster. The address takes the format <code>&lt;cluster_name&gt;-kafka-bootstrap:&lt;port_number&gt;</code>. The Kafka cluster doesn&#8217;t need to be managed by Strimzi or deployed to a Kubernetes cluster.</p>
