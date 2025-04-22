@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "The various tiers of Apache Kafka Tiered Storage"
-date: 2025-04-16
+date: 2025-04-22
 author: jakub_scholz
 ---
 
