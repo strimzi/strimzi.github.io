@@ -35,7 +35,7 @@ Create a new Kafka custom resource to get a single node Apache Kafka cluster:
 
 ```shell
 # Apply the `Kafka` Cluster CR file
-kubectl apply -f https://strimzi.io/examples/latest/kafka/kraft/kafka-single-node.yaml -n kafka 
+kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-single-node.yaml -n kafka 
 ```
 
 Wait while Kubernetes starts the required pods, services, and so on:
