@@ -27,8 +27,8 @@ The keynote will be followed by 5 hours of breakout sessions covering several to
 | 15:50 - 16:20 | Strimzi & OpenTelemetry: Building End-to-End Observability for Kafka on Kubernetes (Neel Shah @ Middleware.io) |
 | 16:30 - 17:00 | When GitOps goes wrong, and other challenges for Strimzi platform teams (Björn Löfroth @ Irori AB) |
 | 17:10 - 17:40 | Improving Kafka monitoring with native Prometheus Metrics Reporter (Owen Corrigan, Federico Valeri, Mickael Maison @ Red Hat) |
-| 17:50 - 18:20 | Cost Efficient Network for Strimzi Kafka Operator (Mingdi Mao, Chongling Zhu, Haochen Li @ Apple) |
-| 18:30 - 19:00 | Managing a Kafka cluster in KRaft mode with Strimzi (Gantigmaa Selenge @ Red Hat) |
+| 17:50 - 18:20 | Managing a Kafka cluster in KRaft mode with Strimzi (Gantigmaa Selenge @ Red Hat) |
+| 18:30 - 19:00 | Become a Local Development Jedi with Strimzi and KIND (Colt McNealy @ LittleHorse) |
 
 You can find more details about speakers and sessions on the official [page](https://community.cncf.io/events/details/cncf-virtual-project-events-hosted-by-cncf-presents-strimzicon-2025-virtual/) as part of the CNCF events.
 
