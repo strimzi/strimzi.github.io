@@ -517,11 +517,12 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#using-kafka-connect-with-plug-ins-str">7.4. Adding Kafka Connect connectors</a>
 <ul class="sectlevel3">
 <li><a href="#creating-new-image-using-kafka-connect-build-str">7.4.1. Building new container images with connector plugins automatically</a></li>
-<li><a href="#creating-new-image-from-base-str">7.4.2. Building new container images with connector plugins from the Kafka Connect base image</a></li>
-<li><a href="#proc-deploying-kafkaconnector-str">7.4.3. Deploying KafkaConnector resources</a></li>
-<li><a href="#con-exposing-kafka-connect-api-str">7.4.4. Exposing the Kafka Connect API</a></li>
-<li><a href="#con-securing-kafka-connect-api-str">7.4.5. Limiting access to the Kafka Connect API</a></li>
-<li><a href="#con-switching-api-to-kafka-connector-str">7.4.6. Switching to using <code>KafkaConnector</code> custom resources</a></li>
+<li><a href="#using-image-volumes-to-add-connector-plugins-str">7.4.2. Using Kubernetes Image Volumes to add connector plugins</a></li>
+<li><a href="#creating-new-image-from-base-str">7.4.3. Building new container images with connector plugins from the Kafka Connect base image</a></li>
+<li><a href="#proc-deploying-kafkaconnector-str">7.4.4. Deploying KafkaConnector resources</a></li>
+<li><a href="#con-exposing-kafka-connect-api-str">7.4.5. Exposing the Kafka Connect API</a></li>
+<li><a href="#con-securing-kafka-connect-api-str">7.4.6. Limiting access to the Kafka Connect API</a></li>
+<li><a href="#con-switching-api-to-kafka-connector-str">7.4.7. Switching to using <code>KafkaConnector</code> custom resources</a></li>
 </ul>
 </li>
 <li><a href="#kafka-mirror-maker-str">7.5. Deploying Kafka MirrorMaker</a>
@@ -4360,7 +4361,100 @@ The rebuild includes downloads of new plugin artifacts without versions.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="creating-new-image-from-base-str">7.4.2. Building new container images with connector plugins from the Kafka Connect base image</h4>
+<h4 id="using-image-volumes-to-add-connector-plugins-str">7.4.2. Using Kubernetes Image Volumes to add connector plugins</h4>
+<div class="paragraph _abstract">
+<p>Configure Kafka Connect so that connectors are automatically mounted as <a href="https://kubernetes.io/docs/concepts/storage/volumes/#image" target="_blank" rel="noopener">Kubernetes Image Volumes</a>.
+You define the connector plugins using the <code>.spec.plugins</code> property of the <code>KafkaConnect</code> custom resource.
+Strimzi automatically mounts them into the Kafka Connect deployment.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+This feature requires that the Kubernetes Image Volume feature is enabled and supported by your Kubernetes cluster.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
+</li>
+<li>
+<p>Your connector plugins must be available in your container registry as container images (OCI artifacts).</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Configure the <code>KafkaConnect</code> custom resource by specifying the additional connector plugins in`.spec.plugins`:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster
+spec: # <b class="conum">(1)</b>
+  #...
+  plugins: # <b class="conum">(2)</b>
+    - name: connector-1
+      artifacts:
+        - type: image
+          reference: &lt;reference_to_container_image_or_OCI_artifact&gt;
+          pullPolicy: &lt;pull_policy&gt;
+    - name: connector-2
+      artifacts:
+        - type: image
+          reference: &lt;reference_to_container_image_or_OCI_artifact&gt;
+          pullPolicy: &lt;pull_policy&gt;
+  #...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p><a href="./configuring.html#type-KafkaConnectSpec-reference" target="_blank" rel="noopener">The specification for the Kafka Connect cluster</a>.</p>
+</li>
+<li>
+<p>(Required) List of connector plugins and their artifacts to mount in the Kafka Connect deployment. Each plugin must be configured with at least one <code>artifact</code>.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Create or update the resource:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">$ kubectl apply -f &lt;kafka_connect_configuration_file&gt;</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Wait for the Kafka Connect cluster to be deployed.</p>
+</li>
+<li>
+<p>Use the Kafka Connect REST API or <code>KafkaConnector</code> custom resources to configure and run connectors based on the plugins you added.</p>
+</li>
+</ol>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="./configuring.html#type-MountedPlugin-reference" target="_blank" rel="noopener">Kafka Connect <code>plugins</code> schema reference</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="creating-new-image-from-base-str">7.4.3. Building new container images with connector plugins from the Kafka Connect base image</h4>
 <div class="paragraph _abstract">
 <p>Create a custom Docker image with connector plugins from the Kafka Connect base image.
 Add the custom image to the <code>/opt/kafka/plugins</code> directory.</p>
@@ -4505,7 +4599,7 @@ spec: <b class="conum">(1)</b>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-deploying-kafkaconnector-str">7.4.3. Deploying KafkaConnector resources</h4>
+<h4 id="proc-deploying-kafkaconnector-str">7.4.4. Deploying KafkaConnector resources</h4>
 <div class="paragraph _abstract">
 <p>Deploy <code>KafkaConnector</code> resources to manage connectors.
 The <code>KafkaConnector</code> custom resource offers a Kubernetes-native approach to management of connectors by the Cluster Operator.
@@ -4819,7 +4913,7 @@ Other connectors support different configuration options.</p>
 </table>
 </div>
 <div class="sect3">
-<h4 id="con-exposing-kafka-connect-api-str">7.4.4. Exposing the Kafka Connect API</h4>
+<h4 id="con-exposing-kafka-connect-api-str">7.4.5. Exposing the Kafka Connect API</h4>
 <div class="paragraph _abstract">
 <p>Use the Kafka Connect REST API as an alternative to using <code>KafkaConnector</code> resources to manage connectors.
 The Kafka Connect REST API is available as a service running on <code><em>&lt;connect_cluster_name&gt;</em>-connect-api:8083</code>, where <em>&lt;connect_cluster_name&gt;</em> is the name of your Kafka Connect cluster.
@@ -4956,7 +5050,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-securing-kafka-connect-api-str">7.4.5. Limiting access to the Kafka Connect API</h4>
+<h4 id="con-securing-kafka-connect-api-str">7.4.6. Limiting access to the Kafka Connect API</h4>
 <div class="paragraph _abstract">
 <p>It is crucial to restrict access to the Kafka Connect API only to trusted users to prevent unauthorized actions and potential security issues.
 The Kafka Connect API provides extensive capabilities for altering connector configurations, which makes it all the more important to take security precautions.
@@ -5037,7 +5131,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-switching-api-to-kafka-connector-str">7.4.6. Switching to using <code>KafkaConnector</code> custom resources</h4>
+<h4 id="con-switching-api-to-kafka-connector-str">7.4.7. Switching to using <code>KafkaConnector</code> custom resources</h4>
 <div class="paragraph _abstract">
 <p>You can switch from using the Kafka Connect API to using <code>KafkaConnector</code> custom resources to manage your connectors.
 To make the switch, do the following in the order shown:</p>
@@ -38193,7 +38287,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-06-03 18:06:28 UTC
+Last updated 2025-06-03 20:19:37 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
