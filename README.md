@@ -49,6 +49,8 @@ We try to use the following process for blog posts:
    For the date, you can use the current date (after your blog post is reviewed and approved, we will change it to the actual publishing date when merging the PR). 
    See [this blog post](https://strimzi.io/blog/2021/07/29/how-to-write-blog-posts-for-strimzi-blog/) for a detailed overview of the mechanics of writing a blog post.
 
+   If this is your first blog post, please also add yourself to the [authors.yml](_data/authors.yml) file.
+
 3. We'll do a content review, checking for technical accuracy, logical structure etc.
    Sometimes this can be an iterative process, but we'll try not to keep you waiting. 
    
