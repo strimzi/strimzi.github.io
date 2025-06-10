@@ -357,8 +357,8 @@
 </li>
 <li><a href="#con-certificate-renewal-str">18.3. Certificate renewal and validity periods</a>
 <ul class="sectlevel3">
-<li><a href="#renewing_automatically_generated_ca_certificates">18.3.1. Renewing automatically generated CA Certificates</a></li>
-<li><a href="#renewing_client_certificates">18.3.2. Renewing client certificates</a></li>
+<li><a href="#cluster_ca_renewal">18.3.1. Cluster CA renewal</a></li>
+<li><a href="#managing_certificate_renewal_for_client_applications">18.3.2. Managing certificate renewal for client applications</a></li>
 <li><a href="#con-maintenance-time-window-definition-str">18.3.3. Scheduling maintenance time windows</a></li>
 <li><a href="#proc-renewing-ca-certs-manually-str">18.3.4. Manually renewing Cluster Operator-managed CA certificates</a></li>
 <li><a href="#proc-recovering-expired-ca-certs-str">18.3.5. Manually recovering from expired Cluster Operator-managed CA certificates</a></li>
@@ -23711,11 +23711,11 @@ spec:
 <div class="sect2">
 <h3 id="con-certificate-renewal-str">18.3. Certificate renewal and validity periods</h3>
 <div class="paragraph _abstract">
-<p>Cluster CA and clients CA certificates are only valid for a limited time period, known as the validity period.
-This is usually defined as a number of days since the certificate was generated.</p>
+<p>Cluster CA and clients CA certificates are valid for a limited time, known as the validity period.
+This is defined as the number of days from the date the certificate was generated.</p>
 </div>
 <div class="paragraph">
-<p>For CA certificates automatically created by the Cluster Operator, configure the validity period for certificates in the <code>kafka</code> resource using the following properties:</p>
+<p>For CA certificates automatically created by the Cluster Operator, configure the validity period for certificates in the <code>kafka</code> resource:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -23729,14 +23729,14 @@ This is usually defined as a number of days since the certificate was generated.
 </div>
 <div class="paragraph">
 <p>The default validity period for both certificates is 365 days.
-Manually-installed CA certificates should have their own validity periods defined.</p>
+For manually-installed custom CA certificates, set validity through your certificate management system.</p>
 </div>
 <div class="paragraph">
-<p>When a CA certificate expires, components and clients that still trust that certificate do not accept connections from peers whose certificates were signed by the CA private key.
-The components and clients need to trust the <em>new</em> CA certificate instead.</p>
+<p>When a CA certificate expires, components and clients that still trust the old certificate do not accept connections from peers whose certificates were signed by the CA private key.
+The components and clients must trust the <em>new</em> CA certificate instead.</p>
 </div>
 <div class="paragraph">
-<p>To allow the renewal of CA certificates without a loss of service, the Cluster Operator initiates certificate renewal before the old CA certificates expire.</p>
+<p>To prevent loss of service, the Cluster Operator initiates certificate renewal before the old CA certificates expire.</p>
 </div>
 <div class="paragraph">
 <p>Configure the renewal period of the certificates created by the Cluster Operator in the <code>kafka</code> resource using the following properties:</p>
@@ -23752,10 +23752,9 @@ The components and clients need to trust the <em>new</em> CA certificate instead
 </ul>
 </div>
 <div class="paragraph">
-<p>The default renewal period for both certificates is 30 days.</p>
-</div>
-<div class="paragraph">
-<p>The renewal period is measured backwards, from the expiry date of the current certificate.</p>
+<p>The default renewal period for both certificates is 30 days from the expiry date of the current certificate.
+Changing the <code>validityDays</code> does not trigger immediate certificate renewal.
+The updated value is applied the next time the certificate is renewed, either automatically or through manual renewal.</p>
 </div>
 <div class="listingblock">
 <div class="title">Validity period against renewal period</div>
@@ -23767,12 +23766,39 @@ The components and clients need to trust the <em>new</em> CA certificate instead
 </div>
 </div>
 <div class="paragraph">
-<p>To schedule the renewal period at a convenient time, use <a href="#con-maintenance-time-window-definition-str">maintenance time windows</a>.</p>
+<p>Changes to <code>renewalDays</code> may trigger renewal earlier if the new value places the certificate within the renewal window.
+To schedule the renewal period at a convenient time, use <a href="#con-maintenance-time-window-definition-str">maintenance time windows</a>.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+<code>maintenanceTimeWindows</code> apply <strong>only</strong> to certificates generated automatically by the Cluster Operator.
+They do <strong>not</strong> apply to custom or externally managed certificates, so restarts triggered by updates to those certificates may occur outside the defined windows.
+With a custom Certificate Authority (CA), the Cluster Operator still manages the validity and renewal of the server certificates it generates.
+In this case, <code>validityDays</code> and <code>renewalDays</code> apply to those server certificates, not to the CA itself.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
-<p>To make a change to the validity and renewal periods after creating the Kafka cluster, configure and apply the <code>Kafka</code> custom resource,
-and <a href="#proc-renewing-ca-certs-manually-str">manually renew the CA certificates</a>.
-If you do not manually renew the certificates, the new periods will be used the next time the certificate is renewed automatically.</p>
+<p>To change validity and renewal periods after creating the Kafka cluster:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Modify the <code>Kafka</code> custom resource.</p>
+</li>
+<li>
+<p><a href="#proc-renewing-ca-certs-manually-str">Manually renew the CA certificates</a>.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>If you do not manually renew the certificates, the new settings take effect the next time the certificate is renewed automatically.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example Kafka configuration for certificate validity and renewal periods</div>
@@ -23794,86 +23820,123 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p>The behavior of the Cluster Operator during the renewal period depends on the settings for the <code>generateCertificateAuthority</code> certificate generation properties for the cluster CA and clients CA.</p>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1"><code>true</code></dt>
-<dd>
-<p>If the properties are set to <code>true</code>, a CA certificate is generated automatically by the Cluster Operator, and renewed automatically within the renewal period.</p>
-</dd>
-<dt class="hdlist1"><code>false</code></dt>
-<dd>
-<p>If the properties are set to <code>false</code>, a CA certificate is not generated by the Cluster Operator. Use this option if you are <a href="#installing-your-own-ca-certificates-str">installing your own certificates</a>.</p>
-</dd>
-</dl>
-</div>
-<div class="sect3">
-<h4 id="renewing_automatically_generated_ca_certificates">18.3.1. Renewing automatically generated CA Certificates</h4>
-<div class="paragraph">
-<p>When it&#8217;s time to renew CA certificates, the Cluster Operator follows these steps:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Generates a new CA certificate, but retains the existing key.</p>
-<div class="paragraph">
-<p>The new certificate replaces the old one with the name <code>ca.crt</code> within the corresponding <code>Secret</code>.</p>
-</div>
-</li>
-<li>
-<p>Generates new client certificates (for Kafka nodes, Entity Operator, Kafka Exporter, and Cruise Control).</p>
-<div class="paragraph">
-<p>This is not strictly necessary because the signing key has not changed, but it keeps the validity period of the client certificate in sync with the CA certificate.</p>
-</div>
-</li>
-<li>
-<p>Restarts Kafka nodes to trust the new CA certificate and use the new client certificates.</p>
-</li>
-<li>
-<p>Restarts the Topic Operator and User Operator to trust the new CA certificate and use the new client certificates.</p>
-</li>
-<li>
-<p>Restarts Cruise Control to trust the new CA certificate and use the new client certificates.</p>
-</li>
-<li>
-<p>Restarts the Kafka Exporter to trust the new CA certificate and use the new client certificates.</p>
-<div class="paragraph">
-<p>User certificates are signed by the clients CA.
-The User Operator handles renewing user certificates when the client&#8217;s CA is renewed.</p>
-</div>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect3">
-<h4 id="renewing_client_certificates">18.3.2. Renewing client certificates</h4>
-<div class="paragraph">
-<p>The Cluster Operator is not aware of the client applications using the Kafka cluster.
-You must ensure clients continue to work after certificate renewal.
-The renewal process depends on how the clients are configured.</p>
-</div>
-<div class="paragraph">
-<p>When connecting to the cluster, and to ensure they operate correctly, client applications must include the following configuration:</p>
+<p>Automatic certificate renewal depends on the <code>generateCertificateAuthority</code> setting:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Truststore credentials from the <code>&lt;cluster_name&gt;-cluster-ca-cert</code> secret to verify the identity of the Kafka cluster.</p>
+<p>If <code>true</code>, the Cluster Operator handles renewal.</p>
 </li>
 <li>
-<p>Keystore credentials from the <code>&lt;user_name&gt;</code> secret to connect to verify the user when connecting to the Kafka cluster.</p>
+<p>If <code>false</code>, certificates must be managed externally.<br>
+Use this option if you are <a href="#installing-your-own-ca-certificates-str">installing your own certificates</a>.</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="cluster_ca_renewal">18.3.1. Cluster CA renewal</h4>
+<div class="paragraph">
+<p>To renew the Cluster CA certificate, the Cluster Operator does the following:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Generates a new Cluster CA certificate, retaining the existing private key.</p>
+<div class="paragraph">
+<p>The renewed certificate replaces <code>ca.crt</code> in the Cluster CA secret.</p>
+</div>
+</li>
+<li>
+<p>Regenerates internal client certificates for the following components:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Kafka nodes</p>
+</li>
+<li>
+<p>Entity Operator (Topic Operator and User Operator)</p>
+</li>
+<li>
+<p>Kafka Exporter</p>
+</li>
+<li>
+<p>Cruise Control</p>
+<div class="paragraph">
+<p>These new certificates are not strictly required, because the signing key hasn&#8217;t changed.
+However, the Cluster Operator regenerates them to align their validity period with the new CA certificate.</p>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Restarts the components to trust the new Cluster CA certificate and use the renewed internal certificates.</p>
+</li>
+</ol>
+</div>
+<div class="sect4">
+<h5 id="clients_ca_renewal">Clients CA renewal</h5>
+<div class="paragraph">
+<p>To renew the Clients CA certificate, the Cluster Operator and User Operator each perform part of the process:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The Cluster Operator generates a new Clients CA certificate, retaining the existing private key.</p>
+<div class="paragraph">
+<p>The renewed certificate replaces <code>ca.crt</code> in the Clients CA secret.</p>
+</div>
+</li>
+<li>
+<p>The User Operator detects the updated Clients CA certificate and regenerates the user certificates that are signed by it.</p>
+</li>
+</ol>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+After renewal, you must ensure client applications update their truststores and keystores with the renewed user certificates before the old ones expire to avoid connection failures.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="managing_certificate_renewal_for_client_applications">18.3.2. Managing certificate renewal for client applications</h4>
+<div class="paragraph">
+<p>The Strimzi operators do not manage external client applications.
+You are responsible for ensuring that clients continue to connect successfully after certificate renewal.</p>
+</div>
+<div class="paragraph">
+<p>When the Clients CA is renewed, the User Operator automatically regenerates user certificates.
+Client applications must be updated to use these renewed credentials before the old certificates expire.</p>
+</div>
+<div class="paragraph">
+<p>Client applications must be configured with the following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A truststore that includes credentials from the <code>&lt;cluster_name&gt;-cluster-ca-cert</code> secret, which is created by the Cluster Operator and contains the public key to verify the Kafka cluster.</p>
+</li>
+<li>
+<p>A keystore built from the <code>&lt;kafka_user_name&gt;</code> secret, which is created by the User Operator and contains the user&#8217;s certificate and key.</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>The user secret provides credentials in PEM and PKCS #12 format, or it can provide a password when using SCRAM-SHA authentication.
-The User Operator creates the user credentials when a user is created.
-For an example of adding certificates to client configuration, see <a href="#proc-configuring-secure-kafka-user-str">Securing user access to Kafka</a>.</p>
+<p>User secrets provide credentials in PEM and PKCS #12 formats, or a password if using SCRAM-SHA authentication.
+The User Operator creates these secrets when a user is created.
+For an example of configuring secure clients, see <a href="#proc-configuring-secure-kafka-user-str">Securing user access to Kafka</a>.</p>
 </div>
 <div class="paragraph">
-<p>If you are provisioning client certificates and keys manually, you must generate new client certificates and ensure the new certificates are used by clients within the renewal period.
-Failure to do this by the end of the renewal period could result in client applications being unable to connect to the cluster.</p>
+<p>If you provision client certificates manually, generate and distribute new certificates before the current ones expire.
+Failure to do so can result in clients being unable to connect to the Kafka cluster.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -23882,8 +23945,11 @@ Failure to do this by the end of the renewal period could result in client appli
 <div class="title">Note</div>
 </td>
 <td class="content">
-For workloads running inside the same Kubernetes cluster and namespace, secrets can be mounted as a volume so the client pods construct their keystores and truststores from the current state of the secrets.
-For more details on this procedure, see <a href="#configuring-internal-clients-to-trust-cluster-ca-str">Configuring internal clients to trust the cluster CA</a>.
+<div class="paragraph">
+<p>For workloads in the same Kubernetes cluster and namespace, you can mount secrets as volumes.
+This allows client pods to construct keystores and truststores dynamically from the current state of the secrets.
+For details, see <a href="#configuring-internal-clients-to-trust-cluster-ca-str">Configuring internal clients to trust the cluster CA</a>.</p>
+</div>
 </td>
 </tr>
 </table>
@@ -23892,14 +23958,80 @@ For more details on this procedure, see <a href="#configuring-internal-clients-t
 <div class="sect3">
 <h4 id="con-maintenance-time-window-definition-str">18.3.3. Scheduling maintenance time windows</h4>
 <div class="paragraph _abstract">
-<p>Schedule Cluster Operator certificate renewals for Kafka clusters to minimize impact on client applications.
-Use time windows in conjunction with the <a href="#con-certificate-renewal-str">renewal periods of the CA certificates created by the Cluster Operator</a> (<code>Kafka.spec.clusterCa.renewalDays</code> and <code>Kafka.spec.clientsCa.renewalDays</code>).</p>
+<p>Use maintenance time windows to control when the Cluster Operator performs certificate renewals and the related rolling restarts.
+This helps minimize disruption to Kafka clients by scheduling updates at convenient times.</p>
 </div>
 <div class="paragraph">
-<p>Updates are usually triggered by changes to the <code>Kafka</code> resource by the user or through user tooling.
-Rolling restarts for certificate expiration may occur without <code>Kafka</code> resource changes.
-While unscheduled restarts shouldn&#8217;t affect service availability, they could impact the performance of client applications.
-Maintenance time windows allow scheduling of these updates for convenient times.</p>
+<p>Maintenance time windows apply only to automatic certificate renewals and rolling restarts managed by the Cluster Operator.</p>
+</div>
+<div class="paragraph">
+<p>They <strong>apply</strong> in the following scenarios:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Automatic time-based renewal of Strimzi-managed internal certificates, such as those used by Kafka nodes.</p>
+</li>
+<li>
+<p>Automatic time-based renewal of server certificates signed by a custom Certificate Authority (CA), <em>if</em> Strimzi manages the renewal process based on certificate expiry.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>They <strong>do not apply</strong> in the following scenarios:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>User-driven changes to the <code>Kafka</code> custom resource, including configuration updates.</p>
+</li>
+<li>
+<p>Environment-driven changes to certificate fields, such as the Common Name (CN) or Subject Alternative Names (SANs). For example, when a new load balancer address is introduced.</p>
+</li>
+<li>
+<p>Manual updates to Cluster CA or Clients CA certificates, even if they are Strimzi-managed, since these updates are treated as user-initiated actions.</p>
+</li>
+<li>
+<p>Externally managed certificates, such as:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Custom listener certificates provided directly by the user.</p>
+</li>
+<li>
+<p>Certificates issued by an external certificate manager.</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>In these cases, restarts may occur immediately and outside any configured maintenance time window.</p>
+</div>
+<div class="paragraph">
+<p>Use time windows in conjunction with the <a href="#con-certificate-renewal-str">renewal periods for CA certificates</a> set in the <code>Kafka</code> resource (<code>Kafka.spec.clusterCa.renewalDays</code> and <code>Kafka.spec.clientsCa.renewalDays</code>).</p>
+</div>
+<div class="paragraph">
+<p>Rolling restarts can be triggered in two ways:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>By user-driven changes to the <code>Kafka</code> custom resource</p>
+</li>
+<li>
+<p>Automatically, when Cluster Operator-managed certificates near expiration</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>User-driven restarts are not restricted by maintenance time windows.
+However, automatically triggered restarts for expiring certificates are subject to the configured maintenance windows.</p>
+</div>
+<div class="paragraph">
+<p>Although restarts typically do not affect service availability, they can temporarily impact client performance.
+Use maintenance time windows to schedule automatic restarts occur during periods of low client activity.</p>
 </div>
 <div class="paragraph">
 <p>Configure maintenance time windows as follows:</p>
@@ -23939,7 +24071,7 @@ spec:
 <div class="title">Note</div>
 </td>
 <td class="content">
-The Cluster Operator doesn&#8217;t adhere strictly to the given time windows for maintenance operations.
+The Cluster Operator doesn&#8217;t adhere strictly to the time windows
 Maintenance operations are triggered by the first reconciliation that occurs within the specified time window.
 If the time window is shorter than the interval between reconciliations, there&#8217;s a risk that the reconciliation may happen outside of the time window,
 Therefore, maintenance time windows must be at least as long as the interval between reconciliations.
