@@ -1,4 +1,4 @@
-# Deploy Strimzi using installation files
+### Deploy Strimzi using installation files
 
 Before deploying the Strimzi cluster operator, create a namespace called `kafka`:
 
@@ -29,7 +29,7 @@ kubectl logs deployment/strimzi-cluster-operator -n kafka -f
 
 Once the operator is running it will watch for new custom resources and create the Kafka cluster, topics or users that correspond to those custom resources.
 
-# Create an Apache Kafka cluster
+### Create an Apache Kafka cluster
 
 Create a new Kafka custom resource to get a single node Apache Kafka cluster:
 
@@ -46,7 +46,7 @@ kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka
 
 The above command might timeout if you're downloading images over a slow connection. If that happens you can always run it again.
 
-# Send and receive messages
+### Send and receive messages
 
 With the cluster running, run a simple producer to send messages to a Kafka topic (the topic is automatically created):
 

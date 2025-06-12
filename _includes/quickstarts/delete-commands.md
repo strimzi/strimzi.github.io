@@ -1,4 +1,4 @@
-# Deleting your Apache Kafka cluster
+### Deleting your Apache Kafka cluster
 
 When you are finished with your Apache Kafka cluster, you can delete it by running:
 
@@ -16,7 +16,7 @@ kubectl delete pvc -l strimzi.io/name=my-cluster-kafka -n kafka
 
 Without deleting the PVC, the next Kafka cluster you might start will fail as it will try to use the volume that belonged to the previous Apache Kafka cluster.
 
-# Deleting the Strimzi cluster operator
+### Deleting the Strimzi cluster operator
 
 When you want to fully remove the Strimzi cluster operator and associated definitions, you can run:
 
@@ -24,7 +24,7 @@ When you want to fully remove the Strimzi cluster operator and associated defini
 kubectl -n kafka delete -f 'https://strimzi.io/install/latest?namespace=kafka'
 ```
 
-# Deleting the `kafka` namespace
+### Deleting the `kafka` namespace
 
 Once it is not used, you can also delete the Kubernetes namespace:
 
