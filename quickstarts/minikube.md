@@ -1,7 +1,7 @@
 Minikube provides a local Kubernetes, designed to make it easy to learn and develop for Kubernetes.
 The Kubernetes cluster is started either inside a virtual machine, a container or on bare-metal, depending on the minikube driver you choose.
 
-# Installing the dependencies
+### Installing the dependencies
 
 This quickstart assumes that you have the latest version of the `minikube` binary, which you can get from the [minikube website](https://minikube.sigs.k8s.io/docs/start/).
 
@@ -20,7 +20,7 @@ minikube version
 kubectl version
 ```
 
-# Starting the Kubernetes cluster
+### Starting the Kubernetes cluster
 
 Start a local development cluster of [Minikube](https://minikube.sigs.k8s.io/docs/start/) that runs in a container or virtual machine manager.
 

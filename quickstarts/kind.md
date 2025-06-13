@@ -8,7 +8,7 @@ For this reason it is faster to start, and consumes less CPU and RAM than the al
 
 _Note: Kubernetes Kind does currently not support node ports or load balancers. You will not be able to easily access your Kafka cluster from outside of the Kubernetes environment. If you need access from outside, we recommend to use Minikube instead._
 
-# Installing the dependencies
+### Installing the dependencies
 
 This quickstart assumes that you have the latest version of the `kind` binary, which you can get from the [Kind GitHub repository](https://github.com/kubernetes-sigs/kind/releases).
 
@@ -31,12 +31,12 @@ kind version
 kubectl version
 ```
 
-# Configuring the Docker daemon
+### Configuring the Docker daemon
 
 If your Docker Daemon runs as a VM you'll most likely need to configure how much memory the VM should have, how many CPUs, how much disk space, and swap size.
 Make sure to assign at least 2 CPUs, and preferably 4 Gb or more of RAM. Consult the Docker documentation for you platform how to configure these settings.
 
-# Starting the Kubernetes cluster
+### Starting the Kubernetes cluster
 
 Start a local development cluster of [Kubernetes Kind](https://github.com/kubernetes-sigs/kind) that installs as a single docker container.
 

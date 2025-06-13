@@ -1,7 +1,7 @@
 Docker Desktop includes a standalone Kubernetes server and client, designed for local testing of Kubernetes.
 You can start a Kubernetes cluster as a single-node cluster within a Docker container on your local system.
 
-# Installing the dependencies
+### Installing the dependencies
 
 This quickstart assumes that you have installed the latest version of Docker Desktop, which you can download from the [Docker website](https://docs.docker.com/desktop/).
 
@@ -15,7 +15,7 @@ After you have installed the binary, make sure it works:
 kubectl version
 ```
 
-# Starting the Kubernetes cluster
+### Starting the Kubernetes cluster
 
 Follow these steps to start a local development cluster of Kubernetes with [Docker Desktop](https://docs.docker.com/desktop/kubernetes/) which runs in a container on your local machine.
 
