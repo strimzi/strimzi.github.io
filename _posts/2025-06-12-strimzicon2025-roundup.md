@@ -91,18 +91,18 @@ Find out how you can help the Strimzi community on our [Join Us](https://strimzi
 Thanks again to everyone who made this year's event such a success.
 
 [keynote-slides]: https://drive.google.com/file/d/1LcWd9FDWJUbNcI6ORr1uCHrJpO6K6UDu/view?usp=sharing
-[keynote-pres]: tbd
+[keynote-pres]: https://youtu.be/E70feFC42rA?si=ukH8ZLz4Iw12xFsg
 [upgrades-slides]: https://tomcooper.dev/files/StrimziCon_2025_Phased_Upgrades.pdf
-[upgrades-pres]: tbd
+[upgrades-pres]: https://youtu.be/pEuYFFkQCUU?si=cjhkKEVTBrvAGhRD
 [stretch-slides]: https://drive.google.com/file/d/1gkB2E-SBNCSZicwvlF93QJU6yAA6JTSn/view?usp=sharing
-[stretch-pres]: tbd
+[stretch-pres]: https://youtu.be/_FgZx0Vc6eM?si=5WPtP6w38acahzhS
 [otel-slides]: https://drive.google.com/file/d/17xBkXASHitQ17NvMWPMEHGnb9n6iZpmG/view?usp=sharing
-[otel-pres]: tbd
+[otel-pres]: https://youtu.be/F_d5ILEx_Hc?si=Dgk0qYO6qbfCeJMe
 [gitops-slides]: https://drive.google.com/file/d/1snso1nR1hRdIHxbsiFw6qcQW0a3xxGna/view?usp=sharing
-[gitops-pres]: tbd
+[gitops-pres]: https://youtu.be/yR2MxmMHbxY?si=SUnLMyA8DGDo44Mz
 [metrics-slides]: https://docs.google.com/presentation/d/1ZBCVy6YixAc8zHQsuwD2dj044r6HzULjQZo2-RLSA_k
-[metrics-pres]: tbd
+[metrics-pres]: https://youtu.be/evKGEziQj54?si=IQjbJ9hCsvYbpSOp
 [kraft-slides]: tbd
-[kraft-pres]: tbd
+[kraft-pres]: https://youtu.be/wJx2NYCFgHA?si=1LdmFGvFO8Np7Pbw
 [localdev-slides]: https://docs.google.com/presentation/d/14Az1s9_E0NuwLperuIdoTsVXuGTP1CrcgdcqDGe6Pic/edit?usp=sharing
-[localdev-pres]: tbd
+[localdev-pres]: https://youtu.be/1op81ib99SU?si=m_F06OLEPcaecEIM
