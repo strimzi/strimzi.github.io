@@ -85,7 +85,7 @@ As well as some great tips for running locally, Colt also shared a GitHub repo w
 
 ### What Next?
 
-If you've run out of StrimziCon 2025 sessions to watch, why not check out our [playlist](https://youtube.com/playlist?list=PLpI4X8PMthYd-rxC90Her68tgRhIFbTAQ&feature=shared) of last year's event.
+If you've run out of StrimziCon 2025 sessions to watch, why not check out our [playlist](https://youtube.com/playlist?list=PLpI4X8PMthYemH5ffnnOFLRhKpJiY1oAn&feature=shared) of last year's event.
 Find out how you can help the Strimzi community on our [Join Us](https://strimzi.io/join-us/) page on the website.
 
 Thanks again to everyone who made this year's event such a success.
