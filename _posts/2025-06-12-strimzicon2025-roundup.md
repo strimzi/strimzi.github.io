@@ -14,14 +14,14 @@ The 2025 program included:
 * 11 speakers from 5 organizations
 * Over 4 hours of content
 
-This year's content explored new Strimzi components, tips for running in production, integrations with other open source projects, and even a look into what could be coming in the future.
+This year's content explored new Strimzi components, tips for running in production, integrations with other open source projects, and a look ahead at what's coming next for the project.
 In the breaks between sessions attendees connected and shared their own experiences with Strimzi.
 
-A massive thank you to everyone who joined us live on the day, and of course our wonderful speakers, the program committee who built the schedule, and of course [CNCF](https://www.cncf.io/) who hosted the event.
+A massive thank you to everyone who joined us live on the day, our wonderful speakers, the program committee who built the schedule, and to [CNCF](https://www.cncf.io/) for hosting the event.
 
 ### Session Recordings and Slides
 
-Similar to last year, we have uploaded all the session recordings to the [Strimzi YouTube channel](https://youtube.com/playlist?list=PLpI4X8PMthYemH5ffnnOFLRhKpJiY1oAn&feature=shared).
+All the session recordings are now available on the [Strimzi YouTube channel](https://youtube.com/playlist?list=PLpI4X8PMthYd-rxC90Her68tgRhIFbTAQ&feature=shared).
 To help you choose which one to watch first, here's an introduction to each session, as well as links to the recording and slides.
 
 ##### Keynote ([Recording][keynote-pres]/[Slides][keynote-slides])
@@ -50,7 +50,7 @@ The proposal is currently in discussion and we are actively looking for input fr
 _Speaker: Neel Shah @ Middleware.io_
 
 OpenTelemetry lets you instrument, generate, collect, and export telemetry data.
-This session explains how to use OpenTelemetry to instrument your Kafka applications and capture end-to-end tracing when using Strimzi.
+This session explained how to use OpenTelemetry to instrument your Kafka applications and capture end-to-end tracing when using Strimzi.
 
 ##### When GitOps goes wrong, and other challenges for Strimzi platform teams ([Recording][gitops-pres]/[Slides][gitops-slides])
 
@@ -65,13 +65,13 @@ Björn gave specific advice for each scenario, as well as more general advice to
 _Speakers: Owen Corrigan, Federico Valeri, Mickael Maison @ Red Hat_
 
 Owen, Federico and Mickael are the main contributors behind the new Strimzi Metrics Reporter.
-In this session they explained why this new mechanism for collecting metrics is not only simpler, but also more performant, and showed a demo of it in action.
+In this session, they explained how the new mechanism for collecting metrics simplifies the process, improves performance, and demonstrated it in action.
 
 ##### Managing a Kafka cluster in KRaft mode with Strimzi ([Recording][kraft-pres]/[Slides][kraft-slides])
 
 _Speaker: Gantigmaa Selenge @ Red Hat_
 
-From version 0.46.0 onwards KRaft is the only supported option for metadata management in a Strimzi cluster.
+From version 0.46.0 onward, KRaft is the only supported option for metadata management in a Strimzi cluster.
 Tina explained what KRaft mode is, how to deploy a KRaft cluster with Strimzi and how to migrate your existing clusters.
 The session also included some tips for running a KRaft cluster in production.
 
@@ -80,12 +80,12 @@ The session also included some tips for running a KRaft cluster in production.
 _Speaker: Colt McNealy @ LittleHorse_
 
 While many developers are familiar with running Strimzi locally, it can be challenging to get locally built containers and ingress to work smoothly.
-In this session Colt explored an architecture for running a Kafka and Connect cluster on KIND, with an ingress listener and a custom connector.
+In this session, Colt explored an architecture for running a Kafka and Connect cluster on KIND, using an ingress listener and a custom connector.
 As well as some great tips for running locally, Colt also shared a GitHub repo with the final demo code.
 
 ### What Next?
 
-If you've run out of StrimziCon 2025 sessions to watch, why not check out our [playlist](https://youtube.com/playlist?list=PLpI4X8PMthYemH5ffnnOFLRhKpJiY1oAn&feature=shared) of last year's event.
+If you've run out of StrimziCon 2025 sessions to watch, why not check out our [playlist](https://youtube.com/playlist?list=PLpI4X8PMthYd-rxC90Her68tgRhIFbTAQ&feature=shared) of last year's event.
 Find out how you can help the Strimzi community on our [Join Us](https://strimzi.io/join-us/) page on the website.
 
 Thanks again to everyone who made this year's event such a success.
@@ -102,7 +102,7 @@ Thanks again to everyone who made this year's event such a success.
 [gitops-pres]: https://youtu.be/yR2MxmMHbxY?si=SUnLMyA8DGDo44Mz
 [metrics-slides]: https://docs.google.com/presentation/d/1ZBCVy6YixAc8zHQsuwD2dj044r6HzULjQZo2-RLSA_k
 [metrics-pres]: https://youtu.be/evKGEziQj54?si=IQjbJ9hCsvYbpSOp
-[kraft-slides]: tbd
+[kraft-slides]: https://drive.google.com/file/d/1sailqR93B0ZlGGtgkjphTgkOi-iNWpvJ/view?usp=sharing
 [kraft-pres]: https://youtu.be/wJx2NYCFgHA?si=1LdmFGvFO8Np7Pbw
 [localdev-slides]: https://docs.google.com/presentation/d/14Az1s9_E0NuwLperuIdoTsVXuGTP1CrcgdcqDGe6Pic/edit?usp=sharing
 [localdev-pres]: https://youtu.be/1op81ib99SU?si=m_F06OLEPcaecEIM
