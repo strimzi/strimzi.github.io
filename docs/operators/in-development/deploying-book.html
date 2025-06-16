@@ -436,31 +436,35 @@
 </li>
 <li><a href="#assembly-metrics-str">25. Introducing metrics</a>
 <ul class="sectlevel2">
-<li><a href="#con-metrics-kafka-exporter-lag-str">25.1. Monitoring consumer lag with Kafka Exporter</a></li>
-<li><a href="#con-metrics-cruise-control-str">25.2. Monitoring Cruise Control operations</a>
+<li><a href="#assembly-metrics-config-files-str">25.1. Example metrics files</a>
 <ul class="sectlevel3">
-<li><a href="#monitoring_balancedness_scores">25.2.1. Monitoring balancedness scores</a></li>
-<li><a href="#setting_up_alerts_for_anomaly_detection">25.2.2. Setting up alerts for anomaly detection</a></li>
+<li><a href="#ref-jmx-metrics-prometheus-metrics-config-str">25.1.1. Example Prometheus JMX Exporter metrics configuration</a></li>
+<li><a href="#ref-metrics-reporter-config-str">25.1.2. Example Metrics Reporter metrics configuration</a></li>
+<li><a href="#ref-metrics-alertmanager-examples-str">25.1.3. Example Prometheus rules for alert notifications</a></li>
+<li><a href="#ref-metrics-dashboards-str">25.1.4. Example Grafana dashboards</a></li>
 </ul>
 </li>
-<li><a href="#assembly-metrics-config-files-str">25.3. Example metrics files</a>
+<li><a href="#assembly-metrics-setup-str">25.2. Using Prometheus with Strimzi</a>
 <ul class="sectlevel3">
-<li><a href="#ref-jmx-metrics-prometheus-metrics-config-str">25.3.1. Example Prometheus JMX Exporter metrics configuration</a></li>
-<li><a href="#ref-metrics-reporter-config-str">25.3.2. Example Metrics Reporter metrics configuration</a></li>
-<li><a href="#ref-metrics-alertmanager-examples-str">25.3.3. Example Prometheus rules for alert notifications</a></li>
-<li><a href="#ref-metrics-dashboards-str">25.3.4. Example Grafana dashboards</a></li>
+<li><a href="#proc-jmx-exporter-metrics-kafka-deploy-options-str">25.2.1. Enabling Prometheus JMX Exporter</a></li>
+<li><a href="#proc-metrics-reporter-kafka-deploy-options-str">25.2.2. Enabling Strimzi Metrics Reporter</a></li>
+<li><a href="#assembly-metrics-prometheus-str">25.2.3. Setting up Prometheus</a></li>
+<li><a href="#proc-metrics-deploying-prometheus-alertmanager-str">25.2.4. Deploying Alertmanager</a></li>
 </ul>
 </li>
-<li><a href="#assembly-metrics-setup-str">25.4. Using Prometheus with Strimzi</a>
+<li><a href="#proc-metrics-grafana-dashboard-str">25.3. Enabling the example Grafana dashboards</a></li>
+<li><a href="#proc-metrics-custom-resource-monitoring-str">25.4. Custom resource monitoring</a></li>
+<li><a href="#con-metrics-kafka-exporter-lag-str">25.5. Consumer lag monitoring</a>
 <ul class="sectlevel3">
-<li><a href="#proc-jmx-exporter-metrics-kafka-deploy-options-str">25.4.1. Enabling Prometheus JMX Exporter</a></li>
-<li><a href="#proc-metrics-reporter-kafka-deploy-options-str">25.4.2. Enabling Strimzi Metrics Reporter</a></li>
-<li><a href="#assembly-metrics-prometheus-str">25.4.3. Setting up Prometheus</a></li>
-<li><a href="#proc-metrics-deploying-prometheus-alertmanager-str">25.4.4. Deploying Alertmanager</a></li>
+<li><a href="#proc-kafka-exporter-deploy-str">25.5.1. Deploying Kafka Exporter</a></li>
 </ul>
 </li>
-<li><a href="#proc-metrics-grafana-dashboard-str">25.5. Enabling the example Grafana dashboards</a></li>
-<li><a href="#proc-metrics-custom-resource-monitoring-str">25.6. Custom resource monitoring</a></li>
+<li><a href="#con-metrics-cruise-control-str">25.6. Cruise Control operations monitoring</a>
+<ul class="sectlevel3">
+<li><a href="#monitoring_balancedness_scores">25.6.1. Monitoring balancedness scores</a></li>
+<li><a href="#setting_up_alerts_for_anomaly_detection">25.6.2. Setting up alerts for anomaly detection</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#assembly-distributed-tracing-str">26. Introducing distributed tracing</a>
@@ -30049,172 +30053,7 @@ For further support, refer to the Prometheus and Grafana developer communities.
 </ul>
 </div>
 <div class="sect2">
-<h3 id="con-metrics-kafka-exporter-lag-str">25.1. Monitoring consumer lag with Kafka Exporter</h3>
-<div class="paragraph _abstract">
-<p><a href="https://github.com/danielqsj/kafka_exporter" target="_blank" rel="noopener">Kafka Exporter</a> is an open source project to enhance monitoring of Apache Kafka brokers and clients.
-You can configure the <code>Kafka</code> resource to <a href="#assembly-metrics-setup-str">deploy Kafka Exporter with your Kafka cluster</a>.
-Kafka Exporter extracts additional metrics data from Kafka brokers related to offsets, consumer groups, consumer lag, and topics.
-The metrics data is used, for example, to help identify slow consumers.
-Lag data is exposed as Prometheus metrics, which can then be presented in Grafana for analysis.</p>
-</div>
-<div class="paragraph">
-<p>Kafka Exporter reads from the  <code>__consumer_offsets</code> topic, which stores information on committed offsets for consumer groups.
-For Kafka Exporter to be able to work properly, consumer groups needs to be in use.</p>
-</div>
-<div class="paragraph">
-<p>A Grafana dashboard for Kafka Exporter is one of a number of <a href="#ref-metrics-dashboards-str">example Grafana dashboards</a> provided by Strimzi.</p>
-</div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-Kafka Exporter provides only additional metrics related to consumer lag and consumer offsets.
-For regular Kafka metrics, you have to configure the Prometheus metrics in <a href="#assembly-metrics-setup-str">Kafka brokers</a>.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Consumer lag indicates the difference in the rate of production and consumption of messages.
-Specifically, consumer lag for a given consumer group indicates the delay between the last message in the partition and the message being currently picked up by that consumer.</p>
-</div>
-<div class="paragraph">
-<p>The lag reflects the position of the consumer offset in relation to the end of the partition log.</p>
-</div>
-<div class="paragraph">
-<div class="title">Consumer lag between the producer and consumer offset</div>
-<p><span class="image"><img src="images/consumer-lag.png" alt="Consumer lag"></span></p>
-</div>
-<div class="paragraph">
-<p>This difference is sometimes referred to as the <em>delta</em> between the producer offset and consumer offset: the read and write positions in the Kafka broker topic partitions.</p>
-</div>
-<div class="paragraph">
-<p>Suppose a topic streams 100 messages a second. A lag of 1000 messages between the producer offset (the topic partition head) and the last offset the consumer has read means a 10-second delay.</p>
-</div>
-<h4 id="the_importance_of_monitoring_consumer_lag" class="discrete">The importance of monitoring consumer lag</h4>
-<div class="paragraph">
-<p>For applications that rely on the processing of (near) real-time data, it is critical to monitor consumer lag to check that it does not become too big.
-The greater the lag becomes, the further the process moves from the real-time processing objective.</p>
-</div>
-<div class="paragraph">
-<p>Consumer lag, for example, might be a result of consuming too much old data that has not been purged, or through unplanned shutdowns.</p>
-</div>
-<h4 id="reducing_consumer_lag" class="discrete">Reducing consumer lag</h4>
-<div class="paragraph">
-<p>Use the Grafana charts to analyze lag and to check if actions to reduce lag are having an impact on an affected consumer group.
-If, for example, Kafka brokers are adjusted to reduce lag, the dashboard will show the  <em>Lag by consumer group</em> chart going down and the <em>Messages consumed per minute</em> chart going up.</p>
-</div>
-<div class="paragraph">
-<p>Typical actions to reduce lag include:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Scaling-up consumer groups by adding new consumers</p>
-</li>
-<li>
-<p>Increasing the retention time for a message to remain in a topic</p>
-</li>
-<li>
-<p>Adding more disk capacity to increase the message buffer</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Actions to reduce consumer lag depend on the underlying infrastructure and the use cases Strimzi is supporting.
-For instance, a lagging consumer is less likely to benefit from the broker being able to service a fetch request from its disk cache.
-And in certain cases, it might be acceptable to automatically drop messages until a consumer has caught up.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="con-metrics-cruise-control-str">25.2. Monitoring Cruise Control operations</h3>
-<div class="paragraph _abstract">
-<p>Cruise Control monitors Kafka brokers in order to track the utilization of brokers, topics, and partitions.
-Cruise Control also provides a set of metrics for monitoring its own performance.</p>
-</div>
-<div class="paragraph">
-<p>The Cruise Control metrics reporter collects raw metrics data from Kafka brokers.
-The data is produced to topics that are automatically created by Cruise Control.
-The metrics are used to <a href="#proc-generating-optimization-proposals-str">generate optimization proposals for Kafka clusters</a>.</p>
-</div>
-<div class="paragraph">
-<p>Cruise Control metrics are available for real-time monitoring of Cruise Control operations.
-For example, you can use Cruise Control metrics to monitor the status of rebalancing operations that are running or provide alerts on any anomalies that are detected in an operation&#8217;s performance.</p>
-</div>
-<div class="paragraph">
-<p>You expose Cruise Control metrics by <a href="#assembly-metrics-setup-str">enabling the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX Exporter</a> in the Cruise Control configuration</a>.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-For a full list of available Cruise Control metrics, which are known as <em>sensors</em>, see the <a href="https://github.com/linkedin/cruise-control/wiki/Sensors" target="_blank" rel="noopener">Cruise Control documentation</a>
-</td>
-</tr>
-</table>
-</div>
-<div class="sect3">
-<h4 id="monitoring_balancedness_scores">25.2.1. Monitoring balancedness scores</h4>
-<div class="paragraph">
-<p>Cruise Control metrics include a balancedness score.
-Balancedness is the measure of how evenly a workload is distributed in a Kafka cluster.</p>
-</div>
-<div class="paragraph">
-<p>The Cruise Control metric for balancedness score (<code>balancedness-score</code>) might differ from the balancedness score in the <code>KafkaRebalance</code> resource.
-Cruise Control calculates each score using <code>anomaly.detection.goals</code> which might not be the same as the <code>default.goals</code> used in the <code>KafkaRebalance</code> resource.
-The <code>anomaly.detection.goals</code> are specified in the <code>spec.cruiseControl.config</code> of the <code>Kafka</code> custom resource.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-<div class="paragraph">
-<p>Refreshing the <code>KafkaRebalance</code> resource fetches an optimization proposal.
-The latest cached optimization proposal is fetched if one of the following conditions applies:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>KafkaRebalance <code>goals</code> match the goals configured in the <code>default.goals</code> section of the <code>Kafka</code> resource</p>
-</li>
-<li>
-<p>KafkaRebalance <code>goals</code> are not specified</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Otherwise, Cruise Control generates a new optimization proposal based on KafkaRebalance <code>goals</code>. If new proposals are generated with each refresh, this can impact performance monitoring.</p>
-</div>
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect3">
-<h4 id="setting_up_alerts_for_anomaly_detection">25.2.2. Setting up alerts for anomaly detection</h4>
-<div class="paragraph">
-<p>Cruise control&#8217;s <em>anomaly detector</em> provides metrics data for conditions that block the generation of optimization goals, such as broker failures.
-If you want more visibility, you can use the metrics provided by the anomaly detector to set up alerts and send out notifications.
-You can set up Cruise Control’s <em>anomaly notifier</em> to route alerts based on these metrics through a specified notification channel.
-Alternatively, you can set up Prometheus to scrape the metrics data provided by the anomaly detector and generate alerts.
-Prometheus Alertmanager can then route the alerts generated by Prometheus.</p>
-</div>
-<div class="paragraph">
-<p>The <a href="https://github.com/linkedin/cruise-control/wiki/Configurations" target="_blank" rel="noopener">Cruise Control documentation</a> provides information on <code>AnomalyDetector</code> metrics and the anomaly notifier.</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="assembly-metrics-config-files-str">25.3. Example metrics files</h3>
+<h3 id="assembly-metrics-config-files-str">25.1. Example metrics files</h3>
 <div class="paragraph _abstract">
 <p>You can find example Grafana dashboards and other metrics configuration files in the <a href="#config-examples-str">example configuration files</a> provided by Strimzi.</p>
 </div>
@@ -30337,7 +30176,7 @@ You do not require <code>jmxOptions</code> configuration in the custom resource 
 When deploying Prometheus metrics configuration, you can deploy the example custom resource or copy the metrics configuration to your own custom resource definition.</p>
 </div>
 <div class="sect3">
-<h4 id="ref-jmx-metrics-prometheus-metrics-config-str">25.3.1. Example Prometheus JMX Exporter metrics configuration</h4>
+<h4 id="ref-jmx-metrics-prometheus-metrics-config-str">25.1.1. Example Prometheus JMX Exporter metrics configuration</h4>
 <div class="paragraph _abstract">
 <p>Grafana dashboards with Prometheus JMX Exporter are dependent on relabeling rules, which are defined for Strimzi components in the custom resource configuration.</p>
 </div>
@@ -30390,7 +30229,7 @@ For example, the value of a label may be derived from the name of a Kafka server
 </table>
 </div>
 <div class="sect3">
-<h4 id="ref-metrics-reporter-config-str">25.3.2. Example Metrics Reporter metrics configuration</h4>
+<h4 id="ref-metrics-reporter-config-str">25.1.2. Example Metrics Reporter metrics configuration</h4>
 <table class="tableblock frame-all grid-all stripes-none stretch _abstract">
 <caption class="title">Table 35. Example custom resources with metrics configuration</caption>
 <colgroup>
@@ -30415,7 +30254,7 @@ For example, the value of a label may be derived from the name of a Kafka server
 </table>
 </div>
 <div class="sect3">
-<h4 id="ref-metrics-alertmanager-examples-str">25.3.3. Example Prometheus rules for alert notifications</h4>
+<h4 id="ref-metrics-alertmanager-examples-str">25.1.3. Example Prometheus rules for alert notifications</h4>
 <div class="paragraph _abstract">
 <p>Example Prometheus rules for alert notifications are provided with the <a href="#assembly-metrics-config-files-str">example metrics configuration files</a> provided by Strimzi.
 The rules are specified in the example <code>prometheus-rules.yaml</code> file for use in a <a href="#proc-metrics-deploying-prometheus-str">Prometheus deployment</a>.</p>
@@ -30478,7 +30317,7 @@ Adapt the default configuration of the example rules according to your specific 
 </div>
 </div>
 <div class="sect3">
-<h4 id="ref-metrics-dashboards-str">25.3.4. Example Grafana dashboards</h4>
+<h4 id="ref-metrics-dashboards-str">25.1.4. Example Grafana dashboards</h4>
 <div class="paragraph _abstract">
 <p>If you deploy Prometheus to provide metrics,
 you can use the example Grafana dashboards provided with Strimzi to monitor Strimzi components.</p>
@@ -30556,9 +30395,9 @@ When metrics are not available to the Kafka Exporter, because there is no traffi
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-metrics-setup-str">25.4. Using Prometheus with Strimzi</h3>
+<h3 id="assembly-metrics-setup-str">25.2. Using Prometheus with Strimzi</h3>
 <div class="paragraph _abstract">
-<p>You can use Prometheus to provide monitoring data for the example Grafana dashboards provided with Strimzi.</p>
+<p>Use Prometheus to provide monitoring data for the example Grafana dashboards provided with Strimzi.</p>
 </div>
 <div class="paragraph">
 <p>To expose metrics in Prometheus format, you add configuration to a custom resource.
@@ -30596,7 +30435,7 @@ Prometheus and Prometheus Alertmanager are used in the examples provided by Stri
 The exposed metrics provide the monitoring data when you <a href="#proc-metrics-grafana-dashboard-str">enable the Grafana dashboard</a>.</p>
 </div>
 <div class="sect3">
-<h4 id="proc-jmx-exporter-metrics-kafka-deploy-options-str">25.4.1. Enabling Prometheus JMX Exporter</h4>
+<h4 id="proc-jmx-exporter-metrics-kafka-deploy-options-str">25.2.1. Enabling Prometheus JMX Exporter</h4>
 <div class="paragraph _abstract">
 <p>To enable and expose metrics in Strimzi for Prometheus, configure the appropriate properties in the custom resources for the components you want to monitor.</p>
 </div>
@@ -30645,22 +30484,6 @@ Prometheus scrapes this endpoint to collect Kafka metrics.</p>
 </div>
 </li>
 </ul>
-</div>
-<div class="paragraph">
-<p>To include <a href="#con-metrics-kafka-exporter-lag-str">Kafka Exporter</a> metrics, add <code>kafkaExporter</code> configuration to the <code>Kafka</code> resource.</p>
-</div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-Kafka Exporter provides additional metrics for consumer lag and offsets only.
-You still need to configure Prometheus metrics in the <code>Kafka</code> resource to collect standard Kafka metrics.
-</td>
-</tr>
-</table>
 </div>
 <div class="paragraph">
 <p>You can create your own Prometheus configuration or use the <a href="#assembly-metrics-config-files-str">example custom resource files</a> provided with Strimzi:</p>
@@ -30759,110 +30582,7 @@ data:
 </ol>
 </div>
 </li>
-<li>
-<p>To deploy Kafka Exporter, add <code>kafkaExporter</code> configuration.</p>
-<div class="paragraph">
-<p><code>kafkaExporter</code> configuration is specified only in the <code>Kafka</code> resource.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example configuration for deploying Kafka Exporter</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
-kind: Kafka
-metadata:
-  name: my-cluster
-spec:
-  # ...
-  kafkaExporter:
-    image: my-registry.io/my-org/my-exporter-cluster:latest # <b class="conum">(1)</b>
-    groupRegex: ".*" # <b class="conum">(2)</b>
-    topicRegex: ".*" # <b class="conum">(3)</b>
-    groupExcludeRegex: "^excluded-.*" # <b class="conum">(4)</b>
-    topicExcludeRegex: "^excluded-.*" # <b class="conum">(5)</b>
-    showAllOffsets: false # <b class="conum">(6)</b>
-    resources: # <b class="conum">(7)</b>
-      requests:
-        cpu: 200m
-        memory: 64Mi
-      limits:
-        cpu: 500m
-        memory: 128Mi
-    logging: debug # <b class="conum">(8)</b>
-    enableSaramaLogging: true # <b class="conum">(9)</b>
-    template: # <b class="conum">(10)</b>
-      pod:
-        metadata:
-          labels:
-            label1: value1
-        imagePullSecrets:
-          - name: my-docker-credentials
-        securityContext:
-          runAsUser: 1000001
-          fsGroup: 0
-        terminationGracePeriodSeconds: 120
-    readinessProbe: # <b class="conum">(11)</b>
-      initialDelaySeconds: 15
-      timeoutSeconds: 5
-    livenessProbe: # <b class="conum">(12)</b>
-      initialDelaySeconds: 15
-      timeoutSeconds: 5
-# ...</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>ADVANCED OPTION: Container image configuration, which is recommended only in special situations.</p>
-</li>
-<li>
-<p>A regular expression to specify the consumer groups to include in the metrics.</p>
-</li>
-<li>
-<p>A regular expression to specify the topics to include in the metrics.</p>
-</li>
-<li>
-<p>A regular expression to specify the consumer groups to exclude in the metrics.</p>
-</li>
-<li>
-<p>A regular expression to specify the topics to exclude in the metrics.</p>
-</li>
-<li>
-<p>By default, metrics are collected for all consumers regardless of their connection status. Setting <code>showAllOffsets</code> to <code>false</code> stops collecting metrics on disconnected consumers.</p>
-</li>
-<li>
-<p>CPU and memory resources to reserve.</p>
-</li>
-<li>
-<p>Logging configuration, to log messages with a given severity (debug, info, warn, error, fatal) or above.</p>
-</li>
-<li>
-<p>Boolean to enable Sarama logging, a Go client library used by Kafka Exporter.</p>
-</li>
-<li>
-<p>Customization of deployment templates and pods.</p>
-</li>
-<li>
-<p>Healthcheck readiness probes.</p>
-</li>
-<li>
-<p>Healthcheck liveness probes.</p>
-</li>
 </ol>
-</div>
-</li>
-</ol>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-For Kafka Exporter to be able to work properly, consumer groups need to be in use.
-</td>
-</tr>
-</table>
 </div>
 <div class="paragraph">
 <div class="title">Enabling metrics for Kafka Bridge</div>
@@ -30957,7 +30677,7 @@ To continue using the Open Policy Agent authorizer, use the <code>type: custom</
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-metrics-reporter-kafka-deploy-options-str">25.4.2. Enabling Strimzi Metrics Reporter</h4>
+<h4 id="proc-metrics-reporter-kafka-deploy-options-str">25.2.2. Enabling Strimzi Metrics Reporter</h4>
 <div class="paragraph _abstract">
 <p>To enable and expose metrics in Strimzi for Prometheus, configure the appropriate properties in the custom resources for the components you want to monitor.</p>
 </div>
@@ -31040,7 +30760,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="assembly-metrics-prometheus-str">25.4.3. Setting up Prometheus</h4>
+<h4 id="assembly-metrics-prometheus-str">25.2.3. Setting up Prometheus</h4>
 <div class="paragraph">
 <p><a href="https://prometheus.io/" target="_blank" rel="noopener">Prometheus</a> provides an open source set of components for systems monitoring and alert notification.</p>
 </div>
@@ -31344,7 +31064,7 @@ kubectl apply -f prometheus.yaml</code></pre>
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-metrics-deploying-prometheus-alertmanager-str">25.4.4. Deploying Alertmanager</h4>
+<h4 id="proc-metrics-deploying-prometheus-alertmanager-str">25.2.4. Deploying Alertmanager</h4>
 <div class="paragraph _abstract">
 <p>Use Alertmanager to route alerts to a notification service.
 <a href="https://prometheus.io/docs/alerting/alertmanager/" target="_blank" rel="noopener">Prometheus Alertmanager</a> is a component for handling alerts and routing them to a notification service.
@@ -31435,7 +31155,7 @@ A configuration file defines the resources for deploying Alertmanager:</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-metrics-grafana-dashboard-str">25.5. Enabling the example Grafana dashboards</h3>
+<h3 id="proc-metrics-grafana-dashboard-str">25.3. Enabling the example Grafana dashboards</h3>
 <div class="paragraph _abstract">
 <p>Use Grafana to provide visualizations of Prometheus metrics on customizable dashboards.</p>
 </div>
@@ -31614,7 +31334,7 @@ The name of the Grafana pod is different for each user.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-metrics-custom-resource-monitoring-str">25.6. Custom resource monitoring</h3>
+<h3 id="proc-metrics-custom-resource-monitoring-str">25.4. Custom resource monitoring</h3>
 <div class="paragraph _abstract">
 <p>Use kube-state-metrics to provide custom resource monitoring.
 <a href="https://github.com/kubernetes/kube-state-metrics/" target="_blank" rel="noopener">Kube-state-metrics</a>(KSM) is a scalable Kubernetes native service which listens to the Kubernetes API server and generates metrics about the state of the objects.
@@ -31700,6 +31420,322 @@ kubectl apply -f ksm.yaml</code></pre>
 </div>
 </li>
 </ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="con-metrics-kafka-exporter-lag-str">25.5. Consumer lag monitoring</h3>
+<div class="paragraph _abstract">
+<p><a href="https://github.com/danielqsj/kafka_exporter" target="_blank" rel="noopener">Kafka Exporter</a> is an open source project that enhances the monitoring of Apache Kafka brokers and clients.
+Kafka Exporter extracts additional metrics data from Kafka brokers related to consumer groups, consumer lag, topic offsets, and partitions.
+The metrics are exposed in Prometheus format and can be collected by Prometheus, then visualized in Grafana.</p>
+</div>
+<div class="paragraph">
+<p>Kafka Exporter relies on data from the <code>__consumer_offsets</code> topic to report consumer lag metrics.
+This topic only contains information if consumer groups are actively committing offsets.
+Consumer groups must therefore be in use for Kafka Exporter to function correctly.</p>
+</div>
+<div class="paragraph">
+<p>Consumer lag indicates the difference in the rate of production and consumption of messages.
+Specifically, consumer lag for a given consumer group indicates the delay between the last message in the partition and the message being currently picked up by that consumer.</p>
+</div>
+<div class="paragraph">
+<p>The lag reflects the position of the consumer offset in relation to the end of the partition log.</p>
+</div>
+<div class="paragraph">
+<div class="title">Consumer lag between the producer and consumer offset</div>
+<p><span class="image"><img src="images/consumer-lag.png" alt="Consumer lag"></span></p>
+</div>
+<div class="paragraph">
+<p>This difference is sometimes referred to as the <em>delta</em> between the producer offset and consumer offset: the read and write positions in the Kafka broker topic partitions.</p>
+</div>
+<div class="paragraph">
+<p>Suppose a topic streams 100 messages a second. A lag of 1000 messages between the producer offset (the topic partition head) and the last offset the consumer has read means a 10-second delay.</p>
+</div>
+<div class="paragraph">
+<div class="title">Why monitor consumer lag?</div>
+<p>For applications that rely on the processing of (near) real-time data, it is critical to monitor consumer lag to check that it does not become too big.
+The greater the lag becomes, the further the process moves from the real-time processing objective.</p>
+</div>
+<div class="paragraph">
+<p>Consumer lag, for example, might be a result of consuming too much old data that has not been purged, or through unplanned shutdowns.</p>
+</div>
+<div class="paragraph">
+<div class="title">Reducing consumer lag</div>
+<p>Use the Grafana charts to analyze lag and to check if actions to reduce lag are having an impact on an affected consumer group.
+If, for example, Kafka brokers are adjusted to reduce lag, the dashboard will show the  <em>Lag by consumer group</em> chart going down and the <em>Messages consumed per minute</em> chart going up.</p>
+</div>
+<div class="paragraph">
+<p>Typical actions to reduce lag include:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Scaling-up consumer groups by adding new consumers</p>
+</li>
+<li>
+<p>Increasing the retention time for a message to remain in a topic</p>
+</li>
+<li>
+<p>Adding more disk capacity to increase the message buffer</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Actions to reduce consumer lag depend on the underlying infrastructure and the use cases Strimzi is supporting.
+For instance, a lagging consumer is less likely to benefit from the broker being able to service a fetch request from its disk cache.
+And in certain cases, it might be acceptable to automatically drop messages until a consumer has caught up.</p>
+</div>
+<div class="sect3">
+<h4 id="proc-kafka-exporter-deploy-str">25.5.1. Deploying Kafka Exporter</h4>
+<div class="paragraph _abstract">
+<p>To monitor consumer lag in your Kafka cluster, configure Kafka Exporter in the <code>Kafka</code> custom resource.
+Kafka Exporter exposes lag data as Prometheus metrics, which can be visualized in Grafana.
+A Grafana dashboard for Kafka Exporter is included in the <a href="#ref-metrics-dashboards-str">example Grafana dashboards</a> provided by Strimzi.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+Kafka Exporter provides only metrics related to consumer groups and lag.
+To collect general Kafka metrics, configure metrics on the Kafka brokers.
+For more information, see <a href="#assembly-metrics-setup-str">Using Prometheus with Strimzi</a>.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>Consumer groups must be in use.</p>
+<div class="paragraph">
+<p>Kafka Exporter relies on data from the <code>__consumer_offsets</code> topic to report consumer lag metrics.
+This topic only contains information if consumer groups are actively committing offsets.</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Add <code>kafkaExporter</code> configuration to the <code>spec</code> section of the <code>Kafka</code> resource.</p>
+<div class="listingblock">
+<div class="title">Example configuration for deploying Kafka Exporter</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  # ...
+  kafkaExporter:
+    # Collection filters (recommended)
+    groupRegex: ".*" # <b class="conum">(1)</b>
+    topicRegex: ".*" # <b class="conum">(2)</b>
+    groupExcludeRegex: "^excluded-.*" # <b class="conum">(3)</b>
+    topicExcludeRegex: "^excluded-.*" # <b class="conum">(4)</b>
+    # Resources requests and limits (recommended)
+    resources: # <b class="conum">(6)</b>
+      requests:
+        cpu: 200m
+        memory: 64Mi
+      limits:
+        cpu: 500m
+        memory: 128Mi
+    # Metrics for all consumers (optional)
+    showAllOffsets: false # <b class="conum">(5)</b>
+    # Logging configuration (optional)
+    logging: debug # <b class="conum">(7)</b>
+    # Sarama logging (optional)
+    enableSaramaLogging: true # <b class="conum">(8)</b>
+    # Readiness probe (optional)
+    readinessProbe: # <b class="conum">(9)</b>
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+    # Liveness probe (optional)
+    livenessProbe: # <b class="conum">(10)</b>
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+    # Pod template (optional)
+    template: # <b class="conum">(11)</b>
+      pod:
+        metadata:
+          labels:
+            label1: value1
+        imagePullSecrets:
+          - name: my-docker-credentials
+        securityContext:
+          runAsUser: 1000001
+          fsGroup: 0
+        terminationGracePeriodSeconds: 120
+    # Custom image (optional)
+    image: my-registry.io/my-org/my-exporter-cluster:latest # <b class="conum">(12)</b>
+# ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Regular expression to specify consumer groups to include in metrics.</p>
+</li>
+<li>
+<p>Regular expression to specify topics to include in metrics.</p>
+</li>
+<li>
+<p>Regular expression to specify consumer groups to exclude from metrics.</p>
+</li>
+<li>
+<p>Regular expression to specify topics to exclude from metrics.</p>
+</li>
+<li>
+<p>By default, metrics are collected for all consumers regardless of connection status. Setting <code>showAllOffsets</code> to <code>false</code> stops collecting metrics for disconnected consumers.</p>
+</li>
+<li>
+<p>CPU and memory resources to reserve.</p>
+</li>
+<li>
+<p>Logging configuration, to log messages with a given severity (debug, info, warn, error, fatal) or above.</p>
+</li>
+<li>
+<p>Boolean to enable Sarama logging, which provides detailed logs from the Go client library used by Kafka Exporter. Useful for debugging Kafka client interactions.</p>
+</li>
+<li>
+<p>Readiness probe to check when Kafka Exporter is ready to serve metrics.</p>
+</li>
+<li>
+<p>Liveness probe to detect and restart Kafka Exporter if it becomes unresponsive.</p>
+</li>
+<li>
+<p>Template customization. Here a pod is scheduled with additional security attributes.</p>
+</li>
+<li>
+<p><strong>ADVANCED OPTION:</strong> Container image configuration, which is recommended only in special situations.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Apply the changes to the <code>Kafka</code> configuration.</p>
+<div class="paragraph">
+<p>Resources, including a <code>Service</code> and <code>Pod</code>, are created for the Kafka Exporter with the naming convention <code>&lt;kafka_cluster_name&gt;-kafka-exporter</code>.</p>
+</div>
+</li>
+<li>
+<p>Configure Prometheus to scrape metrics from the Kafka Exporter endpoint.</p>
+<div class="paragraph">
+<p>If you are using the example Prometheus deployment, it is already set up to discover and scrape Kafka Exporter metrics.
+The <code>PodMonitor</code> resource named <code>kafka-resources-metrics</code> matches the <code>strimzi.io/kind: Kafka</code> label used to identify the Kafka Exporter.
+For more information, see <a href="#proc-metrics-deploying-prometheus-str">Deploying Prometheus</a>.</p>
+</div>
+</li>
+<li>
+<p>Import the Kafka Exporter dashboard into Grafana to visualize consumer lag.</p>
+<div class="paragraph">
+<p>For more information, see <a href="#proc-metrics-grafana-dashboard-str">Enabling the example Grafana dashboards</a>.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Tip</div>
+</td>
+<td class="content">
+Use the <em>Lag by consumer group</em> and <em>Messages consumed per second</em> panels to evaluate lag and the impact of tuning actions.
+</td>
+</tr>
+</table>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="con-metrics-cruise-control-str">25.6. Cruise Control operations monitoring</h3>
+<div class="paragraph _abstract">
+<p>Cruise Control monitors Kafka brokers in order to track the utilization of brokers, topics, and partitions.
+Cruise Control also provides a set of metrics for monitoring its own performance.</p>
+</div>
+<div class="paragraph">
+<p>The Cruise Control metrics reporter collects raw metrics data from Kafka brokers.
+The data is produced to topics that are automatically created by Cruise Control.
+The metrics are used to <a href="#proc-generating-optimization-proposals-str">generate optimization proposals for Kafka clusters</a>.</p>
+</div>
+<div class="paragraph">
+<p>Cruise Control metrics are available for real-time monitoring of Cruise Control operations.
+For example, you can use Cruise Control metrics to monitor the status of rebalancing operations that are running or provide alerts on any anomalies that are detected in an operation&#8217;s performance.</p>
+</div>
+<div class="paragraph">
+<p>You expose Cruise Control metrics by <a href="#assembly-metrics-setup-str">enabling the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX Exporter</a> in the Cruise Control configuration</a>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+For a full list of available Cruise Control metrics, which are known as <em>sensors</em>, see the <a href="https://github.com/linkedin/cruise-control/wiki/Sensors" target="_blank" rel="noopener">Cruise Control documentation</a>
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="monitoring_balancedness_scores">25.6.1. Monitoring balancedness scores</h4>
+<div class="paragraph">
+<p>Cruise Control metrics include a balancedness score.
+Balancedness is the measure of how evenly a workload is distributed in a Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>The Cruise Control metric for balancedness score (<code>balancedness-score</code>) might differ from the balancedness score in the <code>KafkaRebalance</code> resource.
+Cruise Control calculates each score using <code>anomaly.detection.goals</code> which might not be the same as the <code>default.goals</code> used in the <code>KafkaRebalance</code> resource.
+The <code>anomaly.detection.goals</code> are specified in the <code>spec.cruiseControl.config</code> of the <code>Kafka</code> custom resource.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Refreshing the <code>KafkaRebalance</code> resource fetches an optimization proposal.
+The latest cached optimization proposal is fetched if one of the following conditions applies:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>KafkaRebalance <code>goals</code> match the goals configured in the <code>default.goals</code> section of the <code>Kafka</code> resource</p>
+</li>
+<li>
+<p>KafkaRebalance <code>goals</code> are not specified</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Otherwise, Cruise Control generates a new optimization proposal based on KafkaRebalance <code>goals</code>. If new proposals are generated with each refresh, this can impact performance monitoring.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="setting_up_alerts_for_anomaly_detection">25.6.2. Setting up alerts for anomaly detection</h4>
+<div class="paragraph">
+<p>Cruise control&#8217;s <em>anomaly detector</em> provides metrics data for conditions that block the generation of optimization goals, such as broker failures.
+If you want more visibility, you can use the metrics provided by the anomaly detector to set up alerts and send out notifications.
+You can set up Cruise Control’s <em>anomaly notifier</em> to route alerts based on these metrics through a specified notification channel.
+Alternatively, you can set up Prometheus to scrape the metrics data provided by the anomaly detector and generate alerts.
+Prometheus Alertmanager can then route the alerts generated by Prometheus.</p>
+</div>
+<div class="paragraph">
+<p>The <a href="https://github.com/linkedin/cruise-control/wiki/Configurations" target="_blank" rel="noopener">Cruise Control documentation</a> provides information on <code>AnomalyDetector</code> metrics and the anomaly notifier.</p>
+</div>
 </div>
 </div>
 </div>
