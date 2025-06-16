@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Replaying the Stream: StrimziCon 2025 Recap and Recordings"
-date: 2025-06-12
+date: 2025-06-16
 author: kate_stanley
 ---
 
