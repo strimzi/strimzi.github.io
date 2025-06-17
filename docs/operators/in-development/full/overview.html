@@ -459,7 +459,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#kafka-components_str">3. Strimzi deployment of Kafka</a>
 <ul class="sectlevel2">
-<li><a href="#kafka-concepts-components_str">3.1. Kafka component architecture</a></li>
+<li><a href="#kafka-concepts-node-pools-str">3.1. Node pools</a></li>
+<li><a href="#kafka-concepts-components_str">3.2. Kafka component architecture</a></li>
 </ul>
 </li>
 <li><a href="#kafka-concepts_str">4. About Kafka</a>
@@ -848,13 +849,51 @@ Depending on your use case, you can deploy the additional components as needed.
 These components can also be used with Kafka clusters that are not managed by Strimzi.</p>
 </div>
 <div class="sect2">
-<h3 id="kafka-concepts-components_str">3.1. Kafka component architecture</h3>
+<h3 id="kafka-concepts-node-pools-str">3.1. Node pools</h3>
 <div class="paragraph _abstract">
-<p>A Kafka cluster consists of broker nodes responsible for message delivery and controller nodes that manage cluster metadata and coordinate clusters.
-These roles can be configured using node pools in Strimzi.</p>
+<p>A Kafka cluster consists of nodes assigned KRaft roles.
+These roles can be <em>brokers</em>, responsible for message streaming and storage, or <em>controllers</em>, which manage cluster state and metadata.
+While a node can perform both roles, separating them in production simplifies cluster management.</p>
 </div>
 <div class="paragraph">
-<p>Other Kafka components interact with the Kafka cluster for specific tasks.</p>
+<p>Strimzi manages Kafka nodes using node pools.
+A node pool is a distinct group of Kafka nodes within a cluster.
+You define node pools using the <code>KafkaNodePool</code> custom resource.
+Each node pool has its own configuration, defining aspects such as the role assigned to all its nodes, replica count, and storage settings.
+Node pools are associated with a single Kafka cluster through this configuration.</p>
+</div>
+<div class="paragraph">
+<p>Cluster-wide settings, such as the Kafka version and listener configuration, are defined in the <code>Kafka</code> custom resource.
+Any configuration not defined in node pools is inherited from the cluster configuration in the <code>Kafka</code> resource.</p>
+</div>
+<div class="paragraph">
+<p>The key benefits of using node pools are as follows:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Role separation</dt>
+<dd>
+<p>In production, it is recommended to run a dedicated node pool of three or more controller nodes, separate from broker nodes.
+This separation isolates controllers from broker workloads and allows broker pools to scale independently.</p>
+</dd>
+<dt class="hdlist1">Distinct node pool configurations</dt>
+<dd>
+<p>Not all brokers need to be identical.
+Node pools allow you to define different configurations within the same cluster, such as pools with fast or cost-effective storage to support different workloads.</p>
+</dd>
+<dt class="hdlist1">Simplified operations</dt>
+<dd>
+<p>Node pools simplify cluster operations such as scaling and hardware migration.
+You can scale individual pools, move nodes between pools, or create new pools with updated storage configurations to replace older ones.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="kafka-concepts-components_str">3.2. Kafka component architecture</h3>
+<div class="paragraph _abstract">
+<p>A Kafka cluster consists of broker and controller nodes, which are managed using node pools.
+Other Kafka components interact with the Kafka cluster to support specific tasks.</p>
 </div>
 <div class="paragraph">
 <div class="title">Kafka component interaction</div>
@@ -1594,7 +1633,7 @@ The Prometheus <strong>Alertmanager</strong> plugin handles alerts and routes th
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-06-16 09:55:17 UTC
+Last updated 2025-06-17 15:11:07 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
