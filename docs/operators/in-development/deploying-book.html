@@ -412,8 +412,9 @@
 </li>
 <li><a href="#proc-generating-optimization-proposals-str">21.3. Generating optimization proposals</a></li>
 <li><a href="#proc-approving-optimization-proposal-str">21.4. Approving optimization proposals</a></li>
-<li><a href="#proc-stopping-cluster-rebalance-str">21.5. Stopping rebalances</a></li>
-<li><a href="#proc-fixing-problems-with-kafkarebalance-str">21.6. Troubleshooting and refreshing rebalances</a></li>
+<li><a href="#proc-tracking-cluster-rebalance-str">21.5. Tracking rebalances</a></li>
+<li><a href="#proc-stopping-cluster-rebalance-str">21.6. Stopping rebalances</a></li>
+<li><a href="#proc-fixing-problems-with-kafkarebalance-str">21.7. Troubleshooting and refreshing rebalances</a></li>
 </ul>
 </li>
 <li><a href="#proc-cruise-control-topic-replication-str">22. Using Cruise Control to modify topic replication factor</a></li>
@@ -28063,7 +28064,73 @@ This moves the custom resource to the <code>PendingProposal</code> or <code>Prop
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-stopping-cluster-rebalance-str"><a class="link" href="#proc-stopping-cluster-rebalance-str">21.5. Stopping rebalances</a></h3>
+<h3 id="proc-tracking-cluster-rebalance-str"><a class="link" href="#proc-tracking-cluster-rebalance-str">21.5. Tracking rebalances</a></h3>
+<div class="paragraph">
+<p>You can track the progress of a partition rebalance using status information in the <code>KafkaRebalance</code> resource.
+Tracking an active partition rebalance supports planning of cluster operations, including worker node maintenance, scaling, and broker upgrades.
+Understanding key details, such as duration and the remaining data to transfer, helps with scheduling maintenance windows and assessing the impact of proceeding or canceling the rebalance.</p>
+</div>
+<div class="paragraph">
+<p>When a rebalance is in progress, Strimzi stores progress information in a <code>ConfigMap</code>.
+The <code>ConfigMap</code> is referenced by the <code>status.progress.rebalanceProgressConfigMap</code> property of the <code>KafkaRebalance</code> resource and has the same name as the <code>KafkaRebalance</code> resource.
+The <code>ConfigMap</code> includes the following fields:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>estimatedTimeToCompletionInMinutes</code>: The estimated time it will take in minutes until the partition rebalance is complete.</p>
+</li>
+<li>
+<p><code>completedByteMovementPercentage</code>: The percentage of data movement completed (in bytes), as a rounded down integer from 0-100.</p>
+</li>
+<li>
+<p><code>executorState.json</code>: The “non-verbose” JSON payload from the <a href="https://github.com/linkedin/cruise-control/wiki/REST-APIs#query-the-state-of-cruise-control">/kafkacruisecontrol/state?substates=executor</a> endpoint, providing details about the executor&#8217;s current status, including partition movement progress, concurrency limits, and total data to move.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The information is updated on each reconciliation of the <code>KafkaRebalance</code> resource.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The <code>KafkaRebalance</code> custom resource is in a <code>Rebalancing</code> state.</p>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Procedure</div>
+<ul>
+<li>
+<p>Accessing <code>estimatedTimeToCompletionInMinutes</code> field.:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get configmaps &lt;my_rebalance&gt; -o jsonpath="{['data']['estimatedTimeToCompletionInMinutes']}"</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Accessing <code>completedByteMovementPercentage</code> field.:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get configmaps &lt;my_rebalance&gt; -o jsonpath="{['data']['completedByteMovementPercentage']}"</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Accessing <code>executorState.json</code> field.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get configmaps &lt;my_rebalance&gt; -o jsonpath="{['data']['executorState.json']}"</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-stopping-cluster-rebalance-str"><a class="link" href="#proc-stopping-cluster-rebalance-str">21.6. Stopping rebalances</a></h3>
 <div class="paragraph">
 <p>Once started, a cluster rebalance operation might take some time to complete and affect the overall performance of the Kafka cluster.</p>
 </div>
@@ -28127,7 +28194,7 @@ The performance of the Kafka cluster in the intermediate (stopped) state might b
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-fixing-problems-with-kafkarebalance-str"><a class="link" href="#proc-fixing-problems-with-kafkarebalance-str">21.6. Troubleshooting and refreshing rebalances</a></h3>
+<h3 id="proc-fixing-problems-with-kafkarebalance-str"><a class="link" href="#proc-fixing-problems-with-kafkarebalance-str">21.7. Troubleshooting and refreshing rebalances</a></h3>
 <div class="paragraph _abstract">
 <p>When creating a <code>KafkaRebalance</code> resource or interacting with Cruise Control, errors are reported in the resource status, along with guidance on how to fix them.
 In such cases, the resource transitions to the <code>NotReady</code> state.</p>
