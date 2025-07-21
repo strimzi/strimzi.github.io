@@ -206,7 +206,7 @@
 <li><a href="#proc-dedicated-nodes-str">11.13.5. Setting up dedicated nodes and scheduling pods on them</a></li>
 </ul>
 </li>
-<li><a href="#disable-pod-disruption-budget-generation_str">11.14. Disabling pod disruption budget generation</a></li>
+<li><a href="#disable-pod-disruption-budget-generation_str">11.14. Disabling PodDisruptionBudget generation</a></li>
 <li><a href="#external-logging_str">11.15. Configuring logging levels</a>
 <ul class="sectlevel3">
 <li><a href="#configurable_loggers">11.15.1. Configurable loggers</a></li>
@@ -3317,13 +3317,13 @@ The deployment is successful when the <code>STATUS</code> displays as <code>Runn
 <div class="ulist">
 <ul>
 <li>
-<p>StrimziPodSet for managing the Kafka broker pods.</p>
+<p>StrimziPodSet for managing the Kafka pods.</p>
 </li>
 <li>
 <p>Service account used by the Kafka pods.</p>
 </li>
 <li>
-<p>PodDisruptionBudget configured for the Kafka brokers.</p>
+<p>PodDisruptionBudget that applies to all Kafka cluster node pool pods.</p>
 </li>
 </ul>
 </div>
@@ -9072,9 +9072,11 @@ When not set, the namespace selector in network policies is configured to allow 
 </dd>
 <dt class="hdlist1"><code>STRIMZI_POD_DISRUPTION_BUDGET_GENERATION</code></dt>
 <dd>
-<p>Optional, default <code>true</code>.
-Pod disruption budget for resources.
-A pod disruption budget with the <code>maxUnavailable</code> value set to zero prevents Kubernetes from evicting pods automatically.</p>
+<p>Optional. Default is <code>true</code>.
+Controls automatic creation of <code>PodDisruptionBudget</code> resources for Kafka, Kafka Connect, MirrorMaker2, and Kafka Bridge. Each budget applies across all pods deployed for the associated component. For Kafka clusters, this includes all node pool pods.</p>
+<div class="paragraph">
+<p>A pod disruption budget with the <code>maxUnavailable</code> value set to zero prevents Kubernetes from evicting pods automatically.</p>
+</div>
 <div class="paragraph">
 <p>Set this environment variable to <code>false</code> to disable pod disruption budget generation. You might do this, for example, if you want to manage the pod disruption budgets yourself, or if you have a development environment where availability is not important.</p>
 </div>
@@ -13862,12 +13864,34 @@ spec:
 </div>
 </div>
 <div class="sect2">
-<h3 id="disable-pod-disruption-budget-generation_str"><a class="link" href="#disable-pod-disruption-budget-generation_str">11.14. Disabling pod disruption budget generation</a></h3>
+<h3 id="disable-pod-disruption-budget-generation_str"><a class="link" href="#disable-pod-disruption-budget-generation_str">11.14. Disabling PodDisruptionBudget generation</a></h3>
 <div class="paragraph">
-<p>Strimzi generates pod disruption budget resources for Kafka, Kafka Connect worker, MirrorMaker2 worker, and Kafka Bridge worker nodes.</p>
+<p>Strimzi automatically generates a <code>PodDisruptionBudget</code> resource for each of the following components:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Kafka cluster</p>
+</li>
+<li>
+<p>Kafka Connect</p>
+</li>
+<li>
+<p>MirrorMaker 2</p>
+</li>
+<li>
+<p>Kafka Bridge</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
-<p>If you want to use custom pod disruption budget resources, you can set the <code>STRIMZI_POD_DISRUPTION_BUDGET_GENERATION</code> environment variable to <code>false</code> in the Cluster Operator configuration.
+<p>Each budget applies across all pods deployed for that component.</p>
+</div>
+<div class="paragraph">
+<p>The Kafka cluster&#8217;s <code>PodDisruptionBudget</code> covers all associated node pool pods.</p>
+</div>
+<div class="paragraph">
+<p>To disable automatic <code>PodDisruptionBudget</code> generation, set the <code>STRIMZI_POD_DISRUPTION_BUDGET_GENERATION</code> environment variable to <code>false</code> in the Cluster Operator configuration. You can then define custom <code>PodDisruptionBudget</code> resources if needed.
 For more information, see <a href="#ref-operator-cluster-str">Configuring the Cluster Operator</a>.</p>
 </div>
 </div>
@@ -34156,11 +34180,11 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p>You need to watch the pods that need to be drained.
-You then add a pod annotation to make the update.</p>
+<p>The <code>PodDisruptionBudget</code> resource created for Kafka clusters covers all associated node pool pods.</p>
 </div>
 <div class="paragraph">
-<p>Here, the annotation updates a Kafka pod named <code>my-cluster-pool-a-1</code>.</p>
+<p>Watch the node pool pods that need to be drained and add a pod annotation to make the update.
+Here, the annotation updates a Kafka pod named <code>my-cluster-pool-a-1</code>.</p>
 </div>
 <div class="listingblock">
 <div class="title">Performing a manual rolling update on a Kafka pod</div>
