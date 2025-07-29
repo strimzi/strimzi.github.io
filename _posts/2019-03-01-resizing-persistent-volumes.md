@@ -5,6 +5,11 @@ date: 2019-02-28
 author: jakub_scholz
 ---
 
+_Warning: 
+The instructions in this blog post do not apply to Strimzi version 0.12 and higher.
+Strimzi now supports resizing of persistent volumes directly via the `Kafka` CR or in more recent versions `KafkaNodePool` CR.
+Please refer to the [resizing documentation](https://strimzi.io/docs/operators/latest/deploying#proc-resizing-persistent-volumes-str) for your Strimzi version for the relevant instructions._
+
 Do you know the feeling when you run out of disk space?
 When you want to save some new data to your disk but there is not enough space?
 It has probably happened to most of us at least once in our life.
@@ -266,7 +271,3 @@ The volume with Kafka message logs is now called `/dev/xvdch` and has size of 19
 
 We hope that in one of the future versions of Strimzi we will add support for automatic resizing of persistent volumes through the operator.
 But until then, you can still resize the storage manually using these simple steps and you don't have to delete the whole cluster and create a new one with bigger disks.
-
-_Update (8th July 2019): 
-Strimzi now supports resizing of persistent volumes directly in the Strimzi Cluster Operator.
-Find out more in [this blog post](https://strimzi.io/2019/07/08/persistent-storage-improvements.html)._
