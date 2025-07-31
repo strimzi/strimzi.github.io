@@ -17,7 +17,7 @@ The Queues for Kafka feature allows you to use a Kafka topic like a traditional 
 
 The key difference between share group and regular consumer group is how partitions get assigned to consumer members. With regular consumer groups, each partition is exclusively assigned to a single member of the consumer group. Therefore users typically can have as many consumer members as the number of partitions to maximise the parallelism in message processing. Moreover, due to this, users tend to over partition their topics in order to cope with peak loads that may only happen sometimes. However, share groups balance partitions between all members of a share group, allowing multiple consumer members to fetch from the same partition. So users can have more consumers than the number of partitions, further increasing the parallelism and they do not need to over partition their topics, but can just scale up and down their consumers to cope with the peak loads. When share group members consume from the same partition, each record on that partition is still only read by one consumer in the group.
 
-The share group currently does not provide ordering guarentee as multiple consumers can fetch records from the same partition. And it does not support dead letter queue to handle unprocessable/poison records. However, these may potentially be improved in the future.
+The share group currently does not provide ordering guarantee as multiple consumers can fetch records from the same partition. And it does not support dead letter queue to handle unprocessable/poison records. However, these features may potentially be added in the future.
 
 ### Comparing share and consumer groups with Strimzi
 
@@ -32,7 +32,8 @@ metadata:
   # ...
 spec:
   kafka:
-    # ...
+    version: 4.0.0
+    metadataVersion: 4.0-IV3
     config:
       # ...
       group.coordinator.rebalance.protocols: classic,consumer,share
@@ -165,19 +166,7 @@ The following is an example of the records produced to this topic which is in JS
           "lastOffset": 565,
           "deliveryState": 4,
           "deliveryCount": 1
-        },
-        {
-          "firstOffset": 566,
-          "lastOffset": 569,
-          "deliveryState": 2,
-          "deliveryCount": 1
-        },
-        {
-          "firstOffset": 570,
-          "lastOffset": 570,
-          "deliveryState": 0,
-          "deliveryCount": 1
-        },
+        }
       ]
     }
   }
@@ -197,18 +186,64 @@ Let’s take a look at the following example of a partition that a share group i
 
 ![Delivery state](/assets/images/posts/2025-06-24-kafka-queue-03.png)
 
-In this example, offset 2 is the start offset of the share group consuming from the partition. Records at offset 2 and 4 are currently acquired for the first time, therefore delivery count is incremented to 1. However, the record at offset 3 is in <b>Available</b> state with delivery count of 2, which means a consumer of the share group has attempted to deliver this record twice so far and it  will be retried until the maximum delivery count is reached. The record at offset 5 has been processed successfully and acknowledged and the record at offset 6 is the next available record to be acquired by the share group, therefore it is the end offset for this share partition. 
+In this example, offset 2 is the start offset of the share group consuming from the partition. Records at offset 2 and 4 are currently <b>Acquired</b> (Acqui) for the first time, therefore delivery count is incremented to 1. However, the record at offset 3 is in <b>Available</b> (Avail) state with delivery count of 2, which means a consumer of the share group has attempted to deliver this record twice so far and it will be retried until the maximum delivery count is reached. The record at offset 5 has been processed successfully and <b>Acknowledged</b> (Ack) and the record at offset 6 is the next available record to be acquired by the share group, therefore it is the end offset for this share partition. This is an example of how these states would look like when stored in <code>__share_group_state</code>:
+```json
+{
+  "key": {
+    "version": 0,
+    "data": {
+      "groupId": "random-share-group",
+      "topicId": "random-Topic-Id",
+      "partition": 0
+    }
+  },
+  "value": {
+    "version": 0,
+    "data": {
+      "snapshotEpoch": 2,
+      "stateEpoch": 0,
+      "leaderEpoch": 0,
+      "startOffset": 2,
+      "stateBatches": [
+        {
+          "firstOffset": 3,
+          "lastOffset": 3,
+          "deliveryState": 0,
+          "deliveryCount": 2
+        },
+        {
+          "firstOffset": 5,
+          "lastOffset": 5,
+          "deliveryState": 2,
+          "deliveryCount": 1
+        },
+        {
+          "firstOffset": 6,
+          "lastOffset": 6,
+          "deliveryState": 0,
+          "deliveryCount": 0
+        }
+      ]
+    }
+  }
+}
+```
+Since offset 2 and 4 are currently acquired and being processed by the share group, their states have not been committed to the internal topic yet. The list of acquired records' offsets for a share partition is stored in cache and managed by SharePartitionManager. 
 
 ### KafkaShareConsumer API
 
-Let’s look at the new Java API added for share group consumers. It looks very similar to KafkaConsumer API which makes it easier to use the new API if you are already familiar with it. With the Java API, users can do more fine grained acknowledgements of the records that are consumed and processed. There are 2 different mechanisms to acknowledge records:
+Let’s look at the new KafkaShareConsumer Java API added for share group consumers. It looks very similar to KafkaConsumer API which makes it easier to use the new API if you are already familiar with it. With the KafkaShareConsumer API, users can do more fine grained acknowledgements of the records that are consumed and processed. There are 2 different mechanisms to acknowledge records:
 
 #### <i>Acknowledging records in batches</i>
 
-When acknowledging a batch of records, the implicit acknowledgment is used by calling the <code>poll()</code>. When fetching another batch of records by calling <code>poll()</code>, the batch of records delivered in the previous poll are marked as successfully processed and acknowledged. This is the simplest and the most efficient way to acknowledge records. In the following example, I’ve created a simple share consumer client that implicitly acknowledges batches of records:
+When acknowledging a batch of records, the implicit acknowledgment is used by calling the <code>poll()</code>. In the following example, I’ve created a simple share consumer client that implicitly acknowledges batches of records:
 
 ```java
-   public static void main(final String[] args) {
+public class ShareGroupDemoImplicitAck {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    @SuppressWarnings("InfiniteLoopStatement")
+    public static void main(final String[] args) {
         Properties producerProps = new Properties();
         producerProps.setProperty("bootstrap.servers", "localhost:9092");
         producerProps.setProperty("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
@@ -227,12 +262,12 @@ When acknowledging a batch of records, the implicit acknowledgment is used by ca
 
         while (true) {
             ConsumerRecords<String, String> records = consumer.poll(
-                    Duration.ofMillis(1000));
+                    Duration.ofMillis(1000)); // #1
 
             for (ConsumerRecord<String, String> record : records) {
                 try {
                     processRecord(record);
-                } catch (JsonProcessingException e) {
+                } catch (JsonProcessingException e) { // #2
                     System.out.println("Failed to process the record- Offset: " + record.offset() + " Value: " + record.value());
                 }
             }
@@ -243,17 +278,25 @@ When acknowledging a batch of records, the implicit acknowledgment is used by ca
         JsonNode json = OBJECT_MAPPER.readTree(record.value());
         System.out.println("Processed record with offset " + record.offset() + ": " + json.toPrettyString());
     }
+}
 ```
+#1. When fetching another batch of records by calling <code>poll()</code>, the batch of records delivered in the previous poll are marked as successfully processed and acknowledged. This is the simplest and the most efficient way to acknowledge records.
+
+#2. In this example, no exception is thrown, if it failed to process a record. It just catches the <code>JsonProcessingException</code> and prints a log message. In this case, the record still gets implicitly acknowledged in the next <code>poll</code>.
 
 #### <i>Acknowledging individual records</i>
 
-This allows users to acknowledge an individual record depending on the outcome of the processing of the record. Each record is acknowledged using a call to <code>acknowledge()</code> which takes different types of acknowledgement as an argument: ACCEPT, RELEASE and REJECT.
+This allows users to acknowledge an individual record depending on the outcome of processing the record. Each record is acknowledged using a call to <code>acknowledge()</code> which takes different types of acknowledgement as an argument: ACCEPT, RELEASE and REJECT.
 This aligns with the actions that can be taken by share group consumers mentioned previously.
 
 In the next example, I have used the new consumer configuration added for this feature, <b>share.acknowledgement.mode</b> and set it to "explicit". This configuration is set to "implicit" by default, which is why I didn’t need to set this configuration for the previous example. 
 
 ```java
-public static void main(final String[] args) {
+public class ShareGroupDemoExplicitAck {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    @SuppressWarnings("InfiniteLoopStatement")
+    public static void main(final String[] args) {
         Properties producerProps = new Properties();
         producerProps.setProperty("bootstrap.servers", "localhost:9092");
         producerProps.setProperty("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
@@ -278,31 +321,31 @@ public static void main(final String[] args) {
 
             for (ConsumerRecord<String, String> record : records) {
                 try {
-                    if (record.key() != null && record.key().equals("skip")) {
+                    if (record.key() != null && record.key().equals("skip")) {  // #1 
                         System.out.println("Skipping the record - Offset: " + record.offset() +
                                 " Key: " + record.key() +
                                 " Value: " + record.value() +
                                 " Delivery count: " + record.deliveryCount().get());
 
                         consumer.acknowledge(record, AcknowledgeType.RELEASE);
-                        break;
+                        break; // #2
                     } else {
                         processRecord(record);
                     }
-                } catch (JsonProcessingException e) {
+                } catch (JsonProcessingException e) { 
                     System.out.println("Failed to process the record- Offset: " + record.offset() + " Value: " + record.value());
-                    handlePoisonRecord(record, producer);
+                    handlePoisonRecord(record, producer); // #3
 
-                    consumer.acknowledge(record, AcknowledgeType.REJECT);
-                    break;
+                    consumer.acknowledge(record, AcknowledgeType.REJECT); // #4
+                    break; // #5
                 } catch (Exception e ) {
                     System.out.println("Failed to process the record- Offset: " + record.offset() + " Value: " + record.value());
 
-                    consumer.acknowledge(record, AcknowledgeType.RELEASE);
+                    consumer.acknowledge(record, AcknowledgeType.RELEASE); // #6
                 }
-                consumer.acknowledge(record, AcknowledgeType.ACCEPT);
+                consumer.acknowledge(record, AcknowledgeType.ACCEPT); // #7
             }
-            consumer.commitSync();
+            consumer.commitSync(); // #8
         }
     }
 
@@ -314,16 +357,24 @@ public static void main(final String[] args) {
     private static void handlePoisonRecord(ConsumerRecord<String, String> record, KafkaProducer<String, String> producer) {
         producer.send(new ProducerRecord<>("dead-letter-queue-topic", record.key(), record.value()));
     }
+}
 
 ```
+#1. In this example, the consumer immediately releases a record if its key is set to "skip", just to demonstrate the retry of delivery attempts. The record is fetched again in the next call to <code>poll()</code> and eventually hits the maximum delivery attempts and is transitioned into <b>Archived</b> state because the client never processes it. Once archived, this record is no longer be available for another delivery. 
 
-In this example, the consumer will immediately release a record if its key is set to "skip", just to demonstrate the retry of delivery attempts. The record will be fetched again in the next call to <code>poll()</code> and eventually will hit the maximum delivery attempts and transition into <b>Archived</b> state because the client never processes it. Once archived, this record will no longer be available for another delivery. 
+#2. If record's key is "skip", it exits the loop for processing each record.
 
-Also when a record value cannot be mapped to a valid JSON object, the processing method throws an <code>JsonProcessingException</code> and the client handles it as a poison message. Since dead letter queue is not supported yet, users have to implement this themselves, similar to this example. Once a poison message record is sent to the dead letter queue topic, the consumer client will reject it so that it gets archived immediately. 
+#3. Also when a record value cannot be mapped to a valid JSON object, the processing method throws a <code>JsonProcessingException</code> and the client handles it as a poison record. Since dead letter queue is not supported yet, users have to implement this themselves, similar to this example. 
 
-If the client encountered an error not caused by the JSON mapping, it releases the record for another attempt because it could be a transient failure.
+#4. Once a poison record is sent to the dead letter queue topic, the consumer client rejects it so that it gets archived immediately. 
 
-When no exception occurred during the processing, the consumer client accepts the record. Once all the records in the batch are processed and acknowledged individually, these states are stored locally in the consumer. Then the client has to call <code>commitSync()</code> or <code>commitAsync()</code> to commit the state to the internal topic, <code>__share_group_state</code>. If any of the records in the batch hits an error or skips the processing, the client commits the state at that point. The records in the batch that were not processed or acknowledged yet, will be presented to the consumer client again as part of the same acquisition, therefore their delivery count will not be incremented.
+#5. After rejecting a bad record, it exits the loop for processing each record.
+
+#6. If the client encountered an error not caused by the JSON mapping, it releases the record for another attempt because it could be a transient failure.
+
+#7. When no exception occurred during the processing, the consumer client accepts the record. Once all the records in the batch are processed and acknowledged individually, these states are stored locally in the consumer. 
+
+#8. Then the client has to call <code>commitSync()</code> or <code>commitAsync()</code> to commit the state to the internal topic, <code>__share_group_state</code>. In #2 and #3, it exits the loop for processing each record, and commits the state by calling <code>commitSync()</code>. The records in the batch that were not processed or acknowledged yet, will be presented to the consumer client again as part of the same acquisition, therefore their delivery count will not be incremented.
 
 #### <i>Inspecting __share_group_state topic</i>
 
@@ -531,7 +582,9 @@ After 4 attempts of delivery, the record was still in <b>Available</b> (enum 0) 
 | group.share.partition.max.record.locks | Broker   | 200 | Share group record lock limit per share-partition. |
 | group.share.delivery.count.limit       | Broker   | 5   | The maximum number of delivery attempts for a record delivered to a share group. |
 | group.share.session.timeout.ms         | Broker   | 45000 | The timeout to detect client failures when using the share group protocol. |
-| max.poll.interval.ms                   | Consumer | 300000 | The maximum delay between invocations of poll() when using consumer group management.
-| share.acknowledgement.mode             | Consumer | implicit | Controls the acknowledgement mode for a share consumer. If set to implicit, must not use acknowledge(). Instead, delivery is acknowledged in the next poll call. If set to explicit, must use acknowledge() to acknowledge delivery of records. |
+| fetch.max.bytes                        | Broker   | 57671680 | The maximum number of bytes returned for a fetch request. |
+| max.poll.interval.ms                   | Consumer | 300000 | The maximum delay between invocations of <code>poll()</code> when using consumer group management. |
+| max.poll.records                       | Consumer | 500 | The maximum number of records returned in a single <code>poll()</code>. | 
+| share.acknowledgement.mode             | Consumer | implicit | Controls the acknowledgement mode for a share consumer. If set to implicit, must not use <code>acknowledge()</code>. Instead, delivery is acknowledged in the next <code>poll()</code> call. If set to explicit, must use  <code>acknowledge()</code> to acknowledge delivery of records. 
 
-
+The broker configurations can be set in your Kafka CR like shown in the example above. And the consumer configurations can be set in your client application, like shown in the Java API example.
