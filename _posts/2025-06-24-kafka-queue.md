@@ -23,7 +23,7 @@ The share group does not support exactly-once semantics and does not provide ord
 
 I have set up a single node cluster on my machine using Strimzi’s [Quickstart](https://strimzi.io/quickstarts/) and created a topic called `kafka-queue-topic` with 2 partitions:
 ```sh
-cat << EOF | kubectl create -n kafka -f -
+$ cat << EOF | kubectl create -n kafka -f -
 apiVersion: kafka.strimzi.io/v1beta1
 kind: KafkaTopic
 metadata:
@@ -61,17 +61,30 @@ Using the Kafka command line tools, I will produce some records on the topic and
 
 In this example, I will start with 3 share consumers, all joining the same share group called, `share-group` and then 3 regular consumers, also all joining the same consumer group called, "consumer-group". I will run the following command in different terminal windows with different pod names, e.g.  kafka-share-consumer-0,  kafka-share-consumer-1, kafka-share-consumer-2:
 ```sh
-kubectl -n kafka run kafka-share-consumer-0 -ti --image=quay.io/strimzi/kafka:0.46.0-kafka-4.0.0 --rm=true --restart=Never -- bin/kafka-console-share-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic kafka-queue-topic --group share-group --property print.offset=true --property print.partition=true
+$ kubectl -n kafka run kafka-share-consumer-0 -ti --image=quay.io/strimzi/kafka:0.46.0-kafka-4.0.0 --rm=true --restart=Never \
+-- bin/kafka-console-share-consumer.sh \
+--bootstrap-server my-cluster-kafka-bootstrap:9092 \
+--topic kafka-queue-topic \
+--group share-group \
+--property print.offset=true \
+--property print.partition=true
 ```
 
 I will do the same for the regular consumers with pod names, kafka-consumer-0, kafka-consumer-1 and kafka-consumer-3:
 ```sh
-kubectl -n kafka run kafka-consumer-0 -ti --image=quay.io/strimzi/kafka:0.46.0-kafka-4.0.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic kafka-queue-topic --group consumer-group --consumer-property group.protocol=consumer --property print.offset=true --property print.partition=true
+$ kubectl -n kafka run kafka-consumer-0 -ti --image=quay.io/strimzi/kafka:0.46.0-kafka-4.0.0 --rm=true --restart=Never \
+-- bin/kafka-console-consumer.sh \
+--bootstrap-server my-cluster-kafka-bootstrap:9092 \
+--topic kafka-queue-topic \
+--group consumer-group \
+--consumer-property group.protocol=consumer \
+--property print.offset=true \
+--property print.partition=true
 ```
 
 We can check the pods we have started using the following command:
 ```sh
-kubectl get po -n kafka                                                                               
+$ kubectl get po -n kafka                                                                               
 NAME                                          READY   STATUS    RESTARTS   AGE
 kafka-consumer-0                              1/1     Running   0          2m24s
 kafka-consumer-1                              1/1     Running   0          2m28s
@@ -86,7 +99,13 @@ strimzi-cluster-operator-5dd46b9985-dp2wt     1/1     Running   0          10m
 
 And then random records will be produced to the topic using the `kafka-producer-perf-rest.sh` tool. 
 ```sh
-kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.47.0-kafka-4.0.0 --rm=true --restart=Never -- bin/kafka-producer-perf-test.sh --producer-props bootstrap.servers=my-cluster-kafka-bootstrap:9092 --topic my-queue-topic --num-records 10000 --record-size 10 --throughput -1 
+$ kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.47.0-kafka-4.0.0 --rm=true --restart=Never \
+-- bin/kafka-producer-perf-test.sh \
+--producer-props bootstrap.servers=my-cluster-kafka-bootstrap:9092 \
+--topic kafka-queue-topic \
+--num-records 10000 \
+--record-size 10 \
+--throughput -1 
 ```
 
 The following screenshot of the terminal windows shows that all 3 share consumers are receiving the records from both partitions:
@@ -95,16 +114,25 @@ The following screenshot of the terminal windows shows that all 3 share consumer
 
 The new command line tool, `kafka-share-groups.sh` can be used to describe share groups and their members. The following shows the topic partitions that the share group is subscribed to and their start offsets:
 ```sh
-kubectl -n kafka run kafka-tool -ti --image=quay.io/strimzi/kafka:0.47.0-kafka-4.0.0 --rm=true --restart=Never -- bin/kafka-share-groups.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --describe --group share-group
+$ kubectl -n kafka run kafka-tool -ti --image=quay.io/strimzi/kafka:0.47.0-kafka-4.0.0 --rm=true --restart=Never \
+-- bin/kafka-share-groups.sh \
+--bootstrap-server my-cluster-kafka-bootstrap:9092 \
+--describe \
+--group share-group
 
 GROUP           TOPIC             PARTITION  START-OFFSET
 share-group     kafka-queue-topic 0          7903
 share-group     kafka-queue-topic 1          13097
 ```
 
-With `--members` flag, you can get check the share group members and their assignments. As you can see, all the share consumers are assigned to the same partitions and therefore fetch records in parallel:
+With the `--members` flag, you can check the share group members and their assignments. As you can see, all the share consumers are assigned to the same partitions and therefore fetch records in parallel:
 ```sh
-kubectl -n kafka run kafka-tool -ti --image=quay.io/strimzi/kafka:0.47.0-kafka-4.0.0 --rm=true --restart=Never -- bin/kafka-share-groups.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --describe --group share-group --members
+$ kubectl -n kafka run kafka-tool -ti --image=quay.io/strimzi/kafka:0.47.0-kafka-4.0.0 --rm=true --restart=Never \
+-- bin/kafka-share-groups.sh \
+--bootstrap-server my-cluster-kafka-bootstrap:9092 \
+--describe \
+--group share-group \
+--members
 
 GROUP           CONSUMER-ID            HOST            CLIENT-ID              ASSIGNMENT
 share-group     bSURQb3NTfSDGXQmgRrEeQ /10.244.0.131   console-share-consumer kafka-queue-topic:0,kafka-queue-topic:1
@@ -119,7 +147,24 @@ Now let’s look at the regular consumer group (note that I am using the new con
 Only kafka-consumer-1 and kafka-consumer-2 are actively fetching from one partition each but kafka-consumer-0 is idle, not fetching records. Let’s describe this consumer group:
 
 ```sh
-kubectl -n kafka run kafka-tool -ti --image=quay.io/strimzi/kafka:0.47.0-kafka-4.0.0 --rm=true --restart=Never -- bin/kafka-consumer-groups.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --describe --group consumer-group
+
+$ kubectl -n kafka run kafka-tool -ti --image=quay.io/strimzi/kafka:0.47.0-kafka-4.0.0 --rm=true --restart=Never \
+-- bin/kafka-consumer-groups.sh \
+--bootstrap-server my-cluster-kafka-bootstrap:9092 \
+--describe \
+--group consumer-group \
+--members
+
+GROUP           CONSUMER-ID            HOST            CLIENT-ID        PARTITIONS     
+consumer-group  i1lwoDQfSTOrPBZuoueWzQ /10.244.0.134   console-consumer 0               
+consumer-group  CowB2m5kR5WDz_jIIoEDQw /10.244.0.135   console-consumer 1               
+consumer-group  fzNIbX2kTk-Lmxb5SUh-HA /10.244.0.136   console-consumer 1   
+
+$ kubectl -n kafka run kafka-tool -ti --image=quay.io/strimzi/kafka:0.47.0-kafka-4.0.0 --rm=true --restart=Never \
+-- bin/kafka-consumer-groups.sh \
+--bootstrap-server my-cluster-kafka-bootstrap:9092 \
+--describe \
+--group consumer-group
 
 GROUP           TOPIC             PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID            HOST            CLIENT-ID
 consumer-group  kafka-queue-topic 1          13097           13097           0               CowB2m5kR5WDz_jIIoEDQw /10.244.0.135   console-consumer
@@ -127,14 +172,6 @@ consumer-group  kafka-queue-topic 0          7903            7903            0  
 ```
 
 There are 3 members in this group, but only 2 of them are assigned to a partition each exclusively as the topic has only 2 partitions:
-```sh
-kubectl -n kafka run kafka-tool -ti --image=quay.io/strimzi/kafka:0.47.0-kafka-4.0.0 --rm=true --restart=Never -- bin/kafka-consumer-groups.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --describe --group consumer-group --members
-
-GROUP           CONSUMER-ID            HOST            CLIENT-ID        PARTITIONS     
-consumer-group  i1lwoDQfSTOrPBZuoueWzQ /10.244.0.134   console-consumer 0               
-consumer-group  CowB2m5kR5WDz_jIIoEDQw /10.244.0.135   console-consumer 1               
-consumer-group  fzNIbX2kTk-Lmxb5SUh-HA /10.244.0.136   console-consumer 1   
-```
 
 ### Partition Assignments
 
@@ -170,9 +207,9 @@ The record will go into <b>Acknowledged</b> state if it has been successfully pr
 
 The share group persists state management for subscribed partitions, by storing it in an internal topic called, `__share_group_state`. This topic stores state of share groups including the partitions they are subscribed to and the state of those partitions such as the Share Partition Start Offset (SPSO) and the Share Partition End Offset (SPEO) as well as the delivery state and delivery count of the records on the partitions. As SPSO and SPEO naturally move forward as records get processed, the records before the SPSO move into <b>Archived</b>. The <b>Archived</b> state represents a record that is removed from the queue.
 
-Typically users would not need to know inside of this internal topic, but for the purpose of this blog, we can show a record produced to this topic. If you would like to inspect this topic yourself, you can do it using the console consumer tool:
+Normally users would not need to look at the internal topic, but for the purpose of this blog, we can check the records in this topic using the console consumer tool:
 ```sh
-kubectl -n kafka run share-group-state -ti --image=quay.io/strimzi/kafka:0.46.0-kafka-4.0.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic __share_group_state --from-beginning  --formatter=org.apache.kafka.tools.consumer.group.share.ShareGroupStateMessageFormatter
+$ kubectl -n kafka run share-group-state -ti --image=quay.io/strimzi/kafka:0.46.0-kafka-4.0.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic __share_group_state --from-beginning  --formatter=org.apache.kafka.tools.consumer.group.share.ShareGroupStateMessageFormatter
 ```
 
 The following is an example of the records produced to this topic which is in JSON format:
@@ -251,14 +288,15 @@ public class ShareGroupDemoImplicitAck {
         consumerProps.setProperty("bootstrap.servers", "localhost:9092");
         // join the share group
         consumerProps.setProperty("group.id", "my-share-group");
+        consumerProps.setProperty("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        consumerProps.setProperty("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
 
         KafkaShareConsumer<String, String> consumer = new KafkaShareConsumer<>(consumerProps);
 
         consumer.subscribe(List.of("kafka-queue-topic"));
 
         while (true) {
-            ConsumerRecords<String, String> records = consumer.poll(
-                    Duration.ofMillis(1000)); // #1
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000)); // #1
 
             for (ConsumerRecord<String, String> record : records) {
                 try {
@@ -278,14 +316,13 @@ public class ShareGroupDemoImplicitAck {
 ```
 #1. When fetching another batch of records by calling `poll()`, the batch of records delivered in the previous poll are marked as successfully processed and acknowledged. This is the simplest and the most efficient way to acknowledge records.
 
-#2. In this example, no exception is thrown, if it failed to process a record. It just catches the `JsonProcessingException` and prints a log message. In this case, the record still gets implicitly acknowledged in the next `poll`.
+#2. In this example, no exception is thrown if it fails to process a record. It just catches the `JsonProcessingException` and prints a log message. In this case, the record still gets implicitly acknowledged in the next `poll()`.
 
 #### <i>Acknowledging individual records</i>
 
-This allows users to acknowledge an individual record depending on the outcome of processing the record. Each record is acknowledged using a call to `acknowledge()` which takes different types of acknowledgement as an argument: ACCEPT, RELEASE and REJECT.
-This aligns with the actions that can be taken by share group consumers mentioned previously.
+This allows users to acknowledge an individual record depending on the outcome of processing the record. Each record is acknowledged using a call to `acknowledge()` which takes different types of acknowledgement as an argument: ACCEPT, RELEASE and REJECT. This aligns with the actions that can be taken by share group consumers mentioned previously.
 
-In the next example, I have used the new consumer configuration added for this feature, <b>share.acknowledgement.mode</b> and set it to `explicit`. This configuration is set to `implicit` by default, which is why I didn’t need to set this configuration for the previous example. 
+I’ve created another share consumer client that explicitly acknowledges batches of records:
 
 ```java
 public class ShareGroupDemoExplicitAck {
@@ -303,38 +340,39 @@ public class ShareGroupDemoExplicitAck {
         consumerProps.setProperty("bootstrap.servers", "localhost:9092");
         // join the share group
         consumerProps.setProperty("group.id", "my-share-group");
-        consumerProps.setProperty("share.acknowledgement.mode", "explicit");
+        consumerProps.setProperty("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        consumerProps.setProperty("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        consumerProps.setProperty("share.acknowledgement.mode", "explicit"); // #1
 
         KafkaShareConsumer<String, String> consumer = new KafkaShareConsumer<>(consumerProps);
 
         consumer.subscribe(List.of("kafka-queue-topic"));
 
         while (true) {
-            ConsumerRecords<String, String> records = consumer.poll(
-                    Duration.ofMillis(1000));
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
 
             for (ConsumerRecord<String, String> record : records) {
-                if (record.key() != null && "skip".equals(record.key())) {  // #1 
+                if (record.key() != null && "skip".equals(record.key())) {  // #2 
                     System.out.println("Skipping the record - Offset: " + record.offset() +
                             " Key: " + record.key() +
                             " Value: " + record.value() +
                             " Delivery count: " + record.deliveryCount().get());
                     consumer.acknowledge(record, AcknowledgeType.RELEASE);
-                    break; // #2
+                    break; // #3
                 } else {
                     try {
                         processRecord(record);
                     } catch (JsonProcessingException e) {
                         System.out.println("Failed to process the record- Offset: " + record.offset() + " Value: " + record.value());
-                        handlePoisonRecord(record, producer); // #3
-                        consumer.acknowledge(record, AcknowledgeType.REJECT);  // #4
+                        handlePoisonRecord(record, producer); // #4
+                        consumer.acknowledge(record, AcknowledgeType.REJECT);  // #5
                     } catch (Exception e ) {
                         System.out.println("Failed to process the record- Offset: " + record.offset() + " Value: " + record.value());
-                        consumer.acknowledge(record, AcknowledgeType.RELEASE); // #5
+                        consumer.acknowledge(record, AcknowledgeType.RELEASE); // #6
                     }
                 }
                 
-                consumer.acknowledge(record, AcknowledgeType.ACCEPT); // #6
+                consumer.acknowledge(record, AcknowledgeType.ACCEPT); // #7
             }
             consumer.commitSync(); // #7
         }
@@ -351,36 +389,113 @@ public class ShareGroupDemoExplicitAck {
 }
 
 ```
-#1. In this example, the consumer immediately releases a record if its key is set to `skip`, just to demonstrate the retry of delivery attempts. The record is fetched again in the next call to `poll()` and eventually hits the maximum delivery attempts and is transitioned into <b>Archived</b> state because the client never processes it. Once archived, this record is no longer be available for another delivery. 
 
-#2. If record's key is `skip`, it exits the loop for demonstration purpose of the delivery retry.
+#1. In this example, I have used the new consumer configuration added for this feature, `share.acknowledgement.mode` and set it to `explicit`. This configuration is set to `implicit` by default, which is why I didn’t need to set this configuration for the previous example. 
 
-#3. Also when a record value cannot be mapped to a valid JSON object, the processing method throws a `JsonProcessingException` and the client handles it as a poison record. Since dead letter queue is not supported yet, users have to implement this themselves, similar to this example. 
+#2. The consumer immediately releases a record if its key is set to `skip`, just to demonstrate the retry of delivery attempts. The record is fetched again in the next call to `poll()` and eventually hits the maximum delivery attempts. Then it is transitioned into <b>Archived</b> state because the client never processes it. Once archived, this record is no longer available for another delivery. 
 
-#4. Once a poison record is sent to the dead letter queue topic, the consumer client rejects it so that it gets archived immediately. 
+#3. If the record's key is `skip`, it exits the loop so that we demonstrate the delivery retry and what happens if some records are not acknowledged during the poll. 
 
-#5. If the client encountered an error not caused by the JSON mapping, it releases the record for another attempt because it could be a transient failure.
+#4. Also when a record value cannot be mapped to a valid JSON object, the processing method throws a `JsonProcessingException` and the client handles it as a poison record. Since the dead letter queue is not supported yet, users have to implement this themselves. In this example, we send the records that cannot be processed to another topic `dead-letter-queue-topic`. 
 
-#6. When no exception occurred during the processing, the consumer client accepts the record. Once all the records in the batch are processed and acknowledged individually, these states are stored locally in the consumer. 
+#5. Once a poison record is sent to the dead letter queue topic, the consumer client rejects it so that it gets archived immediately. 
 
-#7. Then the client has to call `commitSync()` or `commitAsync()` to commit the state to the internal topic, `__share_group_state`. In #2, it exits the loop for processing each record, and commits the state by calling `commitSync()`. The records in the batch that were not processed or acknowledged yet, will be presented to the consumer client again as part of the same acquisition, therefore their delivery count will not be incremented.
+#6. If the client encounters an error not caused by the JSON mapping, it releases the record for another attempt because it could be a transient failure.
+
+#7. When no exception occurred during the processing, the consumer client accepts the record. Once all the records in the batch are processed and acknowledged individually, these states are stored locally in the consumer. 
+
+#8. Then the client has to call `commitSync()` or `commitAsync()` to commit the state to the internal topic, `__share_group_state`. In #2, it exits the loop for processing each record, and commits the state by calling `commitSync()`. The records in the batch that were not processed or acknowledged yet, will be presented to the consumer client again as part of the same acquisition, therefore their delivery count will not be incremented. Also note that share groups also do not support auto-commit.
+
+Here is an example of a client application using [KafkaProducer](https://kafka.apache.org/40/javadoc/org/apache/kafka/clients/producer/KafkaProducer) to send records in valid and invalid format to `kafka-queue-topic` used for this demonstration:
+
+```java
+public class ShareGroupDemoProducer {
+    public static void main(final String[] args) throws InterruptedException, ExecutionException {
+        Properties props = new Properties();
+        props.setProperty("bootstrap.servers", "localhost:9092");
+        props.setProperty("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.setProperty("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+
+        KafkaProducer<String, String> producer = new KafkaProducer<>(props);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Shutdown hook triggered. Cleaning up...");
+            producer.close();
+        }));
+
+        int recordNum = 1;
+        while (true) {
+            String recordKey = null;
+            String recordValue;
+            if (recordNum % 10 == 0) {
+                // Send every 10th record with in not processable format
+                recordValue = "Poison message: this record is not in JSON format (recordNumber: " + recordNum + ")";
+            } else if(recordNum % 5 == 0) {
+                // Send every 5th record with key "skip"
+                recordKey = "skip";
+                recordValue = "Record to skip processing";
+            } else {
+                recordValue = "{ \"isJson\": \"true\", \"recordNumber\": " + recordNum + ", \"recordValue\": \"This is test message\" }";
+            }
+
+            ProducerRecord record = new ProducerRecord<>("kafka-queue-topic", recordKey, recordValue);
+            RecordMetadata metadata = (RecordMetadata) producer.send(record).get();
+            System.out.println("Produced record at offset " + metadata.offset() + ": " + record.value());
+            recordNum++;
+            Thread.sleep(Long.valueOf(2000));
+        }
+    }
+}
+```
 
 #### <i>Inspecting __share_group_state topic</i>
 
-Let’s now take a look at the outcome out of this client:
-
-![KafkaShareConsumer API example](/assets/images/posts/2025-06-24-kafka-queue-06.png)
+Let’s now take a look at the output from `ShareGroupDemoExplicitAck` while running `ShareGroupDemoProducer` at the same time:
+```sh
+Failed to process the record- Offset: 361 Value: Poison message: this record is not in JSON format (recordNumber: 10)
+Processed record with offset 362: {
+  "isJson" : "true",
+  "recordNumber" : 11,
+  "recordValue" : "This is test message"
+}
+Processed record with offset 363: {
+  "isJson" : "true",
+  "recordNumber" : 12,
+  "recordValue" : "This is test message"
+}
+Processed record with offset 364: {
+  "isJson" : "true",
+  "recordNumber" : 13,
+  "recordValue" : "This is test message"
+}
+Processed record with offset 365: {
+  "isJson" : "true",
+  "recordNumber" : 14,
+  "recordValue" : "This is test message"
+}
+Skipping the record - Offset: 366 Key: skip Value: Record to skip processing Delivery count: 1
+Skipping the record - Offset: 366 Key: skip Value: Record to skip processing Delivery count: 2
+Skipping the record - Offset: 366 Key: skip Value: Record to skip processing Delivery count: 3
+Skipping the record - Offset: 366 Key: skip Value: Record to skip processing Delivery count: 4
+Skipping the record - Offset: 366 Key: skip Value: Record to skip processing Delivery count: 5
+Processed record with offset 367: {
+  "isJson" : "true",
+  "recordNumber" : 16,
+  "recordValue" : "This is test message"
+}
+```
 
 The record at offset 361 was rejected because it hit an error mapping the record value into JSON therefore is considered a poison message. 
 The records at offset 362, 363, 364 and 365 were successfully processed and therefore accepted.
-The record at offset 366 was however released without getting processed therefore it was retried 5 times before getting archived.
+The record at offset 366 was however released without getting processed therefore it was retried 5 times before getting archived and no longer being retried. The consumer then continued to the next record at offset 367.
 
-Let’s inspect the state of these records from the internal topic, __share_group_state just to understand the different states a record went into:
+Let’s inspect the state of these records from the internal topic, __share_group_state just to understand the different states the records transitioned through:
 
 ```sh
-$kubectl -n kafka run consumer -ti --image=quay.io/strimzi/kafka:0.46.0-kafka-4.0.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh 
---bootstrap-server my-cluster-kafka-bootstrap:9092 
---topic __share_group_state 
+$ kubectl -n kafka run consumer -ti --image=quay.io/strimzi/kafka:0.46.0-kafka-4.0.0 --rm=true --restart=Never \
+-- bin/kafka-console-consumer.sh \
+--bootstrap-server my-cluster-kafka-bootstrap:9092 \
+--topic __share_group_state \
 --formatter=org.apache.kafka.tools.consumer.group.share.ShareGroupStateMessageFormatter
 ```
 ```json
@@ -579,6 +694,10 @@ After 4 attempts of delivery, the record was still in <b>Available</b> (enum 0) 
 
 The broker configurations can be set in your Kafka CR like shown in the example above. And the consumer configurations can be set in your client application, like shown in the Java API example.
 
+### The current limitations of the feature
+
+This feature is currently not recommended for production clusters as of Apache Kafka 4.0.0 but can be tried out with a test cluster as demonstrated above. If you are trying out this feature on your existing development/test cluster, note that you will not be able to upgrade to Apache Kafka 4.1 or later. You would have to disable this feature first and delete the state topic, in order to upgrade to a later version.
+
 ### Summary 
 
-This blog post explored how to configure Apache Kafka cluster managed by Strimzi to behave like a traditional queue. It introduced the concept of share groups, which enables queue-like consumptions of records, and compares them to regular consumer groups, highlighting their benefits. Through hands-on examples, it demonstrated how to consume and acknowledge records using the new KafkaShareConsumer API to achieve queue-style processing.
+This blog post explored how to configure a Kafka cluster managed by Strimzi to behave like a traditional queue. It introduced the concept of share groups, which enables queue-like consumptions of records, and compares them to regular consumer groups, highlighting their benefits. Through hands-on examples, it demonstrated how to consume and acknowledge records using the new KafkaShareConsumer API to achieve queue-style processing.
