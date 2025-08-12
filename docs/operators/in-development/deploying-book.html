@@ -261,6 +261,7 @@
 <li><a href="#assembly-using-the-user-operator-str">13. Using the User Operator to manage Kafka users</a>
 <ul class="sectlevel2">
 <li><a href="#proc-configuring-kafka-user-str">13.1. Configuring Kafka users</a></li>
+<li><a href="#con-ignoring-some-users-in-user-operator-str">13.2. Ignoring specific users</a></li>
 </ul>
 </li>
 <li><a href="#assembly-access-operator-str">14. Using the Access Operator to manage client connections</a>
@@ -5625,7 +5626,9 @@ spec:
             - name: STRIMZI_KAFKA_ADMIN_CLIENT_CONFIGURATION <b class="conum">(19)</b>
               value: |
                 default.api.timeout.ms=120000
-                request.timeout.ms=60000</code></pre>
+                request.timeout.ms=60000
+            - name: STRIMZI_IGNORED_USERS_PATTERN <b class="conum">(20)</b>
+              value: "^ANONYMOUS$"</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -5705,6 +5708,10 @@ The default is <code>true</code>.</p>
 </li>
 <li>
 <p>(Optional) Configuration options for configuring the Kafka Admin client used by the User Operator in the properties format.</p>
+</li>
+<li>
+<p>(Optional) Regular expression to configure users for which any existing ACLs, Quotas and SCRAM-SHa credentials will be ignored.
+This option is useful when you want to configure the User Operator to ignore users that are managed through another mechanism.</p>
 </li>
 </ol>
 </div>
@@ -16493,6 +16500,82 @@ status:
 </ol>
 </div>
 </div>
+<div class="sect2">
+<h3 id="con-ignoring-some-users-in-user-operator-str"><a class="link" href="#con-ignoring-some-users-in-user-operator-str">13.2. Ignoring specific users</a></h3>
+<div class="paragraph">
+<p>In some scenarios, you might want to exclude certain users from being managed by the User Operator.
+This is useful for the following types of users:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Special built-in users (for example, <code>ANONYMOUS</code> or <code>*</code>)</p>
+</li>
+<li>
+<p>Internal users managed by other mechanisms</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>When you exclude users from being managed, the User Operator ignores their:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>ACLs</p>
+</li>
+<li>
+<p>Quotas</p>
+</li>
+<li>
+<p>SCRAM-SHA credentials</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>To define which users should be ignored, set the <code>STRIMZI_IGNORED_USERS_PATTERN</code> environment variable with a regular expression.
+For example, to ignore <code>ANONYMOUS</code> or <code>*</code> users, set it to <code>^\*|ANONYMOUS$</code>.
+You can set the environment variable in your <code>Kafka</code> custom resource (<code>.spec.teplate.entityOperator.userOperatorContainer.env</code>) or in the <code>Deployment</code> resource of your standalone User Operator.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example <code>Kafka</code> configuration excluding users</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  # ...
+spec:
+  #...
+  entityOperator:
+    template:
+      userOperatorContainer:
+        env:
+          - name: STRIMZI_IGNORED_USERS_PATTERN
+            value: "^\\*|ANONYMOUS$" # Double \ needed for escaping
+  #...</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example standalone <code>Deployment</code> configuration excluding users</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # ...
+spec:
+  # ...
+  template:
+    spec:
+      containers:
+        - name: strimzi-user-operator
+          # ...
+          env:
+            # ...
+            - name: STRIMZI_IGNORED_USERS_PATTERN
+              value: "^\\*|ANONYMOUS$" # Double \ needed for escaping</code></pre>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -19121,12 +19204,6 @@ spec:
 <p>Specifies the operations, such as <code>Describe</code>, <code>Read</code>, that the user is allowed to perform on the resource.</p>
 </li>
 </ol>
-</div>
-<div class="paragraph">
-<p>The User Operator manages ACLs for standard Kafka users but cannot define rules for special usernames such as <code>User:ANONYMOUS</code> or <code>User:*</code>.
-These users are ignored because their names are not valid Kubernetes resource names.
-You can manually configure ACL rules for these usernames using tools like <code>kafka-acls.sh</code>.
-When these manual configurations are present in Kafka, the User Operator logs a message for information but does not delete them.</p>
 </div>
 <div class="paragraph">
 <p>For more information about the <code>AclRule</code> object and the properties used to configure ACLs, see the <a href="./configuring.html#type-AclRule-reference" target="_blank" rel="noopener"><code>AclRule</code> schema reference</a>.</p>
