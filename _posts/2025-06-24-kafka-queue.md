@@ -1,15 +1,15 @@
 ---
 layout: post
-title:  "Using Queues for Kafka with Strimzi"
+title:  "Using Queues for Apache Kafka with Strimzi"
 date: 2025-06-24
 author: tina_selenge
 ---
 
-The Queues for Kafka feature was introduced by [KIP-932](https://cwiki.apache.org/confluence/display/KAFKA/KIP-932%3A+Queues+for+Kafka#KIP932:QueuesforKafka) and is in early access in Apache Kafka version 4.0 which is supported by Strimzi 0.46. In this blog, I’m going to introduce this feature and show how you can try it out with your Strimzi managed cluster. 
+The Queues for Kafka feature was introduced by [KIP-932](https://cwiki.apache.org/confluence/display/KAFKA/KIP-932%3A+Queues+for+Kafka#KIP932:QueuesforKafka) and is in early access in Apache Kafka version 4.0 which is supported from Strimzi 0.46. In this blog, I’m going to introduce this feature and show how you can try it out with your Strimzi managed cluster. 
 
 This feature is only supported with Kafka clusters running in KRaft mode, since Zookeeper was removed in the Apache Kafka 4.0 release. It is also based on the new consumer rebalance protocol introduced by [KIP-848](https://cwiki.apache.org/confluence/display/KAFKA/KIP-848%3A+The+Next+Generation+of+the+Consumer+Rebalance+Protocol) that enhances stability, scalability and performance. 
 
-Traditional message queues and Kafka topics are significantly different in terms of design and use cases. A queue allows a group of consumers to read and process records in parallel to distribute the workload. It does not typically provide a strong ordering guarantee as records in a queue are consumed and processed independently. However it does provide exactly-once guarantee as each record is only read once and is deleted from the queue. States of individual records are usually tracked and acknowledged after being processed successfully to avoid prematurely removing records off the queue or to handle unprocessable records. This also means that records in a queue are not replayable, therefore a queue can only be consumed by a single group of consumers.
+Traditional message queues and Kafka topics are significantly different in terms of design and use cases. A queue allows a group of consumers to read and process records in parallel to distribute the workload. It does not provide a strong ordering guarantee as records in a queue are consumed and processed independently. However it typically provides exactly-once guarantee as each record is only read once and is deleted from the queue. States of individual records are usually tracked and acknowledged after being processed successfully to avoid prematurely removing records off the queue or to handle unprocessable records. This also means that records in a queue are not replayable, therefore a queue can only be consumed by a single group of consumers.
 
 On the other hand, a Kafka topic can be consumed by multiple consumer groups as it is an immutable log and reading of records does not result in removal. However, workload distribution cannot be achieved alone with consumers. A topic has to be partitioned in order to spread the workload across a consumer group. It also provides an ordering mechanism by using record keys.
 
@@ -21,21 +21,7 @@ The share group does not support exactly-once semantics and does not provide ord
 
 ### Comparing share and consumer groups with Strimzi
 
-I have set up a single node cluster on my machine using Strimzi’s [Quickstart](https://strimzi.io/quickstarts/) and created a topic called `kafka-queue-topic` with 2 partitions:
-```sh
-$ cat << EOF | kubectl create -n kafka -f -
-apiVersion: kafka.strimzi.io/v1beta1
-kind: KafkaTopic
-metadata:
-  name: kafka-queue-topic
-  labels:
-    strimzi.io/cluster: "my-cluster"
-spec:
-  partitions: 2
-  replicas: 1
-EOF
-```
-
+I have set up a single node cluster on my machine using Strimzi’s [Quickstart](https://strimzi.io/quickstarts/).
 Since this feature is still in early access, as of Apache Kafka 4.0.0, you need to explicitly enable it by setting the following:
 
 ```yaml
@@ -57,11 +43,26 @@ spec:
 ```
 Since I'm running a single node cluster, `share.coordinator.state.topic.replication.factor` also had to be set to 1. We will cover more about this topic later.
 
+Then I created a topic called `kafka-queue-topic` with 2 partitions:
+```sh
+$ cat << EOF | kubectl create -n kafka -f -
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaTopic
+metadata:
+  name: kafka-queue-topic
+  labels:
+    strimzi.io/cluster: "my-cluster"
+spec:
+  partitions: 2
+  replicas: 1
+EOF
+```
+
 Using the Kafka command line tools, I will produce some records on the topic and consume those records using both consumer and share groups and show how they behave differently. 
 
 In this example, I will start with 3 share consumers, all joining the same share group called, `share-group` and then 3 regular consumers, also all joining the same consumer group called, "consumer-group". I will run the following command in different terminal windows with different pod names, e.g.  kafka-share-consumer-0,  kafka-share-consumer-1, kafka-share-consumer-2:
 ```sh
-$ kubectl -n kafka run kafka-share-consumer-0 -ti --image=quay.io/strimzi/kafka:0.46.0-kafka-4.0.0 --rm=true --restart=Never \
+$ kubectl -n kafka run kafka-share-consumer-0 -ti --image=quay.io/strimzi/kafka:0.47.0-kafka-4.0.0 --rm=true --restart=Never \
 -- bin/kafka-console-share-consumer.sh \
 --bootstrap-server my-cluster-kafka-bootstrap:9092 \
 --topic kafka-queue-topic \
@@ -72,7 +73,7 @@ $ kubectl -n kafka run kafka-share-consumer-0 -ti --image=quay.io/strimzi/kafka:
 
 I will do the same for the regular consumers with pod names, kafka-consumer-0, kafka-consumer-1 and kafka-consumer-3:
 ```sh
-$ kubectl -n kafka run kafka-consumer-0 -ti --image=quay.io/strimzi/kafka:0.46.0-kafka-4.0.0 --rm=true --restart=Never \
+$ kubectl -n kafka run kafka-consumer-0 -ti --image=quay.io/strimzi/kafka:0.47.0-kafka-4.0.0 --rm=true --restart=Never \
 -- bin/kafka-console-consumer.sh \
 --bootstrap-server my-cluster-kafka-bootstrap:9092 \
 --topic kafka-queue-topic \
@@ -209,7 +210,7 @@ The share group persists state management for subscribed partitions, by storing 
 
 Normally users would not need to look at the internal topic, but for the purpose of this blog, we can check the records in this topic using the console consumer tool:
 ```sh
-$ kubectl -n kafka run share-group-state -ti --image=quay.io/strimzi/kafka:0.46.0-kafka-4.0.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic __share_group_state --from-beginning  --formatter=org.apache.kafka.tools.consumer.group.share.ShareGroupStateMessageFormatter
+$ kubectl -n kafka run share-group-state -ti --image=quay.io/strimzi/kafka:0.47.0-kafka-4.0.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic __share_group_state --from-beginning  --formatter=org.apache.kafka.tools.consumer.group.share.ShareGroupStateMessageFormatter
 ```
 
 The following is an example of the records produced to this topic which is in JSON format:
@@ -492,7 +493,7 @@ The record at offset 366 was however released without getting processed therefor
 Let’s inspect the state of these records from the internal topic, __share_group_state just to understand the different states the records transitioned through:
 
 ```sh
-$ kubectl -n kafka run consumer -ti --image=quay.io/strimzi/kafka:0.46.0-kafka-4.0.0 --rm=true --restart=Never \
+$ kubectl -n kafka run consumer -ti --image=quay.io/strimzi/kafka:0.47.0-kafka-4.0.0 --rm=true --restart=Never \
 -- bin/kafka-console-consumer.sh \
 --bootstrap-server my-cluster-kafka-bootstrap:9092 \
 --topic __share_group_state \
