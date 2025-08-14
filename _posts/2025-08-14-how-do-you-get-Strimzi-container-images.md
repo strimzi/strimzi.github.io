@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "How do you get Strimzi container images?"
-date: 2025-08-12
+date: 2025-08-14
 author: jakub_scholz
 ---
 
