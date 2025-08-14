@@ -115,7 +115,11 @@
 <li><a href="#feature_gate_releases">10.1. Feature gate releases</a></li>
 <li><a href="#graduated_feature_gates_ga">10.2. Graduated feature gates (GA)</a></li>
 <li><a href="#stable_feature_gates_beta">10.3. Stable feature gates (Beta)</a></li>
-<li><a href="#early_access_feature_gates_alpha">10.4. Early access feature gates (Alpha)</a></li>
+<li><a href="#early_access_feature_gates_alpha">10.4. Early access feature gates (Alpha)</a>
+<ul class="sectlevel3">
+<li><a href="#ref-operator-server-side-apply-phase-1-feature-gate-str">10.4.1. <code>ServerSideApplyPhase1</code> feature gate</a></li>
+</ul>
+</li>
 <li><a href="#enabling_feature_gates">10.5. Enabling feature gates</a></li>
 </ul>
 </li>
@@ -5999,6 +6003,12 @@ The following table shows the maturity of the feature gates introduced across St
 <td class="tableblock halign-left valign-top"><p class="tableblock">0.44</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">0.46</p></td>
 </tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ServerSideApplyPhase1</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.48</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.51 (planned)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0.54 (planned)</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -6022,6 +6032,52 @@ Currently, there are no beta level feature gates.</p>
 <p>Early access feature gates have not yet reached the beta stage, and are disabled by default.
 An early access feature gate provides an opportunity for assessment before its functionality is permanently incorporated into Strimzi.
 Currently, there are no alpha level feature gates.</p>
+</div>
+<div class="sect3">
+<h4 id="ref-operator-server-side-apply-phase-1-feature-gate-str"><a class="link" href="#ref-operator-server-side-apply-phase-1-feature-gate-str">10.4.1. <code>ServerSideApplyPhase1</code> feature gate</a></h4>
+<div class="paragraph">
+<p>The <code>ServerSideApplyPhase1</code> feature gate has a default state of <em>disabled</em>.</p>
+</div>
+<div class="paragraph">
+<p>When enabled, the Cluster Operator uses Server-Side Apply (SSA) for creating and updating certain resources.
+SSA is a Kubernetes feature that provides better tracking of field ownership and more controlled resource updates.
+In Phase 1, Server-Side Apply is used for the following resources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>PersistentVolumeClaim</code></p>
+</li>
+<li>
+<p><code>ConfigMap</code></p>
+</li>
+<li>
+<p><code>Ingress</code></p>
+</li>
+<li>
+<p><code>ServiceAccount</code></p>
+</li>
+<li>
+<p><code>Service</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>All other resources continue to be reconciled using the existing mechanism - client-side apply.
+If users change the fields of operator-managed resources, the operator reverts these changes.</p>
+</div>
+<div class="paragraph">
+<p>With SSA, the Cluster Operator modifies only the fields it manages.
+User changes to the other fields are preserved as long as they don&#8217;t conflict.
+On the first update attempt, the Cluster Operator sets <code>force = false</code> when applying changes, respecting user changes.
+If a conflict occurs in a managed field, the update is retried with <code>force = true</code>.
+The conflict and the switch to forced apply are logged by the Cluster Operator.</p>
+</div>
+<div class="paragraph">
+<p>Ownership of individual fields is tracked through the <code>.metadata.managedFields</code> property of the resource being updated.
+.Enabling the <code>ServerSideApplyPhase1</code> feature gate
+To enable the <code>ServerSideApplyPhase1</code> feature gate, specify <code>+ServerSideApplyPhase1</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.</p>
+</div>
 </div>
 </div>
 <div class="sect2">
