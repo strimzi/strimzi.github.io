@@ -13397,7 +13397,14 @@ spec:
           value: "http://otlp-host:4317"
   # Tracing configuration (optional)
   tracing:
-    type: opentelemetry # <b class="conum">(16)</b></code></pre>
+    type: opentelemetry # <b class="conum">(16)</b>
+  # Metrics configuration (optional)
+  metricsConfig:
+    type: jmxPrometheusExporter # <b class="conum">(17)</b>
+    valueFrom:
+      configMapKeyRef:
+        name: kafka-metrics
+        key: kafka-metrics-config.yml</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -13451,6 +13458,9 @@ For details on configuring authentication, see the <a href="./configuring.html#t
 </li>
 <li>
 <p>Distributed tracing is enabled by using OpenTelemetry.</p>
+</li>
+<li>
+<p>Prometheus metrics enabled. In this example, metrics are configured for the Prometheus JMX Exporter.</p>
 </li>
 </ol>
 </div>
@@ -30367,18 +30377,20 @@ For further support, refer to the Prometheus and Grafana developer communities.
 ├── strimzi-metrics-reporter
 |    ├── grafana-dashboards <b class="conum">(10)</b>
 |    |  ├── strimzi-kafka.json
+|    |  ├── strimzi-kafka-bridge.json
 |    |  ├── strimzi-kafka-connect.json
 |    |  ├── strimzi-kafka-mirror-maker-2.json
 |    |  ├── strimzi-kraft.json
-│    ├── kafka-connect-metrics.yaml <b class="conum">(11)</b>
-│    ├── kafka-metrics.yaml <b class="conum">(12)</b>
-|    └── kafka-mirror-maker-2-metrics.yaml <b class="conum">(13)</b>
-├── kafka-bridge-metrics.yaml <b class="conum">(14)</b>
-├── kafka-connect-metrics.yaml <b class="conum">(15)</b>
-├── kafka-cruise-control-metrics.yaml <b class="conum">(16)</b>
-├── kafka-metrics.yaml <b class="conum">(17)</b>
-├── kafka-mirror-maker-2-metrics.yaml <b class="conum">(18)</b>
-└── oauth-metrics.yaml <b class="conum">(19)</b></code></pre>
+│    ├── kafka-bridge-metrics.yaml <b class="conum">(11)</b>
+│    ├── kafka-connect-metrics.yaml <b class="conum">(12)</b>
+│    ├── kafka-metrics.yaml <b class="conum">(13)</b>
+|    └── kafka-mirror-maker-2-metrics.yaml <b class="conum">(14)</b>
+├── kafka-bridge-metrics.yaml <b class="conum">(15)</b>
+├── kafka-connect-metrics.yaml <b class="conum">(16)</b>
+├── kafka-cruise-control-metrics.yaml <b class="conum">(17)</b>
+├── kafka-metrics.yaml <b class="conum">(18)</b>
+├── kafka-mirror-maker-2-metrics.yaml <b class="conum">(19)</b>
+└── oauth-metrics.yaml <b class="conum">(20)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -30414,16 +30426,19 @@ For further support, refer to the Prometheus and Grafana developer communities.
 <p>Grafana dashboards for components using the Strimzi Metrics Reporter.</p>
 </li>
 <li>
-<p><code>KafkaConnect</code> resource for deploying Kafka Connect with Strimzi Metrics Reporter.</p>
+<p><code>KafkaBridge</code> resource for deploying Kafka Bridge with Strimzi Metrics Reporter.</p>
 </li>
 <li>
-<p><code>KafkaMirrorMaker2</code> resource for deploying MirrorMaker 2 with Strimzi Metrics Reporter.</p>
+<p><code>KafkaConnect</code> resource for deploying Kafka Connect with Strimzi Metrics Reporter.</p>
 </li>
 <li>
 <p><code>Kafka</code> resource for deploying Kafka with Strimzi Metrics Reporter.</p>
 </li>
 <li>
-<p>Kafka Bridge resource with metrics enabled.</p>
+<p><code>KafkaMirrorMaker2</code> resource for deploying MirrorMaker 2 with Strimzi Metrics Reporter.</p>
+</li>
+<li>
+<p>Metrics configuration that defines Prometheus JMX Exporter relabeling rules for Kafka Bridge.</p>
 </li>
 <li>
 <p>Metrics configuration that defines Prometheus JMX Exporter relabeling rules for Kafka Connect.</p>
@@ -30547,6 +30562,11 @@ For example, the value of a label may be derived from the name of a Kafka server
 <td class="tableblock halign-left valign-top"><p class="tableblock">Kafka MirrorMaker2</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaMirrorMaker2</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>kafka-mirror-maker-2metrics.yaml</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka Bridge</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaBridge</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>kafka-bridge-metrics.yaml</code></p></td>
 </tr>
 </tbody>
 </table>
@@ -30749,7 +30769,10 @@ The exposed metrics provide the monitoring data when you <a href="#proc-metrics-
 <p>Kafka Connect</p>
 </li>
 <li>
-<p>MirrorMaker</p>
+<p>Kafka MirrorMaker 2</p>
+</li>
+<li>
+<p>Kafka Bridge</p>
 </li>
 <li>
 <p>Cruise Control</p>
@@ -30765,9 +30788,6 @@ Prometheus scrapes this endpoint to collect Kafka metrics.</p>
 </div>
 <div class="ulist">
 <ul>
-<li>
-<p>Kafka Bridge</p>
-</li>
 <li>
 <p>OAuth 2.0</p>
 <div class="ulist">
@@ -30883,26 +30903,6 @@ data:
 </ol>
 </div>
 <div class="paragraph">
-<div class="title">Enabling metrics for Kafka Bridge</div>
-<p>To expose metrics for Kafka Bridge, set the <code>enableMetrics</code> property to <code>true</code> in the <code>KafkaBridge</code> resource.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example metrics configuration for Kafka Bridge</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaBridge
-metadata:
-  name: my-bridge
-spec:
-  # ...
-  bootstrapServers: my-cluster-kafka:9092
-  http:
-    # ...
-  enableMetrics: true
-  # ...</code></pre>
-</div>
-</div>
-<div class="paragraph">
 <div class="title">Enabling metrics for OAuth 2.0</div>
 <p>To expose metrics for OAuth 2.0, set the <code>enableMetrics</code> property to <code>true</code> in the appropriate custom resource.</p>
 </div>
@@ -30988,6 +30988,9 @@ To continue using the Open Policy Agent authorizer, use the <code>type: custom</
 <p>Kafka</p>
 </li>
 <li>
+<p>Kafka Bridge</p>
+</li>
+<li>
 <p>Kafka Connect</p>
 </li>
 <li>
@@ -31012,6 +31015,9 @@ Prometheus scrapes this endpoint to collect Kafka metrics.</p>
 </li>
 <li>
 <p><code>kafka-mirror-maker-2-metrics.yaml</code></p>
+</li>
+<li>
+<p><code>kafka-bridge-metrics.yaml</code></p>
 </li>
 </ul>
 </div>
