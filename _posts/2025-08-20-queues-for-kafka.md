@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Using Queues for Apache Kafka with Strimzi"
-date: 2025-06-24
+date: 2025-08-20
 author: tina_selenge
 ---
 
@@ -120,7 +120,7 @@ $ kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.47.0-k
 
 The following screenshot of the terminal windows shows that all 3 share consumers received the records from both partitions:
 
-![Share group](/assets/images/posts/2025-06-24-kafka-queue-04.png)
+![Share group](/assets/images/posts/2025-08-20-queues-for-kafka-04.png)
 This showed how dynamic the partition assignment of share group is. While kafka-share-consumer-1 consumed from partition 1 and kafka-share-consumer-2 consumed from partition 0, kafka-share-consumer-0 consumed from both partitions.
 
 The new command line tool, `kafka-share-groups.sh` can be used to describe share groups and their members. The following shows the topic partitions that the share group is subscribed to and their start offsets:
@@ -153,7 +153,7 @@ share-group     cvg5pnSlQ-qzlxocNkTplg /10.244.0.132   console-share-consumer ka
 
 Now let’s look at the regular consumer group. 
 
-![Consumer group](/assets/images/posts/2025-06-24-kafka-queue-05.png)
+![Consumer group](/assets/images/posts/2025-08-20-queues-for-kafka-05.png)
 
 Only kafka-consumer-1 and kafka-consumer-2 actively fetched from one partition each, but kafka-consumer-0 was idle and did not fetch any records. Let’s describe this consumer group:
 
@@ -186,7 +186,7 @@ This group had three members, but only two were assigned partitions because the 
 
 ### Partition Assignments
 
-![Partition Assignments](/assets/images/posts/2025-06-24-kafka-queue-01.png)
+![Partition Assignments](/assets/images/posts/2025-08-20-queues-for-kafka-01.png)
 
 Partitions are assigned to members of a share group in round robin fashion while trying to maintain even balance in the assignment. Assignments in a share group are dynamic, when a consumer leaves or joins or when a partition is added, all the partitions are rebalanced across the members. As long as a consumer member continues to call the `poll()`, it stays in the group and continues to receive records from its assigned partitions. Similar to a regular consumer group, members of a share group also send periodic heartbeats in the background to the share group coordinator. If a member doesn’t send a heartbeat request within the <b>group.share.session.timeout.ms</b>, it is considered inactive and partitions are reassigned to other members. If it is sending heartbeat requests to the broker, but it does not call the `poll()` within <b>max.poll.interval.ms</b>, then it leaves the group and the partitions are reassigned as well.
 
@@ -207,7 +207,7 @@ While a share consumer processes records in batches, locking is applied per reco
 
 ### Delivery State
 
-![Delivery state](/assets/images/posts/2025-06-24-kafka-queue-02.png)
+![Delivery state](/assets/images/posts/2025-08-20-queues-for-kafka-02.png)
 
 The delivery count for each record is tracked and gets incremented every time a consumer acquires the record. There is a limit on the number of times a record can be retried to avoid getting stuck trying to deliver an unprocessable record indefinitely. This limit also can be reconfigured with broker configuration, <b>group.share.delivery.count.limit</b> with default value of 5.
 
@@ -278,7 +278,7 @@ Subscribed partition states are stored in batches, as records are consumed and a
 
 Let’s take a look at an example of a partition that a share group is subscribed to, which is called <b>Share Partition</b>:
 
-![Delivery state](/assets/images/posts/2025-06-24-kafka-queue-03.png)
+![Delivery state](/assets/images/posts/2025-08-20-queues-for-kafka-03.png)
 
 In this example, offset 2 is the start offset of the share group consuming from the partition. Records at offset 2 and 4 are currently <b>Acquired</b> for the first time, therefore delivery count is incremented to 1. However, the record at offset 3 is in an <b>Available</b> state with a delivery count of 2, which means a consumer of the share group has attempted to deliver this record twice so far and it will be retried until the maximum delivery count is reached. The record at offset 5 has been processed successfully and <b>Acknowledged</b> and the record at offset 6 is the next available record to be acquired by the share group, therefore it is the end offset for this share partition.
 
