@@ -15,7 +15,7 @@ On the other hand, a Kafka topic can be consumed by multiple consumer groups as 
 
 The Queues for Kafka feature combines the strengths of traditional message queues and Kafka topics. It lets you use a Kafka topic similar to a traditional queue, increasing message processing parallelism beyond the number of partitions. Queue-like semantics are provided through a new consumer group type called a **share group**, which enables traditional queue use cases while giving fine-grained control over message acknowledgment and retries.
 
-The key difference between a share group and a regular consumer group is how partitions get assigned to consumer members. With regular consumer groups, each partition is exclusively assigned to a single member of the consumer group. Users can typically can have as many consumer members as the number of partitions to maximize the parallelism in message processing. Moreover, due to this, users tend to over-partition their topics in order to cope with peak loads that may only happen sometimes. However, share groups balance partitions between all members of a share group, allowing multiple consumer members to fetch from the same partition. So users can have more consumers than the number of partitions, further increasing the parallelism and they do not need to over-partition their topics, but can just scale up and down their consumers to cope with the peak loads. When share group members consume from the same partition, each record on that partition is still only read by one consumer in the group.
+The key difference between a share group and a regular consumer group is how partitions get assigned to consumer members. With regular consumer groups, each partition is exclusively assigned to a single member of the consumer group. Users can typically have as many consumer members as the number of partitions to maximize the parallelism in message processing. Moreover, due to this, users tend to over-partition their topics in order to cope with peak loads that may only happen sometimes. However, share groups balance partitions between all members of a share group, allowing multiple consumer members to fetch from the same partition. So users can have more consumers than the number of partitions, further increasing the parallelism and they do not need to over-partition their topics, but can just scale up and down their consumers to cope with the peak loads. When share group members consume from the same partition, each record on that partition is still only read by one consumer in the group.
 
 The share group does not support exactly-once semantics and does not provide ordering guarantee as multiple consumers can fetch records from the same partition. However, these features may potentially be added in the future. The dead letter queue based on [Dead Letter Channel](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DeadLetterChannel.html) pattern is currently not supported either but there is already an open [KIP](https://cwiki.apache.org/confluence/display/KAFKA/KIP-1191%3A+Dead-letter+queues+for+share+groups) for it.
 
@@ -45,7 +45,7 @@ spec:
 ```
 The `group.coordinator.rebalance.protocols` configuration is for the list of enabled rebalance protocols. By default, it is set to `classic,consumer` therefore I set this to include `share`. 
 
-The `unstable.api.versions.enable` configuration is technically internal configuration that should not be used in production. It allows enabling early access features for development and testing purpose. 
+The `unstable.api.versions.enable` configuration is technically an internal configuration that should not be used in production. It enables early access features for development and testing purposes. 
 
 Since I'm running a single node cluster, I also set `share.coordinator.state.topic.replication.factor` to 1. I'll cover more on this topic later.
 
@@ -90,7 +90,7 @@ $ kubectl -n kafka run kafka-consumer-0 -ti --image=quay.io/strimzi/kafka:0.47.0
 --property print.offset=true \
 --property print.partition=true
 ```
-Note that I used the new consumer group protocol, not the classic which is the default group protocol when the configuration is not set. The share groups are based on new consumer group protocol, therefore does not need this configuration.
+Note that I used the new consumer group protocol, not the classic which is the default group protocol when the configuration is not set. The share groups are based on the new consumer group protocol, therefore does not need this configuration.
 
 I checked the pods started using the following command:
 ```sh
@@ -121,7 +121,7 @@ $ kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.47.0-k
 The following screenshot of the terminal windows shows that all 3 share consumers received the records from both partitions:
 
 ![Share group](/assets/images/posts/2025-08-20-queues-for-kafka-04.png)
-This showed how dynamic the partition assignment of share group is. While kafka-share-consumer-1 consumed from partition 1 and kafka-share-consumer-2 consumed from partition 0, kafka-share-consumer-0 consumed from both partitions.
+This showed how dynamic partition assignment of the share group is. While kafka-share-consumer-1 consumed from partition 1 and kafka-share-consumer-2 consumed from partition 0, kafka-share-consumer-0 consumed from both partitions.
 
 The new command line tool, `kafka-share-groups.sh` can be used to describe share groups and their members. The following shows the topic partitions that the share group is subscribed to and their start offsets:
 ```sh
@@ -194,7 +194,7 @@ Partitions are assigned to members of a share group in round robin fashion while
 
 When a consumer in a share group fetches records, it acquires a batch of records with a time-limited acquisition. Batch size is controlled by the existing fetch configurations such as <b>max.poll.records</b> and <b>fetch.max.bytes</b>. While the records are acquired, they are not available for other consumers. The lock is automatically released if a record is not processed and acknowledged before the timeout and the record becomes available again for another delivery attempt. This makes sure delivery progresses even when a consumer fails to process a record. The lock duration can be configured with the <b>group.share.record.lock.duration.ms</b> broker configuration, which is set to 30s by default.
 
-The number of records acquired from a partition by one share group is also limited. Once this limit is reached, fetching of records from the share group temporarily pauses until the number of acquired records reduces. The limit can be configured with the broker configuration, <b>group.share.partition.max.record.locks</b> which is set to 200 by default.
+The number of records acquired from a partition by one share group is also limited. Once this limit is reached, fetching of records from the share group temporarily pauses until the number of acquired records reduces. The limit can be configured with the broker configuration, <b>group.share.partition.max.record.locks</b> which is set to 200 by default (but was changed to 2000 in Apache Kafka 4.1).
 
 Records transition through different states when being fetched depending on the actions taken by consumers of a share group. Consumers can:
 - Acknowledge once the record is successfully processed
@@ -284,7 +284,7 @@ In this example, offset 2 is the start offset of the share group consuming from 
 
 ### KafkaShareConsumer API
 
-Let’s look at the new [`KafkaShareConsumer`](https://kafka.apache.org/40/javadoc/org/apache/kafka/clients/consumer/KafkaShareConsumer.html) Java API added for share group consumers. It looks very similar to `KafkaConsumer` API which makes it easier to use the new API if you are already familiar with it. With the `KafkaShareConsumer` API, users can do more fine-grained acknowledgements of the records that are consumed and processed. There are 2 different mechanisms to acknowledge records:
+Let’s look at the new [`KafkaShareConsumer`](https://kafka.apache.org/40/javadoc/org/apache/kafka/clients/consumer/KafkaShareConsumer.html) Java API added for share group consumers. It looks very similar to the `KafkaConsumer` API which makes it easier to use the new API if you are already familiar with it. With the `KafkaShareConsumer` API, users can do more fine-grained acknowledgements of the records that are consumed and processed. There are 2 different mechanisms to acknowledge records:
 
 #### <i>Acknowledging records in batches</i>
 
@@ -686,25 +686,35 @@ The record at offset 366 was in the <b>Available</b> (enum 0) state after the fi
 
 After 4 attempts of delivery, the record was still in the <b>Available</b> (enum 0) state but after the 5th attempt, it went into the <b>Archived</b> (enum 4) state, which is why it was not retried again. 
 
-### Broker and share configurations
+### Configurations
 
-<i>Summary of the configurations mentioned in this blog:</i>
+<i>The broker configurations mentioned in this blog:</i>
 
-| Configuration | Type | Default | Description |
-| :--: |:-------------| :-------------| :-------------|
-| group.coordinator.rebalance.protocols  | Broker   | classic,consumer | It must be set to `classic,consumer,share` to enable the share group. |
-| unstable.api.versions.enable           | Broker   | false | It should be set to true, in order to use this feature until it is in preview or production ready .|
-| share.coordinator.state.topic.replication.factor | Broker | 3 | Replication factor for the share-group state topic. Setting this greater than the cluster size will result in failure to create the topic and share group consumers will not work. |
-| group.share.record.lock.duration.ms    | Broker   | 30s | The record acquisition lock duration in milliseconds for share groups. |
-| group.share.partition.max.record.locks | Broker   | 200 | Share group record lock limit per share-partition. (This is changed to 2000 from the Apache Kafka 4.1.0.)|
-| group.share.delivery.count.limit       | Broker   | 5   | The maximum number of delivery attempts for a record delivered to a share group. |
-| group.share.session.timeout.ms         | Broker   | 45000 | The timeout to detect client failures when using the share group protocol. |
-| fetch.max.bytes                        | Broker   | 57671680 | The maximum number of bytes returned for a fetch request. |
-| max.poll.interval.ms                   | Consumer | 300000 | The maximum delay between invocations of `poll()` when using consumer group management. |
-| max.poll.records                       | Consumer | 500 | The maximum number of records returned in a single `poll()`. | 
-| share.acknowledgement.mode             | Consumer | implicit | Controls the acknowledgement mode for a share consumer. If set to implicit, must not use `acknowledge()`. Instead, delivery is acknowledged in the next `poll()` call. If set to explicit, must use  `acknowledge()` to acknowledge delivery of records. 
+- [group.coordinator.rebalance.protocols](https://kafka.apache.org/documentation/#brokerconfigs_group.coordinator.rebalance.protocols) 
 
-The broker configurations can be set in your Kafka CR, as shown in the example above. And the consumer configurations can be set in your client application, as shown in the Java API example.
+- [share.coordinator.state.topic.replication.factor](https://kafka.apache.org/documentation/#brokerconfigs_share.coordinator.state.topic.replication.factor)
+
+- [group.share.record.lock.duration.ms](https://kafka.apache.org/documentation/#brokerconfigs_group.share.record.lock.duration.ms)
+
+- [group.share.partition.max.record.locks](https://kafka.apache.org/documentation/#brokerconfigs_group.share.partition.max.record.locks)
+
+- [group.share.delivery.count.limit](https://kafka.apache.org/documentation/#brokerconfigs_group.share.delivery.count.limit)
+
+- [group.share.session.timeout.ms](https://kafka.apache.org/documentation/#brokerconfigs_group.share.session.timeout.ms)
+
+These can be set in your Kafka CR, as shown in the example above.
+
+<i>The consumer configurations mentioned in this blog:</i>
+
+- [fetch.max.bytes](https://kafka.apache.org/documentation/#consumerconfigs_fetch.max.bytes)
+
+- [max.poll.interval.ms](https://kafka.apache.org/documentation/#consumerconfigs_max.poll.interval.ms)
+
+- [max.poll.records](https://kafka.apache.org/documentation/#consumerconfigs_max.poll.records)
+
+- [share.acknowledgement.mode](https://kafka.apache.org/documentation/#consumerconfigs_share.acknowledgement.mode)
+
+These can be set in your client application as demonstrated in the Java API example.
 
 ### The current limitations of the feature
 
