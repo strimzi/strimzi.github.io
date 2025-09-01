@@ -13,7 +13,7 @@
 </li>
 <li><a href="#assembly-operators-str">1.2. Strimzi operators</a>
 <ul class="sectlevel3">
-<li><a href="#con-operators-namespaces-str">1.2.1. Watching Strimzi resources in Kubernetes namespaces</a></li>
+<li><a href="#con-operators-namespaces-str">1.2.1. Operator-watched Kafka resources</a></li>
 <li><a href="#ref-operator-cluster-rbac-resources-str">1.2.2. Managing RBAC resources</a></li>
 <li><a href="#con-pod-management-str">1.2.3. Managing pod resources</a></li>
 </ul>
@@ -46,7 +46,13 @@
 <li><a href="#deploy-tasks-prereqs_str">6. Preparing for your deployment</a>
 <ul class="sectlevel2">
 <li><a href="#deploy-prereqs-str">6.1. Deployment prerequisites</a></li>
-<li><a href="#con-deploy-operator-best-practices-str">6.2. Operator deployment best practices</a></li>
+<li><a href="#con-deploy-operator-best-practices-str">6.2. Planning your Cluster Operator deployment</a>
+<ul class="sectlevel3">
+<li><a href="#avoiding_deployment_conflicts">6.2.1. Avoiding deployment conflicts</a></li>
+<li><a href="#choosing_namespace_watch_options">6.2.2. Choosing namespace watch options</a></li>
+<li><a href="#isolating_components_in_watched_namespaces">6.2.3. Isolating components in watched namespaces</a></li>
+</ul>
+</li>
 <li><a href="#container-images-str">6.3. Pushing container images to your own registry</a></li>
 <li><a href="#adding-users-the-strimzi-admin-role-str">6.4. Designating Strimzi administrators</a></li>
 </ul>
@@ -55,15 +61,14 @@
 <ul class="sectlevel2">
 <li><a href="#cluster-operator-str">7.1. Deploying the Cluster Operator</a>
 <ul class="sectlevel3">
-<li><a href="#con-cluster-operator-watch-options-str">7.1.1. Specifying the namespaces the Cluster Operator watches</a></li>
-<li><a href="#deploying-cluster-operator-str">7.1.2. Deploying the Cluster Operator to watch a single namespace</a></li>
-<li><a href="#deploying-cluster-operator-to-watch-multiple-namespaces-str">7.1.3. Deploying the Cluster Operator to watch multiple namespaces</a></li>
-<li><a href="#deploying-cluster-operator-to-watch-whole-cluster-str">7.1.4. Deploying the Cluster Operator to watch all namespaces</a></li>
+<li><a href="#deploying-cluster-operator-str">7.1.1. Deploying the Cluster Operator to watch a single namespace</a></li>
+<li><a href="#deploying-cluster-operator-to-watch-multiple-namespaces-str">7.1.2. Deploying the Cluster Operator to watch multiple namespaces</a></li>
+<li><a href="#deploying-cluster-operator-to-watch-whole-cluster-str">7.1.3. Deploying the Cluster Operator to watch all namespaces</a></li>
 </ul>
 </li>
 <li><a href="#kafka-cluster-str">7.2. Deploying Kafka</a>
 <ul class="sectlevel3">
-<li><a href="#deploying-kafka-cluster-kraft-str">7.2.1. Deploying a Kafka cluster in KRaft mode</a></li>
+<li><a href="#deploying-kafka-cluster-kraft-str">7.2.1. Deploying a Kafka cluster</a></li>
 <li><a href="#deploying-the-topic-operator-using-the-cluster-operator-str">7.2.2. Deploying the Topic Operator using the Cluster Operator</a></li>
 <li><a href="#deploying-the-user-operator-using-the-cluster-operator-str">7.2.3. Deploying the User Operator using the Cluster Operator</a></li>
 <li><a href="#ref-list-of-kafka-cluster-resources-str">7.2.4. List of Kafka cluster resources</a></li>
@@ -1320,6 +1325,32 @@ The Kafka bootstrap addresses listed in the status do not signify that those end
 The operators continuously monitor Strimzi custom resources (like <code>Kafka</code>, <code>KafkaTopic</code>, and <code>KafkaUser</code>) and reconcile the state of Kafka components to match their configuration.</p>
 </div>
 <div class="paragraph">
+<p>This reconciliation process involves three main operations:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Creation</dt>
+<dd>
+<p>When you create a Strimzi custom resource, the responsible operator detects it and takes the necessary actions to create the component.
+This might involve creating Kubernetes resources, such as <code>Deployment</code>, <code>Pod</code>, <code>Service</code>, and <code>ConfigMap</code>, or configuring items inside the Kafka cluster itself, such as topics and users.</p>
+</dd>
+<dt class="hdlist1">Update</dt>
+<dd>
+<p>Each time you update a custom resource, the operator detects the change and applies a corresponding update if the changes are valid.
+This could trigger a rolling update of pods or reconfigure a resource within Kafka.
+Rolling updates maintain the availability of the Kafka cluster, but can lead to service disruption in the Kafka clients.</p>
+</dd>
+<dt class="hdlist1">Deletion</dt>
+<dd>
+<p>When you delete a custom resource, the operator detects the deletion and acts to remove the component.
+Most dependent resources are deleted automatically by Kubernetes garbage collection.
+The exact behavior depends on the resource type.
+For a Kafka cluster, PVCs are retained by default to prevent data loss.
+For a Kafka topic, the topic is fully deleted from the Apache Kafka cluster.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
 <p>Strimzi provides the following operators, each responsible for different aspects of a Kafka deployment:</p>
 </div>
 <div class="dlist">
@@ -1375,47 +1406,82 @@ The Topic Operator and User Operator can also be deployed standalone (without th
 </table>
 </div>
 <div class="sect3">
-<h4 id="con-operators-namespaces-str"><a class="link" href="#con-operators-namespaces-str">1.2.1. Watching Strimzi resources in Kubernetes namespaces</a></h4>
+<h4 id="con-operators-namespaces-str"><a class="link" href="#con-operators-namespaces-str">1.2.1. Operator-watched Kafka resources</a></h4>
 <div class="paragraph _abstract">
-<p>Operators watch and manage Strimzi resources in Kubernetes namespaces.
-The Cluster Operator can watch a single namespace, multiple namespaces, or all namespaces in a Kubernetes cluster.
-The Topic Operator and User Operator can watch a single namespace.
-The Access Operator can watch a single namespace or all namespaces in a Kubernetes cluster.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>The Cluster Operator watches for <code>Kafka</code> resources</p>
-</li>
-<li>
-<p>The Topic Operator watches for <code>KafkaTopic</code> resources</p>
-</li>
-<li>
-<p>The User Operator watches for <code>KafkaUser</code> resources</p>
-</li>
-<li>
-<p>The Access Operator watches for <code>KafkaAccess</code> resources.</p>
-</li>
-</ul>
+<p>Operators watch and manage Kafka resources within defined Kubernetes namespaces.
+The namespace scope of where each operator can watch these resources differs.</p>
 </div>
 <div class="paragraph">
-<p>The Topic Operator and the User Operator can only watch a single Kafka cluster in a namespace.
+<p>You can choose the namespace scope for the Cluster Operator.
+The Topic Operator and the User Operator can only watch a single Kafka cluster in a namespace.
 And they can only be connected to a single Kafka cluster.</p>
 </div>
-<div class="paragraph">
-<p>If multiple Topic Operators watch the same namespace, name collisions and topic deletion can occur.
-This is because each Kafka cluster uses Kafka topics that have the same name (such as <code>__consumer_offsets</code>).
-Make sure that only one Topic Operator watches a given namespace.</p>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+While the operator can be configured to watch multiple namespaces, each watched namespace should contain only one instance of a specific component type, such as one Kafka cluster, to avoid conflicts.
+</td>
+</tr>
+</table>
 </div>
-<div class="paragraph">
-<p>When using multiple User Operators with a single namespace, a user with a given username can exist in more than one Kafka cluster.</p>
-</div>
-<div class="paragraph">
-<p>If you deploy the Topic Operator and User Operator using the Cluster Operator, they watch the Kafka cluster deployed by the Cluster Operator by default.
-You can also specify a namespace using <code>watchedNamespace</code> in the operator configuration.</p>
-</div>
-<div class="paragraph">
-<p>For a standalone deployment of each operator, you specify a namespace and connection to the Kafka cluster to watch in the configuration.</p>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 3. Operator resource and scope</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 40%;">
+<col style="width: 30%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Operator</th>
+<th class="tableblock halign-left valign-top">Watched resources</th>
+<th class="tableblock halign-left valign-top">Namespace scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Cluster Operator</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Kafka<br>
+KafkaNodePool<br>
+KafkaConnect<br>
+KafkaConnector<br>
+KafkaMirrorMaker2<br>
+KafkaBridge<br>
+KafkaRebalance<br></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Single, multiple, or all</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Topic Operator</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaTopic</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Single namespace (one Kafka cluster only)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>User Operator</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaUser</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Single namespace (one Kafka cluster only)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Access Operator</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaAccess</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Single or all</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+For a standalone deployment of the Topic Operator or User Operator, you specify a namespace and connection to the Kafka cluster to watch in the configuration.
+</td>
+</tr>
+</table>
 </div>
 </div>
 <div class="sect3">
@@ -1503,7 +1569,7 @@ The Cluster Operator will not run under a cluster admin account.
 <p>All cluster roles are required by the Cluster Operator in order to delegate privileges.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 3. <code>ClusterRole</code> resources</caption>
+<caption class="title">Table 4. <code>ClusterRole</code> resources</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -1553,7 +1619,7 @@ The Cluster Operator will not run under a cluster admin account.
 Cluster role bindings are required by cluster roles containing cluster-scoped resources.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 4. <code>ClusterRoleBinding</code> resources</caption>
+<caption class="title">Table 5. <code>ClusterRoleBinding</code> resources</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -1580,7 +1646,7 @@ Cluster role bindings are required by cluster roles containing cluster-scoped re
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 5. <code>RoleBinding</code> resources</caption>
+<caption class="title">Table 6. <code>RoleBinding</code> resources</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -1623,7 +1689,7 @@ The Cluster Operator creates additional <code>ClusterRoleBinding</code> and <cod
 This allows the Cluster Operator to follow the principle of least privilege and give the operands only the access rights that are really need.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 6. <code>ServiceAccount</code> resources</caption>
+<caption class="title">Table 7. <code>ServiceAccount</code> resources</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -1815,7 +1881,7 @@ And by removing the need to maintain a ZooKeeper cluster, there&#8217;s also a r
 </div>
 <div class="paragraph">
 <p>To deploy a Kafka cluster in KRaft mode, you must use <code>Kafka</code> and <code>KafkaNodePool</code> custom resources.
-For more details and examples, see <a href="#deploying-kafka-cluster-kraft-str">Deploying a Kafka cluster in KRaft mode</a>.</p>
+For more details and examples, see <a href="#deploying-kafka-cluster-kraft-str">Deploying a Kafka cluster</a>.</p>
 </div>
 <div class="paragraph">
 <p>Through <a href="#config-node-pools-str">node pool configuration using <code>KafkaNodePool</code> resources</a>, nodes are assigned the role of broker, controller, or both:</p>
@@ -2237,38 +2303,102 @@ For example, the <code>oc</code> equivalent of <code>kubectl taint</code> is <co
 </div>
 </div>
 <div class="sect2">
-<h3 id="con-deploy-operator-best-practices-str"><a class="link" href="#con-deploy-operator-best-practices-str">6.2. Operator deployment best practices</a></h3>
+<h3 id="con-deploy-operator-best-practices-str"><a class="link" href="#con-deploy-operator-best-practices-str">6.2. Planning your Cluster Operator deployment</a></h3>
 <div class="paragraph _abstract">
-<p>Potential issues can arise from installing more than one Strimzi operator in the same Kubernetes cluster, especially when using different versions.
-Each Strimzi operator manages a set of resources in a Kubernetes cluster.
-When you install multiple Strimzi operators, they may attempt to manage the same resources concurrently.
-This can lead to conflicts and unpredictable behavior within your cluster.
-Conflicts can still occur even if you deploy Strimzi operators in different namespaces within the same Kubernetes cluster.
-Although namespaces provide some degree of resource isolation, certain resources managed by the Strimzi operator, such as Custom Resource Definitions (CRDs) and roles, have a cluster-wide scope.</p>
+<p>To support a stable and reliable Strimzi deployment, follow the best practices in this section.
+Run a single Cluster Operator per Kubernetes cluster, choose an appropriate watch strategy, and isolate components within watched namespaces to reduce the risk of conflicts and unexpected behavior.</p>
+</div>
+<div class="sect3">
+<h4 id="avoiding_deployment_conflicts"><a class="link" href="#avoiding_deployment_conflicts">6.2.1. Avoiding deployment conflicts</a></h4>
+<div class="paragraph _abstract">
+<p>A single operator is capable of managing multiple Kafka clusters across different namespaces.
+Deploying multiple instances of the Cluster Operator, particularly with different versions, introduces the following risks:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Resource conflicts</dt>
+<dd>
+<p>Conflicts over cluster-scoped resources like Custom Resource Definitions (CRDs) and ClusterRoles, leading to unpredictable behavior.
+This conflict occurs even when the operators are deployed in separate namespaces.</p>
+</dd>
+<dt class="hdlist1">Version incompatibility</dt>
+<dd>
+<p>Different operator versions can create compatibility issues with the Kafka clusters they manage.
+New Strimzi releases may introduce features, bug fixes, or other changes that are not backward-compatible.</p>
+</dd>
+</dl>
 </div>
 <div class="paragraph">
-<p>Additionally, installing multiple operators with different versions can result in compatibility issues between the operators and the Kafka clusters they manage.
-Different versions of Strimzi operators may introduce changes, bug fixes, or improvements that are not backward-compatible.</p>
+<div class="title">Approach to avoid risks</div>
+<p>To avoid these risks, the recommended approach to deploying the Cluster Operator is as follows:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Run a single Cluster Operator</dt>
+<dd>
+<p>Deploy only one Cluster Operator per Kubernetes cluster.</p>
+</dd>
+<dt class="hdlist1">Consider a dedicated namespace</dt>
+<dd>
+<p>Install the Cluster Operator in its own namespace, separate from the Kafka components it manages.
+This separation is most useful when the operator is configured to watch multiple namespaces, but it can also help prevent uncontrolled growth of resources in a single namespace.</p>
+</dd>
+<dt class="hdlist1">Keep everything updated</dt>
+<dd>
+<p>Regularly update Strimzi and the version of Kafka it manages so that you have the latest features, bug fixes, and enhancements.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect3">
+<h4 id="choosing_namespace_watch_options"><a class="link" href="#choosing_namespace_watch_options">6.2.2. Choosing namespace watch options</a></h4>
+<div class="paragraph _abstract">
+<p>You configure the Cluster Operator to watch for changes to <a href="#con-operators-namespaces-str">Kafka resources</a> in specific namespaces.</p>
 </div>
 <div class="paragraph">
-<p>To avoid the issues associated with installing multiple Strimzi operators in a Kubernetes cluster, the following guidelines are recommended:</p>
+<p>You can configure the operator to watch:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Install the Strimzi operator in a separate namespace from the Kafka cluster and other Kafka components it manages, to ensure clear separation of resources and configurations.</p>
+<p><a href="#deploying-cluster-operator-str">A single selected namespace</a></p>
 </li>
 <li>
-<p>Use a single Strimzi operator to manage all your Kafka instances within a Kubernetes cluster.</p>
+<p><a href="#deploying-cluster-operator-to-watch-multiple-namespaces-str">A specific list of multiple namespaces</a></p>
 </li>
 <li>
-<p>Update the Strimzi operator and the supported Kafka version as often as possible to reflect the latest features and enhancements.</p>
+<p><a href="#deploying-cluster-operator-to-watch-whole-cluster-str">All namespaces in the cluster</a></p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>By following these best practices and ensuring consistent updates for a single Strimzi operator, you can enhance the stability of managing Kafka instances in a Kubernetes cluster.
-This approach also enables you to make the most of Strimzi&#8217;s latest features and capabilities.</p>
+<p>Choosing to watch a specific list of multiple namespaces can have the biggest impact on performance due to increased processing overhead.
+To optimize performance, the recommended modes are to either watch a single namespace for focused monitoring or all namespaces for a comprehensive view of the entire cluster.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="isolating_components_in_watched_namespaces"><a class="link" href="#isolating_components_in_watched_namespaces">6.2.3. Isolating components in watched namespaces</a></h4>
+<div class="paragraph">
+<p>After deploying the Cluster Operator, it begins watching specified namespaces for changes to Kafka resources.
+To reduce risks and maintain reliability, isolate component types within each watched namespace.
+Each namespace should contain only one instance of a given component type, such as one Kafka cluster, to avoid the following types of issues:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Conflicting resource names</p>
+</li>
+<li>
+<p>Ambiguity in access management</p>
+</li>
+<li>
+<p>Topic and user name collisions</p>
+</li>
+<li>
+<p>Unpredictable behavior during upgrades or recovery</p>
+</li>
+</ul>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -2541,8 +2671,10 @@ To run the commands in this guide, a Kubernetes user must have the rights to man
 <div class="sect2">
 <h3 id="cluster-operator-str"><a class="link" href="#cluster-operator-str">7.1. Deploying the Cluster Operator</a></h3>
 <div class="paragraph _abstract">
-<p>The first step for any deployment of Strimzi is to install the Cluster Operator, which is responsible for deploying and managing Kafka clusters within a Kubernetes cluster.
-A single command applies all the installation files in the <code>install/cluster-operator</code> folder: <code>kubectl apply -f ./install/cluster-operator</code>.</p>
+<p>The first step for any deployment of Strimzi is to install the Cluster Operator, which is responsible for deploying and managing Kafka clusters within a Kubernetes cluster.</p>
+</div>
+<div class="paragraph">
+<p>A single command applies all the installation files in the <code>install/cluster-operator</code> folder: <code>kubectl apply -f ./install/cluster-operator</code>.</p>
 </div>
 <div class="paragraph">
 <p>The command sets up everything you need to be able to create and manage a Kafka deployment, including the following resources:</p>
@@ -2569,7 +2701,10 @@ Prior to installation, it&#8217;s advisable to review the <code>ClusterRole</cod
 </div>
 <div class="paragraph">
 <p>After installation, the Cluster Operator runs as a regular <code>Deployment</code> to watch for updates of Kafka resources.
-Any standard (non-admin) Kubernetes user with privileges to access the <code>Deployment</code> can configure it.
+For more information, see <a href="#con-operators-namespaces-str">Operator-watched resources</a>.</p>
+</div>
+<div class="paragraph">
+<p>Any standard (non-admin) Kubernetes user with privileges to access the <code>Deployment</code> can configure it.
 A cluster administrator can also grant standard users the <a href="#adding-users-the-strimzi-admin-role-str">privileges necessary to manage Strimzi custom resources</a>.</p>
 </div>
 <div class="paragraph">
@@ -2577,86 +2712,20 @@ A cluster administrator can also grant standard users the <a href="#adding-users
 You can add replicas with leader election so that additional Cluster Operators are on standby in case of disruption.
 For more information, see <a href="#assembly-using-multiple-cluster-operator-replicas-str">Running multiple Cluster Operator replicas with leader election</a>.</p>
 </div>
-<div class="sect3">
-<h4 id="con-cluster-operator-watch-options-str"><a class="link" href="#con-cluster-operator-watch-options-str">7.1.1. Specifying the namespaces the Cluster Operator watches</a></h4>
-<div class="paragraph _abstract">
-<p>The Cluster Operator watches for updates in the namespaces where the Kafka resources are deployed.
-When you deploy the Cluster Operator, you specify which namespaces to watch in the Kubernetes cluster.
-You can specify the following namespaces:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="#deploying-cluster-operator-str">A single selected namespace</a> (the same namespace containing the Cluster Operator)</p>
-</li>
-<li>
-<p><a href="#deploying-cluster-operator-to-watch-multiple-namespaces-str">Multiple selected namespaces</a></p>
-</li>
-<li>
-<p><a href="#deploying-cluster-operator-to-watch-whole-cluster-str">All namespaces in the cluster</a></p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Watching multiple selected namespaces has the most impact on performance due to increased processing overhead.
-To optimize performance for namespace monitoring, it is generally recommended to either watch a single namespace or monitor the entire cluster.
-Watching a single namespace allows for focused monitoring of namespace-specific resources, while monitoring all namespaces provides a comprehensive view of the cluster&#8217;s resources across all namespaces.</p>
-</div>
-<div class="paragraph">
-<p>The Cluster Operator watches for changes to the following resources:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>Kafka</code> for the Kafka cluster.</p>
-</li>
-<li>
-<p><code>KafkaConnect</code> for the Kafka Connect cluster.</p>
-</li>
-<li>
-<p><code>KafkaConnector</code> for creating and managing connectors in a Kafka Connect cluster.</p>
-</li>
-<li>
-<p><code>KafkaMirrorMaker2</code> for the Kafka MirrorMaker 2 instance.</p>
-</li>
-<li>
-<p><code>KafkaBridge</code> for the Kafka Bridge instance.</p>
-</li>
-<li>
-<p><code>KafkaRebalance</code> for the Cruise Control optimization requests.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>When one of these resources is created in the Kubernetes cluster, the operator gets the cluster description from the resource and starts creating a new cluster for the resource by creating the necessary Kubernetes resources, such as Deployments, Pods, Services and ConfigMaps.</p>
-</div>
-<div class="paragraph">
-<p>Each time a Kafka resource is updated, the operator performs corresponding updates on the Kubernetes resources that make up the cluster for the resource.</p>
-</div>
-<div class="paragraph">
-<p>Resources are either patched or deleted, and then recreated in order to make the cluster for the resource reflect the desired state of the cluster.
-This operation might cause a rolling update that might lead to service disruption.</p>
-</div>
-<div class="paragraph">
-<p>When a resource is deleted, the operator undeploys the cluster and deletes all related Kubernetes resources.</p>
-</div>
-<div class="admonitionblock note">
+<div class="admonitionblock warning">
 <table>
 <tr>
 <td class="icon">
-<div class="title">Note</div>
+<div class="title">Warning</div>
 </td>
 <td class="content">
-While the Cluster Operator can watch one, multiple, or all namespaces in a Kubernetes cluster,
-the Topic Operator and User Operator watch for <code>KafkaTopic</code> and <code>KafkaUser</code> resources in a single namespace.
-For more information, see <a href="#con-operators-namespaces-str">Watching Strimzi resources in Kubernetes namespaces</a>.
+While the operator can be configured to watch multiple namespaces, each watched namespace should contain only one instance of a specific component type, such as one Kafka cluster, to avoid conflicts.
 </td>
 </tr>
 </table>
 </div>
-</div>
 <div class="sect3">
-<h4 id="deploying-cluster-operator-str"><a class="link" href="#deploying-cluster-operator-str">7.1.2. Deploying the Cluster Operator to watch a single namespace</a></h4>
+<h4 id="deploying-cluster-operator-str"><a class="link" href="#deploying-cluster-operator-str">7.1.1. Deploying the Cluster Operator to watch a single namespace</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure shows how to deploy the Cluster Operator to watch Strimzi resources in a single namespace in your Kubernetes cluster.</p>
 </div>
@@ -2724,7 +2793,7 @@ The deployment is successful when the <code>AVAILABLE</code> output shows <code>
 </div>
 </div>
 <div class="sect3">
-<h4 id="deploying-cluster-operator-to-watch-multiple-namespaces-str"><a class="link" href="#deploying-cluster-operator-to-watch-multiple-namespaces-str">7.1.3. Deploying the Cluster Operator to watch multiple namespaces</a></h4>
+<h4 id="deploying-cluster-operator-to-watch-multiple-namespaces-str"><a class="link" href="#deploying-cluster-operator-to-watch-multiple-namespaces-str">7.1.2. Deploying the Cluster Operator to watch multiple namespaces</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure shows how to deploy the Cluster Operator to watch Strimzi resources across multiple namespaces in your Kubernetes cluster.</p>
 </div>
@@ -2831,7 +2900,7 @@ The deployment is successful when the <code>AVAILABLE</code> output shows <code>
 </div>
 </div>
 <div class="sect3">
-<h4 id="deploying-cluster-operator-to-watch-whole-cluster-str"><a class="link" href="#deploying-cluster-operator-to-watch-whole-cluster-str">7.1.4. Deploying the Cluster Operator to watch all namespaces</a></h4>
+<h4 id="deploying-cluster-operator-to-watch-whole-cluster-str"><a class="link" href="#deploying-cluster-operator-to-watch-whole-cluster-str">7.1.3. Deploying the Cluster Operator to watch all namespaces</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure shows how to deploy the Cluster Operator to watch Strimzi resources across all namespaces in your Kubernetes cluster.</p>
 </div>
@@ -2970,9 +3039,9 @@ However, you can use the Topic Operator and User Operator with a Kafka cluster t
 You can also deploy and use other Kafka components with a Kafka cluster not managed by Strimzi.</p>
 </div>
 <div class="sect3">
-<h4 id="deploying-kafka-cluster-kraft-str"><a class="link" href="#deploying-kafka-cluster-kraft-str">7.2.1. Deploying a Kafka cluster in KRaft mode</a></h4>
+<h4 id="deploying-kafka-cluster-kraft-str"><a class="link" href="#deploying-kafka-cluster-kraft-str">7.2.1. Deploying a Kafka cluster</a></h4>
 <div class="paragraph _abstract">
-<p>This procedure shows how to deploy a Kafka cluster in KRaft mode and associated node pools using the Cluster Operator.</p>
+<p>This procedure shows how to deploy a Kafka cluster and associated node pools using the Cluster Operator.</p>
 </div>
 <div class="paragraph">
 <p>The deployment uses a YAML file to provide the specification to create a <code>Kafka</code> resource and <code>KafkaNodePool</code> resources.</p>
@@ -3009,6 +3078,19 @@ You can also deploy and use other Kafka components with a Kafka cluster not mana
 </div>
 <div class="paragraph">
 <p>The example YAML files specify the latest supported Kafka version and KRaft metadata version used by the Kafka cluster.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+When deploying multiple Kafka clusters managed by the Cluster Operator, deploy each cluster into a separate namespace.
+Deploying multiple clusters in the same namespace can lead to naming conflicts and resource collisions.
+</td>
+</tr>
+</table>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -3114,8 +3196,18 @@ You can also specify a namespace using <code>watchedNamespace</code> in the Topi
 A single Topic Operator can watch a single namespace.
 One namespace should be watched by only one Topic Operator.</p>
 </div>
-<div class="paragraph">
-<p>If you use Strimzi to deploy multiple Kafka clusters into the same namespace, enable the Topic Operator for only one Kafka cluster or use the <code>watchedNamespace</code> property to configure the Topic Operators to watch other namespaces.</p>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Do not deploy more than one Kafka cluster into the same namespace.
+This causes the Topic Operator connected to each cluster to compete for the same topic resources using the same names, leading to name collisions and unpredictable behavior.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>If you want to use the Topic Operator with a Kafka cluster that is not managed by Strimzi,
@@ -3203,6 +3295,19 @@ By default, the User Operator watches for <code>KafkaUser</code> resources in th
 You can also specify a namespace using <code>watchedNamespace</code> in the User Operator <code>spec</code>.
 A single User Operator can watch a single namespace.
 One namespace should be watched by only one User Operator.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Do not deploy more than one Kafka cluster into the same namespace.
+This can cause the User Operator deployed with each cluster to compete for the same <code>KafkaUser</code> resources, leading to name collisions and unpredictable behavior.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>If you want to use the User Operator with a Kafka cluster that is not managed by Strimzi,
@@ -3639,6 +3744,19 @@ In this procedure, we use the following example file:</p>
 <p><code>examples/connect/kafka-connect.yaml</code></p>
 </li>
 </ul>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+When deploying multiple Kafka Connect clusters managed by the Cluster Operator, deploy each cluster into a separate namespace.
+Deploying multiple clusters in the same namespace can lead to naming conflicts and resource collisions.
+</td>
+</tr>
+</table>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -4444,7 +4562,7 @@ my-sink-connector</code></pre>
 Other connectors support different configuration options.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 7. Configuration options for the <code>FileStreamSource</code> connector class</caption>
+<caption class="title">Table 8. Configuration options for the <code>FileStreamSource</code> connector class</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 25%;">
@@ -4475,7 +4593,7 @@ Other connectors support different configuration options.</p>
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 8. Configuration options for <code>FileStreamSinkConnector</code> class</caption>
+<caption class="title">Table 9. Configuration options for <code>FileStreamSinkConnector</code> class</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 25%;">
@@ -4814,6 +4932,19 @@ In this procedure, we use the following example file:</p>
 <p><code>examples/mirror-maker/kafka-mirror-maker-2.yaml</code></p>
 </li>
 </ul>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+When deploying multiple Kafka MirrorMaker 2 clusters managed by the Cluster Operator, deploy each cluster into a separate namespace.
+Deploying multiple clusters in the same namespace can lead to naming conflicts and resource collisions.
+</td>
+</tr>
+</table>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -5227,6 +5358,19 @@ One namespace should be watched by only one Topic Operator.
 If you want to use more than one Topic Operator, configure each of them to watch different namespaces.
 In this way, you can use Topic Operators with multiple Kafka clusters.</p>
 </div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Do not deploy more than one Kafka cluster into the same namespace.
+This causes the Topic Operator connected to each cluster to compete for the same topic resources using the same names, leading to name collisions and unpredictable behavior.
+</td>
+</tr>
+</table>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -5550,6 +5694,19 @@ One namespace should be watched by only one User Operator.
 If you want to use more than one User Operator, configure each of them to watch different namespaces.
 In this way, you can use the User Operator with multiple Kafka clusters.</p>
 </div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Do not configure standalone User Operators that connect to different Kafka clusters to watch the same namespace.
+This can cause the operators to compete for the same <code>KafkaUser</code> resources, leading to name collisions and unpredictable behavior.
+</td>
+</tr>
+</table>
+</div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
 <ul>
@@ -5805,6 +5962,18 @@ It offers you an alternative way to install a stable version of Strimzi.</p>
 After you have deployed the Cluster Operator, you can deploy Strimzi components using custom resources.
 For example, you can deploy the <code>Kafka</code> custom resource, and the installed Cluster Operator will create a Kafka cluster.</p>
 </div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+While the Cluster Operator can be configured to watch multiple namespaces, each watched namespace should contain only one instance of a specific component type, such as one Kafka cluster, to avoid conflicts.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>Upgrades between versions might include manual steps.
 Always read the release notes before upgrading.</p>
@@ -5840,6 +6009,18 @@ Strimzi provides a Helm chart to deploy the Cluster Operator.</p>
 <div class="paragraph">
 <p>After you have deployed the Cluster Operator this way, you can deploy Strimzi components using custom resources.
 For example, you can deploy the <code>Kafka</code> custom resource, and the installed Cluster Operator will create a Kafka cluster.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+While the Cluster Operator can be configured to watch multiple namespaces, each watched namespace should contain only one instance of a specific component type, such as one Kafka cluster, to avoid conflicts.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>For information on upgrades, see <a href="#assembly-upgrade-str">Upgrading Strimzi</a>.</p>
@@ -5939,7 +6120,7 @@ When a feature gate reaches GA, it is permanently enabled and can no longer be d
 The following table shows the maturity of the feature gates introduced across Strimzi versions.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 9. Feature gate maturity across Strimzi versions</caption>
+<caption class="title">Table 10. Feature gate maturity across Strimzi versions</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 25%;">
@@ -8845,7 +9026,7 @@ Once deployed, the operators are automatically configured to handle the topics a
 </div>
 <div class="paragraph">
 <p>Each operator can only monitor a single namespace.
-For more information, see <a href="#con-operators-namespaces-str">Watching Strimzi resources in Kubernetes namespaces</a>.</p>
+For more information, see <a href="#con-operators-namespaces-str">Operator-watched Kafka resources</a>.</p>
 </div>
 <div class="paragraph">
 <p>The <code>entityOperator</code> property supports several sub-properties:</p>
@@ -10292,7 +10473,7 @@ For more information on configuring a <code>KafkaUser</code> resource to use sim
 The following table shows the default names configured for the topics and cluster group ID.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 10. Names for the access rights configuration</caption>
+<caption class="title">Table 11. Names for the access rights configuration</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -11651,7 +11832,7 @@ In practice, this means all instances form a cluster and use the same internal t
 <p>The following table describes connector properties and the connectors you configure to use them.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 11. MirrorMaker 2 connector configuration properties</caption>
+<caption class="title">Table 12. MirrorMaker 2 connector configuration properties</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 20%;">
@@ -12315,7 +12496,7 @@ Producer and consumer configuration options depend on the MirrorMaker 2 implemen
 <p>The following tables describe the producers and consumers for each of the connectors and where you can add configuration.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 12. Source connector producers and consumers</caption>
+<caption class="title">Table 13. Source connector producers and consumers</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 20%;">
@@ -12353,7 +12534,7 @@ Producer and consumer configuration options depend on the MirrorMaker 2 implemen
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 13. Checkpoint connector producers and consumers</caption>
+<caption class="title">Table 14. Checkpoint connector producers and consumers</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 20%;">
@@ -12396,7 +12577,7 @@ You can set <code>offset-syncs.topic.location</code> to <code>target</code> to u
 </table>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 14. Heartbeat connector producer</caption>
+<caption class="title">Table 15. Heartbeat connector producer</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 20%;">
@@ -17108,7 +17289,7 @@ If you scale your Kafka cluster while using external listeners, it might trigger
 <p>From the listener configuration, the resulting listener bootstrap and per-broker service names are structured according to the following naming conventions:</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 15. Listener naming conventions</caption>
+<caption class="title">Table 16. Listener naming conventions</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 40%;">
@@ -17152,7 +17333,7 @@ The resulting external listener naming convention varies slightly.
 The specific combinations of listener name and port configuration values in the following table are backwards compatible.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 16. Backwards compatible listener name and port combinations</caption>
+<caption class="title">Table 17. Backwards compatible listener name and port combinations</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 16.6666%;">
@@ -18732,7 +18913,7 @@ A rolling update is also started if you update a Kafka listener certificate in a
 <p>For external listeners which have TLS encryption enabled, the hostnames you need to specify in certificates depends on the external listener <code>type</code>.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 17. SANs for each type of external listener</caption>
+<caption class="title">Table 18. SANs for each type of external listener</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -23527,7 +23708,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </table>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 18. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
+<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -23546,7 +23727,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
+<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -23573,7 +23754,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-<em>&lt;pool_name&gt;</em>-<em>&lt;node_id&gt;</em></code> secret</caption>
+<caption class="title">Table 21. Fields in the <code><em>&lt;cluster_name&gt;</em>-<em>&lt;pool_name&gt;</em>-<em>&lt;node_id&gt;</em></code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23596,7 +23777,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 21. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
+<caption class="title">Table 22. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23628,7 +23809,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 22. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
+<caption class="title">Table 23. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23660,7 +23841,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 23. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
+<caption class="title">Table 24. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23692,7 +23873,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 24. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
+<caption class="title">Table 25. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23724,7 +23905,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 25. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
+<caption class="title">Table 26. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23770,7 +23951,7 @@ This secret must be accessible to the Strimzi components and for administrative 
 You can enforce this using Kubernetes role-based access controls, if necessary.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 26. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
+<caption class="title">Table 27. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -23789,7 +23970,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 27. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
+<caption class="title">Table 28. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -23825,7 +24006,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 <p>When a user is created using the User Operator, a secret is generated using the name of the user.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 28. Fields in the <code><em>user_name</em></code> secret</caption>
+<caption class="title">Table 29. Fields in the <code><em>user_name</em></code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 30%;">
@@ -24594,7 +24775,7 @@ Instead, follow the procedure for <a href="#renewing-your-own-ca-certificates-st
 <li>
 <p>Apply the <code>strimzi.io/force-replace</code> annotation to the <code>Secret</code> that contains the private key that you want to renew.</p>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 29. Commands for replacing private keys</caption>
+<caption class="title">Table 30. Commands for replacing private keys</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -27133,7 +27314,7 @@ Fewer data movements at a single time reduces the load on the cluster.</p>
 <p>The following table explains the properties contained in the optimization proposal&#8217;s summary.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 30. Properties contained in an optimization proposal summary</caption>
+<caption class="title">Table 31. Properties contained in an optimization proposal summary</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -27278,7 +27459,7 @@ Each broker has a set of key metrics represented by three values:</p>
 </div>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 31. Properties captured in the config map</caption>
+<caption class="title">Table 32. Properties captured in the config map</caption>
 <colgroup>
 <col style="width: 35%;">
 <col style="width: 65%;">
@@ -27430,7 +27611,7 @@ Cruise Control does not perform inter-broker and intra-broker balancing at the s
 </ul>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 32. Rebalance configuration tuning properties</caption>
+<caption class="title">Table 33. Rebalance configuration tuning properties</caption>
 <colgroup>
 <col style="width: 36.3636%;">
 <col style="width: 36.3636%;">
@@ -27684,7 +27865,7 @@ The deployment is successful when the <code>AVAILABLE</code> output shows <code>
 <p>The following table shows the three topics that are automatically created when Cruise Control is deployed. These topics are required for Cruise Control to work properly and must not be deleted or changed. You can change the name of the topic using the specified configuration option.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 33. Topics created when Cruise Control is deployed</caption>
+<caption class="title">Table 34. Topics created when Cruise Control is deployed</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 16.6666%;">
@@ -30489,7 +30670,7 @@ Relabeling is the process of writing a label dynamically.
 For example, the value of a label may be derived from the name of a Kafka server and client ID.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 34. Example custom resources with metrics configuration</caption>
+<caption class="title">Table 35. Example custom resources with metrics configuration</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -30534,7 +30715,7 @@ For example, the value of a label may be derived from the name of a Kafka server
 <div class="sect3">
 <h4 id="ref-metrics-reporter-config-str"><a class="link" href="#ref-metrics-reporter-config-str">25.1.2. Example Metrics Reporter metrics configuration</a></h4>
 <table class="tableblock frame-all grid-all stripes-none stretch _abstract">
-<caption class="title">Table 35. Example custom resources with metrics configuration</caption>
+<caption class="title">Table 36. Example custom resources with metrics configuration</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -30652,7 +30833,7 @@ For example, the Grafana dashboard for Strimzi operators provides information on
 The dashboards are populated with a representative set of metrics for monitoring.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 36. Example Grafana dashboard files</caption>
+<caption class="title">Table 37. Example Grafana dashboard files</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -32130,7 +32311,7 @@ For the latest information, see the <a href="https://opentelemetry.io/docs/" tar
 <p>The following table describes the key environment variables for setting up tracing with OpenTelemetry.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 37. OpenTelemetry environment variables</caption>
+<caption class="title">Table 38. OpenTelemetry environment variables</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 20%;">
@@ -33126,7 +33307,7 @@ You can use the configuration to control how certificates are watched for update
 For more information on how the environment variables work, see <a href="#proc-drain-cleaner-certs-renewing-str">Watching the TLS certificates used by the Strimzi Drain Cleaner</a>.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 38. Chart configuration options</caption>
+<caption class="title">Table 39. Chart configuration options</caption>
 <colgroup>
 <col style="width: 45.4545%;">
 <col style="width: 36.3636%;">
@@ -33527,7 +33708,7 @@ But you can disable the watching of certificates by setting the <code>STRIMZI_CE
 <p>With <code>STRIMZI_CERTIFICATE_WATCH_ENABLED</code> enabled, you can also use the following environment variables for watching TLS certificates.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 39. Drain Cleaner environment variables for watching TLS certificates</caption>
+<caption class="title">Table 40. Drain Cleaner environment variables for watching TLS certificates</caption>
 <colgroup>
 <col style="width: 45.4545%;">
 <col style="width: 36.3636%;">
@@ -33817,7 +33998,7 @@ You can export and monitor restart events using metrics collection tools like Pr
 You can check the reason by fetching information on the restart event.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 40. Restart reasons</caption>
+<caption class="title">Table 41. Restart reasons</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 66.6667%;">
@@ -35136,7 +35317,7 @@ In this case, you must, if possible, downgrade the Kafka version as part of the 
 <p>The following table details known limitations for specific downgrade paths.</p>
 </div>
 <table id="downgrade-version-limitations" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 41. Known limitations in downgrade paths</caption>
+<caption class="title">Table 42. Known limitations in downgrade paths</caption>
 <colgroup>
 <col style="width: 28.5714%;">
 <col style="width: 71.4286%;">
@@ -36792,7 +36973,7 @@ You can also override <code>min.insync.replicas</code> at the topic level in the
 <p>The following table describes how this configuration operates depending on the availability of followers that replicate the leader replica.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 42. Follower availability</caption>
+<caption class="title">Table 43. Follower availability</caption>
 <colgroup>
 <col style="width: 28.5714%;">
 <col style="width: 42.8571%;">
