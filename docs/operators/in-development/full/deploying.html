@@ -524,7 +524,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel3">
 <li><a href="#creating-new-image-using-kafka-connect-build-str">7.4.1. Building new container images with connector plugins automatically</a></li>
 <li><a href="#using-image-volumes-to-add-connector-plugins-str">7.4.2. Using Kubernetes Image Volumes to add connector plugins</a></li>
-<li><a href="#creating-new-image-from-base-str">7.4.3. Building new container images with connector plugins from the Kafka Connect base image</a></li>
+<li><a href="#creating-new-image-from-base-str">7.4.3. Building custom Kafka Connect images with connector plugins</a></li>
 <li><a href="#proc-deploying-kafkaconnector-str">7.4.4. Deploying KafkaConnector resources</a></li>
 <li><a href="#con-exposing-kafka-connect-api-str">7.4.5. Exposing the Kafka Connect API</a></li>
 <li><a href="#con-securing-kafka-connect-api-str">7.4.6. Limiting access to the Kafka Connect API</a></li>
@@ -4614,16 +4614,46 @@ spec: # <b class="conum">(1)</b>
 </div>
 </div>
 <div class="sect3">
-<h4 id="creating-new-image-from-base-str"><a class="link" href="#creating-new-image-from-base-str">7.4.3. Building new container images with connector plugins from the Kafka Connect base image</a></h4>
+<h4 id="creating-new-image-from-base-str"><a class="link" href="#creating-new-image-from-base-str">7.4.3. Building custom Kafka Connect images with connector plugins</a></h4>
 <div class="paragraph _abstract">
 <p>Create a custom Docker image with connector plugins from the Kafka Connect base image.
 Add the custom image to the <code>/opt/kafka/plugins</code> directory.</p>
 </div>
 <div class="paragraph">
-<p>You can use the Kafka container image on <a href="https://quay.io/organization/strimzi" target="_blank" rel="noopener">Container Registry</a> as a base image for creating your own custom image with additional connector plugins.</p>
+<p>You can use the Kafka container image on <a href="https://quay.io/organization/strimzi" target="_blank" rel="noopener">Container Registry</a> as a base image for creating your own custom image with additional connector plugins.
+At startup, the Strimzi version of Kafka Connect loads any third-party connector plugins contained in <code>/opt/kafka/plugins</code>.</p>
 </div>
 <div class="paragraph">
-<p>At startup, the Strimzi version of Kafka Connect loads any third-party connector plugins contained in the <code>/opt/kafka/plugins</code> directory.</p>
+<p>Use the <code>KafkaConnect.spec.image</code> property to scope the custom image to a single Kafka Connect cluster.
+Editing the <code>STRIMZI_KAFKA_CONNECT_IMAGES</code> environment variable in the Cluster Operator instead applies the image globally to all Connect clusters.</p>
+</div>
+<div class="paragraph">
+<p>This procedure shows how to do the following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Build a custom image from the Kafka Connect base.</p>
+</li>
+<li>
+<p>Push the image to your registry.</p>
+</li>
+<li>
+<p>Reference the image by setting <code>KafkaConnect.spec.image</code>.</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+When you specify a custom image, coordinate upgrades to keep the image and the Kafka version aligned.
+</td>
+</tr>
+</table>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -4700,16 +4730,9 @@ USER 1001</code></pre>
 <p>Push your custom image to your container registry.</p>
 </li>
 <li>
-<p>Point to the new container image.</p>
+<p>Point the <code>KafkaConnect</code> custom resource to the new container image.</p>
 <div class="paragraph">
-<p>You can point to the image in one of the following ways:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Edit the <code>KafkaConnect.spec.image</code> property of the <code>KafkaConnect</code> custom resource.</p>
-<div class="paragraph">
-<p>If set, this property overrides the <code>STRIMZI_KAFKA_CONNECT_IMAGES</code> environment variable in the Cluster Operator.</p>
+<p>Edit the <code>KafkaConnect.spec.image</code> property of the KafkaConnect custom resource to specify your custom image.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -4717,11 +4740,10 @@ USER 1001</code></pre>
 kind: KafkaConnect
 metadata:
   name: my-connect-cluster
-spec: <b class="conum">(1)</b>
-  #...
-  image: my-new-container-image <b class="conum">(2)</b>
-  config: <b class="conum">(3)</b>
-    #...</code></pre>
+spec: # <b class="conum">(1)</b>
+  version: 4.0.0 # <b class="conum">(2)</b>
+  image: my-new-container-image # <b class="conum">(3)</b>
+  #...</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -4730,21 +4752,29 @@ spec: <b class="conum">(1)</b>
 <p><a href="./configuring.html#type-KafkaConnectSpec-reference" target="_blank" rel="noopener">The specification for the Kafka Connect cluster</a>.</p>
 </li>
 <li>
-<p>The docker image for Kafka Connect pods.</p>
+<p>The Kafka version. Always specify the Kafka version that matches your Kafka cluster to avoid version conflicts.</p>
 </li>
 <li>
-<p>Configuration of the Kafka Connect <em>workers</em> (not connectors).</p>
+<p>The custom docker image for Kafka Connect pods.</p>
 </li>
 </ol>
 </div>
 </li>
-<li>
-<p>Edit the <code>STRIMZI_KAFKA_CONNECT_IMAGES</code> environment variable in the <code>install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml</code> file to point to the new container image, and then reinstall the Cluster Operator.</p>
-</li>
-</ul>
-</div>
-</li>
 </ol>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Check the Kafka version you need for your custom image.
+If <code>spec.version</code> is unspecified, Strimzi defaults to Kafka 4.0.0, which may cause compatibility issues if your Kafka cluster runs an earlier version.
+Version mismatches may lead to connector failures and runtime errors.
+</td>
+</tr>
+</table>
 </div>
 <div class="ulist _additional-resources">
 <div class="title">Additional resources</div>
@@ -38953,7 +38983,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-09-01 10:04:39 UTC
+Last updated 2025-09-01 12:02:44 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>

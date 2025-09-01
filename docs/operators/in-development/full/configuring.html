@@ -1280,7 +1280,7 @@ resources:
 <p>Use the <code>image</code> property to configure the container image used by the component.</p>
 </div>
 <div class="paragraph">
-<p>Overriding container images is recommended only in special situations where you need to use a different container registry or a customized image.</p>
+<p>Overriding container images is recommended only in special situations where you need to use a different container registry or a custom image.</p>
 </div>
 <div class="paragraph">
 <p>For example, if your network does not allow access to the container repository used by Strimzi, you can copy the Strimzi images or build them from the source.
@@ -1337,77 +1337,269 @@ These components are not version dependent, so no additional configuration is ne
 </table>
 </div>
 <div class="paragraph">
-<p><strong>Configuring the <code>image</code> property for Kafka, Kafka Connect, and Kafka MirrorMaker</strong></p>
+<div class="title">Setting Kafka component images</div>
+<p>Strimzi supports multiple Kafka versions across Kafka, Kafka Connect, and Kafka MirrorMaker 2 components.
+Each component requires a specific container image, which can be configured in two places:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Cluster Operator environment variables (Default image mappings)</p>
+</li>
+<li>
+<p>Custom resource configuration</p>
+</li>
+</ol>
 </div>
 <div class="paragraph">
-<p>Kafka, Kafka Connect, and Kafka MirrorMaker 2 support multiple versions of Kafka.
-Each component requires its own image.
-The default images for the different Kafka versions are configured in the following environment variables:</p>
+<p>Each environment variable maps Kafka versions to container images.
+These mappings are used when a custom resource does not explicitly specify an image.
+You can override the default image by specifying the image and the matching version in the custom resource.</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>STRIMZI_KAFKA_IMAGES</code></p>
-</li>
-<li>
-<p><code>STRIMZI_KAFKA_CONNECT_IMAGES</code></p>
-</li>
-<li>
-<p><code>STRIMZI_KAFKA_MIRROR_MAKER2_IMAGES</code></p>
-</li>
-</ul>
-</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. Cluster Operator environment variables</caption>
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 66.6667%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Component</th>
+<th class="tableblock halign-left valign-top">Environment variable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>STRIMZI_KAFKA_IMAGES</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka Connect</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>STRIMZI_KAFKA_CONNECT_IMAGES</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MirrorMaker 2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>STRIMZI_KAFKA_MIRROR_MAKER2_IMAGES</code></p></td>
+</tr>
+</tbody>
+</table>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 2. Custom resource configuration</caption>
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Custom resource</th>
+<th class="tableblock halign-left valign-top">Image property</th>
+<th class="tableblock halign-left valign-top">Version property</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Kafka</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spec.kafka.image</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spec.kafka.version</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaConnect</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spec.image</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spec.version</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>KafkaMirrorMaker2</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spec.image</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spec.version</code></p></td>
+</tr>
+</tbody>
+</table>
 <div class="paragraph">
-<p>These environment variables contain mappings between Kafka versions and corresponding images.
-The mappings are used together with the <code>image</code> and <code>version</code> properties to determine the image used:</p>
+<p>The values for the environment variables and those specified for <code>image</code> and <code>version</code> in the component configuration determines the image and Kafka version used:</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>If neither <code>image</code> nor <code>version</code> are given in the custom resource, the <code>version</code> defaults to the Cluster Operator&#8217;s default Kafka version, and the image used is the one corresponding to this version in the environment variable.</p>
-</li>
-<li>
-<p>If <code>image</code> is given but <code>version</code> is not, then the given image is used and the <code>version</code> is assumed to be the Cluster Operator&#8217;s default Kafka version.</p>
-</li>
-<li>
-<p>If <code>version</code> is given but <code>image</code> is not, then the image that corresponds to the given version in the environment variable is used.</p>
-</li>
-<li>
-<p>If both <code>version</code> and <code>image</code> are given, then the given image is used. The image is assumed to contain a Kafka image with the given version.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>The <code>image</code> and <code>version</code> for the components can be configured in the following properties:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>For Kafka in <code>spec.kafka.image</code> and <code>spec.kafka.version</code>.</p>
-</li>
-<li>
-<p>For Kafka Connect and Kafka MirrorMaker in <code>spec.image</code> and <code>spec.version</code>.</p>
-</li>
-</ul>
-</div>
-<div class="admonitionblock warning">
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 3. Values specified for image and Kafka version</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top"><code>image</code> set?</th>
+<th class="tableblock halign-left valign-top"><code>version</code> set?</th>
+<th class="tableblock halign-left valign-top">Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✗</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✗</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Uses Cluster Operator&#8217;s default image and corresponding Kafka version</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✗</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Uses specified image and default Kafka version</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✗</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Uses image from environment variable for specified Kafka version</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Uses specified image and assumes specified Kafka version matches</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock note">
 <table>
 <tr>
 <td class="icon">
-<div class="title">Warning</div>
+<div class="title">Note</div>
 </td>
 <td class="content">
-It is recommended to provide only the <code>version</code> and leave the <code>image</code> property unspecified.
-This reduces the chance of making a mistake when configuring the custom resource.
-If you need to change the images used for different versions of Kafka, it is preferable to configure the Cluster Operator&#8217;s environment variables.
+To avoid Kafka version and image mismatches, set the <code>version</code> property and allow the Cluster Operator to select the matching image from its mappings.
+If you need to change the default image mapping for a given Kafka version, configure the Cluster Operator’s environment variables.
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p><strong>Configuring the <code>image</code> property in other resources</strong></p>
+<p>Even if the configuration is syntactically correct, it can still be invalid if the image and version mismatch.
+To ensure a valid configuration:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The specified <code>version</code> <strong>must</strong> match the Kafka version that the image is built for.</p>
+</li>
+<li>
+<p>The specified <code>version</code> must be one of the versions supported by the operator.</p>
+</li>
+<li>
+<p>If you set a custom <code>image</code>, always set <code>version</code> to the Kafka version of that image.</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
+<p>Here we can see what happens with versions 3.9.0 and 4.0.0 (the default).</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 4. Valid and invalid configuration examples</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 20%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top"><code>image</code> set?</th>
+<th class="tableblock halign-left valign-top"><code>version</code> set?</th>
+<th class="tableblock halign-left valign-top">Image used</th>
+<th class="tableblock halign-left valign-top">Kafka version</th>
+<th class="tableblock halign-left valign-top">Valid?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✗</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✗</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4.0.0 (default)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4.0.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✗</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3.9.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3.9.0 (from mapping)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3.9.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Custom 3.9.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3.9.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Custom 3.9.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3.9.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Custom 3.9.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✗</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Custom 3.9.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4.0.0 (default)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✗</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Custom 3.9.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4.0.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Custom 3.9.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4.0.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✗</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<em>Custom 3.9.0</em> refers to a custom user-provided container image built against Kafka 3.9.0.
+Setting a <strong>custom image</strong> means you set the <code>image</code> property to a user-provided image.
+The operator does not automatically change this value during upgrades.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p><strong>Handling upgrades with custom images</strong></p>
+</div>
+<div class="paragraph">
+<p>When you set a custom image through the <code>image</code> property in a custom resource, you must keep the <code>image</code> and version in <code>sync</code> during upgrades.
+The Cluster Operator does not automatically update images defined this way.
+(This limitation does not apply when you use Kafka Connect Build or the default image mappings defined in the Cluster Operator environment variables.)</p>
+</div>
+<div class="paragraph">
+<p>To avoid version mismatches when changing the Kafka version:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Pause reconciliation of the custom resource.</p>
+</li>
+<li>
+<p>Upgrade the Cluster Operator to a release that supports a new Kafka version.</p>
+</li>
+<li>
+<p>Update the custom resource:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Set <code>spec.*.version</code> to the target Kafka version</p>
+</li>
+<li>
+<p>Set <code>spec.*.image</code> to the custom image built for that version</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Unpause the reconciliation.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>If you don’t follow these steps, the operator might attempt to upgrade the resource before the correct image is specified, leading to mismatches.</p>
+</div>
+<div class="paragraph">
+<div class="title">Configuring the <code>image</code> property in other resources</div>
 <p>For the <code>image</code> property in the custom resources for other components, the given value is used during deployment.
 If the <code>image</code> property is not set, the container <code>image</code> specified as an environment variable in the Cluster Operator configuration is used.
 If an <code>image</code> name is not defined in the Cluster Operator configuration, then a default value is used.</p>
@@ -1416,7 +1608,7 @@ If an <code>image</code> name is not defined in the Cluster Operator configurati
 <p>For more information on image environment variables, see <a href="./deploying.html#ref-operator-cluster-str" target="_blank" rel="noopener">Configuring the Cluster Operator</a>.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 1. Image environment variables and defaults</caption>
+<caption class="title">Table 5. Image environment variables and defaults</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 40%;">
@@ -1742,7 +1934,7 @@ The Cluster Operator sets default maximum and minimum heap values based on a per
 <p>The following table shows the default heap values.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 2. Default heap settings for components</caption>
+<caption class="title">Table 6. Default heap settings for components</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 25%;">
@@ -17095,7 +17287,7 @@ Do not create, modify or delete <code>StrimziPodSet</code> resources as this mig
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-09-01 10:04:39 UTC
+Last updated 2025-09-01 12:02:44 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
