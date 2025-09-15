@@ -20937,31 +20937,17 @@ Some of these properties apply only to certain authentication mechanisms or when
 <div class="ulist">
 <ul>
 <li>
-<p>If you configure a token endpoint (<code>tokenEndpointUri</code>) in the listener configuration, you need the prefix.</p>
+<p>If a <code>tokenEndpointUri</code> is configured in the listener, the <code>$accessToken:</code> prefix must be used.</p>
 </li>
 <li>
-<p>If you don&#8217;t configure a token endpoint in the listener configuration, you don&#8217;t need the prefix.
-The Kafka broker interprets the password as a raw access token.</p>
+<p>If no <code>tokenEndpointUri</code> is configured, the prefix is not required, and the <code>password</code> is interpreted directly as a raw access token.</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>If the <code>password</code> is set as the access token, the <code>username</code> must be set to the same principal name that the Kafka broker obtains from the access token.
+<p>When an access token is used as the <code>password</code>, the <code>username</code> must match the principal name extracted from that token.
 You can specify username extraction options in your listener using the <code>userNameClaim</code>, <code>usernamePrefix</code>, <code>fallbackUserNameClaim</code>, <code>fallbackUsernamePrefix</code>, and <code>userInfoEndpointUri</code> properties.
 The username extraction process also depends on your authorization server; in particular, how it maps client IDs to account names.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The <code>PLAIN</code> mechanism does not support password grant authentication.
-Use either client credentials (client ID + secret) or an access token for authentication.
-</td>
-</tr>
-</table>
 </div>
 <div class="listingblock">
 <div class="title">Example optional configuration settings</div>
@@ -20982,15 +20968,16 @@ Use either client credentials (client ID + secret) or an access token for authen
     enablePlain: true # <b class="conum">(10)</b>
     tokenEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_token_endpoint&gt; # <b class="conum">(11)</b>
     customClaimCheck: "@.custom == 'custom-value'" # <b class="conum">(12)</b>
-    clientAudience: audience # <b class="conum">(13)</b>
-    clientScope: scope # <b class="conum">(14)</b>
-    connectTimeoutSeconds: 60 # <b class="conum">(15)</b>
-    readTimeoutSeconds: 60 # <b class="conum">(16)</b>
-    httpRetries: 2 # <b class="conum">(17)</b>
-    httpRetryPauseMs: 300 # <b class="conum">(18)</b>
-    groupsClaim: "$.groups" # <b class="conum">(19)</b>
-    groupsClaimDelimiter: "," # <b class="conum">(20)</b>
-    includeAcceptHeader: false # <b class="conum">(21)</b></code></pre>
+    clientGrantType: client_credentials # <b class="conum">(13)</b>
+    clientAudience: audience # <b class="conum">(14)</b>
+    clientScope: scope # <b class="conum">(15)</b>
+    connectTimeoutSeconds: 60 # <b class="conum">(16)</b>
+    readTimeoutSeconds: 60 # <b class="conum">(17)</b>
+    httpRetries: 2 # <b class="conum">(18)</b>
+    httpRetryPauseMs: 300 # <b class="conum">(19)</b>
+    groupsClaim: "$.groups" # <b class="conum">(20)</b>
+    groupsClaimDelimiter: "," # <b class="conum">(21)</b>
+    includeAcceptHeader: false # <b class="conum">(22)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -21033,10 +21020,13 @@ For production, always use <code>https://</code> urls.</p>
 <p>Additional custom rules can be imposed on the JWT access token during validation by setting this to a JsonPath filter query. If the access token does not contain the necessary data, it is rejected. When using the <code>introspectionEndpointUri</code>, the custom check is applied to the introspection endpoint response JSON.</p>
 </li>
 <li>
-<p>An <code>audience</code> parameter passed to the token endpoint. An <em>audience</em> is used  when obtaining an access token for inter-broker authentication. It is also used in the name of a client for OAuth 2.0 over <code>PLAIN</code> client authentication using a <code>clientId</code> and <code>secret</code>. This only affects the ability to obtain the token, and the content of the token, depending on the authorization server. It does not affect token validation rules by the listener.</p>
+<p>Grant type used when requesting a token from the authorization server. Applicable only with OAuth over PLAIN when the <code>username</code> and <code>password</code> in the client configuration are passed as the <code>clientId</code> and <code>secret</code>.</p>
 </li>
 <li>
-<p>A <code>scope</code> parameter passed to the token endpoint. A <em>scope</em> is used when obtaining an access token for inter-broker authentication. It is also used in the name of a client for OAuth 2.0 over <code>PLAIN</code> client authentication using a <code>clientId</code> and <code>secret</code>. This only affects the ability to obtain the token, and the content of the token, depending on the authorization server. It does not affect token validation rules by the listener.</p>
+<p>An <code>audience</code> parameter passed to the token endpoint. An <em>audience</em> is used  when obtaining an access token for inter-broker authentication. It is also used in the name of a client for OAuth over <code>PLAIN</code> client authentication using a <code>clientId</code> and <code>secret</code>. This only affects the ability to obtain the token, and the content of the token, depending on the authorization server. It does not affect token validation rules by the listener.</p>
+</li>
+<li>
+<p>A <code>scope</code> parameter passed to the token endpoint. A <em>scope</em> is used when obtaining an access token for inter-broker authentication. It is also used in the name of a client for OAuth over <code>PLAIN</code> client authentication using a <code>clientId</code> and <code>secret</code>. This only affects the ability to obtain the token, and the content of the token, depending on the authorization server. It does not affect token validation rules by the listener.</p>
 </li>
 <li>
 <p>The connect timeout in seconds when connecting to the authorization server. The default value is 60.</p>
@@ -21162,7 +21152,9 @@ Additionally, it handles login credentials for clients using the OAuth 2.0 passw
 <dl>
 <dt class="hdlist1">Using client credentials</dt>
 <dd>
-<p>Using client credentials involves configuring the client with the necessary credentials (client ID and secret, or client ID and client assertion) to obtain a valid access token from an authorization server. This is the simplest mechanism.</p>
+<p>Using client credentials involves configuring the client with the necessary credentials (client ID and secret, or client ID and client assertion) to obtain a valid access token from an authorization server. This is the simplest mechanism.
+When you configure a client ID and secret or assertion to authenticate against the authorization server, you can specify a <code>grantType</code>.
+The property defaults to <code>client_credentials</code>.</p>
 </dd>
 <dt class="hdlist1">Using access tokens</dt>
 <dd>
@@ -21243,11 +21235,12 @@ sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginMo
   oauth.token.endpoint.uri="&lt;token_endpoint_url&gt;" \ # <b class="conum">(4)</b>
   oauth.client.id="&lt;client_id&gt;" \ # <b class="conum">(5)</b>
   oauth.client.secret="&lt;client_secret&gt;" \ # <b class="conum">(6)</b>
-  oauth.ssl.truststore.location="/tmp/oauth-truststore.p12" \ # <b class="conum">(7)</b>
-  oauth.ssl.truststore.password="$STOREPASS" \ # <b class="conum">(8)</b>
-  oauth.ssl.truststore.type="PKCS12" \ # <b class="conum">(9)</b>
-  oauth.scope="&lt;scope&gt;" \ # <b class="conum">(10)</b>
-  oauth.audience="&lt;audience&gt;" ; # <b class="conum">(11)</b>
+  oauth.grant.type="client_credentials" \ # <b class="conum">(7)</b>
+  oauth.ssl.truststore.location="/tmp/oauth-truststore.p12" \ # <b class="conum">(8)</b>
+  oauth.ssl.truststore.password="$STOREPASS" \ # <b class="conum">(9)</b>
+  oauth.ssl.truststore.type="PKCS12" \ # <b class="conum">(10)</b>
+  oauth.scope="&lt;scope&gt;" \ # <b class="conum">(11)</b>
+  oauth.audience="&lt;audience&gt;" ; # <b class="conum">(12)</b>
 sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler</code></pre>
 </div>
 </div>
@@ -21272,7 +21265,10 @@ sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthL
 <p>Client secret created when creating the <em>client</em> in the authorization server.</p>
 </li>
 <li>
-<p>The location of the public key certificate for the authorization server.</p>
+<p>(Optional) Grant type when using <code>clientId</code> and <code>clientSecret</code> or <code>clientAssertion</code>. Sets the grant type parameter sent to the token endpoint. Defaults to <code>client_credentials</code> with this configuration.</p>
+</li>
+<li>
+<p>The location of the truststore for the authorization server.</p>
 </li>
 <li>
 <p>The password for accessing the truststore.</p>
@@ -38980,7 +38976,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-09-15 12:59:07 UTC
+Last updated 2025-09-15 13:36:05 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
