@@ -526,7 +526,7 @@ Example output:
 
 With the new kube-state-metrics–based metrics, the built‑in Cluster Operator metrics are deprecated as of [Strimzi 0.48.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.48.0) and will be removed in Strimzi 0.51.0.
 Migration to kube-state-metrics across all Strimzi CRs is recommended.
-Progress on the removal is tracked here: https://github.com/strimzi/strimzi-kafka-operator/issues/11696.
+Progress on the removal is tracked here: [https://github.com/strimzi/strimzi-kafka-operator/issues/11696](https://github.com/strimzi/strimzi-kafka-operator/issues/11696).
 
 ### Wrap‑up
 
