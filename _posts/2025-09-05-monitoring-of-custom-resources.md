@@ -494,7 +494,7 @@ Example output:
 {cluster_id="zyxwvutsr", name="my-third-kafka",  namespace="kafka-three", ready="False"}
 ```
 
-Get an overview of `KafkaTopics` with partitions and replicas:
+Get an overview of `KafkaTopic`(s) with partitions and replicas:
 
 ```
 sum by (name, partitions, replicas) (strimzi_kafka_topic_resource_info)
@@ -508,7 +508,7 @@ Example output:
 {name="my-third-kafka-topic",  partitions="60", replicas="3"}
 ```
 
-Get an overview of `KafkaUsers` with username:
+Get an overview of `KafkaUser`(s) with username:
 
 ```
 sum by (name, namespace, username) (strimzi_kafka_user_resource_info)
