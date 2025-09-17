@@ -38,8 +38,9 @@ These small issues can trigger long debugging sessions. Often the fix is simple,
 
 ### The simple fix: use kube-state-metrics for CRDs
 
-In general, kube-state-metrics can read any Kubernetes object, including custom resources, and export info‑style metrics with labels you control.
-This gives you:
+Instead of relying on the limited `strimzi_resource_state` metric, you can use kube-state-metrics to cover _all_ Strimzi custom resources.
+
+kube-state-metrics can read any Kubernetes object, including custom resources, and export Info-style metrics with labels you control. This approach gives you:
 
 - A complete inventory of all Strimzi CRs
 - Consistent metric labels across teams
