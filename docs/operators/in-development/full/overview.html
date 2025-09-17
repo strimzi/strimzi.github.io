@@ -484,15 +484,21 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 </ul>
 </li>
-<li><a href="#overview-components-kafka-bridge_str">6. Kafka Bridge interface</a>
+<li><a href="#con-overview-mm2-str">6. About MirrorMaker 2</a>
 <ul class="sectlevel2">
-<li><a href="#http_requests">6.1. HTTP requests</a></li>
-<li><a href="#con-overview-components-kafka-bridge-clients_str">6.2. Supported clients for the Kafka Bridge</a></li>
+<li><a href="#bidirectional_replication_activeactive">6.1. Bidirectional replication (active/active)</a></li>
+<li><a href="#unidirectional_replication_activepassive">6.2. Unidirectional replication (active/passive)</a></li>
 </ul>
 </li>
-<li><a href="#configuration-points_str">7. Configuring Kafka</a></li>
-<li><a href="#security-overview_str">8. Securing Kafka</a></li>
-<li><a href="#metrics-overview_str">9. Monitoring Kafka</a></li>
+<li><a href="#overview-components-kafka-bridge_str">7. Kafka Bridge interface</a>
+<ul class="sectlevel2">
+<li><a href="#http_requests">7.1. HTTP requests</a></li>
+<li><a href="#con-overview-components-kafka-bridge-clients_str">7.2. Supported clients for the Kafka Bridge</a></li>
+</ul>
+</li>
+<li><a href="#configuration-points_str">8. Configuring Kafka</a></li>
+<li><a href="#security-overview_str">9. Securing Kafka</a></li>
+<li><a href="#metrics-overview_str">10. Monitoring Kafka</a></li>
 </ul>
 </div>
 </div>
@@ -1450,7 +1456,88 @@ You can also specify converters for specific connectors to override the general 
 </div>
 </div>
 <div class="sect1">
-<h2 id="overview-components-kafka-bridge_str"><a class="link" href="#overview-components-kafka-bridge_str">6. Kafka Bridge interface</a></h2>
+<h2 id="con-overview-mm2-str"><a class="link" href="#con-overview-mm2-str">6. About MirrorMaker 2</a></h2>
+<div class="sectionbody">
+<div class="paragraph _abstract">
+<p>Kafka MirrorMaker 2 replicates data (topics, consumer groups, and offsets) between Kafka clusters.
+Through configuration, you define source and target cluster connections.
+You can use MirrorMaker 2 in <em>active/passive</em> or <em>active/active</em> cluster configurations.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">active/active cluster configuration</dt>
+<dd>
+<p>An active/active configuration has two active clusters replicating data bidirectionally. Applications can use either cluster. Each cluster can provide the same data. In this way,  you can make the same data available in different geographical locations. As consumer groups are active in both clusters, consumer offsets for replicated topics are not synchronized back to the source cluster.</p>
+</dd>
+<dt class="hdlist1">active/passive cluster configuration</dt>
+<dd>
+<p>An active/passive configuration has an active cluster replicating data to a passive cluster. The passive cluster remains on standby. You might use the passive cluster for data recovery in the event of system failure.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>The expectation is that producers and consumers connect to active clusters only.
+A MirrorMaker 2 cluster is required at each target destination.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+In most deployments, write operations should be made only to source topics.
+Write operations on target topics are not prevented, but they can cause conflicts and should be avoided.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect2">
+<h3 id="bidirectional_replication_activeactive"><a class="link" href="#bidirectional_replication_activeactive">6.1. Bidirectional replication (active/active)</a></h3>
+<div class="paragraph">
+<p>The MirrorMaker 2 architecture supports bidirectional replication in an <em>active/active</em> cluster configuration.</p>
+</div>
+<div class="paragraph">
+<p>Each cluster replicates the other&#8217;s data using the concept of <em>source</em> and <em>remote</em> topics.
+In this context, <em>remote</em> refers to the target cluster receiving replicated data from the perspective of the source MirrorMaker instance.
+Each cluster simultaneously acts as both source and remote, depending on the direction of the replication flow.</p>
+</div>
+<div class="paragraph">
+<p>As the same topics are stored in each cluster, remote topics are automatically renamed by MirrorMaker 2 to indicate their origin.
+The name of the source cluster is prepended to the topic name.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/mirrormaker-renaming.png" alt="MirrorMaker 2 bidirectional architecture">
+</div>
+<div class="title">Figure 1. Topic renaming</div>
+</div>
+<div class="paragraph">
+<p>This renaming prevents topics from being replicated back to their originating cluster.</p>
+</div>
+<div class="paragraph">
+<p>This replication structure also supports data aggregation in active/active setups:
+Consumers can subscribe to both source and remote topics within the same cluster, eliminating the need for a separate aggregation cluster.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="unidirectional_replication_activepassive"><a class="link" href="#unidirectional_replication_activepassive">6.2. Unidirectional replication (active/passive)</a></h3>
+<div class="paragraph">
+<p>The MirrorMaker 2 architecture supports unidirectional replication in an <em>active/passive</em> cluster configuration.</p>
+</div>
+<div class="paragraph">
+<p>You can use an <em>active/passive</em> cluster configuration to make backups or migrate data to another cluster.
+In this situation, you might not want automatic renaming of remote topics.</p>
+</div>
+<div class="paragraph">
+<p>You can override automatic renaming by adding <code>IdentityReplicationPolicy</code> to the source connector configuration.
+With this configuration applied, topics retain their original names.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="overview-components-kafka-bridge_str"><a class="link" href="#overview-components-kafka-bridge_str">7. Kafka Bridge interface</a></h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
 <p>The Kafka Bridge provides a RESTful interface that allows HTTP-based clients to interact with a Kafka cluster. 
@@ -1460,7 +1547,7 @@ It offers the advantages of a HTTP API connection to Strimzi for clients to prod
 <p>The API has two main resources — <code>consumers</code> and <code>topics</code> — that are exposed and made accessible through endpoints to interact with consumers and producers in your Kafka cluster. The resources relate only to the Kafka Bridge, not the consumers and producers connected directly to Kafka.</p>
 </div>
 <div class="sect2">
-<h3 id="http_requests"><a class="link" href="#http_requests">6.1. HTTP requests</a></h3>
+<h3 id="http_requests"><a class="link" href="#http_requests">7.1. HTTP requests</a></h3>
 <div class="paragraph">
 <p>The Kafka Bridge supports HTTP requests to a Kafka cluster, with methods to perform operations such as the following:</p>
 </div>
@@ -1512,7 +1599,7 @@ Messages can be sent in JSON or binary formats.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="con-overview-components-kafka-bridge-clients_str"><a class="link" href="#con-overview-components-kafka-bridge-clients_str">6.2. Supported clients for the Kafka Bridge</a></h3>
+<h3 id="con-overview-components-kafka-bridge-clients_str"><a class="link" href="#con-overview-components-kafka-bridge-clients_str">7.2. Supported clients for the Kafka Bridge</a></h3>
 <div class="paragraph">
 <p>You can use the Kafka Bridge to integrate both <em>internal</em> and <em>external</em> HTTP client applications with your Kafka cluster.</p>
 </div>
@@ -1538,7 +1625,7 @@ External clients can access the Kafka Bridge through an OpenShift Route, a loadb
 </div>
 </div>
 <div class="sect1">
-<h2 id="configuration-points_str"><a class="link" href="#configuration-points_str">7. Configuring Kafka</a></h2>
+<h2 id="configuration-points_str"><a class="link" href="#configuration-points_str">8. Configuring Kafka</a></h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
 <p>Strimzi enables the deployment of Kafka components on Kubernetes through highly configurable custom resources.
@@ -1577,7 +1664,7 @@ Many additional configuration options can be specified in a custom resource, som
 </div>
 </div>
 <div class="sect1">
-<h2 id="security-overview_str"><a class="link" href="#security-overview_str">8. Securing Kafka</a></h2>
+<h2 id="security-overview_str"><a class="link" href="#security-overview_str">9. Securing Kafka</a></h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
 <p>A secure deployment of Strimzi might encompass one or more of the following security measures:</p>
@@ -1656,7 +1743,7 @@ For more information about the NIST validation program and validated modules, se
 </div>
 </div>
 <div class="sect1">
-<h2 id="metrics-overview_str"><a class="link" href="#metrics-overview_str">9. Monitoring Kafka</a></h2>
+<h2 id="metrics-overview_str"><a class="link" href="#metrics-overview_str">10. Monitoring Kafka</a></h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
 <p>Monitoring data allows you to monitor the performance and health of Strimzi.
@@ -1702,7 +1789,7 @@ The Prometheus <strong>Alertmanager</strong> plugin handles alerts and routes th
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-09-17 08:34:02 UTC
+Last updated 2025-09-17 09:10:52 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
