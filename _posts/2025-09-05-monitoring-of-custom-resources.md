@@ -15,7 +15,7 @@ This post shows a practical, low‑friction way to close monitoring gaps using [
 ### What Strimzi exposes today
 
 All Strimzi operators (Cluster, User, and Topic Operator) expose metrics in Prometheus-compatible format.
-However, today only the Cluster Operator exports a metric (`strimzi_resource_state`) that describes the state of custom resources (ready or not).
+However, only the Cluster Operator exposes a metric (`strimzi_resource_state`) that reports the state of custom resources (ready or not).
 
 It provides this metric for:
 
