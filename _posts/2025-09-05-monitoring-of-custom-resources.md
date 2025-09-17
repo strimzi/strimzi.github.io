@@ -7,14 +7,14 @@ author: sebastian_gaiser_hetzner
 
 Running Kafka on Kubernetes with Strimzi is straightforward.
 But getting a complete, consistent view of everything in your Kubernetes and Kafka cluster(s) can still be hard.
-Kafka topics and users are often owned by different teams and configured differently, especially when sharing a Kafka cluster e.g. across a company.
+Kafka topics and users are often owned by different teams and configured differently, especially when a Kafka cluster is shared across a company (for example, by multiple teams).
 As usage grows, gathering information and troubleshooting gets harder.
 
 This post shows a practical, low‑friction way to close monitoring gaps using [kube-state-metrics](https://github.com/kubernetes/kube-state-metrics) so you can track every Strimzi custom resource (CR) with a simple, consistent, Kubernetes‑native approach.
 
 ### What Strimzi exposes today
 
-All Strimzi operators (Cluster, User, and Topic Operator) expose metrics in Prometheus compatible format.
+All Strimzi operators (Cluster, User, and Topic Operator) expose metrics in Prometheus-compatible format.
 However, today only the Cluster Operator exports a metric (`strimzi_resource_state`) that describes the state of custom resources (ready or not).
 
 It provides this metric for:
@@ -33,10 +33,10 @@ It does not provide this metric for:
 
 The User and Topic Operators also do not provide this metric for `KafkaUser` and `KafkaTopic`.
 
-In day‑to‑day work, misconfigurations are happening to often like a typo in a topic setting, or using a deprecated field that was removed the last release.
+During routine work, it's easy to introduce misconfigurations, from a simple typo in a topic setting to using a property that was removed in the last release.
 These small issues can trigger long debugging sessions. Often the fix is simple, but finding it is not.
 
-### The simple fix: kube-state-metrics for CRDs
+### The simple fix: use kube-state-metrics for CRDs
 
 In general, kube-state-metrics can read any Kubernetes object, including custom resources, and export info‑style metrics with labels you control.
 This gives you:
@@ -49,7 +49,7 @@ In short, you increase monitoring coverage without changing Strimzi or writing c
 
 ### How to deploy
 
-In gerneral, Strimzi provides plain Kubernetes manifests in the examples directory.
+In general, Strimzi provides plain Kubernetes manifests in the examples directory.
 
 #### Option A — Apply manifests
 
@@ -60,15 +60,15 @@ In [Strimzi 0.48.0](https://github.com/strimzi/strimzi-kafka-operator/releases/t
 - The `Deployment`
 - A `ServiceMonitor` for [Prometheus Operator](https://prometheus-operator.dev/) to scrape itself
 
-Examples: https://github.com/strimzi/strimzi-kafka-operator/tree/0.48.0/examples/metrics/kube-state-metrics
+[Examples directory for kube-state-metrics](https://github.com/strimzi/strimzi-kafka-operator/tree/0.48.0/examples/metrics/kube-state-metrics).
 
 #### Option B — Use Helm
 
-If you prefer deploying applications via Helm, you can use the [Prometheus Community Helm chart for kube-state-metrics](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-state-metrics), which deploys the same resources in one go.
+If you prefer deploying applications via Helm, you can use the [Prometheus Community Helm chart for kube-state-metrics](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-state-metrics), which deploys the required resources in one go.
 This chart is also part of the commonly used [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack), so you can simply use the same values directly there.
 
-For this demonstration, we will use the kube-state-metrics Helm chart version `6.3.0` (kube-state-metrics `2.17.0`) is used. See the [chart reference](https://github.com/prometheus-community/helm-charts/tree/kube-state-metrics-6.3.0/charts/kube-state-metrics).
-Used values:
+In the following demonstration, the kube-state-metrics Helm chart version `6.3.0` (kube-state-metrics `2.17.0`) is used. See the [chart reference](https://github.com/prometheus-community/helm-charts/tree/kube-state-metrics-6.3.0/charts/kube-state-metrics).
+Configuration values used:
 
 ```yaml
 # my-strimzi-kube-state-metrics-values.yaml
@@ -525,7 +525,7 @@ Example output:
 ### Deprecation
 
 With the new kube-state-metrics–based metrics, the built‑in Cluster Operator metrics are deprecated as of [Strimzi 0.48.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.48.0) and will be removed in Strimzi 0.51.0.
-Migration to kube-state-metrics across all Strimzi CRs is recommended.
+If you still rely on strimzi_resource_state, plan migration now.
 Progress on the removal is tracked here: [https://github.com/strimzi/strimzi-kafka-operator/issues/11696](https://github.com/strimzi/strimzi-kafka-operator/issues/11696).
 
 ### Wrap‑up
