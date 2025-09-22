@@ -35591,18 +35591,20 @@ If you installed Strimzi using another method, such as <a href="https://operator
 <div class="sect2">
 <h3 id="proc-downgrade-kafka-kraft-str"><a class="link" href="#proc-downgrade-kafka-kraft-str">31.1. Downgrading Kafka clusters and client applications</a></h3>
 <div class="paragraph _abstract">
-<p>Downgrade a Kafka cluster to an earlier version.
-When downgrading a Kafka cluster to a lower version, like moving from 4.1.0 to 4.0.0, ensure that the metadata version used by the Kafka cluster is a version supported by the Kafka version you want to downgrade to.
-The metadata version for the Kafka version you are downgrading from must not be higher than the version you are downgrading to.</p>
+<p>You can downgrade a Kafka cluster to an earlier version only when the metadata format is compatible.
+Kafka permits downgrades only if there are no metadata changes between your current Kafka version and the target version.
+In practice, this means the cluster’s metadata version must be set to a value that the target Kafka version supports, and there must be no intervening metadata changes between the two versions.</p>
 </div>
-<div class="admonitionblock note">
+<div class="admonitionblock important">
 <table>
 <tr>
 <td class="icon">
-<div class="title">Note</div>
+<div class="title">Important</div>
 </td>
 <td class="content">
-Consult the Apache Kafka documentation for information regarding the support and limitations associated with downgrades.
+If the cluster is already using the latest metadata version for the current release, you cannot downgrade.
+The downgrade is only possible if there is a metadata format that is valid in both the current and target Kafka versions.
+Consult the Apache Kafka documentation for information on supported metadata version values and downgrade limitations.
 </td>
 </tr>
 </table>
@@ -35618,21 +35620,24 @@ Consult the Apache Kafka documentation for information regarding the support and
 <div class="ulist">
 <ul>
 <li>
-<p>The <code>Kafka</code> custom resource does not contain options that are not supported by the Kafka version being downgraded to.</p>
+<p>The <code>Kafka</code> custom resource does not include options that are unsupported by the target Kafka version.</p>
 </li>
 <li>
-<p><code>spec.kafka.metadataVersion</code> is set to a version that is supported by the Kafka version being downgraded to.</p>
+<p>The target Kafka version supports the metadata version (<code>spec.kafka.metadataVersion</code>) you plan to use.</p>
 </li>
 </ul>
 </div>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>You can verify the current Kafka and metadata version by checking the status of the <code>Kafka</code> custom resource.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Update the Kafka cluster configuration.</p>
+<p>Update the Kafka cluster configuration:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit kafka &lt;kafka_configuration_file&gt;</code></pre>
@@ -35640,7 +35645,11 @@ Consult the Apache Kafka documentation for information regarding the support and
 </div>
 </li>
 <li>
-<p>Change the <code>metadataVersion</code> version to a version supported by the Kafka version you are downgrading to; leave the <code>Kafka.spec.kafka.version</code> unchanged at the <em>current</em> Kafka version.</p>
+<p>Change the <code>metadataVersion</code> version to a value that is supported by both the current Kafka version and the target version.
+The Kafka version must be able to operate with this metadata format.</p>
+<div class="paragraph">
+<p>Leave the <code>Kafka.spec.kafka.version</code> unchanged at the <em>current</em> Kafka version.</p>
+</div>
 <div class="paragraph">
 <p>For example, if downgrading from Kafka 4.1.0 to 4.0.0:</p>
 </div>
