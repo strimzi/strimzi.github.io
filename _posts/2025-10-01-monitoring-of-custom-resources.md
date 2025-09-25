@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Monitoring of custom resources"
-date: 2025-09-05
+date: 2025-10-01
 author: sebastian_gaiser_hetzner
 ---
 
@@ -54,14 +54,14 @@ In general, Strimzi provides plain Kubernetes manifests in the examples director
 
 #### Option A — Apply manifests
 
-In [Strimzi 0.48.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.48.0), examples are included to deploy kube-state-metrics with the corresponding:
+From [Strimzi 0.48.0](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.48.0) onwards, examples are included to deploy kube-state-metrics with the corresponding:
 
 - RBAC resources (`ServiceAccount`, `RoleBinding`, `ClusterRoleBinding`)
 - A `ConfigMap` for CR configuration
 - The `Deployment`
 - A `ServiceMonitor` for [Prometheus Operator](https://prometheus-operator.dev/) to scrape itself
 
-[Examples directory for kube-state-metrics](https://github.com/strimzi/strimzi-kafka-operator/tree/0.48.0/examples/metrics/kube-state-metrics).
+[Examples directory for kube-state-metrics](https://github.com/strimzi/strimzi-kafka-operator/tree/main/examples/metrics/kube-state-metrics).
 
 #### Option B — Use Helm
 
