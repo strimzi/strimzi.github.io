@@ -653,8 +653,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#type-KafkaConnect-reference">82. <code>KafkaConnect</code> schema reference</a></li>
 <li><a href="#type-KafkaConnectSpec-reference">83. <code>KafkaConnectSpec</code> schema reference</a>
 <ul class="sectlevel2">
-<li><a href="#property-kafka-connect-logging-reference">83.1. Logging</a></li>
-<li><a href="#type-KafkaConnectSpec-schema-reference">83.2. <code>KafkaConnectSpec</code> schema properties</a></li>
+<li><a href="#property-kafka-connect-internal-topics-grop-id-reference">83.1. Group ID and internal topics</a></li>
+<li><a href="#property-kafka-connect-additional-configuration-reference">83.2. Additional configuration</a></li>
+<li><a href="#property-kafka-connect-logging-reference">83.3. Logging</a></li>
+<li><a href="#type-KafkaConnectSpec-schema-reference">83.4. <code>KafkaConnectSpec</code> schema properties</a></li>
 </ul>
 </li>
 <li><a href="#type-ClientTls-reference">84. <code>ClientTls</code> schema reference</a>
@@ -10653,9 +10655,54 @@ The list contains one of the following:</p>
 <div class="paragraph">
 <p>Configures a Kafka Connect cluster.</p>
 </div>
+<div class="sect2">
+<h3 id="property-kafka-connect-internal-topics-grop-id-reference"><a class="link" href="#property-kafka-connect-internal-topics-grop-id-reference">83.1. Group ID and internal topics</a></h3>
+<div class="paragraph">
+<p>The group ID and the internal topics used by the Kafka Connect cluster are configured in the <code>.spec</code> section of the <code>KafkaConnect</code> resource</p>
+</div>
+<div class="listingblock">
+<div class="title">Example group ID and internal topics configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  groupId: my-connect-group
+  configStorageTopic: my-config-topic
+  offsetStorageTopic: my-offset-topic
+  statusStorageTopic: my-status-topic
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>These fields are required in the <code>v1</code> CRD API version.
+In the <code>v1beta2</code> version, these properties are optional.
+If not set, the following default values apply:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>groupId</code> will default value <code>connect-cluster</code></p>
+</li>
+<li>
+<p><code>configStorageTopic</code> will default to <code>connect-cluster-configs</code></p>
+</li>
+<li>
+<p><code>offsetStorageTopic</code> will default to <code>connect-cluster-offsets</code></p>
+</li>
+<li>
+<p><code>statusStorageTopic</code> will default to <code>connect-cluster-status</code></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="property-kafka-connect-additional-configuration-reference"><a class="link" href="#property-kafka-connect-additional-configuration-reference">83.2. Additional configuration</a></h3>
 <div class="paragraph">
 <p>The <code>config</code> properties are one part of the overall configuration for the resource.
-Use the <code>config</code> properties to configure Kafka Connect options as keys.</p>
+Use the <code>config</code> properties to configure additional Kafka Connect options as keys.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example Kafka Connect configuration</div>
@@ -10667,10 +10714,6 @@ metadata:
 spec:
   # ...
   config:
-    group.id: my-connect-cluster
-    offset.storage.topic: my-connect-cluster-offsets
-    config.storage.topic: my-connect-cluster-configs
-    status.storage.topic: my-connect-cluster-status
     key.converter: org.apache.kafka.connect.json.JsonConverter
     value.converter: org.apache.kafka.connect.json.JsonConverter
     key.converter.schemas.enable: true
@@ -10702,18 +10745,6 @@ spec:
 </div>
 <div class="ulist">
 <ul>
-<li>
-<p><code>group.id</code> with default value <code>connect-cluster</code></p>
-</li>
-<li>
-<p><code>offset.storage.topic</code> with default value <code>connect-cluster-offsets</code></p>
-</li>
-<li>
-<p><code>config.storage.topic</code> with default value <code>connect-cluster-configs</code></p>
-</li>
-<li>
-<p><code>status.storage.topic</code> with default value <code>connect-cluster-status</code></p>
-</li>
 <li>
 <p><code>key.converter</code> with default value <code>org.apache.kafka.connect.json.JsonConverter</code></p>
 </li>
@@ -10809,8 +10840,9 @@ In this case, fix the configuration so that the Cluster Operator can roll out th
 </tr>
 </table>
 </div>
+</div>
 <div class="sect2">
-<h3 id="property-kafka-connect-logging-reference"><a class="link" href="#property-kafka-connect-logging-reference">83.1. Logging</a></h3>
+<h3 id="property-kafka-connect-logging-reference"><a class="link" href="#property-kafka-connect-logging-reference">83.3. Logging</a></h3>
 <div class="admonitionblock warning">
 <table>
 <tr>
@@ -10945,7 +10977,7 @@ spec:
 </div>
 </div>
 <div class="sect2">
-<h3 id="type-KafkaConnectSpec-schema-reference"><a class="link" href="#type-KafkaConnectSpec-schema-reference">83.2. <code>KafkaConnectSpec</code> schema properties</a></h3>
+<h3 id="type-KafkaConnectSpec-schema-reference"><a class="link" href="#type-KafkaConnectSpec-schema-reference">83.4. <code>KafkaConnectSpec</code> schema properties</a></h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 28.5714%;">
@@ -10986,6 +11018,34 @@ spec:
 <td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>Bootstrap servers to connect to. This should be given as a comma separated list of <em>&lt;hostname&gt;</em>:_&lt;port&gt;_ pairs.</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">groupId</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>A unique ID that identifies the Connect cluster group.</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">configStorageTopic</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>The name of the Kafka topic where connector configurations are stored.</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">statusStorageTopic</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>The name of the Kafka topic where connector and task status are stored.</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">offsetStorageTopic</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>The name of the Kafka topic where source connector offsets are stored.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -17324,7 +17384,7 @@ Do not create, modify or delete <code>StrimziPodSet</code> resources as this mig
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-09-30 04:12:42 UTC
+Last updated 2025-09-30 07:02:13 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
