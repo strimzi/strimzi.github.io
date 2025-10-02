@@ -71,6 +71,7 @@ This chart is also part of the commonly used [kube-prometheus-stack](https://git
 In the following demonstration, the kube-state-metrics Helm chart version `6.3.0` (kube-state-metrics `2.17.0`) is used. See the [chart reference](https://github.com/prometheus-community/helm-charts/tree/kube-state-metrics-6.3.0/charts/kube-state-metrics).
 Configuration values used:
 
+{% raw %}
 ```yaml
 # my-strimzi-kube-state-metrics-values.yaml
 prometheus:
@@ -470,6 +471,7 @@ extraManifests:
               annotations:
                 message: "Strimzi KafkaAccess {{`{{ $labels.name }}`}} contains a deprecated configuration"
 ```
+{% endraw %}
 
 Then you can simply install kube-state-metrics by executing:
 
