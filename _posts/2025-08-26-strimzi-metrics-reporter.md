@@ -13,8 +13,8 @@ In essence, monitoring is crucial to ensure the health and performance of your K
 Prometheus is a metrics monitoring solution that is increasingly common due to its popularity in the cloud-native ecosystem, and it is this format that we use to expose metrics.
 Up to this point, we have recommended using the [JMX Exporter](https://github.com/prometheus/jmx_exporter) as a way to expose Kafka metrics, and we have provided some example YAML files in our [Strimzi Examples folder](https://github.com/strimzi/strimzi-kafka-operator/tree/main/packaging/examples/metrics).
 
-The [Strimzi Metrics Reporter](https://github.com/strimzi/metrics-reporter) is a new project in Strimzi and it is available since Strimzi 0.48.0 release.
-It implements the Kafka MetricsReporter interface to expose metrics via Prometheus.
+The [Strimzi Metrics Reporter](https://github.com/strimzi/metrics-reporter) is a new project in Strimzi, still in early access, and it is available since Strimzi 0.48.0 release.
+It implements the Kafka `MetricsReporter` interface to expose metrics via Prometheus.
 Strimzi Metrics Reporter is designed from scratch as a Kafka plugin and allows you to configure it directly from the Kafka configuration.
 That also means it is more efficient compared to other monitoring tools that run as sidecars or JVM agents.
 Strimzi Metrics Reporter has fixed names for all metrics giving users much less flexibility than other tools which provide complex mapping rules based on regular expressions.
@@ -23,7 +23,7 @@ But it is easier to use and provides a metrics interface that is less fragile an
 Here, we will discuss Strimzi Metrics Reporter installation and configuration, and guide you on how to use it effectively to monitor your Kafka clusters.
 
 ### Key Features
-* Direct Prometheus Integration: Exposes Kafka metrics directly to Prometheus through an HTTP endpoint.
+* "Native Prometheus support: The reporter exposes metrics in the Prometheus format through an HTTP endpoint, without relying on JMX.
 * Configurable Metrics Collection: Allows users to specify which metrics should be collected using a flexible allowlist.
 
 #### Deploying Metrics Reporter
@@ -44,9 +44,9 @@ spec:
 ```
 
 By adding `type: strimziMetricsReporter` to the `metricsConfig` section of your `Kafka` custom resource, Strimzi will export a sensible set of default metrics.
-However, you can add you own custom values (providing the metrics are available) by filtering the metrics by name. 
+However, you can add you own custom values by filtering the metrics by name. 
 This is achieved by adding another field called `values`, and within that field, adding `allowList`.
-Then you can specify which metrics you want to collect as a regex list, where each entry is used to filter allowed metrics. 
+Then you can specify which metrics you want to collect, where each entry is used to filter allowed metrics. 
 For example:
 
 ```yaml
@@ -74,6 +74,8 @@ $ kubectl apply -f https://strimzi.io/examples/0.48.0/metrics/strimzi-metrics-re
 ```
 
 We also provide some [Grafana Dashboards](https://github.com/strimzi/strimzi-kafka-operator/tree/0.48.0/examples/metrics/strimzi-metrics-reporter/grafana-dashboards) to help you get started with visualizing your Kafka metrics in the Prometheus format.
+Strimzi Metrics Reporter can also be used with Kafka Connect and Kafka MirrorMaker 2, and we provide [examples](https://github.com/strimzi/strimzi-kafka-operator/tree/0.48.0/examples/metrics/strimzi-metrics-reporter) for these too.
+
 
 ### Conclusion
 We have shown you how to deploy the Strimzi Metrics Reporter in your Kafka cluster and given some reasons why you might want to use it as an alternative to other monitoring tools.
