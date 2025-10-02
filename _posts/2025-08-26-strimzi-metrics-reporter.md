@@ -46,7 +46,8 @@ spec:
 By adding `type: strimziMetricsReporter` to the `metricsConfig` section of your `Kafka` custom resource, Strimzi will export a sensible set of default metrics.
 However, you can add you own custom values by filtering the metrics by name. 
 This is achieved by adding another field called `values`, and within that field, adding `allowList`.
-Then you can specify which metrics you want to collect, where each entry is used to filter allowed metrics. 
+Then you can specify which metrics you want to collect, where each entry is used to filter allowed metrics.
+You can put individual metrics names or use a regex to include a group of metrics and avoid having a long list.
 For example:
 
 ```yaml
