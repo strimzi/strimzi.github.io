@@ -70,7 +70,7 @@ spec:
   # ...  
 ```
 
-If you add Strimzi Metrics Reporter to an existing cluster, all Kafka broker and Controller pods roll to apply the new configuration without any downtime to your pods.
+If you add Strimzi Metrics Reporter to an existing cluster, all Kafka broker and Controller pods roll to apply the new configuration without any downtime to your cluster.
 If you would like to deploy your Kafka cluster with the Strimzi Metrics Reporter enabled from the start, you can use the examples in our [Strimzi Metrics Reporter Examples folder](https://github.com/strimzi/strimzi-kafka-operator/tree/0.48.0/examples/metrics/strimzi-metrics-reporter) by running the following command:
 
 ```bash
