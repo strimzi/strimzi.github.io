@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Using Strimzi Metrics Reporter to expose Kafka metrics in Prometheus format"
-date: 2025-10-01
+date: 2025-10-06
 author: owen_corrigan
 ---
 
@@ -81,7 +81,7 @@ Strimzi Metrics Reporter can also be used with Strimzi Kafka Bridge, Kafka Conne
 ### Conclusion
 We have shown you how to deploy the Strimzi Metrics Reporter in your Kafka cluster and given some reasons why you might want to use it as an alternative to other monitoring tools.
 The Strimzi Metrics Reporter was recently [featured as part of StrimziCon 2025](https://www.youtube.com/watch?v=evKGEziQj54) which you may also find worth watching.
-We also provide you with a practical demo video in which we go through the steps outlined above and hopefully this will encourage you to try out Strimzi Metrics Reporter for yourself.
+We also provide you with a practical demo video on our [Youtube](https://www.youtube.com/watch?v=Za04jVp8f5c) channel in which we go through the steps outlined above, and hopefully this will encourage you to try out Strimzi Metrics Reporter for yourself.
 
 We are looking forward to people trying it, and as always, we are open to feedback, questions and suggestions, so please [reach out to us](https://strimzi.io/community/).
 Thanks for reading and keep an eye on our blog posts for future updates.
