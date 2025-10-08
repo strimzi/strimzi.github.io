@@ -4642,18 +4642,18 @@ Deploying multiple clusters in the same namespace can lead to naming conflicts a
 <div class="ulist">
 <ul>
 <li>
-<p><code>spec.clusters[].bootstrapServers</code> to specify the Kafka bootstrap address for the source and target clusters.</p>
+<p><code>spec.target.bootstrapServers</code> and <code>.spec.mirrors[].source.bootstrapServers</code> to specify the Kafka bootstrap address for the source and target clusters.</p>
 </li>
 <li>
-<p><code>spec.clusters[].alias</code> to specify a unique identifier for each cluster.</p>
+<p><code>spec.target.alias</code> and <code>.spec.mirrors[].source.alias</code> to specify a unique identifier for each cluster.</p>
 </li>
 <li>
-<p><code>spec.clusters[].authentication</code> to specify the authentication type for each cluster as <code>tls</code>, <code>scram-sha-256</code>, <code>scram-sha-512</code>, <code>plain</code>, or <code>oauth</code>.<br>
+<p><code>spec.target.authentication</code> and <code>.spec.mirrors[].source.authentication</code> to specify the authentication type for each cluster as <code>tls</code>, <code>scram-sha-256</code>, <code>scram-sha-512</code>, <code>plain</code>, or <code>oauth</code>.
 See the <a href="./configuring.html#type-KafkaMirrorMaker2ClusterSpec-schema-reference" target="_blank" rel="noopener"><code>KafkaMirrorMaker2Spec</code> schema properties</a> for configuration details.</p>
 </li>
 <li>
-<p><code>spec.clusters[].tls.trustedCertificates</code> to configure the TLS certificate for each cluster.<br>
-Use <code>[]</code> (an empty array) to trust the default Java CAs, or specify secrets containing trusted certificates.<br>
+<p><code>spec.target.tls.trustedCertificates</code> and <code>.spec.mirrors[].source.tls.trustedCertificates</code> to configure the TLS certificate for each cluster.
+Use <code>[]</code> (an empty array) to trust the default Java CAs, or specify secrets containing trusted certificates.
 See the <a href="./configuring.html#con-common-configuration-trusted-certificates-reference" target="_blank" rel="noopener"><code>trustedCertificates</code> properties</a> for configuration details.</p>
 </li>
 </ul>
@@ -4665,7 +4665,7 @@ See the <a href="./configuring.html#con-common-configuration-trusted-certificate
 <p>If you plan to run more than one MirrorMaker 2 cluster in the same environment, each instance must use unique internal topic names and a unique group ID.</p>
 </div>
 <div class="paragraph">
-<p>Update the <code>spec.clusters[].config</code> properties in <code>kafka-mirror-maker-2.yaml</code> to replace the default values.</p>
+<p>Update the <code>spec.target</code> properties in <code>kafka-mirror-maker-2.yaml</code> to replace the default values.</p>
 </div>
 <div class="paragraph">
 <p>See <a href="#con-config-mm2-multiple-instances-str">Configuring multiple MirrorMaker 2 clusters</a> for details.</p>
@@ -11024,16 +11024,16 @@ Common configuration includes setting resource limits and requests (recommended)
 <div class="ulist">
 <ul>
 <li>
-<p><code>clusters</code>: The connection details for source and target Kafka clusters. Each requires a unique alias.</p>
+<p><code>.spec.target</code>: The connection details for the target Kafka cluster. Requires a unique alias. MirrorMaker 2 runs on the Kafka Connect framework, and its configuration and status are stored on this cluster.</p>
 </li>
 <li>
-<p><code>connectCluster</code>: The alias of the target cluster. MirrorMaker 2 runs on the Kafka Connect framework, and its configuration and status are stored on this cluster.</p>
+<p><code>.spec.mirrors</code>: The replication flow from a source cluster to a target cluster.</p>
 </li>
 <li>
-<p><code>replicas</code>: The number of Kafka Connect worker pods to deploy.</p>
+<p><code>.spec.mirrors[].source</code>: The connection details for the source Kafka cluster. Requires a unique alias.</p>
 </li>
 <li>
-<p><code>mirrors</code>: The replication flow from a source cluster to a target cluster.</p>
+<p><code>.spec.replicas</code>: The number of Kafka Connect worker pods to deploy.</p>
 </li>
 </ul>
 </div>
@@ -11064,18 +11064,19 @@ spec:
   version: 4.1.0
   # Replicas (required)
   replicas: 3 # <b class="conum">(1)</b>
-  # Connect cluster name (required)
-  connectCluster: "my-cluster-target" # <b class="conum">(2)</b>
-  # Cluster configurations (required)
-  clusters:
-  - alias: "my-cluster-source" # <b class="conum">(3)</b>
-    bootstrapServers: my-cluster-source-kafka-bootstrap:9092
-  - alias: "my-cluster-target"
+  # Target / Connect cluster configuration (required)
+  target: # <b class="conum">(2)</b>
+    alias: "my-cluster-target"
     bootstrapServers: my-cluster-target-kafka-bootstrap:9092
+    groupId: my-mirror-maker2-group
+    configStorageTopic: my-mirror-maker2-config
+    offsetStorageTopic: my-mirror-maker2-offset
+    statusStorageTopic: my-mirror-maker2-status
   # Mirroring configurations (required)
-  mirrors: # <b class="conum">(4)</b>
-  - sourceCluster: "my-cluster-source"
-    targetCluster: "my-cluster-target"
+  mirrors: # <b class="conum">(3)</b>
+  - source:
+      alias: "my-cluster-source" # <b class="conum">(4)</b>
+      bootstrapServers: my-cluster-source-kafka-bootstrap:9092
     # Source connector configuration (required) # <b class="conum">(5)</b>
     sourceConnector: {}
     # Topic and group patterns (required)
@@ -11089,13 +11090,13 @@ spec:
 <p>Number of Kafka Connect worker replicas to run.</p>
 </li>
 <li>
-<p>Alias of the Kafka cluster used by Kafka Connect to store internal topics. This must be the alias of the target cluster.</p>
-</li>
-<li>
-<p>Each Kafka cluster (source and target) must define a unique alias and a bootstrap address. The bootstrap address takes the format <code>&lt;cluster_name&gt;-kafka-bootstrap:&lt;port&gt;</code>.</p>
+<p>Configuration of the Kafka cluster used as the target cluster. The cluster is also used by Kafka Connect to store internal topics.</p>
 </li>
 <li>
 <p>Defines replication between the source and target clusters.</p>
+</li>
+<li>
+<p>Source cluster configuration must define a unique alias and a bootstrap address. The bootstrap address takes the format <code>&lt;cluster_name&gt;-kafka-bootstrap:&lt;port&gt;</code>.</p>
 </li>
 <li>
 <p>Configuration for the source connector that replicates topics. At a minimum, you can add an empty <code>sourceConnector</code> property to use the default configuration.</p>
@@ -11419,15 +11420,7 @@ spec:
           name: "*"
         operations:
           - Read
-          - Describe
-      # MirrorHeartbeatConnector
-      - resource:
-          type: topic
-          name: heartbeats
-        operations:
-          - Create
-          - Describe
-          - Write</code></pre>
+          - Describe</code></pre>
 </div>
 </div>
 <div class="admonitionblock note">
@@ -11472,48 +11465,47 @@ metadata:
 spec:
   version: 4.1.0
   replicas: 1
-  connectCluster: "my-target-cluster"
-  clusters:
-    - alias: "my-source-cluster"
-      bootstrapServers: my-source-cluster-kafka-bootstrap:9093
-      tls: # <b class="conum">(1)</b>
-        trustedCertificates:
-          - secretName: my-source-cluster-cluster-ca-cert
-            pattern: "*.crt"
-      authentication: # <b class="conum">(2)</b>
-        type: tls
-        certificateAndKey:
-          secretName: my-source-user
-          certificate: user.crt
-          key: user.key
-    - alias: "my-target-cluster"
-      bootstrapServers: my-target-cluster-kafka-bootstrap:9093
-      tls: # <b class="conum">(3)</b>
-        trustedCertificates:
-          - secretName: my-target-cluster-cluster-ca-cert
-            pattern: "*.crt"
-      authentication: # <b class="conum">(4)</b>
-        type: tls
-        certificateAndKey:
-          secretName: my-target-user
-          certificate: user.crt
-          key: user.key
-      config:
-        # -1 means it will use the default replication factor configured in the broker
-        config.storage.replication.factor: -1
-        offset.storage.replication.factor: -1
-        status.storage.replication.factor: -1
+  target:
+    alias: "my-cluster-target"
+    bootstrapServers: my-cluster-target-kafka-bootstrap:9092
+    groupId: my-mirror-maker2-group
+    configStorageTopic: my-mirror-maker2-config
+    offsetStorageTopic: my-mirror-maker2-offset
+    statusStorageTopic: my-mirror-maker2-status
+    tls: # <b class="conum">(1)</b>
+      trustedCertificates:
+        - secretName: my-target-cluster-cluster-ca-cert
+          pattern: "*.crt"
+    authentication: # <b class="conum">(2)</b>
+      type: tls
+      certificateAndKey:
+        secretName: my-target-user
+        certificate: user.crt
+        key: user.key
+    config:
+      # -1 means it will use the default replication factor configured in the broker
+      config.storage.replication.factor: -1
+      offset.storage.replication.factor: -1
+      status.storage.replication.factor: -1
   mirrors:
-    - sourceCluster: "my-source-cluster"
-      targetCluster: "my-target-cluster"
+    - source:
+        alias: "my-source-cluster"
+        bootstrapServers: my-source-cluster-kafka-bootstrap:9093
+        tls: # <b class="conum">(3)</b>
+          trustedCertificates:
+            - secretName: my-source-cluster-cluster-ca-cert
+              pattern: "*.crt"
+        authentication: # <b class="conum">(4)</b>
+          type: tls
+          certificateAndKey:
+            secretName: my-source-user
+            certificate: user.crt
+            key: user.key
       sourceConnector:
         config:
           replication.factor: 1
           offset-syncs.topic.replication.factor: -1
           sync.topic.acls.enabled: "false"
-      heartbeatConnector:
-        config:
-          heartbeats.topic.replication.factor: 1
       checkpointConnector:
         config:
           checkpoints.topic.replication.factor: 1
@@ -11525,16 +11517,16 @@ spec:
 <div class="colist arabic">
 <ol>
 <li>
-<p>The TLS certificates for the source Kafka cluster. If they are in a separate namespace, copy the cluster secrets from the namespace of the Kafka cluster.</p>
-</li>
-<li>
-<p>The user authentication for accessing the source Kafka cluster using the TLS mechanism. Supported authentication methods include <code>tls</code>, <code>scram-sha-256</code>, <code>scram-sha-512</code>, <code>plain</code>, and <code>oauth</code>.</p>
-</li>
-<li>
 <p>The TLS certificates for the target Kafka cluster.</p>
 </li>
 <li>
 <p>The user authentication for accessing the target Kafka cluster.</p>
+</li>
+<li>
+<p>The TLS certificates for the source Kafka cluster. If they are in a separate namespace, copy the cluster secrets from the namespace of the Kafka cluster.</p>
+</li>
+<li>
+<p>The user authentication for accessing the source Kafka cluster using the TLS mechanism. Supported authentication methods include <code>tls</code>, <code>scram-sha-256</code>, <code>scram-sha-512</code>, <code>plain</code>, and <code>oauth</code>.</p>
 </li>
 </ol>
 </div>
@@ -11579,14 +11571,11 @@ metadata:
 spec:
   # ...
   mirrors:
-    - sourceCluster: "my-cluster-source"
-      targetCluster: "my-cluster-target"
+    - source:
+        # ...
       sourceConnector:
         config:
           replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy" # <b class="conum">(1)</b>
-      heartbeatConnector:
-        config:
-          replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy"
       checkpointConnector:
         config:
           replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy"</code></pre>
@@ -11606,7 +11595,7 @@ spec:
 <div class="title">Important</div>
 </td>
 <td class="content">
-Values for <code>replication.policy.class</code> and <code>replication.policy.separator</code> must be the same across all MirrorMaker 2 connectors (<code>sourceConnector</code>, <code>heartbeatConnector</code>, and <code>checkpointConnector</code>).
+Values for <code>replication.policy.class</code> and <code>replication.policy.separator</code> must be the same across all MirrorMaker 2 connectors (<code>sourceConnector</code> and <code>checkpointConnector</code>).
 </td>
 </tr>
 </table>
@@ -11677,8 +11666,9 @@ metadata:
   name: my-mirror-maker2
   # ...
   mirrors:
-    - sourceCluster: "my-cluster-source"
-      targetCluster: "my-cluster-target"
+    - source:
+        alias: "my-cluster-source"
+        bootstrapServers: my-cluster-source-kafka-bootstrap:9092
       sourceConnector:
         config:
           offset-syncs.topic.replication.factor: -1 # <b class="conum">(1)</b>
@@ -11761,14 +11751,17 @@ metadata:
 spec:
   version: 4.1.0
   # ...
-  clusters:
-  - alias: "my-cluster-source"
-    bootstrapServers: my-cluster-source-kafka-bootstrap:9092
-  - alias: "my-cluster-target"
+  target:
+    alias: "my-cluster-target"
     bootstrapServers: my-cluster-target-kafka-bootstrap:9092
+    groupId: my-mirror-maker2-group
+    configStorageTopic: my-mirror-maker2-config
+    offsetStorageTopic: my-mirror-maker2-offset
+    statusStorageTopic: my-mirror-maker2-status
   mirrors:
-  - sourceCluster: "my-cluster-source"
-    targetCluster: "my-cluster-target"
+  - source:
+      alias: "my-cluster-source"
+      bootstrapServers: my-cluster-source-kafka-bootstrap:9092
     sourceConnector:
       listOffsets:
         toConfigMap:
@@ -11916,8 +11909,8 @@ metadata:
   name: my-mirror-maker2
   # ...
   mirrors:
-    - sourceCluster: "my-cluster-source"
-      targetCluster: "my-cluster-target"
+    - source:
+        # ...
       sourceConnector:
         config:
           sync.topic.acls.enabled: "true" # <b class="conum">(1)</b></code></pre>
@@ -11945,26 +11938,27 @@ metadata:
   name: my-mirror-maker2
 spec:
   # ...
-  # Connect cluster name (required)
-  connectCluster: "my-cluster-target" # <b class="conum">(1)</b>
-  # Cluster configurations (required)
-  clusters:
-    - alias: "my-cluster-target"
-      bootstrapServers: my-cluster-target-kafka-bootstrap:9092
-      # Kafka Connect configuration (optional)
-      config: # <b class="conum">(2)</b>
-        task.shutdown.graceful.timeout.ms: 30000
-        scheduled.rebalance.max.delay.ms: 300000
-        offset.flush.interval.ms: 10000
-        config.storage.replication.factor: 1
-        offset.storage.replication.factor: 1
-        status.storage.replication.factor: 1</code></pre>
+  # Target cluster configurations (required)
+  target: # <b class="conum">(1)</b>
+    alias: "my-cluster-target"
+    bootstrapServers: my-cluster-target-kafka-bootstrap:9092
+    groupId: my-mirror-maker2-group
+    configStorageTopic: my-mirror-maker2-config
+    offsetStorageTopic: my-mirror-maker2-offset
+    statusStorageTopic: my-mirror-maker2-status
+    config: # <b class="conum">(2)</b>
+      task.shutdown.graceful.timeout.ms: 30000
+      scheduled.rebalance.max.delay.ms: 300000
+      offset.flush.interval.ms: 10000
+      config.storage.replication.factor: 1
+      offset.storage.replication.factor: 1
+      status.storage.replication.factor: 1</code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <ol>
 <li>
-<p>The Kafka Connect cluster alias (must match the target cluster). Used to store internal topics.</p>
+<p>The target cluster configuration. The target cluster is always used to store Kafka Connect&#8217;s internal topics.</p>
 </li>
 <li>
 <p>These properties configure the Kafka Connect workers in this cluster.</p>
@@ -11973,10 +11967,10 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-config-mm2-multiple-instances-str"><a class="link" href="#con-config-mm2-multiple-instances-str">11.9.7. Configuring MirrorMaker 2 using a shared <code>connectCluster</code></a></h4>
+<h4 id="con-config-mm2-multiple-instances-str"><a class="link" href="#con-config-mm2-multiple-instances-str">11.9.7. Configuring MirrorMaker 2 using a shared target Kafka cluster</a></h4>
 <div class="paragraph _abstract">
-<p>By default, Strimzi configures the group ID and names of the internal topics used by the Kafka Connect framework that MirrorMaker 2 runs on.
-When running multiple instances of MirrorMaker 2, and they share the same <code>connectCluster</code> value, you must change these default settings using the following <code>config</code> properties:</p>
+<p>The group ID and names of the internal topics used by the Kafka Connect framework that MirrorMaker 2 runs on are configured in the <code>.spec.target</code> section.
+When running multiple instances of MirrorMaker 2, and they share the same target cluster, you must use unique values to make sure the MirrorMaker 2 clusters operate independently.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -11985,16 +11979,15 @@ kind: KafkaMirrorMaker2
 metadata:
   name: my-mirror-maker2
 spec:
-  connectCluster: "my-cluster-target"
-  clusters:
-  - alias: "my-cluster-target"
-    config:
-      group.id: my-connect-cluster # <b class="conum">(1)</b>
-      offset.storage.topic: my-connect-cluster-offsets # <b class="conum">(2)</b>
-      config.storage.topic: my-connect-cluster-configs # <b class="conum">(3)</b>
-      status.storage.topic: my-connect-cluster-status # <b class="conum">(4)</b>
-      # ...
-    # ...</code></pre>
+  # Target / Connect cluster configuration (required)
+  target:
+    alias: "my-cluster-target"
+    bootstrapServers: my-cluster-target-kafka-bootstrap:9092
+    groupId: my-mirror-maker2-group # <b class="conum">(1)</b>
+    configStorageTopic: my-mirror-maker2-config # <b class="conum">(2)</b>
+    offsetStorageTopic: my-mirror-maker2-offset # <b class="conum">(3)</b>
+    statusStorageTopic: my-mirror-maker2-status # <b class="conum">(4)</b>
+  # ...</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -12026,12 +12019,12 @@ Values for the three topics must be the same for all instances with the same <co
 </table>
 </div>
 <div class="paragraph">
-<p>The <code>connectCluster</code> setting specifies the alias of the target Kafka cluster used by Kafka Connect for its internal topics.
-As a result, modifications to the <code>connectCluster</code>, group ID, and internal topic naming configuration are specific to the target Kafka cluster.
-You don&#8217;t need to make changes if two MirrorMaker 2 instances are using the same source Kafka cluster or in an active-active mode where each MirrorMaker 2 instance has a different <code>connectCluster</code> setting and target cluster.</p>
+<p>The <code>target</code> cluster specifies the target Kafka cluster used by Kafka Connect for its internal topics.
+As a result, modifications to the <code>target</code>, group ID, and internal topic naming configuration are specific to the target Kafka cluster.
+You don&#8217;t need to make changes if two MirrorMaker 2 instances are using the same source Kafka cluster or in an active-active mode where each MirrorMaker 2 instance has a different target cluster.</p>
 </div>
 <div class="paragraph">
-<p>However, if multiple MirrorMaker 2 instances share the same <code>connectCluster</code>, each instance connecting to the same target Kafka cluster is deployed with the same values.
+<p>However, if multiple MirrorMaker 2 instances share the same <code>target</code>, each instance connecting to the same target Kafka cluster is deployed with the same values.
 In practice, this means all instances form a cluster and use the same internal topics.</p>
 </div>
 <div class="paragraph">
@@ -12132,7 +12125,9 @@ Configure these connectors in your <code>KafkaMirrorMaker2</code> custom resourc
 </dd>
 <dt class="hdlist1"><code>MirrorHeartbeatConnector</code></dt>
 <dd>
-<p>(Optional) Monitors connectivity between clusters. Useful for alerts but not required for replication.</p>
+<p>(Optional) Monitors connectivity between clusters. Useful for alerts but not required for replication.
+<code>MirrorHeartbeatConnector</code> is not configurable through the <code>KafkaMirrorMaker2</code> custom resource.
+You can use a separate <code>KafkaConnect</code> and <code>KafkaConnector</code> custom resources to run it.</p>
 </dd>
 </dl>
 </div>
@@ -12142,17 +12137,15 @@ Configure these connectors in your <code>KafkaMirrorMaker2</code> custom resourc
 <table class="tableblock frame-all grid-all stretch">
 <caption class="title">Table 12. MirrorMaker 2 connector configuration properties</caption>
 <colgroup>
-<col style="width: 40%;">
-<col style="width: 20%;">
-<col style="width: 20%;">
-<col style="width: 20%;">
+<col style="width: 50%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
 </colgroup>
 <thead>
 <tr>
 <th class="tableblock halign-left valign-top">Property</th>
 <th class="tableblock halign-left valign-top">sourceConnector</th>
 <th class="tableblock halign-left valign-top">checkpointConnector</th>
-<th class="tableblock halign-left valign-top">heartbeatConnector</th>
 </tr>
 </thead>
 <tbody>
@@ -12167,7 +12160,6 @@ Configure these connectors in your <code>KafkaMirrorMaker2</code> custom resourc
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12178,7 +12170,6 @@ Configure these connectors in your <code>KafkaMirrorMaker2</code> custom resourc
 </dd>
 </dl>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
 </tr>
@@ -12195,7 +12186,6 @@ The <code>IdentityReplicationPolicy</code> class does not use the property as to
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12208,7 +12198,6 @@ The <code>IdentityReplicationPolicy</code> class does not use the property as to
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12221,7 +12210,6 @@ The <code>IdentityReplicationPolicy</code> class does not use the property as to
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12234,7 +12222,6 @@ The <code>IdentityReplicationPolicy</code> class does not use the property as to
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12246,7 +12233,6 @@ The <code>IdentityReplicationPolicy</code> class does not use the property as to
 </dl>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
@@ -12260,7 +12246,6 @@ The <code>IdentityReplicationPolicy</code> class does not use the property as to
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
 <td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12272,7 +12257,6 @@ The <code>IdentityReplicationPolicy</code> class does not use the property as to
 </dl>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
@@ -12286,7 +12270,6 @@ The <code>IdentityReplicationPolicy</code> class does not use the property as to
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
 <td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12298,7 +12281,6 @@ The <code>IdentityReplicationPolicy</code> class does not use the property as to
 </dl>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
@@ -12313,7 +12295,6 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
 <td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12325,7 +12306,6 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 </dl>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
@@ -12339,7 +12319,6 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
 <td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12351,7 +12330,6 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 </dl>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
@@ -12365,7 +12343,6 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
 <td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12377,7 +12354,6 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 </dl>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
@@ -12391,7 +12367,6 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 </div></div></td>
 <td class="tableblock halign-left valign-top"></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12404,7 +12379,6 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 </div></div></td>
 <td class="tableblock halign-left valign-top"></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12417,7 +12391,6 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 </div></div></td>
 <td class="tableblock halign-left valign-top"></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12430,7 +12403,6 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 </div></div></td>
 <td class="tableblock halign-left valign-top"></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12443,7 +12415,6 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 </div></div></td>
 <td class="tableblock halign-left valign-top"></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12456,7 +12427,6 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 </div></div></td>
 <td class="tableblock halign-left valign-top"></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12469,7 +12439,6 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 </div></div></td>
 <td class="tableblock halign-left valign-top"></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
@@ -12480,46 +12449,6 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 </dd>
 </dl>
 </div></div></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">emit.heartbeats.enabled</dt>
-<dd>
-<p>Enables connectivity checks on the target cluster. Default is <code>true</code>.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">emit.heartbeats.interval.seconds</dt>
-<dd>
-<p>Frequency of connectivity checks. Default is <code>1</code> (1 second).</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">heartbeats.topic.replication.factor</dt>
-<dd>
-<p>Replication factor for the internal <code>heartbeats</code> topic. Default is <code>3</code>.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"></td>
 <td class="tableblock halign-left valign-top"></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
 </tr>
@@ -12533,7 +12462,7 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 </td>
 <td class="content">
 <div class="paragraph">
-<p>The following properties must be <strong>identically configured across all three connectors</strong> (source, checkpoint, and heartbeat):</p>
+<p>The following properties must be <strong>identically configured across both connectors</strong> (source and checkpoint):</p>
 </div>
 <div class="ulist">
 <ul>
@@ -12559,95 +12488,7 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 </table>
 </div>
 <div class="sect3">
-<h4 id="con-mirrormaker-heartbeat-connector-str"><a class="link" href="#con-mirrormaker-heartbeat-connector-str">11.10.1. Using the heartbeat connector to verify replication</a></h4>
-<div class="paragraph _abstract">
-<p>You can enable the optional <code>MirrorHeartbeatConnector</code> to monitor the replication stream between clusters.
-When enabled, this connector periodically creates <em>heartbeat</em> messages and sends them to a dedicated <code>heartbeats</code> topic in the <em>source</em> cluster.</p>
-</div>
-<div class="paragraph">
-<p>These messages are then replicated by the <code>MirrorSourceConnector</code> to the <em>target</em> cluster.
-By consuming the <code>heartbeats</code> topic on the target cluster, you can confirm that data is flowing correctly from source to target.
-If you stop seeing new heartbeats on the target, it indicates a potential issue with the replication process.</p>
-</div>
-<div class="paragraph">
-<p>Because the <code>MirrorHeartbeatConnector</code> writes heartbeat messages to the <em>source</em> cluster, it usually requires a different Connect cluster from the one that runs the <code>MirrorSourceConnector</code> and <code>MirrorCheckpointConnector</code>.</p>
-</div>
-<div class="paragraph">
-<p>Before enabling the heartbeat connector in the <code>KafkaMirrorMaker2</code> resource, consider the advantages and disadvantages of running and maintaining an additional Kafka Connect cluster.
-If you already operate a Kafka Connect cluster that stores state in the source Kafka cluster, you can deploy the <code>MirrorHeartbeatConnector</code> there instead of using the <code>KafkaMirrorMaker2</code> resource.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example configuration for the heartbeat connector defined in a <code>KafkaMirrorMaker2</code> resource</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaMirrorMaker2
-metadata:
-  name: my-mirror-maker2
-  # ...
-  connectCluster: "my-cluster-target" # <b class="conum">(1)</b>
-  clusters:
-  - alias: "my-cluster-source"
-    bootstrapServers: my-cluster-source-bootstrap:9092 # <b class="conum">(2)</b>
-  - alias: "my-cluster-target"
-    bootstrapServers: my-cluster-source-bootstrap:9092 # <b class="conum">(3)</b>
-  mirrors:
-    - sourceCluster: "my-cluster-source" # <b class="conum">(4)</b>
-      targetCluster: "my-cluster-target" # <b class="conum">(5)</b>
-      topicsPattern: "topic1|topic2|topic3"
-      groupsPattern: "group1|group2|group3"
-      # ...
-      heartbeatConnector: # <b class="conum">(6)</b>
-        autoRestart:
-          enabled: true
-        config:
-          heartbeats.topic.replication.factor: 1 # <b class="conum">(7)</b>
-          emit.heartbeats.interval.seconds: 10 # <b class="conum">(8)</b>
-  # ...</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Alias of the Kafka Connect cluster where the connectors run. Must match the alias given in <code>targetCluster</code>.</p>
-</li>
-<li>
-<p>Bootstrap address of the source cluster.</p>
-</li>
-<li>
-<p>Bootstrap address of the target cluster. Use the same alias as the target cluster, but specify the bootstrap servers of the source cluster, because the heartbeat topic is created in the source.</p>
-</li>
-<li>
-<p>Alias of the source cluster. Must match the source alias defined for the <code>MirrorSourceConnector</code>.</p>
-</li>
-<li>
-<p>Alias of the target cluster. Must match the target alias defined for the <code>MirrorSourceConnector</code>.</p>
-</li>
-<li>
-<p>Configuration for the <code>MirrorHeartbeatConnector</code> that performs connectivity checks. Overrides the default configuration options.</p>
-</li>
-<li>
-<p>Replication factor for the heartbeat topic.</p>
-</li>
-<li>
-<p>Interval, in seconds, at which heartbeat messages are sent.</p>
-</li>
-</ol>
-</div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Important</div>
-</td>
-<td class="content">
-The source and target cluster aliases in the <code>MirrorHeartbeatConnector</code> configuration must match the aliases defined for the <code>MirrorSourceConnector</code> in the <code>KafkaMirrorMaker2</code> resource.
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect3">
-<h4 id="con-mirrormaker-tasks-max-str"><a class="link" href="#con-mirrormaker-tasks-max-str">11.10.2. Setting a maximum number of data replication tasks</a></h4>
+<h4 id="con-mirrormaker-tasks-max-str"><a class="link" href="#con-mirrormaker-tasks-max-str">11.10.1. Setting a maximum number of data replication tasks</a></h4>
 <div class="paragraph _abstract">
 <p>Use <code>tasksMax</code> to control how many tasks are assigned to connectors.
 Increasing the number of tasks helps improve performance when replicating many partitions or synchronizing the offsets of a large number of consumer groups.</p>
@@ -12684,9 +12525,6 @@ These tasks follow a set of operational behaviors and allocation rules.</p>
 <p>By default, connectors run with 1 task, unless <code>tasksMax</code> is set.</p>
 </li>
 <li>
-<p>The <code>MirrorHeartbeatConnector</code> always uses 1 task.</p>
-</li>
-<li>
 <p>For the <code>MirrorSourceConnector</code>, the maximum possible tasks = number of partitions.</p>
 </li>
 <li>
@@ -12710,8 +12548,8 @@ metadata:
 spec:
   # ...
   mirrors:
-  - sourceCluster: "my-cluster-source"
-    targetCluster: "my-cluster-target"
+  - source:
+      # ...
     sourceConnector:
       tasksMax: 10
       autoRestart:
@@ -12736,8 +12574,8 @@ metadata:
 spec:
   # ...
   mirrors:
-  - sourceCluster: "my-cluster-source"
-    targetCluster: "my-cluster-target"
+  - source:
+      # ...
     checkpointConnector:
       tasksMax: 10
       autoRestart:
@@ -12773,7 +12611,7 @@ The example MirrorMaker 2 Grafana dashboard provided with Strimzi shows the foll
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-stop-pause-mirrormaker2-connector-str"><a class="link" href="#proc-manual-stop-pause-mirrormaker2-connector-str">11.10.3. Manually stopping or pausing MirrorMaker 2 connectors</a></h4>
+<h4 id="proc-manual-stop-pause-mirrormaker2-connector-str"><a class="link" href="#proc-manual-stop-pause-mirrormaker2-connector-str">11.10.2. Manually stopping or pausing MirrorMaker 2 connectors</a></h4>
 <div class="paragraph _abstract">
 <p>If you are using <code>KafkaMirrorMaker2</code> resources to configure internal MirrorMaker connectors, use the <code>state</code> configuration to either stop or pause a connector.
 In contrast to the paused state, where the connector and tasks remain instantiated, stopping a connector retains only the configuration, with no active processes.
@@ -12824,12 +12662,11 @@ metadata:
 spec:
   version: 4.1.0
   replicas: 3
-  connectCluster: "my-cluster-target"
-  clusters:
+  target:
     # ...
   mirrors:
-  - sourceCluster: "my-cluster-source"
-    targetCluster: "my-cluster-target"
+  - source:
+      # ...
     sourceConnector:
       tasksMax: 10
       autoRestart:
@@ -12867,7 +12704,7 @@ You can then use the <code>resume</code> endpoint to restart it.
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-restart-mirrormaker2-connector-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-str">11.10.4. Manually restarting MirrorMaker 2 connectors</a></h4>
+<h4 id="proc-manual-restart-mirrormaker2-connector-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-str">11.10.3. Manually restarting MirrorMaker 2 connectors</a></h4>
 <div class="paragraph _abstract">
 <p>Use the <code>strimzi.io/restart-connector</code> annotation to manually trigger a restart of a MirrorMaker 2 connector.</p>
 </div>
@@ -12951,7 +12788,7 @@ When MirrorMaker 2 accepts the request, the annotation is removed from the <code
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-restart-mirrormaker2-connector-task-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-task-str">11.10.5. Manually restarting MirrorMaker 2 connector tasks</a></h4>
+<h4 id="proc-manual-restart-mirrormaker2-connector-task-str"><a class="link" href="#proc-manual-restart-mirrormaker2-connector-task-str">11.10.4. Manually restarting MirrorMaker 2 connector tasks</a></h4>
 <div class="paragraph _abstract">
 <p>Use the <code>strimzi.io/restart-connector-task</code> annotation to manually trigger a restart of a MirrorMaker 2 connector.</p>
 </div>
@@ -13012,7 +12849,7 @@ When MirrorMaker 2 accepts the request, the annotation is removed from the <code
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-mirrormaker-producers-consumers-str"><a class="link" href="#con-mirrormaker-producers-consumers-str">11.10.6. Configuring MirrorMaker 2 connector producers and consumers</a></h4>
+<h4 id="con-mirrormaker-producers-consumers-str"><a class="link" href="#con-mirrormaker-producers-consumers-str">11.10.5. Configuring MirrorMaker 2 connector producers and consumers</a></h4>
 <div class="paragraph _abstract">
 <p>MirrorMaker 2 connectors use internal producers and consumers.
 If needed, you can configure these producers and consumers to override the default settings.</p>
@@ -13116,30 +12953,6 @@ You can set <code>offset-syncs.topic.location</code> to <code>target</code> to u
 </tr>
 </table>
 </div>
-<table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 15. Heartbeat connector producer</caption>
-<colgroup>
-<col style="width: 20%;">
-<col style="width: 20%;">
-<col style="width: 60%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Type</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Configuration</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Producer</p></td>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Emits heartbeats.</p>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mirrors.heartbeatConnector.config: producer.override.*</code></p></td>
-</tr>
-</tbody>
-</table>
 <div class="paragraph">
 <p>The following example shows how you configure the producers and consumers.</p>
 </div>
@@ -13154,8 +12967,8 @@ spec:
   version: 4.1.0
   # ...
   mirrors:
-  - sourceCluster: "my-cluster-source"
-    targetCluster: "my-cluster-target"
+  - source:
+      # ...
     sourceConnector:
       tasksMax: 5
       config:
@@ -13168,10 +12981,6 @@ spec:
       config:
         producer.override.request.timeout.ms: 30000
         consumer.max.poll.interval.ms: 300000
-        # ...
-    heartbeatConnector:
-      config:
-        producer.override.request.timeout.ms: 30000
         # ...</code></pre>
 </div>
 </div>
@@ -17427,7 +17236,7 @@ If you scale your Kafka cluster while using external listeners, it might trigger
 <p>From the listener configuration, the resulting listener bootstrap and per-broker service names are structured according to the following naming conventions:</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 16. Listener naming conventions</caption>
+<caption class="title">Table 15. Listener naming conventions</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 40%;">
@@ -17471,7 +17280,7 @@ The resulting external listener naming convention varies slightly.
 The specific combinations of listener name and port configuration values in the following table are backwards compatible.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 17. Backwards compatible listener name and port combinations</caption>
+<caption class="title">Table 16. Backwards compatible listener name and port combinations</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 16.6666%;">
@@ -19051,7 +18860,7 @@ A rolling update is also started if you update a Kafka listener certificate in a
 <p>For external listeners which have TLS encryption enabled, the hostnames you need to specify in certificates depends on the external listener <code>type</code>.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 18. SANs for each type of external listener</caption>
+<caption class="title">Table 17. SANs for each type of external listener</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -23842,7 +23651,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </table>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
+<caption class="title">Table 18. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -23861,7 +23670,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
+<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -23888,7 +23697,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 21. Fields in the <code><em>&lt;cluster_name&gt;</em>-<em>&lt;pool_name&gt;</em>-<em>&lt;node_id&gt;</em></code> secret</caption>
+<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-<em>&lt;pool_name&gt;</em>-<em>&lt;node_id&gt;</em></code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23911,7 +23720,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 22. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
+<caption class="title">Table 21. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23943,7 +23752,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 23. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
+<caption class="title">Table 22. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23975,7 +23784,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 24. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
+<caption class="title">Table 23. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -24007,7 +23816,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 25. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
+<caption class="title">Table 24. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -24039,7 +23848,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 26. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
+<caption class="title">Table 25. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -24085,7 +23894,7 @@ This secret must be accessible to the Strimzi components and for administrative 
 You can enforce this using Kubernetes role-based access controls, if necessary.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 27. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
+<caption class="title">Table 26. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -24104,7 +23913,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 28. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
+<caption class="title">Table 27. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -24140,7 +23949,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 <p>When a user is created using the User Operator, a secret is generated using the name of the user.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 29. Fields in the <code><em>user_name</em></code> secret</caption>
+<caption class="title">Table 28. Fields in the <code><em>user_name</em></code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 30%;">
@@ -24909,7 +24718,7 @@ Instead, follow the procedure for <a href="#renewing-your-own-ca-certificates-st
 <li>
 <p>Apply the <code>strimzi.io/force-replace</code> annotation to the <code>Secret</code> that contains the private key that you want to renew.</p>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 30. Commands for replacing private keys</caption>
+<caption class="title">Table 29. Commands for replacing private keys</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -27448,7 +27257,7 @@ Fewer data movements at a single time reduces the load on the cluster.</p>
 <p>The following table explains the properties contained in the optimization proposal&#8217;s summary.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 31. Properties contained in an optimization proposal summary</caption>
+<caption class="title">Table 30. Properties contained in an optimization proposal summary</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -27593,7 +27402,7 @@ Each broker has a set of key metrics represented by three values:</p>
 </div>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 32. Properties captured in the config map</caption>
+<caption class="title">Table 31. Properties captured in the config map</caption>
 <colgroup>
 <col style="width: 35%;">
 <col style="width: 65%;">
@@ -27745,7 +27554,7 @@ Cruise Control does not perform inter-broker and intra-broker balancing at the s
 </ul>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 33. Rebalance configuration tuning properties</caption>
+<caption class="title">Table 32. Rebalance configuration tuning properties</caption>
 <colgroup>
 <col style="width: 36.3636%;">
 <col style="width: 36.3636%;">
@@ -27999,7 +27808,7 @@ The deployment is successful when the <code>AVAILABLE</code> output shows <code>
 <p>The following table shows the three topics that are automatically created when Cruise Control is deployed. These topics are required for Cruise Control to work properly and must not be deleted or changed. You can change the name of the topic using the specified configuration option.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 34. Topics created when Cruise Control is deployed</caption>
+<caption class="title">Table 33. Topics created when Cruise Control is deployed</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 16.6666%;">
@@ -30808,7 +30617,7 @@ Relabeling is the process of writing a label dynamically.
 For example, the value of a label may be derived from the name of a Kafka server and client ID.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 35. Example custom resources with metrics configuration</caption>
+<caption class="title">Table 34. Example custom resources with metrics configuration</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -30853,7 +30662,7 @@ For example, the value of a label may be derived from the name of a Kafka server
 <div class="sect3">
 <h4 id="ref-metrics-reporter-config-str"><a class="link" href="#ref-metrics-reporter-config-str">25.1.2. Example Metrics Reporter metrics configuration</a></h4>
 <table class="tableblock frame-all grid-all stripes-none stretch _abstract">
-<caption class="title">Table 36. Example custom resources with metrics configuration</caption>
+<caption class="title">Table 35. Example custom resources with metrics configuration</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -30971,7 +30780,7 @@ For example, the Grafana dashboard for Strimzi operators provides information on
 The dashboards are populated with a representative set of metrics for monitoring.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 37. Example Grafana dashboard files</caption>
+<caption class="title">Table 36. Example Grafana dashboard files</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -32449,7 +32258,7 @@ For the latest information, see the <a href="https://opentelemetry.io/docs/" tar
 <p>The following table describes the key environment variables for setting up tracing with OpenTelemetry.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 38. OpenTelemetry environment variables</caption>
+<caption class="title">Table 37. OpenTelemetry environment variables</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 20%;">
@@ -33445,7 +33254,7 @@ You can use the configuration to control how certificates are watched for update
 For more information on how the environment variables work, see <a href="#proc-drain-cleaner-certs-renewing-str">Watching the TLS certificates used by the Strimzi Drain Cleaner</a>.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 39. Chart configuration options</caption>
+<caption class="title">Table 38. Chart configuration options</caption>
 <colgroup>
 <col style="width: 45.4545%;">
 <col style="width: 36.3636%;">
@@ -33846,7 +33655,7 @@ But you can disable the watching of certificates by setting the <code>STRIMZI_CE
 <p>With <code>STRIMZI_CERTIFICATE_WATCH_ENABLED</code> enabled, you can also use the following environment variables for watching TLS certificates.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 40. Drain Cleaner environment variables for watching TLS certificates</caption>
+<caption class="title">Table 39. Drain Cleaner environment variables for watching TLS certificates</caption>
 <colgroup>
 <col style="width: 45.4545%;">
 <col style="width: 36.3636%;">
@@ -34136,7 +33945,7 @@ You can export and monitor restart events using metrics collection tools like Pr
 You can check the reason by fetching information on the restart event.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 41. Restart reasons</caption>
+<caption class="title">Table 40. Restart reasons</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 66.6667%;">
@@ -35464,7 +35273,7 @@ In this case, you must, if possible, downgrade the Kafka version as part of the 
 <p>The following table details known limitations for specific downgrade paths.</p>
 </div>
 <table id="downgrade-version-limitations" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 42. Known limitations in downgrade paths</caption>
+<caption class="title">Table 41. Known limitations in downgrade paths</caption>
 <colgroup>
 <col style="width: 28.5714%;">
 <col style="width: 71.4286%;">
@@ -37120,7 +36929,7 @@ You can also override <code>min.insync.replicas</code> at the topic level in the
 <p>The following table describes how this configuration operates depending on the availability of followers that replicate the leader replica.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 43. Follower availability</caption>
+<caption class="title">Table 42. Follower availability</caption>
 <colgroup>
 <col style="width: 28.5714%;">
 <col style="width: 42.8571%;">
@@ -38302,17 +38111,19 @@ metadata:
 spec:
   version: 4.1.0
   replicas: 1
-  connectCluster: "my-cluster-target"
-  clusters:
-  - alias: "my-cluster-source"
-    bootstrapServers: my-cluster-source-kafka-bootstrap:9092
-  - alias: "my-cluster-target"
+  target:
+    alias: "my-cluster-target"
+    bootstrapServers: my-cluster-target-kafka-bootstrap:9092
+    groupId: my-mirror-maker2-group
+    configStorageTopic: my-mirror-maker2-config
+    offsetStorageTopic: my-mirror-maker2-offset
+    statusStorageTopic: my-mirror-maker2-status
     config:
       offset.flush.timeout.ms: 10000
-    bootstrapServers: my-cluster-target-kafka-bootstrap:9092
   mirrors:
-  - sourceCluster: "my-cluster-source"
-    targetCluster: "my-cluster-target"
+  - source:
+      alias: "my-cluster-source"
+        bootstrapServers: my-cluster-source-kafka-bootstrap:9092
     sourceConnector:
       tasksMax: 2
       config:
@@ -38570,8 +38381,8 @@ metadata:
 spec:
   # ...
   mirrors:
-  - sourceCluster: "my-cluster-source"
-    targetCluster: "my-cluster-target"
+  - source:
+      # ...
     sourceConnector:
       tasksMax: 2
       config:
