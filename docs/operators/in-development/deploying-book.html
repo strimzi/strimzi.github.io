@@ -189,11 +189,12 @@
 </li>
 <li><a href="#assembly-drain-cleaner-str">27. Evicting pods with the Strimzi Drain Cleaner</a>
 <ul class="sectlevel2">
-<li><a href="#proc-drain-cleaner-deploying-str">27.1. Deploying the Strimzi Drain Cleaner using installation files</a></li>
-<li><a href="#deploying-drain-cleaner-helm-chart-str">27.2. Deploying the Strimzi Drain Cleaner using Helm</a></li>
-<li><a href="#proc-drain-cleaner-using-str">27.3. Using the Strimzi Drain Cleaner</a></li>
-<li><a href="#proc-drain-cleaner-certs-str">27.4. Adding or renewing the TLS certificates used by the Strimzi Drain Cleaner</a></li>
-<li><a href="#proc-drain-cleaner-certs-renewing-str">27.5. Watching the TLS certificates used by the Strimzi Drain Cleaner</a></li>
+<li><a href="#default_webhook_configuration">27.1. Default webhook configuration</a></li>
+<li><a href="#proc-drain-cleaner-deploying-str">27.2. Deploying the Strimzi Drain Cleaner using installation files</a></li>
+<li><a href="#deploying-drain-cleaner-helm-chart-str">27.3. Deploying the Strimzi Drain Cleaner using Helm</a></li>
+<li><a href="#proc-drain-cleaner-using-str">27.4. Using the Strimzi Drain Cleaner</a></li>
+<li><a href="#proc-drain-cleaner-certs-str">27.5. Adding or renewing the TLS certificates used by the Strimzi Drain Cleaner</a></li>
+<li><a href="#proc-drain-cleaner-certs-renewing-str">27.6. Watching the TLS certificates used by the Strimzi Drain Cleaner</a></li>
 </ul>
 </li>
 <li><a href="#assembly-rolling-updates-str">28. Managing rolling updates</a>
@@ -33122,24 +33123,12 @@ If you are not using the Strimzi Drain Cleaner, you can <a href="#proc-manual-ro
 </tr>
 </table>
 </div>
+<div class="sect2">
+<h3 id="default_webhook_configuration"><a class="link" href="#default_webhook_configuration">27.1. Default webhook configuration</a></h3>
 <div class="paragraph">
-<div class="title">Webhook configuration</div>
-<p>The Strimzi Drain Cleaner deployment files include a <code>ValidatingWebhookConfiguration</code> resource file.
-The resource provides the configuration for registering the webhook with the Kubernetes API.</p>
-</div>
-<div class="paragraph">
-<p>The configuration defines the <code>rules</code> for the Kubernetes API to follow in the event of a pod eviction request.
-The rules specify that only <code>CREATE</code> operations related to <code>pods/eviction</code> sub-resources are intercepted.
-If these rules are met, the API forwards the notification.</p>
-</div>
-<div class="paragraph">
-<p>The <code>clientConfig</code> points to the Strimzi Drain Cleaner service and <code>/drainer</code> endpoint that exposes the webhook.
-The webhook uses a secure TLS connection, which requires authentication.
-The <code>caBundle</code> property specifies the certificate chain to validate HTTPS communication.
-Certificates are encoded in Base64.</p>
+<p>The Strimzi Drain Cleaner deployment includes a <code>ValidatingWebhookConfiguration</code> resource that registers the webhook with the Kubernetes API:</p>
 </div>
 <div class="listingblock">
-<div class="title">Webhook configuration for pod eviction notifications</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
@@ -33162,8 +33151,26 @@ webhooks:
     # ...</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>Unless you are using your own TLS certificates, no manual configuration is required.</p>
+</div>
+<div class="paragraph">
+<p>The webhook intercepts pod eviction requests based on the <code>rules</code> defined in the configuration.
+Only <code>CREATE</code> operations targeting the <code>pods/eviction</code> sub-resource are evaluated.
+When these conditions are met, the API forwards the request to the webhook.</p>
+</div>
+<div class="paragraph">
+<p>The <code>clientConfig</code> section specifies the target service and endpoint for the webhook.
+The webhook listens on the <code>/drainer</code> path and requires a secure TLS connection.</p>
+</div>
+<div class="paragraph">
+<p>The <code>caBundle</code> property provides the Base64-encoded certificate chain used to validate HTTPS communication.
+By default, the TLS certificates are generated and injected into the configuration automatically.
+If you supply your own TLS certificates, you must manually update the <code>caBundle</code> value.</p>
+</div>
+</div>
 <div class="sect2">
-<h3 id="proc-drain-cleaner-deploying-str"><a class="link" href="#proc-drain-cleaner-deploying-str">27.1. Deploying the Strimzi Drain Cleaner using installation files</a></h3>
+<h3 id="proc-drain-cleaner-deploying-str"><a class="link" href="#proc-drain-cleaner-deploying-str">27.2. Deploying the Strimzi Drain Cleaner using installation files</a></h3>
 <div class="paragraph _abstract">
 <p>Deploy the Strimzi Drain Cleaner to the Kubernetes cluster where the Cluster Operator and Kafka cluster are running.</p>
 </div>
@@ -33335,7 +33342,7 @@ leaving the Strimzi Drain Cleaner and Cluster Operator to roll the pods on diffe
 </div>
 </div>
 <div class="sect2">
-<h3 id="deploying-drain-cleaner-helm-chart-str"><a class="link" href="#deploying-drain-cleaner-helm-chart-str">27.2. Deploying the Strimzi Drain Cleaner using Helm</a></h3>
+<h3 id="deploying-drain-cleaner-helm-chart-str"><a class="link" href="#deploying-drain-cleaner-helm-chart-str">27.3. Deploying the Strimzi Drain Cleaner using Helm</a></h3>
 <div class="paragraph _abstract">
 <p><a href="https://helm.sh/">Helm</a> charts are used to package, configure, and deploy Kubernetes resources.
 Strimzi provides a Helm chart to deploy the Strimzi Drain Cleaner.</p>
@@ -33485,7 +33492,7 @@ For more information on how the environment variables work, see <a href="#proc-d
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-drain-cleaner-using-str"><a class="link" href="#proc-drain-cleaner-using-str">27.3. Using the Strimzi Drain Cleaner</a></h3>
+<h3 id="proc-drain-cleaner-using-str"><a class="link" href="#proc-drain-cleaner-using-str">27.4. Using the Strimzi Drain Cleaner</a></h3>
 <div class="paragraph _abstract">
 <p>Use the Strimzi Drain Cleaner in combination with the Cluster Operator to move Kafka broker pods from nodes that are being drained.
 When you run the Strimzi Drain Cleaner, it annotates pods with a rolling update pod annotation.
@@ -33542,7 +33549,7 @@ INFO  AbstractOperator:500 - Reconciliation #13(timer) Kafka(my-project/my-clust
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-drain-cleaner-certs-str"><a class="link" href="#proc-drain-cleaner-certs-str">27.4. Adding or renewing the TLS certificates used by the Strimzi Drain Cleaner</a></h3>
+<h3 id="proc-drain-cleaner-certs-str"><a class="link" href="#proc-drain-cleaner-certs-str">27.5. Adding or renewing the TLS certificates used by the Strimzi Drain Cleaner</a></h3>
 <div class="paragraph _abstract">
 <p>The Drain Cleaner uses a webhook to receive eviction notifications from the Kubernetes API.
 The webhook uses a secure TLS connection and authenticates using TLS certificates.
@@ -33761,7 +33768,7 @@ secret:
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-drain-cleaner-certs-renewing-str"><a class="link" href="#proc-drain-cleaner-certs-renewing-str">27.5. Watching the TLS certificates used by the Strimzi Drain Cleaner</a></h3>
+<h3 id="proc-drain-cleaner-certs-renewing-str"><a class="link" href="#proc-drain-cleaner-certs-renewing-str">27.6. Watching the TLS certificates used by the Strimzi Drain Cleaner</a></h3>
 <div class="paragraph _abstract">
 <p>By default, the Drain Cleaner deployment watches the secret containing the TLS certificates its uses for authentication.
 The Drain Cleaner watches for changes, such as certificate renewals.
