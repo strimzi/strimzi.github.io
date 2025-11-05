@@ -6818,7 +6818,8 @@ spec:
 <p>Authorization enables simple, OAuth 2.0, custom, or OPA (deprecated) authorization on the Kafka broker. Simple authorization uses the <code>StandardAuthorizer</code> Kafka plugin.</p>
 </li>
 <li>
-<p>Rack awareness configuration to spread replicas across different racks, data centers, or availability zones. The <code>topologyKey</code> must match a node label containing the rack ID. The example used in this configuration specifies a zone using the standard <code><a href="https://kubernetes.io/docs/reference/labels-annotations-taints/#topologykubernetesiozone" target="_blank" rel="noopener">topology.kubernetes.io/zone</a></code> label.</p>
+<p>Rack awareness configuration to spread replicas across different racks, data centers, or availability zones. The <code>topologyKey</code> must match a node label containing the rack ID. The example used in this configuration specifies a zone using the standard <code><a href="https://kubernetes.io/docs/reference/labels-annotations-taints/#topologykubernetesiozone" target="_blank" rel="noopener">topology.kubernetes.io/zone</a></code> label.
+Use rack awareness together with custom <code>topologySpreadConstraint</code> or <code>affinity</code> rules to distribute Kafka broker pods (replicas) across zones.</p>
 </li>
 <li>
 <p>Prometheus metrics enabled. In this example, metrics are configured for the Prometheus JMX Exporter (the default metrics exporter).</p>
@@ -13801,7 +13802,7 @@ spec:
 </div>
 </div>
 <div class="sect3">
-<h4 id="rack_awareness"><a class="link" href="#rack_awareness">11.12.7. Rack awareness</a></h4>
+<h4 id="con-common-config-rack-awareness-str"><a class="link" href="#con-common-config-rack-awareness-str">11.12.7. Rack awareness</a></h4>
 <div class="paragraph">
 <p>Enable rack-aware broker assignment to improve fault tolerance.
 <strong>This is a specialized option intended for a deployment within the same location, not across regions.</strong></p>
@@ -13810,11 +13811,26 @@ spec:
 <div class="title">Example rack awareness configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
-spec:
-  rack:
-    topologyKey: topology.kubernetes.io/zone
-  # ...</code></pre>
+rack:
+  topologyKey: topology.kubernetes.io/zone
+# ...</code></pre>
 </div>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+When rack awareness is enabled, Strimzi sets the rack (zone) information in the <code>Kafka</code> configuration using the <code>topologyKey</code> label.
+It also adds a node affinity rule to schedule Pods only on nodes that include this label.
+Strimzi does not add anti-affinity rules or topology spread constraints to distribute Pods across racks or zones.
+To configure distribution, define your own rules in the <code>Kafka</code> or <code>KafkaNodePool</code> custom resources.
+For more information see <a href="#proc-distributing-brokers-across-zones-str">Distributing brokers across availability zones</a>
+</td>
+</tr>
+</table>
 </div>
 </div>
 <div class="sect3">
@@ -14097,6 +14113,98 @@ spec:
                     values:
                       - broker
               topologyKey: "kubernetes.io/hostname"
+  # ...</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Apply the changes to your custom resource configuration.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect4">
+<h5 id="proc-distributing-brokers-across-zones-str"><a class="link" href="#proc-distributing-brokers-across-zones-str">Distributing brokers across availability zones</a></h5>
+<div class="paragraph _abstract">
+<p>To improve fault tolerance, distribute Kafka nodes across multiple different availability zones (racks).
+This is typically combined with the <a href="#con-common-config-rack-awareness-str">Rack awareness</a> feature.</p>
+</div>
+<div class="paragraph">
+<p>This procedure provides configuration examples for the <code>Kafka</code> resource with rack awareness enabled, and the pool-specific <code>KafkaNodePool</code> resources with the topology spread constraints configuration to balance pods across zones.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p><a href="#deploying-cluster-operator-str">The Cluster Operator must be deployed.</a></p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Configure <code>rack</code> in the <code>Kafka</code> resource and <code>topologySpreadConstraints</code> in the <code>KafkaNodePool</code> resources.</p>
+<div class="paragraph">
+<p>Make sure the <code>strimzi.io/cluster</code> label in the <code>topologySpreadConstraint[].labelSelector</code> fields is set to the name of your Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>The following configuration shows a Kafka cluster with rack awareness enabled and topology spread constraints defined in the <code>KafkaNodePool</code> resources:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
+kind: Kafka
+metadata:
+  name: my-cluster
+spec:
+  kafka:
+    # ...
+    rack:
+      topologyKey: topology.kubernetes.io/zone
+    # ...
+# ...
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: controllers
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  roles:
+    - controller
+  template:
+    pod:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              strimzi.io/cluster: my-cluster
+              strimzi.io/controller-role: "true"
+  # ...
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: brokers
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  roles:
+    - broker
+  template:
+    pod:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              strimzi.io/cluster: my-cluster
+              strimzi.io/broker-role: "true"
   # ...</code></pre>
 </div>
 </div>
@@ -39007,7 +39115,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-11-04 18:08:47 UTC
+Last updated 2025-11-05 09:07:06 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
