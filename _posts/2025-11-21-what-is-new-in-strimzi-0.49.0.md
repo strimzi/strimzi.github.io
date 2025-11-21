@@ -7,7 +7,7 @@ author: jakub_scholz
 
 Strimzi 0.49.0 introduces new `v1` API version to Strimzi CRDs and contains many important changes related to it.
 As with previous releases, we created a video that introduces the main changes.
-Make sure to watch the [video](https://youtu.be/aIGZD8lk6vc) and carefully read the [release notes](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.48.0).
+Make sure to watch the [video](https://youtu.be/aIGZD8lk6vc) and carefully read the [release notes](https://github.com/strimzi/strimzi-kafka-operator/releases/tag/0.49.0).
 
 <!--more-->
 
