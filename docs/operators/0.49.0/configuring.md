@@ -1,5 +1,5 @@
 ---
-title: Configuring Strimzi (0.48.0)
+title: Configuring Strimzi (0.49.0)
 layout: default
 ---
 
