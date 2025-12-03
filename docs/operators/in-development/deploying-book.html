@@ -116,12 +116,14 @@
 <li><a href="#con-hostname-varification-node-ports-str">16.5. Troubleshooting TLS hostname verification with node ports</a></li>
 </ul>
 </li>
-<li><a href="#assembly-oauth-security-str">17. Enabling OAuth 2.0 token-based access</a>
+<li><a href="#assembly-oauth-security-str">17. Configuring OAuth 2.0 token-based security</a>
 <ul class="sectlevel2">
-<li><a href="#proc-oauth-server-config-str">17.1. Configuring an OAuth 2.0 authorization server</a></li>
-<li><a href="#assembly-oauth-authentication_str">17.2. Using OAuth 2.0 token-based authentication</a></li>
-<li><a href="#assembly-oauth-authorization_str">17.3. Using OAuth 2.0 token-based authorization</a></li>
-<li><a href="#assembly-managing-policies-permissions-keycloak-str">17.4. Setting up permissions in Keycloak</a></li>
+<li><a href="#con-oauth-migration-str">17.1. Migrating to the <code>custom</code> authentication type</a></li>
+<li><a href="#con-oauth-project-str">17.2. Before you begin configuring OAuth 2.0</a></li>
+<li><a href="#assembly-oauth-server-config-str">17.3. Server-side configuration</a></li>
+<li><a href="#con-oauth-client-config-str">17.4. Client-side configuration</a></li>
+<li><a href="#con-oauth-authz-config-str">17.5. Enabling authorization on Kafka brokers</a></li>
+<li><a href="#con-oauth-keycloak-config-str">17.6. Using Keycloak as an OAuth 2.0 provider</a></li>
 </ul>
 </li>
 <li><a href="#security-str">18. Managing TLS certificates</a>
@@ -18642,6 +18644,9 @@ which can be <code>nodeport</code>, <code>loadbalancer</code>, <code>ingress</co
 <p>SCRAM-SHA-512 authentication</p>
 </li>
 <li>
+<p><a href="#assembly-oauth-security-str">OAuth 2.0 token-based authentication</a></p>
+</li>
+<li>
 <p><a href="./configuring.html#type-KafkaListenerAuthenticationCustom-reference" target="_blank" rel="noopener">Custom authentication</a></p>
 </li>
 <li>
@@ -19199,6 +19204,12 @@ The authorization method is defined in the <code>type</code> field.</p>
 <ul>
 <li>
 <p><a href="./configuring.html#type-KafkaAuthorizationSimple-reference">Simple authorization</a></p>
+</li>
+<li>
+<p><a href="#assembly-oauth-security-str">OAuth 2.0 authorization</a> (if you are using OAuth 2.0 token based authentication)</p>
+</li>
+<li>
+<p><a href="./configuring.html#type-KafkaAuthorizationOpa-reference">Open Policy Agent (OPA) authorization</a></p>
 </li>
 <li>
 <p><a href="./configuring.html#type-KafkaAuthorizationCustom-reference">Custom authorization</a></p>
@@ -20231,58 +20242,141 @@ Use the <a href="./configuring.html#property-listener-config-altnames-reference"
 </div>
 </div>
 <div class="sect1">
-<h2 id="assembly-oauth-security-str"><a class="link" href="#assembly-oauth-security-str">17. Enabling OAuth 2.0 token-based access</a></h2>
+<h2 id="assembly-oauth-security-str"><a class="link" href="#assembly-oauth-security-str">17. Configuring OAuth 2.0 token-based security</a></h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
-<p>Strimzi supports OAuth 2.0 for securing Kafka clusters by integrating with an OAuth 2.0 authorization server.
-Kafka brokers and clients both need to be configured to use OAuth 2.0.</p>
+<p>Strimzi supports OAuth 2.0 token-based authentication and authorization for securing Kafka clusters and Kafka-related components.</p>
 </div>
 <div class="paragraph">
-<p>OAuth 2.0 enables standardized token-based authentication and authorization between applications, using a central authorization server to issue tokens that grant limited access to resources.
-You can define specific scopes for fine-grained access control.
-Scopes correspond to different levels of access to Kafka topics or operations within the cluster.</p>
-</div>
-<div class="paragraph">
-<p>OAuth 2.0 also supports single sign-on and integration with identity providers.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The authentication type <code>oauth</code> and <code>keycloak</code> authorization type are deprecated and will be removed in a future release.
-Use the <code>custom</code> authentication and authorization type to configure token-based security on listeners and components.
-This content is currently being updated to reflect the transition to the <code>custom</code> authentication type.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>For more information on using OAuth 2.0, see the <a href="https://github.com/strimzi/strimzi-kafka-oauth" target="_blank" rel="noopener">Strimzi OAuth 2.0 for Apache Kafka project</a>.</p>
-</div>
-<div class="sect2">
-<h3 id="proc-oauth-server-config-str"><a class="link" href="#proc-oauth-server-config-str">17.1. Configuring an OAuth 2.0 authorization server</a></h3>
-<div class="paragraph _abstract">
-<p>Before you can use OAuth 2.0 token-based access, you must configure an authorization server for integration with Strimzi.
-The steps are dependent on the chosen authorization server.
-Consult the product documentation for the authorization server for information on how to set up OAuth 2.0 access.</p>
-</div>
-<div class="paragraph">
-<p>Prepare the authorization server to work with Strimzi by defining <em>OAuth 2.0 clients</em> for Kafka and each Kafka client component of your application.
-In relation to the authorization server, the Kafka cluster and Kafka clients are both regarded as OAuth 2.0 clients.</p>
-</div>
-<div class="paragraph">
-<p>In general, configure OAuth 2.0 clients in the authorization server with the following client credentials enabled:</p>
+<p>With OAuth 2.0 integration you can:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Client ID (for example, <code>kafka</code> for the Kafka cluster)</p>
+<p>Enable token-based authentication on Kafka brokers</p>
 </li>
 <li>
-<p>Client ID and secret as the authentication mechanism</p>
+<p>Configure Kafka components, such as Kafka Connect, MirrorMaker 2, and the Kafka Bridge, to authenticate using access tokens</p>
+</li>
+<li>
+<p>Use token claims or Keycloak Authorization Services to perform fine-grained authorization</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>OAuth 2.0 provides centralized identity and access control using access tokens issued by an authorization server.
+Kafka brokers validate these tokens when clients connect, and authorization providers can use token claims to make access decisions.</p>
+</div>
+<div class="paragraph">
+<p>This section describes the minimal configuration required to deploy a Kafka cluster and clients with token-based authentication and authorization.</p>
+</div>
+<div class="sect2">
+<h3 id="con-oauth-migration-str"><a class="link" href="#con-oauth-migration-str">17.1. Migrating to the <code>custom</code> authentication type</a></h3>
+<div class="paragraph _abstract">
+<p>The <code>oauth</code> and <code>keycloak</code> authentication types are deprecated and will be removed in a future release.
+Kafka listeners and Kafka clients must now configure OAuth 2.0 using the <code>custom</code> authentication type.
+OAuth 2.0 support remains the same; only the configuration model changes.</p>
+</div>
+<div class="paragraph">
+<p>This change affects <strong>both server-side listener configuration</strong> and <strong>client-side authentication</strong> for Strimzi-managed components.</p>
+</div>
+<div class="paragraph">
+<p>For more information on the configuration options, see the following API schema references:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="./configuring.html#type-KafkaListenerAuthenticationCustom-reference" target="_blank" rel="noopener"><code>KafkaListenerAuthenticationCustom</code> schema reference</a></p>
+</li>
+<li>
+<p><a href="./configuring.html#type-KafkaClientAuthenticationCustom-reference" target="_blank" rel="noopener"><code>KafkaClientAuthenticationCustom</code> schema reference</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="con-oauth-project-str"><a class="link" href="#con-oauth-project-str">17.2. Before you begin configuring OAuth 2.0</a></h3>
+<div class="paragraph _abstract">
+<p>Strimzi enables OAuth 2.0 for Kafka using the Strimzi Kafka OAuth libraries to handle authentication and authorization.
+This section describes only the configuration that is required when deploying OAuth with Strimzi.</p>
+</div>
+<div class="paragraph">
+<p>For reference information, advanced configuration options, and platform-specific examples, see the <a href="https://github.com/strimzi/strimzi-kafka-oauth" target="_blank" rel="noopener">Strimzi Kafka OAuth project documentation</a>.</p>
+</div>
+<div class="paragraph">
+<p>Strimzi can integrate with any OAuth 2.0 or OpenID Connect compliant authorization server.
+If you are using a specific provider, refer to its documentation for information on how the following must be configured:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Client registration</p>
+</li>
+<li>
+<p>Token and JWKS endpoints</p>
+</li>
+<li>
+<p>Authorization features (such as scopes, roles, or policies)</p>
+</li>
+<li>
+<p>Realm, tenant, or application definitions</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Strimzi also provides <strong>Keycloak-specific examples</strong>, including realm files and Kafka cluster
+configurations that demonstrate how to use Keycloak Authorization Services with Kafka:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#config-examples-str">Example configuration files</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>If you use Keycloak, you may also find the Keycloak project documentation helpful:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://www.keycloak.org/documentation" target="_blank" rel="noopener">Keycloak documentation</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Review the documentation for your OAuth provider to understand how tokens are issued and validated,
+and how authorization rules are managed, before configuring OAuth on Kafka listeners or Kafka clients
+in Strimzi.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="assembly-oauth-server-config-str"><a class="link" href="#assembly-oauth-server-config-str">17.3. Server-side configuration</a></h3>
+<div class="paragraph _abstract">
+<p>Server-side configuration enables OAuth 2.0 token-based authentication on Kafka listeners.</p>
+</div>
+<div class="paragraph">
+<p>To configure OAuth 2.0 on the server side, define the <code>custom</code> authentication type on the listeners used by clients.
+The configuration specifies how Kafka brokers validate tokens.</p>
+</div>
+<div class="paragraph">
+<p>Strimzi supports OAuth 2.0 for both server-side and client-side authentication.
+Kafka brokers validate tokens using the OAuth configuration defined on the listener, and Kafka components, such as Kafka Connect, MirrorMaker 2, and the HTTP Bridge authenticate as OAuth clients when connecting to Kafka.</p>
+</div>
+<div class="paragraph">
+<p>You can also enable authorization based on token claims when using an OAuth-compatible authorization service, such as Keycloak Authorization Services.
+For more information, see <a href="#con-oauth-authz-config-str">Enabling authorization on Kafka brokers</a>.</p>
+</div>
+<div class="paragraph">
+<p>The following sections describe the minimal configuration required for:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Preparing an OAuth 2.0 authorization server</p>
+</li>
+<li>
+<p>Configuring token-based authentication on Kafka listeners</p>
 </li>
 </ul>
 </div>
@@ -20293,391 +20387,197 @@ In relation to the authorization server, the Kafka cluster and Kafka clients are
 <div class="title">Note</div>
 </td>
 <td class="content">
-You only need to use a client ID and secret when using a non-public introspection endpoint of the authorization server.
-The credentials are not typically required when using public authorization server endpoints, as with fast local JWT token validation.
+Advanced OAuth settings such as timeouts, JWKS refresh, introspection, and TLS options are described
+in the <a href="https://github.com/strimzi/strimzi-kafka-oauth" target="_blank" rel="noopener">Strimzi Kafka OAuth project documentation</a>.
+Keycloak-specific examples for use with Strimzi are provided in the <a href="#config-examples-str">example configuration files</a>.
 </td>
 </tr>
 </table>
-</div>
-</div>
-<div class="sect2">
-<h3 id="assembly-oauth-authentication_str"><a class="link" href="#assembly-oauth-authentication_str">17.2. Using OAuth 2.0 token-based authentication</a></h3>
-<div class="paragraph _abstract">
-<p>Strimzi supports the use of <a href="https://oauth.net/2/" target="_blank" rel="noopener">OAuth 2.0</a> for token-based authentication.
-An OAuth 2.0 authorization server handles the granting of access and inquiries about access.
-Kafka clients authenticate to Kafka brokers.
-Brokers and clients communicate with the authorization server, as necessary, to obtain or validate access tokens.</p>
-</div>
-<div class="paragraph">
-<p>For a deployment of Strimzi, OAuth 2.0 integration provides the following support:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Server-side OAuth 2.0 authentication for Kafka brokers</p>
-</li>
-<li>
-<p>Client-side OAuth 2.0 authentication for Kafka MirrorMaker, Kafka Connect, and the HTTP Bridge</p>
-</li>
-</ul>
 </div>
 <div class="sect3">
-<h4 id="con-oauth-authentication-broker-str"><a class="link" href="#con-oauth-authentication-broker-str">17.2.1. Configuring OAuth 2.0 authentication on listeners</a></h4>
-<div class="paragraph _abstract">
-<p>To secure Kafka brokers with OAuth 2.0 authentication, configure a listener in the <code>Kafka</code> resource to use OAuth 2.0 authentication and a client authentication mechanism, and add further configuration depending on the authentication mechanism and type of token validation used in the authentication.</p>
+<h4 id="requirements_for_the_authorization_server"><a class="link" href="#requirements_for_the_authorization_server">17.3.1. Requirements for the authorization server</a></h4>
+<div class="paragraph">
+<p>To use OAuth 2.0 token-based security with Strimzi, you need an OAuth 2.0–compliant authorization server that issues access tokens for Kafka clients.</p>
 </div>
 <div class="paragraph">
-<div class="title">Configuring listeners to use <code>oauth</code> authentication</div>
-<p>Specify a listener in the <code>Kafka</code> resource with an <code>oauth</code> authentication type.
-You can configure internal and external listeners.
-We recommend using OAuth 2.0 authentication together with TLS encryption (<code>tls: true</code>).
-Without encryption, the connection is vulnerable to network eavesdropping and unauthorized access through token theft.</p>
+<p>The authorization server must provide the following capabilities:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>An endpoint for issuing access tokens.</p>
+</li>
+<li>
+<p>A JWKS endpoint for publishing signing keys, or an introspection endpoint for validating opaque tokens.</p>
+</li>
+<li>
+<p>TLS support for secure communication with Kafka brokers.</p>
+</li>
+<li>
+<p>Client registrations when the broker or Kafka clients must authenticate to protected endpoints.
+For example, a client ID and secret are required when using a protected introspection endpoint.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Only one validation method is required:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Local: JWT validation</strong> using the JWKS endpoint</p>
+</li>
+<li>
+<p><strong>Remote: Token introspection</strong> using the introspection endpoint</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The authorization server must expose the selected endpoint externally so that Kafka brokers can validate tokens at runtime.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="configuring_authentication_on_kafka_listeners"><a class="link" href="#configuring_authentication_on_kafka_listeners">17.3.2. Configuring authentication on Kafka listeners</a></h4>
+<div class="paragraph">
+<p>To enable OAuth 2.0 token-based authentication on a Kafka listener, configure the <code>custom</code> authentication type with the <code>OAUTHBEARER</code> SASL mechanism. The listener configuration specifies the callback handler and JAAS module used to validate tokens.</p>
+</div>
+<div class="paragraph">
+<p>All OAuth 2.0 validation settings (such as JWKS or token introspection) are provided through the JAAS configuration string inside the listener configuration.</p>
+</div>
+<div class="sect4">
+<h5 id="jwt_validation_example"><a class="link" href="#jwt_validation_example">JWT validation example</a></h5>
+<div class="paragraph">
+<p>The following example shows a minimal listener configuration that validates JSON Web Tokens (JWTs) using a JWKS endpoint.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example listener configuration with OAuth 2.0 authentication</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
-kind: Kafka
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
+listeners:
+  - name: tls
+    port: 9093
+    type: internal
+    tls: true
+    authentication:
+      type: custom
+      sasl: true
+      listenerConfig:
+        sasl.enabled.mechanisms: OAUTHBEARER
+        oauthbearer.sasl.server.callback.handler.class: io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+        oauthbearer.sasl.jaas.config: |
+          org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
+            oauth.valid.issuer.uri="https://${SSO_HOST}/realms/kafka-authz"
+            oauth.jwks.endpoint.uri="https://${SSO_HOST}/realms/kafka-authz/protocol/openid-connect/certs"
+            oauth.username.claim="preferred_username"
+            oauth.ssl.truststore.location="/mnt/oauth-certs/tls.crt"
+            oauth.ssl.truststore.type="PEM";
+        connections.max.reauth.ms: 3600</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In this configuration:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The listener uses the <code>OAUTHBEARER</code> SASL mechanism.</p>
+</li>
+<li>
+<p>Tokens are validated locally using the JWKS endpoint published by the authorization server.</p>
+</li>
+<li>
+<p>The JAAS module and callback handler perform token validation and map a specified token claim to the Kafka principal.</p>
+</li>
+<li>
+<p>The truststore is mounted into the Kafka pod and used for TLS connections to the JWKS endpoint.</p>
+</li>
+<li>
+<p>The listener requires periodic re-authentication.
+The <code>connections.max.reauth.ms</code> setting ensures that the broker prompts clients to re-authenticate at regular intervals, allowing expiring OAuth access tokens to be refreshed without closing the connection.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="token_introspection_example"><a class="link" href="#token_introspection_example">Token introspection example</a></h5>
+<div class="paragraph">
+<p>The following example shows a listener configuration that validates opaque access tokens using an OAuth 2.0 introspection endpoint.
+The Kafka broker authenticates to the authorization server using a client ID and a client secret configured in the JAAS module.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
 spec:
   kafka:
-    # ...
     listeners:
       - name: tls
         port: 9093
         type: internal
         tls: true
         authentication:
-          type: oauth
-      - name: external3
-        port: 9094
-        type: loadbalancer
-        tls: true
-        authentication:
-          type: oauth
-      #...</code></pre>
+          type: custom
+          sasl: true
+          listenerConfig:
+            sasl.enabled.mechanisms: OAUTHBEARER
+            oauthbearer.sasl.server.callback.handler.class: io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+            oauthbearer.sasl.jaas.config: |
+              org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
+                oauth.access.token.is.jwt="false"
+                oauth.introspection.endpoint.uri="https://${SSO_HOST}/realms/myrealm/protocol/openid-connect/token/introspect"
+                oauth.client.id="kafka-broker"
+                oauth.client.secret="&lt;client-secret-value&gt;"
+                oauth.valid.issuer.uri="https://${SSO_HOST}/realms/myrealm"
+                oauth.username.claim="preferred_username"
+                oauth.ssl.truststore.location="/opt/oauth-certs/tls.crt"
+                oauth.ssl.truststore.type="PEM";
+    # ...</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<div class="title">Enabling SASL authentication mechanisms</div>
-<p>Use one or both of the following SASL mechanisms for clients to exchange credentials and establish authenticated sessions with Kafka.</p>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1"><code>OAUTHBEARER</code></dt>
-<dd>
-<p>Using the <code>OAUTHBEARER</code> authentication mechanism, credentials exchange uses a bearer token provided by an OAuth callback handler.
-Token provision can be configured to use the following methods:</p>
-<div class="openblock">
-<div class="content">
-<div class="ulist">
-<ul>
-<li>
-<p>Client ID and secret (using the OAuth 2.0 <em>client credentials mechanism</em>)</p>
-</li>
-<li>
-<p>Client ID and client assertion</p>
-</li>
-<li>
-<p>Long-lived access token or Service account token</p>
-</li>
-<li>
-<p>Long-lived refresh token obtained manually</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p><code>OAUTHBEARER</code> is recommended as it provides a higher level of security than <code>PLAIN</code>, though it can only be used by Kafka clients that support the <code>OAUTHBEARER</code> mechanism at the protocol level.
-Client credentials are never shared with Kafka.</p>
-</div>
-</dd>
-<dt class="hdlist1"><code>PLAIN</code></dt>
-<dd>
-<p><code>PLAIN</code> is a simple authentication mechanism used by all Kafka client tools.
-Consider using <code>PLAIN</code> only with Kafka clients that do not support <code>OAUTHBEARER</code>.
-Using the <code>PLAIN</code> authentication mechanism, credentials exchange can be configured to use the following methods:</p>
-<div class="openblock">
-<div class="content">
-<div class="ulist">
-<ul>
-<li>
-<p>Client ID and secret (using the OAuth 2.0 <em>client credentials mechanism</em>)</p>
-</li>
-<li>
-<p>Long-lived access token<br>
-Regardless of the method used, the client must provide <code>username</code> and <code>password</code> properties to Kafka.</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>Credentials are handled centrally behind a compliant authorization server, similar to how <code>OAUTHBEARER</code> authentication is used.
-The username extraction process depends on the authorization server configuration.</p>
-</div>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p><code>OAUTHBEARER</code> is automatically enabled in the <code>oauth</code> listener configuration for the Kafka broker.
-To use the <code>PLAIN</code> mechanism, you must set the <code>enablePlain</code> property to <code>true</code>.</p>
-</div>
-<div class="paragraph">
-<p>In the following example, the <code>PLAIN</code> mechanism is enabled, and the <code>OAUTHBEARER</code> mechanism is disabled on a listener using the <code>enableOauthBearer</code> property.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example listener configuration for the <code>PLAIN</code> mechanism</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
-kind: Kafka
-spec:
-  kafka:
-    # ...
-    listeners:
-      - name: tls
-        port: 9093
-        type: internal
-        tls: true
-        authentication:
-          type: oauth
-      - name: external3
-        port: 9094
-        type: loadbalancer
-        tls: true
-        authentication:
-          type: oauth
-          enablePlain: true
-          enableOauthBearer: false
-      #...</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>When you have defined the type of authentication as OAuth 2.0, you add configuration based on the type of validation, either as fast local JWT validation or token validation using an introspection endpoint.</p>
-</div>
-<div id="con-oauth-authentication-broker-jwt-str" class="paragraph">
-<div class="title">Configuring fast local JWT token validation</div>
-<p>Fast local JWT token validation involves checking a JWT token signature locally to ensure that the token meets the following criteria:</p>
+<p>In this configuration:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Contains a <code>typ</code> (type) or <code>token_type</code> header claim value of <code>Bearer</code> to indicate it is an access token</p>
+<p>The listener uses the <code>OAUTHBEARER</code> SASL mechanism.</p>
 </li>
 <li>
-<p>Is currently valid and not expired</p>
+<p>Tokens are validated by calling the OAuth 2.0 introspection endpoint for each new client connection.</p>
 </li>
 <li>
-<p>Has an issuer that matches a <code>validIssuerURI</code></p>
+<p>The broker authenticates to the protected introspection endpoint using a client ID and client secret configured in the JAAS module.</p>
+</li>
+<li>
+<p>The JAAS login module and callback handler perform token validation and map the <code>preferred_username</code> value from the introspection endpoint response to a Kafka principal.</p>
+</li>
+<li>
+<p>The truststore used for TLS connections to the authorization server is specified by <code>oauth.ssl.truststore.location</code> and <code>oauth.ssl.truststore.type</code>.</p>
+</li>
+<li>
+<p>The <code>oauth.access.token.is.jwt="false"</code> setting ensures that the broker does not attempt to interpret access tokens as JWTs (for example, if debug logging is enabled).</p>
 </li>
 </ul>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+In production deployments, store the client secret securely, such as in a <code>Secret</code>, and inject it through an environment variable or other secure mechanism.
+For more information, see <a href="#assembly-loading-config-with-providers-str">Loading configuration values from external sources</a>.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect4">
+<h5 id="authenticating_brokers_to_protected_authorization_server_endpoints"><a class="link" href="#authenticating_brokers_to_protected_authorization_server_endpoints">Authenticating brokers to protected authorization-server endpoints</a></h5>
 <div class="paragraph">
-<p>You specify a <code>validIssuerURI</code> attribute when you configure the listener, so that any tokens not issued by the authorization server are rejected.</p>
-</div>
-<div class="paragraph">
-<p>The authorization server does not need to be contacted during fast local JWT token validation.
-You activate fast local JWT token validation by specifying a <code>jwksEndpointUri</code> attribute, the endpoint exposed by the OAuth 2.0 authorization server.
-The endpoint contains the public keys used to validate signed JWT tokens, which are sent as credentials by Kafka clients.</p>
-</div>
-<div class="paragraph">
-<p>All communication with the authorization server should be performed using TLS encryption.
-You can configure a certificate truststore as a Kubernetes <code>Secret</code> in your Strimzi project namespace, and use the <code>tlsTrustedCertificates</code> property to point to the Kubernetes secret containing the truststore file.</p>
-</div>
-<div class="paragraph">
-<p>You might want to configure a <code>userNameClaim</code> to properly extract a username from the JWT token.
-If required, you can use a JsonPath expression like <code>"['user.info'].['user.id']"</code> to retrieve the username from nested JSON attributes within a token.</p>
-</div>
-<div class="paragraph">
-<p>If you want to use Kafka ACL authorization, identify the user by their username during authentication. (The <code>sub</code> claim in JWT tokens is typically a unique ID, not a username.)</p>
-</div>
-<div class="listingblock">
-<div class="title">Example configuration for fast local JWT token validation</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">#...
-- name: external3
-  port: 9094
-  type: loadbalancer
-  tls: true
-  authentication:
-    type: oauth # <b class="conum">(1)</b>
-    validIssuerUri: https://&lt;auth_server_address&gt;/&lt;issuer-context&gt; # <b class="conum">(2)</b>
-    jwksEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_jwks_endpoint&gt; # <b class="conum">(3)</b>
-    userNameClaim: preferred_username # <b class="conum">(4)</b>
-    maxSecondsWithoutReauthentication: 3600 # <b class="conum">(5)</b>
-    tlsTrustedCertificates: # <b class="conum">(6)</b>
-      - secretName: oauth-server-cert
-        pattern: "*.crt"
-    disableTlsHostnameVerification: true # <b class="conum">(7)</b>
-    jwksExpirySeconds: 360 # <b class="conum">(8)</b>
-    jwksRefreshSeconds: 300 # <b class="conum">(9)</b>
-    jwksMinRefreshPauseSeconds: 1 # <b class="conum">(10)</b></code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Listener type set to <code>oauth</code>.</p>
-</li>
-<li>
-<p>URI of the token issuer used for authentication.</p>
-</li>
-<li>
-<p>URI of the JWKS certificate endpoint used for local JWT validation.</p>
-</li>
-<li>
-<p>The token claim (or key) that contains the actual username used to identify the user. Its value depends on the authorization server. If necessary, a JsonPath expression like <code>"['user.info'].['user.id']"</code> can be used to retrieve the username from nested JSON attributes within a token.</p>
-</li>
-<li>
-<p>(Optional) Activates the Kafka re-authentication mechanism that enforces session expiry to the same length of time as the access token. If the specified value is less than the time left for the access token to expire, then the client will have to re-authenticate before the actual token expiry. By default, the session does not expire when the access token expires, and the client does not attempt re-authentication.</p>
-</li>
-<li>
-<p>(Optional) Certificates stored in X.509 format within the specified secrets for TLS connection to the authorization server.</p>
-</li>
-<li>
-<p>(Optional) Disable TLS hostname verification. Default is <code>false</code>.</p>
-</li>
-<li>
-<p>The duration the JWKS certificates are considered valid before they expire. Default is <code>360</code> seconds. If you specify a longer time, consider the risk of allowing access to revoked certificates.</p>
-</li>
-<li>
-<p>The period between refreshes of JWKS certificates. The interval must be at least 60 seconds shorter than the expiry interval. Default is <code>300</code> seconds.</p>
-</li>
-<li>
-<p>The minimum pause in seconds between consecutive attempts to refresh JWKS public keys. When an unknown signing key is encountered, the JWKS keys refresh is scheduled outside the regular periodic schedule with at least the specified pause since the last refresh attempt. The refreshing of keys follows the rule of exponential backoff, retrying on unsuccessful refreshes with ever increasing pause, until it reaches <code>jwksRefreshSeconds</code>. The default value is 1.</p>
-</li>
-</ol>
-</div>
-<div id="con-oauth-authentication-broker-serviceaccounts-str" class="paragraph">
-<div class="title">Configuring fast local JWT token validation with Kubernetes service accounts</div>
-<p>To configure the listener for Kubernetes service accounts, the Kubernetes API server must be used as the authorization server.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example configuration for fast local JWT token validation using Kubernetes API server as authorization server</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">#...
-- name: external3
-  port: 9094
-  type: loadbalancer
-  tls: true
-  authentication:
-    type: oauth
-    validIssuerUri: https://kubernetes.default.svc.cluster.local # <b class="conum">(1)</b>
-    jwksEndpointUri: https://kubernetes.default.svc.cluster.local/openid/v1/jwks # <b class="conum">(2)</b>
-    serverBearerTokenLocation: /var/run/secrets/kubernetes.io/serviceaccount/token # <b class="conum">(3)</b>
-    checkAccessTokenType: false # <b class="conum">(4)</b>
-    includeAcceptHeader: false # <b class="conum">(5)</b>
-    tlsTrustedCertificates: # <b class="conum">(6)</b>
-      - secretName: oauth-server-cert
-        pattern: "*.crt"
-    maxSecondsWithoutReauthentication: 3600
-    customClaimCheck: "@.['kubernetes.io'] &amp;&amp; @.['kubernetes.io'].['namespace'] in ['myproject']" # <b class="conum">(7)</b></code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>URI of the token issuer used for authentication. Must use FQDN, including the <code>.cluster.local</code> extension, which may vary based on the Kubernetes cluster configuration.</p>
-</li>
-<li>
-<p>URI of the JWKS certificate endpoint used for local JWT validation. Must use FQDN, including the <code>.cluster.local</code> extension, which may vary based on the Kubernetes cluster configuration.</p>
-</li>
-<li>
-<p>Location to the access token used by the Kafka broker to authenticate to the Kubernetes API server in order to access the <code>jwksEndpointUri</code>.</p>
-</li>
-<li>
-<p>Skip the access token type check, as the claim for this is not present in service account tokens.</p>
-</li>
-<li>
-<p>Skip sending <code>Accept</code> header in HTTP requests to the JWKS endpoint, as the Kubernetes API server does not support it.</p>
-</li>
-<li>
-<p>Trusted certificates to connect to authorization server. This should point to a manually created Secret that contains the Kubernetes API server public certificate, which is mounted to the running pods under <code>/var/run/secrets/kubernetes.io/serviceaccount/ca.crt</code>. You can use the following command to create the Secret:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get cm kube-root-ca.crt -o jsonpath="{['data']['ca\.crt']}" &gt; /tmp/ca.crt
-kubectl create secret generic oauth-server-cert --from-file=ca.crt=/tmp/ca.crt</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>(Optional) Additional constraints that JWT token has to fulfill in order to be accepted, expressed as JsonPath filter query. In this example the service account has to belong to <code>myproject</code> namespace in order to be allowed to authenticate.</p>
-</li>
-</ol>
+<p>Some authorization servers expose the JWKS endpoint publicly but require authentication when accessing protected endpoints such as the introspection endpoint.</p>
 </div>
 <div class="paragraph">
-<p>The above configuration uses the <code>sub</code> claim from the service account JWT token as the user ID. For example, the default service account for pods deployed in the <code>myproject</code> namespace has the username: <code>system:serviceaccount:myproject:default</code>.</p>
-</div>
-<div class="paragraph">
-<p>When configuring ACLs the general form of how to refer to the ServiceAccount user should in that case be: <code>User:system:serviceaccount:&lt;Namespace&gt;:&lt;ServiceAccount-name&gt;</code></p>
-</div>
-<div id="con-oauth-authentication-broker-intro-str" class="paragraph">
-<div class="title">Configuring token validation using an introspection endpoint</div>
-<p>Token validation using an OAuth 2.0 introspection endpoint treats a received access token as opaque. The Kafka broker sends an access token to the introspection endpoint, which responds with the token information necessary for validation.
-Importantly, it returns up-to-date information if the specific access token is valid, and also information about when the token expires.</p>
-</div>
-<div class="paragraph">
-<p>To configure OAuth 2.0 introspection-based validation, you specify an introspectionEndpointUri attribute rather than the <code>jwksEndpointUri</code> attribute specified for fast local JWT token validation.
-Depending on the authorization server, you typically have to specify a <code>clientId</code> and <code>clientSecret</code>, because the introspection endpoint is usually protected.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example token validation configuration using an introspection endpoint</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">- name: external3
-  port: 9094
-  type: loadbalancer
-  tls: true
-  authentication:
-    type: oauth
-    validIssuerUri: https://&lt;auth_server_address&gt;/&lt;issuer-context&gt;
-    introspectionEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_introspection_endpoint&gt; # <b class="conum">(1)</b>
-    clientId: kafka-broker # <b class="conum">(2)</b>
-    clientSecret: # <b class="conum">(3)</b>
-      secretName: my-cluster-oauth
-      key: clientSecret
-    userNameClaim: preferred_username # <b class="conum">(4)</b>
-    maxSecondsWithoutReauthentication: 3600 # <b class="conum">(5)</b>
-    tlsTrustedCertificates:
-      - secretName: oauth-server-cert
-        pattern: "*.crt"</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>URI of the token introspection endpoint.</p>
-</li>
-<li>
-<p>Client ID to identify the client.</p>
-</li>
-<li>
-<p>Client Secret and client ID is used for authentication.</p>
-</li>
-<li>
-<p>The token claim (or key) that contains the actual username used to identify the user. Its value depends on the authorization server. If necessary, a JsonPath expression like <code>"['user.info'].['user.id']"</code> can be used to retrieve the username from nested JSON attributes within a token.</p>
-</li>
-<li>
-<p>(Optional) Activates the Kafka re-authentication mechanism that enforces session expiry to the same length of time as the access token. If the specified value is less than the time left for the access token to expire, then the client will have to re-authenticate before the actual token expiry. By default, the session does not expire when the access token expires, and the client does not attempt re-authentication.</p>
-</li>
-</ol>
-</div>
-<div id="con-oauth-authentication-broker-protected-str" class="paragraph">
-<div class="title">Authenticating brokers to the authorization server protected endpoints</div>
-<p>Usually, the certificates endpoint of the authorization server (<code>jwksEndpointUri</code>) is publicly accessible, while the introspection endpoint (<code>introspectionEndpointUri</code>) is protected.
-However, this may vary depending on the authorization server configuration.</p>
-</div>
-<div class="paragraph">
-<p>The Kafka broker can authenticate to the authorization server&#8217;s protected endpoints in one of two ways using HTTP authentication schemes:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><strong>HTTP Basic authentication</strong> uses a client ID and secret.</p>
-</li>
-<li>
-<p><strong>HTTP Bearer authentication</strong> uses a bearer token.</p>
-</li>
-</ul>
+<p>When a protected endpoint is used, the Kafka broker must authenticate to the authorization server.</p>
 </div>
 <div class="paragraph">
 <p>To configure HTTP Basic authentication, set the following properties:</p>
@@ -20685,218 +20585,55 @@ However, this may vary depending on the authorization server configuration.</p>
 <div class="ulist">
 <ul>
 <li>
-<p><code>clientId</code></p>
+<p><code>oauth.client.id</code></p>
 </li>
 <li>
-<p><code>clientSecret</code></p>
+<p><code>oauth.client.secret</code></p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>For HTTP Bearer authentication, set the following property:</p>
+<p>For HTTP Bearer authentication, set one of the following properties:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><code>serverBearerTokenLocation</code> to specify the file path on disk containing the bearer token.</p>
+<p><code>oauth.server.bearer.token.location</code> to specify the file path on disk containing the bearer token.</p>
+</li>
+<li>
+<p><code>oauth.server.bearer.token</code> to specify the bearer token in clear text.</p>
 </li>
 </ul>
 </div>
-<div id="con-oauth-authentication-broker-additional-str" class="paragraph">
-<div class="title">Including additional configuration options</div>
-<p>Specify additional settings depending on the authentication requirements and the authorization server you are using.
-Some of these properties apply only to certain authentication mechanisms or when used in combination with other properties.</p>
-</div>
-<div class="paragraph">
-<p>For example, when using OAuth over <code>PLAIN</code>, access tokens are passed as <code>password</code> property values with or without an <code>$accessToken:</code> prefix.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>If a <code>tokenEndpointUri</code> is configured in the listener, the <code>$accessToken:</code> prefix must be used.</p>
-</li>
-<li>
-<p>If no <code>tokenEndpointUri</code> is configured, the prefix is not required, and the <code>password</code> is interpreted directly as a raw access token.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>When an access token is used as the <code>password</code>, the <code>username</code> must match the principal name extracted from that token.
-You can specify username extraction options in your listener using the <code>userNameClaim</code>, <code>usernamePrefix</code>, <code>fallbackUserNameClaim</code>, <code>fallbackUsernamePrefix</code>, and <code>userInfoEndpointUri</code> properties.
-The username extraction process also depends on your authorization server; in particular, how it maps client IDs to account names.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example optional configuration settings</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  # ...
-  authentication:
-    type: oauth
-    # ...
-    checkIssuer: false # <b class="conum">(1)</b>
-    checkAudience: true # <b class="conum">(2)</b>
-    usernamePrefix: user- # <b class="conum">(3)</b>
-    fallbackUserNameClaim: client_id # <b class="conum">(4)</b>
-    fallbackUserNamePrefix: client-account- # <b class="conum">(5)</b>
-    serverBearerTokenLocation: path/to/access/token # <b class="conum">(6)</b>
-    validTokenType: bearer # <b class="conum">(7)</b>
-    userInfoEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_userinfo_endpoint&gt; # <b class="conum">(8)</b>
-    enableOauthBearer: false # <b class="conum">(9)</b>
-    enablePlain: true # <b class="conum">(10)</b>
-    tokenEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_token_endpoint&gt; # <b class="conum">(11)</b>
-    customClaimCheck: "@.custom == 'custom-value'" # <b class="conum">(12)</b>
-    clientGrantType: client_credentials # <b class="conum">(13)</b>
-    clientAudience: audience # <b class="conum">(14)</b>
-    clientScope: scope # <b class="conum">(15)</b>
-    connectTimeoutSeconds: 60 # <b class="conum">(16)</b>
-    readTimeoutSeconds: 60 # <b class="conum">(17)</b>
-    httpRetries: 2 # <b class="conum">(18)</b>
-    httpRetryPauseMs: 300 # <b class="conum">(19)</b>
-    groupsClaim: "$.groups" # <b class="conum">(20)</b>
-    groupsClaimDelimiter: "," # <b class="conum">(21)</b>
-    includeAcceptHeader: false # <b class="conum">(22)</b></code></pre>
 </div>
 </div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>If your authorization server does not provide an <code>iss</code> claim, it is not possible to perform an issuer check. In this situation, set <code>checkIssuer</code> to <code>false</code> and do not specify a <code>validIssuerUri</code>. Default is <code>true</code>.</p>
-</li>
-<li>
-<p>If your authorization server provides an <code>aud</code> (audience) claim, and you want to enforce an audience check, set <code>checkAudience</code> to <code>true</code>. Audience checks identify the intended recipients of tokens. As a result, the Kafka broker will reject tokens that do not have its <code>clientId</code> in their <code>aud</code> claim. Default is <code>false</code>.</p>
-</li>
-<li>
-<p>The prefix used when constructing the user ID. This only takes effect if <code>userNameClaim</code> is configured.</p>
-</li>
-<li>
-<p>An authorization server may not provide a single attribute to identify both regular users and clients. When a client authenticates in its own name, the server might provide a <em>client ID</em>. When a user authenticates using a username and password to obtain a refresh token or an access token, the server might provide a <em>username</em> attribute in addition to a client ID. Use this fallback option to specify the username claim (attribute) to use if a primary user ID attribute is not available. If necessary, a JsonPath expression like <code>"['client.info'].['client.id']"</code> can be used to retrieve the fallback username  to retrieve the username from nested JSON attributes within a token.</p>
-</li>
-<li>
-<p>In situations where <code>fallbackUserNameClaim</code> is applicable, it may also be necessary to prevent name collisions between the values of the username claim, and those of the fallback username claim. Consider a situation where a client called <code>producer</code> exists, but also a regular user called <code>producer</code> exists. In order to differentiate between the two, you can use this property to add a prefix to the user ID of the client.</p>
-</li>
-<li>
-<p>The location of the access token used by the Kafka broker to authenticate to the Kubernetes API server for accessing protected endpoints. The authorization server must support <code>OAUTHBEARER</code> authentication. This is an alternative to specifying <code>clientId</code> and <code>clientSecret</code>, which uses <code>PLAIN</code> authentication.</p>
-</li>
-<li>
-<p>(Only applicable when using <code>introspectionEndpointUri</code>) Depending on the authorization server you are using, the introspection endpoint may or may not return the <em>token type</em> attribute, or it may contain different values. You can specify a valid token type value that the response from the introspection endpoint has to contain.</p>
-</li>
-<li>
-<p>(Only applicable when using <code>introspectionEndpointUri</code>) The authorization server may be configured or implemented in such a way to not provide any identifiable information in an introspection endpoint response. In order to obtain the user ID, you can configure the URI of the <code>userinfo</code> endpoint as a fallback. The <code>userNameClaim</code>, <code>fallbackUserNameClaim</code>, and <code>fallbackUserNamePrefix</code> settings are applied to the response of <code>userinfo</code> endpoint.</p>
-</li>
-<li>
-<p>Set this to <code>false</code> to disable the <code>OAUTHBEARER</code> mechanism on the listener. At least one of <code>PLAIN</code> or <code>OAUTHBEARER</code> has to be enabled. Default is <code>true</code>.</p>
-</li>
-<li>
-<p>Set to <code>true</code> to enable <code>PLAIN</code> authentication on the listener, which is supported for clients on all platforms.</p>
-</li>
-<li>
-<p>Additional configuration for the <code>PLAIN</code> mechanism. If specified, clients can authenticate over <code>PLAIN</code> by passing an access token as the <code>password</code> using an <code>$accessToken:</code> prefix.
-For production, always use <code>https://</code> urls.</p>
-</li>
-<li>
-<p>Additional custom rules can be imposed on the JWT access token during validation by setting this to a JsonPath filter query. If the access token does not contain the necessary data, it is rejected. When using the <code>introspectionEndpointUri</code>, the custom check is applied to the introspection endpoint response JSON.</p>
-</li>
-<li>
-<p>Grant type used when requesting a token from the authorization server. Applicable only with OAuth over PLAIN when the <code>username</code> and <code>password</code> in the client configuration are passed as the <code>clientId</code> and <code>secret</code>.</p>
-</li>
-<li>
-<p>An <code>audience</code> parameter passed to the token endpoint. An <em>audience</em> is used  when obtaining an access token for inter-broker authentication. It is also used in the name of a client for OAuth over <code>PLAIN</code> client authentication using a <code>clientId</code> and <code>secret</code>. This only affects the ability to obtain the token, and the content of the token, depending on the authorization server. It does not affect token validation rules by the listener.</p>
-</li>
-<li>
-<p>A <code>scope</code> parameter passed to the token endpoint. A <em>scope</em> is used when obtaining an access token for inter-broker authentication. It is also used in the name of a client for OAuth over <code>PLAIN</code> client authentication using a <code>clientId</code> and <code>secret</code>. This only affects the ability to obtain the token, and the content of the token, depending on the authorization server. It does not affect token validation rules by the listener.</p>
-</li>
-<li>
-<p>The connect timeout in seconds when connecting to the authorization server. The default value is 60.</p>
-</li>
-<li>
-<p>The read timeout in seconds when connecting to the authorization server. The default value is 60.</p>
-</li>
-<li>
-<p>The maximum number of times to retry a failed HTTP request to the authorization server. The default value is <code>0</code>, meaning that no retries are performed. To use this option effectively, consider reducing the timeout times for the <code>connectTimeoutSeconds</code> and <code>readTimeoutSeconds</code> options. However, note that retries may prevent the current worker thread from being available to other requests, and if too many requests stall, it could make the Kafka broker unresponsive.</p>
-</li>
-<li>
-<p>The time to wait before attempting another retry of a failed HTTP request to the authorization server. By default, this time is set to zero, meaning that no pause is applied. This is because many issues that cause failed requests are per-request network glitches or proxy issues that can be resolved quickly. However, if your authorization server is under stress or experiencing high traffic, you may want to set this option to a value of 100 ms or more to reduce the load on the server and increase the likelihood of successful retries.</p>
-</li>
-<li>
-<p>A JsonPath query that is used to extract groups information from either the JWT token or the introspection endpoint response. This option is not set by default. By configuring this option, a custom authorizer can make authorization decisions based on user groups.</p>
-</li>
-<li>
-<p>A delimiter used to parse groups information when it is returned as a single delimited string. The default value is ',' (comma).</p>
-</li>
-<li>
-<p>Some authorization servers have issues with client sending <code>Accept: application/json</code> header. By setting <code>includeAcceptHeader: false</code> the header will not be sent. Default is <code>true</code>.</p>
-</li>
-</ol>
 </div>
-</div>
-<div class="sect3">
-<h4 id="con-oauth-authentication-client-str"><a class="link" href="#con-oauth-authentication-client-str">17.2.2. Configuring OAuth 2.0 on client applications</a></h4>
+<div class="sect2">
+<h3 id="con-oauth-client-config-str"><a class="link" href="#con-oauth-client-config-str">17.4. Client-side configuration</a></h3>
 <div class="paragraph _abstract">
-<p>To configure OAuth 2.0 on client applications, you must specify the following:</p>
+<p>Kafka clients, including Strimzi-managed components and external applications, can authenticate to Kafka using OAuth 2.0 access tokens.
+Clients obtain a token from an authorization server and present it to Kafka using the <code>OAUTHBEARER</code> SASL mechanism.
+Kafka brokers validate the token using the OAuth configuration defined on their listeners.</p>
+</div>
+<div class="paragraph">
+<p>Client applications must use OAuth settings that match the broker configuration, including token type, issuer, and TLS trust configuration.</p>
+</div>
+<div class="paragraph">
+<p>This section describes:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>SASL (Simple Authentication and Security Layer) security protocols</p>
+<p>OAuth requirements common to all Kafka clients</p>
 </li>
 <li>
-<p>SASL mechanisms</p>
+<p>How Strimzi components authenticate as OAuth clients</p>
 </li>
 <li>
-<p>A JAAS (Java Authentication and Authorization Service) module</p>
+<p>How external Kafka applications configure <code>OAUTHBEARER</code> authentication</p>
 </li>
 <li>
-<p>Authentication properties to access the authorization server</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Configuring SASL protocols</div>
-<p>Specify SASL protocols in the client configuration:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>SASL_SSL</code> for authentication over TLS encrypted connections</p>
-</li>
-<li>
-<p><code>SASL_PLAINTEXT</code> for authentication over unencrypted connections</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Use <code>SASL_SSL</code> for production and <code>SASL_PLAINTEXT</code> for local development only.</p>
-</div>
-<div class="paragraph">
-<p>When using <code>SASL_SSL</code>, additional <code>ssl.truststore</code> configuration is needed.
-The truststore configuration is required for secure connection (<code>https://</code>) to the OAuth 2.0 authorization server.
-To verify the OAuth 2.0 authorization server, add the CA certificate for the authorization server to the truststore in your client configuration.
-You can configure a truststore in PEM or PKCS #12 format.</p>
-</div>
-<div class="paragraph">
-<div class="title">Configuring SASL authentication mechanisms</div>
-<p>Specify SASL mechanisms in the client configuration:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>OAUTHBEARER</code> for credentials exchange using a bearer token</p>
-</li>
-<li>
-<p><code>PLAIN</code> to pass client credentials (clientId + secret) or an access token</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<div class="title">Configuring a JAAS module</div>
-<p>Specify a JAAS module that implements the SASL authentication mechanism as a <code>sasl.jaas.config</code> property value:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule</code> implements the <code>OAUTHBEARER</code> mechanism</p>
-</li>
-<li>
-<p><code>org.apache.kafka.common.security.plain.PlainLoginModule</code> implements the <code>PLAIN</code> mechanism</p>
+<p>How clients obtain and refresh tokens</p>
 </li>
 </ul>
 </div>
@@ -20907,84 +20644,282 @@ You can configure a truststore in PEM or PKCS #12 format.</p>
 <div class="title">Note</div>
 </td>
 <td class="content">
-For the <code>OAUTHBEARER</code> mechanism, Strimzi provides a callback handler for clients that use Kafka Client Java libraries to enable credentials exchange.
-For clients in other languages, custom code may be required to obtain the access token.
-For the <code>PLAIN</code> mechanism, Strimzi provides server-side callbacks to enable credentials exchange.
+Advanced OAuth client settings are described in the <a href="https://github.com/strimzi/strimzi-kafka-oauth" target="_blank" rel="noopener">Strimzi Kafka OAuth project documentation</a>.
 </td>
 </tr>
 </table>
 </div>
+<div class="sect3">
+<h4 id="common_requirements_for_oauth_2_0_clients"><a class="link" href="#common_requirements_for_oauth_2_0_clients">17.4.1. Common requirements for OAuth 2.0 clients</a></h4>
 <div class="paragraph">
-<p>To be able to use the <code>OAUTHBEARER</code> mechanism, you must also add the custom <code>io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler</code> class as the callback handler.
-<code>JaasClientOauthLoginCallbackHandler</code> handles OAuth callbacks to the authorization server for access tokens during client login.
-This enables automatic token renewal, ensuring continuous authentication without user intervention.
-Additionally, it handles login credentials for clients using the OAuth 2.0 password grant method.</p>
+<p>Kafka clients that use OAuth-based authentication typically require:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The <code>OAUTHBEARER</code> SASL mechanism</p>
+</li>
+<li>
+<p>A token endpoint to obtain OAuth 2.0 access tokens</p>
+</li>
+<li>
+<p>A client ID and credentials registered with the authorization server</p>
+</li>
+<li>
+<p>TLS trust configuration for HTTPS calls to the authorization server</p>
+</li>
+<li>
+<p>A way to refresh tokens before they expire</p>
+</li>
+<li>
+<p>Truststore configuration that matches the Kafka broker listener</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
-<div class="title">Configuring authentication properties</div>
-<p>Configure the client to use credentials or access tokens for OAuth 2.0 authentication.</p>
+<p>Strimzi does not decide which OAuth 2.0 flow is used.
+The chosen flow depends on the authorization server and the client application.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="configuring_strimzi_managed_components"><a class="link" href="#configuring_strimzi_managed_components">17.4.2. Configuring Strimzi-managed components</a></h4>
+<div class="paragraph">
+<p>Strimzi-managed components such as Kafka Connect, MirrorMaker 2, and HTTP Bridge authenticate as OAuth 2.0 clients when connecting to Kafka brokers.
+These components use the <code>KafkaClientAuthenticationCustom</code> schema and configure OAuth by supplying SASL and JAAS settings.</p>
+</div>
+<div class="paragraph">
+<p>Each component requires:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A token endpoint URL</p>
+</li>
+<li>
+<p>A client ID and credentials stored in a Kubernetes secret</p>
+</li>
+<li>
+<p>TLS trust configuration for connecting to the authorization server</p>
+</li>
+<li>
+<p><code>OAUTHBEARER</code> SASL settings to authenticate to Kafka brokers</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The following example shows a simplified OAuth configuration for the HTTP Bridge.
+The same structure applies to Kafka Connect and MirrorMaker 2.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
+kind: KafkaBridge
+metadata:
+  name: my-bridge
+spec:
+  # ...
+  authentication:
+    type: custom
+    sasl: true
+    config:
+      sasl.mechanism: OAUTHBEARER
+      sasl.login.callback.handler.class: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+      sasl.jaas.config: |
+        org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
+          oauth.token.endpoint.uri="https://&lt;auth_server_address&gt;/&lt;path_to_token_endpoint&gt;"
+          oauth.client.id="kafka-bridge"
+          oauth.client.secret="${strimzienv:OAUTH_CLIENT_SECRET}";
+  template:
+    bridgeContainer:
+      env:
+        - name: OAUTH_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: oauth-secret
+              key: oauth-client-secret
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In this configuration:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The HTTP Bridge uses the <code>custom</code> authentication type.</p>
+</li>
+<li>
+<p>SASL is enabled and configured with the <code>OAUTHBEARER</code> mechanism.</p>
+</li>
+<li>
+<p>The Strimzi OAuth client callback handler retrieves and refreshes access tokens.</p>
+</li>
+<li>
+<p>The JAAS login module defines how the HTTP Bridge authenticates to the authorization server.</p>
+</li>
+<li>
+<p>The <code>oauth.token.endpoint.uri</code> property specifies where tokens are obtained.</p>
+</li>
+<li>
+<p>The OAuth client ID identifies the HTTP Bridge as a registered OAuth client.</p>
+</li>
+<li>
+<p>The client secret is injected into the HTTP Bridge container as an environment variable from a Kubernetes secret and consumed through the <code>${strimzienv:OAUTH_CLIENT_SECRET}</code> reference in the JAAS configuration.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="configuring_external_kafka_client_applications"><a class="link" href="#configuring_external_kafka_client_applications">17.4.3. Configuring external Kafka client applications</a></h4>
+<div class="paragraph">
+<p>External Kafka clients authenticate using the <code>OAUTHBEARER</code> SASL mechanism.
+Clients obtain an access token from the authorization server and present the token when connecting to Kafka.</p>
+</div>
+<div class="paragraph">
+<p>Client configuration requires:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The <code>OAUTHBEARER</code> SASL mechanism</p>
+</li>
+<li>
+<p>TLS trust configuration for Kafka broker communication</p>
+</li>
+<li>
+<p>OAuth settings that match the broker&#8217;s validation method (JWKS or introspection)</p>
+</li>
+<li>
+<p>A mechanism to retrieve, refresh, or supply access tokens at runtime</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The following example shows a minimal Java client configuration:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">security.protocol=SASL_SSL
+sasl.mechanism=OAUTHBEARER
+
+# Truststore for connecting to Kafka brokers
+ssl.truststore.location=/tmp/kafka-truststore.p12
+ssl.truststore.password=$KAFKA_STOREPASS
+ssl.truststore.type=PKCS12
+
+# Strimzi OAuth login callback handler
+sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+
+# JAAS configuration for obtaining access tokens
+sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+  oauth.token.endpoint.uri="https://auth.url.com/oauth/token" \
+  oauth.client.id="kafka-client" \
+  oauth.client.secret="client-secret" \
+  oauth.ssl.truststore.location="/tmp/oauth-truststore.p12" \
+  oauth.ssl.truststore.password="$OAUTH_STOREPASS" \
+  oauth.ssl.truststore.type="PKCS12" \
+  oauth.scope="example-scope" \
+  oauth.audience="example-audience" ;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In this configuration:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>SASL_SSL</code> enables encrypted communication with Kafka brokers.</p>
+</li>
+<li>
+<p>The SASL mechanism is set to <code>OAUTHBEARER</code> for token-based authentication.</p>
+</li>
+<li>
+<p>A truststore validates the Kafka broker certificate.</p>
+</li>
+<li>
+<p>The OAuth login module handles token acquisition.</p>
+</li>
+<li>
+<p>The client uses the client-credentials flow to obtain tokens.</p>
+</li>
+<li>
+<p>A separate truststore is used for communication with the authorization server.</p>
+</li>
+<li>
+<p>Optional OAuth parameters such as <code>scope</code> and <code>audience</code> can be added when required.</p>
+</li>
+<li>
+<p>The Strimzi OAuth callback handler refreshes tokens automatically.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="obtaining_tokens"><a class="link" href="#obtaining_tokens">17.4.4. Obtaining tokens</a></h4>
+<div class="paragraph">
+<p>Kafka clients must obtain an OAuth 2.0 access token before connecting to a Kafka listener that is configured for token-based authentication.
+The method for obtaining a token depends on the client application and the authorization server.</p>
+</div>
+<div class="paragraph">
+<p>In practice, Kafka clients can use a range of token acquisition patterns.
+Common examples include the following:</p>
 </div>
 <div class="dlist">
 <dl>
-<dt class="hdlist1">Using client credentials</dt>
+<dt class="hdlist1">Client credentials with remote validation</dt>
 <dd>
-<p>Using client credentials involves configuring the client with the necessary credentials (client ID and secret, or client ID and client assertion) to obtain a valid access token from an authorization server. This is the simplest mechanism.
-When you configure a client ID and secret or assertion to authenticate against the authorization server, you can specify a <code>grantType</code>.
-The property defaults to <code>client_credentials</code>.</p>
+<p>The client requests a short-lived access token using a client ID and credentials.
+The broker validates the token by calling the authorization server&#8217;s introspection endpoint.</p>
 </dd>
-<dt class="hdlist1">Using access tokens</dt>
+<dt class="hdlist1">Client credentials with local validation</dt>
 <dd>
-<p>Using access tokens, the client is configured with a valid long-lived access token or refresh token obtained from an authorization server.
-Using access tokens adds more complexity because there is an additional dependency on authorization server tools.
-If you are using long-lived access tokens, you may need to configure the client in the authorization server to increase the maximum lifetime of the token.</p>
+<p>The client requests a short-lived JWT access token using a client ID and credentials.
+The broker validates the token locally using a JWKS endpoint.</p>
+</dd>
+<dt class="hdlist1">Long-lived access token with remote validation</dt>
+<dd>
+<p>The client is issued a long-lived opaque token outside the application (for example, by a CI/CD system).
+The broker validates the token through the introspection endpoint.
+Token refresh is the responsibility of the application.</p>
+</dd>
+<dt class="hdlist1">Long-lived JWT token with local validation</dt>
+<dd>
+<p>The client is issued a long-lived JWT outside the application.
+The broker validates the token locally against the JWKS endpoint.
+The token cannot be refreshed, so the connection fails after expiry.</p>
 </dd>
 </dl>
 </div>
 <div class="paragraph">
-<p>The only information ever sent to Kafka is the access token.
-The credentials used to obtain the token are never sent to Kafka.
-When a client obtains an access token, no further communication with the authorization server is needed.</p>
+<p>Strimzi does not manage token acquisition for external applications.
+Applications must request, store, and refresh tokens according to their security requirements.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="token_expiry_and_re_authentication"><a class="link" href="#token_expiry_and_re_authentication">17.4.5. Token expiry and re-authentication</a></h4>
+<div class="paragraph">
+<p>Client sessions may expire when a token expires or when the broker requires re-authentication.</p>
 </div>
 <div class="paragraph">
-<p>SASL authentication properties support the following authentication methods:</p>
+<p>If the broker is configured with <code>connections.max.reauth.ms</code>, clients must refresh the access token before re-authentication occurs.
+When using the client-credentials flow, the Strimzi OAuth client library refreshes tokens automatically.
+If an application supplies a long-lived, manually generated token, the client cannot refresh it and authentication fails when the token expires.</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>OAuth 2.0 client credentials</p>
-</li>
-<li>
-<p>Access token or Service account token</p>
-</li>
-<li>
-<p>Refresh token</p>
-</li>
-<li>
-<p>OAuth 2.0 password grant (deprecated)</p>
-</li>
-</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="con-oauth-authz-config-str"><a class="link" href="#con-oauth-authz-config-str">17.5. Enabling authorization on Kafka brokers</a></h3>
+<div class="paragraph _abstract">
+<p>You can enable authorization so that Kafka brokers use information in access tokens to determine whether clients are permitted to perform specific operations.</p>
 </div>
 <div class="paragraph">
-<p>Add the authentication properties as JAAS configuration (<code>sasl.jaas.config</code> and <code>sasl.login.callback.handler.class</code>).</p>
+<p>Authorization builds on OAuth 2.0 authentication.
+Clients must connect through a Kafka listener that is configured for OAuth 2.0 using the <code>custom</code> authentication type.
+Only tokens that are successfully validated by the listener are evaluated by the authorizer.</p>
 </div>
 <div class="paragraph">
-<p>If the client application is not configured with an access token directly, the client exchanges one of the following sets of credentials for an access token during Kafka session initiation:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Client ID and secret</p>
-</li>
-<li>
-<p>Client ID and client assertion</p>
-</li>
-<li>
-<p>Client ID, refresh token, and (optionally) a secret</p>
-</li>
-<li>
-<p>Username and password, with client ID and (optionally) a secret</p>
-</li>
-</ul>
+<p>To enable authorization, set the <code>authorization</code> field on the Kafka cluster resource and configure the <code>custom</code> authorization type.
+The broker evaluates authorization decisions using token claims provided by the OAuth 2.0 authorization server.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -20993,586 +20928,18 @@ When a client obtains an access token, no further communication with the authori
 <div class="title">Note</div>
 </td>
 <td class="content">
-You can also specify authentication properties as environment variables, or as Java system properties.
-For Java system properties, you can set them using <code>setProperty</code> and pass them on the command line using the <code>-D</code> option.
+Advanced authorization settings are described in the <a href="https://github.com/strimzi/strimzi-kafka-oauth" target="_blank" rel="noopener">Strimzi Kafka OAuth project documentation</a>.
+Keycloak-specific examples for use with Strimzi are provided in the <a href="#config-examples-str">example configuration files</a>.
 </td>
 </tr>
 </table>
 </div>
-<div id="con-oauth-authentication-client-credentials-str" class="listingblock">
-<div class="title">Example client credentials configuration using the client secret</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">security.protocol=SASL_SSL # <b class="conum">(1)</b>
-sasl.mechanism=OAUTHBEARER # <b class="conum">(2)</b>
-ssl.truststore.location=/tmp/truststore.p12 <b class="conum">(3)</b>
-ssl.truststore.password=$STOREPASS
-ssl.truststore.type=PKCS12
-sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-  oauth.token.endpoint.uri="&lt;token_endpoint_url&gt;" \ # <b class="conum">(4)</b>
-  oauth.client.id="&lt;client_id&gt;" \ # <b class="conum">(5)</b>
-  oauth.client.secret="&lt;client_secret&gt;" \ # <b class="conum">(6)</b>
-  oauth.grant.type="client_credentials" \ # <b class="conum">(7)</b>
-  oauth.ssl.truststore.location="/tmp/oauth-truststore.p12" \ # <b class="conum">(8)</b>
-  oauth.ssl.truststore.password="$STOREPASS" \ # <b class="conum">(9)</b>
-  oauth.ssl.truststore.type="PKCS12" \ # <b class="conum">(10)</b>
-  oauth.scope="&lt;scope&gt;" \ # <b class="conum">(11)</b>
-  oauth.audience="&lt;audience&gt;" ; # <b class="conum">(12)</b>
-sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p><code>SASL_SSL</code> security protocol for TLS-encrypted connections. Use <code>SASL_PLAINTEXT</code> over unencrypted connections for local development only.</p>
-</li>
-<li>
-<p>The SASL mechanism specified as <code>OAUTHBEARER</code> or <code>PLAIN</code>.</p>
-</li>
-<li>
-<p>The truststore configuration for secure access to the Kafka cluster.</p>
-</li>
-<li>
-<p>URI of the authorization server token endpoint.</p>
-</li>
-<li>
-<p>Client ID, which is the name used when creating the <em>client</em> in the authorization server.</p>
-</li>
-<li>
-<p>Client secret created when creating the <em>client</em> in the authorization server.</p>
-</li>
-<li>
-<p>(Optional) Grant type when using <code>clientId</code> and <code>clientSecret</code> or <code>clientAssertion</code>. Sets the grant type parameter sent to the token endpoint. Defaults to <code>client_credentials</code> with this configuration.</p>
-</li>
-<li>
-<p>The location of the truststore for the authorization server.</p>
-</li>
-<li>
-<p>The password for accessing the truststore.</p>
-</li>
-<li>
-<p>The truststore type.</p>
-</li>
-<li>
-<p>(Optional) The <code>scope</code> for requesting the token from the token endpoint.
-An authorization server may require a client to specify the scope.</p>
-</li>
-<li>
-<p>(Optional) The <code>audience</code> for requesting the token from the token endpoint.
-An authorization server may require a client to specify the audience.</p>
-</li>
-</ol>
-</div>
-<div id="con-oauth-authentication-client-assertion-str" class="listingblock">
-<div class="title">Example client credentials configuration using the client assertion</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">security.protocol=SASL_SSL
-sasl.mechanism=OAUTHBEARER
-ssl.truststore.location=/tmp/truststore.p12
-ssl.truststore.password=$STOREPASS
-ssl.truststore.type=PKCS12
-sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-  oauth.token.endpoint.uri="&lt;token_endpoint_url&gt;" \
-  oauth.client.id="&lt;client_id&gt;" \
-  oauth.client.assertion.location="&lt;path_to_client_assertion_token_file&gt;" \ # <b class="conum">(1)</b>
-  oauth.client.assertion.type="urn:ietf:params:oauth:client-assertion-type:jwt-bearer" \ # <b class="conum">(2)</b>
-  oauth.ssl.truststore.location="/tmp/oauth-truststore.p12" \
-  oauth.ssl.truststore.password="$STOREPASS" \
-  oauth.ssl.truststore.type="PKCS12" \
-  oauth.scope="&lt;scope&gt;" \
-  oauth.audience="&lt;audience&gt;" ;
-sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Path to the client assertion file used for authenticating the client. This file is a private key file as an alternative to the client secret.
-Alternatively, use the <code>oauth.client.assertion</code> option to specify the client assertion value in clear text.</p>
-</li>
-<li>
-<p>(Optional) Sometimes you may need to specify the client assertion type. In not specified, the default value is <code>urn:ietf:params:oauth:client-assertion-type:jwt-bearer</code>.</p>
-</li>
-</ol>
-</div>
-<div id="con-oauth-authentication-password-grants-str" class="listingblock">
-<div class="title">Example password grants configuration</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">security.protocol=SASL_SSL
-sasl.mechanism=OAUTHBEARER
-ssl.truststore.location=/tmp/truststore.p12
-ssl.truststore.password=$STOREPASS
-ssl.truststore.type=PKCS12
-sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-  oauth.token.endpoint.uri="&lt;token_endpoint_url&gt;" \
-  oauth.client.id="&lt;client_id&gt;" \ # <b class="conum">(1)</b>
-  oauth.client.secret="&lt;client_secret&gt;" \ # <b class="conum">(2)</b>
-  oauth.password.grant.username="&lt;username&gt;" \ # <b class="conum">(3)</b>
-  oauth.password.grant.password="&lt;password&gt;" \ # <b class="conum">(4)</b>
-  oauth.ssl.truststore.location="/tmp/oauth-truststore.p12" \
-  oauth.ssl.truststore.password="$STOREPASS" \
-  oauth.ssl.truststore.type="PKCS12" \
-  oauth.scope="&lt;scope&gt;" \
-  oauth.audience="&lt;audience&gt;" ;
-sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Client ID, which is the name used when creating the <em>client</em> in the authorization server.</p>
-</li>
-<li>
-<p>(Optional) Client secret created when creating the <em>client</em> in the authorization server.</p>
-</li>
-<li>
-<p>Username for password grant authentication. OAuth password grant configuration (username and password) uses the OAuth 2.0 password grant method. To use password grants, create a user account for a client on your authorization server with limited permissions. The account should act like a service account. Use in environments where user accounts are required for authentication, but consider using a refresh token first.</p>
-</li>
-<li>
-<p>Password for password grant authentication.</p>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-SASL <code>PLAIN</code> does not support passing a username and password (password grants) using the OAuth 2.0 password grant method.
-</td>
-</tr>
-</table>
-</div>
-</li>
-</ol>
-</div>
-<div id="con-oauth-authentication-access-token-str" class="listingblock">
-<div class="title">Example access token configuration</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">security.protocol=SASL_SSL
-sasl.mechanism=OAUTHBEARER
-ssl.truststore.location=/tmp/truststore.p12
-ssl.truststore.password=$STOREPASS
-ssl.truststore.type=PKCS12
-sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-  oauth.access.token="&lt;access_token&gt;" ; # <b class="conum">(1)</b>
-sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Long-lived access token for Kafka clients. Alternatively, <code>oauth.access.token.location</code> can be used to specify the file that contains the access token.</p>
-</li>
-</ol>
-</div>
-<div id="con-oauth-authentication-serviceaccount-token-str" class="listingblock">
-<div class="title">Example Kubernetes service account token configuration</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">security.protocol=SASL_SSL
-sasl.mechanism=OAUTHBEARER
-ssl.truststore.location=/tmp/truststore.p12
-ssl.truststore.password=$STOREPASS
-ssl.truststore.type=PKCS12
-sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-  oauth.access.token.location="/var/run/secrets/kubernetes.io/serviceaccount/token";  # <b class="conum">(1)</b>
-sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Location to the service account token on the filesystem (assuming that the client is deployed as a Kubernetes pod)</p>
-</li>
-</ol>
-</div>
-<div id="con-oauth-authentication-refresh-token-str" class="listingblock">
-<div class="title">Example refresh token configuration</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">security.protocol=SASL_SSL
-sasl.mechanism=OAUTHBEARER
-ssl.truststore.location=/tmp/truststore.p12
-ssl.truststore.password=$STOREPASS
-ssl.truststore.type=PKCS12
-sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-  oauth.token.endpoint.uri="&lt;token_endpoint_url&gt;" \
-  oauth.client.id="&lt;client_id&gt;" \ # <b class="conum">(1)</b>
-  oauth.client.secret="&lt;client_secret&gt;" \ # <b class="conum">(2)</b>
-  oauth.refresh.token="&lt;refresh_token&gt;" \ # <b class="conum">(3)</b>
-  oauth.ssl.truststore.location="/tmp/oauth-truststore.p12" \
-  oauth.ssl.truststore.password="$STOREPASS" \
-  oauth.ssl.truststore.type="PKCS12" ;
-sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Client ID, which is the name used when creating the <em>client</em> in the authorization server.</p>
-</li>
-<li>
-<p>(Optional) Client secret created when creating the <em>client</em> in the authorization server.</p>
-</li>
-<li>
-<p>Long-lived refresh token for Kafka clients.</p>
-</li>
-</ol>
-</div>
 <div class="paragraph">
-<div class="title">SASL extensions for custom <code>OAUTHBEARER</code> implementations</div>
-<p>If your Kafka broker uses a custom <code>OAUTHBEARER</code> implementation, you may need to pass additional SASL extension options.
-These extensions can include attributes or information required as client context by the authorization server.
-The options are passed as key-value pairs and are sent to the Kafka broker when a new session is started.</p>
-</div>
-<div class="paragraph">
-<p>Pass SASL extension values using <code>oauth.sasl.extension.</code> as a key prefix.</p>
+<p>The following example shows a Kafka cluster that uses OAuth 2.0 authentication and Keycloak Authorization Services for authorization:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example configuration to pass SASL extension values</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">oauth.sasl.extension.key1="value1"
-oauth.sasl.extension.key2="value2"</code></pre>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="con-oauth-authentication-client-options-str"><a class="link" href="#con-oauth-authentication-client-options-str">17.2.3. OAuth 2.0 client authentication flows</a></h4>
-<div class="paragraph _abstract">
-<p>OAuth 2.0 authentication flows depend on the underlying Kafka client and Kafka broker configuration.
-The flows must also be supported by the authorization server used.</p>
-</div>
-<div class="paragraph">
-<p>The Kafka broker listener configuration determines how clients authenticate using an access token.
-The client can pass a client ID and secret to request an access token.</p>
-</div>
-<div class="paragraph">
-<p>If a listener is configured to use <code>PLAIN</code> authentication, the client can authenticate with a client ID and secret or username and access token.
-These values are passed as the <code>username</code> and <code>password</code> properties of the <code>PLAIN</code> mechanism.</p>
-</div>
-<div class="paragraph">
-<p>Listener configuration supports the following token validation options:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>You can use fast local token validation based on JWT signature checking and local token introspection, without contacting an authorization server.
-The authorization server provides a JWKS endpoint with public certificates that are used to validate signatures on the tokens.</p>
-</li>
-<li>
-<p>You can use a call to a token introspection endpoint provided by an authorization server.
-Each time a new Kafka broker connection is established, the broker passes the access token received from the client to the authorization server.
-The Kafka broker checks the response to confirm whether the token is valid.</p>
-</li>
-</ul>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-An authorization server might only allow the use of opaque access tokens, which means that local token validation is not possible.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Kafka client credentials can also be configured for the following types of authentication:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Direct local access using a previously generated long-lived access token</p>
-</li>
-<li>
-<p>Contact with the authorization server for a new access token to be issued (using a client ID and credentials, or a refresh token, or a username and a password)</p>
-</li>
-</ul>
-</div>
-<div class="sect4">
-<h5 id="example_client_authentication_flows_using_the_sasl_oauthbearer_mechanism"><a class="link" href="#example_client_authentication_flows_using_the_sasl_oauthbearer_mechanism">Example client authentication flows using the SASL <code>OAUTHBEARER</code> mechanism</a></h5>
-<div class="paragraph">
-<p>You can use the following communication flows for Kafka authentication using the SASL <code>OAUTHBEARER</code> mechanism.</p>
-</div>
-<div id="oauth-introspection-endpoint-str" class="paragraph">
-<div class="title">Client using client ID and credentials, with broker delegating validation to authorization server</div>
-<p><span class="image"><img src="images/oauth-introspection-endpoint.png" alt="Client using client ID and secret with broker delegating validation to authorization server"></span></p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>The Kafka client requests an access token from the authorization server using a client ID and credentials, and optionally a refresh token. Alternatively, the client may authenticate using a username and a password.</p>
-</li>
-<li>
-<p>The authorization server generates a new access token.</p>
-</li>
-<li>
-<p>The Kafka client authenticates with the Kafka broker using the SASL <code>OAUTHBEARER</code> mechanism to pass the access token.</p>
-</li>
-<li>
-<p>The Kafka broker validates the access token by calling a token introspection endpoint on the authorization server using its own client ID and secret.</p>
-</li>
-<li>
-<p>A Kafka client session is established if the token is valid.</p>
-</li>
-</ol>
-</div>
-<div id="oauth-jwt-str" class="paragraph">
-<div class="title">Client using client ID and credentials, with broker performing fast local token validation</div>
-<p><span class="image"><img src="images/oauth-jwt-signature.png" alt="Client using client ID and credentials with broker performing fast local token validation"></span></p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>The Kafka client authenticates with the authorization server from the token endpoint, using a client ID and credentials, and optionally a refresh token. Alternatively, the client may authenticate using a username and a password.</p>
-</li>
-<li>
-<p>The authorization server generates a new access token.</p>
-</li>
-<li>
-<p>The Kafka client authenticates with the Kafka broker using the SASL <code>OAUTHBEARER</code> mechanism to pass the access token.</p>
-</li>
-<li>
-<p>The Kafka broker validates the access token locally using a JWT token signature check, and local token introspection.</p>
-</li>
-</ol>
-</div>
-<div id="oauth-token-endpoint-str" class="paragraph">
-<div class="title">Client using long-lived access token, with broker delegating validation to authorization server</div>
-<p><span class="image"><img src="images/oauth-introspection-endpoint-long-token.png" alt="Client using long-lived access token with broker delegating validation to authorization server"></span></p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>The Kafka client authenticates with the Kafka broker using the SASL <code>OAUTHBEARER</code> mechanism to pass the long-lived access token.</p>
-</li>
-<li>
-<p>The Kafka broker validates the access token by calling a token introspection endpoint on the authorization server, using its own client ID and secret.</p>
-</li>
-<li>
-<p>A Kafka client session is established if the token is valid.</p>
-</li>
-</ol>
-</div>
-<div id="oauth-token-jwt-str" class="paragraph">
-<div class="title">Client using long-lived access token, with broker performing fast local validation</div>
-<p><span class="image"><img src="images/oauth-jwt-signature-token.png" alt="Client using long-lived access token with broker performing fast local validation"></span></p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>The Kafka client authenticates with the Kafka broker using the SASL <code>OAUTHBEARER</code> mechanism to pass the long-lived access token.</p>
-</li>
-<li>
-<p>The Kafka broker validates the access token locally using a JWT token signature check and local token introspection.</p>
-</li>
-</ol>
-</div>
-<div class="admonitionblock warning">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Warning</div>
-</td>
-<td class="content">
-Fast local JWT token signature validation is suitable only for short-lived tokens as there is no check with the authorization server if a token has been revoked.
-Token expiration is written into the token, but revocation can happen at any time, so cannot be accounted for without contacting the authorization server.
-Any issued token would be considered valid until it expires.
-</td>
-</tr>
-</table>
-</div>
-</div>
-<div class="sect4">
-<h5 id="example_client_authentication_flows_using_the_sasl_plain_mechanism"><a class="link" href="#example_client_authentication_flows_using_the_sasl_plain_mechanism">Example client authentication flows using the SASL <code>PLAIN</code> mechanism</a></h5>
-<div class="paragraph">
-<p>You can use the following communication flows for Kafka authentication using the OAuth <code>PLAIN</code> mechanism.</p>
-</div>
-<div id="oauth-plain-client-id-str" class="paragraph">
-<div class="title">Client using a client ID and secret, with the broker obtaining the access token for the client</div>
-<p><span class="image"><img src="images/oauth-plain-client-id.png" alt="Client using a client ID and secret with the broker obtaining the access token for the client"></span></p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>The Kafka client passes a <code>clientId</code> as a username and a <code>secret</code> as a password.</p>
-</li>
-<li>
-<p>The Kafka broker uses a token endpoint to pass the <code>clientId</code> and <code>secret</code> to the authorization server.</p>
-</li>
-<li>
-<p>The authorization server returns a fresh access token or an error if the client credentials are not valid.</p>
-</li>
-<li>
-<p>The Kafka broker validates the token in one of the following ways:</p>
-<div class="olist loweralpha">
-<ol class="loweralpha" type="a">
-<li>
-<p>If a token introspection endpoint is specified, the Kafka broker validates the access token by calling the endpoint on the authorization server.
-A session is established if the token validation is successful.</p>
-</li>
-<li>
-<p>If local token introspection is used, a request is not made to the authorization server.
-The Kafka broker validates the access token locally using a JWT token signature check.</p>
-</li>
-</ol>
-</div>
-</li>
-</ol>
-</div>
-<div id="oauth-plain-access-token-str" class="paragraph">
-<div class="title">Client using a long-lived access token without a client ID and secret</div>
-<p><span class="image"><img src="images/oauth-plain-access-token.png" alt="Client using a long-lived access token without a client ID and secret"></span></p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>The Kafka client passes a username and password. The password provides the value of an access token that was obtained manually and configured before running the client.</p>
-</li>
-<li>
-<p>The password is passed with or without an <code>$accessToken:</code> string prefix depending on whether or not the Kafka broker listener is configured with a token endpoint for authentication.</p>
-<div class="olist loweralpha">
-<ol class="loweralpha" type="a">
-<li>
-<p>If the token endpoint is configured, the password should be prefixed by <code>$accessToken:</code> to let the broker know that the password parameter contains an access token rather than a client secret. The Kafka broker interprets the username as the account username.</p>
-</li>
-<li>
-<p>If the token endpoint is not configured on the Kafka broker listener (enforcing a <code>no-client-credentials mode</code>), the password should provide the access token without the prefix. The Kafka broker interprets the username as the account username.
-In this mode, the client doesn&#8217;t use a client ID and secret, and the <code>password</code> parameter is always interpreted as a raw access token.</p>
-</li>
-</ol>
-</div>
-</li>
-<li>
-<p>The Kafka broker validates the token in one of the following ways:</p>
-<div class="olist loweralpha">
-<ol class="loweralpha" type="a">
-<li>
-<p>If a token introspection endpoint is specified, the Kafka broker validates the access token by calling the endpoint on the authorization server. A session is established if token validation is successful.</p>
-</li>
-<li>
-<p>If local token introspection is used, there is no request made to the authorization server. Kafka broker validates the access token locally using a JWT token signature check.</p>
-</li>
-</ol>
-</div>
-</li>
-</ol>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="str"><a class="link" href="#str">17.2.4. Re-authenticating sessions</a></h4>
-<div class="paragraph _abstract">
-<p>Configure <code>oauth</code> listeners to use Kafka <em>session re-authentication</em> for OAuth 2.0 sessions between Kafka clients and Kafka.
-This mechanism enforces the expiry of an authenticated session between the client and the broker after a defined period of time.
-When a session expires, the client immediately starts a new session by reusing the existing connection rather than dropping it.</p>
-</div>
-<div class="paragraph">
-<p>Session re-authentication is disabled by default.
-To enable it, you set a time value for <code>maxSecondsWithoutReauthentication</code> in the <code>oauth</code> listener configuration.
-The same property is used to configure session re-authentication for <code>OAUTHBEARER</code> and <code>PLAIN</code> authentication.
-For an example configuration, see <a href="#con-oauth-authentication-broker-str">Configuring OAuth 2.0 authentication on listeners</a>.</p>
-</div>
-<div class="paragraph">
-<p>Session re-authentication must be supported by the Kafka client libraries used by the client.</p>
-</div>
-<div class="paragraph">
-<p>Session re-authentication can be used with <em>fast local JWT</em> or <em>introspection endpoint</em> token validation.</p>
-</div>
-<div class="paragraph">
-<div class="title">Client re-authentication</div>
-<p>When the broker&#8217;s authenticated session expires, the client must re-authenticate to the existing session by sending a new, valid access token to the broker, without dropping the connection.</p>
-</div>
-<div class="paragraph">
-<p>If token validation is successful, a new client session is started using the existing connection.
-If the client fails to re-authenticate, the broker will close the connection if further attempts are made to send or receive messages.
-Java clients that use Kafka client library 2.2 or later automatically re-authenticate if the re-authentication mechanism is enabled on the broker.</p>
-</div>
-<div class="paragraph">
-<p>Session re-authentication also applies to refresh tokens, if used.
-When the session expires, the client refreshes the access token by using its refresh token.
-The client then uses the new access token to re-authenticate to the existing session.</p>
-</div>
-<div class="paragraph">
-<div class="title">Session expiry</div>
-<p>When session re-authentication is configured, session expiry works differently for <code>OAUTHBEARER</code> and <code>PLAIN</code> authentication.</p>
-</div>
-<div class="paragraph">
-<p>For <code>OAUTHBEARER</code> and <code>PLAIN</code>, using the client ID and secret method:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>The broker&#8217;s authenticated session will expire at the configured <code>maxSecondsWithoutReauthentication</code>.</p>
-</li>
-<li>
-<p>The session will expire earlier if the access token expires before the configured time.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>For <code>PLAIN</code> using the long-lived access token method:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>The broker&#8217;s authenticated session will expire at the configured <code>maxSecondsWithoutReauthentication</code>.</p>
-</li>
-<li>
-<p>Re-authentication will fail if the access token expires before the configured time.
-Although session re-authentication is attempted, <code>PLAIN</code> has no mechanism for refreshing tokens.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>If <code>maxSecondsWithoutReauthentication</code> is <em>not</em> configured, <code>OAUTHBEARER</code> and <code>PLAIN</code> clients can remain connected to brokers indefinitely, without needing to re-authenticate.
-Authenticated sessions do not end with access token expiry.
-However, this can be considered when configuring authorization, for example, by using <code>keycloak</code> authorization or installing a custom authorizer.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="con-oauth-strimzi-config-str"><a class="link" href="#con-oauth-strimzi-config-str">17.2.5. Example: Enabling OAuth 2.0 authentication</a></h4>
-<div class="paragraph _abstract">
-<p>This example shows how to configure client access to a Kafka cluster using OAuth 2.0 authentication.
-The procedures describe the configuration required to set up OAuth 2.0 authentication on Kafka listeners, Kafka Java clients, and Kafka components.</p>
-</div>
-<div class="sect4">
-<h5 id="proc-oauth-authentication-broker-config-str"><a class="link" href="#proc-oauth-authentication-broker-config-str">Setting up OAuth 2.0 authentication on listeners</a></h5>
-<div class="paragraph _abstract">
-<p>Configure Kafka listeners so that they are enabled to use OAuth 2.0 authentication using an authorization server.</p>
-</div>
-<div class="paragraph">
-<p>We advise using OAuth 2.0 over an encrypted interface through through a listener with <code>tls: true</code>.
-Plain listeners are not recommended.</p>
-</div>
-<div class="paragraph">
-<p>If the authorization server is using certificates signed by the trusted CA and matching the OAuth 2.0 server hostname, TLS connection works using the default settings.
-Otherwise, you may need to configure the truststore with proper certificates or disable the certificate hostname validation.</p>
-</div>
-<div class="paragraph">
-<p>For more information on the configuration of OAuth 2.0 authentication for Kafka broker listeners, see the <a href="./configuring.html#type-KafkaListenerAuthenticationOAuth-reference" target="_blank" rel="noopener"><code>KafkaListenerAuthenticationOAuth</code> schema reference</a>.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>Strimzi and Kafka are running</p>
-</li>
-<li>
-<p>An OAuth 2.0 authorization server is deployed</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Specify a listener in the <code>Kafka</code> resource with an <code>oauth</code> authentication type.</p>
-<div class="listingblock">
-<div class="title">Example listener configuration with OAuth 2.0 authentication</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
-kind: Kafka
-spec:
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
   kafka:
     # ...
     listeners:
@@ -21581,689 +20948,184 @@ spec:
         type: internal
         tls: true
         authentication:
-          type: oauth
-      - name: external3
-        port: 9094
-        type: loadbalancer
-        tls: true
-        authentication:
-          type: oauth
-      #...</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Configure the OAuth listener depending on the authorization server and validation type:</p>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="#con-oauth-authentication-broker-jwt-str">Configuring fast local JWT token validation</a></p>
-</li>
-<li>
-<p><a href="#con-oauth-authentication-broker-intro-str">Configuring token validation using an introspection endpoint</a></p>
-</li>
-<li>
-<p><a href="#con-oauth-authentication-broker-additional-str">Including additional configuration options</a></p>
-</li>
-</ul>
-</div>
-</li>
-<li>
-<p>Apply the changes to the <code>Kafka</code> configuration.</p>
-</li>
-<li>
-<p>Check the update in the logs or by watching the pod state transitions:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl logs -f ${POD_NAME} -c ${CONTAINER_NAME}
-kubectl get pod -w</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The rolling update configures the brokers to use OAuth 2.0 authentication.</p>
-</div>
-</li>
-</ol>
-</div>
-<div class="ulist">
-<div class="title">What to do next</div>
-<ul>
-<li>
-<p><a href="#proc-oauth-client-config-str">Configure your Kafka clients to use OAuth 2.0</a></p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect4">
-<h5 id="proc-oauth-client-config-str"><a class="link" href="#proc-oauth-client-config-str">Setting up OAuth 2.0 on Kafka Java clients</a></h5>
-<div class="paragraph _abstract">
-<p>Configure Kafka producer and consumer APIs to use OAuth 2.0 for interaction with Kafka brokers.
-Add a callback plugin to your client <code>pom.xml</code> file, then configure your client for OAuth 2.0.</p>
-</div>
-<div class="paragraph">
-<p>How you configure the authentication properties depends on the authentication method you are using to access the OAuth 2.0 authorization server.
-In this procedure, the properties are specified in a properties file, then loaded into the client configuration.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>Strimzi and Kafka are running</p>
-</li>
-<li>
-<p>An OAuth 2.0 authorization server is deployed and configured for OAuth access to Kafka brokers</p>
-</li>
-<li>
-<p>Kafka brokers are configured for OAuth 2.0</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Add the client library with OAuth 2.0 support to the <code>pom.xml</code> file for the Kafka client:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-xml hljs" data-lang="xml">&lt;dependency&gt;
- &lt;groupId&gt;io.strimzi&lt;/groupId&gt;
- &lt;artifactId&gt;kafka-oauth-client&lt;/artifactId&gt;
- &lt;version&gt;0.17.1&lt;/version&gt;
-&lt;/dependency&gt;</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Configure the client depending on the OAuth 2.0 authentication method:</p>
-<div class="openblock">
-<div class="content">
-<div class="ulist">
-<ul>
-<li>
-<p><a href="#con-oauth-authentication-client-credentials-str">Example client credentials configuration using the client secret</a></p>
-</li>
-<li>
-<p><a href="#con-oauth-authentication-password-grants-str">Example password grants configuration</a></p>
-</li>
-<li>
-<p><a href="#con-oauth-authentication-access-token-str">Example access token configuration</a></p>
-</li>
-<li>
-<p><a href="#con-oauth-authentication-refresh-token-str">Example refresh token configuration</a></p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>For example, specify the properties for the authentication method in a <code>client.properties</code> file.</p>
-</div>
-</li>
-<li>
-<p>Input the client properties for OAUTH 2.0 authentication into the Java client code.</p>
-<div class="listingblock">
-<div class="title">Example showing input of client properties</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">Properties props = new Properties();
-try (FileReader reader = new FileReader("client.properties", StandardCharsets.UTF_8)) {
-  props.load(reader);
-}</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Verify that the Kafka client can access the Kafka brokers.</p>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect4">
-<h5 id="proc-oauth-kafka-config-str"><a class="link" href="#proc-oauth-kafka-config-str">Setting up OAuth 2.0 on Kafka components</a></h5>
-<div class="paragraph _abstract">
-<p>This procedure describes how to set up Kafka components to use OAuth 2.0 authentication using an authorization server.</p>
-</div>
-<div class="paragraph">
-<p>You can configure OAuth 2.0 authentication for the following components:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Kafka Connect</p>
-</li>
-<li>
-<p>Kafka MirrorMaker</p>
-</li>
-<li>
-<p>HTTP Bridge</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>In this scenario, the Kafka component and the authorization server are running in the same cluster.</p>
-</div>
-<div class="paragraph">
-<div class="title">Before you start</div>
-<p>For more information on the configuration of OAuth 2.0 authentication for Kafka components, see the <a href="./configuring.html#type-KafkaClientAuthenticationOAuth-reference" target="_blank" rel="noopener"><code>KafkaClientAuthenticationOAuth</code> schema reference</a>.
-The schema reference includes examples of configuration options.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>Strimzi and Kafka are running</p>
-</li>
-<li>
-<p>An OAuth 2.0 authorization server is deployed and configured for OAuth access to Kafka brokers</p>
-</li>
-<li>
-<p>Kafka brokers are configured for OAuth 2.0</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Create a client secret and mount it to the component as an environment variable.</p>
-<div class="paragraph">
-<p>For example, here we are creating a client <code>Secret</code> for the HTTP Bridge:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
-kind: Secret
-metadata:
- name: my-bridge-oauth
-type: Opaque
-data:
- clientSecret: MGQ1OTRmMzYtZTllZS00MDY2LWI5OGEtMTM5MzM2NjdlZjQw # <b class="conum">(1)</b></code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>The <code>clientSecret</code> key must be in base64 format.</p>
-</li>
-</ol>
-</div>
-</li>
-<li>
-<p>Create or edit the resource for the Kafka component so that OAuth 2.0 authentication is configured for the authentication property.</p>
-<div class="paragraph">
-<p>For OAuth 2.0 authentication, you can use the following options:</p>
-</div>
-<div class="openblock">
-<div class="content">
-<div class="ulist">
-<ul>
-<li>
-<p>Client ID and secret</p>
-</li>
-<li>
-<p>Client ID and client assertion</p>
-</li>
-<li>
-<p>Client ID and refresh token</p>
-</li>
-<li>
-<p>Access token</p>
-</li>
-<li>
-<p>Username and password</p>
-</li>
-<li>
-<p>TLS</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>For example, here OAuth 2.0 is assigned to the HTTP Bridge client using a client ID and secret, and TLS:</p>
-</div>
-<div class="openblock">
-<div class="content">
-<div class="listingblock">
-<div class="title">Example OAuth 2.0 authentication configuration using the client secret</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
-kind: KafkaBridge
-metadata:
-  name: my-bridge
-spec:
-  # ...
-  authentication:
-    type: oauth # <b class="conum">(1)</b>
-    tokenEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_token_endpoint&gt; # <b class="conum">(2)</b>
-    clientId: kafka-bridge
-    clientSecret:
-      secretName: my-bridge-oauth
-      key: clientSecret
-    tlsTrustedCertificates: # <b class="conum">(3)</b>
-      - secretName: oauth-server-cert
-        pattern: "*.crt"</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Authentication type set to <code>oauth</code>.</p>
-</li>
-<li>
-<p>URI of the token endpoint for authentication.</p>
-</li>
-<li>
-<p>Certificates stored in X.509 format within the specified secrets for TLS connection to the authorization server.</p>
-</li>
-</ol>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>In this example, OAuth 2.0 is assigned to the HTTP Bridge client using a client ID and the location of a client assertion file, with TLS to connect to the authorization server:</p>
-</div>
-<div class="openblock">
-<div class="content">
-<div class="listingblock">
-<div class="title">Example OAuth 2.0 authentication configuration using client assertion</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
-kind: KafkaBridge
-metadata:
-  name: my-bridge
-spec:
-  # ...
-  authentication:
-    type: oauth
-    tokenEndpointUri: https://&lt;auth_server_address&gt;/&lt;path_to_token_endpoint&gt;
-    clientId: kafka-bridge
-    clientAssertionLocation: /var/run/secrets/sso/assertion # <b class="conum">(1)</b>
-    tlsTrustedCertificates:
-      - secretName: oauth-server-cert
-        pattern: "*.crt"</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Filesystem path to the client assertion file used for authenticating the client.
-This file is typically added to the deployed pod by an external operator service.
-Alternatively, use <code>clientAssertion</code> to refer to a secret containing the client assertion value.</p>
-</li>
-</ol>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>Here, OAuth 2.0 is assigned to the HTTP Bridge client using a service account token:</p>
-</div>
-<div class="openblock">
-<div class="content">
-<div class="listingblock">
-<div class="title">Example OAuth 2.0 authentication configuration using the service account token</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
-kind: KafkaBridge
-metadata:
-  name: my-bridge
-spec:
-  # ...
-  authentication:
-    type: oauth
-    accessTokenLocation: /var/run/secrets/kubernetes.io/serviceaccount/token # <b class="conum">(1)</b></code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Path to the service account token file location.</p>
-</li>
-</ol>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p>Depending on how you apply OAuth 2.0 authentication, and the type of authorization server, there are additional configuration options you can use:</p>
-</div>
-<div class="openblock">
-<div class="content">
-<div class="listingblock">
-<div class="title">Additional configuration options</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># ...
-spec:
-  # ...
-  authentication:
-    # ...
-    disableTlsHostnameVerification: true # <b class="conum">(1)</b>
-    accessTokenIsJwt: false # <b class="conum">(2)</b>
-    scope: any # <b class="conum">(3)</b>
-    audience: kafka # <b class="conum">(4)</b>
-    connectTimeoutSeconds: 60 # <b class="conum">(5)</b>
-    readTimeoutSeconds: 60 # <b class="conum">(6)</b>
-    httpRetries: 2 # <b class="conum">(7)</b>
-    httpRetryPauseMs: 300 # <b class="conum">(8)</b>
-    includeAcceptHeader: false # <b class="conum">(9)</b></code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>(Optional) Disable TLS hostname verification. Default is <code>false</code>.</p>
-</li>
-<li>
-<p>If you are using opaque tokens, you can apply <code>accessTokenIsJwt: false</code> so that access tokens are not treated as JWT tokens.</p>
-</li>
-<li>
-<p>(Optional) The <code>scope</code> for requesting the token from the token endpoint.
-An authorization server may require a client to specify the scope.
-In this case it is <code>any</code>.</p>
-</li>
-<li>
-<p>(Optional) The <code>audience</code> for requesting the token from the token endpoint.
-An authorization server may require a client to specify the audience.
-In this case it is <code>kafka</code>.</p>
-</li>
-<li>
-<p>(Optional) The connect timeout in seconds when connecting to the authorization server. The default value is 60.</p>
-</li>
-<li>
-<p>(Optional) The read timeout in seconds when connecting to the authorization server. The default value is 60.</p>
-</li>
-<li>
-<p>(Optional) The maximum number of times to retry a failed HTTP request to the authorization server. The default value is <code>0</code>, meaning that no retries are performed. To use this option effectively, consider reducing the timeout times for the <code>connectTimeoutSeconds</code> and <code>readTimeoutSeconds</code> options. However, note that retries may prevent the current worker thread from being available to other requests, and if too many requests stall, it could make the Kafka broker unresponsive.</p>
-</li>
-<li>
-<p>(Optional) The time to wait before attempting another retry of a failed HTTP request to the authorization server. By default, this time is set to zero, meaning that no pause is applied. This is because many issues that cause failed requests are per-request network glitches or proxy issues that can be resolved quickly. However, if your authorization server is under stress or experiencing high traffic, you may want to set this option to a value of 100 ms or more to reduce the load on the server and increase the likelihood of successful retries.</p>
-</li>
-<li>
-<p>(Optional) Some authorization servers have issues with client sending <code>Accept: application/json</code> header. By setting <code>includeAcceptHeader: false</code> the header will not be sent. Default is <code>true</code>.</p>
-</li>
-</ol>
-</div>
-</div>
-</div>
-</li>
-<li>
-<p>Apply the changes to the resource configuration of the component.</p>
-</li>
-<li>
-<p>Check the update in the logs or by watching the pod state transitions:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">kubectl logs -f ${POD_NAME} -c ${CONTAINER_NAME}
-kubectl get pod -w</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The rolling updates configure the component for interaction with Kafka brokers using OAuth 2.0 authentication.</p>
-</div>
-</li>
-</ol>
-</div>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="assembly-oauth-authorization_str"><a class="link" href="#assembly-oauth-authorization_str">17.3. Using OAuth 2.0 token-based authorization</a></h3>
-<div class="paragraph _abstract">
-<p>Strimzi supports the use of OAuth 2.0 token-based authorization through <a href="https://www.keycloak.org/docs/latest/authorization_services/index.html" target="_blank" rel="noopener">Keycloak Authorization Services</a>,
-which lets you manage security policies and permissions centrally.</p>
-</div>
-<div class="paragraph">
-<p>Security policies and permissions defined in Keycloak grant access to Kafka resources.
-Users and clients are matched against policies that permit access to perform specific actions on Kafka brokers.</p>
-</div>
-<div class="paragraph">
-<p>Kafka allows all users full access to brokers by default, but also provides the <code>StandardAuthorizer</code> plugin to configure authorization based on Access Control Lists (ACLs).
-The ACL rules managed by these plugins are used to grant or deny access to resources based on <em>username</em>, and these rules are stored within the Kafka cluster itself.</p>
-</div>
-<div class="paragraph">
-<p>However, OAuth 2.0 token-based authorization with Keycloak offers far greater flexibility on how you wish to implement access control to Kafka brokers.
-In addition, you can configure your Kafka brokers to use OAuth 2.0 authorization and ACLs.</p>
-</div>
-<div class="sect3">
-<h4 id="proc-oauth-authorization-broker-config-str"><a class="link" href="#proc-oauth-authorization-broker-config-str">17.3.1. Example: Enabling OAuth 2.0 authorization</a></h4>
-<div class="paragraph _abstract">
-<p>This example procedure shows how to configure Kafka to use OAuth 2.0 authorization using Keycloak Authorization Services.
-To enable OAuth 2.0 authorization using Keycloak, configure the <code>Kafka</code> resource to use <code>keycloak</code> authorization and specify the properties required to access the authorization server and Keycloak Authorization Services.</p>
-</div>
-<div class="paragraph">
-<p>Keycloak server Authorization Services REST endpoints extend token-based authentication with Keycloak by applying defined security policies on a particular user,
-and providing a list of permissions granted on different resources for that user.
-Policies use roles and groups to match permissions to users.
-OAuth 2.0 authorization enforces permissions locally based on the received list of grants for the user from Keycloak Authorization Services.</p>
-</div>
-<div class="paragraph">
-<p>A Keycloak <em>authorizer</em> (<code>KeycloakAuthorizer</code>) is provided with Strimzi.
-The authorizer fetches a list of granted permissions from the authorization server as needed,
-and enforces authorization locally on Kafka, making rapid authorization decisions for each client request.</p>
-</div>
-<div class="paragraph">
-<div class="title">Before you begin</div>
-<p>Consider the access you require or want to limit for certain users.
-You can use a combination of Keycloak <em>groups</em>, <em>roles</em>, <em>clients</em>, and <em>users</em> to configure access in Keycloak.</p>
-</div>
-<div class="paragraph">
-<p>Typically, groups are used to match users based on organizational departments or geographical locations.
-And roles are used to match users based on their function.</p>
-</div>
-<div class="paragraph">
-<p>With Keycloak, you can store users and groups in LDAP, whereas clients and roles cannot be stored this way.
-Storage and access to user data may be a factor in how you choose to configure authorization policies.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-<a href="./configuring.html#property-simple-authorization-superusers-reference" target="_blank" rel="noopener">Super users</a> always have unconstrained access to Kafka regardless of the authorization implemented.
-</td>
-</tr>
-</table>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>Strimzi must be configured to use OAuth 2.0 with Keycloak for <a href="#assembly-oauth-authentication_str">token-based authentication</a>.
-You use the same Keycloak server endpoint when you set up authorization.</p>
-</li>
-<li>
-<p>OAuth 2.0 authentication must be configured with the <code>maxSecondsWithoutReauthentication</code> option to enable re-authentication.</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Access the Keycloak Admin Console or use the Keycloak Admin CLI to enable Authorization Services for the OAuth 2.0 client for Kafka you created when setting up OAuth 2.0 authentication.</p>
-</li>
-<li>
-<p>Use Authorization Services to define resources, authorization scopes, policies, and permissions for the client.</p>
-</li>
-<li>
-<p>Bind the permissions to users and clients by assigning them roles and groups.</p>
-</li>
-<li>
-<p>Configure the <code>kafka</code> resource to use <code>keycloak</code> authorization, and to be able to access the authorization server and Authorization Services.</p>
-<div class="listingblock">
-<div class="title">Example OAuth 2.0 authorization configuration</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
-kind: Kafka
-metadata:
-  name: my-cluster
-spec:
-  kafka:
-    # ...
+          type: custom
+          sasl: true
+          listenerConfig:
+            sasl.enabled.mechanisms: OAUTHBEARER
+            oauthbearer.sasl.server.callback.handler.class: io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+            oauthbearer.sasl.jaas.config: |
+              org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
+                oauth.valid.issuer.uri="https://${SSO_HOST}/realms/kafka-authz"
+                oauth.jwks.endpoint.uri="https://${SSO_HOST}/realms/kafka-authz/protocol/openid-connect/certs"
+                oauth.username.claim="preferred_username"
+                oauth.ssl.truststore.location="/mnt/oauth-certs/tls.crt"
+                oauth.ssl.truststore.type="PEM";
+            connections.max.reauth.ms: 3600
     authorization:
-      type: <strong>keycloak</strong> <b class="conum">(1)</b>
-      tokenEndpointUri: &lt;<em>https://&lt;auth-server-address&gt;/realms/external/protocol/openid-connect/token</em>&gt; <b class="conum">(2)</b>
-      clientId: kafka <b class="conum">(3)</b>
-      delegateToKafkaAcls: false <b class="conum">(4)</b>
-      disableTlsHostnameVerification: false <b class="conum">(5)</b>
-      superUsers: <b class="conum">(6)</b>
-        - CN=user-1
-        - user-2
-        - CN=user-3
-      tlsTrustedCertificates: <b class="conum">(7)</b>
-        - secretName: oauth-server-cert
-          pattern: "*.crt"
-      grantsRefreshPeriodSeconds: 60 <b class="conum">(8)</b>
-      grantsRefreshPoolSize: 5 <b class="conum">(9)</b>
-      grantsMaxIdleSeconds: 300 <b class="conum">(10)</b>
-      grantsGcPeriodSeconds: 300 <b class="conum">(11)</b>
-      grantsAlwaysLatest: false <b class="conum">(12)</b>
-      connectTimeoutSeconds: 60 <b class="conum">(13)</b>
-      readTimeoutSeconds: 60 <b class="conum">(14)</b>
-      httpRetries: 2 <b class="conum">(15)</b>
-      enableMetrics: false <b class="conum">(16)</b>
-      includeAcceptHeader: false <b class="conum">(17)</b>
-    #...</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p>Type <code>keycloak</code> enables Keycloak authorization.</p>
-</li>
-<li>
-<p>URI of the Keycloak token endpoint. For production, always use <code>https://</code> urls.
-When you configure token-based <code>oauth</code> authentication, you specify a <code>jwksEndpointUri</code> as the URI for local JWT validation.
-The hostname for the <code>tokenEndpointUri</code> URI must be the same.</p>
-</li>
-<li>
-<p>The client ID of the OAuth 2.0 client definition in Keycloak that has Authorization Services enabled. Typically, <code>kafka</code> is used as the ID.</p>
-</li>
-<li>
-<p>(Optional) Delegate authorization to the Kafka <code>StandardAuthorizer</code> if access is denied by Keycloak Authorization Services policies.
-Default is <code>false</code>.</p>
-</li>
-<li>
-<p>(Optional) Disable TLS hostname verification. Default is <code>false</code>.</p>
-</li>
-<li>
-<p>(Optional) Designated super users.</p>
-</li>
-<li>
-<p>(Optional) Certificates stored in X.509 format within the specified secrets for TLS connection to the authorization server.</p>
-</li>
-<li>
-<p>(Optional) The time between two consecutive grants refresh runs. That is the maximum time for active sessions to detect any permissions changes for the user on Keycloak. The default value is 60.</p>
-</li>
-<li>
-<p>(Optional) The number of threads to use to refresh (in parallel) the grants for the active sessions. The default value is 5.</p>
-</li>
-<li>
-<p>(Optional) The time, in seconds, after which an idle grant in the cache can be evicted. The default value is 300.</p>
-</li>
-<li>
-<p>(Optional) The time, in seconds, between consecutive runs of a job that cleans stale grants from the cache. The default value is 300.</p>
-</li>
-<li>
-<p>(Optional) Controls whether the latest grants are fetched for a new session. When enabled, grants are retrieved from Keycloak and cached for the user. The default value is <code>false</code>.</p>
-</li>
-<li>
-<p>(Optional) The connect timeout in seconds when connecting to the Keycloak token endpoint. The default value is 60.</p>
-</li>
-<li>
-<p>(Optional) The read timeout in seconds when connecting to the Keycloak token endpoint. The default value is 60.</p>
-</li>
-<li>
-<p>(Optional) The maximum number of times to retry (without pausing) a failed HTTP request to the authorization server. The default value is <code>0</code>, meaning that no retries are performed. To use this option effectively, consider reducing the timeout times for the <code>connectTimeoutSeconds</code> and <code>readTimeoutSeconds</code> options. However, note that retries may prevent the current worker thread from being available to other requests, and if too many requests stall, it could make Kafka unresponsive.</p>
-</li>
-<li>
-<p>(Optional) Enable or disable OAuth metrics. The default value is <code>false</code>.</p>
-</li>
-<li>
-<p>(Optional) Some authorization servers have issues with client sending <code>Accept: application/json</code> header. By setting <code>includeAcceptHeader: false</code> the header will not be sent. Default is <code>true</code>.</p>
-</li>
-</ol>
-</div>
-</li>
-<li>
-<p>Apply the changes to the <code>Kafka</code> configuration.</p>
-</li>
-<li>
-<p>Check the update in the logs or by watching the pod state transitions:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl logs -f ${POD_NAME} -c kafka
-kubectl get pod -w</code></pre>
+      type: custom
+      authorizerClass: io.strimzi.kafka.oauth.server.authorizer.KeycloakAuthorizer
+      superUsers:
+        - service-account-kafka
+    config:
+      # Needed for OAuth authentication and Keycloak authorization
+      principal.builder.class: io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
+      # Needed for Keycloak authorization
+      strimzi.authorization.client.id: kafka
+      strimzi.authorization.token.endpoint.uri: https://${SSO_HOST}/realms/kafka-authz/protocol/openid-connect/token
+      strimzi.authorization.delegate.to.kafka.acl: "false"
+      strimzi.authorization.ssl.truststore.location: /mnt/oauth-certs/tls.crt
+      strimzi.authorization.ssl.truststore.type: PEM
+    # ...</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The rolling update configures the brokers to use OAuth 2.0 authorization.</p>
+<p>In this configuration:</p>
 </div>
+<div class="ulist">
+<ul>
+<li>
+<p>The listener is configured with the <code>OAUTHBEARER</code> SASL mechanism and validates access tokens using the JWKS endpoint published by Keycloak.</p>
 </li>
 <li>
-<p>Verify the configured permissions by accessing Kafka brokers as clients or users with specific roles, ensuring they have the necessary access and do not have unauthorized access.</p>
+<p>The JAAS module and callback handler (<code>JaasServerOauthValidatorCallbackHandler</code>) validate the token and extract the authenticated principal.</p>
 </li>
-</ol>
+<li>
+<p><code>connections.max.reauth.ms</code> enforces periodic re-authentication so that expiring access tokens can be refreshed without disconnecting the client.</p>
+</li>
+<li>
+<p>The authorization block enables the <code>custom</code> authorizer and loads the <code>KeycloakAuthorizer</code> class, which evaluates permissions derived from Keycloak Authorization Services.</p>
+</li>
+<li>
+<p>The <code>superUsers</code> list defines identities that bypass authorization checks.</p>
+</li>
+<li>
+<p>The <code>principal.builder.class</code> maps validated OAuth tokens to Kafka principals, which the authorizer uses when evaluating access decisions.</p>
+</li>
+<li>
+<p><code>strimzi.authorization.client.id</code> identifies the broker to Keycloak Authorization Services.</p>
+</li>
+<li>
+<p><code>strimzi.authorization.token.endpoint.uri</code> specifies the token endpoint used by the authorizer to obtain Keycloak permission grants.</p>
+</li>
+<li>
+<p>TLS configuration for the authorizer (<code>strimzi.authorization.ssl.*</code>) ensures secure HTTPS communication with the authorization server.</p>
+</li>
+<li>
+<p><code>strimzi.authorization.delegate.to.kafka.acl</code> controls whether failed authorization checks are passed to Kafka’s built-in ACL authorizer (disabled in this example).</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="how_kafka_permissions_map_to_keycloak"><a class="link" href="#how_kafka_permissions_map_to_keycloak">17.5.1. How Kafka permissions map to Keycloak</a></h4>
+<div class="paragraph">
+<p>Kafka uses an authorization model based on <strong>resource types</strong> and <strong>operations</strong>.
+For example, a user might have <code>Describe</code> and <code>Write</code> permissions on a <code>Topic</code> resource.</p>
+</div>
+<div class="paragraph">
+<p>Keycloak Authorization Services use <strong>resources</strong>, <strong>scopes</strong>, <strong>policies</strong>, and <strong>permissions</strong>.
+When you use <code>KeycloakAuthorizer</code>, Kafka resources are mapped to Keycloak resources, and Kafka operations are mapped to Keycloak authorization scopes.
+The authorizer evaluates Keycloak permissions for the authenticated user or service account to decide whether an operation is allowed.</p>
+</div>
+<div class="paragraph">
+<p>Resources in Keycloak follow a naming pattern that matches Kafka resources.
+The general format is <code>resourceType:pattern</code>.</p>
+</div>
+<div class="paragraph">
+<p>Examples:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Topic:my-topic</code></p>
+</li>
+<li>
+<p><code>Topic:topic-*</code></p>
+</li>
+<li>
+<p><code>Group:group-*</code></p>
+</li>
+<li>
+<p><code>Cluster:*</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>A resource pattern can also be prefixed with the Kafka cluster name:</p>
+</div>
+<div class="paragraph">
+<p>Examples:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>kafka-cluster:my-cluster,Topic:*</code></p>
+</li>
+<li>
+<p><code>kafka-cluster:*,Group:b_*</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>If the <code>kafka-cluster:</code> prefix is omitted, it is treated as <code>kafka-cluster:*</code>.</p>
+</div>
+<div class="paragraph">
+<p>Authorization scopes normally mirror Kafka operations, such as the following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>Create</code>, <code>Write</code>, <code>Read</code>, <code>Delete</code>, <code>Describe</code>, <code>Alter</code>, <code>DescribeConfigs</code>, <code>AlterConfigs</code>, <code>ClusterAction</code>, <code>IdempotentWrite</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>All</code> permission is not supported.
+Define explicit scopes for each permitted operation.</p>
+</div>
+<div class="paragraph">
+<p>Permissions in Keycloak combine resources, scopes, and policies that target users, groups, or
+service accounts.</p>
+</div>
+<div class="paragraph">
+<p>Common patterns include:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Role policies</strong> for service accounts (for example, microservices using client credentials)</p>
+</li>
+<li>
+<p><strong>Group policies</strong> for human users (for example, CLI users who need controlled access)</p>
+</li>
+</ul>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="assembly-managing-policies-permissions-keycloak-str"><a class="link" href="#assembly-managing-policies-permissions-keycloak-str">17.4. Setting up permissions in Keycloak</a></h3>
+<h3 id="con-oauth-keycloak-config-str"><a class="link" href="#con-oauth-keycloak-config-str">17.6. Using Keycloak as an OAuth 2.0 provider</a></h3>
 <div class="paragraph _abstract">
-<p>When using Keycloak as the OAuth 2.0 authorization server, Kafka permissions are granted to user accounts or service accounts using authorization permissions.
-To grant permissions to access Kafka, create an <em>OAuth client specification</em> in Keycloak that maps the authorization models of Keycloak Authorization Services and Kafka.</p>
-</div>
-<div class="sect3">
-<h4 id="con-kafka-keycloak-authz-models_str"><a class="link" href="#con-kafka-keycloak-authz-models_str">17.4.1. Kafka and Keycloak authorization models</a></h4>
-<div class="paragraph _abstract">
-<p>Kafka and Keycloak use different authorization models.</p>
+<p>Keycloak is a commonly used OAuth 2.0 authorization server for securing Kafka clusters.
+Strimzi supports using Keycloak both for token-based authentication and, optionally, for fine-grained authorization.</p>
 </div>
 <div class="paragraph">
-<div class="title">Kafka authorization model</div>
-<p>Kafka&#8217;s authorization model uses <em>resource types</em> and <em>operations</em> to describe ACLs for a user.
-When a Kafka client performs an action on a broker, the broker uses the configured <code>KeycloakAuthorizer</code> to check the client&#8217;s permissions, based on the action and resource type.</p>
+<p>A Keycloak authorizer (<code>KeycloakAuthorizer</code>) is provided with Strimzi.
+The authorizer retrieves permission grants from Keycloak Authorization Services and enforces authorization locally on each Kafka broker.</p>
 </div>
 <div class="paragraph">
-<p>Each resource type has a set of available permissions for operations.
-For example, the <code>Topic</code> resource type has <code>Create</code> and <code>Write</code> permissions among others.</p>
-</div>
-<div class="paragraph">
-<p>Refer to the <a href="https://kafka.apache.org/documentation/#security_authz_primitives">Kafka authorization model</a> in the Kafka documentation for the full list of resources and permissions.</p>
-</div>
-<div class="paragraph">
-<div class="title">Keycloak authorization model</div>
-<p>Keycloak&#8217;s authorization services model has four concepts for defining and granting permissions:</p>
+<p>When using Keycloak with Strimzi:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Resources</p>
+<p>Configure OAuth 2.0 <strong>authentication</strong> on Kafka listeners using the <code>custom</code> authentication type.</p>
 </li>
 <li>
-<p>Scopes</p>
+<p>Enable <strong>authorization</strong> using the <code>KeycloakAuthorizer</code>.</p>
 </li>
 <li>
-<p>Policies</p>
-</li>
-<li>
-<p>Permissions</p>
+<p>Model resources, scopes, policies, and permissions in Keycloak according to your Kafka access-control requirements.</p>
 </li>
 </ul>
-</div>
-<div class="paragraph">
-<p>For information on these concepts, see the guide to <a href="https://www.keycloak.org/docs/latest/authorization_services/index.html" target="_blank" rel="noopener">Keycloak Authorization Services</a>.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="con-mapping-keycloak-authz-services-to-kafka-model_str"><a class="link" href="#con-mapping-keycloak-authz-services-to-kafka-model_str">17.4.2. Mapping authorization models</a></h4>
-<div class="paragraph _abstract">
-<p>The Kafka authorization model is used as a basis for defining the Keycloak roles and resources that control access to Kafka.</p>
-</div>
-<div class="paragraph">
-<p>To grant Kafka permissions to user accounts or service accounts, you first create an <em>OAuth client specification</em> in Keycloak for the Kafka cluster.
-You then specify Keycloak Authorization Services rules on the client.
-Typically, the client ID of the OAuth client that represents the Kafka cluster is <code>kafka</code>.
-The <a href="#proc-oauth-authorization-keycloak-example_str">example configuration files</a> provided with Strimzi use <code>kafka</code> as the OAuth client id.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -22272,1274 +21134,11 @@ The <a href="#proc-oauth-authorization-keycloak-example_str">example configurati
 <div class="title">Note</div>
 </td>
 <td class="content">
-If you have multiple Kafka clusters, you can use a single OAuth client (<code>kafka</code>) for all of them.
-This gives you a single, unified space in which to define and manage authorization rules.
-However, you can also use different OAuth client ids (for example, <code>my-cluster-kafka</code> or <code>cluster-dev-kafka</code>) and define authorization rules for each cluster within each client configuration.
+Keycloak examples for Strimzi, including a preconfigured realm and <code>Kafka</code> custom resource examples, are provided in the <a href="#config-examples-str">example configuration files</a>.
+For information on configuring realms, clients, and authorization services in Keycloak, see the <a href="https://www.keycloak.org/documentation" target="_blank" rel="noopener">Keycloak documentation</a>.
 </td>
 </tr>
 </table>
-</div>
-<div class="paragraph">
-<p>The <code>kafka</code> client definition must have the <strong>Authorization Enabled</strong> option enabled in the Keycloak Admin Console.
-For information on enabling authorization services, see the guide to <a href="https://www.keycloak.org/docs/latest/authorization_services/index.html" target="_blank" rel="noopener">Keycloak Authorization Services</a>.</p>
-</div>
-<div class="paragraph">
-<p>All permissions exist within the scope of the <code>kafka</code> client.
-If you have different Kafka clusters configured with different OAuth client IDs, they each need a separate set of permissions even though they&#8217;re part of the same Keycloak realm.</p>
-</div>
-<div class="paragraph">
-<p>When the Kafka client uses OAUTHBEARER authentication, the Keycloak authorizer (<code>KeycloakAuthorizer</code>) uses the access token of the current session to retrieve a list of grants from the Keycloak server.
-To grant permissions, the authorizer evaluates the grants list (received and cached) from Keycloak Authorization Services based on the access token owner&#8217;s policies and permissions.</p>
-</div>
-<div class="paragraph">
-<div class="title">Uploading authorization scopes for Kafka permissions</div>
-<p>An initial Keycloak configuration usually involves uploading authorization scopes to create a list of all possible actions that can be performed on each Kafka resource type.
-This step is performed once only, before defining any permissions.
-You can add authorization scopes manually instead of uploading them.</p>
-</div>
-<div class="paragraph">
-<p>Authorization scopes should contain the following Kafka permissions regardless of the resource type:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>Create</code></p>
-</li>
-<li>
-<p><code>Write</code></p>
-</li>
-<li>
-<p><code>Read</code></p>
-</li>
-<li>
-<p><code>Delete</code></p>
-</li>
-<li>
-<p><code>Describe</code></p>
-</li>
-<li>
-<p><code>Alter</code></p>
-</li>
-<li>
-<p><code>DescribeConfigs</code></p>
-</li>
-<li>
-<p><code>AlterConfigs</code></p>
-</li>
-<li>
-<p><code>ClusterAction</code></p>
-</li>
-<li>
-<p><code>IdempotentWrite</code></p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>If you&#8217;re certain you won&#8217;t need a permission (for example, <code>IdempotentWrite</code>), you can omit it from the list of authorization scopes.
-However, that permission won&#8217;t be available to target on Kafka resources.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The <code>All</code> permission is not supported.
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<div class="title">Resource patterns for permissions checks</div>
-<p>Resource patterns are used for pattern matching against the targeted resources when performing permission checks.
-The general pattern format is <code>&lt;resource_type&gt;:&lt;pattern_name&gt;</code>.</p>
-</div>
-<div class="paragraph">
-<p>The resource types mirror the Kafka authorization model.
-The pattern allows for two matching options:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Exact matching (when the pattern does not end with <code>*</code>)</p>
-</li>
-<li>
-<p>Prefix matching (when the pattern ends with <code>*</code>)</p>
-</li>
-</ul>
-</div>
-<div class="listingblock">
-<div class="title">Example patterns for resources</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">Topic:my-topic
-Topic:orders-*
-Group:orders-*
-Cluster:*</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Additionally, the general pattern format can be prefixed by <code>kafka-cluster:&lt;cluster_name&gt;</code> followed by a comma, where <code>&lt;cluster_name&gt;</code> refers to the <code>metadata.name</code> in the Kafka custom resource.</p>
-</div>
-<div class="listingblock">
-<div class="title">Example patterns for resources with cluster prefix</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">kafka-cluster:my-cluster,Topic:*
-kafka-cluster:*,Group:b_*</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>When the <code>kafka-cluster</code> prefix is missing, it is assumed to be <code>kafka-cluster:*</code>.</p>
-</div>
-<div class="paragraph">
-<p>When defining a resource, you can associate it with a list of possible authorization scopes which are relevant to the resource.
-Set whatever actions make sense for the targeted resource type.</p>
-</div>
-<div class="paragraph">
-<p>Though you may add any authorization scope to any resource, only the scopes supported by the resource type are considered for access control.</p>
-</div>
-<div class="paragraph">
-<div class="title">Policies for applying access permission</div>
-<p>Policies are used to target permissions to one or more user accounts or service accounts.
-Targeting can refer to:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Specific user or service accounts</p>
-</li>
-<li>
-<p>Realm roles or client roles</p>
-</li>
-<li>
-<p>User groups</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>A policy is given a unique name and can be reused to target multiple permissions to multiple resources.</p>
-</div>
-<div class="paragraph">
-<div class="title">Permissions to grant access</div>
-<p>Use fine-grained permissions to pull together the policies, resources, and authorization scopes that grant access to users.</p>
-</div>
-<div class="paragraph">
-<p>The name of each permission should clearly define which permissions it grants to which users.
-For example, <code>Dev Team B can read from topics starting with x</code>.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="ref-example-permissions-for-kafka-operations_str"><a class="link" href="#ref-example-permissions-for-kafka-operations_str">17.4.3. Permissions for common Kafka operations</a></h4>
-<div class="paragraph _abstract">
-<p>The following examples demonstrate the user permissions required for performing common operations on Kafka.</p>
-</div>
-<div class="paragraph">
-<div class="title">Create a topic</div>
-<p>To create a topic, the <code>Create</code> permission is required for the specific topic, or for <code>Cluster:kafka-cluster</code>.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --create --topic my-topic \
-  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<div class="title">List topics</div>
-<p>If a user has the <code>Describe</code> permission on a specified topic, the topic is listed.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --list \
-  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<div class="title">Display topic details</div>
-<p>To display a topic&#8217;s details, <code>Describe</code> and <code>DescribeConfigs</code> permissions are required on the topic.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --describe --topic my-topic \
-  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<div class="title">Produce messages to a topic</div>
-<p>To produce messages to a topic, <code>Describe</code> and <code>Write</code> permissions are required on the topic.</p>
-</div>
-<div class="paragraph">
-<p>If the topic hasn&#8217;t been created yet, and topic auto-creation is enabled, the permissions to create a topic are required.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh  --topic my-topic \
-  --bootstrap-server my-cluster-kafka-bootstrap:9092 --producer.config=/tmp/config.properties</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<div class="title">Consume messages from a topic</div>
-<p>To consume messages from a topic, <code>Describe</code> and <code>Read</code> permissions are required on the topic.
-Consuming from the topic normally relies on storing the consumer offsets in a consumer group, which requires additional <code>Describe</code> and <code>Read</code> permissions on the consumer group.</p>
-</div>
-<div class="paragraph">
-<p>Two <code>resources</code> are needed for matching. For example:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">Topic:my-topic
-Group:my-group-*</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-consumer.sh --topic my-topic --group my-group-1 --from-beginning \
-  --bootstrap-server my-cluster-kafka-bootstrap:9092 --consumer.config /tmp/config.properties</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<div class="title">Produce messages to a topic using an idempotent producer</div>
-<p>As well as the permissions for producing to a topic, an additional <code>IdempotentWrite</code> permission is required on the
-<code>Cluster:kafka-cluster</code> resource.</p>
-</div>
-<div class="paragraph">
-<p>Two <code>resources</code> are needed for matching. For example:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">Topic:my-topic
-Cluster:kafka-cluster</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh  --topic my-topic \
-  --bootstrap-server my-cluster-kafka-bootstrap:9092 --producer.config=/tmp/config.properties --producer-property enable.idempotence=true --request-required-acks -1</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<div class="title">List consumer groups</div>
-<p>When listing consumer groups, only the groups on which the user has the <code>Describe</code> permissions are returned.
-Alternatively, if the user has the <code>Describe</code> permission on the <code>Cluster:kafka-cluster</code>, all the consumer groups are returned.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-consumer-groups.sh --list \
-  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<div class="title">Display consumer group details</div>
-<p>To display a consumer group&#8217;s details, the <code>Describe</code> permission is required on the group and the topics associated with the group.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-consumer-groups.sh --describe --group my-group-1 \
-  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<div class="title">Change topic configuration</div>
-<p>To change a topic&#8217;s configuration, the <code>Describe</code> and <code>Alter</code> permissions are required on the topic.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --alter --topic my-topic --partitions 2 \
-  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<div class="title">Display Kafka broker configuration</div>
-<p>In order to use <code>kafka-configs.sh</code> to get a broker&#8217;s configuration, the <code>DescribeConfigs</code> permission is required on the
-<code>Cluster:kafka-cluster</code>.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-configs.sh --entity-type brokers --entity-name 0 --describe --all \
-  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<div class="title">Change Kafka broker configuration</div>
-<p>To change a Kafka broker&#8217;s configuration, <code>DescribeConfigs</code> and <code>AlterConfigs</code> permissions are required on <code>Cluster:kafka-cluster</code>.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-configs --entity-type brokers --entity-name 0 --alter --add-config log.cleaner.threads=2 \
-  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<div class="title">Delete a topic</div>
-<p>To delete a topic, the <code>Describe</code> and <code>Delete</code> permissions are required on the topic.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --delete --topic my-topic \
-  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config=/tmp/config.properties</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<div class="title">Select a lead partition</div>
-<p>To run leader selection for topic partitions, the <code>Alter</code> permission is required on the <code>Cluster:kafka-cluster</code>.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-leader-election.sh --topic my-topic --partition 0 --election-type PREFERRED  /
-  --bootstrap-server my-cluster-kafka-bootstrap:9092 --admin.config /tmp/config.properties</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<div class="title">Reassign partitions</div>
-<p>To generate a partition reassignment file, <code>Describe</code> permissions are required on the topics involved.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-reassign-partitions.sh --topics-to-move-json-file /tmp/topics-to-move.json --broker-list "0,1" --generate \
-  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config /tmp/config.properties &gt; /tmp/partition-reassignment.json</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>To execute the partition reassignment, <code>Describe</code> and <code>Alter</code> permissions are required on <code>Cluster:kafka-cluster</code>. Also,
-<code>Describe</code> permissions are required on the topics involved.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-reassign-partitions.sh --reassignment-json-file /tmp/partition-reassignment.json --execute \
-  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config /tmp/config.properties</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>To verify partition reassignment, <code>Describe</code>, and <code>AlterConfigs</code> permissions are required on <code>Cluster:kafka-cluster</code>, and on each
-of the topics involved.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-reassign-partitions.sh --reassignment-json-file /tmp/partition-reassignment.json --verify \
-  --bootstrap-server my-cluster-kafka-bootstrap:9092 --command-config /tmp/config.properties</code></pre>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="proc-oauth-authorization-keycloak-example_str"><a class="link" href="#proc-oauth-authorization-keycloak-example_str">17.4.4. Example: Setting up Keycloak Authorization Services</a></h4>
-<div class="paragraph _abstract">
-<p>If you are using OAuth 2.0 with Keycloak for token-based authentication,
-you can also use Keycloak to configure authorization rules to constrain client access to Kafka brokers.
-This example explains how to use Keycloak Authorization Services with <code>keycloak</code> authorization.
-Set up Keycloak Authorization Services to enforce access restrictions on Kafka clients.
-Keycloak Authorization Services use authorization scopes, policies and permissions to define and apply access control to resources.</p>
-</div>
-<div class="paragraph">
-<p>Keycloak Authorization Services REST endpoints provide a list of granted permissions on resources for authenticated users.
-The list of grants (permissions) is fetched from the Keycloak server as the first action after an authenticated session is established by the Kafka client.
-The list is refreshed in the background so that changes to the grants are detected.
-Grants are cached and enforced locally on the Kafka broker for each user session to provide fast authorization decisions.</p>
-</div>
-<div class="paragraph">
-<p>Strimzi provides <a href="#config-examples-str">example configuration files</a>.
-These include the following example files for setting up Keycloak:</p>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1"><code>kafka-ephemeral-oauth-single-keycloak-authz.yaml</code></dt>
-<dd>
-<p>An example <code>Kafka</code> custom resource configured for OAuth 2.0 token-based authorization using Keycloak.
-You can use the custom resource to deploy a Kafka cluster that uses <code>keycloak</code> authorization and token-based <code>oauth</code> authentication.</p>
-</dd>
-<dt class="hdlist1"><code>kafka-authz-realm.json</code></dt>
-<dd>
-<p>An example Keycloak realm configured with sample groups, users, roles and clients.
-You can import the realm into a Keycloak instance to set up fine-grained permissions to access Kafka.</p>
-</dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>If you want to try the example with Keycloak, use these files to perform the tasks outlined in this section in the order shown.</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p><a href="#proc-oauth-authorization-keycloak-example-setup_str">Setting up permissions in Keycloak</a></p>
-</li>
-<li>
-<p><a href="#proc-oauth-authorization-keycloak-example-deploy-kafka_str">Deploying a Kafka cluster with Keycloak authorization</a></p>
-</li>
-<li>
-<p><a href="#proc-oauth-authorization-keycloak-example-authentication_str">Preparing TLS connectivity for a CLI Kafka client session</a></p>
-</li>
-<li>
-<p><a href="#proc-oauth-authorization-keycloak-example-check_str">Checking authorized access to Kafka using a CLI Kafka client session</a></p>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<div class="title">Authentication</div>
-<p>When you configure token-based <code>oauth</code> authentication, you specify a <code>jwksEndpointUri</code> as the URI for local JWT validation.
-When you configure <code>keycloak</code> authorization, you specify a <code>tokenEndpointUri</code> as the URI of the Keycloak token endpoint.
-The hostname for both URIs must be the same.</p>
-</div>
-<div class="paragraph">
-<div class="title">Targeted permissions with group or role policies</div>
-<p>In Keycloak, confidential clients with service accounts enabled can authenticate to the server in their own name using a client ID and a secret.
-This is convenient for microservices that typically act in their own name, and not as agents of a particular user (like a web site).
-Service accounts can have roles assigned like regular users.
-They cannot, however, have groups assigned.
-As a consequence, if you want to target permissions to microservices using service accounts, you cannot use group policies, and should instead use role policies.
-Conversely, if you want to limit certain permissions only to regular user accounts where authentication with a username and password is required, you can achieve that as a side effect of using the group policies rather than the role policies.
-This is what is used in this example for permissions that start with <code>ClusterManager</code>.
-Performing cluster management is usually done interactively using CLI tools.
-It makes sense to require the user to log in before using the resulting access token to authenticate to the Kafka broker.
-In this case, the access token represents the specific user, rather than the client application.</p>
-</div>
-<div class="sect4">
-<h5 id="proc-oauth-authorization-keycloak-example-setup_str"><a class="link" href="#proc-oauth-authorization-keycloak-example-setup_str">Setting up permissions in Keycloak</a></h5>
-<div class="paragraph">
-<p>Set up Keycloak, then connect to its Admin Console and add the preconfigured realm.
-Use the example <code>kafka-authz-realm.json</code> file to import the realm.
-You can check the authorization rules defined for the realm in the Admin Console.
-The rules grant access to the resources on the Kafka cluster configured to use the example Keycloak realm.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>A running Kubernetes cluster.</p>
-</li>
-<li>
-<p>The Strimzi <code>examples/security/keycloak-authorization/kafka-authz-realm.json</code> file that contains the preconfigured realm.</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Install the Keycloak server using the Keycloak Operator as described in <a href="https://www.keycloak.org/operator/installation" target="_blank" rel="noopener">Installing the Keycloak Operator</a> in the Keycloak documentation.</p>
-</li>
-<li>
-<p>Wait until the Keycloak instance is running.</p>
-</li>
-<li>
-<p>Get the external hostname to be able to access the Admin Console.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NS=sso
-kubectl get ingress keycloak -n $NS</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>In this example, we assume the Keycloak server is running in the <code>sso</code> namespace.</p>
-</div>
-</li>
-<li>
-<p>Get the password for the <code>admin</code> user.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get -n $NS pod keycloak-0 -o yaml | less</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The password is stored as a secret, so get the configuration YAML file for the Keycloak instance to identify the name of the secret (<code>secretKeyRef.name</code>).</p>
-</div>
-</li>
-<li>
-<p>Use the name of the secret to obtain the clear text password.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">SECRET_NAME=credential-keycloak
-kubectl get -n $NS secret $SECRET_NAME -o yaml | grep PASSWORD | awk '{print $2}' | base64 -D</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>In this example, we assume the name of the secret is <code>credential-keycloak</code>.</p>
-</div>
-</li>
-<li>
-<p>Log in to the Admin Console with the username <code>admin</code> and the password you obtained.</p>
-<div class="paragraph">
-<p>Use <code>https://<em>HOSTNAME</em></code> to access the Kubernetes <code>Ingress</code>.</p>
-</div>
-<div class="paragraph">
-<p>You can now upload the example realm to Keycloak using the Admin Console.</p>
-</div>
-</li>
-<li>
-<p>Click <strong>Add Realm</strong> to import the example realm.</p>
-</li>
-<li>
-<p>Add the <code>examples/security/keycloak-authorization/kafka-authz-realm.json</code> file, and then click <strong>Create</strong>.</p>
-<div class="paragraph">
-<p>You now have <code>kafka-authz</code> as your current realm in the Admin Console.</p>
-</div>
-<div class="paragraph">
-<p>The default view displays the <strong>Master</strong> realm.</p>
-</div>
-</li>
-<li>
-<p>In the Keycloak Admin Console, go to <strong>Clients</strong> &gt; <strong>kafka</strong> &gt; <strong>Authorization</strong> &gt; <strong>Settings</strong> and check that <strong>Decision Strategy</strong> is set to <strong>Affirmative</strong>.</p>
-<div class="paragraph">
-<p>An affirmative policy means that at least one policy must be satisfied for a client to access the Kafka cluster.</p>
-</div>
-</li>
-<li>
-<p>In the Keycloak Admin Console, go to <strong>Groups</strong>, <strong>Users</strong>, <strong>Roles</strong> and <strong>Clients</strong> to view the realm configuration.</p>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Groups</dt>
-<dd>
-<p><code>Groups</code> organize users and set permissions.
-Groups can be linked to an LDAP identity provider and used to compartmentalize users, such as by region or department.
-Users can be added to groups through a custom LDAP interface to manage permissions for Kafka resources.
-For more information on using KeyCloak&#8217;s LDAP provider, see the guide to <a href="https://www.keycloak.org/docs/latest/authorization_services/index.html" target="_blank" rel="noopener">Keycloak Server Administration</a>.</p>
-</dd>
-<dt class="hdlist1">Users</dt>
-<dd>
-<p><code>Users</code> define individual users.
-In this example, <code>alice</code> (in the <code>ClusterManager</code> group) and <code>bob</code> (in <code>ClusterManager-my-cluster</code>) are created.
-Users can also be stored in an LDAP identity provider.</p>
-</dd>
-<dt class="hdlist1">Roles</dt>
-<dd>
-<p><code>Roles</code> assign specific permissions to users or clients.
-Roles function like tags to give users certain rights.
-While roles cannot be stored in LDAP, you can add Keycloak roles to groups to combine both roles and permissions.</p>
-</dd>
-<dt class="hdlist1">Clients</dt>
-<dd>
-<p><code>Clients</code> define configurations for Kafka interactions.</p>
-<div class="ulist">
-<ul>
-<li>
-<p>The <code>kafka</code> client handles OAuth 2.0 token validation for brokers and contains authorization policies (which require authorization to be enabled).</p>
-</li>
-<li>
-<p>The <code>kafka-cli</code> client is used by command line tools to obtain access or refresh tokens.</p>
-</li>
-<li>
-<p><code>team-a-client</code> and <code>team-b-client</code> represent services with partial access to specific Kafka topics.</p>
-</li>
-</ul>
-</div>
-</dd>
-</dl>
-</div>
-</li>
-<li>
-<p>In the Keycloak Admin Console, go to <strong>Authorization</strong> &gt; <strong>Permissions</strong> to see the granted permissions that use the resources and policies defined for the realm.</p>
-<div class="paragraph">
-<p>For example, the <code>kafka</code> client has the following permissions:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>Dev Team A can write to topics that start with x_ on any cluster
-Dev Team B can read from topics that start with x_ on any cluster
-Dev Team B can update consumer group offsets that start with x_ on any cluster
-ClusterManager of my-cluster Group has full access to cluster config on my-cluster
-ClusterManager of my-cluster Group has full access to consumer groups on my-cluster
-ClusterManager of my-cluster Group has full access to topics on my-cluster</pre>
-</div>
-</div>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Dev Team A</dt>
-<dd>
-<p>The Dev Team A realm role can write to topics that start with <code>x_</code> on any cluster. This combines a resource called <code>Topic:x_*</code>, <code>Describe</code> and <code>Write</code> scopes, and the <code>Dev Team A</code> policy. The <code>Dev Team A</code> policy matches all users that have a realm role called <code>Dev Team A</code>.</p>
-</dd>
-<dt class="hdlist1">Dev Team B</dt>
-<dd>
-<p>The Dev Team B realm role can read from topics that start with <code>x_</code> on any cluster. This combines <code>Topic:x_*</code>, <code>Group:x_*</code> resources, <code>Describe</code> and <code>Read</code> scopes, and the <code>Dev Team B</code> policy. The <code>Dev Team B</code> policy matches all users that have a realm role called <code>Dev Team B</code>. Matching users and clients have the ability to read from topics, and update the consumed offsets for topics and consumer groups that have names starting with <code>x_</code>.</p>
-</dd>
-</dl>
-</div>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect4">
-<h5 id="proc-oauth-authorization-keycloak-example-deploy-kafka_str"><a class="link" href="#proc-oauth-authorization-keycloak-example-deploy-kafka_str">Deploying a Kafka cluster with Keycloak authorization</a></h5>
-<div class="paragraph">
-<p>Deploy a Kafka cluster configured to connect to the Keycloak server.
-Use the example <code>kafka-ephemeral-oauth-single-keycloak-authz.yaml</code> file to deploy the Kafka cluster as a <code>Kafka</code> custom resource.
-The example deploys a single-node Kafka cluster with <code>keycloak</code> authorization and <code>oauth</code> authentication.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>The Keycloak authorization server is deployed to your Kubernetes cluster and loaded with the example realm.</p>
-</li>
-<li>
-<p>The Cluster Operator is deployed to your Kubernetes cluster.</p>
-</li>
-<li>
-<p>The Strimzi <code>examples/security/keycloak-authorization/kafka-ephemeral-oauth-single-keycloak-authz.yaml</code> custom resource.</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Use the hostname of the Keycloak instance you deployed to prepare a truststore certificate for Kafka brokers to communicate with the Keycloak server.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">SSO_HOST=<em>SSO-HOSTNAME</em>
-SSO_HOST_PORT=$SSO_HOST:443
-STOREPASS=storepass
-
-echo "Q" | openssl s_client -showcerts -connect $SSO_HOST_PORT 2&gt;/dev/null | awk ' /BEGIN CERTIFICATE/,/END CERTIFICATE/ { print $0 } ' &gt; /tmp/sso.pem</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The certificate is required as Kubernetes <code>Ingress</code> is used to make a secure (HTTPS) connection.</p>
-</div>
-<div class="paragraph">
-<p>Usually there is not one single certificate, but a certificate chain. You only have to provide the top-most issuer CA, which is listed last in the <code>/tmp/sso.pem</code> file.
-You can extract it manually or using the following commands:</p>
-</div>
-<div class="listingblock">
-<div class="title">Example command to extract the top CA certificate in a certificate chain</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">split -p "-----BEGIN CERTIFICATE-----" sso.pem sso-
-for f in $(ls sso-*); do mv $f $f.pem; done
-cp $(ls sso-* | sort -r | head -n 1) sso-ca.crt</code></pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-A trusted CA certificate is normally obtained from a trusted source, and not by using the <code>openssl</code> command.
-</td>
-</tr>
-</table>
-</div>
-</li>
-<li>
-<p>Deploy the certificate to Kubernetes as a secret.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create secret generic oauth-server-cert --from-file=/tmp/sso-ca.crt -n $NS</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Set the hostname as an environment variable</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">SSO_HOST=<em>SSO-HOSTNAME</em></code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Create and deploy the example Kafka cluster.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">cat examples/security/keycloak-authorization/kafka-ephemeral-oauth-single-keycloak-authz.yaml | sed -E 's#\${SSO_HOST}'"#$SSO_HOST#" | kubectl create -n $NS -f -</code></pre>
-</div>
-</div>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect4">
-<h5 id="proc-oauth-authorization-keycloak-example-authentication_str"><a class="link" href="#proc-oauth-authorization-keycloak-example-authentication_str">Preparing TLS connectivity for a CLI Kafka client session</a></h5>
-<div class="paragraph">
-<p>Create a new pod for an interactive CLI session.
-Set up a truststore with a Keycloak certificate for TLS connectivity.
-The truststore is to connect to Keycloak and the Kafka broker.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>The Keycloak authorization server is deployed to your Kubernetes cluster and loaded with the example realm.</p>
-<div class="paragraph">
-<p>In the Keycloak Admin Console, check the roles assigned to the clients are displayed in <strong>Clients</strong> &gt; <strong>Service Account Roles</strong>.</p>
-</div>
-</li>
-<li>
-<p>The Kafka cluster configured to connect with Keycloak is deployed to your Kubernetes cluster.</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Run a new interactive pod container using the Kafka image to connect to a running Kafka broker.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NS=sso
-kubectl run -ti --restart=Never --image=quay.io/strimzi/kafka:latest-kafka-4.1.1 kafka-cli -n $NS -- /bin/sh</code></pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-If <code>kubectl</code> times out waiting on the image download, subsequent attempts may result in an <em>AlreadyExists</em> error.
-</td>
-</tr>
-</table>
-</div>
-</li>
-<li>
-<p>Attach to the pod container.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl attach -ti kafka-cli -n $NS</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Use the hostname of the Keycloak instance to prepare a certificate for client connection using TLS.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">SSO_HOST=<em>SSO-HOSTNAME</em>
-SSO_HOST_PORT=$SSO_HOST:443
-STOREPASS=storepass
-
-echo "Q" | openssl s_client -showcerts -connect $SSO_HOST_PORT 2&gt;/dev/null | awk ' /BEGIN CERTIFICATE/,/END CERTIFICATE/ { print $0 } ' &gt; /tmp/sso.pem</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Usually there is not one single certificate, but a certificate chain. You only have to provide the top-most issuer CA, which is listed last in the <code>/tmp/sso.pem</code> file.
-You can extract it manually or using the following command:</p>
-</div>
-<div class="listingblock">
-<div class="title">Example command to extract the top CA certificate in a certificate chain</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">split -p "-----BEGIN CERTIFICATE-----" sso.pem sso-
-for f in $(ls sso-*); do mv $f $f.pem; done
-cp $(ls sso-* | sort -r | head -n 1) sso-ca.crt</code></pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-A trusted CA certificate is normally obtained from a trusted source, and not by using the <code>openssl</code> command.
-</td>
-</tr>
-</table>
-</div>
-</li>
-<li>
-<p>Create a truststore for TLS connection to the Kafka brokers.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">keytool -keystore /tmp/truststore.p12 -storetype pkcs12 -alias sso -storepass $STOREPASS -import -file /tmp/sso-ca.crt -noprompt</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Use the Kafka bootstrap address as the hostname of the Kafka broker and the <code>tls</code> listener port (9093) to prepare a certificate for the Kafka broker.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">KAFKA_HOST_PORT=my-cluster-kafka-bootstrap:9093
-STOREPASS=storepass
-
-echo "Q" | openssl s_client -showcerts -connect $KAFKA_HOST_PORT 2&gt;/dev/null | awk ' /BEGIN CERTIFICATE/,/END CERTIFICATE/ { print $0 } ' &gt; /tmp/my-cluster-kafka.pem</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The obtained <code>.pem</code> file is usually not one single certificate, but a certificate chain. You only have to provide the top-most issuer CA, which is listed last in the <code>/tmp/my-cluster-kafka.pem</code> file.
-You can extract it manually or using the following command:</p>
-</div>
-<div class="listingblock">
-<div class="title">Example command to extract the top CA certificate in a certificate chain</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">split -p "-----BEGIN CERTIFICATE-----" /tmp/my-cluster-kafka.pem kafka-
-for f in $(ls kafka-*); do mv $f $f.pem; done
-cp $(ls kafka-* | sort -r | head -n 1) my-cluster-kafka-ca.crt</code></pre>
-</div>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-A trusted CA certificate is normally obtained from a trusted source, and not by using the <code>openssl</code> command.
-      For this example we assume the client is running in a pod in the same namespace where the Kafka cluster was deployed.
-      If the client is accessing the Kafka cluster from outside the Kubernetes cluster, you would have to first determine the bootstrap address.
-      In that case you can also get the cluster certificate directly from the Kubernetes secret, and there is no need for <code>openssl</code>.
-      For more information, see <a href="#deploy-client-access-str">Setting up client access to a Kafka cluster</a>.
-</td>
-</tr>
-</table>
-</div>
-</li>
-<li>
-<p>Add the certificate for the Kafka broker to the truststore.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">keytool -keystore /tmp/truststore.p12 -storetype pkcs12 -alias my-cluster-kafka -storepass $STOREPASS -import -file /tmp/my-cluster-kafka-ca.crt -noprompt</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Keep the session open to check authorized access.</p>
-</div>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect4">
-<h5 id="proc-oauth-authorization-keycloak-example-check_str"><a class="link" href="#proc-oauth-authorization-keycloak-example-check_str">Checking authorized access to Kafka using a CLI Kafka client session</a></h5>
-<div class="paragraph">
-<p>Check the authorization rules applied through the Keycloak realm using an interactive CLI session.
-Apply the checks using Kafka&#8217;s example producer and consumer clients to create topics with user and service accounts that have different levels of access.</p>
-</div>
-<div class="paragraph">
-<p>Use the <code>team-a-client</code> and <code>team-b-client</code> clients to check the authorization rules.
-Use the <code>alice</code> admin user to perform additional administrative tasks on Kafka.</p>
-</div>
-<div class="paragraph">
-<p>The Kafka image used in this example contains Kafka producer and consumer binaries.</p>
-</div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>A Kafka cluster is running in the Kubernetes cluster to be able to send and receive messages.</p>
-</li>
-<li>
-<p>The <a href="#proc-oauth-authorization-keycloak-example-authentication_str">interactive CLI Kafka client session</a> is started.</p>
-</li>
-</ul>
-</div>
-<div class="olist arabic">
-<div class="title">Setting up client and admin user configuration</div>
-<ol class="arabic">
-<li>
-<p>Prepare a Kafka configuration file with authentication properties for the <code>team-a-client</code> client.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">SSO_HOST=<em>SSO-HOSTNAME</em>
-
-cat &gt; /tmp/team-a-client.properties &lt;&lt; EOF
-security.protocol=SASL_SSL
-ssl.truststore.location=/tmp/truststore.p12
-ssl.truststore.password=$STOREPASS
-ssl.truststore.type=PKCS12
-sasl.mechanism=OAUTHBEARER
-sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-  oauth.client.id="team-a-client" \
-  oauth.client.secret="team-a-client-secret" \
-  oauth.ssl.truststore.location="/tmp/oauth-truststore.p12" \
-  oauth.ssl.truststore.password="$STOREPASS" \
-  oauth.ssl.truststore.type="PKCS12" \
-  oauth.token.endpoint.uri="https://$SSO_HOST/realms/kafka-authz/protocol/openid-connect/token" ;
-sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
-EOF</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The SASL <code>OAUTHBEARER</code> mechanism is used.
-This mechanism requires a client ID and client secret, which means the client first connects to the Keycloak server to obtain an access token.
-The client then connects to the Kafka broker and uses the access token to authenticate.</p>
-</div>
-</li>
-<li>
-<p>Prepare a Kafka configuration file with authentication properties for the <code>team-b-client</code> client.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">cat &gt; /tmp/team-b-client.properties &lt;&lt; EOF
-security.protocol=SASL_SSL
-ssl.truststore.location=/tmp/truststore.p12
-ssl.truststore.password=$STOREPASS
-ssl.truststore.type=PKCS12
-sasl.mechanism=OAUTHBEARER
-sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-  oauth.client.id="team-b-client" \
-  oauth.client.secret="team-b-client-secret" \
-  oauth.ssl.truststore.location="/tmp/oauth-truststore.p12" \
-  oauth.ssl.truststore.password="$STOREPASS" \
-  oauth.ssl.truststore.type="PKCS12" \
-  oauth.token.endpoint.uri="https://$SSO_HOST/realms/kafka-authz/protocol/openid-connect/token" ;
-sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
-EOF</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Authenticate admin user <code>alice</code> by using <code>curl</code> and performing a password grant authentication to obtain a refresh token.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">USERNAME=alice
-PASSWORD=alice-password
-
-GRANT_RESPONSE=$(curl -X POST "https://$SSO_HOST/realms/kafka-authz/protocol/openid-connect/token" -H 'Content-Type: application/x-www-form-urlencoded' -d "grant_type=password&amp;username=$USERNAME&amp;password=$PASSWORD&amp;client_id=kafka-cli&amp;scope=offline_access" -s -k)
-
-REFRESH_TOKEN=$(echo $GRANT_RESPONSE | awk -F "refresh_token\":\"" '{printf $2}' | awk -F "\"" '{printf $1}')</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The refresh token is an offline token that is long-lived and does not expire.</p>
-</div>
-</li>
-<li>
-<p>Prepare a Kafka configuration file with authentication properties for the admin user <code>alice</code>.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">cat &gt; /tmp/alice.properties &lt;&lt; EOF
-security.protocol=SASL_SSL
-ssl.truststore.location=/tmp/truststore.p12
-ssl.truststore.password=$STOREPASS
-ssl.truststore.type=PKCS12
-sasl.mechanism=OAUTHBEARER
-sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-  oauth.refresh.token="$REFRESH_TOKEN" \
-  oauth.client.id="kafka-cli" \
-  oauth.ssl.truststore.location="/tmp/oauth-truststore.p12" \
-  oauth.ssl.truststore.password="$STOREPASS" \
-  oauth.ssl.truststore.type="PKCS12" \
-  oauth.token.endpoint.uri="https://$SSO_HOST/realms/kafka-authz/protocol/openid-connect/token" ;
-sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
-EOF</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The <code>kafka-cli</code> public client is used for the <code>oauth.client.id</code> in the <code>sasl.jaas.config</code>.
-Since it&#8217;s a public client it does not require a secret.
-The client authenticates with the refresh token that was authenticated in the previous step.
-The refresh token requests an access token behind the scenes, which is then sent to the Kafka broker for authentication.</p>
-</div>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<div class="title">Producing messages with authorized access</div>
-<p>Use the <code>team-a-client</code> configuration to check that you can produce messages to topics that start with <code>a_</code> or <code>x_</code>.</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Write to topic <code>my-topic</code>.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --topic my-topic \
-  --producer.config=/tmp/team-a-client.properties
-First message</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This request returns a <code>Not authorized to access topics: [my-topic]</code> error.</p>
-</div>
-<div class="paragraph">
-<p><code>team-a-client</code> has a <code>Dev Team A</code> role that gives it permission to perform any supported actions on topics that start with <code>a_</code>, but can only write to topics that start with <code>x_</code>.
-The topic named <code>my-topic</code> matches neither of those rules.</p>
-</div>
-</li>
-<li>
-<p>Write to topic <code>a_messages</code>.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --topic a_messages \
-  --producer.config /tmp/team-a-client.properties
-First message
-Second message</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Messages are produced to Kafka successfully.</p>
-</div>
-</li>
-<li>
-<p>Press CTRL+C to exit the CLI application.</p>
-</li>
-<li>
-<p>Check the Kafka container log for a debug log of <code>Authorization GRANTED</code> for the request.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl logs my-cluster-kafka-0 -f -n $NS</code></pre>
-</div>
-</div>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<div class="title">Consuming messages with authorized access</div>
-<p>Use the <code>team-a-client</code> configuration to consume messages from topic <code>a_messages</code>.</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Fetch messages from topic <code>a_messages</code>.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --topic a_messages \
-  --from-beginning --consumer.config /tmp/team-a-client.properties</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The request returns an error because the <code>Dev Team A</code> role for <code>team-a-client</code> only has access to consumer groups that have names starting with <code>a_</code>.</p>
-</div>
-</li>
-<li>
-<p>Update the <code>team-a-client</code> properties to specify the custom consumer group it is permitted to use.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --topic a_messages \
-  --from-beginning --consumer.config /tmp/team-a-client.properties --group a_consumer_group_1</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The consumer receives all the messages from the <code>a_messages</code> topic.</p>
-</div>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<div class="title">Administering Kafka with authorized access</div>
-<p>The <code>team-a-client</code> is an account without any cluster-level access, but it can be used with some administrative operations.</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>List topics.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --command-config /tmp/team-a-client.properties --list</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The <code>a_messages</code> topic is returned.</p>
-</div>
-</li>
-<li>
-<p>List consumer groups.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-consumer-groups.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --command-config /tmp/team-a-client.properties --list</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The <code>a_consumer_group_1</code> consumer group is returned.</p>
-</div>
-<div class="paragraph">
-<p>Fetch details on the cluster configuration.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-configs.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --command-config /tmp/team-a-client.properties \
-  --entity-type brokers --describe --entity-default</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The request returns an error because the operation requires cluster level permissions that <code>team-a-client</code> does not have.</p>
-</div>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<div class="title">Using clients with different permissions</div>
-<p>Use the <code>team-b-client</code> configuration to produce messages to topics that start with <code>b_</code>.</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Write to topic <code>a_messages</code>.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --topic a_messages \
-  --producer.config /tmp/team-b-client.properties
-Message 1</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This request returns a <code>Not authorized to access topics: [a_messages]</code> error.</p>
-</div>
-</li>
-<li>
-<p>Write to topic <code>b_messages</code>.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --topic b_messages \
-  --producer.config /tmp/team-b-client.properties
-Message 1
-Message 2
-Message 3</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Messages are produced to Kafka successfully.</p>
-</div>
-</li>
-<li>
-<p>Write to topic <code>x_messages</code>.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --topic x_messages \
-  --producer.config /tmp/team-b-client.properties
-Message 1</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>A <code>Not authorized to access topics: [x_messages]</code> error is returned,
-The <code>team-b-client</code> can only read from topic <code>x_messages</code>.</p>
-</div>
-</li>
-<li>
-<p>Write to topic <code>x_messages</code> using <code>team-a-client</code>.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --topic x_messages \
-  --producer.config /tmp/team-a-client.properties
-Message 1</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This request returns a <code>Not authorized to access topics: [x_messages]</code> error.
-The <code>team-a-client</code> can write to the <code>x_messages</code> topic, but it does not have a permission to create a topic if it does not yet exist.
-Before <code>team-a-client</code> can write to the <code>x_messages</code> topic, an admin <em>power user</em> must create it with the correct configuration, such as the number of partitions and replicas.</p>
-</div>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<div class="title">Managing Kafka with an authorized admin user</div>
-<p>Use admin user <code>alice</code> to manage Kafka.
-<code>alice</code> has full access to manage everything on any Kafka cluster.</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Create the <code>x_messages</code> topic as <code>alice</code>.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --command-config /tmp/alice.properties \
-  --topic x_messages --create --replication-factor 1 --partitions 1</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The topic is created successfully.</p>
-</div>
-</li>
-<li>
-<p>List all topics as <code>alice</code>.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-topics.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --command-config /tmp/alice.properties --list
-bin/kafka-topics.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --command-config /tmp/team-a-client.properties --list
-bin/kafka-topics.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --command-config /tmp/team-b-client.properties --list</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Admin user <code>alice</code> can list all the topics, whereas <code>team-a-client</code> and <code>team-b-client</code> can only list the topics they have access to.</p>
-</div>
-<div class="paragraph">
-<p>The <code>Dev Team A</code> and <code>Dev Team B</code> roles both have <code>Describe</code> permission on topics that start with <code>x_</code>, but they cannot see the other team&#8217;s topics because they do not have <code>Describe</code> permissions on them.</p>
-</div>
-</li>
-<li>
-<p>Use the <code>team-a-client</code> to produce messages to the <code>x_messages</code> topic:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --topic x_messages \
-  --producer.config /tmp/team-a-client.properties
-Message 1
-Message 2
-Message 3</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>As <code>alice</code> created the <code>x_messages</code> topic, messages are produced to Kafka successfully.</p>
-</div>
-</li>
-<li>
-<p>Use the <code>team-b-client</code> to produce messages to the <code>x_messages</code> topic.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --topic x_messages \
-  --producer.config /tmp/team-b-client.properties
-Message 4
-Message 5</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This request returns a <code>Not authorized to access topics: [x_messages]</code> error.</p>
-</div>
-</li>
-<li>
-<p>Use the <code>team-b-client</code> to consume messages from the <code>x_messages</code> topic:</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --topic x_messages \
-  --from-beginning --consumer.config /tmp/team-b-client.properties --group x_consumer_group_b</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The consumer receives all the messages from the <code>x_messages</code> topic.</p>
-</div>
-</li>
-<li>
-<p>Use the <code>team-a-client</code> to consume messages from the <code>x_messages</code> topic.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --topic x_messages \
-  --from-beginning --consumer.config /tmp/team-a-client.properties --group x_consumer_group_a</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This request returns a <code>Not authorized to access topics: [x_messages]</code> error.</p>
-</div>
-</li>
-<li>
-<p>Use the <code>team-a-client</code> to consume messages from a consumer group that begins with <code>a_</code>.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --topic x_messages \
-  --from-beginning --consumer.config /tmp/team-a-client.properties --group a_consumer_group_a</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This request returns a <code>Not authorized to access topics: [x_messages]</code> error.</p>
-</div>
-<div class="paragraph">
-<p><code>Dev Team A</code> has no <code>Read</code> access on topics that start with a <code>x_</code>.</p>
-</div>
-</li>
-<li>
-<p>Use <code>alice</code> to produce messages to the <code>x_messages</code> topic.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --topic x_messages \
-  --from-beginning --consumer.config /tmp/alice.properties</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Messages are produced to Kafka successfully.</p>
-</div>
-<div class="paragraph">
-<p><code>alice</code> can read from or write to any topic.</p>
-</div>
-</li>
-<li>
-<p>Use <code>alice</code> to read the cluster configuration.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">bin/kafka-configs.sh --bootstrap-server my-cluster-kafka-bootstrap:9093 --command-config /tmp/alice.properties \
-  --entity-type brokers --describe --entity-default</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The cluster configuration for this example is empty.</p>
-</div>
-</li>
-</ol>
-</div>
-</div>
 </div>
 </div>
 </div>
