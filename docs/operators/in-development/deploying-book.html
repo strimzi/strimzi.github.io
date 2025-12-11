@@ -12161,7 +12161,7 @@ Before implementing any failover or failback processes, test your recovery appro
 <h3 id="con-config-mirrormaker2-connectors-str"><a class="link" href="#con-config-mirrormaker2-connectors-str">11.10. Configuring MirrorMaker 2 connectors</a></h3>
 <div class="paragraph _abstract">
 <p>MirrorMaker 2 uses internal connectors to synchronize data between Kafka clusters.
-Configure these connectors in your <code>KafkaMirrorMaker2</code> custom resource.</p>
+You configure these connectors in the <code>KafkaMirrorMaker2</code> custom resource.</p>
 </div>
 <div class="paragraph">
 <p>MirrorMaker 2 consists of the following connectors:</p>
@@ -12170,343 +12170,29 @@ Configure these connectors in your <code>KafkaMirrorMaker2</code> custom resourc
 <dl>
 <dt class="hdlist1"><code>MirrorSourceConnector</code></dt>
 <dd>
-<p>(Required) Replicates topics and ACLs from source to target cluster.</p>
+<p>(Required) Replicates topics (and, if configured, ACLs) from the source cluster to the target cluster.</p>
 </dd>
 <dt class="hdlist1"><code>MirrorCheckpointConnector</code></dt>
 <dd>
-<p>(Optional) Synchronizes consumer group offsets for failover support. Only needed if offset tracking is required.</p>
+<p>(Optional) Synchronizes consumer group offsets for failover support. Use this connector only when offset tracking is required.</p>
 </dd>
 <dt class="hdlist1"><code>MirrorHeartbeatConnector</code></dt>
 <dd>
-<p>(Optional) Monitors connectivity between clusters. Useful for alerts but not required for replication.
-<code>MirrorHeartbeatConnector</code> is not configurable through the <code>KafkaMirrorMaker2</code> custom resource.
-You can use a separate <code>KafkaConnect</code> and <code>KafkaConnector</code> custom resources to run it.</p>
+<p>(Optional) Monitors connectivity between clusters. This connector is useful for monitoring and alerting but is not required for replication.</p>
 </dd>
 </dl>
 </div>
 <div class="paragraph">
-<p>The following table describes connector properties and the connectors you configure to use them.</p>
+<p><code>MirrorSourceConnector</code> and <code>MirrorCheckpointConnector</code> are configured in the
+<code>spec.mirrors</code> section of the <code>KafkaMirrorMaker2</code> custom resource using the <code>sourceConnector</code> and <code>checkpointConnector</code> properties.</p>
 </div>
-<table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 12. MirrorMaker 2 connector configuration properties</caption>
-<colgroup>
-<col style="width: 50%;">
-<col style="width: 25%;">
-<col style="width: 25%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Property</th>
-<th class="tableblock halign-left valign-top">sourceConnector</th>
-<th class="tableblock halign-left valign-top">checkpointConnector</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">admin.timeout.ms</dt>
-<dd>
-<p>Timeout for admin tasks, such as detecting new topics. Default is <code>60000</code> (1 minute).</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">replication.policy.class</dt>
-<dd>
-<p>Policy to define the target topic naming convention. Default is <code>org.apache.kafka.connect.mirror.DefaultReplicationPolicy</code>.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">replication.policy.separator</dt>
-<dd>
-<p>The separator used for topic naming in the target cluster. By default, the separator is set to a dot (.).
-Separator configuration is only applicable to the <code>DefaultReplicationPolicy</code> replication policy class, which defines target topic names.
-The <code>IdentityReplicationPolicy</code> class does not use the property as topics retain their original names.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">consumer.poll.timeout.ms</dt>
-<dd>
-<p>Timeout when polling the source cluster. Default is <code>1000</code> (1 second).</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">offset-syncs.topic.location</dt>
-<dd>
-<p>The location of the <code>offset-syncs</code> topic, which can be the <code>source</code> (default) or <code>target</code> cluster.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">topic.filter.class</dt>
-<dd>
-<p>Topic filter to select the topics to replicate. Default is <code>org.apache.kafka.connect.mirror.DefaultTopicFilter</code>.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">config.property.filter.class</dt>
-<dd>
-<p>Topic filter to select the topic configuration properties to replicate. Default is <code>org.apache.kafka.connect.mirror.DefaultConfigPropertyFilter</code>.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">config.properties.exclude</dt>
-<dd>
-<p>Topic configuration properties that should not be replicated. Supports comma-separated property names and regular expressions.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">offset.lag.max</dt>
-<dd>
-<p>Maximum allowable (out-of-sync) offset lag before a remote partition is synchronized. Default is <code>100</code>.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">offset-syncs.topic.replication.factor</dt>
-<dd>
-<p>Replication factor for the internal <code>offset-syncs</code> topic. Default is <code>3</code>.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">refresh.topics.enabled</dt>
-<dd>
-<p>Enables check for new topics and partitions. Default is <code>true</code>.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">refresh.topics.interval.seconds</dt>
-<dd>
-<p>Frequency of topic refresh. Default is <code>600</code> (10 minutes). By default, a check for new topics in the source cluster is made every 10 minutes.
-You can change the frequency by adding <code>refresh.topics.interval.seconds</code> to the source connector configuration.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">replication.factor</dt>
-<dd>
-<p>The replication factor for new topics. Default is <code>2</code>.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">sync.topic.acls.enabled</dt>
-<dd>
-<p>Enables synchronization of ACLs from the source cluster. Default is <code>true</code>. For more information, see <a href="#con-config-mirrormaker2-str">Configuring MirrorMaker 2</a>.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">sync.topic.acls.interval.seconds</dt>
-<dd>
-<p>Frequency of ACL synchronization. Default is <code>600</code> (10 minutes).</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">sync.topic.configs.enabled</dt>
-<dd>
-<p>Enables synchronization of topic configuration from the source cluster. Default is <code>true</code>.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">sync.topic.configs.interval.seconds</dt>
-<dd>
-<p>Frequency of topic configuration synchronization. Default <code>600</code> (10 minutes).</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">checkpoints.topic.replication.factor</dt>
-<dd>
-<p>Replication factor for the internal <code>checkpoints</code> topic. Default is <code>3</code>.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">emit.checkpoints.enabled</dt>
-<dd>
-<p>Enables synchronization of consumer offsets to the target cluster. Default is <code>true</code>.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">emit.checkpoints.interval.seconds</dt>
-<dd>
-<p>Frequency of consumer offset synchronization. Default is <code>60</code> (1 minute).</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">group.filter.class</dt>
-<dd>
-<p>Group filter to select the consumer groups to replicate. Default is <code>org.apache.kafka.connect.mirror.DefaultGroupFilter</code>.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">refresh.groups.enabled</dt>
-<dd>
-<p>Enables check for new consumer groups. Default is <code>true</code>.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">refresh.groups.interval.seconds</dt>
-<dd>
-<p>Frequency of consumer group refresh. Default is <code>600</code> (10 minutes).</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">sync.group.offsets.enabled</dt>
-<dd>
-<p>Enables synchronization of consumer group offsets to the target cluster <code>__consumer_offsets</code> topic. Default is <code>false</code>.</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><div class="content"><div class="dlist">
-<dl>
-<dt class="hdlist1">sync.group.offsets.interval.seconds</dt>
-<dd>
-<p>Frequency of consumer group offset synchronization. Default is <code>60</code> (1 minute).</p>
-</dd>
-</dl>
-</div></div></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">✓</p></td>
-</tr>
-</tbody>
-</table>
+<div class="paragraph">
+<p><code>MirrorHeartbeatConnector</code> is not configurable through the <code>KafkaMirrorMaker2</code> custom resource.
+To run a <code>MirrorHeartbeatConnector</code>, use a separate <code>KafkaConnect</code> and <code>KafkaConnector</code> custom resource.</p>
+</div>
+<div class="paragraph">
+<p>For a full list of supported MirrorMaker 2 connector properties, including common configuration and connector-specific options, see the <a href="https://kafka.apache.org/documentation/" target="_blank" rel="noopener">Apache Kafka documentation</a>.</p>
+</div>
 <div class="admonitionblock warning">
 <table>
 <tr>
@@ -12514,9 +12200,9 @@ You can change the frequency by adding <code>refresh.topics.interval.seconds</co
 <div class="title">Warning</div>
 </td>
 <td class="content">
-The following properties must be <strong>identically configured across both connectors</strong> (source and checkpoint):
+Configure the following properties with the <strong>same values in both the source and checkpoint connectors</strong>:
 <code>replication.policy.class</code>, <code>replication.policy.separator</code>, <code>offset-syncs.topic.location</code>, and <code>topic.filter.class</code>.
-Mismatches cause replication failures or offset sync issues.
+If these properties do not match, replication or offset synchronization can fail.
 </td>
 </tr>
 </table>
@@ -12907,7 +12593,7 @@ Producer and consumer configuration options depend on the MirrorMaker 2 implemen
 <p>The following tables describe the producers and consumers for each of the connectors and where you can add configuration.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 13. Source connector producers and consumers</caption>
+<caption class="title">Table 12. Source connector producers and consumers</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 20%;">
@@ -12945,7 +12631,7 @@ Producer and consumer configuration options depend on the MirrorMaker 2 implemen
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 14. Checkpoint connector producers and consumers</caption>
+<caption class="title">Table 13. Checkpoint connector producers and consumers</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 20%;">
@@ -17528,7 +17214,7 @@ If you scale your Kafka cluster while using external listeners, it might trigger
 <p>From the listener configuration, the resulting listener bootstrap and per-broker service names are structured according to the following naming conventions:</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 15. Listener naming conventions</caption>
+<caption class="title">Table 14. Listener naming conventions</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 40%;">
@@ -17572,7 +17258,7 @@ The resulting external listener naming convention varies slightly.
 The specific combinations of listener name and port configuration values in the following table are backwards compatible.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 16. Backwards compatible listener name and port combinations</caption>
+<caption class="title">Table 15. Backwards compatible listener name and port combinations</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 16.6666%;">
@@ -19152,7 +18838,7 @@ A rolling update is also started if you update a Kafka listener certificate in a
 <p>For external listeners which have TLS encryption enabled, the hostnames you need to specify in certificates depends on the external listener <code>type</code>.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 17. SANs for each type of external listener</caption>
+<caption class="title">Table 16. SANs for each type of external listener</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -21544,7 +21230,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </table>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 18. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
+<caption class="title">Table 17. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -21563,7 +21249,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
+<caption class="title">Table 18. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -21590,7 +21276,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-<em>&lt;pool_name&gt;</em>-<em>&lt;node_id&gt;</em></code> secret</caption>
+<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-<em>&lt;pool_name&gt;</em>-<em>&lt;node_id&gt;</em></code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -21613,7 +21299,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 21. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
+<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -21645,7 +21331,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 22. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
+<caption class="title">Table 21. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -21677,7 +21363,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 23. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
+<caption class="title">Table 22. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -21709,7 +21395,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 24. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
+<caption class="title">Table 23. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -21741,7 +21427,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 25. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
+<caption class="title">Table 24. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -21787,7 +21473,7 @@ This secret must be accessible to the Strimzi components and for administrative 
 You can enforce this using Kubernetes role-based access controls, if necessary.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 26. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
+<caption class="title">Table 25. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -21806,7 +21492,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 27. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
+<caption class="title">Table 26. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -21842,7 +21528,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 <p>When a user is created using the User Operator, a secret is generated using the name of the user.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 28. Fields in the <code><em>user_name</em></code> secret</caption>
+<caption class="title">Table 27. Fields in the <code><em>user_name</em></code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 30%;">
@@ -22609,7 +22295,7 @@ Instead, follow the procedure for <a href="#renewing-your-own-ca-certificates-st
 <li>
 <p>Apply the <code>strimzi.io/force-replace</code> annotation to the <code>Secret</code> that contains the private key that you want to renew.</p>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 29. Commands for replacing private keys</caption>
+<caption class="title">Table 28. Commands for replacing private keys</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -25137,7 +24823,7 @@ Fewer data movements at a single time reduces the load on the cluster.</p>
 <p>The following table explains the properties contained in the optimization proposal&#8217;s summary.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 30. Properties contained in an optimization proposal summary</caption>
+<caption class="title">Table 29. Properties contained in an optimization proposal summary</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -25282,7 +24968,7 @@ Each broker has a set of key metrics represented by three values:</p>
 </div>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 31. Properties captured in the config map</caption>
+<caption class="title">Table 30. Properties captured in the config map</caption>
 <colgroup>
 <col style="width: 35%;">
 <col style="width: 65%;">
@@ -25434,7 +25120,7 @@ Cruise Control does not perform inter-broker and intra-broker balancing at the s
 </ul>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 32. Rebalance configuration tuning properties</caption>
+<caption class="title">Table 31. Rebalance configuration tuning properties</caption>
 <colgroup>
 <col style="width: 36.3636%;">
 <col style="width: 36.3636%;">
@@ -25688,7 +25374,7 @@ The deployment is successful when the <code>AVAILABLE</code> output shows <code>
 <p>The following table shows the three topics that are automatically created when Cruise Control is deployed. These topics are required for Cruise Control to work properly and must not be deleted or changed. You can change the name of the topic using the specified configuration option.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 33. Topics created when Cruise Control is deployed</caption>
+<caption class="title">Table 32. Topics created when Cruise Control is deployed</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 16.6666%;">
@@ -28495,7 +28181,7 @@ Relabeling is the process of writing a label dynamically.
 For example, the value of a label may be derived from the name of a Kafka server and client ID.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 34. Example custom resources with metrics configuration</caption>
+<caption class="title">Table 33. Example custom resources with metrics configuration</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -28540,7 +28226,7 @@ For example, the value of a label may be derived from the name of a Kafka server
 <div class="sect3">
 <h4 id="ref-metrics-reporter-config-str"><a class="link" href="#ref-metrics-reporter-config-str">25.1.2. Example Metrics Reporter metrics configuration</a></h4>
 <table class="tableblock frame-all grid-all stripes-none stretch _abstract">
-<caption class="title">Table 35. Example custom resources with metrics configuration</caption>
+<caption class="title">Table 34. Example custom resources with metrics configuration</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -28658,7 +28344,7 @@ For example, the Grafana dashboard for Strimzi operators provides information on
 The dashboards are populated with a representative set of metrics for monitoring.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 36. Example Grafana dashboard files</caption>
+<caption class="title">Table 35. Example Grafana dashboard files</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -30040,7 +29726,7 @@ For the latest information, see the <a href="https://opentelemetry.io/docs/" tar
 <p>The following table describes the key environment variables for setting up tracing with OpenTelemetry.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 37. OpenTelemetry environment variables</caption>
+<caption class="title">Table 36. OpenTelemetry environment variables</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 20%;">
@@ -31042,7 +30728,7 @@ You can use the configuration to control how certificates are watched for update
 For more information on how the environment variables work, see <a href="#proc-drain-cleaner-certs-renewing-str">Watching the TLS certificates used by the Strimzi Drain Cleaner</a>.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 38. Chart configuration options</caption>
+<caption class="title">Table 37. Chart configuration options</caption>
 <colgroup>
 <col style="width: 45.4545%;">
 <col style="width: 36.3636%;">
@@ -31443,7 +31129,7 @@ But you can disable the watching of certificates by setting the <code>STRIMZI_CE
 <p>With <code>STRIMZI_CERTIFICATE_WATCH_ENABLED</code> enabled, you can also use the following environment variables for watching TLS certificates.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 39. Drain Cleaner environment variables for watching TLS certificates</caption>
+<caption class="title">Table 38. Drain Cleaner environment variables for watching TLS certificates</caption>
 <colgroup>
 <col style="width: 45.4545%;">
 <col style="width: 36.3636%;">
@@ -31733,7 +31419,7 @@ You can export and monitor restart events using metrics collection tools like Pr
 You can check the reason by fetching information on the restart event.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 40. Restart reasons</caption>
+<caption class="title">Table 39. Restart reasons</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 66.6667%;">
@@ -34260,7 +33946,7 @@ In this case, you must, if possible, downgrade the Kafka version as part of the 
 <p>The following table details known limitations for specific downgrade paths.</p>
 </div>
 <table id="downgrade-version-limitations" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 41. Known limitations in downgrade paths</caption>
+<caption class="title">Table 40. Known limitations in downgrade paths</caption>
 <colgroup>
 <col style="width: 28.5714%;">
 <col style="width: 71.4286%;">
@@ -35900,7 +35586,7 @@ You can also override <code>min.insync.replicas</code> at the topic level in the
 <p>The following table describes how this configuration operates depending on the availability of followers that replicate the leader replica.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 42. Follower availability</caption>
+<caption class="title">Table 41. Follower availability</caption>
 <colgroup>
 <col style="width: 28.5714%;">
 <col style="width: 42.8571%;">
