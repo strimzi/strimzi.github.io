@@ -717,12 +717,16 @@ Use the <code>KafkaBridge</code> resource to configure authentication when you a
 <div class="sect2">
 <h3 id="con-securing-http-interface-bridge"><a class="link" href="#con-securing-http-interface-bridge">1.5. Securing the HTTP Bridge HTTP interface</a></h3>
 <div class="paragraph _abstract">
-<p>Authentication and encryption between HTTP clients and the HTTP Bridge is not supported directly by the HTTP Bridge.
-Requests sent from clients to the HTTP Bridge are sent without authentication or encryption.
-Requests must use HTTP rather than HTTPS.</p>
+<p>By default, connections between HTTP clients and HTTP Bridge are not encrypted, but you can configure a TLS-encrypted connection through its <a href="#proc-configuring-kafka-bridge-bridge">properties file</a>.
+If the HTTP Bridge is configured with TLS encryption, client requests should connect to the bridge by using  HTTPS instead of HTTP.</p>
 </div>
 <div class="paragraph">
-<p>You can combine the HTTP Bridge with the following tools to secure it:</p>
+<p>You can enable TLS encryption for all HTTP Bridge endpoints except management endpoints such as <code>/ready</code>, <code>/healthy</code> and <code>/metrics</code>.
+These endpoints are typically used only by internal clients and requests to them must use HTTP.</p>
+</div>
+<div class="paragraph">
+<p>Authentication between HTTP clients and the HTTP Bridge is not supported directly by the HTTP Bridge.
+You can combine the HTTP Bridge with the following tools to secure it further:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -736,6 +740,9 @@ Requests must use HTTP rather than HTTPS.</p>
 <p>API gateways</p>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>If any of these tools used, for example, a reverse proxy to add authentication between HTTP clients and the HTTP Bridge, then the proxy should be configured with TLS to encrypt the connections between HTTP clients and the proxy.</p>
 </div>
 </div>
 <div class="sect2">
@@ -2199,6 +2206,34 @@ http.cors.allowedMethods=GET,POST,PUT,DELETE,OPTIONS,PATCH <b class="conum">(4)<
 </li>
 <li>
 <p>Comma-separated list of allowed HTTP methods for CORS.</p>
+<div class="paragraph">
+<p>Or configure HTTP-related properties to enable TLS-encryption between clients and HTTP Bridge.</p>
+</div>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-properties hljs" data-lang="properties">bridge.id=my-bridge
+http.host=0.0.0.0
+http.port=8443 <b class="conum">(5)</b>
+http.ssl.enable=true <b class="conum">(6)</b>
+http.ssl.keystore.certificate.location=/etc/ssl/certs/bridge.crt <b class="conum">(7)</b>
+http.ssl.keystore.key.location=/etc/ssl/private/bridge.key <b class="conum">(8)</b></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Configure HTTP Bridge to listen on port 8443 for TLS encrypted connections.</p>
+</li>
+<li>
+<p>Set <code>true</code> to enable TLS encryption between HTTP clients and the HTTP Bridge.</p>
+</li>
+<li>
+<p>Location of the keystore file in PEM format.</p>
+</li>
+<li>
+<p>Location of the private key in PEM format.</p>
 </li>
 </ol>
 </div>
@@ -2211,6 +2246,91 @@ http.cors.allowedMethods=GET,POST,PUT,DELETE,OPTIONS,PATCH <b class="conum">(4)<
 </li>
 </ol>
 </div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. HTTP related configurations</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Descriptions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">http.host</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP Bridge host address. The default is <code>0.0.0.0</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">http.port</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP Bridge port. The default is <code>8080</code>. If "http.ssl.enable" is set to <code>true</code>, then the default is <code>8443</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">http.management.port</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP bridge port for management endpoints such as <code>/healthy</code>, <code>/ready</code> and <code>/metrics</code>. The default is <code>8081</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">http.ssl.enable</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Enable TLS encryption between HTTP clients and HTTP bridge. It is <code>false</code> by default.
+If set to <code>true</code>, <code>http.ssl.keystore.location</code> and <code>http.ssl.keystore.key.location</code> configurations or
+ <code>http.ssl.keystore.certificate.chain</code> and <code>http.ssl.keystore.key</code> configurations are required.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">http.ssl.keystore.location</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The location of the HTTP Bridge server keystore file in PEM format.
+PEM is the only format supported for keystore.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">http.ssl.keystore.key.location</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The location of the HTTP Bridge server private key file in PEM format.
+PEM is the only format supported for private key.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">http.ssl.keystore.certificate.chain</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The HTTP Bridge server keystore certificate in PEM format.
+PEM is the only format supported for keystore.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">http.ssl.keystore.key</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The HTTP Bridge server private key in PEM format.
+PEM is the only format supported for private key.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">http.ssl.enabled.protocols</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Comma-separated list of protocols enabled for TLS connections. <code>TLSv1.2,TLSv1.3</code> is the default.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">http.ssl.enabled.cipher.suites</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Comma-separated list of cipher suites. The default of the underlying JVM version is used.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">http.cors.enabled</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Enable CORS. The default is <code>false</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">http.cors.allowedOrigins</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Comma-separated list of allowed CORS origins. You can use a URL or a Java regular expression.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">http.cors.allowedMethods</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Comma-separated list of allowed HTTP methods for CORS.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">http.consumer.enabled</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Enable consumer part of the HTTP Bridge. The default is <code>true</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">http.producer.enabled</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Enable producer part of the HTTP Bridge. The default is <code>true</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">http.timeoutSeconds</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The timeout for closing inactive consumer. By default, inactive consumers will not be closed.</p></td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="sect2">
 <h3 id="proc-configuring-http-bridge-jmx-metrics-bridge"><a class="link" href="#proc-configuring-http-bridge-jmx-metrics-bridge">3.2. Configuring Prometheus JMX Exporter metrics</a></h3>
@@ -2576,7 +2696,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters"><a class="link" href="#parameters">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 1. Path Parameters</caption>
+<caption class="title">Table 2. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -2611,7 +2731,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 2. Body Parameter</caption>
+<caption class="title">Table 3. Body Parameter</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -2658,7 +2778,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses"><a class="link" href="#responses">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 3. HTTP Response Codes</caption>
+<caption class="title">Table 4. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -2753,7 +2873,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_2"><a class="link" href="#parameters_2">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 4. Path Parameters</caption>
+<caption class="title">Table 5. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -2788,7 +2908,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 5. Body Parameter</caption>
+<caption class="title">Table 6. Body Parameter</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -2835,7 +2955,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_2"><a class="link" href="#responses_2">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 6. HTTP Response Codes</caption>
+<caption class="title">Table 7. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -2916,7 +3036,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_3"><a class="link" href="#parameters_3">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 7. Path Parameters</caption>
+<caption class="title">Table 8. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -2944,7 +3064,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 8. Body Parameter</caption>
+<caption class="title">Table 9. Body Parameter</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -2991,7 +3111,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_3"><a class="link" href="#responses_3">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 9. HTTP Response Codes</caption>
+<caption class="title">Table 10. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -3097,7 +3217,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_4"><a class="link" href="#parameters_4">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 10. Path Parameters</caption>
+<caption class="title">Table 11. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -3151,7 +3271,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_4"><a class="link" href="#responses_4">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 11. HTTP Response Codes</caption>
+<caption class="title">Table 12. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -3211,7 +3331,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_5"><a class="link" href="#parameters_5">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 12. Path Parameters</caption>
+<caption class="title">Table 13. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -3265,7 +3385,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_5"><a class="link" href="#responses_5">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 13. HTTP Response Codes</caption>
+<caption class="title">Table 14. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -3340,7 +3460,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_6"><a class="link" href="#parameters_6">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 14. Path Parameters</caption>
+<caption class="title">Table 15. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -3375,7 +3495,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 15. Query Parameters</caption>
+<caption class="title">Table 16. Query Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -3438,7 +3558,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_6"><a class="link" href="#responses_6">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 16. HTTP Response Codes</caption>
+<caption class="title">Table 17. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -3572,7 +3692,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_7"><a class="link" href="#parameters_7">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 17. Path Parameters</caption>
+<caption class="title">Table 18. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -3607,7 +3727,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 18. Body Parameter</caption>
+<caption class="title">Table 19. Body Parameter</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -3654,7 +3774,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_7"><a class="link" href="#responses_7">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 19. HTTP Response Codes</caption>
+<caption class="title">Table 20. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -3735,7 +3855,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_8"><a class="link" href="#parameters_8">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 20. Path Parameters</caption>
+<caption class="title">Table 21. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -3770,7 +3890,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 21. Body Parameter</caption>
+<caption class="title">Table 22. Body Parameter</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -3817,7 +3937,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_8"><a class="link" href="#responses_8">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 22. HTTP Response Codes</caption>
+<caption class="title">Table 23. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -3896,7 +4016,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_9"><a class="link" href="#parameters_9">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 23. Path Parameters</caption>
+<caption class="title">Table 24. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -3931,7 +4051,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 24. Body Parameter</caption>
+<caption class="title">Table 25. Body Parameter</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -3978,7 +4098,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_9"><a class="link" href="#responses_9">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 25. HTTP Response Codes</caption>
+<caption class="title">Table 26. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -4057,7 +4177,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_10"><a class="link" href="#parameters_10">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 26. Path Parameters</caption>
+<caption class="title">Table 27. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -4092,7 +4212,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 27. Body Parameter</caption>
+<caption class="title">Table 28. Body Parameter</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -4139,7 +4259,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_10"><a class="link" href="#responses_10">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 28. HTTP Response Codes</caption>
+<caption class="title">Table 29. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -4244,7 +4364,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_11"><a class="link" href="#parameters_11">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 29. Path Parameters</caption>
+<caption class="title">Table 30. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -4298,7 +4418,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_11"><a class="link" href="#responses_11">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 30. HTTP Response Codes</caption>
+<caption class="title">Table 31. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -4371,7 +4491,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_12"><a class="link" href="#responses_12">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 31. HTTP Response Codes</caption>
+<caption class="title">Table 32. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -4437,7 +4557,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_13"><a class="link" href="#responses_13">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 32. HTTP Response Codes</caption>
+<caption class="title">Table 33. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -4511,7 +4631,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_14"><a class="link" href="#responses_14">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 33. HTTP Response Codes</caption>
+<caption class="title">Table 34. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -4577,7 +4697,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_15"><a class="link" href="#responses_15">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 34. HTTP Response Codes</caption>
+<caption class="title">Table 35. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -4638,7 +4758,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_16"><a class="link" href="#responses_16">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 35. HTTP Response Codes</caption>
+<caption class="title">Table 36. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -4699,7 +4819,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_17"><a class="link" href="#responses_17">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 36. HTTP Response Codes</caption>
+<caption class="title">Table 37. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -4750,7 +4870,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_18"><a class="link" href="#responses_18">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 37. HTTP Response Codes</caption>
+<caption class="title">Table 38. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -4799,7 +4919,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_19"><a class="link" href="#parameters_19">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 38. Path Parameters</caption>
+<caption class="title">Table 39. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -4827,7 +4947,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 39. Body Parameter</caption>
+<caption class="title">Table 40. Body Parameter</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -4855,7 +4975,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 40. Query Parameters</caption>
+<caption class="title">Table 41. Query Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -4902,7 +5022,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_19"><a class="link" href="#responses_19">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 41. HTTP Response Codes</caption>
+<caption class="title">Table 42. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -5018,7 +5138,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_20"><a class="link" href="#parameters_20">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 42. Path Parameters</caption>
+<caption class="title">Table 43. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -5053,7 +5173,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 43. Body Parameter</caption>
+<caption class="title">Table 44. Body Parameter</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -5081,7 +5201,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 44. Query Parameters</caption>
+<caption class="title">Table 45. Query Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -5128,7 +5248,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_20"><a class="link" href="#responses_20">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 45. HTTP Response Codes</caption>
+<caption class="title">Table 46. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -5244,7 +5364,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_21"><a class="link" href="#parameters_21">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 46. Path Parameters</caption>
+<caption class="title">Table 47. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -5279,7 +5399,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 47. Body Parameter</caption>
+<caption class="title">Table 48. Body Parameter</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -5326,7 +5446,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_21"><a class="link" href="#responses_21">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 48. HTTP Response Codes</caption>
+<caption class="title">Table 49. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -5407,7 +5527,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_22"><a class="link" href="#parameters_22">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 49. Path Parameters</caption>
+<caption class="title">Table 50. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -5442,7 +5562,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 50. Body Parameter</caption>
+<caption class="title">Table 51. Body Parameter</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -5489,7 +5609,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_22"><a class="link" href="#responses_22">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 51. HTTP Response Codes</caption>
+<caption class="title">Table 52. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -5568,7 +5688,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_23"><a class="link" href="#parameters_23">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 52. Path Parameters</caption>
+<caption class="title">Table 53. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -5603,7 +5723,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 53. Body Parameter</caption>
+<caption class="title">Table 54. Body Parameter</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -5650,7 +5770,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_23"><a class="link" href="#responses_23">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 54. HTTP Response Codes</caption>
+<caption class="title">Table 55. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -5732,7 +5852,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_24"><a class="link" href="#parameters_24">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 55. Body Parameter</caption>
+<caption class="title">Table 56. Body Parameter</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -5769,7 +5889,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_24"><a class="link" href="#responses_24">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 56. HTTP Response Codes</caption>
+<caption class="title">Table 57. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -5825,7 +5945,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_25"><a class="link" href="#parameters_25">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 57. Path Parameters</caption>
+<caption class="title">Table 58. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -5879,7 +5999,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_25"><a class="link" href="#responses_25">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 58. HTTP Response Codes</caption>
+<caption class="title">Table 59. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -5950,7 +6070,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_26"><a class="link" href="#parameters_26">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 59. Path Parameters</caption>
+<caption class="title">Table 60. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -6004,7 +6124,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_26"><a class="link" href="#responses_26">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 60. HTTP Response Codes</caption>
+<caption class="title">Table 61. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -6084,7 +6204,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_27"><a class="link" href="#parameters_27">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 61. Path Parameters</caption>
+<caption class="title">Table 62. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -6131,7 +6251,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_27"><a class="link" href="#responses_27">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 62. HTTP Response Codes</caption>
+<caption class="title">Table 63. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -6219,7 +6339,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_28"><a class="link" href="#parameters_28">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 63. Path Parameters</caption>
+<caption class="title">Table 64. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -6266,7 +6386,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_28"><a class="link" href="#responses_28">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 64. HTTP Response Codes</caption>
+<caption class="title">Table 65. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -6378,7 +6498,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_29"><a class="link" href="#responses_29">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 65. HTTP Response Codes</caption>
+<caption class="title">Table 66. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -6430,7 +6550,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_30"><a class="link" href="#parameters_30">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 66. Path Parameters</caption>
+<caption class="title">Table 67. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -6458,7 +6578,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 67. Body Parameter</caption>
+<caption class="title">Table 68. Body Parameter</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -6486,7 +6606,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 68. Query Parameters</caption>
+<caption class="title">Table 69. Query Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -6533,7 +6653,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_30"><a class="link" href="#responses_30">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 69. HTTP Response Codes</caption>
+<caption class="title">Table 70. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -6649,7 +6769,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="parameters_31"><a class="link" href="#parameters_31">Parameters</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 70. Path Parameters</caption>
+<caption class="title">Table 71. Path Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -6684,7 +6804,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 71. Body Parameter</caption>
+<caption class="title">Table 72. Body Parameter</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -6712,7 +6832,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 72. Query Parameters</caption>
+<caption class="title">Table 73. Query Parameters</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 37.5%;">
@@ -6759,7 +6879,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <div class="sect5">
 <h6 id="responses_31"><a class="link" href="#responses_31">Responses</a></h6>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 73. HTTP Response Codes</caption>
+<caption class="title">Table 74. HTTP Response Codes</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 50%;">
@@ -8037,7 +8157,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <div class="paragraph">
-<p><em>Revised on 2025-12-16 09:43:50 UTC</em></p>
+<p><em>Revised on 2025-12-18 08:37:30 UTC</em></p>
 </div>
 </div>
 </div>
@@ -8046,7 +8166,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-12-16 09:43:25 UTC
+Last updated 2025-12-18 08:37:00 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
