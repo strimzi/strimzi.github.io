@@ -5,24 +5,28 @@ date: 2026-01-06
 author: see-quick
 ---
 
-Testing Kafka based apps used to be a pain.
-Back in 2019, your options were limited (i.e., spin up a full cluster, mock everything or use embedded Kafka that behaved nothing like production).
-We wanted something better, so we built **Strimzi Test Container**.
+Testing Kafka based applications used to be a pain.
+Back in 2019, your options each came with significant trade-offs:
+- **Full Kafka clusters** were resource-intensive and hard to manage in CI
+- **Mocks** didn't behave like real Kafka and became a maintenance burden
+- **Embedded Kafka** caused dependency conflicts with your application's Kafka client libraries
+
+We built **Strimzi Test Container** to avoid these issues.
 
 ## Why We Built Strimzi Test Container
 
-The **main reason** was to control our own release cadence.
-While Testcontainers has its own Kafka module, we wanted the freedom to release updates independently.
-This lets us ship new Kafka versions quickly and maintain compatibility with our container images.
+The **main reason** was that the Testcontainers Kafka module used Confluent Platform containers rather than Apache Kafka.
+This meant testing against a private fork instead of the actual Apache Kafka code we use in Strimzi.
+We needed to test against the same Apache Kafka builds that run in production, and control our own release cadence to ship new Kafka versions quickly.
 
 Another reason was to support multiple architectures.
-Strimzi runs on various platforms (i.e., x64, aarch64, Z (s390x) and PPC (ppc64le)).
+Strimzi runs on various platforms: x64, aarch64, IBM Z, and IBM Power.
 We needed a testing solution that works consistently across all of them.
-Most existing solutions only supported x64 and aarch64.
+Most existing solutions only supported x64 and aarch64 architectures.
 
-Lastly, we wanted to bring production-like Kafka testing to integration tests.
-Many people were using embedded Kafka or Docker Compose with manual configuration.
-We wanted developers to spin up real Kafka clusters with just a few lines of code.
+Lastly, we needed proper isolation from embedded Kafka's dependency conflicts.
+Embedded Kafka runs in the same JVM as your tests, making it difficult to independently version the test cluster and your application's Kafka client libraries.
+By running Kafka in a container, we get full isolation (i.e., no classpath conflicts, and you can test against any Kafka version regardless of what your application uses).
 
 ## What Does Strimzi Test Container Provide?
 
@@ -30,8 +34,11 @@ Strimzi Test Container provides two main components: `StrimziKafkaCluster` for K
 
 ### StrimziKafkaCluster
 
-`StrimziKafkaCluster` allows you to programmatically create and manage Docker-based Kafka clusters in your tests.
+`StrimziKafkaCluster` allows you to programmatically create and manage Docker-based KRaft Kafka clusters in your tests.
 It supports both single-node and multi-node cluster configurations (i.e., you can easily create 3, 5, or more Kafka nodes for realistic testing).
+
+> [!NOTE]
+> Strimzi Test Container supports only KRaft-based clusters. ZooKeeper-based clusters are no longer supported.
 
 ```java
 StrimziKafkaCluster kafkaCluster = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
@@ -70,8 +77,8 @@ String restEndpoint = connectCluster.getRestEndpoint();
 
 ### Multi-Architecture Support
 
-Strimzi Test Container runs natively on x64, aarch64, Z (s390x), and PPC (ppc64le) architectures.
-Our container images are multi-arch, so the same code works regardless of where you run your tests.
+Strimzi Test Container supports x64, aarch64, Z (s390x), and PPC (ppc64le) architectures.
+It uses multi-arch container images and leverages Java cross-platform nature, so the same code works regardless of where you run your tests.
 
 ### Multi-Node Setup with Combined or Dedicated Roles
 
@@ -157,6 +164,7 @@ Within the Strimzi ecosystem, we currently use it across multiple subprojects:
 
 - [strimzi-kafka-operator](https://github.com/strimzi/strimzi-kafka-operator)
 - [strimzi-kafka-bridge](https://github.com/strimzi/strimzi-kafka-bridge)
+- [strimzi-mqtt-bridge](https://github.com/strimzi/strimzi-mqtt-bridge)
 - [metrics-reporter](https://github.com/strimzi/metrics-reporter)
 - [test-clients](https://github.com/strimzi/test-clients)
 
