@@ -129,7 +129,7 @@ You can also use your own custom images if you have special requirements:
 ```java
 StrimziKafkaCluster kafkaCluster = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
     .withNumberOfBrokers(3)
-    .withKafkaImage("my-registry.io/my-kafka:custom")
+    .withImage("my-registry.io/my-kafka:custom")
     .build();
 ```
 
