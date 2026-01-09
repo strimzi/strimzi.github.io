@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Strimzi Test Container: Simplifying Kafka & Connect Testing"
-date: 2026-01-10
+date: 2026-01-06
 author: see-quick
 ---
 
@@ -87,7 +87,7 @@ One of the key features is support for different node role configurations.
 **Combined roles (default)** - each node acts as both a KRaft controller and a broker.
 This is simpler and works well for most testing scenarios:
 
-![Combined Roles](/assets/images/posts/2026-01-06-strimzi-test-container-01.svg)
+![Combined Roles](/assets/images/posts/2026-01-12-strimzi-test-container-01.svg)
 
 ```java
 StrimziKafkaCluster kafkaCluster = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
@@ -97,7 +97,7 @@ StrimziKafkaCluster kafkaCluster = new StrimziKafkaCluster.StrimziKafkaClusterBu
 
 **Dedicated roles** - separate controller and broker nodes, matching production-like deployments:
 
-![Dedicated Roles](/assets/images/posts/2026-01-06-strimzi-test-container-02.svg)
+![Dedicated Roles](/assets/images/posts/2026-01-12-strimzi-test-container-02.svg)
 
 ```java
 StrimziKafkaCluster kafkaCluster = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
@@ -158,7 +158,7 @@ This lets you test secure Kafka deployments without setting up a full OAuth infr
 Strimzi Test Container started as an "internal" library for Strimzi projects like Strimzi Kafka Operator and Strimzi Kafka Bridge.
 Over time, it expanded beyond Strimzi and is now used by projects like Quarkus and Debezium.
 
-![Strimzi Test Container Ecosystem](/assets/images/posts/2026-01-06-strimzi-test-container-03.svg)
+![Strimzi Test Container Ecosystem](/assets/images/posts/2026-01-12-strimzi-test-container-03.svg)
 
 Within the Strimzi ecosystem, we currently use it across multiple subprojects:
 
