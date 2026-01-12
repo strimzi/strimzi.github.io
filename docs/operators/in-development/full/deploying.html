@@ -10579,17 +10579,8 @@ spec:
 </li>
 </ol>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Values for the three topics must be the same for all instances with the same <code>group.id</code>.
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p>This requirement applies across all Kafka Connect–based deployments, including Kafka Connect and  MirrorMaker 2 instances that target the same Kafka cluster.</p>
 </div>
 <div class="paragraph">
 <p>Unless you use different settings for each instance, all instances form a cluster and use the same internal topics.
@@ -12141,9 +12132,9 @@ Populated by the <code>MirrorCheckpointConnector</code> in the target cluster, t
 </div>
 <div class="paragraph">
 <p>Offset synchronization occurs at regular intervals.
-The <code>MirrorCheckpointConnector</code> emits checkpoints for all consumer groups.
+The <code>MirrorCheckpointConnector</code> emits checkpoints for all consumer groups enabled by the group configuration.
 However, applying those checkpoints in the target cluster requires the target group to be inactive.
-If consumers switch to the target cluster between checkpoints, they might reprocess some messages because the last synchronized offset lags behind the source.
+If consumers switch to the target cluster between checkpoints, they might reprocess some messages because offset synchronization is asynchronous and the last synchronized offset lags behind the source.
 This duplication is expected.</p>
 </div>
 <div class="admonitionblock note">
@@ -12154,11 +12145,14 @@ This duplication is expected.</p>
 </td>
 <td class="content">
 The connector continues to emit checkpoints to the checkpoints topic even if the target consumer group is active.
-However, the offsets cannot be committed while the group has active members.
+However, the offsets cannot be committed while the consumer group has active members.
 In this case, the connector logs a warning and the offsets are not synchronized.
 </td>
 </tr>
 </table>
+</div>
+<div class="paragraph">
+<p>Each connector is configured separately.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example configuration to enable offset synchronization</div>
@@ -12219,19 +12213,20 @@ A value of -1 uses the broker’s default replication factor, which is typically
 <div class="title">Tip</div>
 </td>
 <td class="content">
-If you have an application written in Java, you can use the <code>RemoteClusterUtils.java</code> utility to fetch offsets through the application.
-The utility fetches remote offsets for a consumer group from the <code>checkpoints</code> topic.
+Java applications can use the <code>RemoteClusterUtils</code> utility to fetch remote offsets for a consumer group from the checkpoints topic.
 </td>
 </tr>
 </table>
 </div>
 <div class="sect4">
-<h5 id="changing_the_location_of_the_consumer_group_offsets_topic"><a class="link" href="#changing_the_location_of_the_consumer_group_offsets_topic">Changing the location of the consumer group offsets topic</a></h5>
+<h5 id="changing_the_location_of_the_offset_synchronization_topic"><a class="link" href="#changing_the_location_of_the_offset_synchronization_topic">Changing the location of the offset synchronization topic</a></h5>
 <div class="paragraph">
-<p>The location of the <code>offset-syncs</code> topic is the <code>source</code> cluster by default.
-You can use the <code>offset-syncs.topic.location</code> connector configuration to change this to the <code>target</code> cluster.
-You need read/write access to the cluster that contains the topic.
-Using the target cluster as the location of the <code>offset-syncs</code> topic allows you to use MirrorMaker 2 even if you have only read access to the source cluster.</p>
+<p>By default, the <code>offset-syncs</code> topic used by the <code>MirrorSourceConnector</code> is created in the source cluster.
+You can change this behavior by setting the <code>offset-syncs.topic.location</code> connector configuration to <code>target</code>.</p>
+</div>
+<div class="paragraph">
+<p>Placing the <code>offset-syncs</code> topic on the target cluster allows the <code>MirrorSourceConnector</code> to run when it has read-only access to the source cluster.
+The connector must still have read and write access to the <code>offset-syncs</code> topic on the cluster where the topic is located.</p>
 </div>
 </div>
 <div class="sect4">
@@ -12356,7 +12351,8 @@ To provide a custom owner reference, create the <code>ConfigMap</code> in advanc
 <div class="title">Note</div>
 </td>
 <td class="content">
-It is possible to use configuration to <a href="#proc-altering-connector-offsets-str">alter</a> or <a href="#proc-resetting-connector-offsets-str">reset</a> connector offsets, though this is rarely necessary.
+It is possible to use configuration to <a href="#proc-altering-connector-offsets-str">alter</a> or <a href="#proc-resetting-connector-offsets-str">reset</a> connector offsets.
+This should be done with caution.
 </td>
 </tr>
 </table>
@@ -12370,17 +12366,24 @@ It is possible to use configuration to <a href="#proc-altering-connector-offsets
 Enable this feature by configuring the <code>MirrorSourceConnector</code>.</p>
 </div>
 <div class="paragraph">
-<p>With <code>simple</code> authorization:</p>
+<p>When using simple ACL-based authorization:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>ACL rules apply to both source and target topics</p>
+<p>Topic ACL rules can be synchronized between source and target topics</p>
 </li>
 <li>
-<p>Users with source topic access automatically get equivalent target topic access</p>
+<p>MirrorMaker 2 copies topic-related ACL rules from the source cluster to the target cluster</p>
+</li>
+<li>
+<p>The <code>ALLOW ALL</code> topic ACL is not copied</p>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>Copying ACL rules does not guarantee equivalent access for all operations on the target cluster.
+Additional ACL rules may still be required to allow producers or consumers to operate as expected on the target cluster, for example, ACLs for other resource types such as consumer groups or transactional IDs.</p>
 </div>
 <div class="admonitionblock important">
 <table>
@@ -12389,14 +12392,15 @@ Enable this feature by configuring the <code>MirrorSourceConnector</code>.</p>
 <div class="title">Important</div>
 </td>
 <td class="content">
-This feature is not compatible with the User Operator, so disable by setting <code>sync.topic.acls.enabled</code> to <code>false</code>.
+This feature is not compatible with the User Operator.
+If you use the User Operator, set <code>sync.topic.acls.enabled</code> to <code>false</code>.
 When using OAuth 2.0 authorization, the setting has no effect.
 </td>
 </tr>
 </table>
 </div>
 <div class="listingblock">
-<div class="title">Example configuration to enable offset synchronization</div>
+<div class="title">Example configuration to enable ACL synchronization</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
 kind: KafkaMirrorMaker2
@@ -12414,7 +12418,7 @@ metadata:
 <div class="colist arabic">
 <ol>
 <li>
-<p>Replicates all source topic ACLs to the target cluster.</p>
+<p>Copies topic-related ACL rules from the source cluster to the target cluster.</p>
 </li>
 </ol>
 </div>
@@ -12422,7 +12426,12 @@ metadata:
 <div class="sect3">
 <h4 id="con-config-mirrormaker2-connect-workers-str"><a class="link" href="#con-config-mirrormaker2-connect-workers-str">11.9.6. Tuning Kafka Connect worker settings</a></h4>
 <div class="paragraph _abstract">
-<p>Adjust Kafka Connect worker behavior for MirrorMaker 2 by adding configuration to your target cluster&#8217;s <code>config</code> section.</p>
+<p>Adjust Kafka Connect worker runtime behavior for MirrorMaker 2 by configuring worker properties on the Kafka Connect cluster that runs the MirrorMaker 2 connectors.</p>
+</div>
+<div class="paragraph">
+<p>Kafka Connect workers running MirrorMaker 2 connectors are configured to store their internal state in a single target Kafka cluster.
+The worker configuration specifies Kafka Connect runtime settings, such as task rebalance behavior, shutdown handling, and how frequently offsets are written to internal topics.
+To preserve records without modification, configure byte array converters for record keys and values.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example Kafka Connect configuration</div>
@@ -12442,12 +12451,18 @@ spec:
     offsetStorageTopic: my-mirror-maker2-offset
     statusStorageTopic: my-mirror-maker2-status
     config: # <b class="conum">(2)</b>
+      # Key and value converters
+      key.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+      value.converter: org.apache.kafka.connect.converters.ByteArrayConverter
+      # Worker shutdown and rebalance behavior
       task.shutdown.graceful.timeout.ms: 30000
       scheduled.rebalance.max.delay.ms: 300000
+      # Offset flush interval
       offset.flush.interval.ms: 10000
-      config.storage.replication.factor: 1
-      offset.storage.replication.factor: 1
-      status.storage.replication.factor: 1</code></pre>
+      # Kafka Connect internal topic replication
+      config.storage.replication.factor: -1
+      offset.storage.replication.factor: -1
+      status.storage.replication.factor: -1</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -12456,7 +12471,8 @@ spec:
 <p>The target cluster configuration. The target cluster is always used to store Kafka Connect&#8217;s internal topics.</p>
 </li>
 <li>
-<p>These properties configure the Kafka Connect workers in this cluster.</p>
+<p>These properties configure the Kafka Connect workers created by this <code>KafkaMirrorMaker2</code> resource.
+The settings apply to all MirrorMaker 2 connectors managed by the resource.</p>
 </li>
 </ol>
 </div>
@@ -12464,8 +12480,42 @@ spec:
 <div class="sect3">
 <h4 id="con-config-mm2-multiple-instances-str"><a class="link" href="#con-config-mm2-multiple-instances-str">11.9.7. Configuring MirrorMaker 2 using a shared target Kafka cluster</a></h4>
 <div class="paragraph _abstract">
-<p>The group ID and names of the internal topics used by the Kafka Connect framework that MirrorMaker 2 runs on are configured in the <code>.spec.target</code> section.
-When running multiple instances of MirrorMaker 2, and they share the same target cluster, you must use unique values to make sure the MirrorMaker 2 clusters operate independently.</p>
+<p>MirrorMaker 2 runs on the Kafka Connect framework and uses internal Kafka topics to store configuration, offsets, and status information.</p>
+</div>
+<div class="paragraph">
+<p>You can run multiple MirrorMaker 2 connectors in a single Kafka Connect cluster, for example to replicate data from multiple source Kafka clusters to the same target Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>When running multiple Kafka Connect clusters that replicate data to the same target Kafka cluster, you must configure unique Kafka Connect worker settings so that each cluster operates independently.</p>
+</div>
+<div class="paragraph">
+<p>This requirement applies across all Kafka Connect–based deployments, including Kafka Connect and  MirrorMaker 2 instances that target the same Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>Kafka Connect identifies a worker cluster by its group ID and by the names of the internal topics it uses.
+If multiple Kafka Connect clusters use the same values, they form a single Kafka Connect cluster and share internal state.</p>
+</div>
+<div class="paragraph">
+<p>When deploying multiple Kafka Connect clusters against the same target Kafka cluster, configure unique values for the following Kafka Connect worker properties in each deployment:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>group.id</code></p>
+</li>
+<li>
+<p><code>config.storage.topic</code></p>
+</li>
+<li>
+<p><code>offset.storage.topic</code></p>
+</li>
+<li>
+<p><code>status.storage.topic</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These settings are configured in the <code>.spec.target</code> section.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -12501,29 +12551,25 @@ spec:
 </li>
 </ol>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Values for the three topics must be the same for all instances with the same <code>group.id</code>.
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p>If multiple Kafka Connect clusters are deployed with the same worker group ID and internal topic names, they form a single Kafka Connect cluster and share internal state.
+This can result in unexpected behavior and replication errors.</p>
 </div>
 <div class="paragraph">
-<p>The <code>target</code> cluster specifies the target Kafka cluster used by Kafka Connect for its internal topics.
-As a result, modifications to the <code>target</code>, group ID, and internal topic naming configuration are specific to the target Kafka cluster.
-You don&#8217;t need to make changes if two MirrorMaker 2 instances are using the same source Kafka cluster or in an active-active mode where each MirrorMaker 2 instance has a different target cluster.</p>
+<p>You do not need to change these settings when:</p>
 </div>
-<div class="paragraph">
-<p>However, if multiple MirrorMaker 2 instances share the same <code>target</code>, each instance connecting to the same target Kafka cluster is deployed with the same values.
-In practice, this means all instances form a cluster and use the same internal topics.</p>
-</div>
-<div class="paragraph">
-<p>Multiple instances attempting to use the same internal topics will cause unexpected errors, so you must change the values of these properties for each instance.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Running multiple MirrorMaker 2 connectors in a single Kafka Connect cluster</p>
+</li>
+<li>
+<p>Replicating data from the same source Kafka cluster to different target Kafka clusters by using separate Kafka Connect clusters</p>
+</li>
+<li>
+<p>Deploying active-active replication, where each Kafka Connect cluster targets a different Kafka cluster</p>
+</li>
+</ul>
 </div>
 </div>
 <div class="sect3">
@@ -12535,7 +12581,7 @@ To support this, the Kafka cluster should also be monitored for health and perfo
 <div class="paragraph">
 <p>If failover occurs, which can be automated, operations switch from the active cluster to the passive cluster when the active cluster becomes unavailable.
 The original active cluster is typically considered permanently lost.
-The passive cluster is promoted to active status, taking over as the source for all application traffic.
+The passive cluster is promoted to active status, taking over as the source and target for all application traffic.
 In this state, MirrorMaker 2 no longer replicates data from the original active cluster while it remains unavailable.</p>
 </div>
 <div class="paragraph">
@@ -12553,28 +12599,28 @@ For a simpler and more reliable failback process, rebuild the original active cl
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Promote the passive recovery cluster to an active role.<br>
+<p>Promote the passive recovery cluster to an active role.
 Designate the passive cluster as the active cluster for all client connections.
 This minimizes downtime and ensures operations can continue.</p>
 </li>
 <li>
-<p>Redirect applications to the new active recovery cluster.<br>
+<p>Redirect applications to the new active recovery cluster.
 MirrorMaker 2 synchronizes committed offsets to passive clusters, allowing consumer applications to resume from the last transferred offset when switching to the recovery cluster.
 However, because of the time lag in offset synchronization, switching consumers may result in some message duplication.
 To minimize duplication, switch all members of a consumer group together as soon as possible.
 Keeping the group intact minimizes the chance of a consumer processing duplicate messages.</p>
 </li>
 <li>
-<p>Remove the MirrorMaker 2 configuration for replication from the original active cluster to the passive cluster.<br>
+<p>Remove the MirrorMaker 2 configuration for replication from the original active cluster to the passive cluster.
 After failover, the original configuration is no longer needed and should be removed to avoid conflicts.</p>
 </li>
 <li>
 <p>Re-create the failed cluster in a clean state, adhering to the original configuration.</p>
 </li>
 <li>
-<p>Deploy a new MirrorMaker 2 instance to replicate data from the active recovery cluster to the rebuilt cluster.<br>
+<p>Deploy a new MirrorMaker 2 instance to replicate data from the active recovery cluster to the rebuilt cluster.
 Treat the rebuilt cluster as the passive cluster during this replication process.
-To prevent automatic renaming of topics, configure MirrorMaker 2 to use the <code>IdentityReplicationPolicy</code> by setting the <code>replication.policy.class</code> property in the MirrorMaker 2 configuration.
+To prevent automatic renaming of topics, configure MirrorMaker 2 to use the <code>IdentityReplicationPolicy</code> by setting the <code>replication.policy.class</code> property in the connector configuration.
 With this configuration applied, topics retain their original names in the target cluster.</p>
 </li>
 <li>
@@ -12602,7 +12648,7 @@ Before implementing any failover or failback processes, test your recovery appro
 <div class="sect2">
 <h3 id="con-config-mirrormaker2-connectors-str"><a class="link" href="#con-config-mirrormaker2-connectors-str">11.10. Configuring MirrorMaker 2 connectors</a></h3>
 <div class="paragraph _abstract">
-<p>MirrorMaker 2 uses internal connectors to synchronize data between Kafka clusters.
+<p>MirrorMaker 2 comprises a set of connectors to synchronize data between Kafka clusters.
 You configure these connectors in the <code>KafkaMirrorMaker2</code> custom resource.</p>
 </div>
 <div class="paragraph">
@@ -12629,8 +12675,12 @@ You configure these connectors in the <code>KafkaMirrorMaker2</code> custom reso
 <code>spec.mirrors</code> section of the <code>KafkaMirrorMaker2</code> custom resource using the <code>sourceConnector</code> and <code>checkpointConnector</code> properties.</p>
 </div>
 <div class="paragraph">
+<p>These connectors run in the Kafka Connect cluster associated with the target Kafka cluster.</p>
+</div>
+<div class="paragraph">
 <p><code>MirrorHeartbeatConnector</code> is not configurable through the <code>KafkaMirrorMaker2</code> custom resource.
-To run a <code>MirrorHeartbeatConnector</code>, use a separate <code>KafkaConnect</code> and <code>KafkaConnector</code> custom resource.</p>
+To run a <code>MirrorHeartbeatConnector</code>, use a separate <code>KafkaConnect</code> and <code>KafkaConnector</code> custom resource.
+Because it produces heartbeat records to the source Kafka cluster, the <code>MirrorHeartbeatConnector</code> typically runs in a Kafka Connect cluster that stores its state in the source cluster.</p>
 </div>
 <div class="paragraph">
 <p>For a full list of supported MirrorMaker 2 connector properties, including common configuration and connector-specific options, see the <a href="https://kafka.apache.org/41/" target="_blank" rel="noopener">Apache Kafka documentation</a>.</p>
@@ -12642,7 +12692,7 @@ To run a <code>MirrorHeartbeatConnector</code>, use a separate <code>KafkaConnec
 <div class="title">Warning</div>
 </td>
 <td class="content">
-Configure the following properties with the <strong>same values in both the source and checkpoint connectors</strong>:
+Configure the following properties with the same values in both the <code>MirrorSourceConnector</code> and <code>MirrorCheckpointConnector</code>:
 <code>replication.policy.class</code>, <code>replication.policy.separator</code>, <code>offset-syncs.topic.location</code>, and <code>topic.filter.class</code>.
 If these properties do not match, replication or offset synchronization can fail.
 </td>
@@ -13014,7 +13064,7 @@ When MirrorMaker 2 accepts the request, the annotation is removed from the <code
 <h4 id="con-mirrormaker-producers-consumers-str"><a class="link" href="#con-mirrormaker-producers-consumers-str">11.10.5. Configuring MirrorMaker 2 connector producers and consumers</a></h4>
 <div class="paragraph _abstract">
 <p>MirrorMaker 2 connectors use internal producers and consumers.
-If needed, you can configure these producers and consumers to override the default settings.</p>
+If required, you can configure these producers and consumers to override the default settings.</p>
 </div>
 <div class="paragraph">
 <p>For example, you can increase the <code>batch.size</code> for the source producer that sends topics to the target Kafka cluster to better accommodate large volumes of messages.</p>
@@ -13034,12 +13084,25 @@ Producer and consumer configuration options depend on the MirrorMaker 2 implemen
 <div class="paragraph">
 <p>The following tables describe the producers and consumers for each of the connectors and where you can add configuration.</p>
 </div>
+<div class="paragraph">
+<p>Configuration can be applied as follows:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Overriding the configuration used by the internal producer or consumer by using the <code>producer.override.</code> or <code>consumer.override.</code> properties.</p>
+</li>
+<li>
+<p>Configuring the internal producer or consumer directly in the connector by using the <code>producer.</code> or <code>consumer.</code> properties.</p>
+</li>
+</ul>
+</div>
 <table class="tableblock frame-all grid-all stretch">
 <caption class="title">Table 12. Source connector producers and consumers</caption>
 <colgroup>
 <col style="width: 20%;">
-<col style="width: 20%;">
-<col style="width: 60%;">
+<col style="width: 40%;">
+<col style="width: 40%;">
 </colgroup>
 <thead>
 <tr>
@@ -13052,23 +13115,24 @@ Producer and consumer configuration options depend on the MirrorMaker 2 implemen
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Producer</p></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Sends topic messages to the target Kafka cluster. Consider tuning the configuration of this producer when it is handling large volumes of data.</p>
+<p>Sends replicated topic messages to the target Kafka cluster.
+Tune this producer when handling large volumes of data.</p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mirrors.sourceConnector.config: producer.override.*</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><code>producer.override.*</code></code></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Producer</p></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Writes to the <code>offset-syncs</code> topic, which maps the source and target offsets for replicated topic partitions.</p>
+<p>Writes to the <code>offset-syncs</code> topic, which maps source and target offsets.</p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mirrors.sourceConnector.config: producer.*</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><code>producer.*</code></code></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Consumer</p></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Retrieves topic messages from the source Kafka cluster.</p>
+<p>Consumes topic messages from the source Kafka cluster.</p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mirrors.sourceConnector.config: consumer.*</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><code>consumer.*</code></code></p></td>
 </tr>
 </tbody>
 </table>
@@ -13076,8 +13140,8 @@ Producer and consumer configuration options depend on the MirrorMaker 2 implemen
 <caption class="title">Table 13. Checkpoint connector producers and consumers</caption>
 <colgroup>
 <col style="width: 20%;">
-<col style="width: 20%;">
-<col style="width: 60%;">
+<col style="width: 40%;">
+<col style="width: 40%;">
 </colgroup>
 <thead>
 <tr>
@@ -13090,16 +13154,16 @@ Producer and consumer configuration options depend on the MirrorMaker 2 implemen
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Producer</p></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Emits consumer offset checkpoints.</p>
+<p>Emits consumer group offset checkpoints.</p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mirrors.checkpointConnector.config: producer.override.*</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><code>producer.override.*</code></code></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Consumer</p></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Loads the <code>offset-syncs</code> topic.</p>
+<p>Consumes data from the <code>offset-syncs</code> topic.</p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mirrors.checkpointConnector.config: consumer.*</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code><code>consumer.*</code></code></p></td>
 </tr>
 </tbody>
 </table>
@@ -37581,7 +37645,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-01-12 11:15:24 UTC
+Last updated 2026-01-12 16:52:54 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
