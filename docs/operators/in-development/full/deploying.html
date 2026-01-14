@@ -504,7 +504,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#con-config-mirrormaker2-connectors-str">11.10. Configuring MirrorMaker 2 connectors</a></li>
 <li><a href="#con-config-http-bridge-str">11.11. Configuring the HTTP Bridge</a></li>
 <li><a href="#con-common-config-str">11.12. Applying optional common configuration</a></li>
-<li><a href="#external-logging_str">11.13. Configuring logging</a></li>
+<li><a href="#assembly-logging-configuration-str">11.13. Configuring logging</a></li>
 <li><a href="#ref-kubernetes-labels-str">11.14. Restrictions on Kubernetes labels</a></li>
 </ul>
 </li>
@@ -6625,41 +6625,49 @@ The Keycloak examples include a Keycloak realm specification and two <code>Kafka
 <p>Configure your Kafka deployment by updating the <code>spec</code> properties of the <code>Kafka</code> custom resource.</p>
 </div>
 <div class="paragraph">
-<p>You can also configure Strimzi components and features that support the deployment:</p>
+<p>Start with a minimal configuration that defines the core requirements for running a Kafka cluster.
+Extend it with optional settings to support the following:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Topic Operator and User Operator for managing topics and clients</p>
+<p>Securing client connections using TLS and authentication</p>
 </li>
 <li>
-<p>Cruise Control for cluster rebalancing</p>
+<p>Configuring authorization</p>
 </li>
 <li>
-<p>Kafka Exporter for lag metrics</p>
+<p>Configuring broker behavior for durability and availability</p>
 </li>
 <li>
-<p>Listeners for authenticated client access</p>
+<p>Capturing consumer lag metrics using Kafka Exporter</p>
 </li>
 <li>
-<p>Data storage</p>
+<p>Kafka cluster balancing and resource distribution using Cruise Control</p>
 </li>
 <li>
-<p>Rack awareness</p>
+<p>Controlling throughput and storage usage using quotas</p>
+</li>
+<li>
+<p>Recovering from broker storage issues</p>
+</li>
+<li>
+<p>Using node pools to define broker groups</p>
+</li>
+<li>
+<p><a href="#con-common-config-str">Common configuration</a>, including setting resource limits and requests (recommended), JVM tuning, and metrics</p>
+</li>
+<li>
+<p><a href="#assembly-logging-configuration-str">Logging configuration</a></p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>Specify the metadata version for KRaft using <code>.spec.kafka.metadataVersion</code>.
-It must be compatible with <code>.spec.kafka.version</code>.
-If not set, the Cluster Operator applies the default for the Kafka version.</p>
+<p>Certain settings, though optional, are recommended for production deployments.
+These include security, resource allocation, and broker replication settings.</p>
 </div>
 <div class="paragraph">
-<p>Kafka clusters use node pools.
-Use <code>KafkaNodePool</code> resources to configure distinct groups of nodes within a Kafka cluster.</p>
-</div>
-<div class="paragraph">
-<p>For a deeper understanding of the Kafka cluster configuration options, refer to the <a href="./configuring.html" target="_blank" rel="noopener">Strimzi Custom Resource API Reference</a>.</p>
+<p>For details of all available properties, see the <a href="./configuring.html" target="_blank" rel="noopener">Strimzi Custom Resource API Reference</a>.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -6668,14 +6676,23 @@ Use <code>KafkaNodePool</code> resources to configure distinct groups of nodes w
 <div class="title">Note</div>
 </td>
 <td class="content">
-The oldest supported metadata version is 3.3.
-Older versions may disable certain features.
+Kafka clusters use node pools.
+At least one <code>KafkaNodePool</code> resource is required.
+Node pools can define controller and broker roles separately or in combination.
+Using separate node pools is recommended for most production deployments.
+For details, see <a href="#config-node-pools-str">Configuring node pools</a>.
 </td>
 </tr>
 </table>
 </div>
+<div class="sect3">
+<h4 id="minimal_configuration_for_a_kafka_cluster"><a class="link" href="#minimal_configuration_for_a_kafka_cluster">11.2.1. Minimal configuration for a Kafka cluster</a></h4>
+<div class="paragraph">
+<p>A Kafka cluster requires a <code>Kafka</code> resource and at least one <code>KafkaNodePool</code> resource.
+The <code>Kafka</code> resource defines cluster-wide configuration such as listeners and broker settings.</p>
+</div>
 <div class="listingblock">
-<div class="title">Example <code>Kafka</code> custom resource configuration</div>
+<div class="title">Minimal configuration for Kafka</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># Basic configuration (required)
 apiVersion: kafka.strimzi.io/v1
@@ -6685,195 +6702,56 @@ metadata:
 # Deployment specifications
 spec:
   kafka:
-    # Listener configuration (required)
-    listeners: # <b class="conum">(1)</b>
-      - name: plain # <b class="conum">(2)</b>
-        port: 9092 # <b class="conum">(3)</b>
-        type: internal # <b class="conum">(4)</b>
-        tls: false # <b class="conum">(5)</b>
-        configuration:
-          useServiceDnsDomain: true # <b class="conum">(6)</b>
-      - name: tls
-        port: 9093
-        type: internal
-        tls: true
-        authentication: # <b class="conum">(7)</b>
-          type: tls
-      - name: external1 # <b class="conum">(8)</b>
-        port: 9094
-        type: route
-        tls: true
-        configuration:
-          brokerCertChainAndKey: # <b class="conum">(9)</b>
-            secretName: my-secret
-            certificate: my-certificate.crt
-            key: my-key.key
-    # Kafka version (recommended)
-    version: 4.1.1 # <b class="conum">(10)</b>
-    # KRaft metadata version (recommended)
-    metadataVersion: 4.1 # <b class="conum">(11)</b>
-    # Kafka configuration (recommended)
-    config: # <b class="conum">(12)</b>
-      auto.create.topics.enable: "false"
+    # Broker configuration for replication (recommended)
+    config:
       offsets.topic.replication.factor: 3
       transaction.state.log.replication.factor: 3
       transaction.state.log.min.isr: 2
       default.replication.factor: 3
       min.insync.replicas: 2
-    # Logging configuration (optional)
-    logging: # <b class="conum">(13)</b>
-      type: inline
-      loggers:
-        # Kafka 4.0+ uses Log4j2
-        rootLogger.level: INFO
-    # Readiness probe (optional)
-    readinessProbe: # <b class="conum">(14)</b>
-      initialDelaySeconds: 15
-      timeoutSeconds: 5
-    # Liveness probe (optional)
-    livenessProbe:
-      initialDelaySeconds: 15
-      timeoutSeconds: 5
-    # JVM options (optional)
-    jvmOptions: # <b class="conum">(15)</b>
-      -Xms: 8192m
-      -Xmx: 8192m
-    # Custom image (optional)
-    image: my-org/my-image:latest # <b class="conum">(16)</b>
-    # Authorization (optional)
-    authorization: # <b class="conum">(17)</b>
-      type: simple
-    # Rack awareness (optional)
-    rack: # <b class="conum">(18)</b>
-      topologyKey: topology.kubernetes.io/zone
-    # Metrics configuration (optional)
-    metricsConfig: # <b class="conum">(19)</b>
-      type: jmxPrometheusExporter
-      valueFrom:
-        configMapKeyRef: # <b class="conum">(20)</b>
-          name: my-config-map
-          key: my-key
+    # Listener configuration (required)
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+    # Kafka version (recommended)
+    version: 4.1.1
+    # KRaft metadata version (recommended)
+    metadataVersion: 4.1
   # Entity Operator (recommended)
-  entityOperator: # <b class="conum">(21)</b>
-    topicOperator:
-      watchedNamespace: my-topic-namespace
-      reconciliationIntervalMs: 60000
-      # Resources requests and limits (recommended)
-      resources:
-        requests:
-          memory: 512Mi
-          cpu: "1"
-        limits:
-          memory: 512Mi
-          cpu: "1"
-      # Logging configuration (optional)
-      logging: # <b class="conum">(22)</b>
-        type: inline
-        loggers:
-          rootLogger.level: INFO
-    userOperator:
-      watchedNamespace: my-topic-namespace
-      reconciliationIntervalMs: 60000
-      # Resources requests and limits (recommended)
-      resources:
-        requests:
-          memory: 512Mi
-          cpu: "1"
-        limits:
-          memory: 512Mi
-          cpu: "1"
-      # Logging configuration (optional)
-      logging: # <b class="conum">(23)</b>
-        type: inline
-        loggers:
-          rootLogger.level: INFO
-  # Kafka Exporter (optional)
-  kafkaExporter: # <b class="conum">(24)</b>
-    # ...
-  # Cruise Control (optional)
-  cruiseControl: # <b class="conum">(25)</b>
-    # ...</code></pre>
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}</code></pre>
 </div>
 </div>
-<div class="colist arabic">
-<ol>
+<div class="ulist">
+<ul>
 <li>
-<p>Listeners configure how clients connect to the Kafka cluster via bootstrap addresses. Listeners are configured as <em>internal</em> or <em>external</em> listeners for connection from inside or outside the Kubernetes cluster.</p>
+<p><code>spec.kafka.config</code> defines broker-level configuration.
+In this example, replication and ISR settings are configured to provide durable replication for internal topics.</p>
 </li>
 <li>
-<p>Name to identify the listener. Must be unique within the Kafka cluster.</p>
+<p><code>spec.kafka.listeners</code> defines how clients connect to the Kafka cluster.
+At least one listener is required.</p>
 </li>
 <li>
-<p>Port number used by the listener inside Kafka. The port number has to be unique within a given Kafka cluster. Allowed port numbers are 9092 and higher with the exception of ports 9404 and 9999, which are already used for Prometheus and JMX. Depending on the listener type, the port number might not be the same as the port number that connects Kafka clients.</p>
+<p><code>spec.kafka.version</code> specifies the Kafka version for the cluster.
+Change this value only by following the <a href="#proc-upgrade-kafka-kraft-str">Kafka upgrade procedure</a>.</p>
 </li>
 <li>
-<p>Listener type specified as <code>internal</code> or <code>cluster-ip</code> (to expose Kafka using per-broker <code>ClusterIP</code> services), or for external listeners, as <code>route</code> (OpenShift only), <code>loadbalancer</code>, <code>nodeport</code> or <code>ingress</code> (Kubernetes only).</p>
+<p><code>spec.kafka.metadataVersion</code> specifies the metadata version for KRaft-based clusters.
+The value must be compatible with the Kafka version.</p>
 </li>
 <li>
-<p>Enables or disables TLS encryption for each listener. For <code>route</code> and <code>ingress</code> type listeners, TLS encryption must always be enabled by setting it to <code>true</code>.</p>
+<p><code>spec.entityOperator</code> deploys the Topic Operator and User Operator using default settings.
+For more information, see <a href="#ref-kafka-entity-operator-str">Configuring the Entity Operator</a>.</p>
 </li>
-<li>
-<p>Defines whether the fully-qualified DNS names including the cluster service suffix (usually <code>.cluster.local</code>) are assigned.</p>
-</li>
-<li>
-<p>Listener authentication mechanism specified as mTLS, SCRAM-SHA-512, or custom.</p>
-</li>
-<li>
-<p>External listener configuration specifies how the Kafka cluster is exposed outside Kubernetes, such as through a <code>route</code>, <code>loadbalancer</code> or <code>nodeport</code>.</p>
-</li>
-<li>
-<p>Optional configuration for a Kafka listener certificate managed by an external CA (certificate authority). The <code>brokerCertChainAndKey</code> specifies a <code>Secret</code> that contains a server certificate and a private key. You can configure Kafka listener certificates on any listener with enabled TLS encryption.</p>
-</li>
-<li>
-<p>Kafka version, which can be changed to a supported version by following the upgrade procedure.</p>
-</li>
-<li>
-<p>Kafka metadata version, which can be changed to a supported version by following the upgrade procedure.</p>
-</li>
-<li>
-<p>Broker configuration. Standard Apache Kafka configuration may be provided, restricted to those properties not managed directly by Strimzi.</p>
-</li>
-<li>
-<p>Kafka loggers and log levels added directly (<code>inline</code>) or indirectly (<code>external</code>) through a <code>ConfigMap</code>. Custom Log4j configuration must be placed under the <code>log4j2.properties</code> key in the <code>ConfigMap</code>. You can set log levels to <code>INFO</code>, <code>ERROR</code>, <code>WARN</code>, <code>TRACE</code>, <code>DEBUG</code>, <code>FATAL</code> or <code>OFF</code>.</p>
-</li>
-<li>
-<p>Healthchecks to know when to restart a container (liveness) and when a container can accept traffic (readiness).</p>
-</li>
-<li>
-<p>JVM configuration options to optimize performance for the Virtual Machine (VM) running Kafka.</p>
-</li>
-<li>
-<p>ADVANCED OPTION: Container image configuration, which is recommended only in special situations.</p>
-</li>
-<li>
-<p>Authorization enables simple and custom authorization on the Kafka broker. Simple authorization uses the <code>StandardAuthorizer</code> Kafka plugin.</p>
-</li>
-<li>
-<p>Rack awareness configuration to spread replicas across different racks, data centers, or availability zones. The <code>topologyKey</code> must match a node label containing the rack ID. The example used in this configuration specifies a zone using the standard <code><a href="https://kubernetes.io/docs/reference/labels-annotations-taints/#topologykubernetesiozone" target="_blank" rel="noopener">topology.kubernetes.io/zone</a></code> label.
-Use rack awareness together with custom <code>topologySpreadConstraint</code> or <code>affinity</code> rules to distribute Kafka broker pods (replicas) across zones.</p>
-</li>
-<li>
-<p>Prometheus metrics enabled. In this example, metrics are configured for the Prometheus JMX Exporter (the default metrics exporter).</p>
-</li>
-<li>
-<p>Rules for exporting metrics in Prometheus format to a Grafana dashboard through the Prometheus JMX Exporter, which are enabled by referencing a ConfigMap containing configuration for the Prometheus JMX exporter. You can enable metrics without further configuration using a reference to a ConfigMap containing an empty file under <code>metricsConfig.valueFrom.configMapKeyRef.key</code>.</p>
-</li>
-<li>
-<p>Entity Operator configuration, which specifies the configuration for the Topic Operator and User Operator.</p>
-</li>
-<li>
-<p>Specified Topic Operator loggers and log levels. This example uses <code>inline</code> logging.</p>
-</li>
-<li>
-<p>Specified User Operator loggers and log levels.</p>
-</li>
-<li>
-<p>Kafka Exporter configuration. Kafka Exporter is an optional component for extracting metrics data from Kafka brokers, in particular consumer lag data. For Kafka Exporter to be able to work properly, consumer groups need to be in use.</p>
-</li>
-<li>
-<p>Optional configuration for Cruise Control, which is used to rebalance the Kafka cluster.</p>
-</li>
-</ol>
+</ul>
 </div>
 <div class="admonitionblock warning">
 <table>
@@ -6882,57 +6760,608 @@ Use rack awareness together with custom <code>topologySpreadConstraint</code> or
 <div class="title">Warning</div>
 </td>
 <td class="content">
-If you remove the <code>min.insync.replicas</code> property from <code>.spec.kafka.config</code> in the <code>Kafka</code> resource, the Cluster Operator
-forces Kafka to fall back to the default value (<code>1</code>), regardless of whether ELR (Eligible Leader Replicas) is enabled or disabled.
-To ensure durability of the cluster, explicitly define <code>min.insync.replicas</code> with a value higher than 1.
+If you remove the <code>min.insync.replicas</code> property from <code>spec.kafka.config</code>,
+the Cluster Operator forces Kafka to fall back to the default value of <code>1</code>.
+To ensure durability, explicitly set <code>min.insync.replicas</code> to a value greater than <code>1</code>.
 </td>
 </tr>
 </table>
 </div>
+</div>
 <div class="sect3">
-<h4 id="proc-setting-broker-limits-str"><a class="link" href="#proc-setting-broker-limits-str">11.2.1. Setting throughput and storage limits on brokers</a></h4>
+<h4 id="con-config-securing-kafka-client-connections-str"><a class="link" href="#con-config-securing-kafka-client-connections-str">11.2.2. Securing Kafka client connections</a></h4>
 <div class="paragraph _abstract">
-<p>This procedure describes how to set throughput and storage limits on brokers in your Kafka cluster.
-Enable a quota plugin and configure limits using <code>quotas</code> properties in the <code>Kafka</code> resource.</p>
+<p>Secure Kafka client connections by configuring Kafka listeners with TLS encryption and client authentication.
+Listeners control how clients connect to the Kafka cluster from inside or outside the Kubernetes cluster.</p>
 </div>
 <div class="paragraph">
-<p>There are two types of quota plugins available:</p>
+<p>Internal listeners allow for in-cluster access.
+To allow access from outside the Kubernetes cluster, configure an external listener.
+Add TLS encryption and authentication as required by your access and security requirements.</p>
+</div>
+<div class="paragraph">
+<p>Listener options include:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>The <code>strimzi</code> type enables the <em>Strimzi Quotas</em> plugin.</p>
+<p><code>name</code>: Identifies the listener.
+The listener name must be unique within the Kafka cluster.</p>
 </li>
 <li>
-<p>The <code>kafka</code> type enables the built-in Kafka plugin.</p>
+<p><code>port</code>: Port used by Kafka brokers.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Must be <code>9092</code> or higher.</p>
+</li>
+<li>
+<p>Ports <code>9404</code> and <code>9999</code> are reserved for Prometheus and JMX.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>type</code>: How the listener is exposed.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Internal types include <code>internal</code> and <code>cluster-ip</code>.</p>
+</li>
+<li>
+<p>External types include <code>route</code> (OpenShift only), <code>loadbalancer</code>, <code>nodeport</code>, and <code>ingress</code>.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>tls</code>: Enables TLS encryption.
+TLS is required for <code>route</code> and <code>ingress</code> listener types.</p>
+</li>
+<li>
+<p><code>authentication</code>: Client authentication mechanism.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Supported types include TLS (mTLS), SCRAM-SHA-512, and custom authentication.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>configuration</code>: Listener-specific settings.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Examples include <code>useServiceDnsDomain</code> for <code>internal</code> and <code>cluster-ip</code> listeners, and <code>host</code> for <code>route</code> and <code>ingress</code> listeners.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>configuration.brokerCertChainAndKey</code>: Uses a server certificate managed by an external certificate authority.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Listener configuration controls how clients connect to Kafka.
+Client credentials and authorization are configured separately.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Depending on the listener type, the port number might not be the same as the port number that connects Kafka clients.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The following examples show listener configuration to enable TLS and authentication.</p>
+</div>
+<div class="sect4">
+<h5 id="internal_listener_without_tls"><a class="link" href="#internal_listener_without_tls">Internal listener without TLS</a></h5>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  kafka:
+    # Listener configuration (required)
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.kafka.listeners[].type: internal</code> exposes Kafka only inside the Kubernetes cluster.</p>
+</li>
+<li>
+<p><code>spec.kafka.listeners[].tls: false</code> disables TLS encryption.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="internal_listener_with_tls_encryption_and_mtls_authentication"><a class="link" href="#internal_listener_with_tls_encryption_and_mtls_authentication">Internal listener with TLS encryption and mTLS authentication</a></h5>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  kafka:
+    # Listener configuration (required)
+    listeners:
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+        authentication:
+          type: tls</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.kafka.listeners[].tls: true</code> enables TLS encryption.</p>
+</li>
+<li>
+<p><code>spec.kafka.listeners[].authentication.type: tls</code> enables mutual TLS (mTLS) authentication.
+Clients must present a trusted client certificate when connecting.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="external_listener_with_tls"><a class="link" href="#external_listener_with_tls">External listener with TLS</a></h5>
+<div class="paragraph">
+<p>The listener type determines how Kafka is exposed outside the Kubernetes cluster.
+For example, on OpenShift you can use the <code>route</code> listener type.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  kafka:
+    # Listener configuration (required)
+    listeners:
+      - name: external
+        port: 9094
+        type: route
+        tls: true</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.kafka.listeners[].type: route</code> exposes Kafka outside the cluster using OpenShift routes.</p>
+</li>
+<li>
+<p><code>spec.kafka.listeners[].tls: true</code> is required for <code>route</code> listeners.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="using_externally_managed_listener_certificates"><a class="link" href="#using_externally_managed_listener_certificates">Using externally managed listener certificates</a></h5>
+<div class="paragraph">
+<p>By default, Strimzi manages listener certificates when TLS is enabled.
+If you use an external certificate authority (CA), you can configure Strimzi to use a listener certificate and private key stored in a <code>Secret</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  kafka:
+    # Listener configuration (required)
+    listeners:
+      - name: external
+        port: 9094
+        type: route
+        tls: true
+        configuration:
+          brokerCertChainAndKey:
+            secretName: my-secret
+            certificate: my-certificate.crt
+            key: my-key.key</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.kafka.listeners[].configuration.brokerCertChainAndKey</code> references a <code>Secret</code> containing a server certificate and private key.</p>
+</li>
+<li>
+<p>Use this option when listener certificates are managed outside Strimzi.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For step-by-step procedures and examples for securing client access, see
+<a href="#assembly-securing-access-str">Securing access to a Kafka cluster</a>.</p>
+</div>
+<div class="paragraph">
+<p>For details of listener configuration options, see the
+<a href="./configuring.html#type-Kafka-reference" target="_blank" rel="noopener"><code>Kafka</code> schema reference</a> and
+<a href="./configuring.html#type-GenericKafkaListener-reference" target="_blank" rel="noopener"><code>GenericKafkaListener</code> schema reference</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-kafka-authorization-str"><a class="link" href="#con-kafka-authorization-str">11.2.3. Configuring authorization</a></h4>
+<div class="paragraph _abstract">
+<p>Control what authenticated clients can do in a Kafka cluster by enabling authorization on Kafka brokers.
+Authorization is configured in the <code>Kafka</code> custom resource and enforced by the Kafka broker.</p>
+</div>
+<div class="paragraph">
+<p>Authorization is separate from listener authentication.
+Authentication verifies a client identity.
+Authorization controls which operations the client is allowed to perform.</p>
+</div>
+<div class="paragraph">
+<p>Kafka supports the following authorization types:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>simple</code></p>
+</li>
+<li>
+<p><code>custom</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>simple</code> authorization type uses the Kafka <code>StandardAuthorizer</code> plugin.</p>
+</div>
+<div class="paragraph">
+<p>The following examples show how to enable authorization on Kafka brokers.</p>
+</div>
+<div class="sect4">
+<h5 id="enabling_simple_authorization"><a class="link" href="#enabling_simple_authorization">Enabling simple authorization</a></h5>
+<div class="paragraph">
+<p>Simple authorization enables ACL-based access control using Kafka’s built-in authorizer.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  kafka:
+    # Authorization (optional)
+    authorization:
+      type: simple</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.kafka.authorization.type: simple</code> enables ACL-based authorization using the Kafka <code>StandardAuthorizer</code>.</p>
+</li>
+<li>
+<p>Access to Kafka resources is controlled using ACL rules.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="configuring_super_users"><a class="link" href="#configuring_super_users">Configuring super users</a></h5>
+<div class="paragraph">
+<p>You can define super users that are allowed to perform all operations, regardless of ACL rules.
+Use super users for Kafka administrator identities and internal components that must always be able to operate.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  kafka:
+    # Authorization (optional)
+    authorization:
+      type: simple
+      superUsers:
+        - CN=kafka-admin
+        - my-team-admin</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.kafka.authorization.superUsers</code> defines super user identities.</p>
+</li>
+<li>
+<p>The identity format must match the principal used by your authentication mechanism.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <code>CN=</code> prefix shown in the example applies to mTLS authentication, where the principal is derived from the certificate subject.
+Other authentication mechanisms, such as SASL-based authentication, use different principal formats.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="enabling_custom_authorization"><a class="link" href="#enabling_custom_authorization">Enabling custom authorization</a></h5>
+<div class="paragraph">
+<p>Custom authorization allows the use of a custom authorizer implementation.
+Use custom authorization when you need to integrate Kafka with an external authorization system.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  kafka:
+    # Authorization (optional)
+    authorization:
+      type: custom
+      authorizerClass: com.example.CustomAuthorizer</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.kafka.authorization.type: custom</code> enables a custom authorization implementation.</p>
+</li>
+<li>
+<p><code>spec.kafka.authorization.authorizerClass</code> specifies the fully qualified class name of the custom authorizer.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Authorization configuration enables enforcement of access control on the Kafka broker.
+User identities, credentials, and ACL rules are configured separately.</p>
+</div>
+<div class="paragraph">
+<p>For step-by-step procedures and examples for configuring authorized access, see
+<a href="#assembly-securing-access-str">Securing access to a Kafka cluster</a>.</p>
+</div>
+<div class="paragraph">
+<p>For details of authorization configuration options, see the
+<a href="./configuring.html#type-Kafka-authorization-simple-reference" target="_blank" rel="noopener"><code>KafkaAuthorizationSimple</code> schema reference</a> and
+<a href="./configuring.html#type-Kafka-authorization-custom-reference" target="_blank" rel="noopener"><code>KafkaAuthorizationCustom</code> schema reference</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-kafka-broker-configuration-str"><a class="link" href="#con-kafka-broker-configuration-str">11.2.4. Configuring Kafka broker operation</a></h4>
+<div class="paragraph _abstract">
+<p>Control how Kafka brokers operate by configuring broker properties in the <code>Kafka</code> custom resource.
+Broker configuration affects availability and performance of the cluster.</p>
+</div>
+<div class="paragraph">
+<p>Broker configuration is applied using the <code>spec.kafka.config</code> property.
+Only Kafka configuration properties that are not managed directly by Strimzi can be set.
+Strimzi validates and applies these properties during reconciliation.</p>
+</div>
+<div class="paragraph">
+<p>Use broker configuration to:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Replicate topics for high availability</p>
+</li>
+<li>
+<p>Improve throughput or request handling</p>
+</li>
+<li>
+<p>Optimize performance for high-latency or high-bandwidth networks</p>
+</li>
+<li>
+<p>Control disk usage and log retention behavior</p>
+</li>
+<li>
+<p>Reduce unnecessary rebalances or leadership changes</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Broker configuration options must be used in the correct combinations to meet your availability and fault-tolerance requirements.
+Kafka provides many additional broker properties for more granular configuration.
+However, certain properties are managed directly by Strimzi and cannot be set within this config property.
+For more information, see the <a href="./configuring.html#type-KafkaClusterSpec-reference" target="_blank" rel="noopener"><code>KafkaClusterSpec</code> schema reference</a>.</p>
+</div>
+<div class="paragraph">
+<p>Broker tuning is workload-dependent.
+Test changes in a non-production environment before applying them to a production cluster.
+A practical approach is to adjust configuration incrementally and monitor the impact using broker and client metrics.
+For detailed guidance on selecting and tuning broker configuration properties, see
+<a href="#con-broker-config-properties-str">Kafka broker configuration tuning</a>.</p>
+</div>
+<div class="sect4">
+<h5 id="adding_broker_configuration"><a class="link" href="#adding_broker_configuration">Adding broker configuration</a></h5>
+<div class="paragraph">
+<p>Kafka broker configuration is defined as key-value pairs under <code>spec.kafka.config</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  kafka:
+    # Kafka configuration (recommended)
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.kafka.config</code> defines Kafka broker properties as key-value pairs.</p>
+</li>
+<li>
+<p><code>offsets.topic.replication.factor</code> sets the replication factor for the consumer offsets topic.</p>
+</li>
+<li>
+<p><code>transaction.state.log.replication.factor</code> sets the replication factor for the transaction state log.</p>
+</li>
+<li>
+<p><code>transaction.state.log.min.isr</code> sets the minimum number of in-sync replicas (ISR) required for the transaction state log.</p>
+</li>
+<li>
+<p><code>default.replication.factor</code> sets the default replication factor for topics that do not specify one.</p>
+</li>
+<li>
+<p><code>min.insync.replicas</code> sets the minimum number of in-sync replicas (ISR) required to acknowledge writes.</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+If you remove the <code>min.insync.replicas</code> property from <code>spec.kafka.config</code>,
+the Cluster Operator forces Kafka to fall back to the default value of <code>1</code>.
+To ensure fault tolerance, explicitly set <code>min.insync.replicas</code> to a value greater than <code>1</code>.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-kafka-cruise-control-str"><a class="link" href="#con-kafka-cruise-control-str">11.2.5. Kafka cluster balancing with Cruise Control</a></h4>
+<div class="paragraph _abstract">
+<p>Automate Kafka cluster balancing by enabling Cruise Control.
+Cruise Control monitors broker workloads and helps redistribute partitions to keep the cluster balanced as usage changes.</p>
+</div>
+<div class="paragraph">
+<p>Enable Cruise Control when you need to do the following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Rebalance partitions across brokers</p>
+</li>
+<li>
+<p>Redistribute replicas across JBOD disks</p>
+</li>
+<li>
+<p>Support broker scaling and maintenance operations</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Enable Cruise Control by adding a <code>cruiseControl</code> section to the <code>Kafka</code> custom resource.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  # Cruise Control (optional)
+  cruiseControl:
+    # Configuration for balancing goals and capacity limits
+    # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For more information on how to configure and use Cruise Control, see:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="#cruise-control-concepts-str">Using Cruise Control for cluster rebalancing</a></p>
+</li>
+<li>
+<p><a href="#proc-cruise-control-topic-replication-str">Using Cruise Control to modify topic replication factor</a></p>
+</li>
+<li>
+<p><a href="#proc-cruise-control-moving-data-str">Using Cruise Control to reassign partitions on JBOD disks</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-kafka-exporter-str"><a class="link" href="#con-kafka-exporter-str">11.2.6. Capturing consumer lag metrics</a></h4>
+<div class="paragraph _abstract">
+<p>Capture consumer group lag metrics to monitor whether consumers are keeping up with message production.
+Consumer lag metrics help you detect slow or stalled consumers and diagnose processing issues.</p>
+</div>
+<div class="paragraph">
+<p>Kafka Exporter exposes consumer group lag metrics that are not available through broker JMX metrics.
+These metrics are typically scraped by Prometheus and visualized in monitoring dashboards.</p>
+</div>
+<div class="paragraph">
+<p>Enable Kafka Exporter when you need to do the following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Monitor consumer group lag</p>
+</li>
+<li>
+<p>Track consumer progress over time</p>
+</li>
+<li>
+<p>Alert on slow consumers</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Enable Kafka Exporter by adding a <code>kafkaExporter</code> section to the <code>Kafka</code> custom resource.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  # Kafka Exporter (optional)
+  kafkaExporter:
+    # Configuration for metrics selection and exposure
+    # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For configuration details, metrics, and dashboards, see
+<a href="#con-metrics-kafka-exporter-lag-str">Consumer lag monitoring</a>.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-choosing-a-quota-plugin-str"><a class="link" href="#con-choosing-a-quota-plugin-str">11.2.7. Choosing a quota plugin</a></h4>
+<div class="paragraph _abstract">
+<p>Control throughput and protect broker storage by applying quotas to Kafka brokers.
+Kafka supports the following quota plugin types:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>strimzi</code></p>
+</li>
+<li>
+<p><code>kafka</code></p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
 <p>Only one quota plugin can be enabled at a time.
 The built-in <code>kafka</code> plugin is enabled by default.
-Enabling the <code>strimzi</code> plugin automatically disables the built-in plugin.</p>
+Enabling the <code>strimzi</code> plugin disables the built-in plugin.</p>
+</div>
+<div class="sect4">
+<h5 id="when_to_use_the_strimzi_quota_plugin"><a class="link" href="#when_to_use_the_strimzi_quota_plugin">When to use the <code>strimzi</code> quota plugin</a></h5>
+<div class="paragraph">
+<p>Use the <code>strimzi</code> quota plugin to protect the Kafka cluster as a whole using aggregate limits.</p>
 </div>
 <div class="paragraph">
-<div class="title"><code>strimzi</code> plugin</div>
-<p>The <code>strimzi</code> plugin provides storage utilization quotas and dynamic distribution of throughput limits.</p>
+<p>The <code>strimzi</code> plugin is suitable when you need to:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Storage quotas throttle Kafka producers based on disk storage utilization.
-Limits can be specified in bytes (<code>minAvailableBytesPerVolume</code>) or percentage (<code>minAvailableRatioPerVolume</code>) of available disk space, applying to each disk individually.
-When any broker in the cluster exceeds the configured disk threshold, clients are throttled to prevent disks from filling up too quickly and exceeding capacity.</p>
+<p>Prevent brokers from running out of disk space (limits apply to each disk volume individually)</p>
 </li>
 <li>
-<p>A total throughput limit is distributed dynamically across all clients.
-For example, if you set a 40 MBps producer byte-rate threshold, the distribution across two producers is not static.
-If one producer is using 10 MBps, the other can use up to 30 MBps.</p>
+<p>Apply total throughput limits across all clients</p>
 </li>
 <li>
-<p>Specific users (clients) can be excluded from the restrictions.</p>
+<p>Dynamically share throughput limits between active clients</p>
+</li>
+<li>
+<p>Exclude specific users from quota enforcement</p>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>The <code>strimzi</code> plugin distributes the total throughput limit dynamically.
+For example, if you set a 40 MBps producer limit, it is not statically divided.
+If one producer is using only 10 MBps, the remaining 30 MBps is automatically available to other producers.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -6946,37 +7375,37 @@ With the <code>strimzi</code> plugin, you see only aggregated quota metrics, not
 </tr>
 </table>
 </div>
+</div>
+<div class="sect4">
+<h5 id="when_to_use_the_kafka_quota_plugin"><a class="link" href="#when_to_use_the_kafka_quota_plugin">When to use the <code>kafka</code> quota plugin</a></h5>
 <div class="paragraph">
-<div class="title"><code>kafka</code> plugin</div>
-<p>The <code>kafka</code> plugin applies throughput limits on a per-user, per-broker basis and includes additional CPU and operation rate limits.</p>
+<p>Use the <code>kafka</code> quota plugin to control individual client behavior using static limits.</p>
+</div>
+<div class="paragraph">
+<p>The <code>kafka</code> plugin is suitable when you need to:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>Limits are applied per user and per broker.
-For example, setting a 20 MBps producer byte-rate threshold limits each user to 20 MBps on a per-broker basis across all producer connections for that user.
-There is no total throughput limit as there is in the <code>strimzi</code> plugin.
-Limits can be overridden by <a href="#con-configuring-client-quotas-str">user-specific quota configurations</a>.</p>
+<p>Apply per-broker and per-user limits (broker-level limits can be overridden by <a href="#con-configuring-client-quotas-str">user-specific quotas</a>)</p>
 </li>
 <li>
-<p>CPU utilization limits for each client can be set as a percentage of the network threads and I/O threads on a per-broker basis.</p>
+<p>Control CPU usage for client requests</p>
 </li>
 <li>
-<p>The number of concurrent partition creation and deletion operations (mutations) allowed per second can be set on a per-broker basis.</p>
+<p>Limit the rate of mutations accepted for create topic, create partition, and delete topic requests</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>When using the default Kafka quotas plugin, the default quotas (if set) are applied to all users.
-This includes internal users such as the Topic Operator and Cruise Control, which may impact their operations.
-To avoid unduly limiting internal users, consider tuning the quotas effectively.</p>
+<p>Default quotas apply to all users, including internal components.</p>
 </div>
-<div class="paragraph">
-<p>For example, a quota automatically applied to the Topic Operator by the Kafka quotas plugin could constrain the controller mutation rate, potentially throttling topic creation or deletion operations.
-Therefore, it is important to understand the minimal quotas required by the Topic Operator to function correctly and explicitly set appropriate quotas to avoid such issues.
-Monitoring relevant controller and broker metrics can help track and optimize the rate of operations on topics.
-Cruise Control and its metrics reporter also require sufficient produce and fetch rates to conduct rebalances, depending on the scale and configuration of the Kafka cluster.
-To prevent issues for Cruise Control, you might start with a rate of at least 1 KB/s for its producers and consumers in small clusters, such as three brokers with moderate traffic, and adjust as needed for larger or more active clusters.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-setting-broker-limits-str"><a class="link" href="#proc-setting-broker-limits-str">11.2.8. Setting throughput and storage limits on brokers</a></h4>
+<div class="paragraph _abstract">
+<p>Configure throughput and storage limits on Kafka brokers by enabling a quota plugin and defining limits in the <code>Kafka</code> custom resource.</p>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -6990,11 +7419,14 @@ To prevent issues for Cruise Control, you might start with a rate of at least 1 
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Add the plugin configuration to the <code>quotas</code> section of the <code>Kafka</code> resource.</p>
+<p>Add quota configuration to the <code>quotas</code> section of the <code>Kafka</code> resource.
+Configure either the <code>strimzi</code> or <code>kafka</code> quota plugin.</p>
 <div class="openblock">
 <div class="content">
+<div class="paragraph">
+<p>Example <code>strimzi</code> quota plugin configuration:</p>
+</div>
 <div class="listingblock">
-<div class="title">Example <code>strimzi</code> plugin configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
 kind: Kafka
@@ -7005,37 +7437,38 @@ spec:
     # ...
     quotas:
       type: strimzi
-      producerByteRate: 1000000 # <b class="conum">(1)</b>
-      consumerByteRate: 1000000 # <b class="conum">(2)</b>
-      minAvailableBytesPerVolume: 500000000000 # <b class="conum">(3)</b>
-      excludedPrincipals: # <b class="conum">(4)</b>
+      producerByteRate: 1000000
+      consumerByteRate: 1000000
+      minAvailableBytesPerVolume: 500000000000
+      excludedPrincipals:
         - my-user</code></pre>
 </div>
 </div>
-<div class="colist arabic">
-<ol>
+<div class="ulist">
+<ul>
 <li>
-<p>Sets a producer byte-rate threshold of 1 MBps.</p>
+<p><code>producerByteRate</code> and <code>consumerByteRate</code> set total throughput limits across all clients.</p>
 </li>
 <li>
-<p>Sets a consumer byte-rate threshold of 1 MBps.</p>
+<p><code>minAvailableBytesPerVolume</code> protects broker disk capacity by throttling producers when available storage drops below the configured byte threshold on any volume. You can also use <code>minAvailableRatioPerVolume</code> to set the threshold as a percentage of total volume size.</p>
 </li>
 <li>
-<p>Sets an available bytes limit for storage of 500 GB.</p>
+<p><code>excludedPrincipals</code> excludes specified users from quota enforcement.</p>
 </li>
-<li>
-<p>Excludes <code>my-user</code> from the restrictions.</p>
-</li>
-</ol>
+</ul>
 </div>
 <div class="paragraph">
 <p><code>minAvailableBytesPerVolume</code> and <code>minAvailableRatioPerVolume</code> are mutually exclusive.
-Only configure one of these parameters.</p>
+Configure only one of these properties.</p>
 </div>
 </div>
+</div>
+<div class="openblock">
+<div class="content">
+<div class="paragraph">
+<p>Example <code>kafka</code> quota plugin configuration:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example <code>kafka</code> plugin configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
 kind: Kafka
@@ -7048,19 +7481,39 @@ spec:
       type: kafka
       producerByteRate: 1000000
       consumerByteRate: 1000000
-      requestPercentage: 55 # <b class="conum">(1)</b>
-      controllerMutationRate: 50 # <b class="conum">(2)</b></code></pre>
+      requestPercentage: 55
+      controllerMutationRate: 50</code></pre>
 </div>
 </div>
-<div class="colist arabic">
-<ol>
+<div class="ulist">
+<ul>
 <li>
-<p>Sets the CPU utilization limit to 55%.</p>
+<p><code>producerByteRate</code> and <code>consumerByteRate</code> apply throughput limits per user and per broker.</p>
 </li>
 <li>
-<p>Sets the controller mutation rate to 50 operations per second.</p>
+<p><code>requestPercentage</code> limits CPU usage for client requests.</p>
 </li>
-</ol>
+<li>
+<p><code>controllerMutationRate</code> limits the number of create topic, create partition, and delete topic requests per second.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Default <code>kafka</code> quotas apply to internal users, including the Topic Operator and Cruise Control.
+To prevent the Topic Operator from being throttled, monitor controller metrics and explicitly set a <code>controllerMutationRate</code> that accommodates your topic operations.
+For Cruise Control and its metrics reporter, ensure sufficient throughput for rebalances.
+A minimum rate of at least 1 KB/s is recommended for producer and consumer quotas in small clusters (three brokers), which should be increased for larger or more active clusters.
+</td>
+</tr>
+</table>
 </div>
 </li>
 <li>
@@ -7075,8 +7528,8 @@ spec:
 <div class="title">Note</div>
 </td>
 <td class="content">
-Additional options can be configured in the <code>spec.kafka.config</code> section.
-The full list of supported options can be found in the <a href="https://github.com/strimzi/kafka-quotas-plugin?tab=readme-ov-file#properties-and-their-defaults">plugin documentation</a>.
+Additional quota properties are available for both quota plugins.
+For a complete list of supported options, see the <a href="https://github.com/strimzi/kafka-quotas-plugin?tab=readme-ov-file#properties-and-their-defaults">plugin documentation</a>.
 </td>
 </tr>
 </table>
@@ -7094,11 +7547,94 @@ The full list of supported options can be found in the <a href="https://github.c
 </div>
 </div>
 <div class="sect3">
-<h4 id="proc-manual-delete-pod-pvc-kafka-str"><a class="link" href="#proc-manual-delete-pod-pvc-kafka-str">11.2.2. Deleting Kafka nodes using annotations</a></h4>
+<h4 id="con-kafka-recovering-brokers-str"><a class="link" href="#con-kafka-recovering-brokers-str">11.2.9. Recovering from broker storage issues</a></h4>
+<div class="paragraph _abstract">
+<p>Broker storage issues typically present as one or more of the following symptoms:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Broker pods repeatedly restarting or failing to start</p>
+</li>
+<li>
+<p>Errors indicating full disks or insufficient storage</p>
+</li>
+<li>
+<p>Failed volume mounts or PVC-related errors</p>
+</li>
+<li>
+<p>Partitions remaining under-replicated due to unavailable brokers</p>
+</li>
+</ul>
+</div>
+<div class="sect4">
+<h5 id="recovery_approach"><a class="link" href="#recovery_approach">Recovery approach</a></h5>
+<div class="paragraph">
+<p>To address these issues, consider the following actions to preserve broker data and minimize the risk of data loss:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Free disk space or increase available storage capacity.</p>
+</li>
+<li>
+<p>Review topic retention and compaction settings to reduce disk usage.</p>
+</li>
+<li>
+<p>Review quota settings to limit producer throughput and prevent disks from filling too quickly.</p>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Recovering persistent volumes</dt>
+<dd>
+<p>If the issue involves persistent volumes or PVCs, such as failed mounts or unavailable volumes, see the information on <a href="#assembly-cluster-recovery-volume-str">cluster recovery from persistent volumes</a>.</p>
+</dd>
+<dt class="hdlist1">Replacing brokers</dt>
+<dd>
+<p>If a broker cannot be recovered and its storage must be reset, replace the broker by deleting its pod and associated PVC.</p>
+<div class="paragraph">
+<p>This is a destructive operation that can result in permanent data loss.
+Use this option only when non-destructive recovery actions are not possible.</p>
+</div>
+<div class="paragraph">
+<p>For more information, see
+<a href="#proc-manual-delete-pod-pvc-kafka-str">Deleting Kafka nodes using annotations</a>.</p>
+</div>
+</dd>
+</dl>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>When recovery actions are complete, confirm that broker pods are stable and partitions are fully replicated, and continue to monitor logs and storage usage to ensure ongoing health.</p>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#assembly-storage-str">Storage considerations for brokers</a></p>
+</li>
+<li>
+<p><a href="#con-choosing-a-quota-plugin-str">Choosing a quota plugin</a></p>
+</li>
+<li>
+<p><a href="#proc-setting-broker-limits-str">Setting throughput and storage limits on brokers</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-manual-delete-pod-pvc-kafka-str"><a class="link" href="#proc-manual-delete-pod-pvc-kafka-str">11.2.10. Deleting Kafka nodes using annotations</a></h4>
 <div class="paragraph _abstract">
 <p>This procedure describes how to delete an existing Kafka node by using a Kubernetes annotation.
 Deleting a Kafka node consists of deleting both the <code>Pod</code> on which the Kafka broker is running and the related <code>PersistentVolumeClaim</code> (if the cluster was deployed with persistent storage).
 After deletion, the <code>Pod</code> and its related <code>PersistentVolumeClaim</code> are recreated automatically.</p>
+</div>
+<div class="paragraph">
+<p>Use this procedure only after attempting non-destructive recovery actions.
+For guidance on recovery options, see
+<a href="#con-kafka-recovering-brokers-str">Recovering from broker storage issues</a>.</p>
 </div>
 <div class="admonitionblock warning">
 <table>
@@ -7117,7 +7653,7 @@ The following procedure should only be performed if you have encountered storage
 <div class="title">Prerequisites</div>
 <ul>
 <li>
-<p>A running Cluster Operator</p>
+<p>The Cluster Operator that manages the Kafka cluster is running.</p>
 </li>
 </ul>
 </div>
@@ -7140,7 +7676,8 @@ For example, <code>my-cluster-kafka-0</code>.</p>
 </div>
 </li>
 <li>
-<p>Wait for the next reconciliation, when the annotated pod with the underlying persistent volume claim will be deleted and then recreated.</p>
+<p>Wait for the next reconciliation.
+The annotated pod and its associated persistent volume claim are deleted and then recreated automatically.</p>
 </li>
 </ol>
 </div>
@@ -11499,8 +12036,10 @@ Extend it with optional settings to support the following:</p>
 <p>Tuning Kafka Connect worker settings</p>
 </li>
 <li>
-<p><a href="#con-common-config-str">common configuration</a><br>
-Common configuration includes setting resource limits and requests (recommended), JVM tuning, and metrics.</p>
+<p><a href="#con-common-config-str">Common configuration</a>, including setting resource limits and requests (recommended), JVM tuning, and metrics</p>
+</li>
+<li>
+<p><a href="#assembly-logging-configuration-str">Logging configuration</a></p>
 </li>
 </ul>
 </div>
@@ -11546,7 +12085,7 @@ To reduce load on the cluster and avoid replicating unnecessary data, specify wh
 </ul>
 </div>
 <div class="listingblock">
-<div class="title">Minimal configuration for MirrorMaker 2</div>
+<div class="title">Minimal configuration for KafkaMirrorMaker2</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># Basic configuration (required)
 apiVersion: kafka.strimzi.io/v1
@@ -14511,7 +15050,7 @@ For example, if the custom <code>ConfigMap</code> has the same name as the <code
 <p><a href="#ref-list-of-kafka-cluster-resources-str">List of Kafka cluster resources</a> (including config maps)</p>
 </li>
 <li>
-<p><a href="#external-logging_str">Logging configuration</a></p>
+<p><a href="#assembly-logging-configuration-str">Logging configuration</a></p>
 </li>
 <li>
 <p><a href="./configuring.html#con-common-configuration-prometheus-reference" target="_blank" rel="noopener"><code>metricsConfig</code></a></p>
@@ -15482,7 +16021,7 @@ spec:
 </div>
 </div>
 <div class="sect2">
-<h3 id="external-logging_str"><a class="link" href="#external-logging_str">11.13. Configuring logging</a></h3>
+<h3 id="assembly-logging-configuration-str"><a class="link" href="#assembly-logging-configuration-str">11.13. Configuring logging</a></h3>
 <div class="paragraph _abstract">
 <p>Strimzi operators and Kafka components use log4j2 for logging.</p>
 </div>
@@ -37645,7 +38184,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-01-14 12:02:14 UTC
+Last updated 2026-01-14 13:14:31 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
