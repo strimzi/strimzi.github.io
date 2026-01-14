@@ -1,8 +1,8 @@
 ---
 layout: post
 title: "Strimzi Test Container: Simplifying Kafka & Connect Testing"
-date: 2026-01-06
-author: see-quick
+date: 2026-01-15
+author: maros_orsak
 ---
 
 Testing Kafka-based applications used to be a pain.
@@ -78,7 +78,8 @@ String restEndpoint = connectCluster.getRestEndpoint();
 #### Multi-Architecture Support
 
 Strimzi Test Container supports x64, aarch64, Z (s390x), and PPC (ppc64le) architectures.
-It uses multi-arch container images and leverages Java's cross-platform capabilities, so the same code works regardless of where you run your tests.
+It uses multi-arch container images published on [Quay.io](https://quay.io/organization/strimzi-test-container), with tags for each supported Kafka version (e.g., `quay.io/strimzi-test-container/test-container:latest-kafka-4.1.1`)
+Combined with Java's cross-platform capabilities, the same test code works regardless of where you run it.
 
 #### Multi-Node Setup with Combined or Dedicated Roles
 
@@ -87,7 +88,7 @@ One of the key features is support for different node role configurations.
 **Combined roles (default configuration)** - each node acts as both a KRaft controller and a broker.
 This is simpler and works well for most testing scenarios:
 
-![Combined Roles](/assets/images/posts/2026-01-12-strimzi-test-container-01.svg)
+![Combined Roles](/assets/images/posts/2026-01-15-strimzi-test-container-01.svg)
 
 ```java
 StrimziKafkaCluster kafkaCluster = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
@@ -97,7 +98,7 @@ StrimziKafkaCluster kafkaCluster = new StrimziKafkaCluster.StrimziKafkaClusterBu
 
 **Dedicated roles** - separate controller and broker nodes are used, matching production-like deployments:
 
-![Dedicated Roles](/assets/images/posts/2026-01-12-strimzi-test-container-02.svg)
+![Dedicated Roles](/assets/images/posts/2026-01-15-strimzi-test-container-02.svg)
 
 ```java
 StrimziKafkaCluster kafkaCluster = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
@@ -151,14 +152,15 @@ StrimziKafkaCluster kafkaCluster = new StrimziKafkaCluster.StrimziKafkaClusterBu
 #### OAuth Support
 
 Strimzi Test Container supports OAuth authentication with both `OAUTHBEARER` and `OAUTH_OVER_PLAIN` mechanisms.
-This lets you test secure Kafka deployments without setting up a full OAuth infrastructure manually.
+This lets you test secure Kafka deployments by configuring the Kafka cluster to use OAuth.
+Note that you need to supply your own identity provider (e.g., Keycloak, or any OAuth-compliant provider) for authentication.
 
 ### From Strimzi to the Broader Ecosystem
 
 Strimzi Test Container started as an "internal" library for Strimzi projects like Strimzi Kafka Operator and Strimzi Kafka Bridge.
 Over time, it expanded beyond Strimzi and is now used by projects like Quarkus and Debezium.
 
-![Strimzi Test Container Ecosystem](/assets/images/posts/2026-01-12-strimzi-test-container-03.svg)
+![Strimzi Test Container Ecosystem](/assets/images/posts/2026-01-15-strimzi-test-container-03.svg)
 
 Within the Strimzi ecosystem, we currently use it across multiple subprojects:
 
