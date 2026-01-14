@@ -5,11 +5,11 @@ date: 2026-01-06
 author: see-quick
 ---
 
-Testing Kafka based applications used to be a pain.
+Testing Kafka-based applications used to be a pain.
 Back in 2019, your options each came with significant trade-offs, and they still do:
 - **Full Kafka clusters** are resource-intensive and hard to manage in CI
 - **Mocks** don't behave like real Kafka and become a maintenance burden
-- **Embedded Kafka** causes dependency conflicts with your application's Kafka client libraries
+- **Embedded Kafka** can cause dependency conflicts with your application's Kafka client libraries
 
 We built **Strimzi Test Container** to avoid these issues.
 
@@ -20,7 +20,7 @@ Embedded Kafka runs in the same JVM as your tests, making it difficult to indepe
 By running Kafka in a container, we get full isolation (i.e., no classpath conflicts, and you can test against any Kafka version regardless of what your application uses).
 
 But why build our own instead of using existing solutions?
-The **main reason** was that the official Testcontainers Kafka module used Confluent Platform containers rather than Apache Kafka.
+The **main reason** is that the official `Testcontainers` Kafka module uses Confluent Platform containers rather than Apache Kafka.
 This meant testing against a private fork instead of the actual Apache Kafka code we use in Strimzi.
 We needed to test against the same Apache Kafka builds that run in production, and control our own release cadence to ship new Kafka versions quickly.
 
@@ -78,13 +78,13 @@ String restEndpoint = connectCluster.getRestEndpoint();
 #### Multi-Architecture Support
 
 Strimzi Test Container supports x64, aarch64, Z (s390x), and PPC (ppc64le) architectures.
-It uses multi-arch container images and leverages Java cross-platform nature, so the same code works regardless of where you run your tests.
+It uses multi-arch container images and leverages Java's cross-platform capabilities, so the same code works regardless of where you run your tests.
 
 #### Multi-Node Setup with Combined or Dedicated Roles
 
 One of the key features is support for different node role configurations.
 
-**Combined roles (default)** - each node acts as both a KRaft controller and a broker.
+**Combined roles (default configuration)** - each node acts as both a KRaft controller and a broker.
 This is simpler and works well for most testing scenarios:
 
 ![Combined Roles](/assets/images/posts/2026-01-12-strimzi-test-container-01.svg)
@@ -95,7 +95,7 @@ StrimziKafkaCluster kafkaCluster = new StrimziKafkaCluster.StrimziKafkaClusterBu
     .build();
 ```
 
-**Dedicated roles** - separate controller and broker nodes, matching production-like deployments:
+**Dedicated roles** - separate controller and broker nodes are used, matching production-like deployments:
 
 ![Dedicated Roles](/assets/images/posts/2026-01-12-strimzi-test-container-02.svg)
 
