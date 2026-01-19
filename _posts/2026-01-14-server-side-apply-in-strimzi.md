@@ -123,13 +123,10 @@ The `managedFields` section shows that this annotation is owned by the `strimzi-
 Now let’s simulate another actor updating the same resource by adding a custom annotation using SSA.
 
 ```shell
-> kubectl patch service my-cluster-kafka-bootstrap \                                                                                                                                                    
+> kubectl patch service my-cluster-kafka-bootstrap \
   --field-manager=different-agent \
   -p '{
-    "apiVersion": "v1",
-    "kind": "Service",
     "metadata": {
-      "name": "my-cluster-kafka-bootstrap",
       "annotations": {
         "my.annotation/some": "value"
       }
@@ -173,13 +170,10 @@ Without Server-Side Apply, Strimzi would not track ownership of individual field
 Now let’s see what happens when another actor attempts to modify a field owned by Strimzi.
 
 ```shell
-> kubectl patch service my-cluster-kafka-bootstrap \                                                                                                                                                     
+> kubectl patch service my-cluster-kafka-bootstrap \
   --field-manager=different-agent \
   -p '{
-    "apiVersion": "v1",
-    "kind": "Service",
     "metadata": {
-      "name": "my-cluster-kafka-bootstrap",
       "annotations": {
         "strimzi.io/discovery": "this-is-wrong"
       }
