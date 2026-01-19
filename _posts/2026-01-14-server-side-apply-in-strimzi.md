@@ -6,7 +6,7 @@ author: lukas_kral
 ---
 
 Kubernetes operators create, update, and delete resources to reflect the desired state defined by users.
-When a particular resource is managed by a single operator (or a single user), conflicts during updates are relatively rare. 
+When a particular resource is managed by a single operator or a single user, update conflicts are relatively rare. 
 However, problems arise when multiple actors - such as different operators or automation tools - modify the same resource.
 
 With client-side apply, even changes to different fields can unintentionally overwrite each other. 
@@ -15,12 +15,12 @@ This is the case with client-side apply as used in Strimzi.
 
 ## Client-side apply in Strimzi
 
-When user creates or updates Strimzi resource, the desired state is taken by Strimzi and propagated into all needed resources.
+When a user creates or updates a Strimzi resource, the desired state is taken by Strimzi and propagated into all needed resources.
 For example (based on the configuration), when user updates field in `Kafka` CR, Strimzi will build from scratch resources like `StrimziPodSet`, `ConfigMap`, `Service`, or `PersistentVolumeClaim`.
-This is completely fine until there is another operator, running in loop, updating these resources with another value.
-Such example could be ArgoCD updating resources with annotations it needs for its functionality.
-But with every update like this, Strimzi, because it gets event that the resource has changed, builds the resource by the desired state from scratch again, overwriting the changes made by other operator.
-And this can lead into infinite loop of updates, various warnings or errors in other services/operators, and more.
+This is completely fine until another operator, running in a reconciliation loop, updates these resources with another value.
+One example is Argo CD updating resources with the annotations it needs to function.
+With each update, Strimzi detects the resource change and reconciles it from the desired state, overwriting any modifications made by the other operator.
+This can result in an update loop, along with warnings, errors, or other downstream issues in affected services or operators.
 
 Because of these issues, we decided to implement Server-Side Apply.
 
@@ -31,16 +31,20 @@ Instead of applying a full object update, each actor applies only the fields it 
 Kubernetes then tracks field ownership and detects conflicts when multiple actors attempt to manage the same field.
 
 For operators, this provides a clear ownership model. 
-An operator like Strimzi can manage only the fields it is responsible for, without overwriting changes made to other fields by users or other controllers.
+The Strimzi operator can manage only the fields it's responsible for, without overwriting changes made to other fields by users or other controllers.
 
-At the same time, this model assumes that other actors modify only fields they are responsible for. 
+At the same time, this model assumes that other actors modify only the fields that they are responsible for. 
 If another operator updates fields that are essential for Strimzi’s functionality, it may still lead to misconfiguration. 
-However, SSA makes such ownership boundaries explicit and visible, which helps surface these issues earlier and makes them easier to reason about.
+However, SSA makes these ownership boundaries explicit and visible, helping surface such issues earlier and making them easier to understand and address.
 
-## Implementation of Server-Side Apply in Strimzi
+## Incremental implementation of Server-Side Apply in Strimzi
 
 Originally, there was a proposal and a plan to implement Server-Side Apply for all resources managed by Strimzi. 
 However, the scope of such a change turned out to be too large, so we decided to split the implementation into multiple phases.
+
+### Phase 1: Initial Server-Side Apply support
+
+Server-Side Apply support was introduced in Strimzi 0.48 behind a feature gate, and its adoption is being implemented incrementally.
 
 In the first phase, we implemented Server-Side Apply for the following resources:
 
@@ -50,7 +54,7 @@ In the first phase, we implemented Server-Side Apply for the following resources
 * `Ingress`
 * `ConfigMap`
 
-These resources were identified as the most problematic based on GitHub issues, community discussions, and feedback from users on our Slack channels. 
+These resources were identified as the most problematic based on GitHub issues, community discussions, and feedback from users on the Strimzi community Slack channels. 
 To minimize risk and avoid unexpected behavior, switching to Server-Side Apply is gated behind a feature gate called `ServerSideApplyPhase1`.
 
 When this feature gate is enabled, the Cluster Operator uses SSA only for these resources, applying changes declaratively instead of rebuilding the entire resource from scratch.
@@ -65,10 +69,10 @@ The reconciliation flow is as follows:
 
 This approach ensures that Strimzi can reliably configure the fields required for correct cluster functionality, while still allowing other actors to manage fields outside of Strimzi’s ownership.
 
-## How it works in practice?
+## How Server-Side Apply works in practice
 
 Theory is nice, but let’s see Server-Side Apply in action.
-To try out this feature, you first need to enable the `ServerSideApplyPhase1` feature gate, as mentioned earlier, in the Deployment of the Strimzi Cluster Operator:
+To try out this feature, you first need to enable the `ServerSideApplyPhase1` feature gate in the `Deployment` resource for the Strimzi Cluster Operator:
 
 ```yaml
 ...
@@ -77,10 +81,10 @@ To try out this feature, you first need to enable the `ServerSideApplyPhase1` fe
 ...
 ```
 
-With Server-Side Apply enabled in the Cluster Operator, we can test it on one of the resources listed above.
-For this example, I created an ephemeral Kafka cluster from the Strimzi examples.
+With Server-Side Apply enabled in the Cluster Operator, it can be tested on one of the phase 1 SSA resources.
+For this example, an ephemeral Kafka cluster is created from the configuration examples provided with Strimzi.
 
-As a simple test case, we will add a custom annotation to the `-kafka-bootstrap` Service. 
+As a simple test case, a custom annotation is added to the `-kafka-bootstrap` Service. 
 Before doing that, let’s inspect the current `.metadata` section of the resource.
 
 ```shell
@@ -164,7 +168,7 @@ If we inspect the metadata again, we can see that the annotation was added and i
 
 Without Server-Side Apply, Strimzi would not track ownership of individual fields, and this custom annotation would likely be removed during the next reconciliation.
 
-### Handling the conflicts
+### Handling conflicts
 
 Now let’s see what happens when another actor attempts to modify a field owned by Strimzi.
 
@@ -221,8 +225,8 @@ This example demonstrates how Server-Side Apply allows Strimzi to reliably enfor
 
 ## Conclusion
 
-In this blog post, we introduced Server-Side Apply and showed how it is used in Strimzi, how it can be enabled, and how it can make working with Strimzi easier - especially in environments where multiple operators modify the same Kubernetes resources.
-Although Server-Side Apply is not a new feature and has been available in Strimzi since version 0.48.0, it is still in the alpha stage and ready for broader testing. 
+In this blog post, we described Server-Side Apply, how Strimzi uses it, how to enable it, and how it can simplify working with Strimzi — especially in environments where multiple operators modify the same Kubernetes resources.
+Although Server-Side Apply has been available in Strimzi since version 0.48.0, it is still in the alpha stage and ready for broader testing. 
 Before moving it to beta and continuing with the next implementation phases, we would like to hear from users whether it works as expected and which other resources they consider problematic.
 
 You can share your feedback with us on Slack, or by opening a discussion or an issue on GitHub if you encounter any problems or have suggestions related to Server-Side Apply in Strimzi.
