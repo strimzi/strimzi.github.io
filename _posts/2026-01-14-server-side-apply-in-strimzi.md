@@ -16,7 +16,7 @@ This is the case with client-side apply as used in Strimzi.
 ## Client-side apply in Strimzi
 
 When a user creates or updates a Strimzi resource, the desired state is taken by Strimzi and propagated into all needed resources.
-For example (based on the configuration), when user updates field in `Kafka` CR, Strimzi will build from scratch resources like `StrimziPodSet`, `ConfigMap`, `Service`, or `PersistentVolumeClaim`.
+For example (based on the configuration), when a user updates a field in the `Kafka` CR, Strimzi rebuilds the desired state for resources like `StrimziPodSet`, `ConfigMap`, `Service`, and `PersistentVolumeClaim`.
 This is completely fine until another operator, running in a reconciliation loop, updates these resources with another value.
 One example is Argo CD updating resources with the annotations it needs to function.
 With each update, Strimzi detects the resource change and reconciles it from the desired state, overwriting any modifications made by the other operator.
@@ -39,7 +39,7 @@ However, SSA makes these ownership boundaries explicit and visible, helping surf
 
 ## Incremental implementation of Server-Side Apply in Strimzi
 
-Originally, there was a proposal and a plan to implement Server-Side Apply for all resources managed by Strimzi. 
+Originally, there was a [proposal](https://github.com/strimzi/proposals/blob/main/052-k8s-server-side-apply.md) and a plan to implement Server-Side Apply for all resources managed by Strimzi. 
 However, the scope of such a change turned out to be too large, so we decided to split the implementation into multiple phases.
 
 ### Phase 1: Initial Server-Side Apply support
@@ -65,14 +65,14 @@ The reconciliation flow is as follows:
 * Strimzi first attempts to apply the change using Server-Side Apply without forcing ownership. 
 * If no conflict occurs, the patch is applied and reconciliation continues. 
 * If a conflict is detected, the Cluster Operator logs the error and retries the apply operation with force enabled. 
-* When force is used, the affected field is updated and an explicit log entry is emitted to make this behavior visible to users.
+* When force is used, the affected field is updated (the changes made by different operator are overwritten) and an explicit log entry is emitted to make this behavior visible to users.
 
 This approach ensures that Strimzi can reliably configure the fields required for correct cluster functionality, while still allowing other actors to manage fields outside of Strimzi’s ownership.
 
 ## How Server-Side Apply works in practice
 
 Theory is nice, but let’s see Server-Side Apply in action.
-To try out this feature, you first need to enable the `ServerSideApplyPhase1` feature gate in the `Deployment` resource for the Strimzi Cluster Operator:
+To try out this feature, you first need to enable the `ServerSideApplyPhase1` feature gate in the [`Deployment` resource](https://github.com/strimzi/strimzi-kafka-operator/blob/main/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml#L90) for the Strimzi Cluster Operator:
 
 ```yaml
 ...
@@ -82,7 +82,7 @@ To try out this feature, you first need to enable the `ServerSideApplyPhase1` fe
 ```
 
 With Server-Side Apply enabled in the Cluster Operator, it can be tested on one of the phase 1 SSA resources.
-For this example, an ephemeral Kafka cluster is created from the configuration examples provided with Strimzi.
+For this example, an ephemeral Kafka cluster is created from [the configuration examples](https://github.com/strimzi/strimzi-kafka-operator/blob/main/examples/kafka/kafka-ephemeral.yaml) provided with Strimzi.
 
 As a simple test case, a custom annotation is added to the `-kafka-bootstrap` Service. 
 Before doing that, let’s inspect the current `.metadata` section of the resource.
@@ -226,7 +226,7 @@ This example demonstrates how Server-Side Apply allows Strimzi to reliably enfor
 ## Conclusion
 
 In this blog post, we described Server-Side Apply, how Strimzi uses it, how to enable it, and how it can simplify working with Strimzi — especially in environments where multiple operators modify the same Kubernetes resources.
-Although Server-Side Apply has been available in Strimzi since version 0.48.0, it is still in the alpha stage and ready for broader testing. 
-Before moving it to beta and continuing with the next implementation phases, we would like to hear from users whether it works as expected and which other resources they consider problematic.
+Although Server-Side Apply has been available in Strimzi since version 0.48.0, it is still in the alpha stage and ready for broader testing.
+Before moving it to beta and progressing to the next implementation phases, we would like to hear from users on whether the phase 1 implementation of SSA behaves as expected and which other resources they find problematic.
 
-You can share your feedback with us on Slack, or by opening a discussion or an issue on GitHub if you encounter any problems or have suggestions related to Server-Side Apply in Strimzi.
+You can share your feedback with us on [Slack](https://slack.cncf.io/), or by opening [a discussion](https://github.com/orgs/strimzi/discussions) or [an issue](https://github.com/strimzi/strimzi-kafka-operator/issues) on GitHub if you encounter any problems or have suggestions related to Server-Side Apply in Strimzi.
