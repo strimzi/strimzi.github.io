@@ -18,7 +18,7 @@ This is the case with client-side apply as used in Strimzi.
 When a user creates or updates a Strimzi resource, the desired state is taken by Strimzi and propagated into all needed resources.
 For example (based on the configuration), when a user updates a field in the `Kafka` CR, Strimzi rebuilds the desired state for resources like `StrimziPodSet`, `ConfigMap`, `Service`, and `PersistentVolumeClaim`.
 This is completely fine until another operator, running in a reconciliation loop, updates these resources with another value.
-One example is Argo CD updating resources with the annotations it needs to function.
+One example is Kyverno, which has a policy to add annotation `policies.kyverno.io/last-applied-patches:...` to all resources in the Kubernetes cluster using `MutatingWebhookConfiguration`.
 With each update, Strimzi detects the resource change and reconciles it from the desired state, overwriting any modifications made by the other operator.
 This can result in an update loop, along with warnings, errors, or other downstream issues in affected services or operators.
 
@@ -123,15 +123,14 @@ The `managedFields` section shows that this annotation is owned by the `strimzi-
 Now let’s simulate another actor updating the same resource by adding a custom annotation using SSA.
 
 ```shell
-> kubectl patch service my-cluster-kafka-bootstrap \
-  --field-manager=different-agent \
-  -p '{
-    "metadata": {
-      "annotations": {
-        "my.annotation/some": "value"
-      }
-    }
-  }'
+> kubectl apply --server-side --field-manager=different-agent -f - <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    my.annotation/some: value 
+  name: my-cluster-kafka-bootstrap
+EOF
 ```
 
 The `--field-manager` flag identifies the actor performing the change.
@@ -168,17 +167,17 @@ Without Server-Side Apply, Strimzi would not track ownership of individual field
 ### Handling conflicts
 
 Now let’s see what happens when another actor attempts to modify a field owned by Strimzi.
+In this case, you will need to use `--force-conflicts`, as the field we are trying to update is managed by Strimzi.
 
 ```shell
-> kubectl patch service my-cluster-kafka-bootstrap \
-  --field-manager=different-agent \
-  -p '{
-    "metadata": {
-      "annotations": {
-        "strimzi.io/discovery": "this-is-wrong"
-      }
-    }
-  }'
+> kubectl apply --server-side --field-manager=different-agent -f - <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    strimzi.io/discovery: this-is-wrong 
+  name: my-cluster-kafka-bootstrap
+EOF
 ```
 
 At this point, the annotation is updated:
