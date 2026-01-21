@@ -13,7 +13,7 @@ With client-side apply, even changes to different fields can unintentionally ove
 This behavior is especially problematic when multiple reconciliation loops are involved, as one operator may repeatedly revert changes made by another. 
 This is the case with client-side apply as used in Strimzi.
 
-## Client-side apply in Strimzi
+### Client-side apply in Strimzi
 
 When a user creates or updates a Strimzi resource, the desired state is taken by Strimzi and propagated into all needed resources.
 For example (based on the configuration), when a user updates a field in the `Kafka` CR, Strimzi rebuilds the desired state for resources like `StrimziPodSet`, `ConfigMap`, `Service`, and `PersistentVolumeClaim`.
@@ -24,7 +24,7 @@ This can result in an update loop, along with warnings, errors, or other downstr
 
 Because of these issues, we decided to add support for Server-Side Apply.
 
-## What is Server-Side Apply?
+### What is Server-Side Apply?
 
 Server-Side Apply (SSA) allows multiple actors to update the same Kubernetes resource while managing different fields. 
 Instead of applying a full object update, each actor applies only the fields it owns, identified by a field manager. 
@@ -37,12 +37,12 @@ At the same time, this model assumes that other actors modify only the fields th
 If process external to Strimzi updates fields that are essential for Strimzi’s functionality, it may still lead to misconfiguration. 
 However, SSA makes these ownership boundaries explicit and visible, helping surface such issues earlier and making them easier to understand and address.
 
-## Incremental implementation of Server-Side Apply in Strimzi
+### Incremental implementation of Server-Side Apply in Strimzi
 
 Originally, there was a [proposal](https://github.com/strimzi/proposals/blob/main/052-k8s-server-side-apply.md) and a plan to implement Server-Side Apply for all resources managed by Strimzi. 
 However, the scope of such a change turned out to be too large, so we decided (in [second proposal](https://github.com/strimzi/proposals/blob/main/105-server-side-apply-implementation-fg-timelines.md)) to split the implementation into multiple phases.
 
-### Phase 1: Initial Server-Side Apply support
+#### Phase 1: Initial Server-Side Apply support
 
 Server-Side Apply support was introduced in Strimzi 0.48 behind a feature gate, and its adoption is being implemented incrementally.
 
@@ -69,7 +69,7 @@ The reconciliation flow is as follows:
 
 This approach ensures that Strimzi can reliably configure the fields required for correct cluster functionality, while still allowing other actors to manage fields outside of Strimzi’s ownership.
 
-## How Server-Side Apply works in practice
+### How Server-Side Apply works in practice
 
 Theory is nice, but let’s see Server-Side Apply in action.
 To try out this feature, you first need to enable the `ServerSideApplyPhase1` feature gate in the [`Deployment` resource](https://github.com/strimzi/strimzi-kafka-operator/blob/main/install/cluster-operator/060-Deployment-strimzi-cluster-operator.yaml#L90) for the Strimzi Cluster Operator:
@@ -215,7 +215,7 @@ If we inspect the metadata again, we can see that the annotation was added and i
 
 Without Server-Side Apply, Strimzi would not track ownership of individual fields, and this custom annotation would likely be removed during the next reconciliation.
 
-### Handling conflicts
+#### Handling conflicts
 
 Now let’s see what happens when another actor attempts to modify a field owned by Strimzi.
 In this case, you will need to use `--force-conflicts`, as the field we are trying to update is managed by Strimzi.
@@ -307,7 +307,7 @@ After the forced apply, Strimzi restores the correct value of its managed annota
 
 This example demonstrates how Server-Side Apply allows Strimzi to reliably enforce the fields it owns, while safely coexisting with other actors managing the same resource.
 
-### Removal of fields
+#### Removal of fields
 
 In Server-Side Apply, every actor have a possibility to remove the fields - but only those they manage.
 That means, in case that Strimzi owns the `strimzi.io/discovery` annotation and we want to remove it with our `different-agent` field manager, the field will not be deleted after the update.
@@ -373,7 +373,7 @@ The `annotations` field in the `Service` after the apply looks like this:
 }
 ```
 
-## Conclusion
+### Conclusion
 
 In this blog post, we described Server-Side Apply, how Strimzi uses it, how to enable it, and how it can simplify working with Strimzi — especially in environments where multiple operators modify the same Kubernetes resources.
 Although Server-Side Apply has been available in Strimzi since version 0.48.0, it is still in the alpha stage and ready for broader testing.
