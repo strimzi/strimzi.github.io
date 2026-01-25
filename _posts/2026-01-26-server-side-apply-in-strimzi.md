@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Server-Side Apply in Strimzi"
-date: 2026-01-14
+date: 2026-01-26
 author: lukas_kral
 ---
 
@@ -34,7 +34,7 @@ For operators, this provides a clear ownership model.
 The Strimzi operator can manage only the fields it's responsible for, without overwriting changes made to other fields by users or other controllers.
 
 At the same time, this model assumes that other actors modify only the fields that they are responsible for. 
-If process external to Strimzi updates fields that are essential for Strimzi’s functionality, it may still lead to misconfiguration. 
+If process external to Strimzi updates fields that are essential for Strimzi’s functionality, Strimzi will revert the changes back. 
 However, SSA makes these ownership boundaries explicit and visible, helping surface such issues earlier and making them easier to understand and address.
 
 ### Incremental implementation of Server-Side Apply in Strimzi
