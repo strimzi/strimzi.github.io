@@ -592,10 +592,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#cruise-control-concepts-str">21. Using Cruise Control for cluster rebalancing</a>
 <ul class="sectlevel2">
-<li><a href="#con-cruise-control-overview-str">21.1. Cruise Control components and features</a></li>
+<li><a href="#con-cruise-control-overview-str">21.1. How Cruise Control rebalances a Kafka cluster</a></li>
 <li><a href="#proc-configuring-deploying-cruise-control-str">21.2. Deploying Cruise Control with Kafka</a></li>
 <li><a href="#proc-generating-optimization-proposals-str">21.3. Generating optimization proposals</a></li>
-<li><a href="#proc-approving-optimization-proposal-str">21.4. Approving optimization proposals</a></li>
+<li><a href="#proc-approving-optimization-proposal-str">21.4. Running an optimized cluster rebalance</a></li>
 <li><a href="#proc-tracking-cluster-rebalance-str">21.5. Tracking rebalances</a></li>
 <li><a href="#proc-stopping-cluster-rebalance-str">21.6. Stopping rebalances</a></li>
 <li><a href="#proc-fixing-problems-with-kafkarebalance-str">21.7. Troubleshooting and refreshing rebalances</a></li>
@@ -3346,7 +3346,7 @@ metadata:
 spec:
   #...
   entityOperator:
-    <strong>topicOperator: {}</strong>
+    topicOperator: {}
     userOperator: {}</code></pre>
 </div>
 </div>
@@ -3446,7 +3446,7 @@ spec:
   #...
   entityOperator:
     topicOperator: {}
-    <strong>userOperator: {}</strong></code></pre>
+    userOperator: {}</code></pre>
 </div>
 </div>
 </li>
@@ -9234,7 +9234,7 @@ When adding a new volume to the to the <code>volumes</code> array under an <code
 </div>
 <div class="paragraph">
 <p>Use Cruise Control to reassign partitions when adding or removing volumes.
-For information on intra-broker disk balancing, see <a href="#con-rebalance-str">Tuning options for rebalances</a>.</p>
+For information on intra-broker disk balancing, see <a href="#con-rebalance-str">Tuning rebalance performance</a>.</p>
 </div>
 </div>
 </div>
@@ -12081,9 +12081,9 @@ spec:
   # Kafka version (recommended)
   version: 4.1.1
   # Replicas (required)
-  replicas: 3 # <b class="conum">(1)</b>
+  replicas: 3
   # Target / Connect cluster configuration (required)
-  target: # <b class="conum">(2)</b>
+  target:
     alias: "my-cluster-target"
     bootstrapServers: my-cluster-target-kafka-bootstrap:9092
     groupId: my-mirror-maker2-group
@@ -12091,41 +12091,47 @@ spec:
     offsetStorageTopic: my-mirror-maker2-offset
     statusStorageTopic: my-mirror-maker2-status
   # Mirroring configurations (required)
-  mirrors: # <b class="conum">(3)</b>
+  mirrors:
   - source:
-      alias: "my-cluster-source" # <b class="conum">(4)</b>
+      alias: "my-cluster-source"
       bootstrapServers: my-cluster-source-kafka-bootstrap:9092
-    # Source connector configuration (required) # <b class="conum">(5)</b>
+    # Source connector configuration (required)
     sourceConnector: {}
     # Topic and group patterns (required)
-      topicsPattern: "topic1.<strong>|topic2.</strong>" # <b class="conum">(6)</b>
-      groupsPattern: "group1.*|group2-[0-9]{2}" # <b class="conum">(7)</b></code></pre>
+    topicsPattern: "topic1.*|topic2.*"
+    groupsPattern: "group1.*|group2-[0-9]{2}"</code></pre>
 </div>
 </div>
-<div class="colist arabic">
-<ol>
+<div class="ulist">
+<ul>
 <li>
-<p>Number of Kafka Connect worker replicas to run.</p>
+<p><code>replicas</code> specifies the number of Kafka Connect worker replicas to run.</p>
 </li>
 <li>
-<p>Configuration of the Kafka cluster used as the target cluster. The cluster is also used by Kafka Connect to store internal topics.</p>
+<p><code>target</code> provides configuration for the target Kafka cluster. Kafka Connect uses this cluster to store internal topics.</p>
 </li>
 <li>
-<p>Defines replication between the source and target clusters.</p>
+<p><code>target.alias</code> and <code>target.bootstrapServers</code> provide configuration used to identify the target Kafka cluster and specify its bootstrap addresses (host:port). For a Strimzi-managed cluster, you can use the bootstrap service name, for example <code>&lt;cluster_name&gt;-kafka-bootstrap:&lt;port&gt;</code>.</p>
 </li>
 <li>
-<p>Source cluster configuration must define a unique alias and a bootstrap address. The bootstrap address takes the format <code>&lt;cluster_name&gt;-kafka-bootstrap:&lt;port&gt;</code>.</p>
+<p><code>mirrors</code> defines replication between the source and target clusters.</p>
 </li>
 <li>
-<p>Configuration for the source connector that replicates topics. At a minimum, you can add an empty <code>sourceConnector</code> property to use the default configuration.</p>
+<p><code>source</code> provides configuration for the source Kafka cluster.</p>
 </li>
 <li>
-<p>Replicates only topics starting with <code>topic1</code> or <code>topic2</code>.</p>
+<p><code>source.alias</code> and <code>source.bootstrapServers</code> provide configuration used to identify the source Kafka cluster and specify its bootstrap addresses (host:port). For a Strimzi-managed cluster, you can use the bootstrap service name, for example <code>&lt;cluster_name&gt;-kafka-bootstrap:&lt;port&gt;</code>.</p>
 </li>
 <li>
-<p>Replicates consumer groups starting with <code>group1</code> or <code>group2</code> followed by two digits.</p>
+<p><code>sourceConnector</code> provides configuration for the source connector that replicates topics. An empty object uses the default configuration.</p>
 </li>
-</ol>
+<li>
+<p><code>topicsPattern</code> configures replication for topics that start with <code>topic1</code> or <code>topic2</code>.</p>
+</li>
+<li>
+<p><code>groupsPattern</code> configures replication for consumer groups that start with <code>group1</code> or <code>group2</code> followed by two digits.</p>
+</li>
+</ul>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -25212,7 +25218,7 @@ Replace <code>my-kafka-cluster</code> with the name of your specific <code>Kafka
 <h2 id="cruise-control-concepts-str"><a class="link" href="#cruise-control-concepts-str">21. Using Cruise Control for cluster rebalancing</a></h2>
 <div class="sectionbody">
 <div class="paragraph _abstract">
-<p>Cruise Control is an open-source application designed to run alongside Kafka to help optimize use of cluster resources by doing the following:</p>
+<p>Cruise Control is an open-source application designed to run alongside Kafka to help optimize the use of cluster resources by doing the following:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -25225,15 +25231,15 @@ Replace <code>my-kafka-cluster</code> with the name of your specific <code>Kafka
 </ul>
 </div>
 <div class="paragraph">
-<p>Cruise Control operations help with running a more balanced Kafka cluster that uses brokers more efficiently.</p>
+<p>Cruise Control operations help maintain a more balanced Kafka cluster by using brokers more efficiently.</p>
 </div>
 <div class="paragraph">
 <p>As Kafka clusters evolve, some brokers may become overloaded while others remain underutilized.
-Cruise Control addresses this imbalance by modeling resource utilization at the replica level&#8212;&#8203;including, CPU, disk, network load&#8212;&#8203;and generating optimization proposals (which you can approve or reject) for balanced partition assignments based on configurable optimization goals.</p>
+Cruise Control addresses this imbalance by modeling resource utilization at the replica level, including CPU, disk, and network load, and by generating optimization proposals to assess the impact of rebalancing based on configurable optimization goals.</p>
 </div>
 <div class="paragraph">
 <p>Optimization proposals are configured and generated using a <code>KafkaRebalance</code> resource.
-You can configure the resource using an annotation so that optimization proposals are approved automatically or manually.</p>
+You can configure the resource to require manual approval or to automatically trigger a cluster rebalance.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -25248,7 +25254,7 @@ Strimzi provides <a href="#config-examples-str">example configuration files for 
 </table>
 </div>
 <div class="sect2">
-<h3 id="con-cruise-control-overview-str"><a class="link" href="#con-cruise-control-overview-str">21.1. Cruise Control components and features</a></h3>
+<h3 id="con-cruise-control-overview-str"><a class="link" href="#con-cruise-control-overview-str">21.1. How Cruise Control rebalances a Kafka cluster</a></h3>
 <div class="paragraph _abstract">
 <p>Cruise Control comprises four main components:</p>
 </div>
@@ -25307,7 +25313,7 @@ For example, an anomaly notifier or custom goals can be added by including the a
 </table>
 </div>
 <div class="sect3">
-<h4 id="optimization_goals"><a class="link" href="#optimization_goals">21.1.1. Optimization goals</a></h4>
+<h4 id="defining_optimization_goals"><a class="link" href="#defining_optimization_goals">21.1.1. Defining optimization goals</a></h4>
 <div class="paragraph">
 <p>Optimization goals define objectives for rebalancing, such as distributing topic replicas evenly across brokers.</p>
 </div>
@@ -25615,10 +25621,14 @@ This allows for more flexibility in generating optimization proposals, but may l
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-optimization-proposals-str"><a class="link" href="#con-optimization-proposals-str">21.1.2. Optimization proposals</a></h4>
+<h4 id="con-optimization-proposals-str"><a class="link" href="#con-optimization-proposals-str">21.1.2. Assessing optimization proposals</a></h4>
 <div class="paragraph">
-<p>Optimization proposals are summaries of proposed changes based on the defined optimization goals, assessed in a specific order of priority.
+<p>Optimization proposals summarize the expected impact of rebalancing a Kafka cluster based on the defined optimization goals, assessed in a specific order of priority.
 You can approve or reject proposals and rerun them with adjusted goals if needed.</p>
+</div>
+<div class="paragraph">
+<p>Optimization proposals are also a useful way to verify that a rebalance can succeed with the configured optimization goals and constraints.
+They show whether Cruise Control can generate a valid rebalance plan and provide an indication of how the rebalance is expected to affect the Kafka cluster.</p>
 </div>
 <div class="paragraph">
 <p>With Cruise Control deployed for use in Strimzi, the process to generate and approve an optimization proposal is as follows:</p>
@@ -25648,8 +25658,8 @@ Through the REST API, a summary of the proposal is reflected in the status of th
 <p>The optimization proposal is approved or rejected (manually or automatically) based on its alignment with cluster management goals.</p>
 </li>
 <li>
-<p>If approved, the Executor applies the optimization proposal to rebalance the Kafka cluster.
-This involves reassigning partitions and redistributing workload across brokers according to the approved proposal.</p>
+<p>If approved, the Executor recomputes the optimization using the latest cluster state and rebalances the Kafka cluster based on the configured optimization goals.
+This involves reassigning partitions and redistributing workload across brokers.</p>
 </li>
 </ol>
 </div>
@@ -25660,8 +25670,8 @@ This involves reassigning partitions and redistributing workload across brokers 
 <div class="title">Figure 6. Cruise Control optimization process</div>
 </div>
 <div class="paragraph">
-<p>Optimization proposals comprise a list of partition reassignment mappings.
-When you approve a proposal, the Cruise Control server applies these partition reassignments to the Kafka cluster.</p>
+<p>Optimization proposals comprise a list of partition reassignment mappings that describe the expected scope of a rebalance.
+When you approve a proposal, Cruise Control initiates a cluster rebalance based on the current cluster state.</p>
 </div>
 <div class="paragraph">
 <p>A partition reassignment consists of either of the following types of operations:</p>
@@ -25689,6 +25699,21 @@ When you approve a proposal, the Cruise Control server applies these partition r
 <div class="paragraph">
 <p>Cruise Control issues partition reassignments to the Kafka cluster in batches.
 The performance of the cluster during the rebalance is affected by the number and magnitude of each type of movement contained in each batch.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+An optimization proposal reflects the state of the Kafka cluster at the <strong>time the proposal is generated</strong>.
+When you approve a proposal, Cruise Control re-evaluates the cluster state and may recompute the optimization before executing the rebalance.
+This ensures the rebalance is based on the most recent cluster metrics.
+As a result, the movements executed during the rebalance might differ from those shown in the proposal summary, especially on busy or rapidly changing clusters. The overall optimization outcome is typically similar if approval happens shortly after the proposal is generated.
+</td>
+</tr>
+</table>
 </div>
 <div class="sect4">
 <h5 id="con-optimization-proposals-modes-str"><a class="link" href="#con-optimization-proposals-modes-str">Rebalancing modes</a></h5>
@@ -25756,7 +25781,7 @@ The only difference is with specifying a mode through the <code>spec.mode</code>
 <dd>
 <p>The summary is contained in the <code>KafkaRebalance</code> resource. The summary provides an overview of the proposed cluster rebalance and indicates the scale of the changes involved.
 A summary of a successfully generated optimization proposal is contained in the <code>Status.optimizationResult</code> property of the <code>KafkaRebalance</code> resource.
-The information provided is a summary of the full optimization proposal.</p>
+The information provided is a summary of the optimization proposal generated for the current cluster state.</p>
 </dd>
 <dt class="hdlist1">Broker load</dt>
 <dd>
@@ -25789,14 +25814,14 @@ The information provided is a summary of the full optimization proposal.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Use the summary to decide whether to approve or reject an optimization proposal.</p>
+<p>Use the summary to assess the expected impact of a rebalance and decide whether to approve it.</p>
 </div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Approving an optimization proposal</dt>
 <dd>
 <p>You <a href="#proc-approving-optimization-proposal-str">approve the optimization</a> proposal by setting the <code>strimzi.io/rebalance</code> annotation of the <code>KafkaRebalance</code> resource to <code>approve</code>.
-Cruise Control applies the proposal to the Kafka cluster and starts a cluster rebalance operation.</p>
+Cruise Control starts a cluster rebalance operation based on the configured optimization goals and the latest cluster state.</p>
 </dd>
 <dt class="hdlist1">Rejecting an optimization proposal</dt>
 <dd>
@@ -25828,7 +25853,7 @@ This requires a change to the cluster metadata, which has a low impact on perfor
 A balancedness score is based on optimization goals.
 If all goals are satisfied, the score is 100.
 The score is reduced for each goal that will not be met.
-Compare the balancedness scores to see whether the Kafka cluster is less balanced than it could be following a rebalance.</p>
+Compare the balancedness scores to see whether the Kafka cluster could be more balanced.</p>
 </div>
 <div class="listingblock">
 <div class="title">Example optimization proposal summary</div>
@@ -25950,8 +25975,8 @@ These topics are excluded from the calculation of partition replica/leader movem
 <div class="sect4">
 <h5 id="automatically_approving_an_optimization_proposal"><a class="link" href="#automatically_approving_an_optimization_proposal">Automatically approving an optimization proposal</a></h5>
 <div class="paragraph">
-<p>To save time, you can automate the process of approving optimization proposals.
-With automation, when you generate an optimization proposal it goes straight into a cluster rebalance.</p>
+<p>To save time, you can automate the approval step for running a cluster rebalance.
+With automation, when an optimization proposal is generated, Cruise Control immediately starts a cluster rebalance.</p>
 </div>
 <div class="paragraph">
 <p>To enable the optimization proposal auto-approval mechanism, create the <code>KafkaRebalance</code> resource with the <code>strimzi.io/rebalance-auto-approval</code> annotation set to <code>true</code>.
@@ -25974,7 +25999,7 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p>You can still check the status when automatically approving an optimization proposal.
+<p>You can still check the status of the rebalance when using automatic approval.
 The status of the <code>KafkaRebalance</code> resource moves to <code>Ready</code> when the rebalance is complete.</p>
 </div>
 </div>
@@ -26097,7 +26122,7 @@ To adjust the refresh rate, modify the <code>proposal.expiration.ms</code> setti
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-rebalance-str"><a class="link" href="#con-rebalance-str">21.1.3. Tuning options for rebalances</a></h4>
+<h4 id="con-rebalance-str"><a class="link" href="#con-rebalance-str">21.1.3. Tuning rebalance performance</a></h4>
 <div class="paragraph _abstract">
 <p>Configuration options allow you to fine-tune cluster rebalance performance.
 These settings control the movement of partition replicas and leadership, as well as the bandwidth allocated for rebalances.</p>
@@ -26490,8 +26515,9 @@ If the names of the auto-created topics are changed in a Kafka cluster that alre
 <h3 id="proc-generating-optimization-proposals-str"><a class="link" href="#proc-generating-optimization-proposals-str">21.3. Generating optimization proposals</a></h3>
 <div class="paragraph _abstract">
 <p>When you create or update a <code>KafkaRebalance</code> resource, Cruise Control generates an optimization proposal for the Kafka cluster based on a set of optimization goals.
-Analyze the information in the optimization proposal and decide whether to approve it.
-You can use the results of the optimization proposal to rebalance your Kafka cluster.</p>
+Review the optimization proposal to assess the expected impact of a cluster rebalance and decide whether to proceed.
+The proposal reflects the state of the Kafka cluster at the time it is generated.
+The executed rebalance might differ from the proposal if cluster conditions change before approval.</p>
 </div>
 <div class="paragraph">
 <p>This procedure covers using the following modes for generating optimization proposals related to rebalances:</p>
@@ -26754,7 +26780,7 @@ If you haven&#8217;t enabled the automatic approval mechanism, wait for the stat
 </div>
 </div>
 <div class="paragraph">
-<p>When the status changes to <code>ProposalReady</code>, the optimization proposal is ready to approve.</p>
+<p>When the status changes to <code>ProposalReady</code>, the optimization proposal is ready for review and approval.</p>
 </div>
 </li>
 <li>
@@ -26793,7 +26819,7 @@ If you haven&#8217;t enabled the automatic approval mechanism, wait for the stat
 </div>
 </div>
 <div class="paragraph">
-<p>The properties in the <code>Optimization Result</code> section describe the pending cluster rebalance operation.
+<p>The properties in the <code>Optimization Result</code> section describe the expected scope of a cluster rebalance.
 For descriptions of each property, see <a href="#contents-optimization-proposals">Contents of optimization proposals</a>.</p>
 </div>
 </li>
@@ -26829,22 +26855,25 @@ This has no effect on the rebalance behavior, since the ratio between CPU utiliz
 </div>
 <div class="paragraph">
 <div class="title">What to do next</div>
-<p><a href="#proc-approving-optimization-proposal-str">Approving optimization proposals</a></p>
+<p><a href="#proc-approving-optimization-proposal-str">Running an optimized cluster rebalance</a></p>
 </div>
 <div class="ulist _additional-resources">
 <div class="title">Additional resources</div>
 <ul>
 <li>
-<p><a href="#con-optimization-proposals-str">Optimization proposals</a></p>
+<p><a href="#con-optimization-proposals-str">Assessing optimization proposals</a></p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-approving-optimization-proposal-str"><a class="link" href="#proc-approving-optimization-proposal-str">21.4. Approving optimization proposals</a></h3>
+<h3 id="proc-approving-optimization-proposal-str"><a class="link" href="#proc-approving-optimization-proposal-str">21.4. Running an optimized cluster rebalance</a></h3>
 <div class="paragraph _abstract">
-<p>You can approve an <a href="#con-optimization-proposals-str">optimization proposal</a> generated by Cruise Control, if its status is <code>ProposalReady</code>.
-Cruise Control will then apply the optimization proposal to the Kafka cluster, reassigning partitions to brokers and changing partition leadership.</p>
+<p>You can approve an <a href="#con-optimization-proposals-str">optimization proposal</a> generated by Cruise Control when its status is <code>ProposalReady</code>.
+Cruise Control then rebalances the Kafka cluster based on the configured optimization goals and the latest cluster state.</p>
+</div>
+<div class="paragraph">
+<p>Perform the following steps to approve an optimization proposal and run a cluster rebalance.</p>
 </div>
 <div class="admonitionblock caution">
 <table>
@@ -26853,8 +26882,15 @@ Cruise Control will then apply the optimization proposal to the Kafka cluster, r
 <div class="title">Caution</div>
 </td>
 <td class="content">
+<strong>This action triggers a cluster rebalance.</strong>
+The optimization proposal is a snapshot of the expected impact of the rebalance operation on the Kafka cluster.
+When you approve a proposal, Cruise Control re-evaluates the cluster state and may recompute the optimization before executing the rebalance.
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
-<p><strong>This is not a dry run.</strong> Before you approve an optimization proposal, you must:</p>
+<p>Before you approve an optimization proposal, do the following:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -26865,10 +26901,6 @@ Cruise Control will then apply the optimization proposal to the Kafka cluster, r
 <p>Carefully review the <a href="#contents-optimization-proposals">contents of the proposal</a>.</p>
 </li>
 </ul>
-</div>
-</td>
-</tr>
-</table>
 </div>
 <div class="ulist">
 <div class="title">Prerequisites</div>
@@ -26881,11 +26913,8 @@ Cruise Control will then apply the optimization proposal to the Kafka cluster, r
 </li>
 </ul>
 </div>
-<div class="paragraph">
-<div class="title">Procedure</div>
-<p>Perform these steps for the optimization proposal that you want to approve.</p>
-</div>
 <div class="olist arabic">
+<div class="title">Procedure</div>
 <ol class="arabic">
 <li>
 <p>Unless the optimization proposal is newly generated, check that it is based on current information about the state of the Kafka cluster.
@@ -26920,7 +26949,7 @@ To do so, annotate the <code>KafkaRebalance</code> resource to refresh the optim
 </div>
 </div>
 <div class="paragraph">
-<p>When the status changes to <code>ProposalReady</code>, the optimization proposal is ready to approve.</p>
+<p>When the status changes to <code>ProposalReady</code>, the optimization proposal is ready for review and approval.</p>
 </div>
 </li>
 <li>
@@ -26975,7 +27004,7 @@ This moves the custom resource to the <code>PendingProposal</code> or <code>Prop
 <div class="title">Additional resources</div>
 <ul>
 <li>
-<p><a href="#con-optimization-proposals-str">Optimization proposals</a></p>
+<p><a href="#con-optimization-proposals-str">Assessing optimization proposals</a></p>
 </li>
 <li>
 <p><a href="#proc-stopping-cluster-rebalance-str">Stopping rebalances</a></p>
@@ -27108,7 +27137,7 @@ The performance of the Kafka cluster in the intermediate (stopped) state might b
 <div class="title">Additional resources</div>
 <ul>
 <li>
-<p><a href="#con-optimization-proposals-str">Optimization proposals</a></p>
+<p><a href="#con-optimization-proposals-str">Assessing optimization proposals</a></p>
 </li>
 </ul>
 </div>
@@ -29527,11 +29556,11 @@ The exposed metrics provide the monitoring data when you <a href="#proc-metrics-
 </ul>
 </div>
 <div class="paragraph">
-<p>The <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX Exporter</a> exposes metrics on port 9404 through an HTTP endpoint.
+<p>This enables the <a href="https://github.com/prometheus/jmx_exporter" target="_blank" rel="noopener">Prometheus JMX Exporter</a>, which exposes metrics on port 9404 through an HTTP endpoint.
 Prometheus scrapes this endpoint to collect Kafka metrics.</p>
 </div>
 <div class="paragraph">
-<p>You can create your own Prometheus configuration or start with the <a href="#assembly-metrics-config-files-str">example custom resource files</a> provided with Strimzi:</p>
+<p>You can create your own Prometheus configuration or use the <a href="#assembly-metrics-config-files-str">example custom resource files</a> provided with Strimzi:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -29556,7 +29585,7 @@ Prometheus scrapes this endpoint to collect Kafka metrics.</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>These files include relabeling rules and example metrics configuration, and are a good starting point for trying Prometheus with Strimzi.</p>
+<p>These files contain the necessary configuration, including relabeling rules, and are a good starting point for trying Prometheus with Strimzi.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -29572,16 +29601,20 @@ For a working example that enables OAuth 2.0 metrics for Kafka, see the <code>ka
 </table>
 </div>
 <div class="paragraph">
-<p>This procedure shows how to deploy the example Prometheus metrics configuration to the <code>Kafka</code> resource.
-The same steps apply when deploying the example files for other resources.</p>
+<p>This procedure shows how to deploy example Prometheus metrics configuration to the <code>Kafka</code> resource.
+The same approach applies to other Strimzi components using their corresponding example files.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Deploy the example custom resource with the Prometheus configuration.</p>
+<p>Choose one of the following methods to configure metrics for your <code>Kafka</code> resource:</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p><strong>Option A: Apply the example configuration file</strong>.</p>
 <div class="paragraph">
-<p>For example, for each <code>Kafka</code> resource you can apply the <code>kafka-metrics.yaml</code> file:</p>
+<p>Apply the <code>kafka-metrics.yaml</code> file for each <code>Kafka</code> resource you want to monitor:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -29589,15 +29622,24 @@ The same steps apply when deploying the example files for other resources.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Alternatively, copy the example configuration in <code>kafka-metrics.yaml</code> to your own <code>Kafka</code> resource:</p>
+<p>This creates or updates the <code>Kafka</code> resource with the necessary <code>metricsConfig</code> configuration to enable Prometheus JMX Exporter.</p>
+</div>
+</li>
+<li>
+<p><strong>Option B: Copy the example configuration into an existing <code>Kafka</code> resource</strong></p>
+<div class="paragraph">
+<p>Edit the existing <code>Kafka</code> resource:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit kafka &lt;kafka_configuration_file&gt;</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit kafka &lt;name_of_custom_resource&gt;</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Add the <code>metricsConfig</code> property and corresponding <code>ConfigMap</code> as shown in the following example:</p>
+<p>Copy the <code>metricsConfig</code> property from <code>kafka-metrics.yaml</code> into the <code>spec.kafka</code> section of your <code>Kafka</code> resource.</p>
+</div>
+<div class="paragraph">
+<p>For example:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -29608,31 +29650,34 @@ metadata:
 spec:
   kafka:
     # ...
-    metricsConfig: <b class="conum">(1)</b>
+    metricsConfig:
       type: jmxPrometheusExporter
       valueFrom:
         configMapKeyRef:
           name: kafka-metrics
           key: kafka-metrics-config.yml
 ---
-kind: ConfigMap <b class="conum">(2)</b>
 apiVersion: v1
+kind: ConfigMap
 metadata:
   name: kafka-metrics
   labels:
     app: strimzi
 data:
   kafka-metrics-config.yml: |
-  # <em>metrics configuration...</em></code></pre>
+    # _metrics configuration..._</code></pre>
 </div>
 </div>
-<div class="colist arabic">
-<ol>
+<div class="ulist">
+<ul>
 <li>
-<p>Add the <code>metricsConfig</code> property that references the metrics <code>ConfigMap</code>.</p>
+<p><code>metricsConfig</code> enables metrics collection for the Kafka cluster and references a ConfigMap that contains the JMX Exporter configuration.</p>
 </li>
 <li>
-<p>Add the complete <code>ConfigMap</code> definition with the JMX Exporter configuration.</p>
+<p><code>ConfigMap</code> defines the JMX Exporter configuration used to expose Kafka metrics.</p>
+</li>
+</ul>
+</div>
 </li>
 </ol>
 </div>
@@ -29691,36 +29736,47 @@ Prometheus scrapes this endpoint to collect Kafka metrics.</p>
 <p>These files contain the necessary configuration, and are a good starting point for trying Prometheus with Strimzi.</p>
 </div>
 <div class="paragraph">
-<p>This procedure shows how to deploy example Prometheus metrics configuration to the <code>Kafka</code> resource.</p>
+<p>This procedure shows how to deploy example Prometheus metrics configuration to the <code>Kafka</code> resource.
+The same approach applies to other Strimzi components using their corresponding example files.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>Deploy the example custom resource with the Prometheus configuration.</p>
+<p>Choose one of the following methods to configure metrics for your <code>Kafka</code> resource:</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p><strong>Option A: Apply the example configuration file</strong>.</p>
 <div class="paragraph">
-<p>For example, for each <code>Kafka</code> resource you can apply the <code>kafka-metrics.yaml</code> file.</p>
+<p>Apply the <code>kafka-metrics.yaml</code> file for each <code>Kafka</code> resource you want to monitor:</p>
 </div>
 <div class="listingblock">
-<div class="title">Deploying the example configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f kafka-metrics.yaml</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Alternatively, copy the example configuration in <code>kafka-metrics.yaml</code> to your own <code>Kafka</code> resource.</p>
+<p>This creates or updates the <code>Kafka</code> resource with the necessary <code>metricsConfig</code> configuration to enable Strimzi Metrics Reporter.</p>
+</div>
+</li>
+<li>
+<p><strong>Option B: Copy the example configuration into an existing <code>Kafka</code> resource</strong></p>
+<div class="paragraph">
+<p>Edit the existing <code>Kafka</code> resource:</p>
 </div>
 <div class="listingblock">
-<div class="title">Copying the example configuration</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit kafka &lt;kafka_configuration_file&gt;</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl edit kafka &lt;name_of_custom_resource&gt;</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Copy the <code>metricsConfig</code> property to your <code>Kafka</code> resource.</p>
+<p>Copy the <code>metricsConfig</code> property from <code>kafka-metrics.yaml</code> into the <code>spec.kafka</code> section of your <code>Kafka</code> resource.</p>
+</div>
+<div class="paragraph">
+<p>For example, to enable and collect metrics related to Kafka logs and network activity, use the following patterns:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example metrics configuration for Kafka</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
 kind: Kafka
@@ -29733,9 +29789,23 @@ spec:
       type: strimziMetricsReporter
       values:
         allowList:
-          - "kafka_log.<strong>"
-          - "kafka_network.</strong>"</code></pre>
+          - "kafka.log.*"
+          - "kafka.network.*"</code></pre>
 </div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>metricsConfig</code> enables exposing metrics using the Strimzi Metrics Reporter.</p>
+</li>
+<li>
+<p><code>metricsConfig.values.allowList</code> lists regular expression patterns that filter the metrics to collect.
+The default value is <code>.*</code>, which allows all metrics.</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
 </div>
 </li>
 </ol>
@@ -35485,10 +35555,9 @@ A <code>volumeName</code> is specified for the PVC and this must match the name 
 </div>
 </div>
 <div class="paragraph">
-<p>Information is presented for PVs with data.</p>
+<p>Example PV output:</p>
 </div>
 <div class="listingblock">
-<div class="title">Example PV output</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                                          RECLAIMPOLICY  CLAIM
 pvc-5e9c5c7f-3317-11ea-a650-06e1eadd9a4c ...  Retain ...     myproject/data-0-my-cluster-broker-0
@@ -35526,10 +35595,12 @@ pvc-7e226978-3317-11ea-97b0-0aef8816c7ea ...  Retain ...     myproject/data-0-my
 </li>
 <li>
 <p>Recreate the original PVC resource specifications, linking the PVCs to the appropriate PV:</p>
+<div class="paragraph">
+<p>Example PVC resource specification:</p>
+</div>
 <div class="listingblock">
-<div class="title">Example PVC resource specification</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: v1
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: data-0-my-cluster-broker-0
@@ -35541,23 +35612,25 @@ spec:
       storage: 100Gi
   storageClassName: gp2-retain
   volumeMode: Filesystem
-  volumeName: <strong>pvc-7e1f67f9-3317-11ea-a650-06e1eadd9a4c</strong></code></pre>
+  volumeName: pvc-7e1f67f9-3317-11ea-a650-06e1eadd9a4c</code></pre>
 </div>
 </div>
 </li>
 <li>
 <p>Edit the PV specifications to delete the <code>claimRef</code> properties that bound the original PVC.</p>
+<div class="paragraph">
+<p>Example PV specification:</p>
+</div>
 <div class="listingblock">
-<div class="title">Example PV specification</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">apiVersion: v1
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: v1
 kind: PersistentVolume
 metadata:
   annotations:
     kubernetes.io/createdby: aws-ebs-dynamic-provisioner
     pv.kubernetes.io/bound-by-controller: "yes"
     pv.kubernetes.io/provisioned-by: kubernetes.io/aws-ebs
-  creationTimestamp: "&lt;date&gt;"
+  creationTimestamp: "&lt;date_time&gt;"
   finalizers:
   - kubernetes.io/pv-protection
   labels:
@@ -35575,13 +35648,13 @@ spec:
     volumeID: aws://eu-west-1c/vol-09db3141656d1c258
   capacity:
     storage: 100Gi
-  <strong>claimRef:</strong>
-    <strong>apiVersion: v1</strong>
-    <strong>kind: PersistentVolumeClaim</strong>
-    <strong>name: data-0-my-cluster-broker-0</strong>
-    <strong>namespace: myproject</strong>
-    <strong>resourceVersion: "39113"</strong>
-    <strong>uid: 54be1c60-3319-11ea-97b0-0aef8816c7ea</strong>
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    name: data-0-my-cluster-broker-0
+    namespace: myproject
+    resourceVersion: "39113"
+    uid: 54be1c60-3319-11ea-97b0-0aef8816c7ea
   nodeAffinity:
     required:
       nodeSelectorTerms:
@@ -35700,8 +35773,10 @@ kubectl run tmp -itq --rm --restart "Never" --image "foo" --overrides "{\"spec\"
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafkatopics -o wide -w -n myproject</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>Example Kafka topic status:</p>
+</div>
 <div class="listingblock">
-<div class="title">Kafka topic status</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME         CLUSTER     PARTITIONS  REPLICATION FACTOR READY
 my-topic-1   my-cluster  10          3                  True
@@ -35720,8 +35795,10 @@ my-topic-3   my-cluster  10          3                  True</code></pre>
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafkausers -o wide -w -n myproject</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>Example Kafka user status:</p>
+</div>
 <div class="listingblock">
-<div class="title">Kafka user status</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME       CLUSTER     AUTHENTICATION  AUTHORIZATION READY
 my-user-1  my-cluster  tls             simple        True
@@ -38181,7 +38258,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-02-01 06:59:52 UTC
+Last updated 2026-02-02 09:15:35 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
