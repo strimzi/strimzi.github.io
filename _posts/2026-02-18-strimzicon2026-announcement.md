@@ -5,9 +5,9 @@ date: 2026-02-18
 author: paolo_patierno
 ---
 
-Following the success of [StrimziCon 2024](https://strimzi.io/blog/2024/06/06/strimzicon2024-roundup/) and [StrimziCon 2025](https://strimzi.io/blog/2025/06/16/strimzicon2025-roundup/), we're excited to announce the third edition scheduled later this year!
-Like last year, this is going to be focused on our beloved Strimzi and Apache Kafka projects and it will be "virtual".
-It is organized and driven by the project maintainers in collaboration with the [Cloud Native Computing Foundation](https://www.cncf.io/).
+Following the success of [StrimziCon 2024](https://strimzi.io/blog/2024/06/06/strimzicon2024-roundup/) and [StrimziCon 2025](https://strimzi.io/blog/2025/06/16/strimzicon2025-roundup/), we're pleased to announce the third edition, scheduled for later this year!
+As in previous years, the event is going to be focused on our beloved Strimzi and Apache Kafka projects and will be held _virtually_.
+The event is organized by the Strimzi maintainers in collaboration with the [Cloud Native Computing Foundation (CNCF)](https://www.cncf.io/).
 
 <!--more-->
 
@@ -15,29 +15,30 @@ It is organized and driven by the project maintainers in collaboration with the 
 
 ### Why attend StrimziCon?
 
-StrimziCon is an event for developers, DevOps engineers, and solution architects who want to learn about Strimzi and event streaming.
-This event will bring together the Strimzi community, and you will learn from experts and users about use cases, best practices, and their experience using Strimzi in their organizations.
-If you are working with cloud-native technologies, and you are looking for how to deal with data in motion in a cloud-based environment, don’t miss the opportunity.
+StrimziCon is a community event for developers, DevOps engineers, and solution architects who want to learn about Strimzi and event streaming.
+This event will bring together the Strimzi community to share real‑world use cases, best practices, and first‑hand experience from experts and users alike.
+If you work with cloud-native technologies, and need to manage data in motion in a cloud-based environment, this event is for you.
 
-The conference will take place on <b>Wednesday, June 3rd</b> (afternoon CEST).
+The conference will take place on <b>Wednesday, June 3rd, 2026</b> (afternoon CEST).
 
 The call for <b>speakers</b> is now open, and we're eagerly awaiting your proposals to discuss:
 
 * <b>Core Strimzi</b>: Deep dive into a specific component or feature.
-* <b>Case Studies</b>: Provide an overview of a use case or review of a real life Strimzi deployment, highlighting difficulties, lessons learned, and key takeaways.
+* <b>Case Studies</b>: Provide an overview of a use case or review of a real-world Strimzi deployment, highlighting difficulties, lessons learned, and key takeaways.
 * <b>Integrations</b>: Explore how Strimzi integrates with other open source or CNCF projects.
 * <b>Operations</b>: Share insights into what it takes to run Strimzi and maintain clusters in production.
 
-The submission deadline is March 31st.
+The submission deadline is March 31st, 2026.
 
 ### From the community to the community
 
 We encourage any community members to submit a talk: from a Strimzi deep dive, to how you operate and use it in production, through integrations with other projects.
 From the community to the community, this is the best way to share.
 
-Paolo Patierno and Kate Stanley, as maintainers and contributors in the Strimzi community, have been organizing the conference together with the CNCF team, and will be your host during the event.
+Paolo Patierno and Kate Stanley, Strimzi maintainers and contributors, are organizing the conference with the CNCF team and will host the event.
 
-All the submitted sessions will be evaluated by the StrimziCon program committee made up of people from different companies which already use Strimzi in production as adopters.
+All submitted sessions will be evaluated by the StrimziCon program committee.
+The committee includes representatives from companies that use Strimzi in production.
 We'll have representatives from IBM, Ericsson, Reddit, Red Hat, and Elation Health Inc.:
 
 * [Paolo Patierno](https://www.linkedin.com/in/paolopatierno/) (Senior Principal Software Engineer @IBM)
@@ -51,7 +52,7 @@ We'll have representatives from IBM, Ericsson, Reddit, Red Hat, and Elation Heal
 * [Shubham Rawat](https://www.linkedin.com/in/shubhamrwt/) (Senior Software Engineer @IBM)
 * [Neeraj Laad](https://uk.linkedin.com/in/neeraj-laad) (Software Architect @IBM)
 
-The committee members will leverage their experience and knowledge on the project as users and contributors in order to select the best proposals and make an awesome agenda.
+The committee members will leverage their experience and knowledge on the project as users and contributors in order to select the best proposals and build an awesome agenda.
 
 ### Join us, propose your session or register to attend!
 
@@ -62,4 +63,4 @@ Don't forget to submit your proposal [here](https://sessionize.com/StrimziConVir
 Even if you're not considering presenting, we hope you will still join us as an attendee.
 
 It's virtual, it's free, and it's going to be epic again!
-Join the Strimzi community at StrimziCon!
+Join the Strimzi community at StrimziCon 2026!
