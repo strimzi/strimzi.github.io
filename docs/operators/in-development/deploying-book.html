@@ -4906,101 +4906,96 @@ The deployment is successful when the <code>STATUS</code> is <code>Running</code
 <div class="sect3">
 <h4 id="proc-exposing-http-bridge-service-local-machine-str"><a class="link" href="#proc-exposing-http-bridge-service-local-machine-str">7.6.2. Exposing the HTTP Bridge service to your local machine</a></h4>
 <div class="paragraph _abstract">
-<p>Use port forwarding to expose the HTTP Bridge service to your local machine on <a href="http://localhost:8080" class="bare">http://localhost:8080</a>.</p>
+<p>Use port forwarding to access the HTTP Bridge locally at http://localhost:8080.</p>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-Port forwarding is only suitable for development and testing purposes.
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p>Port forwarding is suitable for development and testing only.</p>
 </div>
 <div class="olist arabic">
 <div class="title">Procedure</div>
 <ol class="arabic">
 <li>
-<p>List the names of the pods in your Kubernetes cluster:</p>
+<p>List the pods in your Kubernetes cluster:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -o name
-
-pod/kafka-consumer
-# ...
-pod/my-bridge-bridge-&lt;pod_id&gt;</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -o name</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Identify the pod associated with your HTTP Bridge deployment, for example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>pod/my-bridge-bridge-&lt;pod_id&gt;</pre>
 </div>
 </div>
 </li>
 <li>
-<p>Connect to the HTTP Bridge pod on port <code>8080</code>:</p>
+<p>Forward local port <code>8080</code> to port <code>8080</code> in the HTTP Bridge pod:</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl port-forward pod/my-bridge-bridge-&lt;pod_id&gt; 8080:8080 &amp;</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl port-forward pod/my-bridge-bridge-&lt;pod_id&gt; 8080:8080</code></pre>
 </div>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-If port 8080 on your local machine is already in use, use an alternative HTTP port, such as <code>8008</code>.
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p>If port <code>8080</code> is already in use on your local machine, use an alternative local port, for example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>kubectl port-forward pod/my-bridge-bridge-&lt;pod_id&gt; 8008:8080</pre>
+</div>
 </div>
 </li>
 </ol>
 </div>
 <div class="paragraph">
-<p>API requests are now forwarded from port 8080 on your local machine to port 8080 in the HTTP Bridge pod.</p>
+<p>Requests sent to http://localhost:8080 are forwarded to the HTTP Bridge pod.</p>
 </div>
 </div>
 <div class="sect3">
 <h4 id="con-accessing-http-bridge-from-outside-str"><a class="link" href="#con-accessing-http-bridge-from-outside-str">7.6.3. Accessing the HTTP Bridge outside of Kubernetes</a></h4>
 <div class="paragraph _abstract">
-<p>After deployment, the HTTP Bridge can only be accessed by applications running in the same Kubernetes cluster.
-These applications use the <code><em>&lt;kafka_bridge_name&gt;</em>-bridge-service</code> service to access the API.</p>
+<p>By default, the HTTP Bridge is accessible only within the Kubernetes cluster.</p>
 </div>
 <div class="paragraph">
-<p>If you want to make the HTTP Bridge accessible to applications running outside of the Kubernetes cluster, you can expose it manually by creating one of the following features:</p>
+<p>Applications running in the same cluster access the HTTP Bridge using the <code><em>&lt;kafka_bridge_name&gt;</em>-bridge-service</code> service.</p>
+</div>
+<div class="paragraph">
+<p>To make the HTTP Bridge accessible to applications outside the cluster, expose its service using one of the following Kubernetes features:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><code>LoadBalancer</code> or <code>NodePort</code> type services</p>
+<p>A <code>Service</code> of type <code>LoadBalancer</code> or <code>NodePort</code></p>
 </li>
 <li>
-<p><code>Ingress</code> resources (Kubernetes only)</p>
+<p>An <code>Ingress</code> resource (Kubernetes)</p>
 </li>
 <li>
-<p>OpenShift routes (OpenShift only)</p>
+<p>An OpenShift <code>Route</code> (OpenShift)</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>If you decide to create Services, use the labels from the <code>selector</code> of the <code><em>&lt;kafka_bridge_name&gt;</em>-bridge-service</code> service to configure the pods to which the service will route the traffic:</p>
+<p>When creating a custom <code>Service</code>, use the same label selectors as the existing <code><em>&lt;kafka_bridge_name&gt;</em>-bridge-service</code> service so that traffic is routed to the correct pods:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">  # ...
-  selector:
-    strimzi.io/cluster: kafka-bridge-name <b class="conum">(1)</b>
-    strimzi.io/kind: KafkaBridge
-  #...</code></pre>
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">selector:
+  strimzi.io/cluster: kafka-bridge-name
+  strimzi.io/kind: KafkaBridge</code></pre>
 </div>
 </div>
-<div class="colist arabic">
-<ol>
+<div class="ulist">
+<ul>
 <li>
-<p>Name of the HTTP Bridge custom resource in your Kubernetes cluster.</p>
+<p><code>selector.strimzi.io/cluster</code> defines the name of the <code>KafkaBridge</code> resource.</p>
 </li>
-</ol>
+</ul>
+</div>
+<div class="paragraph">
+<p>When running multiple HTTP Bridge instances, ensure that requests for the same consumer instance are routed consistently to the same HTTP Bridge instance.
+For more information, see <a href="#con-config-http-bridge-multiple-instances-str">Running multiple HTTP Bridge instances</a>.</p>
 </div>
 </div>
 <div class="sect3">
@@ -11705,11 +11700,11 @@ The Kafka clusters do not need to be managed by Strimzi or run on Kubernetes.
 <div class="sect3">
 <h4 id="proc-config-mirrormaker2-securing-connection-str"><a class="link" href="#proc-config-mirrormaker2-securing-connection-str">11.9.2. Securing MirrorMaker 2 connections</a></h4>
 <div class="paragraph _abstract">
-<p>This procedure describes in outline the configuration required to secure MirrorMaker 2 connections.</p>
+<p>This procedure describes how to secure connections between MirrorMaker 2 and the source and target Kafka clusters.</p>
 </div>
 <div class="paragraph">
 <p>You configure these settings independently for the source Kafka cluster and the target Kafka cluster.
-You also need separate user configuration to provide the credentials required for MirrorMaker to connect to the source and target Kafka clusters.</p>
+You also need separate <code>KafkaUser</code> resources to provide the credentials required for MirrorMaker 2 to connect to the source and target clusters.</p>
 </div>
 <div class="paragraph">
 <p>For the Kafka clusters, you specify internal listeners for secure connections within a Kubernetes cluster and external listeners for connections outside the Kubernetes cluster.</p>
@@ -11719,7 +11714,7 @@ You also need separate user configuration to provide the credentials required fo
 The security options implemented for the source and target Kafka clusters must be compatible with the security options implemented for MirrorMaker 2.</p>
 </div>
 <div class="paragraph">
-<p>After you have created the cluster and user authentication credentials, you specify them in your MirrorMaker configuration for secure connections.</p>
+<p>After creating the cluster and user credentials, reference them in the <code>KafkaMirrorMaker2</code> resource to enable secure connections.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -11735,7 +11730,21 @@ You can also configure your listener to <a href="#proc-installing-certs-per-list
 </table>
 </div>
 <div class="paragraph">
-<div class="title">Before you start</div>
+<p>To enforce the permissions defined in each <code>KafkaUser</code> resource, the Kafka listeners on the source and target clusters must enable an authentication mechanism that allows MirrorMaker 2 to identify as those users.
+Configure authentication on the Kafka listeners in the <code>Kafka</code> resources and in the <code>KafkaMirrorMaker2</code> resource.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>Strimzi is running</p>
+</li>
+<li>
+<p>Separate namespaces for source and target clusters</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
 <p>Before starting this procedure, take a look at the <a href="#config-examples-str">example configuration files</a> provided by Strimzi.
 They include examples for securing a deployment of MirrorMaker 2 using mTLS or SCRAM-SHA-512 authentication.
 The examples specify internal listeners for connecting within a Kubernetes cluster.</p>
@@ -11751,20 +11760,9 @@ If you&#8217;ve renamed the cluster group or internal topics, such as when <a hr
 <p>Simple authorization uses ACL rules managed by the Kafka <code>StandardAuthorizer</code> plugin to ensure appropriate access levels.
 For more information on configuring a <code>KafkaUser</code> resource to use simple authorization, see the <a href="./configuring.html#type-AclRule-reference" target="_blank" rel="noopener"><code>AclRule</code> schema reference</a>.</p>
 </div>
-<div class="ulist">
-<div class="title">Prerequisites</div>
-<ul>
-<li>
-<p>Strimzi is running</p>
-</li>
-<li>
-<p>Separate namespaces for source and target clusters</p>
-</li>
-</ul>
-</div>
 <div class="paragraph">
 <p>The procedure assumes that the source and target Kafka clusters are installed to separate namespaces.
-If you want to use the Topic Operator, you&#8217;ll need to do this.
+If you want to use the Topic Operator, you must install the clusters in separate namespaces.
 The Topic Operator only watches a single cluster in a specified namespace.</p>
 </div>
 <div class="paragraph">
@@ -11777,7 +11775,7 @@ You need to reference the secrets in the MirrorMaker configuration.</p>
 <li>
 <p>Configure two <code>Kafka</code> resources, one to secure the source Kafka cluster and one to secure the target Kafka cluster.</p>
 <div class="paragraph">
-<p>You can add listener configuration for authentication and enable authorization.</p>
+<p>Configure listener authentication and enable authorization on each Kafka cluster.</p>
 </div>
 <div class="paragraph">
 <p>In this example, an internal listener is configured for a Kafka cluster with TLS encryption and mTLS authentication.
@@ -11902,6 +11900,7 @@ spec:
       - resource: # Needed for every topic which is mirrored
           type: topic
           name: "*"
+          patternType: literal
         operations:
           - DescribeConfigs
           - Read
@@ -11913,6 +11912,7 @@ spec:
       - resource: # Needed for every group for which offsets are synced
           type: group
           name: "*"
+          patternType: literal
         operations:
           - Describe
       - resource: # Not needed if offset-syncs.topic.location=target
@@ -11977,6 +11977,7 @@ spec:
       - resource: # Needed for every topic which is mirrored
           type: topic
           name: "*"
+          patternType: literal
         operations:
           - Create
           - Alter
@@ -11998,6 +11999,7 @@ spec:
       - resource: # Needed for every group for which the offset is synced
           type: group
           name: "*"
+          patternType: literal
         operations:
           - Read
           - Describe</code></pre>
@@ -12030,7 +12032,7 @@ For more information, see the <a href="./configuring.html#type-KafkaUserSpec-ref
 <div class="paragraph">
 <p>The User Operator creates a new secret with the same name as the <code>KafkaUser</code> resource.
 The secret contains a private and public key for mTLS authentication.
-The public key is contained in a user certificate, which is signed by the clients CA.</p>
+The public key is contained in a user certificate, which is signed by the client CA.</p>
 </div>
 </li>
 <li>
@@ -13301,176 +13303,574 @@ spec:
 <div class="sect2">
 <h3 id="con-config-http-bridge-str"><a class="link" href="#con-config-http-bridge-str">11.11. Configuring the HTTP Bridge</a></h3>
 <div class="paragraph _abstract">
-<p>Update the <code>spec</code> properties of the <code>KafkaBridge</code> custom resource to configure your HTTP Bridge deployment.</p>
+<p>Configure your HTTP Bridge deployment by updating the <code>spec</code> properties of the <code>KafkaBridge</code> custom resource.</p>
 </div>
 <div class="paragraph">
-<p>In order to prevent issues arising when client consumer requests are processed by different HTTP Bridge instances, address-based routing must be employed to ensure that requests are routed to the right HTTP Bridge instance.
-Additionally, each independent HTTP Bridge instance must have a replica.
-A HTTP Bridge instance has its own state which is not shared with another instances.</p>
+<p>Start with a minimal configuration that defines the core requirements.
+Extend it with optional settings to support the following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Securing connections to Kafka (TLS and authentication)</p>
+</li>
+<li>
+<p>Configuring HTTP endpoint settings, such as port and CORS</p>
+</li>
+<li>
+<p>Granting the HTTP Bridge access to Kafka resources</p>
+</li>
+<li>
+<p>Tuning consumer and producer behavior</p>
+</li>
+<li>
+<p>Running multiple HTTP Bridge instances</p>
+</li>
+<li>
+<p><a href="#con-common-config-str">Common configuration</a>, including resource limits and requests (recommended), JVM options, metrics, and pod scheduling</p>
+</li>
+<li>
+<p><a href="#assembly-logging-configuration-str">Logging configuration</a></p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
-<p>For a deeper understanding of the HTTP Bridge and its cluster configuration options, refer to the <a href="https://strimzi.io/docs/bridge/latest/" target="_blank" rel="noopener">Using the HTTP Bridge</a> guide and the <a href="./configuring.html" target="_blank" rel="noopener">Strimzi Custom Resource API Reference</a>.</p>
+<p>Certain settings, though optional, are recommended for production deployments, such as security and resource allocation.</p>
+</div>
+<div class="paragraph">
+<p>For details of all configuration options, see the <a href="./configuring.html" target="_blank" rel="noopener">Strimzi Custom Resource API Reference</a>.</p>
+</div>
+<div class="sect3">
+<h4 id="minimal_configuration_for_the_http_bridge"><a class="link" href="#minimal_configuration_for_the_http_bridge">11.11.1. Minimal configuration for the HTTP Bridge</a></h4>
+<div class="paragraph">
+<p>A minimal <code>KafkaBridge</code> resource must define:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>.spec.bootstrapServers</code>: The bootstrap address for the Kafka cluster.</p>
+</li>
+<li>
+<p><code>.spec.replicas</code>: The number of HTTP Bridge pods to deploy.</p>
+</li>
+<li>
+<p><code>.spec.http.port</code>: The port on which the HTTP Bridge listens for client requests.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The Kafka cluster does not need to be managed by Strimzi or run on Kubernetes.</p>
 </div>
 <div class="listingblock">
-<div class="title">Example <code>KafkaBridge</code> custom resource configuration</div>
+<div class="title">Minimal configuration for KafkaBridge</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml"># Basic configuration (required)
-apiVersion: kafka.strimzi.io/v1
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
 kind: KafkaBridge
 metadata:
   name: my-bridge
 spec:
   # Replicas (required)
-  replicas: 3 # <b class="conum">(1)</b>
+  replicas: 1
   # Kafka bootstrap servers (required)
-  bootstrapServers: <em>&lt;cluster_name&gt;</em>-cluster-kafka-bootstrap:9092 # <b class="conum">(2)</b>
+  bootstrapServers: my-cluster-kafka-bootstrap:9092
   # HTTP configuration (required)
-  http: # <b class="conum">(3)</b>
-    port: 8080
-    # CORS configuration (optional)
-    cors: # <b class="conum">(4)</b>
-      allowedOrigins: "https://strimzi.io"
-      allowedMethods: "GET,POST,PUT,DELETE,OPTIONS,PATCH"
-  # Resources requests and limits (recommended)
-  resources: # <b class="conum">(5)</b>
-    requests:
-      cpu: "1"
-      memory: 2Gi
-    limits:
-      cpu: "2"
-      memory: 2Gi
-  # TLS configuration (optional)
-  tls: # <b class="conum">(6)</b>
+  http:
+    port: 8080</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.replicas</code> specifies the number of HTTP Bridge replicas to run.</p>
+</li>
+<li>
+<p><code>spec.bootstrapServers</code> specifies the bootstrap address for the Kafka cluster.
+For a Strimzi-managed cluster, you can use the bootstrap service name, for example <code>&lt;cluster_name&gt;-kafka-bootstrap:&lt;port&gt;</code>.</p>
+</li>
+<li>
+<p><code>spec.http.port</code> specifies the port used by the HTTP Bridge for incoming HTTP requests.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-config-http-bridge-securing-connections-str"><a class="link" href="#con-config-http-bridge-securing-connections-str">11.11.2. Securing HTTP Bridge connections</a></h4>
+<div class="paragraph _abstract">
+<p>Secure HTTP Bridge connections to Kafka by enabling TLS encryption and configuring authentication.</p>
+</div>
+<div class="paragraph">
+<p>The HTTP Bridge connects to Kafka brokers to produce and consume messages on behalf of HTTP clients.
+For production deployments, secure these connections to protect data in transit and restrict access to Kafka resources.</p>
+</div>
+<div class="paragraph">
+<p>You configure security settings in the <code>KafkaBridge</code> resource.
+The security options must be compatible with the listeners and authentication mechanisms configured on the Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>This section secures connections between the HTTP Bridge and Kafka brokers.
+It does not configure TLS or authentication for HTTP clients connecting to the HTTP Bridge.</p>
+</div>
+<div class="sect4">
+<h5 id="what_you_need_to_secure_http_bridge_connections"><a class="link" href="#what_you_need_to_secure_http_bridge_connections">What you need to secure HTTP Bridge connections</a></h5>
+<div class="paragraph">
+<p>Ensure that the required Kafka configuration and credentials are in place.</p>
+</div>
+<div class="paragraph">
+<p>Review the example HTTP Bridge configuration files provided by Strimzi.
+They include examples for securing deployments using TLS or SASL-based authentication.</p>
+</div>
+<div class="paragraph">
+<p>Ensure that the Kafka cluster is configured with compatible listeners and authentication mechanisms.
+The HTTP Bridge uses the same security protocols as Kafka clients.</p>
+</div>
+<div class="paragraph">
+<p>If Kafka authorization is enabled, the HTTP Bridge requires access to the topics it produces to and consumes from.
+You must configure appropriate ACLs for the HTTP Bridge user.
+For more information, see <a href="#proc-config-http-bridge-user-authorization-str">Granting the HTTP Bridge access to Kafka resources</a>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+By default, Strimzi generates certificates for securing connections.
+You can replace these certificates by <a href="#installing-your-own-ca-certificates-str">installing your own certificates</a>.
+You can also configure a Kafka listener to <a href="#proc-installing-certs-per-listener-str">use a certificate managed by an external certificate authority</a>.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect4">
+<h5 id="configuring_tls_encryption"><a class="link" href="#configuring_tls_encryption">Configuring TLS encryption</a></h5>
+<div class="paragraph">
+<p>To encrypt connections between the HTTP Bridge and Kafka brokers, configure <code>spec.tls</code> and specify one or more trusted certificates.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example TLS configuration for HTTP Bridge</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  tls:
     trustedCertificates:
       - secretName: my-cluster-cluster-cert
-        pattern: "*.crt"
-      - secretName: my-cluster-cluster-cert
-        certificate: ca2.crt
-  # Authentication (optional)
-  authentication: # <b class="conum">(7)</b>
+        pattern: "*.crt"</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.tls.trustedCertificates</code> specifies one or more Kubernetes <code>Secret</code> resources containing trusted certificates in X.509 format.</p>
+</li>
+<li>
+<p><code>secretName</code> specifies the name of the <code>Secret</code> containing the trusted certificates.</p>
+</li>
+<li>
+<p><code>pattern</code> specifies which certificate files in the <code>Secret</code> are used.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="configuring_authentication"><a class="link" href="#configuring_authentication">Configuring authentication</a></h5>
+<div class="paragraph">
+<p>The HTTP Bridge supports the following authentication mechanisms:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>TLS client authentication</p>
+</li>
+<li>
+<p>SCRAM-SHA-256 and SCRAM-SHA-512</p>
+</li>
+<li>
+<p>SASL PLAIN</p>
+</li>
+<li>
+<p>Custom authentication</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>To enable authentication, configure <code>spec.authentication</code> for the required mechanism.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example TLS client authentication</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  authentication:
     type: tls
     certificateAndKey:
-      secretName: my-secret
-      certificate: public.crt
-      key: private.key
-  # Consumer configuration (optional)
-  consumer: # <b class="conum">(8)</b>
-    config:
-      auto.offset.reset: earliest
-  # Producer configuration (optional)
-  producer: # <b class="conum">(9)</b>
-    config:
-      delivery.timeout.ms: 300000
-  # Logging configuration (optional)
-  logging: # <b class="conum">(10)</b>
-    type: inline
-    loggers:
-      rootLogger.level: INFO
-      # Enabling DEBUG just for send operation
-      logger.send.name: http.openapi.operation.send
-      logger.send.level: DEBUG
-  # JVM options (optional)
-  jvmOptions: # <b class="conum">(11)</b>
-    "-Xmx": "1g"
-    "-Xms": "1g"
-  # Readiness probe (optional)
-  readinessProbe: # <b class="conum">(12)</b>
-    initialDelaySeconds: 15
-    timeoutSeconds: 5
-  # Liveness probe (optional)
-  livenessProbe:
-    initialDelaySeconds: 15
-    timeoutSeconds: 5
-  # Custom image (optional)
-  image: my-org/my-image:latest # <b class="conum">(13)</b>
-  # Pod template (optional)
-  template: # <b class="conum">(14)</b>
-    pod:
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchExpressions:
-                  - key: application
-                    operator: In
-                    values:
-                      - postgresql
-                      - mongodb
-              topologyKey: "kubernetes.io/hostname"
-    bridgeContainer: # <b class="conum">(15)</b>
-      env:
-        - name: OTEL_SERVICE_NAME
-          value: my-otel-service
-        - name: OTEL_EXPORTER_OTLP_ENDPOINT
-          value: "http://otlp-host:4317"
-  # Tracing configuration (optional)
-  tracing:
-    type: opentelemetry # <b class="conum">(16)</b>
-  # Metrics configuration (optional)
-  metricsConfig:
-    type: jmxPrometheusExporter # <b class="conum">(17)</b>
-    valueFrom:
-      configMapKeyRef:
-        name: kafka-metrics
-        key: kafka-metrics-config.yml</code></pre>
+      secretName: my-user
+      certificate: user.crt
+      key: user.key</code></pre>
 </div>
 </div>
-<div class="colist arabic">
-<ol>
+<div class="ulist">
+<ul>
 <li>
-<p>The number of replica nodes.</p>
+<p><code>spec.authentication.type</code> specifies the authentication mechanism.</p>
 </li>
 <li>
-<p>Bootstrap address for connection to the target Kafka cluster. The address takes the format <code>&lt;cluster_name&gt;-kafka-bootstrap:&lt;port_number&gt;</code>. The Kafka cluster doesn&#8217;t need to be managed by Strimzi or deployed to a Kubernetes cluster.</p>
+<p><code>spec.authentication.certificateAndKey</code> specifies a <code>Secret</code> containing the client certificate and private key.</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">Example SCRAM authentication</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  authentication:
+    type: scram-sha-512
+    username: my-user
+    passwordSecret:
+      secretName: my-user
+      password: password</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.authentication.username</code> specifies the Kafka user name.</p>
 </li>
 <li>
-<p>HTTP access to Kafka brokers.</p>
+<p><code>spec.authentication.passwordSecret</code> specifies a <code>Secret</code> containing the user password.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-config-http-bridge-user-authorization-str"><a class="link" href="#proc-config-http-bridge-user-authorization-str">11.11.3. Granting the HTTP Bridge access to Kafka resources</a></h4>
+<div class="paragraph _abstract">
+<p>When Kafka authorization is enabled, grant the HTTP Bridge user access to the Kafka topics and consumer groups used by your applications.
+This procedure shows how to configure ACLs using simple authorization.</p>
+</div>
+<div class="paragraph">
+<p>The HTTP Bridge authenticates to Kafka using this user and performs produce and consume operations on behalf of HTTP clients.</p>
+</div>
+<div class="paragraph">
+<p>Simple authorization uses ACL rules managed by the Kafka <code>StandardAuthorizer</code> plugin to control access to Kafka resources.
+For more information on configuring a <code>KafkaUser</code> resource, see the <a href="./configuring.html#type-AclRule-reference" target="_blank" rel="noopener"><code>AclRule</code> schema reference</a>.</p>
+</div>
+<div class="paragraph">
+<p>To enforce the permissions defined in a <code>KafkaUser</code> resource, the Kafka listener must enable an authentication mechanism that allows the HTTP Bridge to identify as that user.
+Configure authentication on the Kafka listener in the <code>Kafka</code> resource and in the <code>KafkaBridge</code> resource.
+For more information, see <a href="#con-config-http-bridge-securing-connections-str">Securing HTTP Bridge connections</a>.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Kubernetes cluster</p>
 </li>
 <li>
-<p>CORS access specifying selected resources and access methods. Additional HTTP headers in requests describe the origins that are permitted access to the Kafka cluster.</p>
+<p>A running Cluster Operator</p>
 </li>
 <li>
-<p>Requests for reservation of supported resources, currently <code>cpu</code> and <code>memory</code>, and limits to specify the maximum resources that can be consumed.</p>
+<p>Kafka authorization enabled for the Kafka cluster</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Edit the <code>authorization</code> property in the <code>KafkaUser</code> resource to grant access to the HTTP Bridge user.</p>
+<div class="paragraph">
+<p>Configure ACLs for the topics and consumer groups required by your applications.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example configuration for simple authorization</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
+kind: KafkaUser
+metadata:
+  name: my-bridge-user
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  # ...
+  authorization:
+    type: simple
+    acls:
+      # Consumer ACLs for topic my-topic using consumer group my-group
+      - resource:
+          type: topic
+          name: my-topic
+          patternType: literal
+        operations:
+          - Describe
+          - Read
+        host: "*"
+      - resource:
+          type: group
+          name: my-group
+          patternType: literal
+        operations:
+          - Read
+        host: "*"
+      # Producer ACLs for topic my-topic
+      - resource:
+          type: topic
+          name: my-topic
+          patternType: literal
+        operations:
+          - Create
+          - Describe
+          - Write
+        host: "*"</code></pre>
+</div>
+</div>
 </li>
 <li>
-<p>TLS configuration for encrypted connections to the Kafka cluster, with trusted certificates stored in X.509 format within the specified secrets.</p>
-</li>
-<li>
-<p>Authentication for the HTTP Bridge cluster, specified as <code>tls</code>, <code>scram-sha-256</code>, <code>scram-sha-512</code>, <code>plain</code>, or <code>custom</code>.
-By default, the HTTP Bridge connects to Kafka brokers without authentication.
-For details on configuring authentication, see the <a href="./configuring.html#type-KafkaBridgeSpec-schema-reference" target="_blank" rel="noopener"><code>KafkaBridgeSpec</code> schema properties</a></p>
-</li>
-<li>
-<p>Consumer configuration options.</p>
-</li>
-<li>
-<p>Producer configuration options.</p>
-</li>
-<li>
-<p>HTTP Bridge loggers and log levels added directly (<code>inline</code>) or indirectly (<code>external</code>) through a <code>ConfigMap</code>. Custom Log4j configuration must be placed under the <code>log4j2.properties</code> key in the <code>ConfigMap</code>. You can set log levels to <code>INFO</code>, <code>ERROR</code>, <code>WARN</code>, <code>TRACE</code>, <code>DEBUG</code>, <code>FATAL</code> or <code>OFF</code>.</p>
-</li>
-<li>
-<p>JVM configuration options to optimize performance for the Virtual Machine (VM) running the HTTP Bridge.</p>
-</li>
-<li>
-<p>Healthchecks to know when to restart a container (liveness) and when a container can accept traffic (readiness).</p>
-</li>
-<li>
-<p>Optional: Container image configuration, which is recommended only in special situations.</p>
-</li>
-<li>
-<p>Template customization. Here a pod is scheduled with anti-affinity, so the pod is not scheduled on nodes with the same hostname.</p>
-</li>
-<li>
-<p>Environment variables are set for distributed tracing.</p>
-</li>
-<li>
-<p>Distributed tracing is enabled by using OpenTelemetry.</p>
-</li>
-<li>
-<p>Prometheus metrics enabled. In this example, metrics are configured for the Prometheus JMX Exporter.</p>
+<p>Create or update the resource.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f &lt;kafka_user_configuration_file&gt;</code></pre>
+</div>
+</div>
 </li>
 </ol>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-config-http-bridge-http-endpoints-str"><a class="link" href="#con-config-http-bridge-http-endpoints-str">11.11.4. Configuring HTTP endpoints</a></h4>
+<div class="paragraph _abstract">
+<p>Configure the HTTP endpoint exposed by the HTTP Bridge, including the listening port and optional CORS settings.</p>
+</div>
+<div class="paragraph">
+<p>The HTTP Bridge exposes a REST API that allows HTTP clients to produce and consume messages from Kafka.
+You configure HTTP settings in the <code>spec.http</code> section of the <code>KafkaBridge</code> resource.</p>
+</div>
+<div class="paragraph">
+<p>This section configures the behavior of the HTTP endpoint.
+It does not configure how the service is exposed outside the cluster.
+For information about exposing or accessing the HTTP Bridge, see <a href="#http-bridge-str">Deploying HTTP Bridge</a>.</p>
+</div>
+<div class="sect4">
+<h5 id="configuring_the_http_port"><a class="link" href="#configuring_the_http_port">Configuring the HTTP port</a></h5>
+<div class="paragraph">
+<p>The HTTP Bridge listens for client requests on the port defined in <code>spec.http.port</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example HTTP port configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  http:
+    port: 8080</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.http.port</code> specifies the port used by the HTTP Bridge for incoming HTTP requests.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Ensure that the selected port aligns with your service and networking configuration.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="configuring_cors"><a class="link" href="#configuring_cors">Configuring CORS</a></h5>
+<div class="paragraph">
+<p>If HTTP clients access the HTTP Bridge from web browsers running on different origins, configure Cross-Origin Resource Sharing (CORS).</p>
+</div>
+<div class="paragraph">
+<p>CORS controls which origins and HTTP methods are permitted when accessing the HTTP Bridge API.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example CORS configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  http:
+    port: 8080
+    cors:
+      allowedOrigins: "https://example.com"
+      allowedMethods: "GET,POST,PUT,DELETE,OPTIONS,PATCH"</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.http.cors.allowedOrigins</code> specifies the allowed origin or origins.</p>
+</li>
+<li>
+<p><code>spec.http.cors.allowedMethods</code> specifies the HTTP methods permitted for cross-origin requests.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Configure CORS carefully in production environments to avoid exposing the HTTP Bridge to unintended clients.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-config-http-bridge-client-settings-str"><a class="link" href="#con-config-http-bridge-client-settings-str">11.11.5. Tuning HTTP Bridge consumer and producer settings</a></h4>
+<div class="paragraph _abstract">
+<p>Tune how the HTTP Bridge produces and consumes messages by configuring Kafka client properties.</p>
+</div>
+<div class="paragraph">
+<p>The HTTP Bridge uses Kafka producer and consumer clients internally to interact with Kafka brokers.</p>
+</div>
+<div class="paragraph">
+<p>You can adjust their behavior by setting properties in the <code>spec.producer.config</code> and <code>spec.consumer.config</code> sections of the <code>KafkaBridge</code> resource.</p>
+</div>
+<div class="paragraph">
+<p>Certain client properties are managed directly by Strimzi and cannot be set in <code>spec.consumer.config</code> or <code>spec.producer.config</code>.
+For example, connection and security-related properties with the <code>bootstrap.servers</code>, <code>sasl.</code>, <code>security.</code>, and <code>ssl.</code> prefixes are configured using other properties in the <code>KafkaBridge</code> resource.
+For more information, see the <a href="./configuring.html#type-KafkaBridgeProducerSpec-reference" target="_blank" rel="noopener"><code>KafkaBridgeProducerSpec</code> schema reference</a> and the <a href="./configuring.html#type-KafkaBridgeConsumerSpec-reference" target="_blank" rel="noopener"><code>KafkaBridgeConsumerSpec</code> schema reference</a>.</p>
+</div>
+<div class="sect4">
+<h5 id="configuring_consumer_settings"><a class="link" href="#configuring_consumer_settings">Configuring consumer settings</a></h5>
+<div class="paragraph">
+<p>Configure consumer behavior using <code>spec.consumer.config</code>.</p>
+</div>
+<div class="paragraph">
+<p>Consumer configuration is defined as key-value pairs under <code>spec.consumer.config</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example consumer configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  consumer:
+    config:
+      auto.offset.reset: earliest
+      max.poll.records: 500
+      fetch.min.bytes: 1</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.consumer.config</code> defines Kafka consumer properties used by the HTTP Bridge when consuming messages on behalf of HTTP clients.</p>
+</li>
+<li>
+<p><code>auto.offset.reset</code> defines how the consumer behaves when no committed offset is found.</p>
+</li>
+<li>
+<p><code>max.poll.records</code> controls the maximum number of records returned in a single poll.</p>
+</li>
+<li>
+<p><code>fetch.min.bytes</code> controls the minimum amount of data the broker returns for a fetch request.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These are example properties.
+You can configure additional Kafka consumer properties as required.
+For the full list of supported options, see <a href="https://kafka.apache.org/41/configuration/consumer-configs/" target="_blank" rel="noopener">Apache Kafka configuration documentation for consumers</a>.</p>
+</div>
+<div class="paragraph">
+<p>Choose values that match your application’s performance and reliability requirements.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="configuring_producer_settings"><a class="link" href="#configuring_producer_settings">Configuring producer settings</a></h5>
+<div class="paragraph">
+<p>Configure producer behavior using <code>spec.producer.config</code>.</p>
+</div>
+<div class="paragraph">
+<p>Producer configuration is defined as key-value pairs under <code>spec.producer.config</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example producer configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  producer:
+    config:
+      acks: all
+      delivery.timeout.ms: 300000
+      retries: 10</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>spec.producer.config</code> defines Kafka producer properties used by the HTTP Bridge when producing messages on behalf of HTTP clients.</p>
+</li>
+<li>
+<p><code>acks</code> controls the acknowledgment level required from Kafka brokers.</p>
+</li>
+<li>
+<p><code>delivery.timeout.ms</code> defines the maximum time to wait for a message to be delivered.</p>
+</li>
+<li>
+<p><code>retries</code> specifies the number of retry attempts for failed send requests.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These are example properties.
+You can configure additional Kafka producer properties as required.
+For the full list of supported options, see <a href="https://kafka.apache.org/41/configuration/producer-configs/" target="_blank" rel="noopener">Apache Kafka configuration documentation for producers</a>.</p>
+</div>
+<div class="paragraph">
+<p>Adjust these settings to balance latency, throughput, and durability.</p>
+</div>
+<div class="paragraph">
+<p>Producer and consumer tuning is workload-dependent.
+Test changes in a non-production environment before applying them to production and monitor the impact.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="con-config-http-bridge-multiple-instances-str"><a class="link" href="#con-config-http-bridge-multiple-instances-str">11.11.6. Running multiple HTTP Bridge instances</a></h4>
+<div class="paragraph _abstract">
+<p>Run multiple HTTP Bridge instances to increase throughput and availability.</p>
+</div>
+<div class="paragraph">
+<p>Increase <code>spec.replicas</code> to scale the deployment.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example configuration with multiple replicas</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  replicas: 3</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Each HTTP Bridge instance runs independently.</p>
+</div>
+<div class="paragraph">
+<p>Consumer instances created through the HTTP Bridge API are stored in memory on the instance that handled the request.
+This state is not shared between instances.</p>
+</div>
+<div class="sect4">
+<h5 id="scaling_producer_traffic"><a class="link" href="#scaling_producer_traffic">Scaling producer traffic</a></h5>
+<div class="paragraph">
+<p>Producer requests are stateless.
+Any instance can handle a produce request.</p>
+</div>
+<div class="paragraph">
+<p>When running multiple HTTP Bridge instances, use a Kubernetes <code>Service</code> or an external load balancer to distribute producer traffic.
+This improves throughput and availability for producing records.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="scaling_consumer_traffic"><a class="link" href="#scaling_consumer_traffic">Scaling consumer traffic</a></h5>
+<div class="paragraph">
+<p>When an HTTP client creates a consumer, the corresponding Kafka consumer is created on a specific HTTP Bridge instance.
+All subsequent requests for that consumer must be routed to the same instance.</p>
+</div>
+<div class="paragraph">
+<p>If a request is routed to a different instance, the consumer state is not available and the request fails.</p>
+</div>
+<div class="paragraph">
+<p>To scale consumer workloads, your networking layer must support session affinity or another routing strategy that ensures requests for the same consumer are consistently routed to the correct instance.</p>
+</div>
+<div class="paragraph">
+<p>If an HTTP Bridge instance restarts, the consumers created on that instance are lost.
+This behavior is equivalent to a Kafka client process stopping.
+Client applications must recreate the consumers and resume processing.</p>
+</div>
+<div class="paragraph">
+<p>For more information about high-availability considerations, see <a href="https://strimzi.io/docs/bridge/latest/" target="_blank" rel="noopener">Using the HTTP Bridge</a>.</p>
+</div>
+</div>
 </div>
 </div>
 <div class="sect2">
