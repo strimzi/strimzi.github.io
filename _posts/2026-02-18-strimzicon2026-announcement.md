@@ -47,7 +47,7 @@ We'll have representatives from IBM, Ericsson, Reddit, Red Hat, and Elation Heal
 * [Nick Garvey](https://www.linkedin.com/in/nickgarvey/) (Staff Software Engineer @Reddit)
 * [Ali Ok](https://www.linkedin.com/in/aliok/) (Principal Software Engineer @Red Hat)
 * [Liam Clarke-Hutchinson](https://www.linkedin.com/in/liam-clarke-hutchinson-7770375/) (Staff Software Enginner @Elation Health Inc.)
-* [Jakub Scholz](https://www.linkedin.com/in/scholzj/) (Strimzi maintainer, Independent)
+* [Jakub Scholz](https://www.linkedin.com/in/scholzj/) (Principal Engineer @Cloudera)
 * [Mickael Maison](https://www.linkedin.com/in/mickaelmaison/) (Senior Principal Software Engineer @IBM)
 * [Shubham Rawat](https://www.linkedin.com/in/shubhamrwt/) (Senior Software Engineer @IBM)
 * [Neeraj Laad](https://uk.linkedin.com/in/neeraj-laad) (Software Architect @IBM)
