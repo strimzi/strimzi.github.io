@@ -50,7 +50,6 @@ We'll have representatives from IBM, Ericsson, Reddit, Red Hat, and Elation Heal
 * [Jakub Scholz](https://www.linkedin.com/in/scholzj/) (Principal Engineer @Cloudera)
 * [Mickael Maison](https://www.linkedin.com/in/mickaelmaison/) (Senior Principal Software Engineer @IBM)
 * [Shubham Rawat](https://www.linkedin.com/in/shubhamrwt/) (Senior Software Engineer @IBM)
-* [Neeraj Laad](https://uk.linkedin.com/in/neeraj-laad) (Software Architect @IBM)
 
 The committee members will leverage their experience and knowledge on the project as users and contributors in order to select the best proposals and build an awesome agenda.
 
