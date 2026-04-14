@@ -1249,6 +1249,113 @@ resources:
 </dd>
 </dl>
 </div>
+<div class="sect3">
+<h4 id="con-common-configuration-resources-in-place-updates-reference"><a class="link" href="#con-common-configuration-resources-in-place-updates-reference">2.5.1. In-place updates of resource requests and limits</a></h4>
+<div class="paragraph">
+<p>The following components support in-place updates of resource requests and limits:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Kafka controllers and brokers</p>
+</li>
+<li>
+<p>Kafka Connect nodes</p>
+</li>
+<li>
+<p>Kafka MirrorMaker 2 nodes</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Support for in-place resource updates is currently <em>experimental</em> and might change in the future.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>To enable in-place resource updates, set the <code>strimzi.io/in-place-resizing</code> annotation to <code>"true"</code> in the corresponding custom resource (<code>Kafka</code>, <code>KafkaConnect</code>, or <code>KafkaMirrorMaker2</code>).</p>
+</div>
+<div class="listingblock">
+<div class="title">Example <code>Kafka</code> resource with enabled in-place resource updates enabled</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
+kind: Kafka
+metadata:
+  name: my-cluster
+  annotations:
+    strimzi.io/in-place-resizing: "true"
+spec:
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When enabled, Strimzi applies in-place resource updates when you change resource requests and limits in the corresponding custom resources (<code>KafkaNodePool</code> resources for Kafka clusters, or <code>KafkaConnect</code> and <code>KafkaMirrorMaker2</code> resources for Connect and MirrorMaker 2).</p>
+</div>
+<div class="paragraph">
+<p>In the following situations, in-place resource updates are not possible.
+Strimzi uses a rolling update instead:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Removing resource limits.</p>
+</li>
+<li>
+<p>Reducing memory requests and limits below current usage.</p>
+</li>
+<li>
+<p>Resource updates that exceed total node capacity.</p>
+</li>
+<li>
+<p>Resource updates that exceed available node capacity (deferred updates).</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Use the additional <code>strimzi.io/in-place-resizing-wait-for-deferred</code> annotation to prevent pods rolling when in-place resizing is deferred.
+When enabled, Strimzi waits indefinitely for Kubernetes to be able to complete the pod resize.
+To force the update, perform a manual rolling update by restarting a pod.</p>
+</div>
+<div class="listingblock">
+<div class="title">.Example <code>KafkaConnect</code> resource with in-place resizing and deferred waiting</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
+kind: KafkaConnect
+metadata:
+  name: my-cluster
+  annotations:
+    strimzi.io/in-place-resizing: "true"
+    strimzi.io/in-place-resizing-wait-for-deferred: "true"
+spec:
+  # ...</code></pre>
+</div>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+Java Virtual Machine (JVM) does not register the in-place memory request and limit updates.
+When you increase the memory of the Kafka pod, JVM will not use the additional resources for its heap memory.
+But the additional memory might be used, for example, for the disk page cache.
+Similarly, when you decrease the memory resources below the maximal Java heap size, you might out-of-memory errors are possible.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>To learn more about in-place pod resizing, see the Kubernetes documentation on <a href="https://kubernetes.io/docs/tasks/configure-pod-container/resize-container-resources/" target="_blank" rel="noopener">resizing CPU and memory resources assigned to containers</a>.</p>
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="con-common-configuration-images-reference"><a class="link" href="#con-common-configuration-images-reference">2.6. <code>image</code></a></h3>
@@ -15547,7 +15654,7 @@ Do not create, modify or delete <code>StrimziPodSet</code> resources as this mig
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-04-12 13:21:44 UTC
+Last updated 2026-04-14 08:19:07 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
