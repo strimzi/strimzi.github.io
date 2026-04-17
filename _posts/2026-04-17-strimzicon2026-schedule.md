@@ -30,6 +30,6 @@ The keynote is followed by almost 4 hours of breakout sessions with topics cover
 | 17:20 - 17:50 | Building Strimzi MCP Server for Kubernetes: Democratizing Platform Expertise Through LLMs (David Kornel, Jakub Stejskal @ IBM) |
 | 17:50 - 18:00 | Closing (Kate Stanley & Paolo Patierno @ IBM) |
 
-You can find more details about speakers and sessions on the official [page](https://community.cncf.io/events/details/cncf-virtual-project-events-hosted-by-cncf-presents-strimzicon-virtual-2026/) as part of the CNCF events.
+For more details about speakers and sessions, see the [CNCF event page](https://community.cncf.io/events/details/cncf-virtual-project-events-hosted-by-cncf-presents-strimzicon-virtual-2026/).
 
 We look forward to seeing you at the conference. [Register here](https://community.cncf.io/events/details/cncf-virtual-project-events-hosted-by-cncf-presents-strimzicon-virtual-2026/). It's free!
