@@ -15,9 +15,9 @@ The program committee found it really tough to choose among them in order to bui
 
 ### Awesome sessions ... join StrimziCon! 
 
-The conference will take place on <b>Wednesday, June 3rd, 2026</b> (afternoon CEST).
-It will start with a keynote from Kate Stanley (IBM, Strimzi maintainer) and Paolo Patierno (IBM, Strimzi maintainer).
-The keynote will be followed by almost 4 hours of breakout sessions covering several topics from core Strimzi features, to use cases, operations and integrations.
+The conference will take place on **Wednesday, June 3rd, 2026** (afternoon CEST).
+The event opens with a keynote from Kate Stanley and Paolo Patierno (IBM, Strimzi maintainers).
+The keynote is followed by almost 4 hours of breakout sessions with topics covering core Strimzi features, use cases, operations, and integrations.
 
 | Time (CEST) | Session |
 |:---:|:---:|
@@ -32,4 +32,4 @@ The keynote will be followed by almost 4 hours of breakout sessions covering sev
 
 You can find more details about speakers and sessions on the official [page](https://community.cncf.io/events/details/cncf-virtual-project-events-hosted-by-cncf-presents-strimzicon-virtual-2026/) as part of the CNCF events.
 
-Looking forward to seeing you at the conference and don't forget to [register](https://community.cncf.io/events/details/cncf-virtual-project-events-hosted-by-cncf-presents-strimzicon-virtual-2026/). It's free!
+We look forward to seeing you at the conference. [Register here](https://community.cncf.io/events/details/cncf-virtual-project-events-hosted-by-cncf-presents-strimzicon-virtual-2026/). It's free!
