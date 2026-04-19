@@ -5581,28 +5581,22 @@ spec:
               value: "120000"
             - name: STRIMZI_LOG_LEVEL # <b class="conum">(5)</b>
               value: INFO
-            - name: STRIMZI_TLS_ENABLED # <b class="conum">(6)</b>
-              value: "false"
-            - name: STRIMZI_JAVA_OPTS # <b class="conum">(7)</b>
+            - name: STRIMZI_JAVA_OPTS # <b class="conum">(6)</b>
               value: "-Xmx=512M -Xms=256M"
-            - name: STRIMZI_JAVA_SYSTEM_PROPERTIES # <b class="conum">(8)</b>
+            - name: STRIMZI_JAVA_SYSTEM_PROPERTIES # <b class="conum">(7)</b>
               value: "-Djavax.net.debug=verbose -DpropertyName=value"
-            - name: STRIMZI_PUBLIC_CA # <b class="conum">(9)</b>
+            - name: STRIMZI_SASL_ENABLED # <b class="conum">(8)</b>
               value: "false"
-            - name: STRIMZI_TLS_AUTH_ENABLED # <b class="conum">(10)</b>
-              value: "false"
-            - name: STRIMZI_SASL_ENABLED # <b class="conum">(11)</b>
-              value: "false"
-            - name: STRIMZI_SASL_USERNAME # <b class="conum">(12)</b>
+            - name: STRIMZI_SASL_USERNAME # <b class="conum">(9)</b>
               value: "admin"
-            - name: STRIMZI_SASL_PASSWORD # <b class="conum">(13)</b>
+            - name: STRIMZI_SASL_PASSWORD # <b class="conum">(10)</b>
               value: "password"
-            - name: STRIMZI_SASL_MECHANISM # <b class="conum">(14)</b>
+            - name: STRIMZI_SASL_MECHANISM # <b class="conum">(11)</b>
               value: "scram-sha-512"
-            - name: STRIMZI_SECURITY_PROTOCOL # <b class="conum">(15)</b>
+            - name: STRIMZI_SECURITY_PROTOCOL # <b class="conum">(12)</b>
               value: "SSL"
-            - name: STRIMZI_USE_FINALIZERS
-              value: "false" # <b class="conum">(16)</b></code></pre>
+            - name: STRIMZI_USE_FINALIZERS # <b class="conum">(13)</b>
+              value: "false"</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -5630,21 +5624,10 @@ The default is <code>120000</code> (2 minutes).</p>
 You can set the level to <code>ERROR</code>, <code>WARNING</code>, <code>INFO</code>, <code>DEBUG</code>, or <code>TRACE</code>.</p>
 </li>
 <li>
-<p>Enables TLS support for encrypted communication with the Kafka brokers.</p>
-</li>
-<li>
 <p>(Optional) The Java options used by the JVM running the Topic Operator.</p>
 </li>
 <li>
 <p>(Optional) The debugging (<code>-D</code>) options set for the Topic Operator.</p>
-</li>
-<li>
-<p>(Optional) Skips the generation of trust store certificates if TLS is enabled through <code>STRIMZI_TLS_ENABLED</code>. If this environment variable is enabled, the brokers must use a public trusted certificate authority for their TLS certificates.
-The default is <code>false</code>.</p>
-</li>
-<li>
-<p>(Optional) Generates key store certificates for mTLS authentication. Setting this to <code>false</code> disables client authentication with mTLS to the Kafka brokers.
-The default is <code>true</code>.</p>
 </li>
 <li>
 <p>(Optional) Enables SASL support for client authentication when connecting to Kafka brokers.
@@ -5675,39 +5658,44 @@ You can set the value to <code>PLAINTEXT</code>, <code>SSL</code>, <code>SASL_PL
 </div>
 </li>
 <li>
-<p>If you want to connect to Kafka brokers that are using certificates from a public certificate authority, set <code>STRIMZI_PUBLIC_CA</code> to <code>true</code>. Set this property to <code>true</code>, for example, if you are using Amazon AWS MSK service.</p>
+<p>If you want to connect to Kafka brokers that are using certificates from a public certificate authority, set <code>STRIMZI_SECURITY_PROTOCOL</code> to <code>SSL</code> or <code>SSL_SASL</code>. Use this property, for example, if you are using Amazon AWS MSK service.</p>
 </li>
 <li>
-<p>If you enabled mTLS with the <code>STRIMZI_TLS_ENABLED</code> environment variable, specify the keystore and truststore used to authenticate connection to the Kafka cluster.</p>
+<p>To enable TLS encryption and mTLS authentication for connections to the Kafka cluster, specify the trusted CAs and the client certificate using the following environment variables:</p>
 <div class="listingblock">
 <div class="title">Example mTLS configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell"># ....
 env:
-  - name: STRIMZI_TRUSTSTORE_LOCATION # <b class="conum">(1)</b>
-    value: "/path/to/truststore.p12"
-  - name: STRIMZI_TRUSTSTORE_PASSWORD # <b class="conum">(2)</b>
-    value: "<em>TRUSTSTORE-PASSWORD</em>"
-  - name: STRIMZI_KEYSTORE_LOCATION # <b class="conum">(3)</b>
-    value: "/path/to/keystore.p12"
-  - name: STRIMZI_KEYSTORE_PASSWORD # <b class="conum">(4)</b>
-    value: "<em>KEYSTORE-PASSWORD</em>"
+  - name: STRIMZI_TLS_TRUSTED_CERTS_SECRET_NAME # <b class="conum">(1)</b>
+    value: "kafka-ca"
+  - name: STRIMZI_TLS_SECRET_NAME # <b class="conum">(2)</b>
+    value: "topic-operator-user-tls"
+  - name: STRIMZI_TLS_KEY_NAME # <b class="conum">(3)</b>
+    value: "tls.key"
+  - name: STRIMZI_TLS_CERT_NAME # <b class="conum">(4)</b>
+    value: "tls.crt"
+  - name: STRIMZI_CLUSTER_NAMESPACE # <b class="conum">(5)</b>
+    value: "my-kafka-namespace"
 # ...</code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <ol>
 <li>
-<p>The truststore contains the public keys of the Certificate Authorities used to sign the Kafka server certificates.</p>
+<p>The name of the <code>Secret</code> with the public keys of the Certificate Authorities used to sign the Kafka server certificates as <code>.crt</code> entries.</p>
 </li>
 <li>
-<p>The password for accessing the truststore.</p>
+<p>The name of the <code>Secret</code> with the private key and certificate for mTLS client authentication.</p>
 </li>
 <li>
-<p>The keystore contains the private key for mTLS authentication.</p>
+<p>The key under which the mTLS private key is stored in the <code>Secret</code>.</p>
 </li>
 <li>
-<p>The password for accessing the keystore.</p>
+<p>The key under which the mTLS client certificate is stored in the <code>Secret</code>.</p>
+</li>
+<li>
+<p>The Kubernetes namespace where the TLS Secrets are located.</p>
 </li>
 </ol>
 </div>
@@ -5765,12 +5753,8 @@ env:
         "sasl.jaas.config": "software.amazon.msk.auth.iam.IAMLoginModule required;",
         "sasl.client.callback.handler.class": "software.amazon.msk.auth.iam.IAMClientCallbackHandler"
       }
-  - name: STRIMZI_PUBLIC_CA
-    value: "true"
-  - name: STRIMZI_TRUSTSTORE_LOCATION
-    value: /etc/pki/java/cacerts
-  - name: STRIMZI_TRUSTSTORE_PASSWORD
-    value: changeit
+  - name: STRIMZI_TRUSTSTORE_SECRET_NAME
+    value: kafka-ca
   - name: STRIMZI_KAFKA_BOOTSTRAP_SERVERS
     value: my-kafka-cluster-.kafka-serverless.us-east-1.amazonaws.com:9098
 # ...</code></pre>
@@ -39070,7 +39054,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-04-19 11:55:58 UTC
+Last updated 2026-04-19 23:17:12 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
