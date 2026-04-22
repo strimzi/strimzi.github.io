@@ -25,7 +25,7 @@ The keynote is followed by almost 4 hours of breakout sessions with topics cover
 | 14:25 - 14:55 | Beyond the Install: Take full ownership of your Strimzi cluster (Jakub Scholz @ Cloudera) |
 | 15:00 - 15:30 | Who Are You? Configuring Kafka Authentication in Strimzi from TLS to Custom Principals (Daniel Mulder @ Axual) |
 | 15:35 - 16:05 | Swapping the Engine Mid-Flight: How We Moved Reddit’s Petabyte Scale Kafka Fleet to Kubernetes (Sky Kistler @ Reddit) |
-| 16:10 - 16:40 | Disaster Recovery in action with Kafka and Strimzi (Mickael Maison @ IBM) |
+| 16:10 - 16:40 | Disaster Recovery in action with Kafka and Strimzi (Mickael Maison, Gantigmaa Selenge @ IBM) |
 | 16:45 - 17:15 | From Running to Operating: Real-World Strimzi in Production (Rajith Attapattu @ Randoli) |
 | 17:20 - 17:50 | Building Strimzi MCP Server for Kubernetes: Democratizing Platform Expertise Through LLMs (David Kornel, Jakub Stejskal @ IBM) |
 | 17:50 - 18:00 | Closing (Kate Stanley & Paolo Patierno @ IBM) |
