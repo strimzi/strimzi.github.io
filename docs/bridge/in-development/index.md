@@ -1,5 +1,5 @@
 ---
-title: Strimzi Kafka Bridge Documentation (In Development)
+title: Strimzi HTTP Bridge Documentation (In Development)
 layout: default
 ---
 
