@@ -6328,6 +6328,12 @@ The following table shows the maturity of the feature gates introduced across St
 <td class="tableblock halign-left valign-top"><p class="tableblock">1.0</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">1.3 (planned)</p></td>
 </tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>UseBackgroundPodDeletion</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1.1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1.3 (planned)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1.7 (planned)</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -6423,8 +6429,31 @@ These options are grouped as follows:</p>
 <h3 id="early_access_feature_gates_alpha"><a class="link" href="#early_access_feature_gates_alpha">10.4. Early access feature gates (Alpha)</a></h3>
 <div class="paragraph">
 <p>Early access feature gates have not yet reached the beta stage, and are disabled by default.
-An early access feature gate provides an opportunity for assessment before its functionality is permanently incorporated into Strimzi.
-Currently, there are no alpha level feature gates.</p>
+An early access feature gate provides an opportunity for assessment before its functionality is permanently incorporated into Strimzi.</p>
+</div>
+<div class="sect3">
+<h4 id="ref-operator-use-background-pod-deletion-feature-gate-str"><a class="link" href="#ref-operator-use-background-pod-deletion-feature-gate-str">10.4.1. <code>UseBackgroundPodDeletion</code> feature gate</a></h4>
+<div class="paragraph">
+<p>The <code>UseBackgroundPodDeletion</code> feature gate has a default state of <em>disabled</em>.</p>
+</div>
+<div class="paragraph">
+<p>When enabled, the Cluster Operator uses background deletion propagation when deleting pods during rolling updates, instead of the default foreground deletion propagation.</p>
+</div>
+<div class="paragraph">
+<p>With foreground deletion, certain CNI plugins (such as Cilium) remove network endpoints immediately when a pod object is deleted.
+This can cut off network access before broker containers complete their graceful shutdown, preventing them from communicating leadership relinquishment to controllers, sending final heartbeats, and completing other shutdown sequences.
+The result is prolonged recovery times as the cluster re-establishes quorum.</p>
+</div>
+<div class="paragraph">
+<p>With background deletion, the pod object is removed from the Kubernetes API immediately, but the underlying container runtime keeps the pod&#8217;s network interfaces intact until all containers have fully exited.
+This allows Kafka brokers to complete their graceful shutdown before network connectivity is removed.</p>
+</div>
+<div class="paragraph">
+<p>Enable this feature gate if you are using a CNI plugin that aggressively removes network endpoints on foreground pod deletion and you are experiencing extended recovery times after rolling restarts.</p>
+</div>
+<div class="paragraph">
+<p>To enable the <code>UseBackgroundPodDeletion</code> feature gate, specify <code>+UseBackgroundPodDeletion</code> in the <code>STRIMZI_FEATURE_GATES</code> environment variable in the Cluster Operator configuration.</p>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -37862,7 +37891,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-05-01 14:28:20 UTC
+Last updated 2026-05-01 20:32:20 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
