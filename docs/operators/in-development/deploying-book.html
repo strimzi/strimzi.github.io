@@ -7902,7 +7902,8 @@ During this process, the ID of the node that holds the partition replicas change
 </li>
 <li>
 <p>(Optional) <a href="#proc-automating-rebalances-str">Auto-rebalancing is enabled</a>.<br>
-If auto-rebalancing is enabled, partition reassignment happens automatically during the node scaling process, so you don&#8217;t need to manually initiate the reassignment through Cruise Control.</p>
+If auto-rebalancing is enabled, partition reassignment happens automatically when scaling node pools by changing the <code>spec.replicas</code> value, so you do not need to manually initiate reassignment through Cruise Control.
+Creating or deleting a <code>KafkaNodePool</code> resource does not trigger auto-rebalancing automatically.</p>
 </li>
 <li>
 <p>(Optional) For scale up and scale down operations, <a href="#proc-managing-node-pools-ids-str">you can specify the range of node IDs to use</a>.<br>
@@ -25300,8 +25301,15 @@ Removing brokers starts with the pod that has the highest node ID.
 Additionally, when scaling clusters with node pools, you can <a href="#proc-managing-node-pools-ids-str">assign node IDs for scaling operations</a>.</p>
 </div>
 <div class="paragraph">
-<p>Strimzi can automatically reassign partitions when brokers are added or removed if Cruise Control is deployed and auto-rebalancing is enabled in the Kafka resource.
-If auto-rebalancing is disabled, you can use Cruise Control to generate optimization proposals before manually rebalancing the cluster.</p>
+<p>Strimzi can automatically reassign partitions when brokers are added or removed by changing the <code>spec.replicas</code> value of an existing node pool.
+Cruise Control must be deployed and auto-rebalancing enabled in the <code>Kafka</code> resource.</p>
+</div>
+<div class="paragraph">
+<p>Creating or deleting a <code>KafkaNodePool</code> resource does not trigger auto-rebalancing automatically.
+For these operations, apply a <code>KafkaRebalance</code> resource configured to use <code>add-brokers</code> or <code>remove-brokers</code> mode.</p>
+</div>
+<div class="paragraph">
+<p>If auto-rebalancing is disabled, you can use Cruise Control to generate optimization proposals before manually rebalancing the cluster.</p>
 </div>
 <div class="paragraph">
 <p>Cruise Control provides <code>add-brokers</code> and <code>remove-brokers</code> modes for scaling:</p>
@@ -25335,9 +25343,12 @@ However, if all brokers are constrained by a resource (such as I/O), adding more
 <div class="sect2">
 <h3 id="proc-automating-rebalances-str"><a class="link" href="#proc-automating-rebalances-str">20.1. Triggering auto-rebalances when scaling clusters</a></h3>
 <div class="paragraph _abstract">
-<p>Set up auto-rebalancing to automatically redistribute topic partitions when scaling a cluster.
-You can scale a Kafka cluster by adjusting the number of brokers using the <code>spec.replicas</code> property in the <code>Kafka</code> or <code>KafkaNodePool</code> custom resource used in deployment.
-When auto-rebalancing is enabled, the cluster is rebalanced without further intervention.</p>
+<p>Set up auto-rebalancing to automatically redistribute topic partitions when scaling a cluster by changing the number of brokers in an existing node pool.
+Scale a Kafka cluster by adjusting the number of brokers using the <code>spec.replicas</code> property in the <code>KafkaNodePool</code> custom resource.
+For auto-rebalancing, a scaling event is a change to the <code>spec.replicas</code> value of an existing node pool.</p>
+</div>
+<div class="paragraph">
+<p>When auto-rebalancing is enabled, the cluster is rebalanced without further intervention.</p>
 </div>
 <div class="ulist">
 <ul>
@@ -25350,15 +25361,32 @@ When auto-rebalancing is enabled, the cluster is rebalanced without further inte
 </ul>
 </div>
 <div class="paragraph">
+<p>Auto-rebalancing is not triggered when creating a new <code>KafkaNodePool</code> resource or deleting an existing one.
+These actions are not treated as scaling events by the auto-rebalancing mechanism.</p>
+</div>
+<div class="paragraph">
+<p>When adding or removing node pools, manually trigger partition reassignment using Cruise Control by creating a <code>KafkaRebalance</code> resource with:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>add-brokers</code> mode when adding a node pool</p>
+</li>
+<li>
+<p><code>remove-brokers</code> mode when removing a node pool</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
 <p>Auto-rebalancing helps maintain balanced load distribution across Kafka brokers during scaling operations, depending on how the rebalancing configuration is set up.</p>
 </div>
 <div class="paragraph">
 <p>Scaling operates in two modes: <code>add-brokers</code> and <code>remove-brokers</code>.
 Each mode can have its own auto-rebalancing configuration specified in the <code>Kafka</code> resource under <code>spec.cruiseControl.autoRebalance</code> properties.
 Use the <code>template</code> property to specify a predefined <code>KafkaRebalance</code> resource, which serves as a rebalance configuration template.
-If a template is not specified in the <code>autorebalance</code> configuration, the default Cruise Control rebalancing configuration is used.
+If a template is not specified in the <code>autoRebalance</code> configuration, the default Cruise Control rebalancing configuration is used.
 You can apply the same template configuration for both scaling modes, use different configurations for each, or enable auto-rebalancing for only one mode.
-If <code>autorebalance</code> configuration is not set for a mode, auto-rebalancing will not occur for that mode.</p>
+If <code>autoRebalance</code> is not configured for a mode, auto-rebalancing does not occur for that mode.</p>
 </div>
 <div class="paragraph">
 <p>The template <code>KafkaRebalance</code> resource must include the <code>strimzi.io/rebalance-template: "true"</code> annotation.
@@ -25480,7 +25508,11 @@ spec:
 Wait for the Cluster Operator to update the cluster.</p>
 </li>
 <li>
-<p>Scale the cluster by adjusting the <code>spec.replicas</code> property representing the number of brokers in the cluster.</p>
+<p>Scale the cluster by adjusting the <code>spec.replicas</code> property of an existing node pool.</p>
+<div class="paragraph">
+<p>Only changes to <code>spec.replicas</code> trigger auto-rebalancing.
+Creating or deleting node pools does not trigger auto-rebalancing.</p>
+</div>
 <div class="paragraph">
 <p>The following example shows a node pool configuration for a cluster using three brokers (<code>replicas: 3</code>).</p>
 </div>
@@ -25557,7 +25589,7 @@ status:
 <li>
 <p>The state of the rebalance, which shows <code>RebalanceOnScaleUp</code> when adding brokers, and <code>RebalanceOnScaleDown</code> when removing brokers.
 Scale-down operations take precedence.
-Initial and final state (failed or successful) shows as <code>Idle</code>.</p>
+The initial state and final state (successful or failed) are shown as <code>Idle</code>.</p>
 </li>
 <li>
 <p>Rebalance operations grouped by mode, with a list of nodes to be added or removed.</p>
