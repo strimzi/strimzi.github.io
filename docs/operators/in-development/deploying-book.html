@@ -102,9 +102,10 @@
 <li><a href="#con-configuration-points-listener-names-str">15.3. Listener naming conventions</a></li>
 <li><a href="#proc-accessing-kafka-using-nodeports-str">15.4. Accessing Kafka using node ports</a></li>
 <li><a href="#proc-accessing-kafka-using-loadbalancers-str">15.5. Accessing Kafka using loadbalancers</a></li>
-<li><a href="#proc-accessing-kafka-using-ingress-str">15.6. Accessing Kafka using an Ingress NGINX Controller for Kubernetes</a></li>
-<li><a href="#proc-accessing-kafka-using-routes-str">15.7. Accessing Kafka using OpenShift routes</a></li>
-<li><a href="#proc-add-service-discovery-str">15.8. Discovering connection details for clients</a></li>
+<li><a href="#proc-accessing-kafka-using-tlsroutes-str">15.6. Accessing Kafka using Gateway API <code>TLSRoute</code> resources</a></li>
+<li><a href="#proc-accessing-kafka-using-ingress-str">15.7. Accessing Kafka using an Ingress NGINX Controller for Kubernetes</a></li>
+<li><a href="#proc-accessing-kafka-using-routes-str">15.8. Accessing Kafka using OpenShift routes</a></li>
+<li><a href="#proc-add-service-discovery-str">15.9. Discovering connection details for clients</a></li>
 </ul>
 </li>
 <li><a href="#assembly-securing-access-str">16. Securing access to a Kafka cluster</a>
@@ -18563,6 +18564,9 @@ Consider using a <code>cluster-ip</code> type listener if routing through the he
 <p><code>loadbalancer</code> to use loadbalancer services</p>
 </li>
 <li>
+<p><code>tlsroute</code> to use Kubernetes Gateway API <code>v1</code> <code>TLSRoute</code> resources</p>
+</li>
+<li>
 <p><code>ingress</code> to use Kubernetes <code>Ingress</code> and the <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">Ingress NGINX Controller for Kubernetes</a> (Kubernetes only)</p>
 </li>
 <li>
@@ -18576,6 +18580,18 @@ For example, loadbalancers might not be suitable for certain infrastructure, suc
 </div>
 </dd>
 </dl>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The <code>ingress</code> listener type is deprecated. Consider using the <code>tlsroute</code> listener type if your Gateway API implementation supports <code>TLSRoute</code> resources.
+</td>
+</tr>
+</table>
 </div>
 <div class="admonitionblock important">
 <table>
@@ -18681,7 +18697,7 @@ If you scale your Kafka cluster while using external listeners, it might trigger
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p><code>loadbalancer</code>, <code>nodeport</code>, <code>ingress</code>, <code>route</code>, <code>cluster-ip</code></p>
+<p><code>loadbalancer</code>, <code>nodeport</code>, <code>ingress</code>, <code>route</code>, <code>tlsroute</code>, <code>cluster-ip</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">&lt;cluster_name&gt;-kafka-&lt;listener-name&gt;-bootstrap</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">&lt;cluster_name&gt;-kafka-&lt;listener-name&gt;-&lt;idx&gt;</p></td>
@@ -18690,7 +18706,7 @@ If you scale your Kafka cluster while using external listeners, it might trigger
 </table>
 <div class="paragraph">
 <p>For example, <code>my-cluster-kafka-bootstrap</code>, <code>my-cluster-kafka-external1-bootstrap</code>, and <code>my-cluster-kafka-external1-0</code>.
-The names are assigned to the services, routes, load balancers, and ingresses created through the listener configuration.</p>
+The names are assigned to the services, routes, load balancers, ingresses, and Gateway API TLS routes generated through the listener configuration.</p>
 </div>
 <div class="paragraph">
 <p>You can use certain backwards compatible names and port numbers to transition listeners initially configured under the retired <code>KafkaListeners</code> schema.
@@ -19132,7 +19148,271 @@ If it is a public (external) CA, you usually won&#8217;t need to add it.
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-accessing-kafka-using-ingress-str"><a class="link" href="#proc-accessing-kafka-using-ingress-str">15.6. Accessing Kafka using an Ingress NGINX Controller for Kubernetes</a></h3>
+<h3 id="proc-accessing-kafka-using-tlsroutes-str"><a class="link" href="#proc-accessing-kafka-using-tlsroutes-str">15.6. Accessing Kafka using Gateway API <code>TLSRoute</code> resources</a></h3>
+<div class="paragraph _abstract">
+<p>Use Kubernetes Gateway API <code>TLSRoute</code> resources to access a Kafka cluster from clients outside a Kubernetes cluster.</p>
+</div>
+<div class="paragraph">
+<p>To use <code>TLSRoute</code> resources, add configuration for a <code>tlsroute</code> type listener in the <code>Kafka</code> custom resource.
+When applied, the configuration creates a dedicated <code>ClusterIP</code> service and <code>TLSRoute</code> resource for an external bootstrap and each broker in the cluster.
+Clients connect to the bootstrap hostname, which routes them through the bootstrap service to connect to a broker.
+Per-broker connections are then established using DNS names that route traffic from the client to the broker through the broker-specific Gateway API TLS routes and services.</p>
+</div>
+<div class="paragraph">
+<p>Strimzi manages the <code>TLSRoute</code> resources, but does not manage the Gateway API <code>Gateway</code> resource.
+You must provide a Gateway API implementation and a <code>Gateway</code> that accepts the <code>TLSRoute</code> resources created by Strimzi.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Strimzi uses and supports the <code>gateway.networking.k8s.io/v1</code> API version of the <code>TLSRoute</code> resource.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>To connect to a broker, specify a hostname for the <code>TLSRoute</code> bootstrap address.
+For access using <code>TLSRoute</code> resources, the port used in the Kafka client is typically 443.</p>
+</div>
+<div class="paragraph">
+<p>The procedure shows a basic <code>tlsroute</code> listener configuration using TLS passthrough.
+Use the <code>parentRefs</code> configuration property to attach the generated TLSRoutes to a Gateway API resource, such as a <code>Gateway</code>.
+Use the <code>bootstrap.host</code> configuration property to specify the hostname used by the bootstrap <code>TLSRoute</code>.
+Use the <code>hostTemplate</code> or the <code>brokers[].host</code> fields to specify the hostname for each broker <code>TLSRoute</code>.</p>
+</div>
+<div class="paragraph">
+<p>For more information on listener configuration, see the <a href="./configuring.html#type-GenericKafkaListener-reference" target="_blank" rel="noopener"><code>GenericKafkaListener</code> schema reference</a>.</p>
+</div>
+<div class="paragraph">
+<p><code>TLSRoute</code> resources use Server Name Indication (SNI) to route TLS traffic.
+The TLS mode is configured in the Gateway API <code>Gateway</code> listener, not in the Strimzi <code>TLSRoute</code> resource.</p>
+</div>
+<div class="paragraph">
+<p>You can configure TLS passthrough or TLS termination.</p>
+</div>
+<div class="paragraph">
+<p>With TLS passthrough, the Gateway forwards the encrypted TLS connection to the Kafka brokers.
+The Kafka listener must have TLS encryption enabled (<code>tls: true</code>).
+The connection uses the TLS certificates from the Kafka brokers, and you can use TLS client authentication.
+To configure listeners to use your own listener certificates, <a href="#proc-installing-certs-per-listener-str">use the <code>brokerCertChainAndKey</code> property</a>.</p>
+</div>
+<div class="paragraph">
+<p>With TLS termination, the Gateway terminates the TLS connection and forwards unencrypted traffic to the Kafka brokers.
+Configure the Kafka listener without TLS encryption (<code>tls: false</code>).
+The client uses the Gateway certificate, and TLS client authentication between the client and Kafka brokers is not available.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>A Gateway API implementation that supports <code>gateway.networking.k8s.io/v1</code> <code>TLSRoute</code> resources is installed</p>
+</li>
+<li>
+<p>A Gateway API <code>Gateway</code> is configured for Kafka traffic and accepts TLSRoutes from the Kafka namespace</p>
+</li>
+<li>
+<p>DNS records for the bootstrap and per-broker hostnames resolve to the Gateway address</p>
+</li>
+<li>
+<p>A running Cluster Operator</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>In this procedure, the Kafka cluster name is <code>my-cluster</code>.
+The name of the listener is <code>external</code>.</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Configure a <code>Kafka</code> resource with an external listener set to the <code>tlsroute</code> type.</p>
+<div class="paragraph">
+<p>Specify a bootstrap hostname, per-broker hostnames, and the Gateway API parent references for the generated <code>TLSRoute</code> resources.</p>
+</div>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
+kind: Kafka
+metadata:
+  labels:
+    app: my-cluster
+  name: my-cluster
+  namespace: myproject
+spec:
+  kafka:
+    # ...
+    listeners:
+      - name: external
+        port: 9094
+        type: tlsroute
+        tls: true
+        authentication:
+          type: tls
+        configuration:
+          parentRefs:
+            - name: kafka-gateway
+              kind: Gateway
+              group: gateway.networking.k8s.io
+              namespace: myproject
+              sectionName: kafka
+          bootstrap:
+            host: bootstrap.example.com
+          hostTemplate: broker-{nodeId}.example.com
+    # ...</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>tls: true</code> enables TLS encryption in the Kafka brokers for TLS passthrough.
+For TLS termination at the Gateway, set this property to <code>false</code> and do not configure <code>tls</code> authentication for the listener.</p>
+</li>
+<li>
+<p><code>name</code> under <code>parentRefs</code> specifies the name of the Gateway API parent resource that the generated <code>TLSRoute</code> resources attach to.</p>
+</li>
+<li>
+<p><code>kind</code> under <code>parentRefs</code> specifies the kind of the Gateway API parent resource.</p>
+</li>
+<li>
+<p><code>group</code> under <code>parentRefs</code> specifies the API group of the Gateway API parent resource.</p>
+</li>
+<li>
+<p><code>namespace</code> under <code>parentRefs</code> specifies the namespace of the Gateway API parent resource.</p>
+</li>
+<li>
+<p><code>sectionName</code> under <code>parentRefs</code> optionally specifies the Gateway listener name that the generated <code>TLSRoute</code> resources attach to.</p>
+</li>
+<li>
+<p><code>bootstrap.host</code> specifies the hostname used by the bootstrap <code>TLSRoute</code>.
+The hostname must resolve to the Gateway address.</p>
+</li>
+<li>
+<p><code>hostTemplate</code> specifies the template used to generate hostnames for the per-broker <code>TLSRoute</code> resources.
+The hostnames must resolve to the Gateway address.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Create or update the resource.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;kafka_configuration_file&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If TLS encryption is enabled, a cluster CA certificate to verify the identity of the Kafka brokers is created in the secret <code>my-cluster-cluster-ca-cert</code>.</p>
+</div>
+<div class="paragraph">
+<p><code>ClusterIP</code> type services are created for each Kafka broker, as well as an external bootstrap service.</p>
+</div>
+<div class="paragraph">
+<p>A <code>TLSRoute</code> resource is also created for each service, with a hostname to expose it using the Gateway API implementation.</p>
+</div>
+<div class="paragraph">
+<p>TLSRoutes created for the bootstrap and brokers:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">NAME                                  HOSTNAMES                 AGE
+my-cluster-kafka-external-0          broker-0.example.com      1m
+my-cluster-kafka-external-1          broker-1.example.com      1m
+my-cluster-kafka-external-2          broker-2.example.com      1m
+my-cluster-kafka-external-bootstrap  bootstrap.example.com     1m</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Strimzi waits for each <code>TLSRoute</code> status to contain at least one parent reference.
+If a <code>TLSRoute</code> status is not updated with a parent reference before the Cluster Operator reconciliation timeout, the reconciliation fails.</p>
+</div>
+</li>
+<li>
+<p>Retrieve the address of the bootstrap service from the status of the <code>Kafka</code> resource.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka my-cluster -o=jsonpath='{.status.listeners[?(@.name=="external")].bootstrapServers}{"\n"}'
+
+bootstrap.example.com:443</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If you are using TLS passthrough, use a target broker to check the client-server TLS connection on port 443 using the OpenSSL <code>s_client</code>.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">openssl s_client -connect broker-0.example.com:443 -servername broker-0.example.com -showcerts</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The server name is used as the Server Name Indication (SNI) for passing the connection to the broker.</p>
+</div>
+<div class="paragraph">
+<p>If the connection is successful, the certificates for the broker are returned:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">Certificate chain
+ 0 s:O = io.strimzi, CN = my-cluster-kafka
+   i:O = io.strimzi, CN = cluster-ca v0</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If you are using TLS passthrough, extract the cluster CA certificate.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get secret my-cluster-cluster-ca-cert -o jsonpath='{.data.ca\.crt}' | base64 -d &gt; ca.crt</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Configure your client to connect to the brokers.</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>Specify the address for the bootstrap service and port 443 in your Kafka client as the bootstrap address to connect to the Kafka cluster.</p>
+<div class="paragraph">
+<p>If your Gateway uses a different external port, use that port in the client bootstrap address and configure per-broker <code>advertisedPort</code> entries or the <code>advertisedPortTemplate</code> property for the per-broker advertised ports.</p>
+</div>
+</li>
+<li>
+<p>If you are using TLS passthrough, add the extracted certificate to the truststore of your Kafka client to configure a TLS connection.</p>
+<div class="paragraph">
+<p>If you enabled a client authentication mechanism, you must also configure it in your client.</p>
+</div>
+<div class="paragraph">
+<p>For TLS termination at the Gateway, configure the client to trust the Gateway certificate instead of the cluster CA certificate.</p>
+</div>
+</li>
+</ol>
+</div>
+</li>
+</ol>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If you are using your own listener certificates with TLS passthrough, check whether you need to add the CA certificate to the client truststore configuration.
+If it is a public (external) CA, you usually won&#8217;t need to add it.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-accessing-kafka-using-ingress-str"><a class="link" href="#proc-accessing-kafka-using-ingress-str">15.7. Accessing Kafka using an Ingress NGINX Controller for Kubernetes</a></h3>
 <div class="paragraph _abstract">
 <p>Use an <a href="https://github.com/kubernetes/ingress-nginx" target="_blank" rel="noopener">Ingress NGINX Controller for Kubernetes</a> to access a Kafka cluster from clients outside the Kubernetes cluster.</p>
 </div>
@@ -19357,7 +19637,7 @@ If it is a public (external) CA, you usually won&#8217;t need to add it.
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-accessing-kafka-using-routes-str"><a class="link" href="#proc-accessing-kafka-using-routes-str">15.7. Accessing Kafka using OpenShift routes</a></h3>
+<h3 id="proc-accessing-kafka-using-routes-str"><a class="link" href="#proc-accessing-kafka-using-routes-str">15.8. Accessing Kafka using OpenShift routes</a></h3>
 <div class="paragraph _abstract">
 <p>Use OpenShift routes to access a Kafka cluster from clients outside the OpenShift cluster.</p>
 </div>
@@ -19577,7 +19857,7 @@ If it is a public (external) CA, you usually won&#8217;t need to add it.
 </div>
 </div>
 <div class="sect2">
-<h3 id="proc-add-service-discovery-str"><a class="link" href="#proc-add-service-discovery-str">15.8. Discovering connection details for clients</a></h3>
+<h3 id="proc-add-service-discovery-str"><a class="link" href="#proc-add-service-discovery-str">15.9. Discovering connection details for clients</a></h3>
 <div class="paragraph _abstract">
 <p>Service discovery makes it easier for client applications running in the same Kubernetes cluster as Strimzi to interact with a Kafka cluster.</p>
 </div>
