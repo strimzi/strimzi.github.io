@@ -9727,7 +9727,8 @@ Once deployed, the operators are automatically configured to handle the topics a
 </div>
 <div class="paragraph">
 <p>Each operator can only monitor a single namespace.
-For more information, see <a href="#con-operators-namespaces-str">Operator-watched Kafka resources</a>.</p>
+By default, they monitor the namespace where the Kafka cluster is deployed, but they can be configured to watch a different namespace.
+For more information, see <a href="#con-operators-namespaces-str">Operator-watched Kafka resources</a> and <a href="#proc-configuring-entity-operator-watched-namespace-str">Configuring Topic and User Operators to watch a different namespace</a>.</p>
 </div>
 <div class="paragraph">
 <p>The <code>entityOperator</code> property supports several sub-properties:</p>
@@ -9794,7 +9795,9 @@ spec:
 <dt class="hdlist1"><code>watchedNamespace</code></dt>
 <dd>
 <p>The Kubernetes namespace in which the Topic Operator watches for <code>KafkaTopic</code> resources.
-Default is the namespace where the Kafka cluster is deployed.</p>
+Default is the namespace where the Kafka cluster is deployed.
+To watch a different namespace, you must enable the watched namespace feature in the Cluster Operator by setting <code>STRIMZI_ENTITY_OPERATOR_WATCHED_NAMESPACE_ENABLED</code> to <code>true</code>.
+For more information, see <a href="#proc-configuring-entity-operator-watched-namespace-str">Configuring Topic and User Operators to watch a different namespace</a>.</p>
 </dd>
 <dt class="hdlist1"><code>reconciliationIntervalMs</code></dt>
 <dd>
@@ -9856,7 +9859,9 @@ The following properties are supported:</p>
 <dt class="hdlist1"><code>watchedNamespace</code></dt>
 <dd>
 <p>The Kubernetes namespace in which the User Operator watches for <code>KafkaUser</code> resources.
-Default is the namespace where the Kafka cluster is deployed.</p>
+Default is the namespace where the Kafka cluster is deployed.
+To watch a different namespace, you must enable the watched namespace feature in the Cluster Operator by setting <code>STRIMZI_ENTITY_OPERATOR_WATCHED_NAMESPACE_ENABLED</code> to <code>true</code>.
+For more information, see <a href="#proc-configuring-entity-operator-watched-namespace-str">Configuring Topic and User Operators to watch a different namespace</a>.</p>
 </dd>
 <dt class="hdlist1"><code>reconciliationIntervalMs</code></dt>
 <dd>
@@ -9909,6 +9914,213 @@ spec:
           memory: 500Mi
     # ...</code></pre>
 </div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="proc-configuring-entity-operator-watched-namespace-str"><a class="link" href="#proc-configuring-entity-operator-watched-namespace-str">11.5.3. Configuring Topic and User Operators to watch a different namespace</a></h4>
+<div class="paragraph _abstract">
+<p>By default, the Topic Operator and User Operator watch for <code>KafkaTopic</code> and <code>KafkaUser</code> resources in the same namespace where the Kafka cluster is deployed.
+You can configure them to watch a different namespace, which is useful when you want to manage Kafka topics and users in a separate namespace from the Kafka cluster itself.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+This feature is disabled by default and must be explicitly enabled in the Cluster Operator configuration.
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+If you configure <code>watchedNamespace</code> to a different namespace while the feature is disabled, the Entity Operator deployment and all the related existing resources (ConfigMap, Secret, Role, RoleBinding and so on) will be deleted, reconciliation will fail, and a warning condition will be added to the <code>Kafka</code> resource status. Existing <code>KafkaTopic</code> and <code>KafkaUser</code> resources will stay.
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+If you are upgrading from a previous Strimzi version where you were using <code>watchedNamespace</code> to watch a different namespace, you must enable this feature during the upgrade to avoid disruption. When upgrading the Cluster Operator, update the deployment to include the <code>STRIMZI_ENTITY_OPERATOR_WATCHED_NAMESPACE_ENABLED=true</code> environment variable at the same time. Otherwise, the Entity Operator will be deleted during the upgrade reconciliation, and your topics and users will no longer be managed until you enable the feature.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>The Cluster Operator is deployed and running</p>
+</li>
+<li>
+<p>A Kafka cluster is deployed or ready to be deployed</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Enable the watched namespace feature in the Cluster Operator deployment.</p>
+<div class="paragraph">
+<p>Edit the Cluster Operator <code>Deployment</code> to set the <code>STRIMZI_ENTITY_OPERATOR_WATCHED_NAMESPACE_ENABLED</code> environment variable to <code>true</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight nowrap"><code class="language-yaml hljs" data-lang="yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: strimzi-cluster-operator
+spec:
+  # ...
+  template:
+    spec:
+      containers:
+      - name: strimzi-cluster-operator
+        # ...
+        env:
+        - name: STRIMZI_ENTITY_OPERATOR_WATCHED_NAMESPACE_ENABLED
+          value: "true"
+        # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When this environment variable is set to <code>false</code> (the default):</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If <code>watchedNamespace</code> is not configured or is set to the same namespace as the Kafka cluster, the Topic and User Operators function normally.</p>
+</li>
+<li>
+<p>If <code>watchedNamespace</code> is configured to a different namespace, the Cluster Operator deletes the Entity Operator deployment and all related resources, fails the reconciliation, and adds a warning condition to the <code>Kafka</code> resource status. Existing <code>KafkaTopic</code> and <code>KafkaUser</code> resources will stay.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Configure the <code>watchedNamespace</code> property for the Topic Operator, User Operator, or both in your <code>Kafka</code> custom resource.</p>
+<div class="listingblock">
+<div class="title">Example: Topic Operator watching a different namespace</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: kafka # <b class="conum">(1)</b>
+spec:
+  kafka:
+    # ...
+  entityOperator:
+    topicOperator:
+      watchedNamespace: my-topics-namespace # <b class="conum">(2)</b>
+    userOperator:
+      watchedNamespace: my-users-namespace # <b class="conum">(3)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The Kafka cluster is deployed in the <code>kafka</code> namespace</p>
+</li>
+<li>
+<p>The Topic Operator watches for <code>KafkaTopic</code> resources in the <code>my-topics-namespace</code> namespace</p>
+</li>
+<li>
+<p>The User Operator watches for <code>KafkaUser</code> resources in the <code>my-users-namespace</code> namespace</p>
+<div class="paragraph">
+<p>If the <code>watchedNamespace</code> property is not specified, both operators default to watching the namespace where the Kafka cluster is deployed.</p>
+</div>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Ensure the watched namespace exists.</p>
+<div class="paragraph">
+<p>The Cluster Operator automatically creates a <code>Role</code> and <code>RoleBinding</code> in the watched namespace to grant the Entity Operator the necessary permissions.
+However, you must ensure the watched namespace exists before deploying the Kafka cluster.</p>
+</div>
+<div class="paragraph">
+<p>For example, if using <code>my-topics-namespace</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl create namespace my-topics-namespace</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Apply the updated <code>Kafka</code> resource:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>kafka-config.yaml</em></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="olist arabic">
+<div class="title">Verification</div>
+<ol class="arabic">
+<li>
+<p>Verify that the Entity Operator pod is running:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get pods -n kafka -l strimzi.io/name=my-cluster-entity-operator</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Check that the required RBAC resources were created in the watched namespace:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get role,rolebinding -n my-topics-namespace</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You should see a <code>Role</code> and <code>RoleBinding</code> created by the Cluster Operator for the Entity Operator.</p>
+</div>
+</li>
+<li>
+<p>Check the Topic and User Operators logs to confirm they are watching the correct namespaces:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl logs -n kafka deployment/my-cluster-entity-operator -c topic-operator
+kubectl logs -n kafka deployment/my-cluster-entity-operator -c user-operator</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The logs should indicate that the operators are watching the configured namespaces.</p>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist _additional-resources">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#topic-operator-str">Configuring the Topic Operator</a></p>
+</li>
+<li>
+<p><a href="#user-operator-str">Configuring the User Operator</a></p>
+</li>
+<li>
+<p><a href="#ref-operator-cluster-str">Configuring the Cluster Operator</a></p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -10247,6 +10459,14 @@ Configuration for the pluggable <code>PodSecurityProvider</code> class, which ca
 <dd>
 <p>Optional. Default is <code>true</code>.
 Controls automatic creation of PKCS12 stores in the CA (Certificate Authority) and Kafka user <code>Secret</code> resources.</p>
+</dd>
+<dt class="hdlist1"><code>STRIMZI_ENTITY_OPERATOR_WATCHED_NAMESPACE_ENABLED</code></dt>
+<dd>
+<p>Optional. Default is <code>false</code>.
+Controls whether the Entity Operator (Topic Operator and User Operator) can watch a namespace different from the one where the Kafka cluster is deployed.
+When set to <code>false</code> (the default), the Entity Operators will only operate in the namespace where the Kafka cluster is deployed, regardless of the <code>watchedNamespace</code> configuration in the <code>Kafka</code> custom resource.
+If <code>watchedNamespace</code> is configured but differs from the cluster namespace, a warning is logged and the configuration is ignored.
+When set to <code>true</code>, the Entity Operators can watch a different namespace as specified in the <code>watchedNamespace</code> configuration.</p>
 </dd>
 </dl>
 </div>
@@ -34337,6 +34557,9 @@ If you want to change the state of a feature gate, configure it before you apply
 <li>
 <p>If the Cluster Operator is watching all namespaces, specify <code>value: "*"</code> for the <code>STRIMZI_NAMESPACE</code> environment variable.</p>
 </li>
+<li>
+<p>If you are using the <code>watchedNamespace</code> property in your Topic Operator or User Operator configuration to watch a different namespace than the Kafka cluster namespace, you must add the <code>STRIMZI_ENTITY_OPERATOR_WATCHED_NAMESPACE_ENABLED</code> environment variable and set it to <code>true</code>. Without this setting, the Entity Operator deployment will be deleted during the upgrade. For more information, see <a href="#proc-configuring-entity-operator-watched-namespace-str">Configuring Topic and User Operators to watch a different namespace</a>.</p>
+</li>
 </ul>
 </div>
 </li>
@@ -38361,7 +38584,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-06-18 14:43:49 UTC
+Last updated 2026-06-18 15:34:53 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
