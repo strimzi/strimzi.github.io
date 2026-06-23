@@ -2,7 +2,7 @@
 layout: post
 title:  "Replaying the Stream: StrimziCon 2026 Recap and Recordings"
 date: 2026-06-23
-author: ppatierno
+author: paolo_patierno
 ---
 
 ![StrimziCon 2026 Banner](/assets/images/posts/2026-02-18-strimzicon2026-banner.png)
