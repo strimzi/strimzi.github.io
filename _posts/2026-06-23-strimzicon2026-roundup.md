@@ -14,7 +14,7 @@ The 2026 program included:
 * 10 speakers from 5 organizations
 * Over 4 hours of content
 
-This year's content explored new Strimzi components, tips for running in production, integrations with other open source projects, and a look ahead at what's coming next for the project.
+This year's content included tips for running in production, best practices for using Strimzi components, and real-world use cases shared by maintainers, contributors and users of Strimzi.
 In the breaks between sessions attendees connected and shared their own experiences with Strimzi.
 
 A massive thank you to everyone who joined us live on the day, our wonderful speakers, the program committee who built the schedule, and to [CNCF](https://www.cncf.io/) for hosting the event.
@@ -28,8 +28,8 @@ To help you choose which one to watch first, here's an introduction to each sess
 
 _Speakers: Paolo Patierno & Kate Stanley @ IBM_
 
-Paolo and Kate opened the event by sharing the latest features and improvements that have been added to Strimzi over the past year and provided a glimpse into what's on the horizon for the project.
-They also highlighted the various ways community members can contribute to Strimzi and explained the key roles within the community.
+Paolo and Kate opened the event by sharing the latest features and improvements that have been added to Strimzi over the past year, including the long awaited 1.0.0 release. They also shared some insights into how the 1.0.0 release came about and provided a glimpse into what's on the horizon for the project.
+Finally, they shared some updates from the community, including new ways to keep up with the wider community, the new AI policy and the path to graduation.
 
 ##### Beyond the Install: Take full ownership of your Strimzi cluster ([Recording][ownership-pres]/[Slides][ownership-slides])
 
@@ -43,7 +43,7 @@ The session covered critical aspects of Strimzi ownership including securing you
 _Speaker: Daniel Mulder @ Axual_
 
 Daniel walked through the full range of authentication options available in Strimzi, from basic TLS authentication to advanced custom principal builders.
-The session explored listener-aware authentication patterns and how to implement a robust multi-tenancy strategy, while also discussing when large truststores signal that your authentication architecture needs a closer look.
+The session explored listener-aware authentication patterns and how to implement a robust multi-tenancy strategy, while also discussing the risks of leaning too heavily on Strimzi internals and how to add authorization into the picture.
 
 ##### Swapping the Engine Mid-Flight: How We Moved Reddit's Petabyte Scale Kafka Fleet to Kubernetes ([Recording][mid-flight-pres]/[Slides][mid-flight-slides])
 
@@ -56,14 +56,14 @@ The session detailed their innovative "stretch cluster" approach, including DNS 
 
 _Speaker: David Kornel, Jakub Stejskal @ IBM_
 
-David and Jakub demonstrated how they built an MCP server for Strimzi that makes platform expertise accessible through natural language interactions with LLMs.
+David and Jakub demonstrated how they built an open-source MCP server for Strimzi that makes platform expertise accessible through natural language interactions with LLMs.
 The session included a live demo of incident diagnosis, explained the implementation using Quarkus, and discussed how structured data and prompt templates guide the LLM through expert-level troubleshooting steps while catching misconfigurations without requiring extensive documentation reading.
 
 ##### From Running to Operating: Real-World Strimzi in Production ([Recording][operating-pres]/[Slides][operating-slides])
 
 _Speakers: Rajith Attapattu @ Randoli_
 
-Rajith shared a real-world case study of running Strimzi at scale, covering architecture design, cluster structure, and handling upgrades, scaling, and reliability.
+Rajith shared a real-world case study of running Strimzi at scale, covering architecture choices, monitoring insights and how they handled the upgrade to Strimzi 1.0.0.
 The session explored how to instrument Strimzi with OpenTelemetry, identify signals that actually matter, and build actionable observability, along with operational patterns that help teams move from reactive firefighting to proactive reliability.
 
 ##### Disaster Recovery in action with Kafka and Strimzi ([Recording][disaster-pres]/[Slides][disaster-slides])
@@ -78,7 +78,7 @@ The session covered monitoring replication lag and health, clean and unclean fai
 _Speakers: Paolo Patierno & Kate Stanley @ IBM_
 
 Paolo and Kate closed the event by reflecting on the day's sessions and thanking the speakers, attendees, and everyone who contributed to making StrimziCon 2026 a success.
-They also shared final thoughts on the future direction of the Strimzi project and encouraged continued community engagement.
+They also posed some final questions to the audience and shared some insights from Strimzi maintainers on their favourite features and what they are looking forward to coming to the project in future.
 
 ### What Next?
 
