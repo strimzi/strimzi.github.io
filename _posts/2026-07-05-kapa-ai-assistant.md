@@ -65,10 +65,13 @@ You can read more about the CNCF's partnership and data policies in their [annou
 
 Head over to [strimzi.io](https://strimzi.io) and click the floating Strimzi icon in the bottom-right corner.
 Ask it anything about Strimzi, and let us know what you think.
-If the answers are helpful, great.
-If they are not, that feedback helps us improve both the assistant and our documentation.
 
-![Kapa.ai chat window](/assets/images/posts/2026-07-05-kapa-ai-chat-feedback.png)
+After each answer, you will see "Good Answer" and "Bad Answer" buttons along with an optional text field where you can explain your rating.
+
+![Kapa.ai feedback buttons](/assets/images/posts/2026-07-05-kapa-ai-chat-feedback.png)
+
+This feedback loop matters. 
+Positive ratings confirm that the knowledge base is working well, while negative ratings with a short rationale help us pinpoint where the assistant falls short and where our documentation needs improvement.
 
 We would love to hear your experience.
 Share your feedback on the [#strimzi](https://cloud-native.slack.com/channels/strimzi) Slack channel or open a [GitHub Discussion](https://github.com/strimzi/strimzi-kafka-operator/discussions).
