@@ -10,7 +10,7 @@ That is [Kapa.ai](https://www.kapa.ai/), an AI-powered assistant now available a
 
 <!--more-->
 
-![Kapa.ai widget on the Strimzi website](/assets/images/posts/2026-07-05-kapa-ai-widget.png)
+![Kapa.ai widget on the Strimzi website](/assets/images/posts/2026-07-07-kapa-ai-widget.png)
 
 ### Why We Added an AI Assistant
 
@@ -35,7 +35,7 @@ This means answers come from Strimzi's own documentation, GitHub issues, discuss
 Click the Strimzi icon in the bottom-right corner of any page on the Strimzi website, and a chat window opens.
 You can ask questions in natural language, and Kapa.ai will search through the Strimzi knowledge base to find relevant answers.
 
-![Kapa.ai chat window](/assets/images/posts/2026-07-05-kapa-ai-chat.png)
+![Kapa.ai chat window](/assets/images/posts/2026-07-07-kapa-ai-chat.png)
 
 Each answer includes references to the source material, so you can verify the information and dive deeper if needed.
 
@@ -68,7 +68,7 @@ Ask it anything about Strimzi, and let us know what you think.
 
 After each answer, you will see "Good Answer" and "Bad Answer" buttons along with an optional text field where you can explain your rating.
 
-![Kapa.ai feedback buttons](/assets/images/posts/2026-07-05-kapa-ai-chat-feedback.png)
+![Kapa.ai feedback buttons](/assets/images/posts/2026-07-07-kapa-ai-chat-feedback.png)
 
 This feedback loop matters. 
 Positive ratings confirm that the knowledge base is working well, while negative ratings with a short rationale help us pinpoint where the assistant falls short and where our documentation needs improvement.
