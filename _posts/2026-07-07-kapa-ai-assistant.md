@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Meet Strimzi's New AI Assistant: Kapa.ai"
-date: 2026-07-05
+date: 2026-07-07
 author: maros_orsak
 ---
 
