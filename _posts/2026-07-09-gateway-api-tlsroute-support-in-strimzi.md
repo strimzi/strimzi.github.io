@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Gateway API and TLSRoute support in Strimzi"
-date: 2026-06-28
+date: 2026-07-09
 author: paolo_patierno
 ---
 
