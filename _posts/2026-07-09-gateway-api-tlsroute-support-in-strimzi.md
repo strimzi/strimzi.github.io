@@ -14,7 +14,7 @@ It was actually archived on the stage during KubeCon EU Amsterdam this year, and
 With no future investment planned for that controller, building on top of it is no longer a good idea.
 Fortunately, the Kubernetes ecosystem has a well-supported successor: the **Gateway API**.
 
-Starting with Strimzi 1.0, the operator natively supports a new external listener type (`type: tlsroute`) based on the Kubernetes Gateway API and its `TLSRoute` resource.
+Starting with Strimzi 1.1, the operator natively supports a new external listener type (`type: tlsroute`) based on the Kubernetes Gateway API and its `TLSRoute` resource.
 In this post we will look at what the Gateway API is, why `TLSRoute` is the right fit for Kafka traffic, and then walk through a fully working example on **minikube** using [Envoy Gateway](https://gateway.envoyproxy.io/) as the Gateway controller.
 
 ### From Ingress to Gateway API
@@ -79,7 +79,7 @@ You will need the following tools installed:
 
 * [kubectl](https://kubernetes.io/docs/tasks/tools/)
 * [Helm 3](https://helm.sh/docs/intro/install/)
-* Strimzi 1.0.0+ installed in your cluster (the [Quickstart](https://strimzi.io/quickstarts/) is the fastest path)
+* Strimzi 1.1.0+ installed in your cluster (the [Quickstart](https://strimzi.io/quickstarts/) is the fastest path)
 * Kafka CLI tools (`kafka-topics.sh`, `kafka-console-producer.sh`, `kafka-console-consumer.sh`); alternatively, you can run them from inside a broker pod
 
 #### Step 1: Install Envoy Gateway
