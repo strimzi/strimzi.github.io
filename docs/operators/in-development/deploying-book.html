@@ -34223,9 +34223,172 @@ Use automatic upgrades only on version-specific channels.
 <div class="paragraph">
 <p>For more information on using OperatorHub to upgrade Operators, see the <a href="https://olm.operatorframework.io/docs/" target="_blank" rel="noopener">Operator Lifecycle Manager documentation</a>.</p>
 </div>
+<div class="paragraph">
+<p>If OLM does not provide a direct upgrade path between the installed and target Strimzi versions, replace the OLM subscription and select the target channel while retaining all Strimzi custom resources and CRDs.
+For example, this might be required when moving from the <code>stable</code> channel to a version-specific channel.</p>
+</div>
 </div>
 <div class="sect3">
-<h4 id="upgrading_the_cluster_operator_using_a_helm_chart"><a class="link" href="#upgrading_the_cluster_operator_using_a_helm_chart">30.5.3. Upgrading the Cluster Operator using a Helm chart</a></h4>
+<h4 id="proc-upgrade-cluster-operator-olm-no-upgrade-path-str"><a class="link" href="#proc-upgrade-cluster-operator-olm-no-upgrade-path-str">30.5.3. Upgrading Strimzi when an OLM upgrade path is not available</a></h4>
+<div class="paragraph _abstract">
+<p>Upgrade an OLM-based Strimzi installation by replacing the OLM subscription when the catalog does not provide a direct upgrade path between the installed and target versions.
+For example, you can use this procedure to move from the <code>stable</code> channel to a version-specific channel such as <code>strimzi-1.x</code> when changing the channel on the existing subscription does not create an InstallPlan.
+This procedure applies to OperatorHub on OpenShift and other Kubernetes platforms that use OLM.
+It does not apply to installations that use the Strimzi YAML files or Helm chart.</p>
+</div>
+<div class="paragraph">
+<p>When an OLM upgrade path is not available, remove only the existing <code>Subscription</code> and CSV, and then create a subscription to the target channel.</p>
+</div>
+<div class="paragraph">
+<p>Removing only the <code>Subscription</code> and CSV leaves the Strimzi custom resources, CRDs, and running Kafka components in place.
+The components continue to run while the Cluster Operator is unavailable, but they are not reconciled until the target Cluster Operator is installed.</p>
+</div>
+<div class="paragraph">
+<p>The commands in this procedure use <code>kubectl</code>.
+On OpenShift, you can use <code>oc</code> instead.</p>
+</div>
+<div class="ulist">
+<div class="title">Prerequisites</div>
+<ul>
+<li>
+<p>You have identified the target Strimzi version and the channel that provides it.</p>
+</li>
+<li>
+<p>You have confirmed that OLM does not provide a direct upgrade path to the target version.</p>
+</li>
+<li>
+<p>You have read the release notes for all Strimzi versions in the upgrade path and completed the required pre-upgrade steps.</p>
+<div class="paragraph">
+<p>If the target version removes a CRD API version, migrate the custom resources and the CRD storage version before starting this procedure.
+The versions listed in <code>status.storedVersions</code> for an existing CRD must be supported by the CRD supplied with the target version.</p>
+</div>
+</li>
+<li>
+<p>You have access to the Kubernetes cluster with permissions to manage OLM resources in the namespace where Strimzi is installed.</p>
+</li>
+<li>
+<p>If a GitOps tool manages the OLM resources, you have paused reconciliation for them.</p>
+</li>
+<li>
+<p>You have tested the procedure in a non-production environment.</p>
+</li>
+</ul>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Record the name of the installed CSV from the current Strimzi subscription.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get subscription <em>&lt;subscription_name&gt;</em> -n <em>&lt;namespace&gt;</em> -o jsonpath='{.status.installedCSV}{"\n"}'</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Delete the existing Strimzi subscription.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete subscription <em>&lt;subscription_name&gt;</em> -n <em>&lt;namespace&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Delete the CSV recorded in the first step.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl delete csv <em>&lt;installed_csv_name&gt;</em> -n <em>&lt;namespace&gt;</em></code></pre>
+</div>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+Do not delete any Strimzi custom resources or CRDs.
+Deleting a CRD also deletes all custom resources of that type and can cause the Kubernetes resources managed by them to be deleted.
+</td>
+</tr>
+</table>
+</div>
+</li>
+<li>
+<p>Create a <code>Subscription</code> custom resource that uses the target channel.</p>
+<div class="paragraph">
+<p>For example, the following subscription uses manual InstallPlan approval:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: <em>&lt;subscription_name&gt;</em>
+  namespace: <em>&lt;namespace&gt;</em>
+spec:
+  channel: <em>&lt;target_channel&gt;</em>
+  installPlanApproval: Manual
+  name: strimzi-kafka-operator
+  source: <em>&lt;catalog_source&gt;</em>
+  sourceNamespace: <em>&lt;catalog_source_namespace&gt;</em></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Create the subscription by using the same management method as the existing OLM resources.</p>
+</div>
+<div class="paragraph">
+<p>If you use GitOps, update the <code>Subscription</code> manifest in the Git repository and resume reconciliation.
+Otherwise, apply the resource from the command line:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl apply -f <em>&lt;subscription_file&gt;</em></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>If you use manual approval, get and approve the InstallPlan created by OLM.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get installplan -n <em>&lt;namespace&gt;</em>
+kubectl patch installplan <em>&lt;install_plan_name&gt;</em> -n <em>&lt;namespace&gt;</em> --type merge -p '{"spec":{"approved":true}}'</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Verify that the CSV for the target Strimzi version reaches the <code>Succeeded</code> phase and that the Cluster Operator is running.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get csv -n <em>&lt;namespace&gt;</em>
+kubectl get pods -n <em>&lt;namespace&gt;</em> -l name=strimzi-cluster-operator</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Verify the status of each <code>Kafka</code> resource and wait for any rolling updates to finish.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl get kafka -A</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="ulist">
+<div class="title">Additional resources</div>
+<ul>
+<li>
+<p><a href="#con-upgrade-status-str">Checking the status of an upgrade</a></p>
+</li>
+<li>
+<p><a href="https://olm.operatorframework.io/docs/" target="_blank" rel="noopener">Operator Lifecycle Manager documentation</a></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="upgrading_the_cluster_operator_using_a_helm_chart"><a class="link" href="#upgrading_the_cluster_operator_using_a_helm_chart">30.5.4. Upgrading the Cluster Operator using a Helm chart</a></h4>
 <div class="paragraph">
 <p>If you deployed the Cluster Operator using a Helm chart, use <code>helm upgrade</code>.</p>
 </div>
@@ -34236,7 +34399,7 @@ You can download the CRDs from the <a href="https://github.com/strimzi/strimzi-k
 </div>
 </div>
 <div class="sect3">
-<h4 id="con-upgrade-cluster-operator-unsupported-kafka-str"><a class="link" href="#con-upgrade-cluster-operator-unsupported-kafka-str">30.5.4. Upgrading the Cluster Operator returns Kafka version error</a></h4>
+<h4 id="con-upgrade-cluster-operator-unsupported-kafka-str"><a class="link" href="#con-upgrade-cluster-operator-unsupported-kafka-str">30.5.5. Upgrading the Cluster Operator returns Kafka version error</a></h4>
 <div class="paragraph">
 <p>If you upgrade the Cluster Operator to a version that does not support the current version of Kafka you are using, you get an <em>unsupported Kafka version</em> error.
 This error applies to all installation methods and means that you must upgrade Kafka to a supported Kafka version.
