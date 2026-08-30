@@ -11737,6 +11737,94 @@ spec:
 This can cause unexpected errors, so you must configure unique values for these properties for each instance.</p>
 </div>
 </div>
+<div class="sect3">
+<h4 id="con-config-kafka-connect-rest-extensions-str"><a class="link" href="#con-config-kafka-connect-rest-extensions-str">11.7.7. Using custom REST extensions with Kafka Connect and MirrorMaker 2</a></h4>
+<div class="paragraph _abstract">
+<p>Add custom REST extensions to the Kafka Connect REST API by setting the <code>rest.extension.classes</code> property in the <code>KafkaConnect</code> or <code>KafkaMirrorMaker2</code> custom resource.
+REST extensions can add custom filtering, validation, or security mechanisms to the REST API.</p>
+</div>
+<div class="paragraph">
+<p>Each class listed in <code>rest.extension.classes</code> must implement the <code>ConnectRestExtension</code> interface and must be available on the Kafka Connect or MirrorMaker 2 classpath.
+Kafka Connect loads and runs the extensions in the order in which they are listed.</p>
+</div>
+<div class="paragraph">
+<p>Strimzi manages Kafka Connect and MirrorMaker 2 through the REST API, so custom REST extensions must not restrict the following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Access to the <code>/health</code> endpoint, so that the liveness and readiness probes continue to work.</p>
+</li>
+<li>
+<p>Inter-node communication between Kafka Connect or MirrorMaker 2 nodes, so that the nodes can communicate with each other.</p>
+</li>
+<li>
+<p>Operations performed by the Cluster Operator on the Kafka Connect REST API when the <code>strimzi.io/use-connector-resources</code> annotation is enabled, so that connectors can be managed using <code>KafkaConnector</code> resources.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Configuring REST extensions is an advanced option.
+Make sure that your extensions meet these requirements and test them outside of production before you deploy them to a production environment.</p>
+</div>
+<div class="sect4">
+<h5 id="configuring_rest_extensions_in_kafka_connect"><a class="link" href="#configuring_rest_extensions_in_kafka_connect">Configuring REST extensions in Kafka Connect</a></h5>
+<div class="paragraph">
+<p>For Kafka Connect, add the <code>rest.extension.classes</code> property to <code>spec.config</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example REST extension configuration for Kafka Connect</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
+kind: KafkaConnect
+metadata:
+  name: my-connect
+spec:
+  # ...
+  config:
+    rest.extension.classes: my.domain.package.MyCustomRestExtension,my.domain.package.AnotherRestExtension
+    # ...</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>rest.extension.classes</code> specifies a comma-separated list of fully qualified names of classes that implement Kafka&#8217;s <code>ConnectRestExtension</code> interface.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="configuring_rest_extensions_in_mirrormaker_2"><a class="link" href="#configuring_rest_extensions_in_mirrormaker_2">Configuring REST extensions in MirrorMaker 2</a></h5>
+<div class="paragraph">
+<p>For MirrorMaker 2, add the <code>rest.extension.classes</code> property to <code>spec.target.config</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example REST extension configuration for MirrorMaker 2</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
+kind: KafkaMirrorMaker2
+metadata:
+  name: my-mirror-maker-2
+spec:
+  target:
+    # ...
+    config:
+      rest.extension.classes: my.domain.package.MyCustomRestExtension,my.domain.package.AnotherRestExtension
+      # ...
+  mirrors:
+    # ...</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>rest.extension.classes</code> specifies a comma-separated list of fully qualified names of classes that implement Kafka&#8217;s <code>ConnectRestExtension</code> interface.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="con-kafka-connector-config-str"><a class="link" href="#con-kafka-connector-config-str">11.8. Managing Kafka Connect connector instances</a></h3>
@@ -39094,7 +39182,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-08-30 13:22:51 UTC
+Last updated 2026-08-30 15:58:07 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
