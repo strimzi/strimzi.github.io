@@ -20475,7 +20475,9 @@ spec:
 <div class="sect3">
 <h4 id="con-mutual-tls-authentication-str"><a class="link" href="#con-mutual-tls-authentication-str">16.1.1. mTLS authentication</a></h4>
 <div class="paragraph">
-<p>mTLS authentication is always used for the communication between Kafka nodes.</p>
+<p>By default, mTLS authentication is also used for the communication between Kafka nodes and other Strimzi components.
+You can change this in the internal cluster security configuration.
+For more information, see <a href="#con-internal-cluster-security-str">Internal cluster encryption and authentication</a>.</p>
 </div>
 <div class="paragraph">
 <p>Strimzi can configure Kafka to use TLS (Transport Layer Security) to provide encrypted communication between Kafka brokers and clients either with or without mutual authentication.
@@ -23023,7 +23025,8 @@ The security of this interface follows the internal cluster security configurati
 <div class="paragraph _abstract">
 <p>Configure the encryption and authentication used for communication between components of a Kafka cluster.
 The default TLS encryption and mTLS authentication provide secure internal communication.
-But you can disable mTLS or both options when your environment provides equivalent protection or has other requirements.</p>
+But you can authenticate the components with Kubernetes service account tokens instead of mTLS certificates.
+You can also disable mTLS or both options when your environment provides equivalent protection or has other requirements.</p>
 </div>
 <div class="admonitionblock important">
 <table>
@@ -23033,7 +23036,7 @@ But you can disable mTLS or both options when your environment provides equivale
 </td>
 <td class="content">
 Changing the internal cluster security configuration requires downtime of the Kafka cluster.
-Make sure to carefully follow the <a href="#proc-changing-internal-cluster-security">Changing the internal cluster security configuration</a> procedure to avoid leaving the cluster in an invalid state.
+Make sure to carefully follow the <a href="#proc-changing-internal-cluster-security-str">Changing the internal cluster security configuration</a> procedure to avoid leaving the cluster in an invalid state.
 </td>
 </tr>
 </table>
@@ -23125,14 +23128,19 @@ The annotation is a temporary configuration interface and might also change.
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Authentication</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>service-account</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Authenticates internal components by using Kubernetes service account tokens.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Authentication</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>none</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Disables mTLS authentication governed by the internal cluster security configuration.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Disables authentication governed by the internal cluster security configuration.</p></td>
 </tr>
 </tbody>
 </table>
 <div class="paragraph">
 <p>The <code>mtls</code> authentication type requires <code>tls</code> encryption.
-Consequently, disabling TLS encryption also requires authentication to be disabled.
+The <code>service-account</code> authentication type works with or without TLS encryption.
 The supported combinations are:</p>
 </div>
 <div class="ulist">
@@ -23141,7 +23149,13 @@ The supported combinations are:</p>
 <p>TLS encryption with mTLS authentication</p>
 </li>
 <li>
+<p>TLS encryption with service account authentication</p>
+</li>
+<li>
 <p>TLS encryption without authentication</p>
+</li>
+<li>
+<p>No encryption with service account authentication</p>
 </li>
 <li>
 <p>And no encryption with no authentication</p>
@@ -23167,6 +23181,110 @@ Disable authentication only if other controls, such as network isolation or a se
 <div class="paragraph">
 <p>If the <code>strimzi.io/internal-cluster-security</code> annotation is not present, Strimzi uses <code>tls</code> encryption with <code>mtls</code> authentication.
 This behavior is unchanged from previous releases.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="early_access_using_service_account_authentication"><a class="link" href="#early_access_using_service_account_authentication">(Early Access) Using service account authentication</a></h5>
+<div class="paragraph">
+<p>Set the authentication type to <code>service-account</code> to authenticate internal components with Kubernetes service account tokens instead of mTLS certificates.
+All components use the the SASL <code>OAUTHBEARER</code> mechanism with a Service Account token for authentication.
+The operands get the token by mounting a projected service account token that is bound to the Kafka cluster.
+The Cluster Operator uses the Kubernetes <code>TokenRequest</code> to get the token.
+Kafka brokers and controllers validate the tokens against the JWKS endpoint of the Kubernetes API server.
+The Kafka Agent validates the same tokens on its HTTP endpoints.</p>
+</div>
+<div class="paragraph">
+<p>Service account authentication can be combined with <code>tls</code> encryption or used without encryption.
+Use it with <code>tls</code> encryption unless internal traffic is encrypted by other means, such as a service mesh.</p>
+</div>
+<div class="listingblock">
+<div class="title">TLS encryption with service account authentication</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">apiVersion: kafka.strimzi.io/v1
+kind: Kafka
+metadata:
+  name: my-cluster
+  annotations:
+    strimzi.io/internal-cluster-security: |
+      {
+        "encryption": {
+          "type": "tls"
+        },
+        "authentication": {
+          "type": "service-account",
+          "expirationSeconds": 3600
+        }
+      }
+spec:
+  # ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The optional <code>expirationSeconds</code> property sets the validity of the issued tokens.
+It applies only to the <code>service-account</code> authentication type and defaults to <code>3600</code> (1 hour) when not set.
+Kubernetes requires a minimum of <code>600</code> (10 minutes) for projected service account tokens.
+Tokens are refreshed by Kubernetes before they expire, and the components pick up the refreshed tokens automatically.</p>
+</div>
+<div class="paragraph">
+<p>Components are authenticated as the Kubernetes service accounts they run under, using the <code>system:serviceaccount:&lt;namespace&gt;:&lt;service_account_name&gt;</code> principal format.
+Strimzi creates an additional service account named <code>&lt;cluster_name&gt;-cluster-operator</code> in the namespace of the Kafka cluster.
+The Cluster Operator requests tokens for this service account and uses them for its own connections to the Kafka cluster and to the Kafka Agent.
+The service account exists only while service account authentication is enabled.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 18. Service accounts used for internal cluster authentication</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Component</th>
+<th class="tableblock halign-left valign-top">Service account</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka brokers and controllers</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;cluster_name&gt;-kafka</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cluster Operator</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;cluster_name&gt;-cluster-operator</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Topic Operator and User Operator</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;cluster_name&gt;-entity-operator</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cruise Control</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;cluster_name&gt;-cruise-control</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kafka Exporter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>&lt;cluster_name&gt;-kafka-exporter</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>When Kafka authorization is configured, Strimzi adds these principals to the list of Kafka super users so that internal components can operate.
+Unlike the <code>none</code> authentication type, the <code>ANONYMOUS</code> user is not made a super user.</p>
+</div>
+<div class="paragraph">
+<p>Service account authentication has the following requirements:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The Cluster Operator must be allowed to create tokens by requesting them from the Kubernetes API.
+The required permission to <code>create</code> the <code>serviceaccounts/token</code> subresource is included in the <code>strimzi-cluster-operator-namespaced</code> cluster role in the Strimzi installation files.
+If you use customized RBAC resources, add this permission before enabling service account authentication.</p>
+</li>
+<li>
+<p>The Kubernetes API server must use the default in-cluster service account issuer (<code><a href="https://kubernetes.default.svc.cluster.local" class="bare">https://kubernetes.default.svc.cluster.local</a></code>) and expose the <a href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#service-account-issuer-discovery" target="_blank" rel="noopener">service account issuer discovery</a> endpoints, which is the case in most Kubernetes distributions.
+Strimzi components use their Kubernetes service account tokens to authenticate to these endpoints, so anonymous access to them is not required.</p>
+</li>
+</ul>
 </div>
 </div>
 <div class="sect4">
@@ -23230,10 +23348,6 @@ spec:
 <p>During reconciliation, the Cluster Operator records the selected configuration in <code>.status.clusterSecurity</code> of the <code>Kafka</code> resource.
 If a subsequent annotation change does not match the recorded configuration, reconciliation fails to protect the running cluster from an incompatible change.
 To change the configuration of an existing cluster, use the required downtime procedure.</p>
-</div>
-<div class="paragraph">
-<p>Additional authentication types are planned for future releases so that internal components can authenticate without mTLS.
-These authentication types are not currently available.</p>
 </div>
 </div>
 </div>
@@ -23352,6 +23466,16 @@ For example, set both types to <code>none</code> to disable TLS encryption and m
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafka &lt;cluster_name&gt; \
   strimzi.io/internal-cluster-security='{"encryption":{"type":"none"},"authentication":{"type":"none"}}' \
+  --overwrite</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or set the authentication type to <code>service-account</code> to keep TLS encryption and authenticate the components with Kubernetes service account tokens:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate kafka &lt;cluster_name&gt; \
+  strimzi.io/internal-cluster-security='{"encryption":{"type":"tls"},"authentication":{"type":"service-account"}}' \
   --overwrite</code></pre>
 </div>
 </div>
@@ -23708,7 +23832,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </table>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 18. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
+<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -23727,7 +23851,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 19. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
+<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -23754,7 +23878,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 20. Fields in the <code><em>&lt;cluster_name&gt;</em>-<em>&lt;pool_name&gt;</em>-<em>&lt;node_id&gt;</em></code> secret</caption>
+<caption class="title">Table 21. Fields in the <code><em>&lt;cluster_name&gt;</em>-<em>&lt;pool_name&gt;</em>-<em>&lt;node_id&gt;</em></code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23777,7 +23901,7 @@ The CA certificates in <code><em>&lt;cluster_name&gt;</em>-cluster-ca-cert</code
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 21. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
+<caption class="title">Table 22. Fields in the <code><em>&lt;cluster_name&gt;</em>-cluster-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23801,7 +23925,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 22. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
+<caption class="title">Table 23. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-topic-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23825,7 +23949,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 23. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
+<caption class="title">Table 24. Fields in the <code><em>&lt;cluster_name&gt;</em>-entity-user-operator-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23849,7 +23973,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 24. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
+<caption class="title">Table 25. Fields in the <code><em>&lt;cluster_name&gt;</em>-cruise-control-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23873,7 +23997,7 @@ Signed by a current or former cluster CA private key in <code><em>&lt;cluster_na
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 25. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
+<caption class="title">Table 26. Fields in the <code><em>&lt;cluster_name&gt;</em>-kafka-exporter-certs</code> secret</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -23911,7 +24035,7 @@ This secret must be accessible to the Strimzi components and for administrative 
 You can enforce this using Kubernetes role-based access controls, if necessary.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 26. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
+<caption class="title">Table 27. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -23930,7 +24054,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 27. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
+<caption class="title">Table 28. Fields in the <code><em>&lt;cluster_name&gt;</em>-clients-ca-cert</code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 70%;">
@@ -23966,7 +24090,7 @@ You can enforce this using Kubernetes role-based access controls, if necessary.<
 <p>When a user is created using the User Operator, a secret is generated using the name of the user.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 28. Fields in the <code><em>user_name</em></code> secret</caption>
+<caption class="title">Table 29. Fields in the <code><em>user_name</em></code> secret</caption>
 <colgroup>
 <col style="width: 30%;">
 <col style="width: 30%;">
@@ -24733,7 +24857,7 @@ Instead, follow the procedure for <a href="#renewing-your-own-ca-certificates-st
 <li>
 <p>Apply the <code>strimzi.io/force-replace</code> annotation to the <code>Secret</code> that contains the private key that you want to renew.</p>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 29. Commands for replacing private keys</caption>
+<caption class="title">Table 30. Commands for replacing private keys</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -27312,7 +27436,7 @@ Fewer data movements at a single time reduces the load on the cluster.</p>
 <p>The following table explains the properties contained in the optimization proposal&#8217;s summary.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 30. Properties contained in an optimization proposal summary</caption>
+<caption class="title">Table 31. Properties contained in an optimization proposal summary</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -27457,7 +27581,7 @@ Each broker has a set of key metrics represented by three values:</p>
 </div>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 31. Properties captured in the config map</caption>
+<caption class="title">Table 32. Properties captured in the config map</caption>
 <colgroup>
 <col style="width: 35%;">
 <col style="width: 65%;">
@@ -27609,7 +27733,7 @@ Cruise Control does not perform inter-broker and intra-broker balancing at the s
 </ul>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 32. Rebalance configuration tuning properties</caption>
+<caption class="title">Table 33. Rebalance configuration tuning properties</caption>
 <colgroup>
 <col style="width: 36.3636%;">
 <col style="width: 36.3636%;">
@@ -27863,7 +27987,7 @@ The deployment is successful when the <code>AVAILABLE</code> output shows <code>
 <p>The following table shows the three topics that are automatically created when Cruise Control is deployed. These topics are required for Cruise Control to work properly and must not be deleted or changed. You can change the name of the topic using the specified configuration option.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 33. Topics created when Cruise Control is deployed</caption>
+<caption class="title">Table 34. Topics created when Cruise Control is deployed</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 16.6666%;">
@@ -30674,7 +30798,7 @@ Relabeling is the process of writing a label dynamically.
 For example, the value of a label may be derived from the name of a Kafka server and client ID.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 34. Example custom resources with metrics configuration</caption>
+<caption class="title">Table 35. Example custom resources with metrics configuration</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -30719,7 +30843,7 @@ For example, the value of a label may be derived from the name of a Kafka server
 <div class="sect3">
 <h4 id="ref-metrics-reporter-config-str"><a class="link" href="#ref-metrics-reporter-config-str">25.1.2. Example Metrics Reporter metrics configuration</a></h4>
 <table class="tableblock frame-all grid-all stripes-none stretch _abstract">
-<caption class="title">Table 35. Example custom resources with metrics configuration</caption>
+<caption class="title">Table 36. Example custom resources with metrics configuration</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -30837,7 +30961,7 @@ For example, the Grafana dashboard for Strimzi operators provides information on
 The dashboards are populated with a representative set of metrics for monitoring.</p>
 </div>
 <table class="tableblock frame-all grid-all stripes-none stretch">
-<caption class="title">Table 36. Example Grafana dashboard files</caption>
+<caption class="title">Table 37. Example Grafana dashboard files</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -32260,7 +32384,7 @@ For the latest information, see the <a href="https://opentelemetry.io/docs/" tar
 <p>The following table describes the key environment variables for setting up tracing with OpenTelemetry.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 37. OpenTelemetry environment variables</caption>
+<caption class="title">Table 38. OpenTelemetry environment variables</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 20%;">
@@ -33277,7 +33401,7 @@ You can use the configuration to control how certificates are watched for update
 For more information on how the environment variables work, see <a href="#proc-drain-cleaner-certs-renewing-str">Watching the TLS certificates used by the Strimzi Drain Cleaner</a>.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 38. Chart configuration options</caption>
+<caption class="title">Table 39. Chart configuration options</caption>
 <colgroup>
 <col style="width: 45.4545%;">
 <col style="width: 36.3636%;">
@@ -33678,7 +33802,7 @@ But you can disable the watching of certificates by setting the <code>STRIMZI_CE
 <p>With <code>STRIMZI_CERTIFICATE_WATCH_ENABLED</code> enabled, you can also use the following environment variables for watching TLS certificates.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 39. Drain Cleaner environment variables for watching TLS certificates</caption>
+<caption class="title">Table 40. Drain Cleaner environment variables for watching TLS certificates</caption>
 <colgroup>
 <col style="width: 45.4545%;">
 <col style="width: 36.3636%;">
@@ -33968,7 +34092,7 @@ You can export and monitor restart events using metrics collection tools like Pr
 You can check the reason by fetching information on the restart event.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 40. Restart reasons</caption>
+<caption class="title">Table 41. Restart reasons</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 66.6667%;">
@@ -35483,7 +35607,7 @@ In this case, you must, if possible, downgrade the Kafka version as part of the 
 <p>The following table details known limitations for specific downgrade paths.</p>
 </div>
 <table id="downgrade-version-limitations" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 41. Known limitations in downgrade paths</caption>
+<caption class="title">Table 42. Known limitations in downgrade paths</caption>
 <colgroup>
 <col style="width: 28.5714%;">
 <col style="width: 71.4286%;">
@@ -37160,7 +37284,7 @@ You can also override <code>min.insync.replicas</code> at the topic level in the
 <p>The following table describes how this configuration operates depending on the availability of followers that replicate the leader replica.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 42. Follower availability</caption>
+<caption class="title">Table 43. Follower availability</caption>
 <colgroup>
 <col style="width: 28.5714%;">
 <col style="width: 42.8571%;">
