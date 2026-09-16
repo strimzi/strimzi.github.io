@@ -10558,6 +10558,81 @@ The <code>security.protocol `setting is generated automatically from the `sasl</
 <p>If your custom authentication mechanism requires additional information from <code>Secret</code> or <code>ConfigMap</code> resources, use the <a href="./configuring.html#con-common-configuration-volumes-reference" target="_blank" rel="noopener">Additional Volumes</a> feature to mount them into the operands.
 Kafka configuration providers can be used to load them from the disk.</p>
 </div>
+<div class="paragraph">
+<p>If the <code>config</code> section contains sensitive values such as passwords, tokens, or client secrets, do not embed them directly.
+Use Kafka configuration providers to load sensitive values at runtime instead.
+Strimzi includes the <code>KubernetesSecretConfigProvider</code> for loading values from Kubernetes <code>Secret</code> resources.
+Other providers, such as the File or Directory providers, can also be used when the sensitive value is available on the filesystem.</p>
+</div>
+<div class="paragraph">
+<p>Configure the config provider in the component&#8217;s <code>spec.config</code> and reference secrets using the template syntax <code>${&lt;config-provider-alias&gt;:&lt;namespace&gt;/&lt;secret-name&gt;:&lt;key&gt;}</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Insecure: OAuth client secret as a literal value in sasl.jaas.config</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">authentication:
+  type: custom
+  sasl: true
+  config:
+    sasl.mechanism: OAUTHBEARER
+    sasl.jaas.config: |
+      org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
+        oauth.client.id="my-client-id"
+        oauth.client.secret="my-plaintext-client-secret"
+        oauth.token.endpoint.uri="https://my-oauth-server/token";
+    sasl.login.callback.handler.class: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Secure: OAuth client secret loaded from a Kubernetes Secret via a config provider</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">spec:
+  config:
+    config.providers: my-secrets-provider # <b class="conum">(1)</b>
+    config.providers.my-secrets-provider.class: io.strimzi.kafka.KubernetesSecretConfigProvider # <b class="conum">(2)</b>
+  # ...
+  authentication:
+    type: custom
+    sasl: true
+    config:
+      sasl.mechanism: OAUTHBEARER
+      sasl.jaas.config: |
+        org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
+          oauth.client.id="my-client-id"
+          oauth.client.secret="${my-secrets-provider:mynamespace/my-oauth-secret:client-secret}" # <b class="conum">(3)</b>
+          oauth.token.endpoint.uri="https://my-oauth-server/token";
+      sasl.login.callback.handler.class: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>A user-chosen alias for the provider, used in template references.</p>
+</li>
+<li>
+<p><code>KubernetesSecretConfigProvider</code> loads values from Kubernetes <code>Secret</code> resources at runtime.</p>
+</li>
+<li>
+<p>A config provider template reference. The <code>KubernetesSecretConfigProvider</code> resolves it to the actual secret value at runtime, so the sensitive value is never stored in plaintext in the component configuration.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>The Secret can be in any namespace, as long as the service account has the required access rights.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+You need to give the Kafka broker service account the access rights to the used Secret.
+For more information on setting up access rights, see the <a href="./configuring.html#assembly-loading-config-with-providers-str" target="_blank" rel="noopener">Loading configuration values from external sources</a> section.
+</td>
+</tr>
+</table>
+</div>
 </div>
 <div class="sect2">
 <h3 id="using_kubernetes_service_account_tokens_for_authentication"><a class="link" href="#using_kubernetes_service_account_tokens_for_authentication">80.2. Using Kubernetes Service Account tokens for authentication</a></h3>
