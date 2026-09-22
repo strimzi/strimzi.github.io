@@ -12,7 +12,7 @@ But with Strimzi 1.3.0, this is going to change!
 
 <!--more-->
 
-> WARNING: This blog post previews an unreleased feature that will be part of the upcoming Strimzi 1.3.0 release.
+> This blog post previews an unreleased feature that will be part of the upcoming Strimzi 1.3.0 release.
 
 When we created Strimzi, we wanted it to be secure out of the box.
 So TLS encryption and mTLS authentication were baked into it from the beginning.
@@ -53,7 +53,7 @@ The proposal introduces two new configuration options:
 The encryption configuration allows you to enable or disable TLS.
 And the authentication configuration lets you choose between mTLS authentication (supported only when TLS encryption is enabled as well), no authentication, and Service Account-based authentication.
 
-> IMPORTANT: This configuration affects only the internal communication within the Kafka cluster.
+> This configuration affects only the internal communication within the Kafka cluster.
 > It has no impact on the listeners you configured in `.spec.kafka.listeners`.
 
 Service Account authentication is the new authentication type we are introducing, and it does not depend on the TLS encryption.
@@ -141,7 +141,7 @@ spec:
   # ...
 ```
 
-> NOTE: For the full list of configuration options and additional examples, please follow the Strimzi 1.3.0 documentation once it is released.
+> For the full list of configuration options and additional examples, please follow the Strimzi 1.3.0 documentation once it is released.
 
 Without the annotation, TLS encryption and mTLS authentication will be used as before.
 So if you are happy with how Strimzi worked until now, you can just ignore the annotation.
@@ -160,7 +160,7 @@ You have to:
 * Update the security configuration
 * Start the Kafka cluster again by unpausing the reconciliation
 
-> NOTE: For the detailed steps, please follow the full migration documentation once Strimzi 1.3.0 is released.
+> For the detailed steps, please follow the full migration documentation once Strimzi 1.3.0 is released.
 
 Stopping the whole Kafka cluster makes the migration significantly easier.
 For example, we do not need a complicated multi-step process that would add and remove internal Kafka listeners to change the authentication or encryption.
