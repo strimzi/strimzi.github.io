@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Beyond mTLS: Configurable Security for Internal Apache Kafka Cluster Communication"
-date: 2026-09-17
+date: 2026-09-22
 author: jakub_scholz
 ---
 
