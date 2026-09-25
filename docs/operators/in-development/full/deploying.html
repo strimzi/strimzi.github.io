@@ -643,8 +643,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#assembly-rolling-updates-str">28. Managing rolling updates</a>
 <ul class="sectlevel2">
-<li><a href="#proc-manual-rolling-update-strimzipodset-str">28.1. Performing a rolling update using a pod management annotation</a></li>
-<li><a href="#proc-manual-rolling-update-pods-str">28.2. Performing a rolling update using a pod annotation</a></li>
+<li><a href="#proc-manual-rolling-update-pods-str">28.1. Performing a rolling update using a pod annotation</a></li>
+<li><a href="#proc-manual-rolling-update-strimzipodset-str">28.2. Performing a rolling update using a pod management annotation</a></li>
 </ul>
 </li>
 <li><a href="#assembly-deploy-restart-events-str">29. Finding information on Kafka restarts</a>
@@ -34347,54 +34347,28 @@ However, rather than deleting the pods directly, if you perform the rolling upda
 </li>
 </ul>
 </div>
-<div class="sect2">
-<h3 id="proc-manual-rolling-update-strimzipodset-str"><a class="link" href="#proc-manual-rolling-update-strimzipodset-str">28.1. Performing a rolling update using a pod management annotation</a></h3>
-<div class="paragraph _abstract">
-<p>This procedure describes how to trigger a rolling update of Kafka, Kafka Connect, or MirrorMaker 2 clusters.
-To trigger the update, you add an annotation to the <code>StrimziPodSet</code> that manages the pods running on the cluster.</p>
-</div>
 <div class="paragraph">
-<div class="title">Prerequisites</div>
-<p>To perform a manual rolling update, you need a running Cluster Operator.
-The cluster for the component you are updating, whether it&#8217;s Kafka, Kafka Connect, or MirrorMaker 2 must also be running.</p>
-</div>
-<div class="olist arabic">
-<div class="title">Procedure</div>
-<ol class="arabic">
-<li>
-<p>Find the name of the resource that controls the pods you want to manually update.</p>
-<div class="paragraph">
-<p>For example, if your Kafka cluster is named <em>my-cluster</em>, the corresponding name is <em>my-cluster-kafka</em>.
-For a Kafka Connect cluster named <em>my-connect-cluster</em>, the corresponding name is <em>my-connect-cluster-connect</em>.
-And for a MirrorMaker 2 cluster named <em>my-mm2-cluster</em>, the corresponding name is <em>my-mm2-cluster-mirrormaker2</em>.</p>
-</div>
-</li>
-<li>
-<p>Use <code>kubectl annotate</code> to annotate the appropriate resource in Kubernetes.</p>
-<div class="listingblock">
-<div class="title">Annotating a StrimziPodSet</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate strimzipodset &lt;cluster_name&gt;-kafka strimzi.io/manual-rolling-update="true"
-
-kubectl annotate strimzipodset &lt;cluster_name&gt;-connect strimzi.io/manual-rolling-update="true"
-
-kubectl annotate strimzipodset &lt;cluster_name&gt;-mirrormaker2 strimzi.io/manual-rolling-update="true"</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Wait for the next reconciliation to occur (every two minutes by default).
-A rolling update of all pods within the annotated resource is triggered, as long as the annotation was detected by the reconciliation process.
-When the rolling update of all the pods is complete, the annotation is automatically removed from the resource.</p>
-</li>
-</ol>
-</div>
+<p>For manual rolling updates, annotate the individual <code>Pod</code> resources directly.
+This avoids the risk of a <code>StrimziPodSet</code> annotation being overwritten during reconciliation before the rolling update is triggered.</p>
 </div>
 <div class="sect2">
-<h3 id="proc-manual-rolling-update-pods-str"><a class="link" href="#proc-manual-rolling-update-pods-str">28.2. Performing a rolling update using a pod annotation</a></h3>
+<h3 id="proc-manual-rolling-update-pods-str"><a class="link" href="#proc-manual-rolling-update-pods-str">28.1. Performing a rolling update using a pod annotation</a></h3>
 <div class="paragraph _abstract">
 <p>This procedure describes how to manually trigger a rolling update of existing Kafka, Kafka Connect, or MirrorMaker 2 clusters using a Kubernetes <code>Pod</code> annotation.
+Annotate each pod that you want to roll.
 When multiple pods are annotated, consecutive rolling updates are performed within the same reconciliation run.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If a rolling update is already replacing a pod, annotating that pod does not guarantee an additional restart.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <div class="title">Prerequisites</div>
@@ -34495,6 +34469,62 @@ For example, it can recreate a missing Persistent Volume Claim (PVC) or Persiste
 </tr>
 </table>
 </div>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="proc-manual-rolling-update-strimzipodset-str"><a class="link" href="#proc-manual-rolling-update-strimzipodset-str">28.2. Performing a rolling update using a pod management annotation</a></h3>
+<div class="paragraph _abstract">
+<p>This procedure describes how to trigger a rolling update of Kafka, Kafka Connect, or MirrorMaker 2 clusters.
+To trigger the update, you add an annotation to the <code>StrimziPodSet</code> that manages the pods running on the cluster.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+If you annotate a <code>StrimziPodSet</code> while the Cluster Operator is reconciling it, the annotation can be overwritten without triggering the requested rolling update.
+To avoid this race, <a href="#proc-manual-rolling-update-pods-str">annotate the individual pods directly</a>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<div class="title">Prerequisites</div>
+<p>To perform a manual rolling update, you need a running Cluster Operator.
+The cluster for the component you are updating, whether it&#8217;s Kafka, Kafka Connect, or MirrorMaker 2 must also be running.</p>
+</div>
+<div class="olist arabic">
+<div class="title">Procedure</div>
+<ol class="arabic">
+<li>
+<p>Find the name of the resource that controls the pods you want to manually update.</p>
+<div class="paragraph">
+<p>For example, if your Kafka cluster is named <em>my-cluster</em>, the corresponding name is <em>my-cluster-kafka</em>.
+For a Kafka Connect cluster named <em>my-connect-cluster</em>, the corresponding name is <em>my-connect-cluster-connect</em>.
+And for a MirrorMaker 2 cluster named <em>my-mm2-cluster</em>, the corresponding name is <em>my-mm2-cluster-mirrormaker2</em>.</p>
+</div>
+</li>
+<li>
+<p>Use <code>kubectl annotate</code> to annotate the appropriate resource in Kubernetes.</p>
+<div class="listingblock">
+<div class="title">Annotating a StrimziPodSet</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">kubectl annotate strimzipodset &lt;cluster_name&gt;-kafka strimzi.io/manual-rolling-update="true"
+
+kubectl annotate strimzipodset &lt;cluster_name&gt;-connect strimzi.io/manual-rolling-update="true"
+
+kubectl annotate strimzipodset &lt;cluster_name&gt;-mirrormaker2 strimzi.io/manual-rolling-update="true"</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Wait for the next reconciliation to occur (every two minutes by default).
+A rolling update of all pods within the annotated resource is triggered, as long as the annotation was detected by the reconciliation process.
+When the rolling update of all the pods is complete, the annotation is automatically removed from the resource.</p>
 </li>
 </ol>
 </div>
@@ -39299,7 +39329,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-09-25 04:10:35 UTC
+Last updated 2026-09-25 08:29:22 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
