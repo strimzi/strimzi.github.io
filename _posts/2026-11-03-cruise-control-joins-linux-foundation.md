@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Cruise Control joins the Linux Foundation: what it means for Strimzi"
-date: 2026-11-02
+date: 2026-11-03
 author: paolo_patierno
 ---
 
