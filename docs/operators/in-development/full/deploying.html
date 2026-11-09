@@ -23741,6 +23741,27 @@ The service account exists only while service account authentication is enabled.
 <div class="paragraph">
 <p>When Kafka authorization is configured, Strimzi adds these principals to the list of Kafka super users so that internal components can operate.</p>
 </div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Kafka brokers and controllers accept any valid service account token issued by the Kubernetes cluster for the audience used by the Kafka cluster, regardless of the service account or namespace it was issued for.
+Anyone who can mint such a token can authenticate to the internal replication and control plane listeners and to the Kafka Agent, using the identity of the service account the token was issued for.
+Tokens can be minted directly through the Kubernetes <code>TokenRequest</code> API, by users with permission to <code>create</code> the <code>serviceaccounts/token</code> subresource, or by creating a Pod that mounts a projected service account token with the matching audience, by users with permission to create Pods.</p>
+</div>
+<div class="paragraph">
+<p>Enable Kafka authorization to protect the cluster.
+With authorization enabled, only the service accounts of the Strimzi components listed above are granted super user access, and connections authenticated with tokens of other service accounts have no access unless you grant it to them explicitly.
+Also use Kubernetes RBAC to restrict who can create Pods and service account tokens in the namespace of the Kafka cluster, because anyone who can create a Pod that uses one of the service accounts listed above, or request a token for it, can act as the corresponding Strimzi component.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
 <div class="paragraph">
 <p>Service account authentication has the following requirements:</p>
 </div>
@@ -26512,6 +26533,36 @@ cert-manager is responsible for issuing and renewing all end-entity certificates
 </td>
 <td class="content">
 This feature is currently Early Access and is not recommended for production.
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Kafka trusts any certificate signed by the CA that backs the configured <code>Issuer</code> or <code>ClusterIssuer</code>.
+Anyone who can get a certificate signed by that issuer, for example by creating a cert-manager <code>Certificate</code> or <code>CertificateRequest</code> resource that references it, can authenticate to the Kafka cluster:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>When the issuer is used for the Cluster CA, they can authenticate to the internal replication and control plane listeners and act as an internal component of the Kafka cluster, such as a broker, controller, or the Cluster Operator.</p>
+</li>
+<li>
+<p>When the issuer is used for the Clients CA, they can authenticate as any user to all listeners that use <code>tls</code> authentication.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Use dedicated issuers for the Cluster CA and the Clients CA, and restrict who can use them.
+Prefer an <code>Issuer</code> in the namespace of the Kafka cluster over a <code>ClusterIssuer</code>, because a <code>ClusterIssuer</code> can be referenced by <code>Certificate</code> resources in any namespace.
+Use Kubernetes RBAC to limit who can create <code>Certificate</code> and <code>CertificateRequest</code> resources, and consider using a cert-manager approval policy, such as <a href="https://cert-manager.io/docs/policy/approval/approver-policy/" target="_blank" rel="noopener">approver-policy</a>, to control which certificate requests are approved.</p>
+</div>
 </td>
 </tr>
 </table>
@@ -39828,7 +39879,7 @@ For this reason, the buffering is usually supported by persisting message chunks
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-11-09 11:50:39 UTC
+Last updated 2026-11-09 16:35:47 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
