@@ -1455,7 +1455,7 @@ If you deployed Strimzi on Kubernetes, you can create a topic using the <code>Ka
 </div>
 </li>
 <li>
-<p>If the request is successful, the HTTP Bridge returns an <code>offsets</code> array, along with a <code>200</code> code and a <code>content-type</code> header of <code>application/vnd.kafka.v2+json</code>. For each message, the <code>offsets</code> array describes:</p>
+<p>If the request is successful, the HTTP Bridge returns an <code>offsets</code> array, along with a <code>200</code> code and a <code>content-type</code> header of <code>application/vnd.kafka.v2+json</code>. The <code>offsets</code> array contains one entry for each message, in the same order as the messages in the request. For each message, the entry describes:</p>
 <div class="ulist">
 <ul>
 <li>
@@ -1487,6 +1487,53 @@ If you deployed Strimzi on Kubernetes, you can create a topic using the <code>Ka
 </div>
 </li>
 </ul>
+</div>
+</li>
+<li>
+<p>Check the <code>offsets</code> array for messages that failed to be delivered.</p>
+<div class="paragraph">
+<p>The messages in a request are sent to Kafka independently, so some messages can be delivered while others fail.
+For this reason, the HTTP Bridge returns a <code>200</code> code whenever the request is valid and the messages are sent, even if some or all of the messages failed to be delivered.
+Delivery errors are reported for each message in the <code>offsets</code> array, so a <code>200</code> code alone does not mean that every message was delivered.</p>
+</div>
+<div class="paragraph">
+<p>In the <code>offsets</code> array, an entry for a delivered message contains <code>partition</code> and <code>offset</code> properties.
+An entry for a message that failed to be delivered contains <code>error_code</code> and <code>message</code> properties instead.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example response with a failed message</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">#...
+{
+  "offsets":[
+    {
+      "partition":0,
+      "offset":2
+    },
+    {
+      "error_code":500,
+      "message":"The request included a message larger than the max message size the server will accept."
+    }
+  ]
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In this example, the first message was delivered, but the second message was rejected because it exceeded the maximum message size.
+Client applications must check each entry in the <code>offsets</code> array to find out which messages were delivered, and handle or resend the messages that failed.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+If the request itself cannot be processed, for example because the request body is not valid or the HTTP Bridge is overloaded, the HTTP Bridge returns an error code such as <code>422</code> or <code>503</code> instead of <code>200</code>, and no messages are sent.
+If you set the <code>async</code> query parameter to <code>true</code>, the HTTP Bridge returns a <code>204</code> code without an <code>offsets</code> array, so delivery errors are not reported to the client.
+</td>
+</tr>
+</table>
 </div>
 </li>
 </ol>
@@ -5115,13 +5162,8 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Records sent successfully.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Records sent. The response is returned with this status code even if some records failed to be delivered. Check each entry in the offsets array: a delivered record has partition and offset properties, and a record that failed to be delivered has error_code and message properties.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#OffsetRecordSentList"><em>OffsetRecordSentList</em> OffsetRecordSentList</a></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">404</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The specified topic was not found.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Error"><em>Error</em> Error</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">422</p></td>
@@ -5341,13 +5383,8 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Records sent successfully.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Records sent. The response is returned with this status code even if some records failed to be delivered. Check each entry in the offsets array: a delivered record has partition and offset properties, and a record that failed to be delivered has error_code and message properties.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#OffsetRecordSentList"><em>OffsetRecordSentList</em> OffsetRecordSentList</a></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">404</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The specified topic partition was not found.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Error"><em>Error</em> Error</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">422</p></td>
@@ -6746,13 +6783,8 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Records sent successfully.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Records sent. The response is returned with this status code even if some records failed to be delivered. Check each entry in the offsets array: a delivered record has partition and offset properties, and a record that failed to be delivered has error_code and message properties.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#OffsetRecordSentList"><em>OffsetRecordSentList</em> OffsetRecordSentList</a></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">404</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The specified topic was not found.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Error"><em>Error</em> Error</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">422</p></td>
@@ -6972,13 +7004,8 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Records sent successfully.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Records sent. The response is returned with this status code even if some records failed to be delivered. Check each entry in the offsets array: a delivered record has partition and offset properties, and a record that failed to be delivered has error_code and message properties.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#OffsetRecordSentList"><em>OffsetRecordSentList</em> OffsetRecordSentList</a></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">404</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The specified topic partition was not found.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#Error"><em>Error</em> Error</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">422</p></td>
@@ -8297,7 +8324,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </tbody>
 </table>
 <div class="paragraph">
-<p><em>Revised on 2026-11-10 08:09:24 UTC</em></p>
+<p><em>Revised on 2026-11-11 12:08:45 UTC</em></p>
 </div>
 </div>
 </div>
@@ -8306,7 +8333,7 @@ OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://localhost:9411/api/v2/spans <b class="conum
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-11-10 08:08:55 UTC
+Last updated 2026-11-11 12:08:20 UTC
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
