@@ -50,4 +50,14 @@ Enjoy your Apache Kafka cluster, running on Kind!
 
 {% include quickstarts/delete-commands.md %}
 
+### Stopping and deleting the Kind cluster
+
+When you are completely finished and want to remove the Kind cluster:
+
+```shell
+kind delete cluster
+```
+
+This will stop and delete the Kind cluster, freeing up all resources.
+
 {% include quickstarts/next-steps.md %}
