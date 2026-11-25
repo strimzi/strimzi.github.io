@@ -31,3 +31,13 @@ Once it is not used, you can also delete the Kubernetes namespace:
 ```shell
 kubectl delete namespace kafka
 ```
+
+### Stopping and deleting the Kind cluster
+
+When you are completely finished and want to remove the Kind cluster:
+
+```shell
+kind delete cluster
+```
+
+This will stop and delete the Kind cluster, freeing up all resources.
