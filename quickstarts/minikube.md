@@ -34,4 +34,14 @@ Enjoy your Apache Kafka cluster, running on Minikube!
 
 {% include quickstarts/delete-commands.md %}
 
+### Stopping and deleting the Minikube cluster
+
+When you are completely finished and want to remove the Minikube cluster:
+
+```shell
+minikube delete
+```
+
+This will stop and delete the Minikube cluster, freeing up all resources.
+
 {% include quickstarts/next-steps.md %}
